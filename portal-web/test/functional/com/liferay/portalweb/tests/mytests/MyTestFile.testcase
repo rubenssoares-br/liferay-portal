@@ -1,0 +1,83 @@
+@component-name = "portal-web-forms-and-data-lists"
+definition {
+    property testray.main.component.name = "Forms";
+
+    setUp {
+    TestCase.setUpPortalInstance();
+
+    User.firstLoginPG();
+
+    Navigator.openURL();
+    }
+
+    tearDown {
+    User.logoutAndLoginPG(
+    userLoginEmailAddress = "test@liferay.com",
+    userLoginFullName = "Test Test");
+    }
+
+    @description = "Access Portal Global Menu and validate CONFIGURATION string at Control Panel"
+    @priority = "5"
+    test ValidateConfigurationStringAtControlPanel {
+        Click(locator1 = "//button[@data-qa-id='applicationsMenu']");
+        
+        Pause(locator1 = "3000");
+
+        Click(locator1 = "//span[contains(text(),'Control Panel')]");
+
+        Pause(locator1 = "3000");
+
+        AssertElementPresent(locator1 ="//h2[@id='nav_control_panel.configuration']");
+
+        Pause(locator1 = "3000");
+    } 
+
+   /* @description = "Set Screen size to custom and validate values"
+    @priority = "5"
+    test SetScreenSizeAndValidateValues {
+    }*/
+
+    @description = "Access Portal Global Menu and validate changes in SIMULATION with alterations in SCREEN SIZE and validate after all"
+    @priority = "5"
+    test Exercise3PdfAlexCase2 {
+        Click(locator1 = "//span[@id='fehs____']");
+
+        Pause(locator1 = "3000");
+
+        Click(locator1 = "//div[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_com-liferay-product-navigation-simulation-device-internal-application-list-DevicePreviewPanelAppHeader']");
+
+        Pause(locator1 = "3000");
+
+        Click(locator1 = "//button[@class='col-4 size-button text-center d-lg-block d-none selected btn btn-unstyled']");
+
+        Pause(locator1 = "3000");
+
+        Click(locator1 = "//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_height']");
+
+        Pause(locator1 = "3000");
+
+        Type(
+            locator1 = "//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_height']",
+            value1 = ${620});
+        
+        Pause(locator1 = "3000");
+
+        Click(locator1 ="//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_width']");
+
+        Pause(locator1 = "3000");
+       
+        Type(
+            locator1 = "//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_width']",
+            value1 = ${710});
+        
+        Pause(locator1 = "3000");
+
+        Click(locator1 = "//button[contains(text(),'Apply Custom Size')]");
+
+        Pause(locator1 = "3000");
+
+        Click(locator1 = "//body/div[@id='senna_surface1-screen_2']/div[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_simulationPanelId']/div[1]/div[1]/button[1]/span[1]/*[1]");
+    }
+
+       
+}
