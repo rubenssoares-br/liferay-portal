@@ -140,7 +140,7 @@ definition {
             Navigator.openWithAppendToBaseURL(baseurl= "http://localhost:8080", urlAppend= "home");
              
     }   
-        task("Comming back to HOME") {
+        task("Comming back to CONTENT & DATA") {
             ProductMenu.gotoPortlet(
 			category = "Content & Data",
 			portlet = "Forms");
@@ -156,7 +156,7 @@ definition {
             LexiconEntry.viewEntryContent(
             key_rowAny = "Danielzinho",
             key_rowEntry = "18");
-        }
+    }
     
 }
 }
