@@ -10,11 +10,28 @@ definition {
     Navigator.openURL();
     }
 
-    tearDown {
-    User.logoutAndLoginPG(
-    userLoginEmailAddress = "test@liferay.com",
-    userLoginFullName = "Test Test");
-    }
+	tearDown {
+		var testPortalInstance = PropsUtil.get("test.portal.instance");
+
+		if (${testPortalInstance} == "true") {
+			PortalInstances.tearDownCP();
+		}
+		else {
+			Navigator.openURL();
+
+			ProductMenu.gotoPortlet(
+				category = "Content & Data",
+				portlet = "Forms");
+
+			FormsAdmin.teardownForms();
+
+			Navigator.gotoNavItem(navItem = "Element Sets");
+
+			FormsAdmin.teardownElementSets();
+
+			PagesAdmin.tearDownCP();
+		}
+	}
 
     @description = "Access Portal Global Menu and validate CONFIGURATION string at Control Panel"
     @priority = "5"
@@ -39,45 +56,108 @@ definition {
 
     @description = "Access Portal Global Menu and validate changes in SIMULATION with alterations in SCREEN SIZE and validate after all"
     @priority = "5"
-    test Exercise3PdfAlexCase2 {
-        Click(locator1 = "//span[@id='fehs____']");
-
-        Pause(locator1 = "3000");
-
-        Click(locator1 = "//div[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_com-liferay-product-navigation-simulation-device-internal-application-list-DevicePreviewPanelAppHeader']");
-
-        Pause(locator1 = "3000");
-
-        Click(locator1 = "//button[@class='col-4 size-button text-center d-lg-block d-none selected btn btn-unstyled']");
-
-        Pause(locator1 = "3000");
-
-        Click(locator1 = "//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_height']");
-
-        Pause(locator1 = "3000");
-
-        Type(
-            locator1 = "//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_height']",
-            value1 = ${620});
-        
-        Pause(locator1 = "3000");
-
-        Click(locator1 ="//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_width']");
-
-        Pause(locator1 = "3000");
-       
-        Type(
-            locator1 = "//input[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_width']",
-            value1 = ${710});
-        
-        Pause(locator1 = "3000");
-
-        Click(locator1 = "//button[contains(text(),'Apply Custom Size')]");
-
-        Pause(locator1 = "3000");
-
-        Click(locator1 = "//body/div[@id='senna_surface1-screen_2']/div[@id='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_simulationPanelId']/div[1]/div[1]/button[1]/span[1]/*[1]");
+    test CreatingNewForm {
+        task("Going to Forms") {
+            FormsAdmin.addForm();
     }
+        task("Editing Title") {
+            Form.editName(formName = "Liferay's Forms");
+    }
+        task("Adding and editing Text Field") {
+            Form.addTextField();
+   
+            FormViewBuilder.editFieldLabel(
+			fieldLabel = "Text",
+			label = "Full Name");
 
-       
+            Form.closeSidebar();
+ 
+    }
+        task("Adding and editing Numeric Field") {
+            Form.gotoAddField(
+			fieldPositionNumber = 1,
+			fieldType = "Numeric");
+
+            Form.editFieldLabelMetal(fieldValue= "Age");
+            
+    }
+        task("Translate to Portuguese") {
+            Form.addTranslation(localizedLanguage= "Portuguese (Brazil)");
+            Form.save();
+    }
+        task("Editing TITLE, FULL NAME and AGE") {
+            Form.selectTranslation(localizedLanguage= "Portuguese (Brazil)");
+        
+            Form.editName(formName = "Forms da Liferay");
+
+            FormViewBuilder.editFieldLabel(
+            fieldLabel = "Full Name",
+            label = "Nome Completo");
+           
+            FormViewBuilder.editFieldLabel(
+            fieldLabel = "Age",
+            label = "Idade");
+
+            Form.save();
+            Form.publishForm();
+    }
+        task("Going to Published Form") {
+            FormsAdminNavigator.gotoPublishedForm();
+    }
+        task("New information on published forms") {
+            FormViewBuilder.editText(
+            fieldName = "Full Name",
+            fieldValue = "Daniel");
+
+            FormViewBuilder.editText(
+            fieldName = "Age",
+            fieldValue = "17");
+
+            FormPortlet.clickSubmit();
+
+		    Form.submitAgain();
+
+    }
+        task("Changing language") {
+            FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "en-US");
+
+            FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "português-Brasil");
+    }
+        task("New information on published forms") {
+            FormViewBuilder.editText(
+            fieldName = "Nome Completo",
+            fieldValue = "Danielzinho");
+
+            FormViewBuilder.editText(
+            fieldName = "Idade",
+            fieldValue = "18");
+
+            FormPortlet.clickSubmit();
+
+		    Form.submitAgain();
+    }
+        task("Comming back to HOME") {
+            Navigator.openWithAppendToBaseURL(baseurl= "http://localhost:8080", urlAppend= "home");
+             
+    }   
+        task("Comming back to HOME") {
+            ProductMenu.gotoPortlet(
+			category = "Content & Data",
+			portlet = "Forms");
+    }   
+        task("Opening View Entries") {
+            FormsAdminNavigator.gotoViewEntries();
+    }
+        task("Validate if is visible") {
+            LexiconEntry.viewEntryContent(
+            key_rowAny = "Daniel",
+            key_rowEntry = "17");
+
+            LexiconEntry.viewEntryContent(
+            key_rowAny = "Danielzinho",
+            key_rowEntry = "18");
+        }
+    
 }
+}
+
