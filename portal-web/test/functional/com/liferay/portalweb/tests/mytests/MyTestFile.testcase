@@ -1,14 +1,15 @@
 @component-name = "portal-web-forms-and-data-lists"
 definition {
-    property testray.main.component.name = "Forms";
 
-    setUp {
-    TestCase.setUpPortalInstance();
+	property testray.main.component.name = "Forms";
 
-    User.firstLoginPG();
+	setUp {
+		TestCase.setUpPortalInstance();
 
-    Navigator.openURL();
-    }
+		User.firstLoginPG();
+
+		Navigator.openURL();
+	}
 
 	tearDown {
 		var testPortalInstance = PropsUtil.get("test.portal.instance");
@@ -33,131 +34,130 @@ definition {
 		}
 	}
 
-    @description = "Access Portal Global Menu and validate CONFIGURATION string at Control Panel"
-    @priority = "5"
-    test ValidateConfigurationStringAtControlPanel {
-        Click(locator1 = "//button[@data-qa-id='applicationsMenu']");
-        
-        Pause(locator1 = "3000");
+	@description = "Access FORM in LPS and MAKE a new form with TEXT FIELD and NUMERIC FIELD, change TEXT FIELD NAME to FULL NAME and NUMERIC FIELD to AGE, so ADD Portuguese language and change FULL NAME to NOME COMPLETO and AGE to IDADE. Publish and go insert some informations in the forms, name and age, click submit, change the language to pt-BR and put name and age, click submit and submit again. GO to view entries and validate if what you put still there"
+	@priority = 5
+	test CreatingNewForm {
+		task ("Going to Forms") {
+			FormsAdmin.addForm();
+		}
 
-        Click(locator1 = "//span[contains(text(),'Control Panel')]");
+		task ("Editing Title") {
+			Form.editName(formName = "Liferay's Forms");
+		}
 
-        Pause(locator1 = "3000");
+		task ("Adding and editing Text Field") {
+			Form.addTextField();
 
-        AssertElementPresent(locator1 ="//h2[@id='nav_control_panel.configuration']");
+			FormViewBuilder.editFieldLabel(
+				fieldLabel = "Text",
+				label = "Full Name");
 
-        Pause(locator1 = "3000");
-    } 
+			Form.closeSidebar();
+		}
 
-   /* @description = "Set Screen size to custom and validate values"
-    @priority = "5"
-    test SetScreenSizeAndValidateValues {
-    }*/
+		task ("Adding and editing Numeric Field") {
+			Form.gotoAddField(
+				fieldPositionNumber = 1,
+				fieldType = "Numeric");
 
-    @description = "Access Portal Global Menu and validate changes in SIMULATION with alterations in SCREEN SIZE and validate after all"
-    @priority = "5"
-    test CreatingNewForm {
-        task("Going to Forms") {
-            FormsAdmin.addForm();
-    }
-        task("Editing Title") {
-            Form.editName(formName = "Liferay's Forms");
-    }
-        task("Adding and editing Text Field") {
-            Form.addTextField();
-   
-            FormViewBuilder.editFieldLabel(
-			fieldLabel = "Text",
-			label = "Full Name");
+			Form.editFieldLabelMetal(fieldValue = "Age");
+		}
 
-            Form.closeSidebar();
- 
-    }
-        task("Adding and editing Numeric Field") {
-            Form.gotoAddField(
-			fieldPositionNumber = 1,
-			fieldType = "Numeric");
+		task ("Translate to Portuguese") {
+			Form.addTranslation(localizedLanguage = "Portuguese (Brazil)");
 
-            Form.editFieldLabelMetal(fieldValue= "Age");
-            
-    }
-        task("Translate to Portuguese") {
-            Form.addTranslation(localizedLanguage= "Portuguese (Brazil)");
-            Form.save();
-    }
-        task("Editing TITLE, FULL NAME and AGE") {
-            Form.selectTranslation(localizedLanguage= "Portuguese (Brazil)");
-        
-            Form.editName(formName = "Forms da Liferay");
+			Form.save();
+		}
 
-            FormViewBuilder.editFieldLabel(
-            fieldLabel = "Full Name",
-            label = "Nome Completo");
-           
-            FormViewBuilder.editFieldLabel(
-            fieldLabel = "Age",
-            label = "Idade");
+		task ("Editing TITLE, FULL NAME and AGE") {
+			Form.selectTranslation(localizedLanguage = "Portuguese (Brazil)");
 
-            Form.save();
-            Form.publishForm();
-    }
-        task("Going to Published Form") {
-            FormsAdminNavigator.gotoPublishedForm();
-    }
-        task("New information on published forms") {
-            FormViewBuilder.editText(
-            fieldName = "Full Name",
-            fieldValue = "Daniel");
+			Form.editName(formName = "Forms da Liferay");
 
-            FormViewBuilder.editText(
-            fieldName = "Age",
-            fieldValue = "17");
+			FormViewBuilder.editFieldLabel(
+				fieldLabel = "Full Name",
+				label = "Nome Completo");
 
-            FormPortlet.clickSubmit();
+			FormViewBuilder.editFieldLabel(
+				fieldLabel = "Age",
+				label = "Idade");
 
-		    Form.submitAgain();
+			Form.save();
 
-    }
-        task("Changing language") {
-            FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "en-US");
+			Form.publishForm();
+		}
 
-            FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "português-Brasil");
-    }
-        task("New information on published forms") {
-            FormViewBuilder.editText(
-            fieldName = "Nome Completo",
-            fieldValue = "Danielzinho");
+		task ("Going to Published Form") {
+			FormsAdminNavigator.gotoPublishedForm();
+		}
 
-            FormViewBuilder.editText(
-            fieldName = "Idade",
-            fieldValue = "18");
+		task ("New information on published forms") {
+			FormViewBuilder.editText(
+				fieldName = "Full Name",
+				fieldValue = "Daniel");
 
-            FormPortlet.clickSubmit();
+			FormViewBuilder.editText(
+				fieldName = "Age",
+				fieldValue = 17);
 
-		    Form.submitAgain();
-    }
-        task("Comming back to HOME") {
-            Navigator.openWithAppendToBaseURL(baseurl= "http://localhost:8080", urlAppend= "home");
-             
-    }   
-        task("Comming back to CONTENT & DATA") {
-            ProductMenu.gotoPortlet(
-			category = "Content & Data",
-			portlet = "Forms");
-    }   
-        task("Opening View Entries") {
-            FormsAdminNavigator.gotoViewEntries();
-    }
-        task("Validate if is visible") {
-            LexiconEntry.viewEntryContent(
-            key_rowAny = "Daniel",
-            key_rowEntry = "17");
+			FormPortlet.clickSubmit();
 
-            LexiconEntry.viewEntryContent(
-            key_rowAny = "Danielzinho",
-            key_rowEntry = "18");
-    }
-    
+			Form.submitAgain();
+		}
+
+		task ("Changing language") {
+			FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "en-US");
+
+			FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "português-Brasil");
+		}
+
+		task ("New information on published forms") {
+			FormViewBuilder.editText(
+				fieldName = "Nome Completo",
+				fieldValue = "Danielzinho");
+
+			FormViewBuilder.editText(
+				fieldName = "Idade",
+				fieldValue = 18);
+
+			FormPortlet.clickSubmit();
+
+			Form.submitAgain();
+		}
+
+		task ("Comming back to HOME") {
+			Navigator.openURL();
+		}
+
+		task ("Comming back to CONTENT & DATA") {
+			ProductMenu.gotoPortlet(
+				category = "Content & Data",
+				portlet = "Forms");
+		}
+
+		task ("Opening View Entries") {
+			FormsAdminNavigator.gotoViewEntries();
+		}
+
+		task ("Validate if is visible") {
+			LexiconEntry.viewEntryContent(
+				key_rowAny = "Daniel",
+				key_rowEntry = 17);
+
+			LexiconEntry.viewEntryContent(
+				key_rowAny = "Danielzinho",
+				key_rowEntry = 18);
+		}
+	}
+
+	@description = "Access Portal Global Menu and validate CONFIGURATION string at Control Panel"
+	@priority = 5
+	test ValidateConfigurationStringAtControlPanel {
+		ApplicationsMenuHelper.openApplicationsMenu();
+
+		ApplicationsMenu.gotoPanel(panel = "Control Panel");
+
+		AssertElementPresent(locator1 = "MyTestFile#CONTROL_PANEL");
+	}
+
 }
-}
-
