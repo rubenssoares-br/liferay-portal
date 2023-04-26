@@ -34,18 +34,18 @@ definition {
 		}
 	}
 
-	@description = "Access FORM in LPS and MAKE a new form with TEXT FIELD and NUMERIC FIELD, change TEXT FIELD NAME to FULL NAME and NUMERIC FIELD to AGE, so ADD Portuguese language and change FULL NAME to NOME COMPLETO and AGE to IDADE. Publish and go insert some informations in the forms, name and age, click submit, change the language to pt-BR and put name and age, click submit and submit again. GO to view entries and validate if what you put still there"
+	@description = "LPS 0000 SF - Create a new form and check if the change still there"
 	@priority = 5
 	test CreatingNewForm {
-		task ("Going to Forms") {
+		task ("When the user creates a new form") {
 			FormsAdmin.addForm();
 		}
 
-		task ("Editing Title") {
+		task ("Then change the title") {
 			Form.editName(formName = "Liferay's Forms");
 		}
 
-		task ("Adding and editing Text Field") {
+		task ("And add and edit Text Field") {
 			Form.addTextField();
 
 			FormViewBuilder.editFieldLabel(
@@ -55,7 +55,7 @@ definition {
 			Form.closeSidebar();
 		}
 
-		task ("Adding and editing Numeric Field") {
+		task ("And add and edit Numeric Field") {
 			Form.gotoAddField(
 				fieldPositionNumber = 1,
 				fieldType = "Numeric");
@@ -63,13 +63,13 @@ definition {
 			Form.editFieldLabelMetal(fieldValue = "Age");
 		}
 
-		task ("Translate to Portuguese") {
+		task ("Then he needs translate the form to Portuguese") {
 			Form.addTranslation(localizedLanguage = "Portuguese (Brazil)");
 
 			Form.save();
 		}
 
-		task ("Editing TITLE, FULL NAME and AGE") {
+		task ("And edit TITLE, FULL NAME and AGE") {
 			Form.selectTranslation(localizedLanguage = "Portuguese (Brazil)");
 
 			Form.editName(formName = "Forms da Liferay");
@@ -87,11 +87,11 @@ definition {
 			Form.publishForm();
 		}
 
-		task ("Going to Published Form") {
+		task ("Given publish, he goes Published Form") {
 			FormsAdminNavigator.gotoPublishedForm();
 		}
 
-		task ("New information on published forms") {
+		task ("And add information in the english form") {
 			FormViewBuilder.editText(
 				fieldName = "Full Name",
 				fieldValue = "Daniel");
@@ -105,13 +105,13 @@ definition {
 			Form.submitAgain();
 		}
 
-		task ("Changing language") {
+		task ("Then he changes the languag to portuguese language") {
 			FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "en-US");
 
 			FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "português-Brasil");
 		}
 
-		task ("New information on published forms") {
+		task ("Then he put some informations in portuguese forms") {
 			FormViewBuilder.editText(
 				fieldName = "Nome Completo",
 				fieldValue = "Danielzinho");
@@ -125,21 +125,21 @@ definition {
 			Form.submitAgain();
 		}
 
-		task ("Comming back to HOME") {
+		task ("Given the information. He goes back to home") {
 			Navigator.openURL();
 		}
 
-		task ("Comming back to CONTENT & DATA") {
+		task ("And goes back to CONTENT & DATA") {
 			ProductMenu.gotoPortlet(
 				category = "Content & Data",
 				portlet = "Forms");
 		}
 
-		task ("Opening View Entries") {
+		task ("Then open View Entries") {
 			FormsAdminNavigator.gotoViewEntries();
 		}
 
-		task ("Validate if is visible") {
+		task ("And validate if is visible") {
 			LexiconEntry.viewEntryContent(
 				key_rowAny = "Daniel",
 				key_rowEntry = 17);
@@ -150,14 +150,20 @@ definition {
 		}
 	}
 
-	@description = "Access Portal Global Menu and validate CONFIGURATION string at Control Panel"
+	@description = "LPS 0001 - Access Portal Global Menu and validate CONFIGURATION string at Control Panel"
 	@priority = 5
 	test ValidateConfigurationStringAtControlPanel {
-		ApplicationsMenuHelper.openApplicationsMenu();
+		task ("Given LPS open, the user goes to Aplications Menu") {
+			ApplicationsMenuHelper.openApplicationsMenu();
+		}
 
-		ApplicationsMenu.gotoPanel(panel = "Control Panel");
+		task ("When is open he goes to Control Panel") {
+			ApplicationsMenu.gotoPanel(panel = "Control Panel");
+		}
 
-		AssertElementPresent(locator1 = "MyTestFile#CONTROL_PANEL");
+		task ("Then assert if Control Panel is visible") {
+			AssertElementPresent(locator1 = "MyTestFile#CONTROL_PANEL");
+		}
 	}
 
 }
