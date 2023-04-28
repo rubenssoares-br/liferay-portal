@@ -1,0 +1,167 @@
+@component-name = "portal-web-forms-and-data-lists"
+definition {
+property testray.main.component.name = "Forms";
+    setUp {
+        TestCase.setUpPortalInstance();
+        User.firstLoginPG();
+        Navigator.openURL();
+
+}
+
+tearDown {
+
+    User.logoutAndLoginPG(
+        userLoginEmailAddress = "test@liferay.com",
+        userLoginFullName = "Test Test");
+}
+
+@description = "Access Portal Global Menu and validate CONFIGURATION string at ControlPanel"
+@priority = "5"
+test ValidateConfigurationStringAtControlPanel {
+        Click(locator1 = "//button[@data-qa-id='applicationsMenu']");
+
+        Click(locator1 = "//li[@id='_com_liferay_product_navigation_applications_menu_web_internal_portlet_ProductNavigationApplicationsMenuPortlet_tab_2']");
+
+        Pause(locator1 = "6000");
+
+        AssertElementPresent(locator1 = "//h2[@id='nav_control_panel.configuration']");
+
+}
+
+@description = "Set Screen size to custom and validate values"
+@priority = "5"
+test SetScreenSizeAndValidateValues {
+    
+    Click(
+        locator1 = "//button[@data-qa-id='simulation']"
+        );
+
+    Click(
+        locator1 = "//button[contains (@class, 'btn btn-unstyled') and (@aria-controls='_com_liferay_product_navigation_simulation_web_portlet_SimulationPortlet_customSizeSelector')]"
+        );
+
+    Click(
+        locator1 = "//input[contains (@id, 'SimulationPortlet_height')]"
+        );
+
+    Type(
+        locator1 = "//input[contains (@id, 'SimulationPortlet_height')]",
+        value1 = "1920"
+    );
+
+    Click(
+        locator1 = "//input[contains (@id, 'SimulationPortlet_width')]"
+    );
+
+    Type(
+        locator1 = "//input[contains (@id, 'SimulationPortlet_width')]",
+        value1 = "1080"
+    );
+
+    Click(
+        locator1 = "//button[@data-qa-id='simulation']"
+    );
+
+}
+
+@description = "Form created and translated from English to Portuguese. Then publish it in each language"
+@priority = "5"
+test CreatedAndTranslatedForm {
+    property portal.acceptance = "true";
+
+    task ("Created and Edit Form") {
+        FormsAdmin.addForm();
+
+        Form.editName(formName = "Form 1");
+
+        Form.gotoAddField(
+			fieldPositionNumber = 0,
+			fieldType = "Text");
+        
+        Form.editFieldLabelMetal(fieldValue = "Full Name");
+
+        Form.closeSidebar();
+
+        Form.gotoAddField(
+            fieldPositionNumber = 1,
+            fieldType = "Numeric");
+
+        Form.editFieldLabelMetal(fieldValue = "Age");
+
+        Form.closeSidebar();
+
+
+        Form.addTranslation(localizedLanguage = "Portuguese (Brazil)");
+
+        FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "Portuguese (Brazil)");
+
+        FormsAdminNavigator.gotoEditField(fieldName = "Text");
+
+        Form.editFieldLabelMetal(fieldValue = "Nome Completo");
+
+        Form.closeSidebar();
+
+        FormsAdminNavigator.gotoEditField(fieldName = "Numeric");
+
+        Form.editFieldLabelMetal(fieldValue = "Idade");
+
+        FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "English (United States)");
+
+        Form.publishForm();
+
+        FormsAdminNavigator.gotoPublishedForm();
+
+        FormViewBuilder.editText(
+			fieldName = "Full Name",
+			fieldValue = "Name 1");
+
+        FormViewBuilder.editText(
+			fieldName = "Age",
+			fieldValue = "1");
+
+        FormPortlet.submitSuccessfully();
+
+        Form.submitAgain();
+
+        Pause(locator1 = 5000);
+
+        FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "en-US");
+
+        FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "português-Brasil");
+
+        FormViewBuilder.editText(
+			fieldName = "Nome Completo",
+			fieldValue = "Name 2");
+
+        FormViewBuilder.editText(
+			fieldName = "Idade",
+			fieldValue = "2");
+
+        FormPortlet.submitSuccessfully();
+
+        FormsAdmin.openFormsAdmin(siteURLKey = "guest");
+
+        FormsAdminNavigator.gotoViewEntries();
+
+        FormsAdmin.viewFormTableEntry(
+			fieldLabel = "Status",
+			fieldValue = "Approved");
+
+        FormsAdmin.viewFormTableEntry(
+			fieldLabel = "Full Name",
+			fieldValue = "Name 1");
+
+        FormsAdmin.viewFormTableEntry(
+			fieldLabel = "Full Name",
+			fieldValue = "Name 2");
+
+        FormsAdmin.viewFormTableEntry(
+			fieldLabel = "Age",
+			fieldValue = "1");
+
+            FormsAdmin.viewFormTableEntry(
+			fieldLabel = "Age",
+			fieldValue = "2");
+    }
+}
+}
