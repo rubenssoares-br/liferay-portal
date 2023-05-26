@@ -1,0 +1,41 @@
+<html>
+<head>
+<title>mytest</title>
+</head>
+
+<body>
+<table border="1" cellpadding="1" cellspacing="1">
+<thead>
+<tr><td rowspan="1" colspan="3">mytest</td></tr>
+</thead>
+
+<tbody>
+
+
+<tr>
+    <td>CLOSE_MENU</td>
+    <td>//button[@data-qa-id='productMenu' and @aria-selected='false']</td>
+    <td></td>
+</tr>
+<tr>
+    <td>OPEN_MENU</td>
+    <td>//button[@data-qa-id='productMenu' and @aria-selected='true']</td>
+    <td></td>
+</tr>
+<tr>
+    <td>CONTENT_DATA</td>
+    <td>//a[@id='panel-manage-site_administration_content-link']</td>
+    <td></td>
+</tr>
+<tr>
+    <td>FORMS_WAY</td>
+    <td>//a[@id='_com_liferay_product_navigation_product_menu_web_portlet_ProductMenuPortlet_portlet_com_liferay_dynamic_data_mapping_form_web_portlet_DDMFormAdminPortlet']</td>
+    <td></td>
+</tr>
+
+
+
+</tbody>
+</table>
+</body>
+</html>

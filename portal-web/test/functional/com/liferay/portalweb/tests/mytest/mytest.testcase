@@ -1,0 +1,133 @@
+@component-name = "portal-web-forms-and-data-lists"
+definition {
+   property testray.main.component.name = "Forms";
+
+   setUp {
+      TestCase.setUpPortalInstance();
+      
+      User.firstLoginPG();
+      
+      Navigator.openURL();
+
+}
+
+tearDown {
+   User.logoutAndLoginPG(
+      userLoginEmailAddress = "test@liferay.com",
+      userLoginFullName = "Test Test");
+
+}
+
+   @description = "create a form with the most patient of my hearth"
+   @priority = "5"
+   test CreateAForm{
+
+     mytest.buttonMenu();
+      
+      mytest.contentData(); 
+
+      mytest.buttonForm();
+
+   }
+
+   @description = "automatic test from google drive"
+   priority = "5"
+   test NewFormTests{
+
+
+      FormsAdmin.addForm();
+
+      Form.editName();
+
+      Form.editDescription();
+
+      Form.gotoAddField(
+         fieldPositionNumber = 0,
+			fieldType = "Text",
+			formPageNumber = 0);
+
+      Form.editFieldLabelMetal(fieldValue = "Full Name");
+
+      Form.closeSidebar();
+
+      Form.gotoAddField(
+         fieldPositionNumber = 1,
+			fieldType = "Numeric",
+			formPageNumber = 0);
+
+      Form.editFieldLabelMetal(fieldValue = "Age");
+
+
+      Form.addTranslation(localizedLanguage = "Portuguese (Brazil)");
+
+      Click(
+			key_name = "Full Name",            
+			locator1 = "FormFields#FIELD_TARGET_LABEL");
+                              
+		Form.editFieldLabelMetal(fieldValue = "Nome Completo");
+
+      Click(
+			key_name = "Age",            
+			locator1 = "FormFields#FIELD_TARGET_LABEL");
+                              
+		Form.editFieldLabelMetal(fieldValue = "Idade");
+
+      Form.save();
+
+		Form.publishForm();
+
+		FormsAdminNavigator.gotoPublishedForm();
+
+      FormViewBuilder.editText(
+			fieldName = "Full Name",
+			fieldValue = "Macaco");
+
+      FormViewBuilder.editText(
+			fieldName = "Age",
+			fieldValue = "321");
+
+      FormPortlet.submit();
+
+      Form.submitAgain();
+
+      FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "en-US");
+
+		FormViewBuilder.changeAppLanguageTo(changeAppLanguageTo = "português-Brasil");
+
+      FormViewBuilder.editText(
+			fieldName = "Nome Completo",
+			fieldValue = "cofcof");
+
+      FormViewBuilder.editText(
+			fieldName = "Idade",
+			fieldValue = "123");
+
+      FormPortlet.submit();
+
+      Navigator.openURL();
+
+		ProductMenu.gotoPortlet(
+			category = "Content & Data",
+			portlet = "Forms");
+
+      FormsAdminNavigator.gotoViewEntries();
+
+      task("Validate if is visible") {
+            LexiconEntry.viewEntryContent(
+            key_rowAny = "Macaco",
+            key_rowEntry = "321");
+            LexiconEntry.viewEntryContent(
+            key_rowAny = "cofcof",
+            key_rowEntry = "123");
+        }
+
+
+   }
+
+//@description = "Set Screen size to custom and validate values"
+//@priority = "5"
+//test SetScreenSizeAndValidateValues {
+
+ //  }
+
+}
