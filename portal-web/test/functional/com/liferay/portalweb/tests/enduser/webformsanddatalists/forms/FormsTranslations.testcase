@@ -434,7 +434,7 @@ definition {
 			fieldName = "Text ES",
 			fieldValue = "Text ES");
 
-		FormPortlet.submit();
+			
 
 		Alert.viewSuccessMessage();
 
@@ -835,7 +835,7 @@ definition {
 		Form.editFieldLabelMetal(fieldValue = "Text ES");
 
 		Form.save();
-
+		
 		Form.publishForm();
 
 		FormsAdminNavigator.gotoPublishedForm();

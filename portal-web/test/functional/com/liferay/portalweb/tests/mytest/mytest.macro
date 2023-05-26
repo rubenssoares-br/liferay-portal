@@ -1,0 +1,22 @@
+definition{
+
+macro buttonMenu{
+
+if (IsElementPresent(locator1 = "mytest#OPEN_MENU")) {
+			AssertElementPresent(locator1 = "mytest#OPEN_MENU");
+		}
+		else if (IsElementPresent(locator1 = "mytest#CLOSE_MENU")) {
+			Click(locator1 = "mytest#CLOSE_MENU");
+		}
+}
+
+macro contentData{
+    Click(locator1 = "mytest#CONTENT_DATA");
+
+}
+
+macro buttonForm{
+    Click(locator1 = "mytest#FORMS_WAY");
+}
+
+}
