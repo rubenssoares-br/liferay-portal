@@ -14,14 +14,6 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 public class UserNotificationEventTimestampComparator
 	extends OrderByComparator<UserNotificationEvent> {
 
-	public static final String ORDER_BY_ASC =
-		"UserNotificationEvent.timestamp ASC";
-
-	public static final String ORDER_BY_DESC =
-		"UserNotificationEvent.timestamp DESC";
-
-	public static final String[] ORDER_BY_FIELDS = {"timestamp"};
-
 	public UserNotificationEventTimestampComparator(boolean ascending) {
 		_ascending = ascending;
 	}
@@ -45,16 +37,24 @@ public class UserNotificationEventTimestampComparator
 	@Override
 	public String getOrderBy() {
 		if (_ascending) {
-			return ORDER_BY_ASC;
+			return _ORDER_BY_ASC;
 		}
 
-		return ORDER_BY_DESC;
+		return _ORDER_BY_DESC;
 	}
 
 	@Override
 	public String[] getOrderByFields() {
-		return ORDER_BY_FIELDS;
+		return _ORDER_BY_FIELDS;
 	}
+
+	private static final String _ORDER_BY_ASC =
+		"UserNotificationEvent.timestamp ASC";
+
+	private static final String _ORDER_BY_DESC =
+		"UserNotificationEvent.timestamp DESC";
+
+	private static final String[] _ORDER_BY_FIELDS = {"timestamp"};
 
 	private final boolean _ascending;
 
