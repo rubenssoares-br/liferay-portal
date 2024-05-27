@@ -14,14 +14,6 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 public class UserNotificationEventUserNotificationEventIdOrderByComparator
 	extends OrderByComparator<UserNotificationEvent> {
 
-	public static final String ORDER_BY_ASC =
-		"UserNotificationEvent.userNotificationEventId ASC";
-
-	public static final String ORDER_BY_DESC =
-		"UserNotificationEvent.userNotificationEventId DESC";
-
-	public static final String[] ORDER_BY_FIELDS = {"userNotificationEventId"};
-
 	public UserNotificationEventUserNotificationEventIdOrderByComparator(
 		boolean ascending) {
 
@@ -47,16 +39,26 @@ public class UserNotificationEventUserNotificationEventIdOrderByComparator
 	@Override
 	public String getOrderBy() {
 		if (_ascending) {
-			return ORDER_BY_ASC;
+			return _ORDER_BY_ASC;
 		}
 
-		return ORDER_BY_DESC;
+		return _ORDER_BY_DESC;
 	}
 
 	@Override
 	public String[] getOrderByFields() {
-		return ORDER_BY_FIELDS;
+		return _ORDER_BY_FIELDS;
 	}
+
+	private static final String _ORDER_BY_ASC =
+		"UserNotificationEvent.userNotificationEventId ASC";
+
+	private static final String _ORDER_BY_DESC =
+		"UserNotificationEvent.userNotificationEventId DESC";
+
+	private static final String[] _ORDER_BY_FIELDS = {
+		"userNotificationEventId"
+	};
 
 	private final boolean _ascending;
 
