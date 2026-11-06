@@ -6,6 +6,7 @@
 package com.liferay.portal.template.velocity.internal;
 
 import com.liferay.petra.io.unsync.UnsyncStringWriter;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.template.StringTemplateResource;
@@ -15,9 +16,7 @@ import com.liferay.portal.kernel.template.TemplateException;
 import com.liferay.portal.kernel.template.TemplateResource;
 import com.liferay.portal.kernel.template.TemplateResourceCache;
 import com.liferay.portal.kernel.template.TemplateResourceLoader;
-import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.kernel.util.JavaDetector;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.template.ClassLoaderResourceParser;
@@ -25,6 +24,8 @@ import com.liferay.portal.template.TemplateResourceParser;
 import com.liferay.portal.template.engine.TemplateContextHelper;
 import com.liferay.portal.template.velocity.configuration.VelocityEngineConfiguration;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -35,8 +36,6 @@ import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.collections.ExtendedProperties;
 import org.apache.velocity.app.VelocityEngine;
@@ -111,9 +110,7 @@ public class VelocityTemplateTest {
 
 		extendedProperties.setProperty(
 			RuntimeConstants.INTROSPECTOR_RESTRICT_CLASSES,
-			StringUtil.merge(
-				_filterRestrictedClasses(
-					velocityEngineConfiguration.restrictedClasses())));
+			StringUtil.merge(velocityEngineConfiguration.restrictedClasses()));
 		extendedProperties.setProperty(
 			RuntimeConstants.INTROSPECTOR_RESTRICT_PACKAGES,
 			StringUtil.merge(velocityEngineConfiguration.restrictedPackages()));
@@ -369,17 +366,23 @@ public class VelocityTemplateTest {
 		Assert.assertEquals(_TEST_VALUE, result);
 	}
 
-	private String[] _filterRestrictedClasses(String[] restrictedClasses) {
-		if (JavaDetector.isJDK21()) {
+	@Test
+	public void testProcessTemplate9() throws Exception {
+		Template template = new VelocityTemplate(
+			new MockTemplateResource(_TEMPLATE_FILE_NAME), null,
+			_velocityEngine, _templateContextHelper, _templateResourceCache,
+			true);
 
-			// TODO: remove java.lang.Compiler from
-			// VelocityEngineConfiguration.restrictedClasses() and this method
-			// once fully upgraded to JDK21
+		try (SafeCloseable safeCloseable =
+				RestrictedTemplateThreadLocal.setRestrictedWithSafeCloseable(
+					true)) {
 
-			return ArrayUtil.remove(restrictedClasses, "java.lang.Compiler");
+			template.processTemplate(new UnsyncStringWriter());
+
+			Assert.assertTrue(RestrictedTemplateThreadLocal.isRestricted());
 		}
 
-		return restrictedClasses;
+		Assert.assertFalse(RestrictedTemplateThreadLocal.isRestricted());
 	}
 
 	private static final String _TEMPLATE_FILE_NAME = "test.vm";

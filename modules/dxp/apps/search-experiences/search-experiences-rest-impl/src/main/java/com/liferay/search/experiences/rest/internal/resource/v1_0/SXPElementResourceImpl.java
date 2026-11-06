@@ -42,14 +42,14 @@ import com.liferay.search.experiences.rest.resource.v1_0.SXPElementResource;
 import com.liferay.search.experiences.service.SXPElementLocalService;
 import com.liferay.search.experiences.service.SXPElementService;
 
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -438,24 +438,22 @@ public class SXPElementResourceImpl extends BaseSXPElementResourceImpl {
 	private void _validateTitleI18n(Map<String, String> titleI18n)
 		throws Exception {
 
-		if (!titleI18n.containsKey(
-				LocaleUtil.getDefault(
-				).toString()) &&
-			!titleI18n.containsKey(
-				LocaleUtil.toBCP47LanguageId(LocaleUtil.getDefault()))) {
+		Locale locale = LocaleUtil.getDefault();
+
+		if (!titleI18n.containsKey(locale.toString()) &&
+			!titleI18n.containsKey(LocaleUtil.toBCP47LanguageId(locale))) {
 
 			throw new SXPElementTitleException(
 				"The title for the default locale " +
-					LocaleUtil.toLanguageId(LocaleUtil.getDefault()) +
-						" cannot be blank");
+					LocaleUtil.toLanguageId(locale) + " cannot be blank");
 		}
 	}
 
+	private static final SXPElementEntityModel _entityEntityModel =
+		new SXPElementEntityModel();
+
 	@Reference
 	private DTOConverterRegistry _dtoConverterRegistry;
-
-	private final SXPElementEntityModel _entityEntityModel =
-		new SXPElementEntityModel();
 
 	@Reference
 	private JSONFactory _jsonFactory;

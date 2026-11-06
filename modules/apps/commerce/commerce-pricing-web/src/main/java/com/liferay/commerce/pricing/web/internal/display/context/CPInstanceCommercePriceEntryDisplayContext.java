@@ -8,7 +8,6 @@ package com.liferay.commerce.pricing.web.internal.display.context;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.currency.model.CommerceMoney;
 import com.liferay.commerce.currency.util.CommercePriceFormatter;
-import com.liferay.commerce.item.selector.criterion.CommercePriceListItemSelectorCriterion;
 import com.liferay.commerce.price.list.constants.CommercePriceListConstants;
 import com.liferay.commerce.price.list.model.CommercePriceEntry;
 import com.liferay.commerce.price.list.model.CommercePriceList;
@@ -23,39 +22,28 @@ import com.liferay.commerce.product.portlet.action.ActionHelper;
 import com.liferay.commerce.product.util.comparator.CPInstanceUnitOfMeasurePriorityComparator;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenu;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.CreationMenuBuilder;
-import com.liferay.item.selector.ItemSelector;
-import com.liferay.item.selector.ItemSelectorReturnType;
-import com.liferay.item.selector.criteria.UUIDItemSelectorReturnType;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
-import com.liferay.portal.kernel.portlet.RequestBackedPortletURLFactory;
-import com.liferay.portal.kernel.portlet.RequestBackedPortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.search.BaseModelSearchResult;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HtmlUtil;
-import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
-
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Alessio Antonio Rendina
@@ -69,7 +57,7 @@ public class CPInstanceCommercePriceEntryDisplayContext
 		CommercePriceFormatter commercePriceFormatter,
 		CommercePriceListActionHelper commercePriceListActionHelper,
 		CommercePriceListService commercePriceListService,
-		HttpServletRequest httpServletRequest, ItemSelector itemSelector) {
+		HttpServletRequest httpServletRequest) {
 
 		super(actionHelper, httpServletRequest);
 
@@ -77,7 +65,6 @@ public class CPInstanceCommercePriceEntryDisplayContext
 		_commercePriceFormatter = commercePriceFormatter;
 		_commercePriceListActionHelper = commercePriceListActionHelper;
 		_commercePriceListService = commercePriceListService;
-		_itemSelector = itemSelector;
 	}
 
 	public String getBasePrice() throws PortalException {
@@ -96,28 +83,14 @@ public class CPInstanceCommercePriceEntryDisplayContext
 			return StringPool.DASH;
 		}
 
+		CommerceCurrency commerceCurrency =
+			commercePriceList.getCommerceCurrency();
+
 		CommerceMoney priceCommerceMoney =
 			instanceBaseCommercePriceEntry.getPriceCommerceMoney(
-				commercePriceList.getCommerceCurrencyId());
+				commerceCurrency.getCommerceCurrencyId());
 
 		return priceCommerceMoney.format(cpRequestHelper.getLocale());
-	}
-
-	public CommercePriceEntry getCommercePriceEntry() throws PortalException {
-		return _commercePriceListActionHelper.getCommercePriceEntry(
-			cpRequestHelper.getRenderRequest());
-	}
-
-	public long getCommercePriceEntryId() throws PortalException {
-		long commercePriceEntryId = 0;
-
-		CommercePriceEntry commercePriceEntry = getCommercePriceEntry();
-
-		if (commercePriceEntry != null) {
-			commercePriceEntryId = commercePriceEntry.getCommercePriceEntryId();
-		}
-
-		return commercePriceEntryId;
 	}
 
 	public CPInstance getCPInstance() throws PortalException {
@@ -153,6 +126,23 @@ public class CPInstanceCommercePriceEntryDisplayContext
 			CPInstanceUnitOfMeasurePriorityComparator.getInstance(true));
 	}
 
+	public CommercePriceEntry getCommercePriceEntry() throws PortalException {
+		return _commercePriceListActionHelper.getCommercePriceEntry(
+			cpRequestHelper.getRenderRequest());
+	}
+
+	public long getCommercePriceEntryId() throws PortalException {
+		long commercePriceEntryId = 0;
+
+		CommercePriceEntry commercePriceEntry = getCommercePriceEntry();
+
+		if (commercePriceEntry != null) {
+			commercePriceEntryId = commercePriceEntry.getCommercePriceEntryId();
+		}
+
+		return commercePriceEntryId;
+	}
+
 	public CreationMenu getCreationMenu() throws PortalException {
 		CPInstance cpInstance = getCPInstance();
 
@@ -170,29 +160,26 @@ public class CPInstanceCommercePriceEntryDisplayContext
 		).build();
 	}
 
-	public String getItemSelectorUrl(String unitOfMeasureKey)
+	public String getFormattedDiscount(
+			CommerceCurrency commerceCurrency, BigDecimal discount)
 		throws PortalException {
 
-		RequestBackedPortletURLFactory requestBackedPortletURLFactory =
-			RequestBackedPortletURLFactoryUtil.create(httpServletRequest);
+		if (discount == null) {
+			return StringPool.BLANK;
+		}
 
-		CommercePriceListItemSelectorCriterion
-			commercePriceListItemSelectorCriterion =
-				new CommercePriceListItemSelectorCriterion();
+		return _commercePriceFormatter.format(
+			commerceCurrency, false, cpRequestHelper.getLocale(), discount);
+	}
 
-		commercePriceListItemSelectorCriterion.
-			setDesiredItemSelectorReturnTypes(
-				Collections.<ItemSelectorReturnType>singletonList(
-					new UUIDItemSelectorReturnType()));
+	public String getFormattedPrice(CommerceCurrency commerceCurrency)
+		throws PortalException {
 
-		return PortletURLBuilder.create(
-			_itemSelector.getItemSelectorURL(
-				requestBackedPortletURLFactory, "priceListsSelectItem",
-				commercePriceListItemSelectorCriterion)
-		).setParameter(
-			"checkedCommercePriceListIds",
-			StringUtil.merge(_getCheckedCommercePriceListIds(unitOfMeasureKey))
-		).buildString();
+		CommercePriceEntry commercePriceEntry = getCommercePriceEntry();
+
+		return _commercePriceFormatter.format(
+			commerceCurrency, false, cpRequestHelper.getLocale(),
+			commercePriceEntry.getPrice());
 	}
 
 	public HashMap<String, Object> getJSContext() throws PortalException {
@@ -274,6 +261,14 @@ public class CPInstanceCommercePriceEntryDisplayContext
 			TransformUtil.transform(
 				commercePriceListBaseModelSearchResult.getBaseModels(),
 				commercePriceList -> HashMapBuilder.<String, Object>put(
+					"currency",
+					() -> {
+						CommerceCurrency commerceCurrency =
+							commercePriceList.getCommerceCurrency();
+
+						return commerceCurrency.getCode();
+					}
+				).put(
 					"label", commercePriceList.getName()
 				).put(
 					"value", commercePriceList.getCommercePriceListId()
@@ -304,13 +299,6 @@ public class CPInstanceCommercePriceEntryDisplayContext
 		).setParameter(
 			"screenNavigationEntryKey", "price-lists"
 		).buildPortletURL();
-	}
-
-	public String getPrice() throws PortalException {
-		CommercePriceEntry commercePriceEntry = getCommercePriceEntry();
-
-		return _commercePriceFormatter.format(
-			commercePriceEntry.getPrice(), cpRequestHelper.getLocale());
 	}
 
 	@Override
@@ -349,41 +337,10 @@ public class CPInstanceCommercePriceEntryDisplayContext
 		).buildString();
 	}
 
-	private long[] _getCheckedCommercePriceListIds(String unitOfMeasureKey)
-		throws PortalException {
-
-		List<Long> commercePriceListIds = new ArrayList<>();
-
-		List<CommercePriceEntry> commercePriceEntries =
-			_commercePriceEntryService.getInstanceCommercePriceEntries(
-				getCPInstanceId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS);
-
-		for (CommercePriceEntry commercePriceEntry : commercePriceEntries) {
-			if (Validator.isNotNull(commercePriceEntry.getUnitOfMeasureKey()) &&
-				Validator.isNotNull(unitOfMeasureKey) &&
-				!Objects.equals(
-					unitOfMeasureKey,
-					commercePriceEntry.getUnitOfMeasureKey())) {
-
-				continue;
-			}
-
-			commercePriceListIds.add(
-				commercePriceEntry.getCommercePriceListId());
-		}
-
-		if (!commercePriceListIds.isEmpty()) {
-			return ArrayUtil.toLongArray(commercePriceListIds);
-		}
-
-		return new long[0];
-	}
-
 	private final CommercePriceEntryService _commercePriceEntryService;
 	private final CommercePriceFormatter _commercePriceFormatter;
 	private final CommercePriceListActionHelper _commercePriceListActionHelper;
 	private final CommercePriceListService _commercePriceListService;
 	private CPInstance _cpInstance;
-	private final ItemSelector _itemSelector;
 
 }

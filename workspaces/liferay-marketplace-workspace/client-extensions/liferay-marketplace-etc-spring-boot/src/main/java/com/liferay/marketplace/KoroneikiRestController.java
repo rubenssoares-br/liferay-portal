@@ -5,8 +5,7 @@
 
 package com.liferay.marketplace;
 
-import com.liferay.client.extension.util.spring.boot.BaseRestController;
-import com.liferay.headless.admin.user.client.pagination.Page;
+import com.liferay.client.extension.util.spring.boot3.BaseRestController;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.Product;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.Sku;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Pagination;
@@ -14,15 +13,24 @@ import com.liferay.headless.commerce.admin.catalog.client.resource.v1_0.SkuResou
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.Order;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.OrderItem;
 import com.liferay.headless.commerce.admin.order.client.resource.v1_0.OrderItemResource;
+import com.liferay.marketplace.permission.AccountMemberPermission;
+import com.liferay.marketplace.permission.DefaultServiceAccountPermission;
 import com.liferay.marketplace.service.KoroneikiService;
 import com.liferay.marketplace.service.MarketplaceService;
+import com.liferay.marketplace.util.MarketplaceUtil;
+import com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.Account;
+import com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.Contact;
 import com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.ExternalLink;
 import com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.ProductConsumption;
 import com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.ProductPurchase;
 import com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.ProductPurchaseView;
+import com.liferay.osb.koroneiki.phloem.rest.client.pagination.Page;
+import com.liferay.osb.koroneiki.phloem.rest.client.resource.v1_0.AccountResource;
+import com.liferay.osb.koroneiki.phloem.rest.client.resource.v1_0.ContactResource;
 import com.liferay.osb.koroneiki.phloem.rest.client.resource.v1_0.ProductPurchaseViewResource;
 import com.liferay.osb.koroneiki.phloem.rest.client.resource.v1_0.ProductResource;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.StringUtil;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -52,6 +60,49 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/koroneiki")
 @RestController
 public class KoroneikiRestController extends BaseRestController {
+
+	@GetMapping("account/{accountKey}")
+	public Account getAccount(
+			@AuthenticationPrincipal Jwt jwt,
+			@PathVariable("accountKey") String accountKey)
+		throws Exception {
+
+		_accountMemberPermission.check(accountKey, jwt);
+
+		return _koroneikiService.getKoroneikiAccount(accountKey);
+	}
+
+	@GetMapping("account/{accountKey}/child-accounts")
+	public Page<Account> getChildAccounts(
+			@AuthenticationPrincipal Jwt jwt,
+			@PathVariable("accountKey") String accountKey)
+		throws Exception {
+
+		_accountMemberPermission.check(accountKey, jwt);
+
+		AccountResource accountResource =
+			_koroneikiService.getAccountResource();
+
+		return accountResource.getAccountChildAccountsPage(
+			accountKey,
+			com.liferay.osb.koroneiki.phloem.rest.client.pagination.Pagination.
+				of(1, 20));
+	}
+
+	@GetMapping("contact/by-email-address/{emailAddress}")
+	public Contact getContactByEmailAddress(
+			@AuthenticationPrincipal Jwt jwt,
+			@PathVariable("emailAddress") String emailAddress)
+		throws Exception {
+
+		_defaultServiceAccountPermission.check(jwt);
+
+		ContactResource contactResource =
+			_koroneikiService.getContactResource();
+
+		return contactResource.getContactByEmailAddresEmailAddress(
+			emailAddress);
+	}
 
 	@GetMapping("subscriptions/{orderId}")
 	public String getSubscriptions(@PathVariable("orderId") long orderId)
@@ -116,8 +167,8 @@ public class KoroneikiRestController extends BaseRestController {
 				);
 			}
 
-			String name = _marketplaceService.getSkuOptionValue(
-				"dxp-license-usage-type", orderItem.getOptions());
+			String name = MarketplaceUtil.getSkuOptionValue(
+				"license-usage-type", orderItem.getOptions());
 
 			if (name == null) {
 				name = orderItem.getSkuExternalReferenceCode();
@@ -130,14 +181,16 @@ public class KoroneikiRestController extends BaseRestController {
 
 				Date endDate = productConsumption.getEndDate();
 
-				if (Objects.equals(
+				if (!Objects.equals(
 						productConsumption.getProductPurchaseKey(),
-						productPurchase.getKey()) &&
-					(((endDate != null) && endDate.after(new Date())) ||
-					 productPurchase.getPerpetual())) {
+						productPurchase.getKey()) ||
+					(((endDate == null) || !endDate.after(new Date())) &&
+					 !productPurchase.getPerpetual())) {
 
-					provisionedCount++;
+					continue;
 				}
+
+				provisionedCount++;
 			}
 
 			Date startDate = productPurchase.getStartDate();
@@ -157,12 +210,12 @@ public class KoroneikiRestController extends BaseRestController {
 				).put(
 					"productPurchasedKey", productPurchase.getKey()
 				).put(
+					"productVersion",
+					_marketplaceService.getProductVersion(orderItem.getSkuId())
+				).put(
 					"provisionedCount", provisionedCount
 				).put(
 					"purchasedCount", orderItem.getQuantity()
-				).put(
-					"productVersion",
-					_marketplaceService.getProductVersion(orderItem.getSkuId())
 				).put(
 					"startDate",
 					ZonedDateTime.ofInstant(
@@ -191,18 +244,16 @@ public class KoroneikiRestController extends BaseRestController {
 					product.getProductId(), Pagination.of(1, 10)
 				).getItems()) {
 
-			String dxpLicenseUsageType = _marketplaceService.getSkuOptionValue(
-				"dxp-license-usage-type", sku.getSkuOptions());
+			String licenseUsageType = MarketplaceUtil.getSkuOptionValue(
+				"license-usage-type", sku.getSkuOptions());
 
-			if ((dxpLicenseUsageType == null) ||
-				sku.getExternalReferenceCode(
-				).startsWith(
-					"KOR-"
-				)) {
+			String skuExternalReferenceCode = sku.getExternalReferenceCode();
+
+			if ((licenseUsageType == null) ||
+				skuExternalReferenceCode.startsWith("KOR-")) {
 
 				if (_log.isInfoEnabled()) {
-					_log.info(
-						"Skipping POST product for sku " + sku.toString());
+					_log.info("Skipping POST product for sku " + sku);
 				}
 
 				continue;
@@ -216,15 +267,16 @@ public class KoroneikiRestController extends BaseRestController {
 				"en_US"
 			);
 
-			String name = productName + " - " + dxpLicenseUsageType;
+			String name =
+				productName + " - " +
+					StringUtil.upperCaseFirstLetter(licenseUsageType);
 
-			com.liferay.osb.koroneiki.phloem.rest.client.pagination.Page
-				<com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.Product>
-					page = productResource.getProductsPage(
-						"", "name eq '" + name + "'",
-						com.liferay.osb.koroneiki.phloem.rest.client.pagination.
-							Pagination.of(1, 1),
-						"");
+			Page<com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.Product>
+				page = productResource.getProductsPage(
+					"", "name eq '" + name + "'",
+					com.liferay.osb.koroneiki.phloem.rest.client.pagination.
+						Pagination.of(1, 1),
+					"");
 
 			com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.Product
 				koroneikiProduct = page.fetchFirstItem();
@@ -234,6 +286,10 @@ public class KoroneikiRestController extends BaseRestController {
 					new com.liferay.osb.koroneiki.phloem.rest.client.dto.v1_0.
 						Product();
 
+				koroneikiProduct.setExternalLinks(
+					MarketplaceUtil.appendExternalLink(
+						koroneikiProduct.getExternalLinks(), "marketplace",
+						productName, "product"));
 				koroneikiProduct.setName(name);
 				koroneikiProduct.setProperties(
 					HashMapBuilder.put(
@@ -263,6 +319,12 @@ public class KoroneikiRestController extends BaseRestController {
 
 	private static final Log _log = LogFactory.getLog(
 		KoroneikiRestController.class);
+
+	@Autowired
+	private AccountMemberPermission _accountMemberPermission;
+
+	@Autowired
+	private DefaultServiceAccountPermission _defaultServiceAccountPermission;
 
 	@Autowired
 	private KoroneikiService _koroneikiService;

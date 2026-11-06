@@ -9,13 +9,14 @@ import com.liferay.bulk.rest.client.dto.v1_0.TaxonomyCategory;
 import com.liferay.bulk.rest.client.dto.v1_0.TaxonomyVocabulary;
 import com.liferay.bulk.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -316,6 +317,16 @@ public class TaxonomyVocabularySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -348,3 +359,4 @@ public class TaxonomyVocabularySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1472212402

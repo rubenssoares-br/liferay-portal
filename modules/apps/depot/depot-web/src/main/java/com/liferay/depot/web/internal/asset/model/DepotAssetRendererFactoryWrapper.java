@@ -10,7 +10,9 @@ import com.liferay.asset.kernel.model.AssetRenderer;
 import com.liferay.asset.kernel.model.AssetRendererFactory;
 import com.liferay.asset.kernel.model.ClassTypeReader;
 import com.liferay.asset.util.AssetRendererFactoryWrapper;
+import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.group.provider.SiteConnectedGroupGroupProvider;
+import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.depot.web.internal.application.controller.DepotApplicationController;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
@@ -27,12 +29,15 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.GroupThreadLocal;
+import com.liferay.staging.StagingGroupHelper;
+import com.liferay.staging.StagingGroupHelperUtil;
+
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.WindowState;
 
 import java.util.Locale;
-
-import javax.portlet.PortletURL;
-import javax.portlet.WindowState;
 
 /**
  * @author Adolfo Pérez
@@ -72,8 +77,8 @@ public class DepotAssetRendererFactoryWrapper<T>
 	}
 
 	@Override
-	public AssetEntry getAssetEntry(T entry) throws PortalException {
-		return _assetRendererFactory.getAssetEntry(entry);
+	public long getAssetEntryClassPK(T entry) {
+		return _assetRendererFactory.getAssetEntryClassPK(entry);
 	}
 
 	@Override
@@ -95,18 +100,53 @@ public class DepotAssetRendererFactoryWrapper<T>
 			return assetRenderer;
 		}
 
-		Group group = _getGroup();
+		Group group = _getGroup(assetRendererGroup);
 
 		if (group == null) {
 			return null;
 		}
 
-		if (group.isControlPanel() ||
-			ArrayUtil.contains(
-				_siteConnectedGroupGroupProvider.
-					getCurrentAndAncestorSiteAndDepotGroupIds(
-						_getGroupId(group.getGroupId())),
-				groupId)) {
+		if (group.isControlPanel()) {
+			return assetRenderer;
+		}
+
+		long[] currentAndAncestorSiteAndDepotGroupIds =
+			_siteConnectedGroupGroupProvider.
+				getCurrentAndAncestorSiteAndDepotGroupIds(
+					_getGroupId(group.getGroupId()));
+
+		if (ArrayUtil.contains(
+				currentAndAncestorSiteAndDepotGroupIds, groupId)) {
+
+			return assetRenderer;
+		}
+
+		DepotEntry depotEntry = _depotEntryLocalService.fetchGroupDepotEntry(
+			groupId);
+
+		if (depotEntry != null) {
+			StagingGroupHelper stagingGroupHelper =
+				StagingGroupHelperUtil.getStagingGroupHelper();
+
+			Group depotEntryGroup = depotEntry.getGroup();
+
+			if (stagingGroupHelper.isLocalLiveGroup(depotEntryGroup) ||
+				stagingGroupHelper.isRemoteLiveGroup(depotEntryGroup)) {
+
+				Group stagedDepotEntryGroup = depotEntryGroup.getStagingGroup();
+
+				if ((stagedDepotEntryGroup != null) &&
+					ArrayUtil.contains(
+						currentAndAncestorSiteAndDepotGroupIds,
+						stagedDepotEntryGroup.getGroupId())) {
+
+					return assetRenderer;
+				}
+			}
+		}
+
+		if ((depotEntry != null) &&
+			(depotEntry.getType() == DepotConstants.TYPE_SPACE)) {
 
 			return assetRenderer;
 		}
@@ -264,7 +304,7 @@ public class DepotAssetRendererFactoryWrapper<T>
 
 	@Override
 	public boolean isSelectable() {
-		Group group = _getGroup();
+		Group group = _getGroup(null);
 
 		if ((group != null) && group.isDepot() &&
 			!_depotApplicationController.isClassNameEnabled(
@@ -291,21 +331,38 @@ public class DepotAssetRendererFactoryWrapper<T>
 		_assetRendererFactory.setPortletId(portletId);
 	}
 
-	private Group _getGroup() {
+	private Group _getGroup(Group fallbackGroup) {
 		ServiceContext serviceContext =
 			ServiceContextThreadLocal.getServiceContext();
 
-		if (serviceContext == null) {
-			return _groupLocalService.fetchGroup(GroupThreadLocal.getGroupId());
+		if (serviceContext != null) {
+			long scopeGroupId = GetterUtil.getLong(
+				serviceContext.getAttribute("scopeGroupId"));
+
+			if (scopeGroupId != 0) {
+				return _groupLocalService.fetchGroup(scopeGroupId);
+			}
+
+			ThemeDisplay themeDisplay = serviceContext.getThemeDisplay();
+
+			if (themeDisplay != null) {
+				return themeDisplay.getScopeGroup();
+			}
+
+			if (serviceContext.getScopeGroupId() != 0) {
+				return _groupLocalService.fetchGroup(
+					serviceContext.getScopeGroupId());
+			}
 		}
 
-		ThemeDisplay themeDisplay = serviceContext.getThemeDisplay();
+		Group group = _groupLocalService.fetchGroup(
+			GroupThreadLocal.getGroupId());
 
-		if (themeDisplay != null) {
-			return themeDisplay.getScopeGroup();
+		if (group != null) {
+			return group;
 		}
 
-		return _groupLocalService.fetchGroup(serviceContext.getScopeGroupId());
+		return fallbackGroup;
 	}
 
 	private long _getGroupId(long groupId) throws PortalException {

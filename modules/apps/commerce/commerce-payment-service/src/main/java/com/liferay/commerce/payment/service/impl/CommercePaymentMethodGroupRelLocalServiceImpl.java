@@ -11,7 +11,9 @@ import com.liferay.commerce.payment.exception.CommercePaymentMethodGroupRelNameE
 import com.liferay.commerce.payment.exception.NoSuchPaymentMethodGroupRelException;
 import com.liferay.commerce.payment.model.CommercePaymentMethodGroupRel;
 import com.liferay.commerce.payment.service.base.CommercePaymentMethodGroupRelLocalServiceBaseImpl;
+import com.liferay.commerce.product.service.CommerceChannelAccountEntryRelLocalService;
 import com.liferay.commerce.service.CommerceAddressRestrictionLocalService;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.ResourceConstants;
@@ -28,7 +30,6 @@ import com.liferay.portal.kernel.util.Validator;
 
 import java.io.File;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -169,6 +170,16 @@ public class CommercePaymentMethodGroupRelLocalServiceImpl
 				commercePaymentMethodGroupRel.
 					getCommercePaymentMethodGroupRelId());
 
+		// Commerce channel account entry rels
+
+		_commerceChannelAccountEntryRelLocalService.
+			deleteCommerceChannelAccountEntryRels(
+				CommercePaymentMethodGroupRel.class.getName(),
+				commercePaymentMethodGroupRel.
+					getCommercePaymentMethodGroupRelId());
+
+		// Resources
+
 		_resourceLocalService.deleteResource(
 			commercePaymentMethodGroupRel, ResourceConstants.SCOPE_INDIVIDUAL);
 
@@ -244,13 +255,6 @@ public class CommercePaymentMethodGroupRelLocalServiceImpl
 
 	@Override
 	public List<CommercePaymentMethodGroupRel>
-		getCommercePaymentMethodGroupRels(long groupId) {
-
-		return commercePaymentMethodGroupRelPersistence.findByGroupId(groupId);
-	}
-
-	@Override
-	public List<CommercePaymentMethodGroupRel>
 		getCommercePaymentMethodGroupRels(long groupId, boolean active) {
 
 		return commercePaymentMethodGroupRelPersistence.findByG_A(
@@ -269,17 +273,6 @@ public class CommercePaymentMethodGroupRelLocalServiceImpl
 	@Override
 	public List<CommercePaymentMethodGroupRel>
 		getCommercePaymentMethodGroupRels(
-			long groupId, boolean active, int start, int end,
-			OrderByComparator<CommercePaymentMethodGroupRel>
-				orderByComparator) {
-
-		return commercePaymentMethodGroupRelPersistence.findByG_A(
-			groupId, active, start, end, orderByComparator);
-	}
-
-	@Override
-	public List<CommercePaymentMethodGroupRel>
-		getCommercePaymentMethodGroupRels(
 			long groupId, int start, int end,
 			OrderByComparator<CommercePaymentMethodGroupRel>
 				orderByComparator) {
@@ -293,35 +286,26 @@ public class CommercePaymentMethodGroupRelLocalServiceImpl
 		getCommercePaymentMethodGroupRels(
 			long groupId, long countryId, boolean active) {
 
-		List<CommercePaymentMethodGroupRel>
-			filteredCommercePaymentMethodGroupRels = new ArrayList<>();
-
 		List<CommercePaymentMethodGroupRel> commercePaymentMethodGroupRels =
 			commercePaymentMethodGroupRelPersistence.findByG_A(groupId, active);
 
-		for (CommercePaymentMethodGroupRel commercePaymentMethodGroupRel :
-				commercePaymentMethodGroupRels) {
+		return TransformUtil.transform(
+			commercePaymentMethodGroupRels,
+			commercePaymentMethodGroupRel -> {
+				boolean restricted =
+					_commerceAddressRestrictionLocalService.
+						isCommerceAddressRestricted(
+							CommercePaymentMethodGroupRel.class.getName(),
+							commercePaymentMethodGroupRel.
+								getCommercePaymentMethodGroupRelId(),
+							countryId);
 
-			boolean restricted =
-				_commerceAddressRestrictionLocalService.
-					isCommerceAddressRestricted(
-						CommercePaymentMethodGroupRel.class.getName(),
-						commercePaymentMethodGroupRel.
-							getCommercePaymentMethodGroupRelId(),
-						countryId);
+				if (!restricted) {
+					return commercePaymentMethodGroupRel;
+				}
 
-			if (!restricted) {
-				filteredCommercePaymentMethodGroupRels.add(
-					commercePaymentMethodGroupRel);
-			}
-		}
-
-		return filteredCommercePaymentMethodGroupRels;
-	}
-
-	@Override
-	public int getCommercePaymentMethodGroupRelsCount(long groupId) {
-		return commercePaymentMethodGroupRelPersistence.countByGroupId(groupId);
+				return null;
+			});
 	}
 
 	@Override
@@ -393,6 +377,7 @@ public class CommercePaymentMethodGroupRelLocalServiceImpl
 
 		if (imageFile != null) {
 			_imageLocalService.updateImage(
+				commercePaymentMethodGroupRel.getCompanyId(),
 				commercePaymentMethodGroupRel.getImageId(), imageFile);
 		}
 
@@ -418,6 +403,10 @@ public class CommercePaymentMethodGroupRelLocalServiceImpl
 	@Reference
 	private CommerceAddressRestrictionLocalService
 		_commerceAddressRestrictionLocalService;
+
+	@Reference
+	private CommerceChannelAccountEntryRelLocalService
+		_commerceChannelAccountEntryRelLocalService;
 
 	@Reference
 	private ImageLocalService _imageLocalService;

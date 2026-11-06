@@ -4,8 +4,7 @@ definition {
 	property ci.retries.disabled = "true";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.component.names = "Web Content Administration";
-	property testray.main.component.name = "Web Content Administration";
+	property testray.main.component.name = "Web Content";
 
 	setUp {
 		task ("Set up instance and sign in") {
@@ -16,6 +15,10 @@ definition {
 
 		task ("Add a site") {
 			HeadlessSite.addSite(siteName = "Test Site Name");
+		}
+
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
 		}
 	}
 
@@ -545,7 +548,7 @@ definition {
 				webContentLinkToPage = "Test Content Page",
 				webContentLinkToPageFieldLabel = "Content Page");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -605,7 +608,7 @@ definition {
 				webContentLinkToPage = "Test Embedded",
 				webContentLinkToPageFieldLabel = "Embedded");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -664,7 +667,7 @@ definition {
 				webContentLinkToPage = "Test Full Page Application",
 				webContentLinkToPageFieldLabel = "Full Page Application");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -746,7 +749,7 @@ definition {
 				predefinedValue = "true",
 				webContentLinkToPage = "Test Great Grand Child Page");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to parent page") {
@@ -809,7 +812,7 @@ definition {
 				webContentImage = "Document Title",
 				webContentTitle = "Web Content Title");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a widget page") {
@@ -861,6 +864,8 @@ definition {
 				linkPageName = "Test Content Page",
 				pageName = "Test Link To A Page Of This Site",
 				sitePageType = "Link to a Page of This Site");
+
+			Alert.viewSuccessMessageText(successMessage = "The page was updated successfully.");
 		}
 
 		task ("Add a structure with Link to Page field") {
@@ -890,7 +895,7 @@ definition {
 				webContentLinkToPage = "Test Link To A Page Of This Site",
 				webContentLinkToPageFieldLabel = "Link To A Page Of This Site");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -972,7 +977,7 @@ definition {
 				webContentLinkToPage = "Test Link To URL",
 				webContentLinkToPageFieldLabel = "Link To URL");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -1036,7 +1041,7 @@ definition {
 				webContentLinkToPage = "Test Child Page",
 				webContentLinkToPageFieldLabel = "Page Set");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -1092,7 +1097,7 @@ definition {
 				webContentLinkToPage = "Test Panel",
 				webContentLinkToPageFieldLabel = "Panel");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -1152,7 +1157,7 @@ definition {
 				webContentLinkToPage = "Test Search",
 				webContentLinkToPageFieldLabel = "Search");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -1209,7 +1214,7 @@ definition {
 				webContentLinkToPage = "Test Widget Page",
 				webContentLinkToPageFieldLabel = "Widget Page");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add a Web Content Display to another page") {
@@ -1282,7 +1287,6 @@ definition {
 	@priority = 5
 	test ViewAndEditAsWellAsDeleteStructureWithAllFields {
 		property portal.acceptance = "true";
-		property testray.component.names = "Training,Web Content Administration";
 
 		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
 

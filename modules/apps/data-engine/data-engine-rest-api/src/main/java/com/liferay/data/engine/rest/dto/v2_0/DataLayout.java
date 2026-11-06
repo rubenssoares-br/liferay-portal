@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Jeyvison Nascimento
@@ -54,7 +55,7 @@ public class DataLayout implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(DataLayout.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getContentType() {
 		if (_contentTypeSupplier != null) {
 			contentType = _contentTypeSupplier.get();
@@ -95,7 +96,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getDataDefinitionId() {
 		if (_dataDefinitionIdSupplier != null) {
 			dataDefinitionId = _dataDefinitionIdSupplier.get();
@@ -136,7 +137,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _dataDefinitionIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Object> getDataLayoutFields() {
 		if (_dataLayoutFieldsSupplier != null) {
@@ -179,7 +180,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Object>> _dataLayoutFieldsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDataLayoutKey() {
 		if (_dataLayoutKeySupplier != null) {
 			dataLayoutKey = _dataLayoutKeySupplier.get();
@@ -220,7 +221,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _dataLayoutKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public DataLayoutPage[] getDataLayoutPages() {
 		if (_dataLayoutPagesSupplier != null) {
@@ -263,7 +264,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<DataLayoutPage[]> _dataLayoutPagesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public DataRule[] getDataRules() {
 		if (_dataRulesSupplier != null) {
@@ -305,7 +306,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<DataRule[]> _dataRulesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -346,7 +347,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -387,7 +388,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Object> getDescription() {
 		if (_descriptionSupplier != null) {
@@ -430,7 +431,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Object>> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -469,7 +470,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Object> getName() {
 		if (_nameSupplier != null) {
@@ -511,7 +512,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Object>> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getPaginationMode() {
 		if (_paginationModeSupplier != null) {
 			paginationMode = _paginationModeSupplier.get();
@@ -552,7 +553,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _paginationModeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getSiteId() {
 		if (_siteIdSupplier != null) {
 			siteId = _siteIdSupplier.get();
@@ -593,7 +594,7 @@ public class DataLayout implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getUserId() {
 		if (_userIdSupplier != null) {
 			userId = _userIdSupplier.get();
@@ -877,8 +878,8 @@ public class DataLayout implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.data.engine.rest.dto.v2_0.DataLayout",
 		name = "x-class-name"
 	)
@@ -965,6 +966,27 @@ public class DataLayout implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -973,3 +995,4 @@ public class DataLayout implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1086704395

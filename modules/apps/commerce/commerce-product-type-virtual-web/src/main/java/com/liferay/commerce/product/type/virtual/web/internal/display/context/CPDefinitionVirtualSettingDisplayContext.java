@@ -13,6 +13,7 @@ import com.liferay.commerce.product.display.context.BaseCPDefinitionsDisplayCont
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.portlet.action.ActionHelper;
+import com.liferay.commerce.product.service.CPDefinitionLocalService;
 import com.liferay.commerce.product.type.CPType;
 import com.liferay.commerce.product.type.virtual.constants.VirtualCPTypeConstants;
 import com.liferay.commerce.product.type.virtual.model.CPDVirtualSettingFileEntry;
@@ -48,9 +49,9 @@ import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.util.Collections;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
 
 /**
  * @author Marco Leo
@@ -62,6 +63,7 @@ public class CPDefinitionVirtualSettingDisplayContext
 	public CPDefinitionVirtualSettingDisplayContext(
 		ActionHelper actionHelper, HttpServletRequest httpServletRequest,
 		DLAppService dlAppService, JournalArticleService journalArticleService,
+		CPDefinitionLocalService cpDefinitionLocalService,
 		CPDefinitionVirtualSettingActionHelper
 			cpDefinitionVirtualSettingActionHelper,
 		ItemSelector itemSelector) {
@@ -70,33 +72,33 @@ public class CPDefinitionVirtualSettingDisplayContext
 
 		_dlAppService = dlAppService;
 		_journalArticleService = journalArticleService;
+		_cpDefinitionLocalService = cpDefinitionLocalService;
 		_cpDefinitionVirtualSettingActionHelper =
 			cpDefinitionVirtualSettingActionHelper;
 		_itemSelector = itemSelector;
-	}
-
-	public int[] getActivationStatuses() {
-		return VirtualCPTypeConstants.ACTIVATION_STATUSES;
 	}
 
 	public String getActivationStatusLabel(int status) {
 		return CommerceOrderConstants.getOrderStatusLabel(status);
 	}
 
-	public CommerceVirtualOrderItemFileEntry
-			getCommerceVirtualOrderItemFileEntry()
+	public int[] getActivationStatuses() {
+		return VirtualCPTypeConstants.ACTIVATION_STATUSES;
+	}
+
+	public CPDVirtualSettingFileEntry getCPDVirtualSettingFileEntry()
 		throws PortalException {
 
-		if (_commerceVirtualOrderItemFileEntry != null) {
-			return _commerceVirtualOrderItemFileEntry;
+		if (_cpdVirtualSettingFileEntry != null) {
+			return _cpdVirtualSettingFileEntry;
 		}
 
-		_commerceVirtualOrderItemFileEntry =
+		_cpdVirtualSettingFileEntry =
 			_cpDefinitionVirtualSettingActionHelper.
-				getCommerceVirtualOrderItemFileEntry(
+				getCPDVirtualSettingFileEntry(
 					cpRequestHelper.getRenderRequest());
 
-		return _commerceVirtualOrderItemFileEntry;
+		return _cpdVirtualSettingFileEntry;
 	}
 
 	@Override
@@ -133,21 +135,6 @@ public class CPDefinitionVirtualSettingDisplayContext
 		return _cpDefinitionVirtualSetting;
 	}
 
-	public CPDVirtualSettingFileEntry getCPDVirtualSettingFileEntry()
-		throws PortalException {
-
-		if (_cpdVirtualSettingFileEntry != null) {
-			return _cpdVirtualSettingFileEntry;
-		}
-
-		_cpdVirtualSettingFileEntry =
-			_cpDefinitionVirtualSettingActionHelper.
-				getCPDVirtualSettingFileEntry(
-					cpRequestHelper.getRenderRequest());
-
-		return _cpdVirtualSettingFileEntry;
-	}
-
 	public CPInstance getCPInstance() throws PortalException {
 		if (_cpInstance != null) {
 			return _cpInstance;
@@ -169,6 +156,22 @@ public class CPDefinitionVirtualSettingDisplayContext
 		}
 
 		return cpInstanceId;
+	}
+
+	public CommerceVirtualOrderItemFileEntry
+			getCommerceVirtualOrderItemFileEntry()
+		throws PortalException {
+
+		if (_commerceVirtualOrderItemFileEntry != null) {
+			return _commerceVirtualOrderItemFileEntry;
+		}
+
+		_commerceVirtualOrderItemFileEntry =
+			_cpDefinitionVirtualSettingActionHelper.
+				getCommerceVirtualOrderItemFileEntry(
+					cpRequestHelper.getRenderRequest());
+
+		return _commerceVirtualOrderItemFileEntry;
 	}
 
 	public CreationMenu getCreationMenu() throws Exception {
@@ -276,31 +279,34 @@ public class CPDefinitionVirtualSettingDisplayContext
 		CPDefinitionVirtualSetting cpDefinitionVirtualSetting =
 			getCPDefinitionVirtualSetting();
 
-		if (cpDefinitionVirtualSetting != null) {
-			long journalArticleResourcePK =
-				cpDefinitionVirtualSetting.
-					getTermsOfUseJournalArticleResourcePrimKey();
-
-			if (journalArticleResourcePK > 0) {
-				return _journalArticleService.getLatestArticle(
-					journalArticleResourcePK);
-			}
+		if (cpDefinitionVirtualSetting == null) {
+			return null;
 		}
 
-		return null;
+		long journalArticleResourcePK =
+			cpDefinitionVirtualSetting.
+				getTermsOfUseJournalArticleResourcePrimKey();
+
+		if (journalArticleResourcePK <= 0) {
+			return null;
+		}
+
+		return _journalArticleService.getLatestArticle(
+			journalArticleResourcePK);
 	}
 
 	public FileEntry getSampleFileEntry() throws PortalException {
 		CPDefinitionVirtualSetting cpDefinitionVirtualSetting =
 			getCPDefinitionVirtualSetting();
 
-		if (cpDefinitionVirtualSetting != null) {
-			long fileEntryId =
-				cpDefinitionVirtualSetting.getSampleFileEntryId();
+		if (cpDefinitionVirtualSetting == null) {
+			return null;
+		}
 
-			if (fileEntryId > 0) {
-				return _dlAppService.getFileEntry(fileEntryId);
-			}
+		long fileEntryId = cpDefinitionVirtualSetting.getSampleFileEntryId();
+
+		if (fileEntryId > 0) {
+			return _dlAppService.getFileEntry(fileEntryId);
 		}
 
 		return null;
@@ -358,6 +364,22 @@ public class CPDefinitionVirtualSettingDisplayContext
 				itemSelectorCriterion));
 	}
 
+	public boolean isShowSaveAndPropagateButton() throws PortalException {
+		if (getCPDVirtualSettingFileEntry() != null) {
+			return false;
+		}
+
+		CPDefinition cpDefinition = getCPDefinition();
+
+		if ((cpDefinition != null) &&
+			_cpDefinitionLocalService.isPublishedCPDefinition(cpDefinition)) {
+
+			return true;
+		}
+
+		return false;
+	}
+
 	private long _getGroupId() throws PortalException {
 		CommerceVirtualOrderItemFileEntry commerceVirtualOrderItemFileEntry =
 			getCommerceVirtualOrderItemFileEntry();
@@ -401,11 +423,12 @@ public class CPDefinitionVirtualSettingDisplayContext
 
 	private CommerceVirtualOrderItemFileEntry
 		_commerceVirtualOrderItemFileEntry;
+	private final CPDefinitionLocalService _cpDefinitionLocalService;
 	private CPDefinitionVirtualSetting _cpDefinitionVirtualSetting;
 	private final CPDefinitionVirtualSettingActionHelper
 		_cpDefinitionVirtualSettingActionHelper;
-	private CPDVirtualSettingFileEntry _cpdVirtualSettingFileEntry;
 	private CPInstance _cpInstance;
+	private CPDVirtualSettingFileEntry _cpdVirtualSettingFileEntry;
 	private final DLAppService _dlAppService;
 	private final ItemSelector _itemSelector;
 	private final JournalArticleService _journalArticleService;

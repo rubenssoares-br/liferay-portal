@@ -7,9 +7,32 @@
 
 <%@ include file="/init.jsp" %>
 
-<%@ include file="/propagation_alert.jspf" %>
-
 <liferay-ui:error exception="<%= RequiredLayoutSetPrototypeException.class %>" message="you-cannot-delete-site-templates-that-are-used-by-a-site" />
+
+<%
+String executeLayoutSetPrototypeSyncErrorMessage = (String)SessionMessages.get(renderRequest, "executeLayoutSetPrototypeSyncErrorMessage");
+String executeLayoutSetPrototypeSyncInfoMessage = (String)SessionMessages.get(renderRequest, "executeLayoutSetPrototypeSyncInfoMessage");
+%>
+
+<c:if test="<%= executeLayoutSetPrototypeSyncErrorMessage != null %>">
+	<aui:script>
+		Liferay.Util.openToast({
+			message:
+				'<%= UnicodeFormatter.toString(executeLayoutSetPrototypeSyncErrorMessage) %>',
+			type: 'danger',
+		});
+	</aui:script>
+</c:if>
+
+<c:if test="<%= executeLayoutSetPrototypeSyncInfoMessage != null %>">
+	<aui:script>
+		Liferay.Util.openToast({
+			message:
+				'<%= UnicodeFormatter.toString(executeLayoutSetPrototypeSyncInfoMessage) %>',
+			type: 'info',
+		});
+	</aui:script>
+</c:if>
 
 <clay:management-toolbar
 	managementToolbarDisplayContext="<%= new LayoutSetPrototypeManagementToolbarDisplayContext(request, layoutSetPrototypeDisplayContext, liferayPortletRequest, liferayPortletResponse, layoutSetPrototypeDisplayContext.getSearchContainer()) %>"
@@ -20,13 +43,12 @@
 	<portlet:param name="redirect" value="<%= currentURL %>" />
 </portlet:actionURL>
 
-<aui:form action="<%= deleteLayoutSetPrototypesURL %>" cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form action="<%= deleteLayoutSetPrototypesURL %>" cssClass="container-fluid container-fluid-max-xxxl" name="fm">
 	<liferay-ui:search-container
 		searchContainer="<%= layoutSetPrototypeDisplayContext.getSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.portal.kernel.model.LayoutSetPrototype"
-			escapedModel="<%= true %>"
 			keyProperty="layoutSetPrototypeId"
 			modelVar="layoutSetPrototype"
 		>
@@ -61,7 +83,12 @@
 						</div>
 
 						<div class="h5">
-							<aui:a href="<%= (rowURL != null) ? rowURL.toString() : StringPool.BLANK %>" target="_blank"><%= layoutSetPrototype.getName(locale) %></aui:a>
+							<clay:link
+								href="<%= rowURL %>"
+								label="<%= layoutSetPrototype.getName(locale) %>"
+								target="_blank"
+								translated="<%= false %>"
+							/>
 						</div>
 
 						<div class="h6 text-default">
@@ -103,21 +130,14 @@
 							iconAfter="shortcut"
 							label="<%= layoutSetPrototype.getName(locale) %>"
 							target="_blank"
+							translated="<%= false %>"
 						/>
-
-						<%
-						int mergeFailCount = layoutSetPrototype.getMergeFailCount();
-						%>
-
-						<c:if test="<%= mergeFailCount > PropsValues.LAYOUT_SET_PROTOTYPE_MERGE_FAIL_THRESHOLD %>">
-							<liferay-ui:message arguments='<%= new Object[] {mergeFailCount, LanguageUtil.get(request, "site-template")} %>' key="the-propagation-of-changes-from-the-x-has-been-disabled-temporarily-after-x-errors" translateArguments="<%= false %>" />
-						</c:if>
 					</liferay-ui:search-container-column-text>
 
 					<liferay-ui:search-container-column-text
 						cssClass="table-cell-expand table-cell-minw-300"
 						name="description"
-						value="<%= layoutSetPrototype.getDescription(locale) %>"
+						value="<%= HtmlUtil.escape(layoutSetPrototype.getDescription(locale)) %>"
 					/>
 
 					<liferay-ui:search-container-column-date

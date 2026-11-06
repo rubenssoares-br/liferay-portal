@@ -111,11 +111,7 @@ public class RepositoryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		Repository newRepository = _persistence.create(pk);
-
-		newRepository.setMvccVersion(RandomTestUtil.nextLong());
+		Repository newRepository = addRepository();
 
 		newRepository.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -149,7 +145,9 @@ public class RepositoryPersistenceTest {
 
 		newRepository.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_repositories.add(_persistence.update(newRepository));
+		newRepository = _persistence.update(newRepository);
+
+		_repositories.add(newRepository);
 
 		Repository existingRepository = _persistence.findByPrimaryKey(
 			newRepository.getPrimaryKey());
@@ -254,6 +252,15 @@ public class RepositoryPersistenceTest {
 		_persistence.countByGroupId(RandomTestUtil.nextLong());
 
 		_persistence.countByGroupId(0L);
+	}
+
+	@Test
+	public void testCountByPortletId() throws Exception {
+		_persistence.countByPortletId("");
+
+		_persistence.countByPortletId("null");
+
+		_persistence.countByPortletId((String)null);
 	}
 
 	@Test
@@ -611,8 +618,6 @@ public class RepositoryPersistenceTest {
 
 		Repository repository = _persistence.create(pk);
 
-		repository.setMvccVersion(RandomTestUtil.nextLong());
-
 		repository.setCtCollectionId(RandomTestUtil.nextLong());
 
 		repository.setUuid(RandomTestUtil.randomString());
@@ -655,3 +660,4 @@ public class RepositoryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-294853201

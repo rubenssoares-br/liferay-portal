@@ -24,7 +24,6 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -47,7 +46,6 @@ import org.junit.runner.RunWith;
 /**
  * @author Javier Gamarra
  */
-@FeatureFlags("LPD-32247")
 @RunWith(Arquillian.class)
 public class DocumentDataDefinitionTypeResourceTest
 	extends BaseDocumentDataDefinitionTypeResourceTestCase {
@@ -140,6 +138,23 @@ public class DocumentDataDefinitionTypeResourceTest
 		return documentDataDefinitionTypeResource.
 			postSiteDocumentDataDefinitionType(
 				testGroup.getGroupId(),
+				_createDocumentDataDefinitionType(
+					new Long[] {ddmStructure1.getStructureId()}));
+	}
+
+	@Override
+	protected DocumentDataDefinitionType
+			testGraphQLSiteDocumentDataDefinitionType_addDocumentDataDefinitionType(
+				Long siteId,
+				DocumentDataDefinitionType documentDataDefinitionType)
+		throws Exception {
+
+		DDMStructure ddmStructure1 = DDMStructureTestUtil.addStructure(
+			siteId, DLFileEntryMetadata.class.getName());
+
+		return documentDataDefinitionTypeResource.
+			postSiteDocumentDataDefinitionType(
+				siteId,
 				_createDocumentDataDefinitionType(
 					new Long[] {ddmStructure1.getStructureId()}));
 	}

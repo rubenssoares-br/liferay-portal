@@ -34,9 +34,7 @@ export default function ({
 				tabElt.classList.remove('active', 'show');
 			}
 			if (!firstRender && currentTabId === navReplacementsId) {
-				tabElt.style.display = null;
-				tabElt.style.visibility = null;
-				tabElt.style.height = null;
+				tabElt.classList.remove('tab-pane-collapse');
 			}
 		}
 	};
@@ -80,9 +78,6 @@ export default function ({
 				{hasDescription ? (
 					<ClayTabs.Item
 						active={activeTabKeyValue === 0}
-						innerProps={{
-							'aria-controls': 'tabpanel-1',
-						}}
 						onClick={() => {
 							display(navDescriptionId);
 							setActiveTabKeyValue(0);
@@ -97,9 +92,6 @@ export default function ({
 				{hasCPDefinitionSpecificationOptionValues ? (
 					<ClayTabs.Item
 						active={activeTabKeyValue === 1}
-						innerProps={{
-							'aria-controls': 'tabpanel-2',
-						}}
 						onClick={() => {
 							display(navSpecificationsId);
 							setActiveTabKeyValue(1);
@@ -114,9 +106,6 @@ export default function ({
 				{hasCPMedia ? (
 					<ClayTabs.Item
 						active={activeTabKeyValue === 2}
-						innerProps={{
-							'aria-controls': 'tabpanel-3',
-						}}
 						onClick={() => {
 							display(navCPMediaId);
 							setActiveTabKeyValue(2);
@@ -131,9 +120,6 @@ export default function ({
 				{directReplacement ? (
 					<ClayTabs.Item
 						active={activeTabKeyValue === 3}
-						innerProps={{
-							'aria-controls': 'tabpanel-4',
-						}}
 						onClick={() => {
 							display(navReplacementsId);
 							setActiveTabKeyValue(3);

@@ -20,35 +20,37 @@ import com.liferay.commerce.util.CommerceCheckoutStepRegistry;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.cookies.CookiesManagerUtil;
-import com.liferay.portal.kernel.cookies.constants.CookiesConstants;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.WorkflowDefinitionLink;
 import com.liferay.portal.kernel.model.WorkflowInstanceLink;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
+import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalService;
 import com.liferay.portal.kernel.service.WorkflowInstanceLinkLocalService;
-import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.Portlet;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.Portlet;
-import javax.portlet.PortletException;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.util.Objects;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -62,19 +64,20 @@ import org.osgi.service.component.annotations.Reference;
 		"com.liferay.portlet.add-default-resource=true",
 		"com.liferay.portlet.css-class-wrapper=portlet-commerce-checkout",
 		"com.liferay.portlet.display-category=commerce",
+		"com.liferay.portlet.header-portlet-css=/css/main.css",
 		"com.liferay.portlet.layout-cacheable=true",
 		"com.liferay.portlet.preferences-owned-by-group=true",
 		"com.liferay.portlet.private-request-attributes=false",
 		"com.liferay.portlet.private-session-attributes=false",
 		"com.liferay.portlet.render-weight=50",
 		"com.liferay.portlet.scopeable=true",
-		"javax.portlet.display-name=Checkout",
-		"javax.portlet.expiration-cache=0",
-		"javax.portlet.init-param.view-template=/view.jsp",
-		"javax.portlet.name=" + CommercePortletKeys.COMMERCE_CHECKOUT,
-		"javax.portlet.resource-bundle=content.Language",
-		"javax.portlet.security-role-ref=power-user,user",
-		"javax.portlet.version=3.0"
+		"jakarta.portlet.display-name=Checkout",
+		"jakarta.portlet.expiration-cache=0",
+		"jakarta.portlet.init-param.view-template=/view.jsp",
+		"jakarta.portlet.name=" + CommercePortletKeys.COMMERCE_CHECKOUT,
+		"jakarta.portlet.resource-bundle=content.Language",
+		"jakarta.portlet.security-role-ref=power-user,user",
+		"jakarta.portlet.version=4.0"
 	},
 	service = Portlet.class
 )
@@ -106,15 +109,43 @@ public class CommerceCheckoutPortlet extends MVCPortlet {
 			CommerceOrder commerceOrder = _getCommerceOrder(renderRequest);
 
 			if (commerceOrder != null) {
-				HttpServletRequest httpServletRequest =
-					_portal.getHttpServletRequest(renderRequest);
 				HttpServletResponse httpServletResponse =
 					_portal.getHttpServletResponse(renderResponse);
 
-				boolean continueAsGuest = GetterUtil.getBoolean(
-					CookiesManagerUtil.getCookieValue(
-						CookiesConstants.NAME_COMMERCE_CONTINUE_AS_GUEST,
-						httpServletRequest));
+				String commerceOrderUuid = ParamUtil.getString(
+					renderRequest, "commerceOrderUuid");
+
+				if (Validator.isNotNull(commerceOrderUuid) &&
+					!commerceOrderUuid.equals(commerceOrder.getUuid())) {
+
+					httpServletResponse.sendRedirect(
+						PortletURLBuilder.createRenderURL(
+							_portal.getLiferayPortletResponse(renderResponse)
+						).setParameter(
+							"checkoutStepName",
+							ParamUtil.getString(
+								renderRequest, "checkoutStepName")
+						).setParameter(
+							"commerceOrderUuid", commerceOrder.getUuid()
+						).buildString());
+
+					return;
+				}
+
+				HttpServletRequest httpServletRequest =
+					_portal.getHttpServletRequest(renderRequest);
+
+				boolean continueAsGuest = ParamUtil.getBoolean(
+					renderRequest, "continueAsGuest",
+					Objects.equals(
+						commerceOrder.getUuid(),
+						StringUtil.extractFirst(
+							CookiesManagerUtil.getCookieValue(
+								CommerceOrder.class.getName() +
+									StringPool.POUND +
+										commerceOrder.getGroupId(),
+								httpServletRequest),
+							StringPool.PIPE)));
 
 				if (commerceOrder.isQuote() ||
 					ListUtil.exists(
@@ -147,11 +178,6 @@ public class CommerceCheckoutPortlet extends MVCPortlet {
 						httpServletRequest, httpServletResponse,
 						CommerceOrder.class.getName() + StringPool.POUND +
 							commerceOrder.getGroupId());
-
-					CookiesManagerUtil.deleteCookies(
-						CookiesManagerUtil.getDomain(httpServletRequest),
-						httpServletRequest, httpServletResponse,
-						CookiesConstants.NAME_COMMERCE_CONTINUE_AS_GUEST);
 				}
 			}
 
@@ -205,11 +231,11 @@ public class CommerceCheckoutPortlet extends MVCPortlet {
 					getCommerceChannelGroupIdBySiteGroupId(
 						_portal.getScopeGroupId(portletRequest));
 
-			commerceOrder =
-				_commerceOrderService.getCommerceOrderByUuidAndGroupId(
-					commerceOrderUuid, groupId);
+			commerceOrder = _commerceOrderService.fetchCommerceOrder(
+				commerceOrderUuid, groupId);
 		}
-		else {
+
+		if (commerceOrder == null) {
 			commerceOrder = _commerceOrderHttpHelper.getCurrentCommerceOrder(
 				_portal.getHttpServletRequest(portletRequest));
 		}

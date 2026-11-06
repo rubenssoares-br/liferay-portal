@@ -5,6 +5,7 @@
 
 package com.liferay.portal.search.internal;
 
+import com.liferay.depot.constants.DepotRolesConstants;
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerList;
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerListFactory;
 import com.liferay.petra.function.transform.TransformUtil;
@@ -228,8 +229,8 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 			return;
 		}
 
-		List<Long> roleIds = new ArrayList<>();
 		List<String> groupRoleIds = new ArrayList<>();
+		List<Long> roleIds = new ArrayList<>();
 
 		for (Role role : roles) {
 			if ((role.getType() == RoleConstants.TYPE_ORGANIZATION) ||
@@ -242,13 +243,13 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 			}
 		}
 
-		document.addKeyword(Field.ROLE_ID, roleIds.toArray(new Long[0]));
 		document.addKeyword(
 			Field.GROUP_ROLE_ID, groupRoleIds.toArray(new String[0]));
+		document.addKeyword(Field.ROLE_ID, roleIds.toArray(new Long[0]));
 	}
 
 	private SearchPermissionContext _createSearchPermissionContext(
-			long companyId, long[] groupIds, long userId,
+			long companyId, boolean filterSearch, long[] groupIds, long userId,
 			PermissionChecker permissionChecker)
 		throws Exception {
 
@@ -266,11 +267,13 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 						_roleLocalService.getRoles(
 							permissionChecker.getRoleIds(userId, groupId))) {
 
-					if ((role.getType() == RoleConstants.TYPE_DEPOT) ||
-						(role.getType() == RoleConstants.TYPE_REGULAR)) {
+					if ((role.getType() != RoleConstants.TYPE_DEPOT) &&
+						(role.getType() != RoleConstants.TYPE_REGULAR)) {
 
-						roles.add(role);
+						continue;
 					}
+
+					roles.add(role);
 				}
 			}
 		}
@@ -285,7 +288,7 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 		int permissionTermsLimit =
 			_searchPermissionCheckerConfiguration.permissionTermsLimit();
 
-		if (termsCount > permissionTermsLimit) {
+		if (filterSearch && (termsCount > permissionTermsLimit)) {
 			if (_log.isDebugEnabled()) {
 				_log.debug(
 					StringBundler.concat(
@@ -304,7 +307,7 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 
 		termsCount += groups.size();
 
-		if (termsCount > permissionTermsLimit) {
+		if (filterSearch && (termsCount > permissionTermsLimit)) {
 			if (_log.isDebugEnabled()) {
 				_log.debug(
 					StringBundler.concat(
@@ -316,6 +319,8 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 			return null;
 		}
 
+		Role assetLibraryMemberRole = _roleLocalService.getRole(
+			companyId, DepotRolesConstants.ASSET_LIBRARY_MEMBER);
 		Role organizationUserRole = _roleLocalService.getRole(
 			companyId, RoleConstants.ORGANIZATION_USER);
 		Role siteMemberRole = _roleLocalService.getRole(
@@ -332,11 +337,20 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 			while (iterator.hasNext()) {
 				Role groupRole = iterator.next();
 
-				if ((groupRole.getType() != RoleConstants.TYPE_ORGANIZATION) &&
-					(groupRole.getType() != RoleConstants.TYPE_SITE)) {
+				if ((groupRole.getType() == RoleConstants.TYPE_DEPOT) ||
+					(groupRole.getType() == RoleConstants.TYPE_ORGANIZATION) ||
+					(groupRole.getType() == RoleConstants.TYPE_SITE)) {
 
-					iterator.remove();
+					continue;
 				}
+
+				iterator.remove();
+			}
+
+			if (group.isDepot() &&
+				!groupRoles.contains(assetLibraryMemberRole)) {
+
+				groupRoles.add(assetLibraryMemberRole);
 			}
 
 			if (group.isOrganization() &&
@@ -355,7 +369,7 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 
 			termsCount += groupRoles.size();
 
-			if (termsCount > permissionTermsLimit) {
+			if (filterSearch && (termsCount > permissionTermsLimit)) {
 				if (_log.isDebugEnabled()) {
 					_log.debug(
 						StringBundler.concat(
@@ -432,7 +446,8 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 		}
 		else if (!permissionChecker.isCompanyAdmin(companyId)) {
 			searchPermissionContext = _createSearchPermissionContext(
-				companyId, groupIds, userId, permissionChecker);
+				companyId, indexer.isFilterSearch(), groupIds, userId,
+				permissionChecker);
 		}
 
 		if (searchPermissionContext == null) {
@@ -506,19 +521,21 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 			long groupId = usersGroupIdRoles._groupId;
 			List<Role> groupRoles = usersGroupIdRoles._groupRoles;
 
-			if (permissionChecker.isGroupAdmin(groupId) ||
-				_resourcePermissionLocalService.hasResourcePermission(
+			if (!permissionChecker.isGroupAdmin(groupId) &&
+				!_resourcePermissionLocalService.hasResourcePermission(
 					companyId, className, ResourceConstants.SCOPE_GROUP,
-					String.valueOf(groupId), roleIds, ActionKeys.VIEW) ||
-				_resourcePermissionLocalService.hasResourcePermission(
+					String.valueOf(groupId), roleIds, ActionKeys.VIEW) &&
+				!_resourcePermissionLocalService.hasResourcePermission(
 					companyId, className,
 					ResourceConstants.SCOPE_GROUP_TEMPLATE,
 					String.valueOf(GroupConstants.DEFAULT_PARENT_GROUP_ID),
 					ListUtil.toLongArray(groupRoles, Role.ROLE_ID_ACCESSOR),
 					ActionKeys.VIEW)) {
 
-				groupsTermsFilter.addValue(String.valueOf(groupId));
+				continue;
 			}
+
+			groupsTermsFilter.addValue(String.valueOf(groupId));
 		}
 
 		if (ArrayUtil.isEmpty(groupIds)) {
@@ -539,14 +556,16 @@ public class SearchPermissionCheckerImpl implements SearchPermissionChecker {
 		}
 		else {
 			for (long searchGroupId : groupIds) {
-				if (!searchPermissionContext.containsGroupId(searchGroupId) &&
-					_resourcePermissionLocalService.hasResourcePermission(
+				if (searchPermissionContext.containsGroupId(searchGroupId) ||
+					!_resourcePermissionLocalService.hasResourcePermission(
 						companyId, className, ResourceConstants.SCOPE_GROUP,
 						String.valueOf(searchGroupId), roleIds,
 						ActionKeys.VIEW)) {
 
-					groupsTermsFilter.addValue(String.valueOf(searchGroupId));
+					continue;
 				}
+
+				groupsTermsFilter.addValue(String.valueOf(searchGroupId));
 			}
 		}
 

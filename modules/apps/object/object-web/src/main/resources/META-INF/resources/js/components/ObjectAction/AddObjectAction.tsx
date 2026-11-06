@@ -11,12 +11,15 @@ import {ObjectActionContainer} from './ObjectActionContainer';
 interface AddObjectActionProps {
 	allowScriptContentToBeExecutedOrIncluded: boolean;
 	apiURL: string;
+	companyAdmin: boolean;
+	hasUserNotificationHandler: boolean;
 	objectActionCodeEditorElements: SidebarCategory[];
 	objectActionExecutors: ObjectActionTriggerExecutorItem[];
 	objectActionTriggers: ObjectActionTriggerExecutorItem[];
 	objectDefinitionExternalReferenceCode: string;
 	objectDefinitionId: number;
 	objectDefinitionsRelationshipsURL: string;
+	objectFields: ObjectField[];
 	scriptManagementConfigurationPortletURL: string;
 	systemObject: boolean;
 	validateExpressionURL: string;
@@ -25,12 +28,15 @@ interface AddObjectActionProps {
 export default function AddObjectAction({
 	allowScriptContentToBeExecutedOrIncluded,
 	apiURL,
+	companyAdmin,
+	hasUserNotificationHandler,
 	objectActionCodeEditorElements,
 	objectActionExecutors = [],
 	objectActionTriggers = [],
 	objectDefinitionExternalReferenceCode,
 	objectDefinitionId,
 	objectDefinitionsRelationshipsURL,
+	objectFields,
 	scriptManagementConfigurationPortletURL,
 	systemObject,
 	validateExpressionURL,
@@ -40,6 +46,8 @@ export default function AddObjectAction({
 			allowScriptContentToBeExecutedOrIncluded={
 				allowScriptContentToBeExecutedOrIncluded
 			}
+			companyAdmin={companyAdmin}
+			hasUserNotificationHandler={hasUserNotificationHandler}
 			objectAction={{active: true, system: false}}
 			objectActionCodeEditorElements={objectActionCodeEditorElements}
 			objectActionExecutors={objectActionExecutors}
@@ -51,6 +59,7 @@ export default function AddObjectAction({
 			objectDefinitionsRelationshipsURL={
 				objectDefinitionsRelationshipsURL
 			}
+			objectFields={objectFields}
 			requestParams={{
 				method: 'POST',
 				url: apiURL,

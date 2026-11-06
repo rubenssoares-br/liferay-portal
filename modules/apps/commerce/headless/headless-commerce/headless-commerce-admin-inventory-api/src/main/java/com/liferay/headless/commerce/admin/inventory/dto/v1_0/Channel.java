@@ -11,31 +11,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("Channel")
+@GraphQLName(
+	description = "Read-only projection of the channel referenced by a WarehouseChannel binding -- exposes only ID, externalReferenceCode, name, currencyCode, siteGroupId, and channel type.",
+	value = "Channel"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Read-only projection of the channel referenced by a WarehouseChannel binding -- exposes only ID, externalReferenceCode, name, currencyCode, siteGroupId, and channel type."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Channel")
 public class Channel implements Serializable {
@@ -48,7 +55,10 @@ public class Channel implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Channel.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Three-letter ISO 4217 currency code of the channel's pricing currency. Read-only.",
+		example = "USD"
+	)
 	public String getCurrencyCode() {
 		if (_currencyCodeSupplier != null) {
 			currencyCode = _currencyCodeSupplier.get();
@@ -82,14 +92,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Three-letter ISO 4217 currency code of the channel's pricing currency. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String currencyCode;
 
 	@JsonIgnore
 	private Supplier<String> _currencyCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per channel within the company. Read-only.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -123,14 +138,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per channel within the company. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the channel (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -162,14 +182,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the channel (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the channel. Plain string -- not localized. Read-only.",
+		example = "Sample Storefront"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -201,14 +226,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the channel. Plain string -- not localized. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Group (site) the channel is bound to (FK identifier). Read-only.",
+		example = "20136"
+	)
 	public Long getSiteGroupId() {
 		if (_siteGroupIdSupplier != null) {
 			siteGroupId = _siteGroupIdSupplier.get();
@@ -242,14 +272,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Group (site) the channel is bound to (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long siteGroupId;
 
 	@JsonIgnore
 	private Supplier<Long> _siteGroupIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Channel type discriminator. The only in-tree value is `site`; other values are reserved for OSGi extensions. Read-only.",
+		example = "site"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -281,7 +316,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Channel type discriminator. The only in-tree value is `site`; other values are reserved for OSGi extensions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String type;
 
@@ -408,8 +445,8 @@ public class Channel implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.inventory.dto.v1_0.Channel",
 		name = "x-class-name"
 	)
@@ -496,6 +533,27 @@ public class Channel implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -504,3 +562,4 @@ public class Channel implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:236021449

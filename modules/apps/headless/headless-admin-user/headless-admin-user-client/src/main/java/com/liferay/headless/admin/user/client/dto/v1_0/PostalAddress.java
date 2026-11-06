@@ -8,12 +8,12 @@ package com.liferay.headless.admin.user.client.dto.v1_0;
 import com.liferay.headless.admin.user.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.user.client.serdes.v1_0.PostalAddressSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -46,6 +46,32 @@ public class PostalAddress implements Cloneable, Serializable {
 	}
 
 	protected String addressCountry;
+
+	public String getAddressCountryExternalReferenceCode() {
+		return addressCountryExternalReferenceCode;
+	}
+
+	public void setAddressCountryExternalReferenceCode(
+		String addressCountryExternalReferenceCode) {
+
+		this.addressCountryExternalReferenceCode =
+			addressCountryExternalReferenceCode;
+	}
+
+	public void setAddressCountryExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			addressCountryExternalReferenceCodeUnsafeSupplier) {
+
+		try {
+			addressCountryExternalReferenceCode =
+				addressCountryExternalReferenceCodeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String addressCountryExternalReferenceCode;
 
 	public Map<String, String> getAddressCountry_i18n() {
 		return addressCountry_i18n;
@@ -112,6 +138,53 @@ public class PostalAddress implements Cloneable, Serializable {
 	}
 
 	protected String addressRegion;
+
+	public String getAddressRegionExternalReferenceCode() {
+		return addressRegionExternalReferenceCode;
+	}
+
+	public void setAddressRegionExternalReferenceCode(
+		String addressRegionExternalReferenceCode) {
+
+		this.addressRegionExternalReferenceCode =
+			addressRegionExternalReferenceCode;
+	}
+
+	public void setAddressRegionExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			addressRegionExternalReferenceCodeUnsafeSupplier) {
+
+		try {
+			addressRegionExternalReferenceCode =
+				addressRegionExternalReferenceCodeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String addressRegionExternalReferenceCode;
+
+	public String getAddressSubtype() {
+		return addressSubtype;
+	}
+
+	public void setAddressSubtype(String addressSubtype) {
+		this.addressSubtype = addressSubtype;
+	}
+
+	public void setAddressSubtype(
+		UnsafeSupplier<String, Exception> addressSubtypeUnsafeSupplier) {
+
+		try {
+			addressSubtype = addressSubtypeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String addressSubtype;
 
 	public String getAddressType() {
 		return addressType;
@@ -351,3 +424,4 @@ public class PostalAddress implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-239333312

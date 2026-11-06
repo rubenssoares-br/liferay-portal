@@ -30,7 +30,7 @@ import './Multishipping.scss';
 import ClayButton from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import classNames from 'classnames';
-import {openConfirmModal} from 'frontend-js-web';
+import {openConfirmModal} from 'frontend-js-components-web';
 
 import AddDeliveryGroupButton from './AddDeliveryGroupButton';
 import DeliveryGroupHeaderCell from './DeliveryGroupHeaderCell';
@@ -43,6 +43,7 @@ import OrderItemRow, {
 } from './OrderItemRow';
 import {
 	IAPIResponseError,
+	IAddressSubtypeConfiguration,
 	IDeliveryGroup,
 	IOrderItem,
 	IOrderItemAPIResponse,
@@ -53,6 +54,7 @@ const MAX_DELIVERY_GROUPS = 20;
 
 interface IMultishippingProps {
 	accountId: number;
+	addressSubtypeConfiguration?: IAddressSubtypeConfiguration;
 	defaultAddressId?: number;
 	defaultAddressName?: string;
 	namespace?: string;
@@ -166,6 +168,7 @@ const updateCartById = async function (
 
 const Multishipping = ({
 	accountId,
+	addressSubtypeConfiguration,
 	defaultAddressId = 0,
 	defaultAddressName = '',
 	namespace = '',
@@ -376,7 +379,7 @@ const Multishipping = ({
 	);
 
 	const updateFullCart = useCallback(
-		async (data) => {
+		async (data: any) => {
 			setSaving(true);
 
 			await updateCartById(orderId, data, async (response) => {
@@ -471,7 +474,7 @@ const Multishipping = ({
 	);
 
 	const handleDeleteDeliveryGroup = useCallback(
-		async (deliveryGroup) => {
+		async (deliveryGroup: any) => {
 			try {
 				if (deliveryGroups.length === 1) {
 					await updateFullCart(
@@ -511,14 +514,14 @@ const Multishipping = ({
 		[deliveryGroups, formattedOrderItems, updateFullCart]
 	);
 
-	const handlePaginationDeltaChange = useCallback((value) => {
+	const handlePaginationDeltaChange = useCallback((value: any) => {
 		setPagination((prevState) => ({
 			...prevState,
 			pageSize: value,
 		}));
 	}, []);
 
-	const handlePaginationPageChange = useCallback((value) => {
+	const handlePaginationPageChange = useCallback((value: any) => {
 		setPagination((prevState) => ({
 			...prevState,
 			currentPage: value,
@@ -729,6 +732,9 @@ const Multishipping = ({
 								<ClayManagementToolbar.Item>
 									<AddDeliveryGroupButton
 										accountId={accountId}
+										addressSubtypeConfiguration={
+											addressSubtypeConfiguration
+										}
 										disabled={
 											loading ||
 											readonly ||
@@ -965,6 +971,9 @@ const Multishipping = ({
 							{deliveryGroups.map((deliveryGroup) => (
 								<DeliveryGroupHeaderCell
 									accountId={accountId}
+									addressSubtypeConfiguration={
+										addressSubtypeConfiguration
+									}
 									deliveryGroup={deliveryGroup}
 									disabled={readonly}
 									handleDeleteDeliveryGroup={

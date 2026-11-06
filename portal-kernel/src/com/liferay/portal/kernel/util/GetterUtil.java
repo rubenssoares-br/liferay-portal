@@ -5,6 +5,7 @@
 
 package com.liferay.portal.kernel.util;
 
+import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringPool;
 
@@ -16,6 +17,7 @@ import java.text.ParsePosition;
 
 import java.util.Date;
 import java.util.Locale;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -510,6 +512,10 @@ public class GetterUtil {
 
 		value = value.trim();
 
+		if (value.isEmpty()) {
+			return defaultValue;
+		}
+
 		if (locale == null) {
 			try {
 				return Double.parseDouble(value);
@@ -549,8 +555,14 @@ public class GetterUtil {
 			return defaultValue;
 		}
 
+		value = value.trim();
+
+		if (value.isEmpty()) {
+			return defaultValue;
+		}
+
 		try {
-			return Float.parseFloat(value.trim());
+			return Float.parseFloat(value);
 		}
 		catch (Exception exception) {
 		}
@@ -627,6 +639,14 @@ public class GetterUtil {
 		}
 
 		return value;
+	}
+
+	public static <T, V> V get(T t, Function<T, V> function, V defaultValue) {
+		if (t == null) {
+			return defaultValue;
+		}
+
+		return function.apply(t);
 	}
 
 	/**
@@ -1681,6 +1701,25 @@ public class GetterUtil {
 	public static Object getObject(Object value, Object defaultValue) {
 		if (value == null) {
 			return defaultValue;
+		}
+
+		return value;
+	}
+
+	/**
+	 * Returns the Object value. If the value is <code>null</code>, the value
+	 * supplied by the default value unsafe supplier is returned.
+	 *
+	 * @param  value the value
+	 * @param  defaultValueUnsafeSupplier a default value unsafe supplier
+	 * @return the value
+	 */
+	public static <T, E extends Throwable> T getObject(
+			T value, UnsafeSupplier<T, E> defaultValueUnsafeSupplier)
+		throws E {
+
+		if (value == null) {
+			return defaultValueUnsafeSupplier.get();
 		}
 
 		return value;

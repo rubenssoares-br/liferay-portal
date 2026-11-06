@@ -212,10 +212,10 @@ public class DefaultLDAPToPortalConverter implements LDAPToPortalConverter {
 				_log.debug(parseException);
 			}
 
-			Calendar birthdayCalendar = CalendarFactoryUtil.getCalendar(
+			Calendar calendar = CalendarFactoryUtil.getCalendar(
 				1970, Calendar.JANUARY, 1);
 
-			contact.setBirthday(birthdayCalendar.getTime());
+			contact.setBirthday(calendar.getTime());
 		}
 
 		contact.setSmsSn(
@@ -321,9 +321,11 @@ public class DefaultLDAPToPortalConverter implements LDAPToPortalConverter {
 			String[] value = LDAPUtil.getAttributeStringArray(
 				attributes, expandoMappings, name);
 
-			if (value != null) {
-				expandoAttributes.put(name, value);
+			if (value == null) {
+				continue;
 			}
+
+			expandoAttributes.put(name, value);
 		}
 
 		return expandoAttributes;

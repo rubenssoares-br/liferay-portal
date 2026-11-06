@@ -9,10 +9,12 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.configuration.Filter;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.model.Address;
 import com.liferay.portal.kernel.model.Country;
 import com.liferay.portal.kernel.model.EmailAddress;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.ListType;
 import com.liferay.portal.kernel.model.OrgLabor;
 import com.liferay.portal.kernel.model.Organization;
 import com.liferay.portal.kernel.model.Phone;
@@ -31,6 +33,7 @@ import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Hits;
 import com.liferay.portal.kernel.search.Indexer;
 import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.security.membershippolicy.OrganizationMembershipPolicyUtil;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
@@ -41,6 +44,7 @@ import com.liferay.portal.kernel.service.CountryServiceUtil;
 import com.liferay.portal.kernel.service.EmailAddressLocalServiceUtil;
 import com.liferay.portal.kernel.service.EmailAddressServiceUtil;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
+import com.liferay.portal.kernel.service.ListTypeServiceUtil;
 import com.liferay.portal.kernel.service.OrgLaborLocalServiceUtil;
 import com.liferay.portal.kernel.service.OrgLaborServiceUtil;
 import com.liferay.portal.kernel.service.OrganizationLocalServiceUtil;
@@ -86,10 +90,18 @@ import com.liferay.portal.kernel.util.comparator.UserFirstNameComparator;
 import com.liferay.portal.kernel.util.comparator.UserGroupDescriptionComparator;
 import com.liferay.portal.kernel.util.comparator.UserGroupNameComparator;
 import com.liferay.portal.kernel.util.comparator.UserJobTitleComparator;
+import com.liferay.portal.kernel.util.comparator.UserLastLoginDateComparator;
 import com.liferay.portal.kernel.util.comparator.UserLastNameComparator;
 import com.liferay.portal.kernel.util.comparator.UserScreenNameComparator;
 import com.liferay.portal.security.membershippolicy.SiteMembershipPolicyUtil;
 import com.liferay.portal.service.permission.UserGroupPermissionUtil;
+
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -98,13 +110,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Brian Wing Shun Chan
@@ -333,13 +338,15 @@ public class UsersAdminUtil {
 				"organizationId",
 				String.valueOf(ancestorOrganization.getOrganizationId()));
 
-			if (OrganizationPermissionUtil.contains(
+			if (!OrganizationPermissionUtil.contains(
 					permissionChecker, ancestorOrganization, ActionKeys.VIEW)) {
 
-				PortalUtil.addPortletBreadcrumbEntry(
-					httpServletRequest, ancestorOrganization.getName(),
-					portletURL.toString());
+				continue;
 			}
+
+			PortalUtil.addPortletBreadcrumbEntry(
+				httpServletRequest, ancestorOrganization.getName(),
+				portletURL.toString());
 		}
 
 		Organization unescapedOrganization = organization.toUnescapedModel();
@@ -403,11 +410,13 @@ public class UsersAdminUtil {
 
 			String roleName = groupRole.getName();
 
-			if (roleName.equals(RoleConstants.ORGANIZATION_USER) ||
-				roleName.equals(RoleConstants.SITE_MEMBER)) {
+			if (!roleName.equals(RoleConstants.ORGANIZATION_USER) &&
+				!roleName.equals(RoleConstants.SITE_MEMBER)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		if (permissionChecker.isCompanyAdmin() ||
@@ -434,16 +443,18 @@ public class UsersAdminUtil {
 
 			String roleName = groupRole.getName();
 
-			if (roleName.equals(RoleConstants.ORGANIZATION_ADMINISTRATOR) ||
-				roleName.equals(RoleConstants.ORGANIZATION_OWNER) ||
-				roleName.equals(RoleConstants.SITE_ADMINISTRATOR) ||
-				roleName.equals(RoleConstants.SITE_OWNER) ||
-				!RolePermissionUtil.contains(
+			if (!roleName.equals(RoleConstants.ORGANIZATION_ADMINISTRATOR) &&
+				!roleName.equals(RoleConstants.ORGANIZATION_OWNER) &&
+				!roleName.equals(RoleConstants.SITE_ADMINISTRATOR) &&
+				!roleName.equals(RoleConstants.SITE_OWNER) &&
+				RolePermissionUtil.contains(
 					permissionChecker, groupId, groupRole.getRoleId(),
 					ActionKeys.ASSIGN_MEMBERS)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return filteredGroupRoles;
@@ -464,11 +475,13 @@ public class UsersAdminUtil {
 		while (iterator.hasNext()) {
 			Group group = iterator.next();
 
-			if (!GroupPermissionUtil.contains(
+			if (GroupPermissionUtil.contains(
 					permissionChecker, group, ActionKeys.ASSIGN_MEMBERS)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return filteredGroups;
@@ -490,12 +503,14 @@ public class UsersAdminUtil {
 		while (iterator.hasNext()) {
 			Organization organization = iterator.next();
 
-			if (!OrganizationPermissionUtil.contains(
+			if (OrganizationPermissionUtil.contains(
 					permissionChecker, organization,
 					ActionKeys.ASSIGN_MEMBERS)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return filteredOrganizations;
@@ -513,14 +528,16 @@ public class UsersAdminUtil {
 
 			String roleName = role.getName();
 
-			if (roleName.equals(RoleConstants.GUEST) ||
-				roleName.equals(RoleConstants.ORGANIZATION_USER) ||
-				roleName.equals(RoleConstants.OWNER) ||
-				roleName.equals(RoleConstants.SITE_MEMBER) ||
-				roleName.equals(RoleConstants.USER)) {
+			if (!roleName.equals(RoleConstants.GUEST) &&
+				!roleName.equals(RoleConstants.ORGANIZATION_USER) &&
+				!roleName.equals(RoleConstants.OWNER) &&
+				!roleName.equals(RoleConstants.SITE_MEMBER) &&
+				!roleName.equals(RoleConstants.USER)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		if (permissionChecker.isCompanyAdmin()) {
@@ -532,12 +549,14 @@ public class UsersAdminUtil {
 		while (iterator.hasNext()) {
 			Role role = iterator.next();
 
-			if (!RolePermissionUtil.contains(
+			if (RolePermissionUtil.contains(
 					permissionChecker, role.getRoleId(),
 					ActionKeys.ASSIGN_MEMBERS)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return filteredRoles;
@@ -550,11 +569,13 @@ public class UsersAdminUtil {
 		long[] filteredUserIds = userIds;
 
 		for (long userId : userIds) {
-			if (SiteMembershipPolicyUtil.isMembershipProtected(
+			if (!SiteMembershipPolicyUtil.isMembershipProtected(
 					permissionChecker, userId, groupId)) {
 
-				filteredUserIds = ArrayUtil.remove(filteredUserIds, userId);
+				continue;
 			}
+
+			filteredUserIds = ArrayUtil.remove(filteredUserIds, userId);
 		}
 
 		return filteredUserIds;
@@ -568,11 +589,13 @@ public class UsersAdminUtil {
 		long[] filteredUserIds = userIds;
 
 		for (long userId : userIds) {
-			if (OrganizationMembershipPolicyUtil.isMembershipProtected(
+			if (!OrganizationMembershipPolicyUtil.isMembershipProtected(
 					permissionChecker, userId, organizationId)) {
 
-				filteredUserIds = ArrayUtil.remove(filteredUserIds, userId);
+				continue;
 			}
+
+			filteredUserIds = ArrayUtil.remove(filteredUserIds, userId);
 		}
 
 		return filteredUserIds;
@@ -595,11 +618,13 @@ public class UsersAdminUtil {
 
 			String roleName = role.getName();
 
-			if (roleName.equals(RoleConstants.ORGANIZATION_USER) ||
-				roleName.equals(RoleConstants.SITE_MEMBER)) {
+			if (!roleName.equals(RoleConstants.ORGANIZATION_USER) &&
+				!roleName.equals(RoleConstants.SITE_MEMBER)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		if (permissionChecker.isCompanyAdmin()) {
@@ -611,12 +636,14 @@ public class UsersAdminUtil {
 		while (iterator.hasNext()) {
 			UserGroupRole userGroupRole = iterator.next();
 
-			if (!UserGroupRolePermissionUtil.contains(
+			if (UserGroupRolePermissionUtil.contains(
 					permissionChecker, userGroupRole.getGroupId(),
 					userGroupRole.getRoleId())) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return filteredUserGroupRoles;
@@ -636,12 +663,14 @@ public class UsersAdminUtil {
 		while (iterator.hasNext()) {
 			UserGroup userGroup = iterator.next();
 
-			if (!UserGroupPermissionUtil.contains(
+			if (UserGroupPermissionUtil.contains(
 					permissionChecker, userGroup.getUserGroupId(),
 					ActionKeys.ASSIGN_MEMBERS)) {
 
-				iterator.remove();
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return filteredUserGroups;
@@ -821,6 +850,77 @@ public class UsersAdminUtil {
 		return orderByComparator;
 	}
 
+	public static List<OrgLabor> getOrgLabors(ActionRequest actionRequest) {
+		List<OrgLabor> orgLabors = new ArrayList<>();
+
+		int[] orgLaborsIndexes = StringUtil.split(
+			ParamUtil.getString(actionRequest, "orgLaborsIndexes"), 0);
+
+		for (int orgLaborsIndex : orgLaborsIndexes) {
+			long listTypeId = ParamUtil.getLong(
+				actionRequest, "orgLaborListTypeId" + orgLaborsIndex, -1);
+
+			if (listTypeId == -1) {
+				continue;
+			}
+
+			long orgLaborId = ParamUtil.getLong(
+				actionRequest, "orgLaborId" + orgLaborsIndex);
+
+			int sunOpen = ParamUtil.getInteger(
+				actionRequest, "sunOpen" + orgLaborsIndex, -1);
+			int sunClose = ParamUtil.getInteger(
+				actionRequest, "sunClose" + orgLaborsIndex, -1);
+			int monOpen = ParamUtil.getInteger(
+				actionRequest, "monOpen" + orgLaborsIndex, -1);
+			int monClose = ParamUtil.getInteger(
+				actionRequest, "monClose" + orgLaborsIndex, -1);
+			int tueOpen = ParamUtil.getInteger(
+				actionRequest, "tueOpen" + orgLaborsIndex, -1);
+			int tueClose = ParamUtil.getInteger(
+				actionRequest, "tueClose" + orgLaborsIndex, -1);
+			int wedOpen = ParamUtil.getInteger(
+				actionRequest, "wedOpen" + orgLaborsIndex, -1);
+			int wedClose = ParamUtil.getInteger(
+				actionRequest, "wedClose" + orgLaborsIndex, -1);
+			int thuOpen = ParamUtil.getInteger(
+				actionRequest, "thuOpen" + orgLaborsIndex, -1);
+			int thuClose = ParamUtil.getInteger(
+				actionRequest, "thuClose" + orgLaborsIndex, -1);
+			int friOpen = ParamUtil.getInteger(
+				actionRequest, "friOpen" + orgLaborsIndex, -1);
+			int friClose = ParamUtil.getInteger(
+				actionRequest, "friClose" + orgLaborsIndex, -1);
+			int satOpen = ParamUtil.getInteger(
+				actionRequest, "satOpen" + orgLaborsIndex, -1);
+			int satClose = ParamUtil.getInteger(
+				actionRequest, "satClose" + orgLaborsIndex, -1);
+
+			OrgLabor orgLabor = OrgLaborLocalServiceUtil.createOrgLabor(
+				orgLaborId);
+
+			orgLabor.setListTypeId(listTypeId);
+			orgLabor.setSunOpen(sunOpen);
+			orgLabor.setSunClose(sunClose);
+			orgLabor.setMonOpen(monOpen);
+			orgLabor.setMonClose(monClose);
+			orgLabor.setTueOpen(tueOpen);
+			orgLabor.setTueClose(tueClose);
+			orgLabor.setWedOpen(wedOpen);
+			orgLabor.setWedClose(wedClose);
+			orgLabor.setThuOpen(thuOpen);
+			orgLabor.setThuClose(thuClose);
+			orgLabor.setFriOpen(friOpen);
+			orgLabor.setFriClose(friClose);
+			orgLabor.setSatOpen(satOpen);
+			orgLabor.setSatClose(satClose);
+
+			orgLabors.add(orgLabor);
+		}
+
+		return orgLabors;
+	}
+
 	public static Long[] getOrganizationIds(List<Organization> organizations) {
 		if (ListUtil.isEmpty(organizations)) {
 			return new Long[0];
@@ -912,77 +1012,6 @@ public class UsersAdminUtil {
 		}
 
 		return organizations;
-	}
-
-	public static List<OrgLabor> getOrgLabors(ActionRequest actionRequest) {
-		List<OrgLabor> orgLabors = new ArrayList<>();
-
-		int[] orgLaborsIndexes = StringUtil.split(
-			ParamUtil.getString(actionRequest, "orgLaborsIndexes"), 0);
-
-		for (int orgLaborsIndex : orgLaborsIndexes) {
-			long listTypeId = ParamUtil.getLong(
-				actionRequest, "orgLaborListTypeId" + orgLaborsIndex, -1);
-
-			if (listTypeId == -1) {
-				continue;
-			}
-
-			long orgLaborId = ParamUtil.getLong(
-				actionRequest, "orgLaborId" + orgLaborsIndex);
-
-			int sunOpen = ParamUtil.getInteger(
-				actionRequest, "sunOpen" + orgLaborsIndex, -1);
-			int sunClose = ParamUtil.getInteger(
-				actionRequest, "sunClose" + orgLaborsIndex, -1);
-			int monOpen = ParamUtil.getInteger(
-				actionRequest, "monOpen" + orgLaborsIndex, -1);
-			int monClose = ParamUtil.getInteger(
-				actionRequest, "monClose" + orgLaborsIndex, -1);
-			int tueOpen = ParamUtil.getInteger(
-				actionRequest, "tueOpen" + orgLaborsIndex, -1);
-			int tueClose = ParamUtil.getInteger(
-				actionRequest, "tueClose" + orgLaborsIndex, -1);
-			int wedOpen = ParamUtil.getInteger(
-				actionRequest, "wedOpen" + orgLaborsIndex, -1);
-			int wedClose = ParamUtil.getInteger(
-				actionRequest, "wedClose" + orgLaborsIndex, -1);
-			int thuOpen = ParamUtil.getInteger(
-				actionRequest, "thuOpen" + orgLaborsIndex, -1);
-			int thuClose = ParamUtil.getInteger(
-				actionRequest, "thuClose" + orgLaborsIndex, -1);
-			int friOpen = ParamUtil.getInteger(
-				actionRequest, "friOpen" + orgLaborsIndex, -1);
-			int friClose = ParamUtil.getInteger(
-				actionRequest, "friClose" + orgLaborsIndex, -1);
-			int satOpen = ParamUtil.getInteger(
-				actionRequest, "satOpen" + orgLaborsIndex, -1);
-			int satClose = ParamUtil.getInteger(
-				actionRequest, "satClose" + orgLaborsIndex, -1);
-
-			OrgLabor orgLabor = OrgLaborLocalServiceUtil.createOrgLabor(
-				orgLaborId);
-
-			orgLabor.setListTypeId(listTypeId);
-			orgLabor.setSunOpen(sunOpen);
-			orgLabor.setSunClose(sunClose);
-			orgLabor.setMonOpen(monOpen);
-			orgLabor.setMonClose(monClose);
-			orgLabor.setTueOpen(tueOpen);
-			orgLabor.setTueClose(tueClose);
-			orgLabor.setWedOpen(wedOpen);
-			orgLabor.setWedClose(wedClose);
-			orgLabor.setThuOpen(thuOpen);
-			orgLabor.setThuClose(thuClose);
-			orgLabor.setFriOpen(friOpen);
-			orgLabor.setFriClose(friClose);
-			orgLabor.setSatOpen(satOpen);
-			orgLabor.setSatClose(satClose);
-
-			orgLabors.add(orgLabor);
-		}
-
-		return orgLabors;
 	}
 
 	public static List<Phone> getPhones(ActionRequest actionRequest) {
@@ -1221,6 +1250,10 @@ public class UsersAdminUtil {
 		else if (orderByCol.equals("job-title")) {
 			orderByComparator = UserJobTitleComparator.getInstance(orderByAsc);
 		}
+		else if (orderByCol.equals("last-login-date")) {
+			orderByComparator = UserLastLoginDateComparator.getInstance(
+				orderByAsc);
+		}
 		else if (orderByCol.equals("last-name")) {
 			orderByComparator = UserLastNameComparator.getInstance(orderByAsc);
 		}
@@ -1360,12 +1393,9 @@ public class UsersAdminUtil {
 		for (String roleName :
 				PropsUtil.getArray(PropsKeys.FIELD_EDITABLE_ROLES)) {
 
-			Role role = RoleLocalServiceUtil.fetchRole(
-				updatedUser.getCompanyId(), roleName);
-
-			if ((role != null) &&
-				RoleLocalServiceUtil.hasUserRole(
-					updatedUser.getUserId(), role.getRoleId())) {
+			if (RoleLocalServiceUtil.hasUserRole(
+					updatedUser.getUserId(), updatedUser.getCompanyId(),
+					roleName, true)) {
 
 				return true;
 			}
@@ -1412,7 +1442,8 @@ public class UsersAdminUtil {
 	}
 
 	public static void updateAddresses(
-			String className, long classPK, List<Address> addresses)
+			String className, long classPK, List<Address> addresses,
+			String listTypeType)
 		throws PortalException {
 
 		Set<Long> addressIds = new HashSet<>();
@@ -1420,45 +1451,61 @@ public class UsersAdminUtil {
 		for (Address address : addresses) {
 			long addressId = address.getAddressId();
 
-			String name = address.getName();
-			String description = address.getDescription();
-			String street1 = address.getStreet1();
-			String street2 = address.getStreet2();
-			String street3 = address.getStreet3();
-			String city = address.getCity();
-			String zip = address.getZip();
-			long regionId = address.getRegionId();
-			long countryId = address.getCountryId();
-			long listTypeId = address.getListTypeId();
-			boolean mailing = address.isMailing();
-			boolean primary = address.isPrimary();
-			String phoneNumber = address.getPhoneNumber();
+			if (LazyReferencingThreadLocal.isEnabled()) {
+				addressId = 0;
+
+				Address existingAddress =
+					AddressServiceUtil.fetchAddressByExternalReferenceCode(
+						address.getExternalReferenceCode(),
+						address.getCompanyId());
+
+				if (existingAddress != null) {
+					addressId = existingAddress.getAddressId();
+				}
+			}
 
 			if (addressId <= 0) {
 				address = AddressServiceUtil.addAddress(
 					address.getExternalReferenceCode(), className, classPK,
-					name, description, street1, street2, street3, city, zip,
-					regionId, countryId, listTypeId, mailing, primary,
-					phoneNumber, new ServiceContext());
+					address.getCountryId(), address.getListTypeId(),
+					address.getRegionId(), address.getCity(),
+					address.getDescription(), address.isMailing(),
+					address.getName(), address.isPrimary(),
+					address.getStreet1(), address.getStreet2(),
+					address.getStreet3(), address.getSubtype(),
+					address.getZip(), address.getPhoneNumber(),
+					new ServiceContext());
 
 				addressId = address.getAddressId();
 			}
 			else {
 				AddressServiceUtil.updateAddress(
-					addressId, name, description, street1, street2, street3,
-					city, zip, regionId, countryId, listTypeId, mailing,
-					primary, phoneNumber);
+					address.getExternalReferenceCode(), addressId,
+					address.getCountryId(), address.getListTypeId(),
+					address.getRegionId(), address.getCity(),
+					address.getDescription(), address.isMailing(),
+					address.getName(), address.isPrimary(),
+					address.getStreet1(), address.getStreet2(),
+					address.getStreet3(), address.getSubtype(),
+					address.getZip(), address.getPhoneNumber());
 			}
 
 			addressIds.add(addressId);
 		}
 
-		addresses = AddressServiceUtil.getAddresses(className, classPK);
+		List<ListType> listTypes = ListTypeServiceUtil.getListTypes(
+			CompanyThreadLocal.getCompanyId(), listTypeType);
 
-		for (Address address : addresses) {
-			if (!addressIds.contains(address.getAddressId())) {
-				AddressServiceUtil.deleteAddress(address.getAddressId());
+		for (Address address :
+				AddressServiceUtil.getAddresses(className, classPK)) {
+
+			if (addressIds.contains(address.getAddressId()) ||
+				!listTypes.contains(address.getListType())) {
+
+				continue;
 			}
+
+			AddressServiceUtil.deleteAddress(address.getAddressId());
 		}
 	}
 
@@ -1470,6 +1517,20 @@ public class UsersAdminUtil {
 
 		for (EmailAddress emailAddress : emailAddresses) {
 			long emailAddressId = emailAddress.getEmailAddressId();
+
+			if (LazyReferencingThreadLocal.isEnabled()) {
+				emailAddressId = 0;
+
+				EmailAddress existingEmailAddress =
+					EmailAddressServiceUtil.
+						fetchEmailAddressByExternalReferenceCode(
+							emailAddress.getExternalReferenceCode(),
+							emailAddress.getCompanyId());
+
+				if (existingEmailAddress != null) {
+					emailAddressId = existingEmailAddress.getEmailAddressId();
+				}
+			}
 
 			String address = emailAddress.getAddress();
 			long listTypeId = emailAddress.getListTypeId();
@@ -1491,14 +1552,15 @@ public class UsersAdminUtil {
 			emailAddressIds.add(emailAddressId);
 		}
 
-		emailAddresses = EmailAddressServiceUtil.getEmailAddresses(
-			className, classPK);
+		for (EmailAddress emailAddress :
+				EmailAddressServiceUtil.getEmailAddresses(className, classPK)) {
 
-		for (EmailAddress emailAddress : emailAddresses) {
-			if (!emailAddressIds.contains(emailAddress.getEmailAddressId())) {
-				EmailAddressServiceUtil.deleteEmailAddress(
-					emailAddress.getEmailAddressId());
+			if (emailAddressIds.contains(emailAddress.getEmailAddressId())) {
+				continue;
 			}
+
+			EmailAddressServiceUtil.deleteEmailAddress(
+				emailAddress.getEmailAddressId());
 		}
 	}
 
@@ -1544,12 +1606,12 @@ public class UsersAdminUtil {
 			orgLaborsIds.add(orgLaborId);
 		}
 
-		orgLabors = OrgLaborServiceUtil.getOrgLabors(classPK);
-
-		for (OrgLabor orgLabor : orgLabors) {
-			if (!orgLaborsIds.contains(orgLabor.getOrgLaborId())) {
-				OrgLaborServiceUtil.deleteOrgLabor(orgLabor.getOrgLaborId());
+		for (OrgLabor orgLabor : OrgLaborServiceUtil.getOrgLabors(classPK)) {
+			if (orgLaborsIds.contains(orgLabor.getOrgLaborId())) {
+				continue;
 			}
+
+			OrgLaborServiceUtil.deleteOrgLabor(orgLabor.getOrgLaborId());
 		}
 	}
 
@@ -1561,6 +1623,18 @@ public class UsersAdminUtil {
 
 		for (Phone phone : phones) {
 			long phoneId = phone.getPhoneId();
+
+			if (LazyReferencingThreadLocal.isEnabled()) {
+				phoneId = 0;
+
+				Phone existingPhone =
+					PhoneServiceUtil.fetchPhoneByExternalReferenceCode(
+						phone.getExternalReferenceCode(), phone.getCompanyId());
+
+				if (existingPhone != null) {
+					phoneId = existingPhone.getPhoneId();
+				}
+			}
 
 			String externalReferenceCode = phone.getExternalReferenceCode();
 			String number = phone.getNumber();
@@ -1584,12 +1658,12 @@ public class UsersAdminUtil {
 			phoneIds.add(phoneId);
 		}
 
-		phones = PhoneServiceUtil.getPhones(className, classPK);
-
-		for (Phone phone : phones) {
-			if (!phoneIds.contains(phone.getPhoneId())) {
-				PhoneServiceUtil.deletePhone(phone.getPhoneId());
+		for (Phone phone : PhoneServiceUtil.getPhones(className, classPK)) {
+			if (phoneIds.contains(phone.getPhoneId())) {
+				continue;
 			}
+
+			PhoneServiceUtil.deletePhone(phone.getPhoneId());
 		}
 	}
 
@@ -1600,8 +1674,22 @@ public class UsersAdminUtil {
 		Set<Long> websiteIds = new HashSet<>();
 
 		for (Website website : websites) {
-			String externalReferenceCode = website.getExternalReferenceCode();
 			long websiteId = website.getWebsiteId();
+
+			if (LazyReferencingThreadLocal.isEnabled()) {
+				websiteId = 0;
+
+				Website existingWebsite =
+					WebsiteServiceUtil.fetchWebsiteByExternalReferenceCode(
+						website.getExternalReferenceCode(),
+						website.getCompanyId());
+
+				if (existingWebsite != null) {
+					websiteId = existingWebsite.getWebsiteId();
+				}
+			}
+
+			String externalReferenceCode = website.getExternalReferenceCode();
 			String url = website.getUrl();
 			long listTypeId = website.getListTypeId();
 			boolean primary = website.isPrimary();
@@ -1621,12 +1709,14 @@ public class UsersAdminUtil {
 			websiteIds.add(websiteId);
 		}
 
-		websites = WebsiteServiceUtil.getWebsites(className, classPK);
+		for (Website website :
+				WebsiteServiceUtil.getWebsites(className, classPK)) {
 
-		for (Website website : websites) {
-			if (!websiteIds.contains(website.getWebsiteId())) {
-				WebsiteServiceUtil.deleteWebsite(website.getWebsiteId());
+			if (websiteIds.contains(website.getWebsiteId())) {
+				continue;
 			}
+
+			WebsiteServiceUtil.deleteWebsite(website.getWebsiteId());
 		}
 	}
 

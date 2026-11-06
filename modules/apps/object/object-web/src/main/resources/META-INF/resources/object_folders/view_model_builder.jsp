@@ -15,6 +15,11 @@ String backURL = ParamUtil.getString(
 	).setParameter(
 		"objectFolderName", "Default"
 	).build());
+
+DecimalFormat decimalFormat = NumericDDMFormFieldUtil.getDecimalFormat(LocaleUtil.getDefault());
+
+DecimalFormatSymbols decimalFormatSymbols = decimalFormat.getDecimalFormatSymbols();
+
 ObjectDefinitionsDetailsDisplayContext objectDefinitionsDetailsDisplayContext = (ObjectDefinitionsDetailsDisplayContext)request.getAttribute(ObjectWebKeys.OBJECT_DEFINITIONS_DETAILS_DISPLAY_CONTEXT);
 ObjectDefinitionsFieldsDisplayContext objectDefinitionsFieldsDisplayContext = (ObjectDefinitionsFieldsDisplayContext)request.getAttribute(ObjectWebKeys.OBJECT_DEFINITIONS_FIELD_DISPLAY_CONTEXT);
 ObjectDefinitionsRelationshipsDisplayContext objectDefinitionsRelationshipsDisplayContext = (ObjectDefinitionsRelationshipsDisplayContext)request.getAttribute(ObjectWebKeys.OBJECT_DEFINITIONS_RELATIONSHIP_DISPLAY_CONTEXT);
@@ -34,7 +39,13 @@ renderResponse.setTitle(LanguageUtil.get(request, "object-model-builder"));
 			HashMapBuilder.<String, Object>put(
 				"baseResourceURL", String.valueOf(baseResourceURL)
 			).put(
+				"ckEditor5Config", objectDefinitionsFieldsDisplayContext.getEditorConfig()
+			).put(
 				"companies", objectDefinitionsDetailsDisplayContext.getScopeJSONArray("company")
+			).put(
+				"countries", objectDefinitionsFieldsDisplayContext.getCountries()
+			).put(
+				"decimalSeparator", String.valueOf(decimalFormatSymbols.getDecimalSeparator())
 			).put(
 				"editObjectDefinitionURL", objectDefinitionsDetailsDisplayContext.getEditObjectDefinitionURL()
 			).put(
@@ -46,7 +57,15 @@ renderResponse.setTitle(LanguageUtil.get(request, "object-model-builder"));
 			).put(
 				"forbiddenNames", PropsUtil.getArray(PropsKeys.DL_NAME_BLACKLIST)
 			).put(
+				"googleMapsAPIKey", objectDefinitionsFieldsDisplayContext.getGoogleMapsAPIKey()
+			).put(
+				"hasDepotEntry", objectDefinitionsFieldsDisplayContext.hasDepotEntry()
+			).put(
 				"learnResourceContext", LearnMessageUtil.getReactDataJSONObject(new String[] {"frontend-js-components-web", "object-web"})
+			).put(
+				"mapProviderKey", objectDefinitionsFieldsDisplayContext.getMapProviderKey()
+			).put(
+				"metadataObjectFieldNames", ObjectFieldUtil.getMetadataObjectFieldNamesJSONArray()
 			).put(
 				"objectDefinitionPermissionsURL", objectDefinitionsDetailsDisplayContext.getPermissionsURL(ObjectDefinition.class.getName())
 			).put(
@@ -69,5 +88,11 @@ renderResponse.setTitle(LanguageUtil.get(request, "object-model-builder"));
 <div>
 	<react:component
 		module="{ExpressionBuilderModal} from object-web"
+	/>
+</div>
+
+<div>
+	<react:component
+		module="{ModalDisableInheritance} from object-web"
 	/>
 </div>

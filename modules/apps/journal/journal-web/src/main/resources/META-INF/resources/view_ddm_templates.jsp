@@ -20,7 +20,6 @@ if (ddmStructure != null) {
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems='<%= journalDisplayContext.getNavigationItems("templates") %>'
 />
 
@@ -33,7 +32,7 @@ if (ddmStructure != null) {
 	<portlet:param name="mvcPath" value="/view_ddm_templates.jsp" />
 </portlet:actionURL>
 
-<aui:form action="<%= deleteDDMTemplateURL %>" cssClass="container-fluid container-fluid-max-xl" method="post" name="fm">
+<aui:form action="<%= deleteDDMTemplateURL %>" cssClass="container-fluid container-fluid-max-xxxl" method="post" name="fm">
 	<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
 
 	<c:if test="<%= !journalDisplayContext.isNavigationMine() && !journalDisplayContext.isNavigationRecent() %>">
@@ -60,8 +59,8 @@ if (ddmStructure != null) {
 			if (DDMTemplatePermission.contains(permissionChecker, ddmTemplate, ActionKeys.UPDATE)) {
 				rowHREF = PortletURLBuilder.createRenderURL(
 					renderResponse
-				).setMVCPath(
-					"/edit_ddm_template.jsp"
+				).setMVCRenderCommandName(
+					"/journal/edit_ddm_template"
 				).setRedirect(
 					currentURL
 				).setParameter(

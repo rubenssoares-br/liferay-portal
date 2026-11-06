@@ -20,13 +20,21 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.xml.Element;
 import com.liferay.portal.util.PortalInstances;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portlet.AsyncPortletServletRequest;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 
@@ -38,14 +46,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 /**
  * @author Brian Wing Shun Chan
@@ -68,14 +68,16 @@ public class I18nServlet extends HttpServlet {
 		for (Element element : rootElements) {
 			String servletName = element.elementText("servlet-name");
 
-			if (servletName.equals("I18n Servlet")) {
-				String urlPattern = element.elementText("url-pattern");
-
-				String languageId = urlPattern.substring(
-					0, urlPattern.lastIndexOf(CharPool.SLASH));
-
-				languageIds.put(StringUtil.toLowerCase(languageId), languageId);
+			if (!servletName.equals("I18n Servlet")) {
+				continue;
 			}
+
+			String urlPattern = element.elementText("url-pattern");
+
+			String languageId = urlPattern.substring(
+				0, urlPattern.lastIndexOf(CharPool.SLASH));
+
+			languageIds.put(StringUtil.toLowerCase(languageId), languageId);
 		}
 
 		_languageIds = Collections.unmodifiableMap(languageIds);

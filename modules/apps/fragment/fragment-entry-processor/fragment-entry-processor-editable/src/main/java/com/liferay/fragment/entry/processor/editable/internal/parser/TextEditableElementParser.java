@@ -50,7 +50,7 @@ public class TextEditableElementParser extends BaseEditableElementParser {
 		Element element, String value, JSONObject configJSONObject) {
 
 		if (configJSONObject == null) {
-			element.html(value);
+			replaceContent(element, value);
 
 			return;
 		}
@@ -73,7 +73,7 @@ public class TextEditableElementParser extends BaseEditableElementParser {
 			element.addClass(textStyleValue);
 		}
 
-		element.html(value);
+		replaceContent(element, value);
 	}
 
 	@Override

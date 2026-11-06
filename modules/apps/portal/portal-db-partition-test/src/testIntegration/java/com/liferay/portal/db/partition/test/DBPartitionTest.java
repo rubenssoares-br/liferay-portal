@@ -13,20 +13,27 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.db.partition.test.util.BaseDBPartitionTestCase;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.events.StartupHelperUtil;
+import com.liferay.portal.kernel.dao.db.DBType;
 import com.liferay.portal.kernel.dao.orm.EntityCacheUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
 import com.liferay.portal.kernel.model.ClassName;
 import com.liferay.portal.kernel.model.CompanyConstants;
+import com.liferay.portal.kernel.model.Portlet;
 import com.liferay.portal.kernel.model.ResourceAction;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
+import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.persistence.PortletPersistence;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.util.PropsValuesTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.InfrastructureUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.model.impl.ClassNameImpl;
 import com.liferay.portal.model.impl.ResourceActionImpl;
 import com.liferay.portal.service.impl.ClassNameLocalServiceImpl;
@@ -50,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.sql.DataSource;
 
@@ -220,11 +228,12 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 					connection.prepareStatement(
 						"select value, classNameId from ClassName_ order by " +
 							"classNameId asc limit 1; ");
+
 				ResultSet resultSet = preparedStatement.executeQuery()) {
 
 				if (resultSet.next()) {
-					classNameValue = resultSet.getString(1);
-					classNameId = resultSet.getLong(2);
+					classNameValue = resultSet.getString("value");
+					classNameId = resultSet.getLong("classNameId");
 				}
 			}
 		}
@@ -254,15 +263,16 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
 						companyId)) {
 
-				int rowCount = -1;
+				long rowCount = -1;
 
 				try (PreparedStatement preparedStatement =
 						connection.prepareStatement(
-							"select count(1) from Configuration_");
+							"select count(1) as count from Configuration_");
+
 					ResultSet resultSet = preparedStatement.executeQuery()) {
 
 					if (resultSet.next()) {
-						rowCount = resultSet.getInt(1);
+						rowCount = resultSet.getLong("count");
 					}
 				}
 
@@ -295,13 +305,14 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 						"select resourceActionId, name, actionId, " +
 							"bitwiseValue from ResourceAction order by " +
 								"resourceActionId asc limit 1;");
+
 				ResultSet resultSet = preparedStatement.executeQuery()) {
 
 				if (resultSet.next()) {
-					actionId = resultSet.getString(3);
-					bitwiseValue = resultSet.getLong(4);
-					name = resultSet.getString(2);
-					resourceActionId = resultSet.getLong(1);
+					actionId = resultSet.getString("actionId");
+					bitwiseValue = resultSet.getLong("bitwiseValue");
+					name = resultSet.getString("name");
+					resourceActionId = resultSet.getLong("resourceActionId");
 				}
 			}
 		}
@@ -312,10 +323,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 		long finalResourceActionId = resourceActionId;
 
 		try {
-			DBPartitionUtil.forEachCompanyId(
-				companyId ->
-					_resourceActionLocalService.checkResourceActions());
-
 			DBPartitionUtil.forEachCompanyId(
 				companyId -> {
 					ResourceAction resourceAction =
@@ -334,10 +341,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 			EntityCacheUtil.clearCache(ResourceActionImpl.class);
 
 			resourceActions.clear();
-
-			DBPartitionUtil.forEachCompanyId(
-				companyId ->
-					_resourceActionLocalService.checkResourceActions());
 		}
 	}
 
@@ -426,45 +429,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
-	public void testCounterRename() throws Exception {
-		try (SafeCloseable safeCloseable =
-				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-					COMPANY_IDS[0])) {
-
-			try {
-				DBPartitionUtil.forEachCompanyId(
-					companyId -> _counterLocalService.increment(_CLASS_NAME));
-
-				_counterLocalService.rename(_CLASS_NAME, _CLASS_NAME + ".test");
-
-				DBPartitionUtil.forEachCompanyId(
-					companyId -> {
-						List<String> counterNames =
-							_counterLocalService.getNames();
-
-						if (companyId.equals(COMPANY_IDS[0])) {
-							Assert.assertFalse(
-								counterNames.contains(_CLASS_NAME));
-							Assert.assertTrue(
-								counterNames.contains(_CLASS_NAME + ".test"));
-						}
-						else {
-							Assert.assertFalse(
-								counterNames.contains(_CLASS_NAME + ".test"));
-							Assert.assertTrue(
-								counterNames.contains(_CLASS_NAME));
-						}
-					});
-			}
-			finally {
-				DBPartitionUtil.forEachCompanyId(
-					companyId -> _counterLocalService.reset(
-						_CLASS_NAME + ".test"));
-			}
-		}
-	}
-
-	@Test
 	public void testCounterReset() throws Exception {
 		try (SafeCloseable safeCloseable =
 				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
@@ -509,6 +473,178 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 					else {
 						Assert.assertEquals(
 							2, _counterLocalService.increment(_CLASS_NAME));
+					}
+				});
+		}
+	}
+
+	@Test
+	public void testDatabasePartitionSchemaNamePrefixes() throws Exception {
+		String[] databasePartitionSchemaNamePrefixes = {
+			DBPartitionUtil.DATABASE_EXPORTED_PARTITION_SCHEMA_NAME_PREFIX,
+			PropsValues.DATABASE_PARTITION_SCHEMA_NAME_PREFIX
+		};
+
+		for (String databasePartitionSchemaNamePrefix :
+				databasePartitionSchemaNamePrefixes) {
+
+			String databasePartitionSchemaNamePrefixSQL = StringBundler.concat(
+				"drop view if exists ", databasePartitionSchemaNamePrefix,
+				COMPANY_IDS[0], ".TestView");
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						CompanyConstants.SYSTEM)) {
+
+				db.runSQL(databasePartitionSchemaNamePrefixSQL);
+			}
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						PortalInstancePool.getDefaultCompanyId())) {
+
+				db.runSQL(databasePartitionSchemaNamePrefixSQL);
+			}
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						COMPANY_IDS[0])) {
+
+				db.runSQL(databasePartitionSchemaNamePrefixSQL);
+
+				Assert.fail();
+			}
+			catch (UnsupportedOperationException
+						unsupportedOperationException) {
+
+				Assert.assertEquals(
+					"Unsupported SQL: " + databasePartitionSchemaNamePrefixSQL,
+					unsupportedOperationException.getMessage());
+			}
+		}
+	}
+
+	@Test
+	public void testDefaultPartitionName() throws Exception {
+		_testDefaultPartitionName(
+			"drop view if exists " + defaultPartitionName + " .TestView", true);
+		_testDefaultPartitionName(
+			"drop view if exists " + defaultPartitionName + ".TestView", true);
+		_testDefaultPartitionName(
+			"drop view if exists " + defaultPartitionName + "/**/.TestView",
+			true);
+		_testDefaultPartitionName(
+			StringBundler.concat(
+				"drop view if exists ", defaultPartitionName, " -- ",
+				RandomTestUtil.randomString(), "\n.TestView"),
+			true);
+
+		if (db.getDBType() == DBType.POSTGRESQL) {
+			_testDefaultPartitionName(
+				"drop view if exists \"" + defaultPartitionName + "\".TestView",
+				true);
+			_testDefaultPartitionName(
+				"set search_path to " + defaultPartitionName, true);
+			_testDefaultPartitionName(
+				StringBundler.concat(
+					"drop view if exists ", dbInspector.getCatalog(), ".",
+					defaultPartitionName, ".TestView"),
+				true);
+		}
+		else {
+			_testDefaultPartitionName(
+				"drop view if exists `" + defaultPartitionName + "`.TestView",
+				true);
+			_testDefaultPartitionName("use " + defaultPartitionName, true);
+		}
+
+		_testDefaultPartitionName(
+			StringBundler.concat(
+				"delete from ClassName_ where value = '",
+				RandomTestUtil.randomString(), ".", defaultPartitionName, ".",
+				RandomTestUtil.randomString(), "'"),
+			false);
+		_testDefaultPartitionName(
+			StringBundler.concat(
+				"delete from ClassName_ where value = '",
+				RandomTestUtil.randomString(100000), "'"),
+			false);
+		_testDefaultPartitionName(
+			StringBundler.concat(
+				"delete from ClassName_ where value = 'This is ",
+				defaultPartitionName, ". ", RandomTestUtil.randomString(), "'"),
+			false);
+		_testDefaultPartitionName(
+			StringBundler.concat(
+				"delete from ClassName_ where value = 'https://",
+				defaultPartitionName, ".com/", RandomTestUtil.randomString(),
+				"'"),
+			false);
+	}
+
+	@Test
+	public void testDeployRemotePortlet() throws Exception {
+		String portletName = RandomTestUtil.randomString();
+
+		try {
+			_deployRemotePortlet(CompanyConstants.SYSTEM, portletName);
+
+			Portlet portlet = _portletLocalService.getPortletById(portletName);
+
+			DBPartitionUtil.forEachCompanyId(
+				companyId -> Assert.assertEquals(
+					portlet, _portletLocalService.getPortletById(portletName)));
+		}
+		finally {
+			Portlet portlet = _portletLocalService.getPortletById(portletName);
+
+			_portletLocalService.destroyRemotePortlet(portlet);
+		}
+
+		try {
+			_deployRemotePortlet(TestPropsValues.getCompanyId(), portletName);
+
+			long defaultCompanyId = PortalInstancePool.getDefaultCompanyId();
+
+			_deployRemotePortlet(defaultCompanyId, portletName);
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						TestPropsValues.getCompanyId())) {
+
+				Portlet portlet = _portletLocalService.getPortletById(
+					portletName);
+
+				Assert.assertEquals(
+					TestPropsValues.getCompanyId(), portlet.getCompanyId());
+			}
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						defaultCompanyId)) {
+
+				Portlet portlet = _portletLocalService.getPortletById(
+					portletName);
+
+				Assert.assertEquals(defaultCompanyId, portlet.getCompanyId());
+			}
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						COMPANY_IDS[0])) {
+
+				Assert.assertNull(
+					_portletLocalService.getPortletById(portletName));
+			}
+		}
+		finally {
+			DBPartitionUtil.forEachCompanyId(
+				companyId -> {
+					Portlet portlet = _portletLocalService.getPortletById(
+						companyId, portletName);
+
+					if (portlet != null) {
+						_portletLocalService.destroyRemotePortlet(portlet);
 					}
 				});
 		}
@@ -560,26 +696,29 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
-	public void testGetClassNameIdsSupplier() throws Exception {
+	public void testGetClassNameIdSupplier() throws Exception {
 		_assertClassNameIds(
 			classNameIds -> {
-				for (long classNameId :
-						_classNameLocalService.getClassNameIdsSupplier(
-							new String[] {"class.name.test"}
-						).get()) {
+				Supplier<Long> classNameIdSupplier =
+					_classNameLocalService.getClassNameIdSupplier(
+						"class.name.test");
 
-					classNameIds.add(classNameId);
-				}
+				classNameIds.add(classNameIdSupplier.get());
 			});
 	}
 
 	@Test
-	public void testGetClassNameIdSupplier() throws Exception {
+	public void testGetClassNameIdsSupplier() throws Exception {
 		_assertClassNameIds(
-			classNameIds -> classNameIds.add(
-				_classNameLocalService.getClassNameIdSupplier(
-					"class.name.test"
-				).get()));
+			classNameIds -> {
+				Supplier<long[]> classNameIdsSupplier =
+					_classNameLocalService.getClassNameIdsSupplier(
+						new String[] {"class.name.test"});
+
+				for (long classNameId : classNameIdsSupplier.get()) {
+					classNameIds.add(classNameId);
+				}
+			});
 	}
 
 	@Test
@@ -637,10 +776,9 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	public void testIllegalDatabasePartitionSchemaNamePrefix()
 		throws Exception {
 
-		try (AutoCloseable autoCloseable =
-				ReflectionTestUtil.setFieldValueWithAutoCloseable(
-					DBPartitionUtil.class,
-					"_DATABASE_PARTITION_SCHEMA_NAME_PREFIX",
+		try (SafeCloseable safeCloseable =
+				PropsValuesTestUtil.swapWithSafeCloseable(
+					"DATABASE_PARTITION_SCHEMA_NAME_PREFIX",
 					"VeryLongIdentifier")) {
 
 			DBPartitionUtil.checkDatabasePartitionSchemaNamePrefix();
@@ -686,6 +824,44 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 	}
 
 	@Test
+	public void testUpdateIndexOnControlTable() throws Exception {
+		DataSource dataSource = InfrastructureUtil.getDataSource();
+
+		DBPartitionUtil.forEachCompanyId(
+			companyId -> {
+				try (Connection connection = dataSource.getConnection();
+					LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+						"com.liferay.portal.dao.db.BaseDB",
+						LoggerTestUtil.INFO)) {
+
+					db.updateIndexes(
+						connection, "Company",
+						"create index " + TEST_INDEX_NAME +
+							" on Company (userId, companyId);",
+						false);
+
+					List<LogEntry> logEntries = logCapture.getLogEntries();
+
+					long expectedLogEntriesCount = 0;
+
+					if (companyId == PortalInstancePool.getDefaultCompanyId()) {
+						expectedLogEntriesCount = 1;
+					}
+
+					Assert.assertEquals(
+						logEntries.toString(), expectedLogEntriesCount,
+						logEntries.size());
+				}
+				finally {
+					if (dbInspector.hasIndex("Company", TEST_INDEX_NAME)) {
+						db.runSQL(
+							"drop index " + TEST_INDEX_NAME + " on Company");
+					}
+				}
+			});
+	}
+
+	@Test
 	public void testUpdateIndexes() throws Exception {
 		DataSource dataSource = InfrastructureUtil.getDataSource();
 
@@ -711,44 +887,6 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 			DBPartitionUtil.forEachCompanyId(
 				companyId -> dropTable(TEST_TABLE_NAME));
 		}
-	}
-
-	@Test
-	public void testUpdateIndexOnControlTable() throws Exception {
-		DataSource dataSource = InfrastructureUtil.getDataSource();
-
-		DBPartitionUtil.forEachCompanyId(
-			companyId -> {
-				try (Connection connection = dataSource.getConnection();
-					LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-						"com.liferay.portal.dao.db.BaseDB",
-						LoggerTestUtil.INFO)) {
-
-					db.updateIndexes(
-						connection, "Company",
-						"create index " + TEST_INDEX_NAME +
-							" on Company (logoId, companyId);",
-						false);
-
-					List<LogEntry> logEntries = logCapture.getLogEntries();
-
-					long expectedLogEntriesCount = 0;
-
-					if (companyId == PortalInstancePool.getDefaultCompanyId()) {
-						expectedLogEntriesCount = 1;
-					}
-
-					Assert.assertEquals(
-						logEntries.toString(), expectedLogEntriesCount,
-						logEntries.size());
-				}
-				finally {
-					if (dbInspector.hasIndex("Company", TEST_INDEX_NAME)) {
-						db.runSQL(
-							"drop index " + TEST_INDEX_NAME + " on Company");
-					}
-				}
-			});
 	}
 
 	@Test
@@ -805,15 +943,74 @@ public class DBPartitionTest extends BaseDBPartitionTestCase {
 		}
 	}
 
-	private static final String _CLASS_NAME = DBPartitionTest.class.getName();
+	private void _deployRemotePortlet(long companyId, String portletName)
+		throws Exception {
 
-	@Inject
-	private static ResourceActionLocalService _resourceActionLocalService;
+		Portlet portlet = _portletPersistence.create(0);
+
+		portlet.setCompanyId(companyId);
+		portlet.setPortletId(portletName);
+
+		companyId = (companyId == CompanyConstants.SYSTEM) ?
+			PortalInstancePool.getDefaultCompanyId() : companyId;
+
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(companyId)) {
+
+			_portletLocalService.deployRemotePortlet(
+				new long[] {companyId}, portlet,
+				new String[] {"category.hidden"}, true, true);
+		}
+	}
+
+	private void _testDefaultPartitionName(String sql, boolean unsupported)
+		throws Exception {
+
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+					CompanyConstants.SYSTEM)) {
+
+			db.runSQL(sql);
+		}
+
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+					PortalInstancePool.getDefaultCompanyId())) {
+
+			db.runSQL(sql);
+		}
+
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+					COMPANY_IDS[0])) {
+
+			db.runSQL(sql);
+
+			Assert.assertFalse(unsupported);
+		}
+		catch (UnsupportedOperationException unsupportedOperationException) {
+			Assert.assertTrue(unsupported);
+			Assert.assertEquals(
+				"Unsupported SQL: " + sql,
+				unsupportedOperationException.getMessage());
+		}
+	}
+
+	private static final String _CLASS_NAME = DBPartitionTest.class.getName();
 
 	@Inject
 	private ClassNameLocalService _classNameLocalService;
 
 	@Inject
 	private CounterLocalService _counterLocalService;
+
+	@Inject
+	private PortletLocalService _portletLocalService;
+
+	@Inject
+	private PortletPersistence _portletPersistence;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
 
 }

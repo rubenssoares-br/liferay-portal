@@ -10,6 +10,7 @@ import com.liferay.analytics.reports.test.MockObject;
 import com.liferay.analytics.reports.test.analytics.reports.info.item.MockObjectAnalyticsReportsInfoItem;
 import com.liferay.analytics.reports.test.util.MockContextUtil;
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
+import com.liferay.analytics.test.util.AnalyticsCompanyConfigurationTemporarySwapper;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.info.item.InfoItemReference;
 import com.liferay.layout.test.util.LayoutTestUtil;
@@ -18,36 +19,38 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.PortletPreferences;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
-import com.liferay.portal.kernel.security.permission.PermissionChecker;
-import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.context.ContextUserReplace;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapDictionary;
-import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
-import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.model.impl.PortletPreferencesImpl;
-import com.liferay.portal.security.permission.SimplePermissionChecker;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portlet.PortalPreferencesImpl;
 import com.liferay.product.navigation.control.menu.ProductNavigationControlMenuEntry;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
 import java.util.Dictionary;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -114,23 +117,10 @@ public class AnalyticsReportsProductNavigationControlMenuEntryTest {
 	public void testIsShowWithIsShowAnalyticsReportsInfoItem()
 		throws Exception {
 
-		try (CompanyConfigurationTemporarySwapper
-				companyConfigurationTemporarySwapper =
-					new CompanyConfigurationTemporarySwapper(
-						TestPropsValues.getCompanyId(),
-						AnalyticsConfiguration.class.getName(),
-						HashMapDictionaryBuilder.<String, Object>put(
-							"liferayAnalyticsDataSourceId",
-							RandomTestUtil.nextLong()
-						).put(
-							"liferayAnalyticsEnableAllGroupIds", true
-						).put(
-							"liferayAnalyticsFaroBackendSecuritySignature",
-							RandomTestUtil.randomString()
-						).put(
-							"liferayAnalyticsFaroBackendURL",
-							RandomTestUtil.randomString()
-						).build())) {
+		try (AnalyticsCompanyConfigurationTemporarySwapper
+				analyticsCompanyConfigurationTemporarySwapper =
+					new AnalyticsCompanyConfigurationTemporarySwapper(
+						TestPropsValues.getCompanyId())) {
 
 			MockContextUtil.testWithMockContext(
 				new MockContextUtil.MockContext.Builder(
@@ -230,30 +220,39 @@ public class AnalyticsReportsProductNavigationControlMenuEntryTest {
 			_portletPreferencesLocalService.addPortletPreferences(
 				portletPreferences);
 
-		_user = UserTestUtil.addUser();
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+		User user = UserTestUtil.addUser();
 
-		PermissionThreadLocal.setPermissionChecker(
-			_mockPermissionChecker(
-				ActionKeys.UPDATE, true, "com.liferay.blogs.model.BlogsEntry"));
+		_userLocalService.addRoleUser(role.getRoleId(), user.getUserId());
 
-		MockHttpServletRequest mockHttpServletRequest =
-			(MockHttpServletRequest)_getHttpServletRequest();
+		_resourcePermissionLocalService.setResourcePermissions(
+			_group.getCompanyId(), Layout.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL, String.valueOf(plid),
+			role.getRoleId(), new String[] {ActionKeys.UPDATE});
 
-		mockHttpServletRequest.setAttribute(
-			AnalyticsReportsWebKeys.ANALYTICS_INFO_ITEM_REFERENCE,
-			new InfoItemReference(Layout.class.getName(), plid));
-		mockHttpServletRequest.setParameter("p_l_id", String.valueOf(plid));
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
 
-		ThemeDisplay themeDisplay =
-			(ThemeDisplay)mockHttpServletRequest.getAttribute(
-				WebKeys.THEME_DISPLAY);
+			MockHttpServletRequest mockHttpServletRequest =
+				(MockHttpServletRequest)_getHttpServletRequest();
 
-		themeDisplay.setPlid(plid);
-		themeDisplay.setSignedIn(true);
-		themeDisplay.setUser(_user);
+			ThemeDisplay themeDisplay =
+				(ThemeDisplay)mockHttpServletRequest.getAttribute(
+					WebKeys.THEME_DISPLAY);
 
-		Assert.assertTrue(
-			_productNavigationControlMenuEntry.isShow(mockHttpServletRequest));
+			themeDisplay.setPlid(plid);
+			themeDisplay.setSignedIn(true);
+			themeDisplay.setUser(user);
+
+			mockHttpServletRequest.setAttribute(
+				AnalyticsReportsWebKeys.ANALYTICS_INFO_ITEM_REFERENCE,
+				new InfoItemReference(Layout.class.getName(), plid));
+			mockHttpServletRequest.setParameter("p_l_id", String.valueOf(plid));
+
+			Assert.assertTrue(
+				_productNavigationControlMenuEntry.isShow(
+					mockHttpServletRequest));
+		}
 	}
 
 	private HttpServletRequest _getHttpServletRequest() throws PortalException {
@@ -280,38 +279,6 @@ public class AnalyticsReportsProductNavigationControlMenuEntryTest {
 		return themeDisplay;
 	}
 
-	private PermissionChecker _mockPermissionChecker(
-		String actionKey, boolean hasPermission, String resourceName) {
-
-		return new SimplePermissionChecker() {
-
-			@Override
-			public long getOwnerRoleId() {
-				return 0;
-			}
-
-			@Override
-			public User getUser() {
-				return _user;
-			}
-
-			@Override
-			public boolean hasPermission(
-				long groupId, String name, String primKey, String actionId) {
-
-				if (StringUtil.equals(name, resourceName) &&
-					StringUtil.equals(primKey, "0") &&
-					StringUtil.equals(actionId, actionKey)) {
-
-					return hasPermission;
-				}
-
-				return false;
-			}
-
-		};
-	}
-
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
@@ -332,8 +299,11 @@ public class AnalyticsReportsProductNavigationControlMenuEntryTest {
 	private ProductNavigationControlMenuEntry
 		_productNavigationControlMenuEntry;
 
-	@DeleteAfterTestRun
-	private User _user;
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private UserLocalService _userLocalService;
 
 	private class HidePanelPortalPreferencesWrapper
 		extends PortalPreferencesImpl {

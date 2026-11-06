@@ -4,15 +4,12 @@
  */
 
 import {
-	addParams,
-	fetch,
-	objectToFormData,
 	openConfirmModal,
 	openModal,
 	openSelectionModal,
 	openToast,
-	sub,
-} from 'frontend-js-web';
+} from 'frontend-js-components-web';
+import {addParams, fetch, objectToFormData, sub} from 'frontend-js-web';
 
 import showSuccessMessage from './utils/showSuccessMessage';
 
@@ -158,6 +155,10 @@ export default function propsTransformer({items, portletNamespace, ...props}) {
 					...child,
 					onClick(event) {
 						const action = child.data?.action;
+
+						if (child.href) {
+							event.stopPropagation();
+						}
 
 						if (action) {
 							event.preventDefault();

@@ -9,7 +9,6 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.journal.model.JournalArticle;
-import com.liferay.journal.service.JournalArticleLocalService;
 import com.liferay.journal.test.util.JournalTestUtil;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
@@ -28,12 +27,16 @@ import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
 import java.io.ByteArrayOutputStream;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,9 +64,13 @@ public class GetConflictInfoMVCResourceCommandTest {
 			null, TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
 			0, "P1", null);
 
+		_ctCollections.add(_ctCollection1);
+
 		_ctCollection2 = _ctCollectionLocalService.addCTCollection(
 			null, TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
 			0, "P2", null);
+
+		_ctCollections.add(_ctCollection2);
 
 		_group = GroupTestUtil.addGroup();
 
@@ -82,12 +89,12 @@ public class GetConflictInfoMVCResourceCommandTest {
 				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
 					_ctCollection1.getCtCollectionId())) {
 
-			_assertGetConflictInfo("change-tracking-conflict-icon", "check");
+			_assertGetConflictInfo(null);
 
 			_journalArticle = JournalTestUtil.updateArticle(
 				_journalArticle, "testModifyJournalArticle");
 
-			_assertGetConflictInfo("change-tracking-conflict-icon", "check");
+			_assertGetConflictInfo(null);
 		}
 	}
 
@@ -108,8 +115,7 @@ public class GetConflictInfoMVCResourceCommandTest {
 			_journalArticle = JournalTestUtil.updateArticle(
 				_journalArticle, "testModifyJournalArticle");
 
-			_assertGetConflictInfo(
-				"change-tracking-conflict-icon-warning", "warning-full");
+			_assertGetConflictInfo("warning");
 		}
 	}
 
@@ -136,13 +142,11 @@ public class GetConflictInfoMVCResourceCommandTest {
 				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
 					_ctCollection1.getCtCollectionId())) {
 
-			_assertGetConflictInfo(
-				"change-tracking-conflict-icon-danger", "warning-full");
+			_assertGetConflictInfo("danger");
 		}
 	}
 
-	private void _assertGetConflictInfo(
-			String expectedConflictIconClass, String expectedConflictIconName)
+	private void _assertGetConflictInfo(String expectedConflictKey)
 		throws Exception {
 
 		MockLiferayResourceResponse mockLiferayResourceResponse =
@@ -158,12 +162,12 @@ public class GetConflictInfoMVCResourceCommandTest {
 		JSONObject jsonObject = _getConflictInfoJSONObject(
 			mockLiferayResourceResponse);
 
-		Assert.assertEquals(
-			expectedConflictIconClass,
-			String.valueOf(jsonObject.get("conflictIconClass")));
-		Assert.assertEquals(
-			expectedConflictIconName,
-			String.valueOf(jsonObject.get("conflictIconName")));
+		if (Validator.isNull(expectedConflictKey)) {
+			Assert.assertEquals(0, jsonObject.length());
+		}
+		else {
+			Assert.assertNotNull(jsonObject.get(expectedConflictKey));
+		}
 	}
 
 	private JSONObject _getConflictInfoJSONObject(
@@ -205,31 +209,25 @@ public class GetConflictInfoMVCResourceCommandTest {
 		return mockLiferayResourceRequest;
 	}
 
-	@DeleteAfterTestRun
-	private static CTCollection _ctCollection1;
-
-	@DeleteAfterTestRun
-	private static CTCollection _ctCollection2;
-
-	@Inject
-	private static CTCollectionLocalService _ctCollectionLocalService;
-
-	@DeleteAfterTestRun
-	private static Group _group;
-
-	@DeleteAfterTestRun
-	private static JournalArticle _journalArticle;
-
-	@Inject
-	private static JournalArticleLocalService _journalArticleLocalService;
-
-	@Inject
-	private static Portal _portal;
-
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
+	private CTCollection _ctCollection1;
+	private CTCollection _ctCollection2;
+
+	@Inject
+	private CTCollectionLocalService _ctCollectionLocalService;
+
+	@DeleteAfterTestRun
+	private final List<CTCollection> _ctCollections = new ArrayList<>();
+
+	private Group _group;
+	private JournalArticle _journalArticle;
+
 	@Inject(filter = "mvc.command.name=/change_tracking/get_conflict_info")
 	private MVCResourceCommand _mvcResourceCommand;
+
+	@Inject
+	private Portal _portal;
 
 }

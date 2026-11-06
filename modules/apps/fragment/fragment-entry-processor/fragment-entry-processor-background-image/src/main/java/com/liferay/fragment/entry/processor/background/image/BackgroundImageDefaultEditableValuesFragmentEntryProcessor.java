@@ -20,7 +20,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Eudaldo Alonso
  */
 @Component(
-	property = "fragment.entry.processor.priority:Integer=5",
+	property = {
+		"fragment.entry.processor.key=" + FragmentEntryProcessorConstants.KEY_BACKGROUND_IMAGE_FRAGMENT_ENTRY_PROCESSOR,
+		"fragment.entry.processor.marker=data-lfr-background-image-id"
+	},
 	service = DefaultEditableValuesFragmentEntryProcessor.class
 )
 public class BackgroundImageDefaultEditableValuesFragmentEntryProcessor
@@ -28,7 +31,7 @@ public class BackgroundImageDefaultEditableValuesFragmentEntryProcessor
 
 	@Override
 	public JSONObject getDefaultEditableValuesJSONObject(
-		String configuration, Document document) {
+		JSONObject configurationJSONObject, Document document) {
 
 		JSONObject defaultEditableValuesJSONObject =
 			_jsonFactory.createJSONObject();

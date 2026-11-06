@@ -27,22 +27,28 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,10 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -81,8 +83,10 @@ public abstract class BaseBillingAddressResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -95,17 +99,16 @@ public abstract class BaseBillingAddressResourceTestCase {
 
 		_billingAddressResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		BillingAddressResource.Builder builder =
-			BillingAddressResource.builder();
-
-		billingAddressResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		billingAddressResource = BillingAddressResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -177,6 +180,7 @@ public abstract class BaseBillingAddressResourceTestCase {
 		billingAddress.setStreet1(regex);
 		billingAddress.setStreet2(regex);
 		billingAddress.setStreet3(regex);
+		billingAddress.setSubtype(regex);
 		billingAddress.setVatNumber(regex);
 		billingAddress.setZip(regex);
 
@@ -196,6 +200,7 @@ public abstract class BaseBillingAddressResourceTestCase {
 		Assert.assertEquals(regex, billingAddress.getStreet1());
 		Assert.assertEquals(regex, billingAddress.getStreet2());
 		Assert.assertEquals(regex, billingAddress.getStreet3());
+		Assert.assertEquals(regex, billingAddress.getSubtype());
 		Assert.assertEquals(regex, billingAddress.getVatNumber());
 		Assert.assertEquals(regex, billingAddress.getZip());
 	}
@@ -217,16 +222,17 @@ public abstract class BaseBillingAddressResourceTestCase {
 		assertValid(getBillingAddress);
 	}
 
+	protected BillingAddress
+			testGetOrderByExternalReferenceCodeBillingAddress_addBillingAddress()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
 	protected String
 			testGetOrderByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
 				BillingAddress billingAddress)
-		throws Exception {
-
-		return billingAddress.getExternalReferenceCode();
-	}
-
-	protected BillingAddress
-			testGetOrderByExternalReferenceCodeBillingAddress_addBillingAddress()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -295,7 +301,8 @@ public abstract class BaseBillingAddressResourceTestCase {
 				BillingAddress billingAddress)
 		throws Exception {
 
-		return billingAddress.getExternalReferenceCode();
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
@@ -350,14 +357,7 @@ public abstract class BaseBillingAddressResourceTestCase {
 			testGraphQLGetOrderByExternalReferenceCodeBillingAddress_addBillingAddress()
 		throws Exception {
 
-		return testGraphQLBillingAddress_addBillingAddress();
-	}
-
-	@Test
-	public void testPatchOrderByExternalReferenceCodeBillingAddress()
-		throws Exception {
-
-		Assert.assertTrue(false);
+		return testGraphQLOrderBillingAddress_addBillingAddress();
 	}
 
 	@Test
@@ -373,14 +373,15 @@ public abstract class BaseBillingAddressResourceTestCase {
 		assertValid(getBillingAddress);
 	}
 
-	protected Long testGetOrderIdBillingAddress_getId(
-			BillingAddress billingAddress)
+	protected BillingAddress testGetOrderIdBillingAddress_addBillingAddress()
 		throws Exception {
 
-		return billingAddress.getId();
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
-	protected BillingAddress testGetOrderIdBillingAddress_addBillingAddress()
+	protected Long testGetOrderIdBillingAddress_getId(
+			BillingAddress billingAddress)
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -443,7 +444,8 @@ public abstract class BaseBillingAddressResourceTestCase {
 			BillingAddress billingAddress)
 		throws Exception {
 
-		return billingAddress.getId();
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
@@ -491,7 +493,14 @@ public abstract class BaseBillingAddressResourceTestCase {
 			testGraphQLGetOrderIdBillingAddress_addBillingAddress()
 		throws Exception {
 
-		return testGraphQLBillingAddress_addBillingAddress();
+		return testGraphQLOrderBillingAddress_addBillingAddress();
+	}
+
+	@Test
+	public void testPatchOrderByExternalReferenceCodeBillingAddress()
+		throws Exception {
+
+		Assert.assertTrue(false);
 	}
 
 	@Test
@@ -499,7 +508,7 @@ public abstract class BaseBillingAddressResourceTestCase {
 		Assert.assertTrue(false);
 	}
 
-	protected BillingAddress testGraphQLBillingAddress_addBillingAddress()
+	protected BillingAddress testGraphQLOrderBillingAddress_addBillingAddress()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -684,6 +693,14 @@ public abstract class BaseBillingAddressResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("subtype", additionalAssertFieldName)) {
+				if (billingAddress.getSubtype() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("vatNumber", additionalAssertFieldName)) {
 				if (billingAddress.getVatNumber() == null) {
 					valid = false;
@@ -757,6 +774,10 @@ public abstract class BaseBillingAddressResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -954,6 +975,17 @@ public abstract class BaseBillingAddressResourceTestCase {
 				if (!Objects.deepEquals(
 						billingAddress1.getStreet3(),
 						billingAddress2.getStreet3())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("subtype", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						billingAddress1.getSubtype(),
+						billingAddress2.getSubtype())) {
 
 					return false;
 				}
@@ -1567,6 +1599,52 @@ public abstract class BaseBillingAddressResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("subtype")) {
+			Object object = billingAddress.getSubtype();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("vatNumber")) {
 			Object object = billingAddress.getVatNumber();
 
@@ -1672,7 +1750,9 @@ public abstract class BaseBillingAddressResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1722,6 +1802,7 @@ public abstract class BaseBillingAddressResourceTestCase {
 				street1 = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				street2 = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				street3 = StringUtil.toLowerCase(RandomTestUtil.randomString());
+				subtype = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				vatNumber = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				zip = StringUtil.toLowerCase(RandomTestUtil.randomString());
@@ -1940,10 +2021,13 @@ public abstract class BaseBillingAddressResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseBillingAddressResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.order.resource.v1_0.
 		BillingAddressResource _billingAddressResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:407808778

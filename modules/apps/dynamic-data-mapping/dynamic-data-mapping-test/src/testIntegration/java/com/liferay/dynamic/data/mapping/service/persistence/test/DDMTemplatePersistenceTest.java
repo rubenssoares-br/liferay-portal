@@ -117,11 +117,7 @@ public class DDMTemplatePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		DDMTemplate newDDMTemplate = _persistence.create(pk);
-
-		newDDMTemplate.setMvccVersion(RandomTestUtil.nextLong());
+		DDMTemplate newDDMTemplate = addDDMTemplate();
 
 		newDDMTemplate.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -177,7 +173,9 @@ public class DDMTemplatePersistenceTest {
 
 		newDDMTemplate.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_ddmTemplates.add(_persistence.update(newDDMTemplate));
+		newDDMTemplate = _persistence.update(newDDMTemplate);
+
+		_ddmTemplates.add(newDDMTemplate);
 
 		DDMTemplate existingDDMTemplate = _persistence.findByPrimaryKey(
 			newDDMTemplate.getPrimaryKey());
@@ -325,24 +323,6 @@ public class DDMTemplatePersistenceTest {
 		_persistence.countByTemplateKey("null");
 
 		_persistence.countByTemplateKey((String)null);
-	}
-
-	@Test
-	public void testCountByType() throws Exception {
-		_persistence.countByType("");
-
-		_persistence.countByType("null");
-
-		_persistence.countByType((String)null);
-	}
-
-	@Test
-	public void testCountByLanguage() throws Exception {
-		_persistence.countByLanguage("");
-
-		_persistence.countByLanguage("null");
-
-		_persistence.countByLanguage((String)null);
 	}
 
 	@Test
@@ -812,8 +792,6 @@ public class DDMTemplatePersistenceTest {
 
 		DDMTemplate ddmTemplate = _persistence.create(pk);
 
-		ddmTemplate.setMvccVersion(RandomTestUtil.nextLong());
-
 		ddmTemplate.setCtCollectionId(RandomTestUtil.nextLong());
 
 		ddmTemplate.setUuid(RandomTestUtil.randomString());
@@ -878,3 +856,4 @@ public class DDMTemplatePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1333941000

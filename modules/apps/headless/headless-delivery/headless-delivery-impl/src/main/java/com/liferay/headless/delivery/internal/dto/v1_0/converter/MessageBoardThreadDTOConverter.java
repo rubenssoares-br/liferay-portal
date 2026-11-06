@@ -13,7 +13,6 @@ import com.liferay.asset.link.service.AssetLinkLocalService;
 import com.liferay.headless.delivery.dto.v1_0.MessageBoardThread;
 import com.liferay.headless.delivery.dto.v1_0.TaxonomyCategoryBrief;
 import com.liferay.headless.delivery.dto.v1_0.util.CreatorUtil;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.AggregateRatingUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.CreatorStatisticsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.RelatedContentUtil;
@@ -34,6 +33,7 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.ratings.kernel.service.RatingsStatsLocalService;
@@ -46,7 +46,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Javier Gamarra
  */
 @Component(
-	property = "dto.class.name=com.liferay.message.boards.model.MBThread",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.message.boards.model.MBThread"
+	},
 	service = DTOConverter.class
 )
 public class MessageBoardThreadDTOConverter

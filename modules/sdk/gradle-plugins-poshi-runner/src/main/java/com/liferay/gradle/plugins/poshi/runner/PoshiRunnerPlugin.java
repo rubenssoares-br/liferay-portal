@@ -69,7 +69,6 @@ import org.gradle.api.tasks.testing.Test;
 import org.gradle.api.tasks.testing.TestTaskReports;
 import org.gradle.api.tasks.testing.logging.TestLoggingContainer;
 import org.gradle.process.ExecSpec;
-import org.gradle.util.CollectionUtils;
 import org.gradle.util.GUtil;
 
 /**
@@ -846,8 +845,11 @@ public class PoshiRunnerPlugin implements Plugin<Project> {
 			Integer chromeMajorVersion = Integer.parseInt(
 				matcher.group("majorVersion"));
 
-			if (_chromeDriverVersions.containsKey(chromeMajorVersion)) {
-				return _chromeDriverVersions.get(chromeMajorVersion);
+			String chromeDriverVersion = _chromeDriverVersions.get(
+				chromeMajorVersion);
+
+			if (chromeDriverVersion != null) {
+				return chromeDriverVersion;
 			}
 
 			try {
@@ -871,7 +873,7 @@ public class PoshiRunnerPlugin implements Plugin<Project> {
 					_LEGACY_CHROME_DRIVER_BASE_URL + "LATEST_RELEASE_" +
 						chromeMajorVersion.toString());
 
-				String chromeDriverVersion = StringUtil.read(url.openStream());
+				chromeDriverVersion = StringUtil.read(url.openStream());
 
 				return chromeDriverVersion.trim();
 			}
@@ -1069,20 +1071,24 @@ public class PoshiRunnerPlugin implements Plugin<Project> {
 			poshiRunnerExtension.getPoshiPropertiesFiles());
 
 		for (File poshiPropertiesFile : poshiPropertiesFiles) {
-			if (poshiPropertiesFile != null) {
-				if (poshiPropertiesFile.exists()) {
-					poshiProperties.putAll(
-						GUtil.loadProperties(poshiPropertiesFile));
-				}
-
-				File poshiExtPropertiesFile = _getPoshiExtPropertiesFile(
-					poshiPropertiesFile);
-
-				if (poshiExtPropertiesFile.exists()) {
-					poshiProperties.putAll(
-						GUtil.loadProperties(poshiExtPropertiesFile));
-				}
+			if (poshiPropertiesFile == null) {
+				continue;
 			}
+
+			if (poshiPropertiesFile.exists()) {
+				poshiProperties.putAll(
+					GUtil.loadProperties(poshiPropertiesFile));
+			}
+
+			File poshiExtPropertiesFile = _getPoshiExtPropertiesFile(
+				poshiPropertiesFile);
+
+			if (!poshiExtPropertiesFile.exists()) {
+				continue;
+			}
+
+			poshiProperties.putAll(
+				GUtil.loadProperties(poshiExtPropertiesFile));
 		}
 
 		return poshiProperties;
@@ -1219,7 +1225,7 @@ public class PoshiRunnerPlugin implements Plugin<Project> {
 
 		if (!testNames.isEmpty()) {
 			gradleSystemProperties.put(
-				"test.name", CollectionUtils.join(",", testNames));
+				"test.name", String.join(",", testNames));
 		}
 
 		ExtensionContainer extensionContainer = project.getExtensions();
@@ -1235,18 +1241,20 @@ public class PoshiRunnerPlugin implements Plugin<Project> {
 
 			String[] array = propertyName.split("(?=\\p{Upper})");
 
-			if (Objects.equals(array[0], "poshi") && (array.length > 1)) {
-				StringBuilder sb = new StringBuilder();
-
-				for (int i = 1; i < array.length; i++) {
-					sb.append(array[i].toLowerCase());
-					sb.append('.');
-				}
-
-				sb.setLength(sb.length() - 1);
-
-				gradleSystemProperties.put(sb.toString(), entry.getValue());
+			if (!Objects.equals(array[0], "poshi") || (array.length <= 1)) {
+				continue;
 			}
+
+			StringBuilder sb = new StringBuilder();
+
+			for (int i = 1; i < array.length; i++) {
+				sb.append(array[i].toLowerCase());
+				sb.append('.');
+			}
+
+			sb.setLength(sb.length() - 1);
+
+			gradleSystemProperties.put(sb.toString(), entry.getValue());
 		}
 
 		if (poshiProperties != null) {

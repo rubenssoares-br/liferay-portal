@@ -58,13 +58,13 @@ import com.liferay.portal.kernel.util.PrefsParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletURL;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletException;
-import javax.portlet.PortletURL;
 
 /**
  * @author Rafael Praxedes
@@ -173,22 +173,6 @@ public class DDLViewRecordsDisplayContext {
 		return orderByComparator;
 	}
 
-	public List<DDMFormField> getDDMFormFields() {
-		if (_ddmFormFields == null) {
-			DDMForm ddmForm = _ddmStructure.getDDMForm();
-
-			List<DDMFormField> ddmFormFields = new ArrayList<>();
-
-			for (DDMFormField ddmFormField : ddmForm.getDDMFormFields()) {
-				_addDDMFormField(ddmFormFields, ddmFormField);
-			}
-
-			_ddmFormFields = ddmFormFields;
-		}
-
-		return _ddmFormFields;
-	}
-
 	public Map<String, List<DDMFormFieldValue>> getDDMFormFieldValuesMap(
 			DDLRecordVersion recordVersion)
 		throws StorageException {
@@ -206,6 +190,22 @@ public class DDLViewRecordsDisplayContext {
 		}
 
 		return ddmFormFieldValuesMap;
+	}
+
+	public List<DDMFormField> getDDMFormFields() {
+		if (_ddmFormFields == null) {
+			DDMForm ddmForm = _ddmStructure.getDDMForm();
+
+			List<DDMFormField> ddmFormFields = new ArrayList<>();
+
+			for (DDMFormField ddmFormField : ddmForm.getDDMFormFields()) {
+				_addDDMFormField(ddmFormFields, ddmFormField);
+			}
+
+			_ddmFormFields = ddmFormFields;
+		}
+
+		return _ddmFormFields;
 	}
 
 	public DDMStructure getDDMStructure() {
@@ -531,11 +531,7 @@ public class DDLViewRecordsDisplayContext {
 	}
 
 	protected boolean isSearch() {
-		if (Validator.isNotNull(getKeywords())) {
-			return true;
-		}
-
-		return false;
+		return Validator.isNotNull(getKeywords());
 	}
 
 	protected boolean isShowAddRecordButton() throws PortalException {
@@ -592,11 +588,7 @@ public class DDLViewRecordsDisplayContext {
 	}
 
 	private boolean _isDDMFormFieldTransient(DDMFormField ddmFormField) {
-		if (Validator.isNull(ddmFormField.getDataType())) {
-			return true;
-		}
-
-		return false;
+		return Validator.isNull(ddmFormField.getDataType());
 	}
 
 	private void _putDDMFormFieldValue(

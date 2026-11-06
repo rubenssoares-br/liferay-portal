@@ -41,26 +41,34 @@ export default function propsTransformer({
 					.then((response) => response.json())
 					.then((json) => {
 						if (json) {
-							if (json.label) {
-								setPercentage(100);
-
-								label = json.label;
-							}
-							else if (
+							if (
 								Object.hasOwnProperty.call(json, 'percentage')
 							) {
 								setPercentage(json.percentage);
 							}
+
+							if (json.label) {
+								label = json.label;
+							}
 						}
 					})
 					.catch(() => {});
-			}, 1000);
+			}, 200);
 
 			return () => clearInterval(interval);
 		}, [props]);
 
 		return props.value.label === 'in-progress' ? (
-			<ClayProgressBar value={percentage} />
+			<ClayProgressBar
+				messages={{
+					ariaLabelAttention: Liferay.Language.get(
+						'attention-value-is-at-x'
+					),
+					ariaLabelComplete: Liferay.Language.get('complete'),
+					ariaLabelInProgress: Liferay.Language.get('progress-x'),
+				}}
+				value={percentage}
+			/>
 		) : (
 			<StatusRenderer value={props.value} />
 		);

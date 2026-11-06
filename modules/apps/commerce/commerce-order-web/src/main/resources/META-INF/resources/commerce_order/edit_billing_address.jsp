@@ -26,6 +26,8 @@ if ((commerceOrder != null) && Validator.isNull(cmd)) {
 <div class="container-fluid container-fluid-max-xl p-4">
 	<aui:form action="<%= editCommerceOrderBillingAddressActionURL %>" method="post" name="fm">
 		<aui:input name="<%= Constants.CMD %>" type="hidden" value='<%= (billingAddress == null) ? "addBillingAddress" : "updateBillingAddress" %>' />
+		<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
+		<aui:input name="requestProcessed" type="hidden" value='<%= SessionMessages.contains(renderRequest, "requestProcessed") %>' />
 		<aui:input name="commerceOrderId" type="hidden" value="<%= commerceOrder.getCommerceOrderId() %>" />
 
 		<aui:model-context bean="<%= billingAddress %>" model="<%= CommerceAddress.class %>" />
@@ -49,7 +51,7 @@ if ((commerceOrder != null) && Validator.isNull(cmd)) {
 		<aui:select label="region" name="regionId" wrapperCssClass="form-group-item" />
 	</aui:form>
 
-	<aui:script use="liferay-dynamic-select">
+	<aui:script>
 		new Liferay.DynamicSelect([
 			{
 				select: '<portlet:namespace />countryId',

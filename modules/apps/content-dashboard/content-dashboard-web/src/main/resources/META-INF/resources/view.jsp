@@ -195,7 +195,7 @@ ContentDashboardAdminDisplayContext contentDashboardAdminDisplayContext = (Conte
 								</span>
 							</c:when>
 							<c:otherwise>
-								<span class="lfr-portal-tooltip text-truncate" />
+								<span class="lfr-portal-tooltip text-truncate"></span>
 							</c:otherwise>
 						</c:choose>
 					</liferay-ui:search-container-column-text>
@@ -312,8 +312,6 @@ ContentDashboardAdminDisplayContext contentDashboardAdminDisplayContext = (Conte
 									"selectedItemFetchURL", contentDashboardAdminDisplayContext.getSelectedItemFetchURL(contentDashboardItem)
 								).put(
 									"selectedItemRowId", contentDashboardAdminDisplayContext.getSelectedItemRowId()
-								).put(
-									"singlePageApplicationEnabled", contentDashboardAdminDisplayContext.getSinglePageApplicationEnabled()
 								).build()
 							%>'
 							aria-label='<%= LanguageUtil.get(request, "show-actions") %>'

@@ -130,6 +130,10 @@ public class PasswordPolicyModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table PasswordPolicy";
 
+	public static final String ENTITY_ALIAS = "passwordPolicy";
+
+	public static final String FILTER_PK_COLUMN_NAME = "passwordPolicyId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY passwordPolicy.passwordPolicyId ASC";
 
@@ -173,29 +177,23 @@ public class PasswordPolicyModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long DEFAULTPOLICY_COLUMN_BITMASK = 2L;
+	public static final long NAME_COLUMN_BITMASK = 2L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long NAME_COLUMN_BITMASK = 4L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 8L;
+	public static final long UUID_COLUMN_BITMASK = 4L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long PASSWORDPOLICYID_COLUMN_BITMASK = 16L;
+	public static final long PASSWORDPOLICYID_COLUMN_BITMASK = 8L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.PasswordPolicy"));
 
 	public PasswordPolicyModelImpl() {
@@ -704,16 +702,6 @@ public class PasswordPolicyModelImpl
 		}
 
 		_defaultPolicy = defaultPolicy;
-	}
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public boolean getOriginalDefaultPolicy() {
-		return GetterUtil.getBoolean(
-			this.<Boolean>getColumnOriginalValue("defaultPolicy"));
 	}
 
 	@JSON
@@ -1811,3 +1799,4 @@ public class PasswordPolicyModelImpl
 	private PasswordPolicy _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2035574980

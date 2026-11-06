@@ -12,14 +12,14 @@ import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.search.capabilities.SearchCapabilities;
 import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.engine.adapter.search.CountSearchRequest;
 import com.liferay.portal.search.engine.adapter.search.CountSearchResponse;
 import com.liferay.portal.search.index.IndexNameBuilder;
-import com.liferay.portal.search.query.Queries;
+import com.liferay.portal.search.query.QueriesUtil;
 import com.liferay.portal.workflow.metrics.internal.background.task.WorkflowMetricsReindexBackgroundTaskExecutor;
 import com.liferay.portal.workflow.metrics.internal.search.index.WorkflowMetricsIndex;
 import com.liferay.portal.workflow.metrics.search.index.constants.WorkflowMetricsIndexNameConstants;
@@ -54,7 +54,7 @@ public class WorkflowMetricsIndexCreator {
 			return;
 		}
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				CountSearchRequest countSearchRequest =
 					new CountSearchRequest();
@@ -64,7 +64,7 @@ public class WorkflowMetricsIndexCreator {
 						_indexNameBuilder,
 						WorkflowMetricsIndexNameConstants.SUFFIX_PROCESS,
 						company.getCompanyId()));
-				countSearchRequest.setQuery(_queries.booleanQuery());
+				countSearchRequest.setQuery(QueriesUtil.booleanQuery());
 
 				CountSearchResponse countSearchResponse =
 					_searchEngineAdapter.execute(countSearchRequest);
@@ -125,9 +125,6 @@ public class WorkflowMetricsIndexCreator {
 
 	@Reference
 	private IndexNameBuilder _indexNameBuilder;
-
-	@Reference
-	private Queries _queries;
 
 	@Reference
 	private SearchCapabilities _searchCapabilities;

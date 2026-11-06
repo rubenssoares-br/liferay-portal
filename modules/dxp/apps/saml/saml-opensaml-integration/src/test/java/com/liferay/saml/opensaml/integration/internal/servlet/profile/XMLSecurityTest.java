@@ -6,16 +6,12 @@
 package com.liferay.saml.opensaml.integration.internal.servlet.profile;
 
 import com.liferay.petra.string.StringBundler;
-import com.liferay.petra.string.StringPool;
-import com.liferay.portal.cache.test.util.TestPortalCache;
-import com.liferay.portal.kernel.cache.PortalCache;
 import com.liferay.portal.kernel.cookies.CookiesManager;
 import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 import com.liferay.saml.constants.SamlWebKeys;
 import com.liferay.saml.opensaml.integration.internal.BaseSamlTestCase;
-import com.liferay.saml.opensaml.integration.internal.helper.RelayStateHelperImpl;
 import com.liferay.saml.opensaml.integration.internal.provider.CachingChainingMetadataResolver;
 import com.liferay.saml.opensaml.integration.internal.util.OpenSamlUtil;
 import com.liferay.saml.persistence.model.SamlSpIdpConnection;
@@ -113,20 +109,6 @@ public class XMLSecurityTest extends BaseSamlTestCase {
 			_webSsoProfileImpl, "localEntityManager",
 			keyStoreLocalEntityManager);
 		ReflectionTestUtil.setFieldValue(_webSsoProfileImpl, "portal", portal);
-
-		PortalCache<String, String> portalCache = new TestPortalCache<>(
-			StringPool.BLANK);
-
-		ReflectionTestUtil.setFieldValue(
-			_relayStateHelperImpl, "_redirectsToRelayStateTokensPortalCache",
-			portalCache);
-		ReflectionTestUtil.setFieldValue(
-			_relayStateHelperImpl, "_relayStateTokensToRedirectsPortalCache",
-			portalCache);
-
-		ReflectionTestUtil.setFieldValue(
-			_webSsoProfileImpl, "_relayStateHelper", _relayStateHelperImpl);
-
 		ReflectionTestUtil.setFieldValue(
 			_webSsoProfileImpl, "samlBindingProvider", samlBindingProvider);
 		ReflectionTestUtil.setFieldValue(
@@ -157,6 +139,22 @@ public class XMLSecurityTest extends BaseSamlTestCase {
 			new MockMetadataResolver());
 
 		prepareServiceProvider(SP_ENTITY_ID);
+	}
+
+	@Test(expected = MessageDecodingException.class)
+	public void testMaximumMessageSizeExceeded() throws Exception {
+		String redirectURL = _getAuthnRequestRedirectURL();
+
+		String authnRequestXML = OpenSamlUtil.marshall(
+			getAuthnRequest(redirectURL));
+
+		Mockito.when(
+			samlProviderConfiguration.maximumMessageSize()
+		).thenReturn(
+			100
+		);
+
+		decodeAuthnRequest(authnRequestXML, redirectURL);
 	}
 
 	@Test(expected = MessageDecodingException.class)
@@ -403,8 +401,6 @@ public class XMLSecurityTest extends BaseSamlTestCase {
 	private static ServiceRegistration<CookiesManager>
 		_cookiesManagerServiceRegistration;
 
-	private final RelayStateHelperImpl _relayStateHelperImpl =
-		new RelayStateHelperImpl();
 	private final WebSsoProfileImpl _webSsoProfileImpl =
 		new WebSsoProfileImpl();
 

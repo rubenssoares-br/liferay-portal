@@ -7,8 +7,10 @@ package com.liferay.portal.workflow.kaleo.model.impl;
 
 import com.liferay.expando.kernel.model.ExpandoBridge;
 import com.liferay.expando.kernel.util.ExpandoBridgeFactoryUtil;
+import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.bean.AutoEscapeBeanHandler;
+import com.liferay.portal.kernel.dao.orm.EntityCacheUtil;
 import com.liferay.portal.kernel.exception.LocaleException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSON;
@@ -30,6 +32,8 @@ import com.liferay.portal.workflow.kaleo.model.KaleoDefinitionVersionModel;
 
 import java.io.Serializable;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 
 import java.sql.Blob;
@@ -39,6 +43,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -76,7 +81,7 @@ public class KaleoDefinitionVersionModelImpl
 		{"companyId", Types.BIGINT}, {"userId", Types.BIGINT},
 		{"userName", Types.VARCHAR}, {"createDate", Types.TIMESTAMP},
 		{"modifiedDate", Types.TIMESTAMP}, {"kaleoDefinitionId", Types.BIGINT},
-		{"name", Types.VARCHAR}, {"title", Types.VARCHAR},
+		{"name", Types.VARCHAR}, {"title", Types.CLOB},
 		{"description", Types.VARCHAR}, {"content", Types.CLOB},
 		{"version", Types.VARCHAR}, {"startKaleoNodeId", Types.BIGINT},
 		{"status", Types.INTEGER}, {"statusByUserId", Types.BIGINT},
@@ -98,7 +103,7 @@ public class KaleoDefinitionVersionModelImpl
 		TABLE_COLUMNS_MAP.put("modifiedDate", Types.TIMESTAMP);
 		TABLE_COLUMNS_MAP.put("kaleoDefinitionId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("name", Types.VARCHAR);
-		TABLE_COLUMNS_MAP.put("title", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("title", Types.CLOB);
 		TABLE_COLUMNS_MAP.put("description", Types.VARCHAR);
 		TABLE_COLUMNS_MAP.put("content", Types.CLOB);
 		TABLE_COLUMNS_MAP.put("version", Types.VARCHAR);
@@ -110,10 +115,12 @@ public class KaleoDefinitionVersionModelImpl
 	}
 
 	public static final String TABLE_SQL_CREATE =
-		"create table KaleoDefinitionVersion (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,kaleoDefinitionVersionId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(200) null,createDate DATE null,modifiedDate DATE null,kaleoDefinitionId LONG,name VARCHAR(200) null,title STRING null,description STRING null,content TEXT null,version VARCHAR(75) null,startKaleoNodeId LONG,status INTEGER,statusByUserId LONG,statusByUserName VARCHAR(75) null,statusDate DATE null,primary key (kaleoDefinitionVersionId, ctCollectionId))";
+		"create table KaleoDefinitionVersion (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,kaleoDefinitionVersionId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(200) null,createDate DATE null,modifiedDate DATE null,kaleoDefinitionId LONG,name VARCHAR(200) null,title TEXT null,description STRING null,content TEXT null,version VARCHAR(75) null,startKaleoNodeId LONG,status INTEGER,statusByUserId LONG,statusByUserName VARCHAR(75) null,statusDate DATE null,primary key (kaleoDefinitionVersionId, ctCollectionId))";
 
 	public static final String TABLE_SQL_DROP =
 		"drop table KaleoDefinitionVersion";
+
+	public static final String ENTITY_ALIAS = "kaleoDefinitionVersion";
 
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY kaleoDefinitionVersion.kaleoDefinitionVersionId ASC";
@@ -904,11 +911,62 @@ public class KaleoDefinitionVersionModelImpl
 		_statusDate = statusDate;
 	}
 
+	public boolean isBlockingKaleoTimerExists() {
+		return false;
+	}
+
+	public void setBlockingKaleoTimerExists(Boolean blockingKaleoTimerExists) {
+	}
+
 	public String getContentAsXML() {
 		return null;
 	}
 
 	public void setContentAsXML(String contentAsXML) {
+	}
+
+	public Map<Long, List<com.liferay.portal.workflow.kaleo.model.KaleoAction>>
+		getKaleoNodeKaleoActionsMap() {
+
+		return null;
+	}
+
+	public void setKaleoNodeKaleoActionsMap(
+		Map<Long, List<com.liferay.portal.workflow.kaleo.model.KaleoAction>>
+			kaleoNodeKaleoActionsMap) {
+	}
+
+	public Map
+		<Long, List<com.liferay.portal.workflow.kaleo.model.KaleoNotification>>
+			getKaleoNodeKaleoNotificationsMap() {
+
+		return null;
+	}
+
+	public void setKaleoNodeKaleoNotificationsMap(
+		Map
+			<Long,
+			 List<com.liferay.portal.workflow.kaleo.model.KaleoNotification>>
+				kaleoNodeKaleoNotificationsMap) {
+	}
+
+	public Map
+		<Long, List<com.liferay.portal.workflow.kaleo.model.KaleoTransition>>
+			getKaleoNodeKaleoTransitionsMap() {
+
+		return null;
+	}
+
+	public void setKaleoNodeKaleoTransitionsMap(
+		Map<Long, List<com.liferay.portal.workflow.kaleo.model.KaleoTransition>>
+			kaleoNodeKaleoTransitionsMap) {
+	}
+
+	public boolean isKaleoTimerExists() {
+		return false;
+	}
+
+	public void setKaleoTimerExists(Boolean kaleoTimerExists) {
 	}
 
 	@Override
@@ -1207,6 +1265,64 @@ public class KaleoDefinitionVersionModelImpl
 	}
 
 	@Override
+	public void copyCacheFields(KaleoDefinitionVersion source) {
+		if (getMvccVersion() != source.getMvccVersion()) {
+			return;
+		}
+
+		try {
+			_blockingKaleoTimerExistsSetterMethodHandle.invokeExact(
+				(KaleoDefinitionVersionImpl)this,
+				(Boolean)
+					_blockingKaleoTimerExistsGetterMethodHandle.invokeExact(
+						(KaleoDefinitionVersionImpl)source));
+
+			_contentAsXMLSetterMethodHandle.invokeExact(
+				(KaleoDefinitionVersionImpl)this,
+				(String)_contentAsXMLGetterMethodHandle.invokeExact(
+					(KaleoDefinitionVersionImpl)source));
+
+			_kaleoNodeKaleoActionsMapSetterMethodHandle.invokeExact(
+				(KaleoDefinitionVersionImpl)this,
+				(Map
+					<Long,
+					 List<com.liferay.portal.workflow.kaleo.model.KaleoAction>>)
+						 _kaleoNodeKaleoActionsMapGetterMethodHandle.
+							 invokeExact((KaleoDefinitionVersionImpl)source));
+
+			_kaleoNodeKaleoNotificationsMapSetterMethodHandle.invokeExact(
+				(KaleoDefinitionVersionImpl)this,
+				(Map
+					<Long,
+					 List
+						 <com.liferay.portal.workflow.kaleo.model.
+							 KaleoNotification>>)
+								 _kaleoNodeKaleoNotificationsMapGetterMethodHandle.
+									 invokeExact(
+										 (KaleoDefinitionVersionImpl)source));
+
+			_kaleoNodeKaleoTransitionsMapSetterMethodHandle.invokeExact(
+				(KaleoDefinitionVersionImpl)this,
+				(Map
+					<Long,
+					 List
+						 <com.liferay.portal.workflow.kaleo.model.
+							 KaleoTransition>>)
+								 _kaleoNodeKaleoTransitionsMapGetterMethodHandle.
+									 invokeExact(
+										 (KaleoDefinitionVersionImpl)source));
+
+			_kaleoTimerExistsSetterMethodHandle.invokeExact(
+				(KaleoDefinitionVersionImpl)this,
+				(Boolean)_kaleoTimerExistsGetterMethodHandle.invokeExact(
+					(KaleoDefinitionVersionImpl)source));
+		}
+		catch (Throwable throwable) {
+			ReflectionUtil.throwException(throwable);
+		}
+	}
+
+	@Override
 	public boolean equals(Object object) {
 		if (this == object) {
 			return true;
@@ -1257,8 +1373,6 @@ public class KaleoDefinitionVersionModelImpl
 		_columnOriginalValues = Collections.emptyMap();
 
 		_setModifiedDate = false;
-
-		setContentAsXML(null);
 
 		_columnBitmask = 0;
 	}
@@ -1377,9 +1491,50 @@ public class KaleoDefinitionVersionModelImpl
 			kaleoDefinitionVersionCacheModel.statusDate = Long.MIN_VALUE;
 		}
 
-		setContentAsXML(null);
+		try {
+			kaleoDefinitionVersionCacheModel.blockingKaleoTimerExists =
+				(Boolean)
+					_blockingKaleoTimerExistsGetterMethodHandle.invokeExact(
+						(KaleoDefinitionVersionImpl)this);
 
-		kaleoDefinitionVersionCacheModel._contentAsXML = getContentAsXML();
+			kaleoDefinitionVersionCacheModel.contentAsXML =
+				(String)_contentAsXMLGetterMethodHandle.invokeExact(
+					(KaleoDefinitionVersionImpl)this);
+
+			kaleoDefinitionVersionCacheModel.kaleoNodeKaleoActionsMap =
+				(Map
+					<Long,
+					 List<com.liferay.portal.workflow.kaleo.model.KaleoAction>>)
+						 _kaleoNodeKaleoActionsMapGetterMethodHandle.
+							 invokeExact((KaleoDefinitionVersionImpl)this);
+
+			kaleoDefinitionVersionCacheModel.kaleoNodeKaleoNotificationsMap =
+				(Map
+					<Long,
+					 List
+						 <com.liferay.portal.workflow.kaleo.model.
+							 KaleoNotification>>)
+								 _kaleoNodeKaleoNotificationsMapGetterMethodHandle.
+									 invokeExact(
+										 (KaleoDefinitionVersionImpl)this);
+
+			kaleoDefinitionVersionCacheModel.kaleoNodeKaleoTransitionsMap =
+				(Map
+					<Long,
+					 List
+						 <com.liferay.portal.workflow.kaleo.model.
+							 KaleoTransition>>)
+								 _kaleoNodeKaleoTransitionsMapGetterMethodHandle.
+									 invokeExact(
+										 (KaleoDefinitionVersionImpl)this);
+
+			kaleoDefinitionVersionCacheModel.kaleoTimerExists =
+				(Boolean)_kaleoTimerExistsGetterMethodHandle.invokeExact(
+					(KaleoDefinitionVersionImpl)this);
+		}
+		catch (Throwable throwable) {
+			ReflectionUtil.throwException(throwable);
+		}
 
 		return kaleoDefinitionVersionCacheModel;
 	}
@@ -1572,6 +1727,215 @@ public class KaleoDefinitionVersionModelImpl
 	}
 
 	private long _columnBitmask;
+
+	protected static final BiConsumer<KaleoDefinitionVersion, Boolean>
+		blockingKaleoTimerExistsUpdateEntityCacheBiConsumer =
+			(kaleoDefinitionVersion, blockingKaleoTimerExists) -> {
+				KaleoDefinitionVersionCacheModel
+					kaleoDefinitionVersionCacheModel =
+						EntityCacheUtil.fetchCacheModel(
+							KaleoDefinitionVersionImpl.class,
+							kaleoDefinitionVersion.getPrimaryKey(),
+							KaleoDefinitionVersionCacheModel.class);
+
+				if ((kaleoDefinitionVersionCacheModel != null) &&
+					(kaleoDefinitionVersionCacheModel.getMvccVersion() ==
+						kaleoDefinitionVersion.getMvccVersion())) {
+
+					kaleoDefinitionVersionCacheModel.blockingKaleoTimerExists =
+						blockingKaleoTimerExists;
+				}
+			};
+
+	private static final MethodHandle
+		_blockingKaleoTimerExistsGetterMethodHandle;
+	private static final MethodHandle
+		_blockingKaleoTimerExistsSetterMethodHandle;
+
+	protected static final BiConsumer<KaleoDefinitionVersion, String>
+		contentAsXMLUpdateEntityCacheBiConsumer =
+			(kaleoDefinitionVersion, contentAsXML) -> {
+				KaleoDefinitionVersionCacheModel
+					kaleoDefinitionVersionCacheModel =
+						EntityCacheUtil.fetchCacheModel(
+							KaleoDefinitionVersionImpl.class,
+							kaleoDefinitionVersion.getPrimaryKey(),
+							KaleoDefinitionVersionCacheModel.class);
+
+				if ((kaleoDefinitionVersionCacheModel != null) &&
+					(kaleoDefinitionVersionCacheModel.getMvccVersion() ==
+						kaleoDefinitionVersion.getMvccVersion())) {
+
+					kaleoDefinitionVersionCacheModel.contentAsXML =
+						contentAsXML;
+				}
+			};
+
+	private static final MethodHandle _contentAsXMLGetterMethodHandle;
+	private static final MethodHandle _contentAsXMLSetterMethodHandle;
+
+	protected static final BiConsumer
+		<KaleoDefinitionVersion,
+		 Map<Long, List<com.liferay.portal.workflow.kaleo.model.KaleoAction>>>
+			kaleoNodeKaleoActionsMapUpdateEntityCacheBiConsumer =
+				(kaleoDefinitionVersion, kaleoNodeKaleoActionsMap) -> {
+					KaleoDefinitionVersionCacheModel
+						kaleoDefinitionVersionCacheModel =
+							EntityCacheUtil.fetchCacheModel(
+								KaleoDefinitionVersionImpl.class,
+								kaleoDefinitionVersion.getPrimaryKey(),
+								KaleoDefinitionVersionCacheModel.class);
+
+					if ((kaleoDefinitionVersionCacheModel != null) &&
+						(kaleoDefinitionVersionCacheModel.getMvccVersion() ==
+							kaleoDefinitionVersion.getMvccVersion())) {
+
+						kaleoDefinitionVersionCacheModel.
+							kaleoNodeKaleoActionsMap = kaleoNodeKaleoActionsMap;
+					}
+				};
+
+	private static final MethodHandle
+		_kaleoNodeKaleoActionsMapGetterMethodHandle;
+	private static final MethodHandle
+		_kaleoNodeKaleoActionsMapSetterMethodHandle;
+
+	protected static final BiConsumer
+		<KaleoDefinitionVersion,
+		 Map
+			 <Long,
+			  List<com.liferay.portal.workflow.kaleo.model.KaleoNotification>>>
+				kaleoNodeKaleoNotificationsMapUpdateEntityCacheBiConsumer =
+					(kaleoDefinitionVersion, kaleoNodeKaleoNotificationsMap) -> {
+						KaleoDefinitionVersionCacheModel
+							kaleoDefinitionVersionCacheModel =
+								EntityCacheUtil.fetchCacheModel(
+									KaleoDefinitionVersionImpl.class,
+									kaleoDefinitionVersion.getPrimaryKey(),
+									KaleoDefinitionVersionCacheModel.class);
+
+						if ((kaleoDefinitionVersionCacheModel != null) &&
+							(kaleoDefinitionVersionCacheModel.
+								getMvccVersion() ==
+									kaleoDefinitionVersion.getMvccVersion())) {
+
+							kaleoDefinitionVersionCacheModel.
+								kaleoNodeKaleoNotificationsMap =
+									kaleoNodeKaleoNotificationsMap;
+						}
+					};
+
+	private static final MethodHandle
+		_kaleoNodeKaleoNotificationsMapGetterMethodHandle;
+	private static final MethodHandle
+		_kaleoNodeKaleoNotificationsMapSetterMethodHandle;
+
+	protected static final BiConsumer
+		<KaleoDefinitionVersion,
+		 Map
+			 <Long,
+			  List<com.liferay.portal.workflow.kaleo.model.KaleoTransition>>>
+				kaleoNodeKaleoTransitionsMapUpdateEntityCacheBiConsumer =
+					(kaleoDefinitionVersion, kaleoNodeKaleoTransitionsMap) -> {
+						KaleoDefinitionVersionCacheModel
+							kaleoDefinitionVersionCacheModel =
+								EntityCacheUtil.fetchCacheModel(
+									KaleoDefinitionVersionImpl.class,
+									kaleoDefinitionVersion.getPrimaryKey(),
+									KaleoDefinitionVersionCacheModel.class);
+
+						if ((kaleoDefinitionVersionCacheModel != null) &&
+							(kaleoDefinitionVersionCacheModel.
+								getMvccVersion() ==
+									kaleoDefinitionVersion.getMvccVersion())) {
+
+							kaleoDefinitionVersionCacheModel.
+								kaleoNodeKaleoTransitionsMap =
+									kaleoNodeKaleoTransitionsMap;
+						}
+					};
+
+	private static final MethodHandle
+		_kaleoNodeKaleoTransitionsMapGetterMethodHandle;
+	private static final MethodHandle
+		_kaleoNodeKaleoTransitionsMapSetterMethodHandle;
+
+	protected static final BiConsumer<KaleoDefinitionVersion, Boolean>
+		kaleoTimerExistsUpdateEntityCacheBiConsumer =
+			(kaleoDefinitionVersion, kaleoTimerExists) -> {
+				KaleoDefinitionVersionCacheModel
+					kaleoDefinitionVersionCacheModel =
+						EntityCacheUtil.fetchCacheModel(
+							KaleoDefinitionVersionImpl.class,
+							kaleoDefinitionVersion.getPrimaryKey(),
+							KaleoDefinitionVersionCacheModel.class);
+
+				if ((kaleoDefinitionVersionCacheModel != null) &&
+					(kaleoDefinitionVersionCacheModel.getMvccVersion() ==
+						kaleoDefinitionVersion.getMvccVersion())) {
+
+					kaleoDefinitionVersionCacheModel.kaleoTimerExists =
+						kaleoTimerExists;
+				}
+			};
+
+	private static final MethodHandle _kaleoTimerExistsGetterMethodHandle;
+	private static final MethodHandle _kaleoTimerExistsSetterMethodHandle;
+
+	static {
+		MethodHandles.Lookup lookup = ReflectionUtil.getImplLookup();
+
+		try {
+			_blockingKaleoTimerExistsGetterMethodHandle = lookup.findGetter(
+				KaleoDefinitionVersionImpl.class, "_blockingKaleoTimerExists",
+				Boolean.class);
+			_blockingKaleoTimerExistsSetterMethodHandle = lookup.findSetter(
+				KaleoDefinitionVersionImpl.class, "_blockingKaleoTimerExists",
+				Boolean.class);
+
+			_contentAsXMLGetterMethodHandle = lookup.findGetter(
+				KaleoDefinitionVersionImpl.class, "_contentAsXML",
+				String.class);
+			_contentAsXMLSetterMethodHandle = lookup.findSetter(
+				KaleoDefinitionVersionImpl.class, "_contentAsXML",
+				String.class);
+
+			_kaleoNodeKaleoActionsMapGetterMethodHandle = lookup.findGetter(
+				KaleoDefinitionVersionImpl.class, "_kaleoNodeKaleoActionsMap",
+				Map.class);
+			_kaleoNodeKaleoActionsMapSetterMethodHandle = lookup.findSetter(
+				KaleoDefinitionVersionImpl.class, "_kaleoNodeKaleoActionsMap",
+				Map.class);
+
+			_kaleoNodeKaleoNotificationsMapGetterMethodHandle =
+				lookup.findGetter(
+					KaleoDefinitionVersionImpl.class,
+					"_kaleoNodeKaleoNotificationsMap", Map.class);
+			_kaleoNodeKaleoNotificationsMapSetterMethodHandle =
+				lookup.findSetter(
+					KaleoDefinitionVersionImpl.class,
+					"_kaleoNodeKaleoNotificationsMap", Map.class);
+
+			_kaleoNodeKaleoTransitionsMapGetterMethodHandle = lookup.findGetter(
+				KaleoDefinitionVersionImpl.class,
+				"_kaleoNodeKaleoTransitionsMap", Map.class);
+			_kaleoNodeKaleoTransitionsMapSetterMethodHandle = lookup.findSetter(
+				KaleoDefinitionVersionImpl.class,
+				"_kaleoNodeKaleoTransitionsMap", Map.class);
+
+			_kaleoTimerExistsGetterMethodHandle = lookup.findGetter(
+				KaleoDefinitionVersionImpl.class, "_kaleoTimerExists",
+				Boolean.class);
+			_kaleoTimerExistsSetterMethodHandle = lookup.findSetter(
+				KaleoDefinitionVersionImpl.class, "_kaleoTimerExists",
+				Boolean.class);
+		}
+		catch (ReflectiveOperationException reflectiveOperationException) {
+			throw new ExceptionInInitializerError(reflectiveOperationException);
+		}
+	}
+
 	private KaleoDefinitionVersion _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-471961956

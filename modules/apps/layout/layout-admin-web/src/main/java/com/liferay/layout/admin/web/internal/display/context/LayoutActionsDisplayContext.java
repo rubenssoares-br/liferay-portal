@@ -38,12 +38,12 @@ import com.liferay.segments.model.SegmentsExperience;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 import com.liferay.taglib.security.PermissionsURLTag;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.WindowState;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.WindowState;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Jürgen Kappler
@@ -103,6 +103,19 @@ public class LayoutActionsDisplayContext {
 									_httpServletRequest,
 									"preview-in-a-new-tab"));
 							dropdownItem.setTarget("_blank");
+						}
+					).add(
+						() ->
+							_isContentLayout(layout) &&
+							_layoutActionsHelper.isShowViewHistoryAction(
+								layout),
+						dropdownItem -> {
+							dropdownItem.setHref(
+								_getViewHistoryLayoutURL(layout));
+							dropdownItem.setIcon("date-time");
+							dropdownItem.setLabel(
+								LanguageUtil.get(
+									_httpServletRequest, "view-history"));
 						}
 					).add(
 						() -> _isShowConvertToPageTemplateAction(layout),
@@ -259,10 +272,10 @@ public class LayoutActionsDisplayContext {
 		String pagePreviewURL = HttpComponentsUtil.addParameters(
 			_themeDisplay.getPortalURL() + _themeDisplay.getPathMain() +
 				"/portal/get_page_preview",
-			"p_l_mode", Constants.PREVIEW, "p_p_state",
-			WindowState.UNDEFINED.toString(), "segmentsExperienceId",
-			_getSegmentsExperienceId(draftLayout), "selPlid",
-			draftLayout.getPlid());
+			"p_l_id", draftLayout.getPlid(), "p_l_mode", Constants.PREVIEW,
+			"p_p_state", WindowState.UNDEFINED.toString(),
+			"segmentsExperienceId", _getSegmentsExperienceId(draftLayout),
+			"selPlid", draftLayout.getPlid());
 
 		if (Validator.isNotNull(_themeDisplay.getDoAsUserId())) {
 			pagePreviewURL = PortalUtil.addPreservedParameters(
@@ -306,6 +319,22 @@ public class LayoutActionsDisplayContext {
 		}
 
 		return segmentsExperienceId;
+	}
+
+	private String _getViewHistoryLayoutURL(Layout layout)
+		throws PortalException {
+
+		Layout draftLayout = layout;
+
+		if (!layout.isDraftLayout()) {
+			draftLayout = layout.fetchDraftLayout();
+		}
+
+		return HttpComponentsUtil.addParameters(
+			PortalUtil.getLayoutFullURL(draftLayout, _themeDisplay),
+			"p_l_back_url", PortalUtil.getCurrentURL(_httpServletRequest),
+			"p_l_back_url_title", layout.getName(_themeDisplay.getLocale()),
+			"p_l_mode", Constants.HISTORY);
 	}
 
 	private boolean _isContentLayout(Layout layout) {

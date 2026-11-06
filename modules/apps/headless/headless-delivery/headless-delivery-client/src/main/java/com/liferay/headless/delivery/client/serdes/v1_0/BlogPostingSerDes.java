@@ -6,22 +6,22 @@
 package com.liferay.headless.delivery.client.serdes.v1_0;
 
 import com.liferay.headless.delivery.client.dto.v1_0.BlogPosting;
-import com.liferay.headless.delivery.client.dto.v1_0.CustomField;
 import com.liferay.headless.delivery.client.dto.v1_0.RelatedContent;
 import com.liferay.headless.delivery.client.dto.v1_0.RenderedContent;
 import com.liferay.headless.delivery.client.dto.v1_0.TaxonomyCategoryBrief;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -124,7 +124,7 @@ public class BlogPostingSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < blogPosting.getCustomFields().length; i++) {
-				sb.append(String.valueOf(blogPosting.getCustomFields()[i]));
+				sb.append(blogPosting.getCustomFields()[i]);
 
 				if ((i + 1) < blogPosting.getCustomFields().length) {
 					sb.append(", ");
@@ -402,9 +402,7 @@ public class BlogPostingSerDes {
 			sb.append("\"viewableBy\": ");
 
 			sb.append("\"");
-
 			sb.append(blogPosting.getViewableBy());
-
 			sb.append("\"");
 		}
 
@@ -771,12 +769,16 @@ public class BlogPostingSerDes {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.delivery.client.custom.field.
+						CustomField[] customFieldsArray = new
+						com.liferay.headless.delivery.client.custom.field.
+							CustomField[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.delivery.client.custom.field.
+								CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					blogPosting.setCustomFields(customFieldsArray);
@@ -973,6 +975,16 @@ public class BlogPostingSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -1005,3 +1017,4 @@ public class BlogPostingSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1346828276

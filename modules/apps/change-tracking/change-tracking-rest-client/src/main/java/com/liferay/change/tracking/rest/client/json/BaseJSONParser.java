@@ -5,6 +5,8 @@
 
 package com.liferay.change.tracking.rest.client.json;
 
+import jakarta.annotation.Generated;
+
 import java.math.BigDecimal;
 
 import java.text.DateFormat;
@@ -17,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author David Truong
@@ -646,3 +646,4 @@ public abstract class BaseJSONParser<T> {
 	private char _lastChar;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1924475231

@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -44,6 +45,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a comment. See [Comment](https://www.schema.org/Comment) for more details.",
 	value = "Comment"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a comment. See [Comment](https://www.schema.org/Comment) for more details."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Comment")
@@ -57,7 +61,7 @@ public class Comment implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Comment.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Block of actions allowed by the user making the request."
 	)
 	@Valid
@@ -104,7 +108,9 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(description = "The comment's author.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The comment's author."
+	)
 	@Valid
 	public Creator getCreator() {
 		if (_creatorSupplier != null) {
@@ -146,7 +152,9 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The comment's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The comment's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -187,7 +195,9 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The comment's latest modification date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The comment's latest modification date."
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -228,7 +238,9 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The comment's external reference code.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The comment's external reference code."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -269,7 +281,9 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The comment's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The comment's ID."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -308,7 +322,9 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "The number of child comments on this comment.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The number of child comments on this comment."
+	)
 	public Integer getNumberOfComments() {
 		if (_numberOfCommentsSupplier != null) {
 			numberOfComments = _numberOfCommentsSupplier.get();
@@ -349,7 +365,57 @@ public class Comment implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _numberOfCommentsSupplier;
 
-	@Schema(description = "the ID of the comment's parent, if it exists.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The parent comment's external reference code."
+	)
+	public String getParentCommentExternalReferenceCode() {
+		if (_parentCommentExternalReferenceCodeSupplier != null) {
+			parentCommentExternalReferenceCode =
+				_parentCommentExternalReferenceCodeSupplier.get();
+
+			_parentCommentExternalReferenceCodeSupplier = null;
+		}
+
+		return parentCommentExternalReferenceCode;
+	}
+
+	public void setParentCommentExternalReferenceCode(
+		String parentCommentExternalReferenceCode) {
+
+		this.parentCommentExternalReferenceCode =
+			parentCommentExternalReferenceCode;
+
+		_parentCommentExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setParentCommentExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			parentCommentExternalReferenceCodeUnsafeSupplier) {
+
+		_parentCommentExternalReferenceCodeSupplier = () -> {
+			try {
+				return parentCommentExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The parent comment's external reference code.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String parentCommentExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _parentCommentExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The ID of the comment's parent, if it exists."
+	)
 	public Long getParentCommentId() {
 		if (_parentCommentIdSupplier != null) {
 			parentCommentId = _parentCommentIdSupplier.get();
@@ -383,14 +449,16 @@ public class Comment implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "the ID of the comment's parent, if it exists.")
+	@GraphQLField(description = "The ID of the comment's parent, if it exists.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long parentCommentId;
 
 	@JsonIgnore
 	private Supplier<Long> _parentCommentIdSupplier;
 
-	@Schema(description = "The comment's text content.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The comment's text content."
+	)
 	public String getText() {
 		if (_textSupplier != null) {
 			text = _textSupplier.get();
@@ -555,6 +623,23 @@ public class Comment implements Serializable {
 			sb.append(numberOfComments);
 		}
 
+		String parentCommentExternalReferenceCode =
+			getParentCommentExternalReferenceCode();
+
+		if (parentCommentExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"parentCommentExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(parentCommentExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		Long parentCommentId = getParentCommentId();
 
 		if (parentCommentId != null) {
@@ -588,8 +673,8 @@ public class Comment implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.Comment",
 		name = "x-class-name"
 	)
@@ -676,6 +761,27 @@ public class Comment implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -684,3 +790,4 @@ public class Comment implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1712718342

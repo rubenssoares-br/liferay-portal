@@ -26,12 +26,12 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.webserver.WebServerServlet;
 
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletResponse;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -66,9 +66,11 @@ public class RangeWebServerTest extends BaseWebServerTestCase {
 		for (int i = 0; i < ranges.length; i++) {
 			rangeHeader += ranges[i];
 
-			if (i != (ranges.length - 1)) {
-				rangeHeader += StringPool.COMMA;
+			if (i == (ranges.length - 1)) {
+				continue;
 			}
+
+			rangeHeader += StringPool.COMMA;
 		}
 
 		MockHttpServletResponse mockHttpServletResponse = testRange(
@@ -237,6 +239,6 @@ public class RangeWebServerTest extends BaseWebServerTestCase {
 	private static final String _UNICODE_DATA = "H\u4e2d\u00e9\u00fc\u00f1";
 
 	@Inject
-	private static DLAppLocalService _dlAppLocalService;
+	private DLAppLocalService _dlAppLocalService;
 
 }

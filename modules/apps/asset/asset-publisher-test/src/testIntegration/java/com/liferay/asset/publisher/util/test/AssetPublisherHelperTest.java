@@ -23,6 +23,7 @@ import com.liferay.journal.test.util.JournalTestUtil;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryService;
+import com.liferay.layout.page.template.test.util.LayoutPageTemplateTestUtil;
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.string.StringPool;
@@ -39,6 +40,7 @@ import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.LayoutPrototypeLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionRequest;
+import com.liferay.portal.kernel.test.portlet.MockPortletPreferences;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -53,15 +55,14 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.portletmvc4spring.test.mock.web.portlet.MockPortletPreferences;
 import com.liferay.ratings.test.util.RatingsTestUtil;
 import com.liferay.segments.criteria.contributor.SegmentsCriteriaContributor;
+
+import jakarta.portlet.PortletPreferences;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import javax.portlet.PortletPreferences;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -537,12 +538,10 @@ public class AssetPublisherHelperTest {
 		throws Exception {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group1.getGroupId(), 0, RandomTestUtil.randomString(),
-				LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE, 0,
-				WorkflowConstants.STATUS_APPROVED,
-				ServiceContextTestUtil.getServiceContext(
-					_group1.getGroupId(), TestPropsValues.getUserId()));
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+				_group1.getGroupId(),
+				LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE,
+				WorkflowConstants.STATUS_APPROVED);
 
 		LayoutPrototype layoutPrototype =
 			_layoutPrototypeLocalService.getLayoutPrototype(

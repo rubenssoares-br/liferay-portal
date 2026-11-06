@@ -104,6 +104,10 @@ public class LayoutPrototypeModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table LayoutPrototype";
 
+	public static final String ENTITY_ALIAS = "layoutPrototype";
+
+	public static final String FILTER_PK_COLUMN_NAME = "layoutPrototypeId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY layoutPrototype.layoutPrototypeId ASC";
 
@@ -163,7 +167,7 @@ public class LayoutPrototypeModelImpl
 	public static final long LAYOUTPROTOTYPEID_COLUMN_BITMASK = 8L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.LayoutPrototype"));
 
 	public LayoutPrototypeModelImpl() {
@@ -1339,3 +1343,4 @@ public class LayoutPrototypeModelImpl
 	private LayoutPrototype _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-446755205

@@ -126,7 +126,9 @@ renderResponse.setTitle(headerTitle);
 	%>
 
 	<div class="management-bar management-bar-light navbar navbar-expand-md">
-		<clay:container-fluid>
+		<clay:container-fluid
+			fullWidth="<%= true %>"
+		>
 			<ul class="m-auto navbar-nav"></ul>
 
 			<ul class="middle navbar-nav">
@@ -142,6 +144,7 @@ renderResponse.setTitle(headerTitle);
 
 <clay:container-fluid
 	cssClass="container-form-lg"
+	size="lg"
 >
 	<c:if test="<%= checkedOut %>">
 
@@ -216,6 +219,7 @@ renderResponse.setTitle(headerTitle);
 			</liferay-ui:error>
 
 			<liferay-ui:error exception="<%= DuplicateFileEntryException.class %>" message="please-enter-a-unique-document-name" />
+			<liferay-ui:error exception="<%= DuplicateFileEntryExternalReferenceCodeException.class %>" message="please-enter-a-unique-external-reference-code" />
 			<liferay-ui:error exception="<%= DuplicateFolderNameException.class %>" message="please-enter-a-unique-document-name" />
 
 			<liferay-ui:error exception="<%= LiferayFileItemException.class %>">
@@ -223,13 +227,13 @@ renderResponse.setTitle(headerTitle);
 			</liferay-ui:error>
 
 			<liferay-ui:error exception="<%= FileExtensionException.InvalidExtension.class %>">
-				<liferay-ui:message key="document-names-must-end-with-one-of-the-following-extensions" /> <%= StringUtil.merge(dlConfiguration.fileExtensions(), StringPool.COMMA_AND_SPACE) %>.
+				<liferay-ui:message arguments="<%= StringUtil.merge(dlConfiguration.fileExtensions(), StringPool.COMMA_AND_SPACE) %>" key="please-enter-a-file-with-a-valid-extension-x" />
 			</liferay-ui:error>
 
 			<liferay-ui:error exception="<%= FileExtensionException.MismatchExtension.class %>" message="the-file-extension-cannot-be-different-from-the-file-name-extension" />
 
 			<liferay-ui:error exception="<%= FileMimeTypeException.class %>">
-				<liferay-ui:message key="media-files-must-be-one-of-the-following-formats" /> <%= StringUtil.merge(dlPortletInstanceSettings.getMimeTypes(), StringPool.COMMA_AND_SPACE) %>.
+				<liferay-ui:message arguments="<%= dlAdminDisplayContext.getMimeTypes() %>" key="<%= dlAdminDisplayContext.getMimeTypeMessageKey() %>" translateArguments="<%= false %>" />
 			</liferay-ui:error>
 
 			<liferay-ui:error exception="<%= FileNameException.class %>" message="please-enter-a-file-with-a-valid-file-name" />
@@ -246,9 +250,18 @@ renderResponse.setTitle(headerTitle);
 
 				<%
 				FileSizeException fileSizeException = (FileSizeException)errorException;
+
+				String maxSize = LanguageUtil.formatStorageSize(fileSizeException.getMaxSize(), locale);
 				%>
 
-				<liferay-ui:message arguments="<%= LanguageUtil.formatStorageSize(fileSizeException.getMaxSize(), locale) %>" key="please-enter-a-file-with-a-valid-file-size-no-larger-than-x" translateArguments="<%= false %>" />
+				<c:choose>
+					<c:when test="<%= fileSizeException.getMimeType() == null %>">
+						<liferay-ui:message arguments="<%= maxSize %>" key="please-enter-a-file-with-a-valid-file-size-no-larger-than-x" translateArguments="<%= false %>" />
+					</c:when>
+					<c:otherwise>
+						<liferay-ui:message arguments="<%= new Object[] {maxSize, fileSizeException.getMimeType()} %>" key="please-enter-a-file-with-a-valid-file-size-no-larger-than-x-for-type-x" translateArguments="<%= false %>" />
+					</c:otherwise>
+				</c:choose>
 			</liferay-ui:error>
 
 			<liferay-ui:error exception="<%= UploadRequestSizeException.class %>">
@@ -337,6 +350,16 @@ renderResponse.setTitle(headerTitle);
 
 					<c:if test="<%= (folder == null) || folder.isSupportsMetadata() %>">
 						<aui:input name="description" />
+
+						<aui:field-wrapper cssClass="form-group" label="external-reference-code" name="externalReferenceCode">
+							<div class="small text-secondary"><liferay-ui:message key="unique-key-for-referencing-the-document-definition" /></div>
+
+							<div class="input-group">
+								<div class="input-group-item">
+									<aui:input disabled="<%= dlEditFileEntryDisplayContext.isERCFieldEnabled() %>" label="" name="externalReferenceCode" type="text" value="<%= dlEditFileEntryDisplayContext.getExternalReferenceCode() %>" />
+								</div>
+							</div>
+						</aui:field-wrapper>
 
 						<c:if test="<%= (folder == null) || (folder.getModel() instanceof DLFolder) %>">
 
@@ -543,7 +566,7 @@ renderResponse.setTitle(headerTitle);
 					</c:if>
 
 					<c:if test="<%= !RepositoryUtil.isExternalRepository(repositoryId) %>">
-						<aui:fieldset collapsed="<%= true %>" collapsible="<%= true %>" label="schedule">
+						<aui:fieldset collapsed="<%= true %>" collapsible="<%= true %>" label="schedule[noun]">
 							<liferay-ui:error exception="<%= FileEntryDisplayDateException.class %>" message="please-enter-a-valid-publish-date" />
 							<liferay-ui:error exception="<%= FileEntryExpirationDateException.class %>" message="please-enter-a-valid-expiration-date" />
 							<liferay-ui:error exception="<%= FileEntryReviewDateException.class %>" message="please-enter-a-valid-review-date" />
@@ -627,11 +650,6 @@ renderResponse.setTitle(headerTitle);
 			</div>
 		</div>
 	</aui:form>
-
-	<liferay-document-library:upload-progress
-		id="<%= uploadProgressId %>"
-		message="uploading"
-	/>
 </clay:container-fluid>
 
 <c:if test="<%= (fileEntry != null) && checkedOut && dlAdminDisplayContext.isVersioningStrategyOverridable() %>">
@@ -663,7 +681,7 @@ renderResponse.setTitle(headerTitle);
 		) {
 			Liferay.Util.openConfirmModal({
 				message:
-					'<liferay-ui:message key="changing-the-document-type-will-cause-data-loss" />',
+					'<liferay-ui:message key="changing-the-document-type-will-clear-the-currently-selected-file-and-metadata" />',
 				onConfirm: (isConfirmed) => {
 					if (isConfirmed) {
 						updateFileEntryType();
@@ -708,10 +726,6 @@ renderResponse.setTitle(headerTitle);
 
 	function <portlet:namespace />saveFileEntry(draft) {
 		var fileElement = Liferay.Util.getFormElement(form, 'file');
-
-		if (fileElement && fileElement.value) {
-			<%= HtmlUtil.escape(uploadProgressId) %>.startProgress();
-		}
 
 		var cmdElement = Liferay.Util.getFormElement(form, 'cmd');
 

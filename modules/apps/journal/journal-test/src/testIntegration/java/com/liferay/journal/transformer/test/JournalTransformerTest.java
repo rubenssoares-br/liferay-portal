@@ -66,10 +66,13 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.LocaleThreadLocal;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.TimeZoneUtil;
@@ -141,7 +144,7 @@ public class JournalTransformerTest {
 
 		_serviceTrackerList = ServiceTrackerListFactory.open(
 			bundle.getBundleContext(), TransformerListener.class,
-			"(javax.portlet.name=" + JournalPortletKeys.JOURNAL + ")");
+			"(jakarta.portlet.name=" + JournalPortletKeys.JOURNAL + ")");
 	}
 
 	@AfterClass
@@ -172,11 +175,21 @@ public class JournalTransformerTest {
 	}
 
 	@Test
-	public void testCreateTemplateNode() throws Exception {
+	public void testCreateTemplateNode() {
 		_testCreateTemplateNodeDocumentLibraryDDMFormField();
-		_testCreateTemplateNodeSelectTypeDDMFormFieldWithNoOptions();
-		_testCreateTemplateNodeSelectTypeDDMFormFieldWithOptions();
-		_testCreateTemplateNodeSelectTypeDDMFormFieldWithoutOptions();
+		_testCreateTemplateNodeNumericDDMFormFieldWithMismatchedLocale(
+			LocaleUtil.SPAIN, LocaleUtil.US, "20.3", "20,30");
+		_testCreateTemplateNodeNumericDDMFormFieldWithMismatchedLocale(
+			LocaleUtil.US, LocaleUtil.SPAIN, "123,45", "123.45");
+		_testCreateTemplateNodeNumericDDMFormFieldWithTrailingZero(
+			"2,3", LocaleUtil.SPAIN, "2,30");
+		_testCreateTemplateNodeNumericDDMFormFieldWithTrailingZero(
+			"2.3", LocaleUtil.US, "2.30");
+		_testCreateTemplateNodeMultipleSelectTypeDDMFormFieldWithOptions();
+		_testCreateTemplateNodeMultipleSelectTypeDDMFormFieldWithoutOptions();
+		_testCreateTemplateNodeSingleSelectTypeDDMFormFieldWithOptions();
+		_testCreateTemplateNodeTextDDMFormFieldWithHTML();
+		_testCreateTemplateNodeTextDDMFormFieldWithPlaintext();
 	}
 
 	@Test
@@ -323,6 +336,32 @@ public class JournalTransformerTest {
 	}
 
 	@Test
+	public void testLocalTransformerWithPartialTranslation() throws Exception {
+		Assert.assertEquals(
+			"2022-11-26",
+			_transformMethod.invoke(
+				_journalTransformer, _journalArticle, null, _journalHelper,
+				LocaleUtil.toLanguageId(LocaleUtil.BRAZIL),
+				_layoutDisplayPageProviderRegistry,
+				ListUtil.filter(
+					_serviceTrackerList.toList(),
+					TransformerListener::isEnabled),
+				null, false, "${FieldsGroup19507604.birthday.getData()}", null,
+				Constants.VIEW));
+		Assert.assertEquals(
+			"English",
+			_transformMethod.invoke(
+				_journalTransformer, _journalArticle, null, _journalHelper,
+				LocaleUtil.toLanguageId(LocaleUtil.BRAZIL),
+				_layoutDisplayPageProviderRegistry,
+				ListUtil.filter(
+					_serviceTrackerList.toList(),
+					TransformerListener::isEnabled),
+				null, false, "${FieldsGroup19507604.language.getData()}", null,
+				Constants.VIEW));
+	}
+
+	@Test
 	public void testLocaleTransformerListener() throws Exception {
 		Assert.assertEquals(
 			"Joe Bloggs",
@@ -336,7 +375,7 @@ public class JournalTransformerTest {
 				null, false, "${name.getData()}", null, Constants.VIEW));
 
 		Assert.assertEquals(
-			"Joao da Silva",
+			"João da Silva",
 			_transformMethod.invoke(
 				_journalTransformer, _journalArticle, null, _journalHelper,
 				LocaleUtil.toLanguageId(LocaleUtil.BRAZIL),
@@ -414,25 +453,16 @@ public class JournalTransformerTest {
 			DDMStructure ddmStructure = DDMStructureTestUtil.addStructure(
 				_group.getGroupId(), JournalArticle.class.getName());
 
-			DDMTemplate ddmTemplate = DDMTemplateTestUtil.addTemplate(
-				_group.getGroupId(), ddmStructure.getStructureId(),
-				_portal.getClassNameId(JournalArticle.class),
-				TemplateConstants.LANG_TYPE_FTL,
+			DDMTemplate ddmTemplate = _addDDMTemplate(
+				ddmStructure,
 				new String(
 					FileUtil.getBytes(
 						getClass(),
 						"dependencies" +
-							"/random_namespace_asset_publisher_template.ftl")),
-				LocaleUtil.US);
+							"/random_namespace_asset_publisher_template.ftl")));
 
-			JournalArticle journalArticle =
-				JournalTestUtil.addArticleWithXMLContent(
-					_group.getGroupId(),
-					JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID,
-					JournalArticleConstants.CLASS_NAME_ID_DEFAULT,
-					DDMStructureTestUtil.getSampleStructuredContent(),
-					ddmStructure.getStructureKey(),
-					ddmTemplate.getTemplateKey(), LocaleUtil.US);
+			JournalArticle journalArticle = _addJournalArticle(
+				ddmStructure, ddmTemplate);
 
 			ThemeDisplay themeDisplay = new ThemeDisplay();
 
@@ -469,7 +499,9 @@ public class JournalTransformerTest {
 				WebKeys.THEME_DISPLAY, themeDisplay);
 			mockHttpServletRequest.setMethod(HttpMethods.GET);
 			mockHttpServletRequest.setParameter(
-				"currentURL", "http://localhost:8080/currentURL");
+				"currentURL",
+				"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+					"/currentURL");
 
 			themeDisplay.setRequest(mockHttpServletRequest);
 
@@ -489,16 +521,9 @@ public class JournalTransformerTest {
 				null, false, ddmTemplate.getScript(), themeDisplay,
 				Constants.VIEW);
 
-			List<LogEntry> logEntries = logCapture.getLogEntries();
-
-			Assert.assertEquals(logEntries.toString(), 1, logEntries.size());
-
-			LogEntry logEntry = logEntries.get(0);
-
-			Assert.assertEquals(
-				"Article " + journalArticle.getArticleId() +
-					" cannot include itself",
-				logEntry.getMessage());
+			_assertRecursionGuardLogEntry(
+				journalArticle.getArticleId(), ddmTemplate.getTemplateKey(),
+				logCapture);
 		}
 		finally {
 			PermissionThreadLocal.setPermissionChecker(
@@ -549,6 +574,13 @@ public class JournalTransformerTest {
 					_serviceTrackerList.toList(),
 					TransformerListener::isEnabled),
 				null, false, "@@company_id@@", null, Constants.VIEW));
+	}
+
+	@Test
+	public void testTransformRecursionGuard() throws Exception {
+		_testTransformSameArticleWithDefaultDDMTemplate();
+		_testTransformSameArticleWithDifferentDDMTemplate();
+		_testTransformSameArticleWithSameDDMTemplateIndirectly();
 	}
 
 	@Test
@@ -652,6 +684,46 @@ public class JournalTransformerTest {
 			_transformerListener, "_replacements", replacements);
 	}
 
+	private DDMTemplate _addDDMTemplate(
+			DDMStructure ddmStructure, String script)
+		throws Exception {
+
+		return DDMTemplateTestUtil.addTemplate(
+			_group.getGroupId(), ddmStructure.getStructureId(),
+			_portal.getClassNameId(JournalArticle.class),
+			TemplateConstants.LANG_TYPE_FTL, script, LocaleUtil.US);
+	}
+
+	private JournalArticle _addJournalArticle(
+			DDMStructure ddmStructure, DDMTemplate ddmTemplate)
+		throws Exception {
+
+		return JournalTestUtil.addArticleWithXMLContent(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID,
+			JournalArticleConstants.CLASS_NAME_ID_DEFAULT,
+			DDMStructureTestUtil.getSampleStructuredContent(),
+			ddmStructure.getStructureKey(), ddmTemplate.getTemplateKey(),
+			LocaleUtil.US);
+	}
+
+	private void _assertRecursionGuardLogEntry(
+		String articleId, String ddmTemplateKey, LogCapture logCapture) {
+
+		List<LogEntry> logEntries = logCapture.getLogEntries();
+
+		Assert.assertEquals(logEntries.toString(), 1, logEntries.size());
+
+		LogEntry logEntry = logEntries.get(0);
+
+		Assert.assertEquals(
+			StringBundler.concat(
+				"Article ", articleId,
+				" cannot include itself with dynamic data mapping template ",
+				ddmTemplateKey),
+			logEntry.getMessage());
+	}
+
 	private void _assertReservedVariable(
 			String expectedValue, String label, String languageId, String name,
 			TemplateVariableGroup templateVariableGroup,
@@ -696,9 +768,7 @@ public class JournalTransformerTest {
 			FileUtil.getBytes(getClass(), "dependencies/" + fileName));
 	}
 
-	private void _testCreateTemplateNodeDocumentLibraryDDMFormField()
-		throws Exception {
-
+	private void _testCreateTemplateNodeDocumentLibraryDDMFormField() {
 		DDMFormField ddmFormField = new DDMFormField(
 			"name", DDMFormFieldTypeConstants.DOCUMENT_LIBRARY);
 
@@ -736,41 +806,7 @@ public class JournalTransformerTest {
 			templateNode.getAttribute("groupId"));
 	}
 
-	private void _testCreateTemplateNodeSelectTypeDDMFormFieldWithNoOptions() {
-		DDMFormField ddmFormField = new DDMFormField(
-			"name", DDMFormFieldTypeConstants.SELECT);
-
-		ddmFormField.setDataType("string");
-		ddmFormField.setMultiple(true);
-
-		Document document = SAXReaderUtil.createDocument();
-
-		Element rootElement = document.addElement("root");
-
-		rootElement.addElement("dynamic-content");
-
-		TemplateNode templateNode = ReflectionTestUtil.invoke(
-			_journalTransformer, "_createTemplateNode",
-			new Class<?>[] {
-				DDMFormField.class, Element.class, Locale.class,
-				ThemeDisplay.class
-			},
-			ddmFormField, rootElement, LocaleUtil.getDefault(),
-			new ThemeDisplay());
-
-		Assert.assertTrue(MapUtil.isEmpty(templateNode.getAttributes()));
-		Assert.assertEquals(StringPool.BLANK, templateNode.getData());
-		Assert.assertEquals("name", templateNode.getName());
-		Assert.assertEquals("select", templateNode.getType());
-
-		List<String> options = templateNode.getOptions();
-
-		Assert.assertEquals(options.toString(), 0, options.size());
-
-		Assert.assertTrue(MapUtil.isEmpty(templateNode.getOptionsMap()));
-	}
-
-	private void _testCreateTemplateNodeSelectTypeDDMFormFieldWithOptions() {
+	private void _testCreateTemplateNodeMultipleSelectTypeDDMFormFieldWithOptions() {
 		DDMFormField ddmFormField = new DDMFormField(
 			"name", DDMFormFieldTypeConstants.SELECT);
 
@@ -802,12 +838,12 @@ public class JournalTransformerTest {
 			new ThemeDisplay());
 
 		Assert.assertTrue(MapUtil.isEmpty(templateNode.getAttributes()));
-		Assert.assertTrue(
-			StringUtil.contains(
-				templateNode.getData(), "option1", StringPool.BLANK));
-		Assert.assertTrue(
-			StringUtil.contains(
-				templateNode.getData(), "option2", StringPool.BLANK));
+
+		String data = templateNode.getData();
+
+		Assert.assertTrue(data.contains("option1"));
+		Assert.assertTrue(data.contains("option2"));
+
 		Assert.assertEquals("name", templateNode.getName());
 		Assert.assertEquals("select", templateNode.getType());
 
@@ -819,7 +855,7 @@ public class JournalTransformerTest {
 		Assert.assertTrue(MapUtil.isEmpty(templateNode.getOptionsMap()));
 	}
 
-	private void _testCreateTemplateNodeSelectTypeDDMFormFieldWithoutOptions() {
+	private void _testCreateTemplateNodeMultipleSelectTypeDDMFormFieldWithoutOptions() {
 		DDMFormField ddmFormField = new DDMFormField(
 			"name", DDMFormFieldTypeConstants.SELECT);
 
@@ -847,6 +883,261 @@ public class JournalTransformerTest {
 		Assert.assertEquals("select", templateNode.getType());
 		Assert.assertTrue(ListUtil.isEmpty(templateNode.getOptions()));
 		Assert.assertTrue(MapUtil.isEmpty(templateNode.getOptionsMap()));
+	}
+
+	private void _testCreateTemplateNodeNumericDDMFormFieldWithMismatchedLocale(
+		Locale dataLocale, Locale displayLocale, String expectedValue,
+		String text) {
+
+		DDMFormField ddmFormField = new DDMFormField(
+			"numeric", DDMFormFieldTypeConstants.NUMERIC);
+
+		ddmFormField.setDataType("double");
+
+		Document document = SAXReaderUtil.createDocument();
+
+		Element rootElement = document.addElement("root");
+
+		Element dynamicContentElement = rootElement.addElement(
+			"dynamic-content");
+
+		dynamicContentElement.addAttribute(
+			"language-id", LocaleUtil.toLanguageId(dataLocale));
+		dynamicContentElement.setText(text);
+
+		Locale originalThemeDisplayLocale =
+			LocaleThreadLocal.getThemeDisplayLocale();
+
+		try {
+			LocaleThreadLocal.setThemeDisplayLocale(displayLocale);
+
+			TemplateNode templateNode = ReflectionTestUtil.invoke(
+				_journalTransformer, "_createTemplateNode",
+				new Class<?>[] {
+					DDMFormField.class, Element.class, Locale.class,
+					ThemeDisplay.class
+				},
+				ddmFormField, rootElement, displayLocale, new ThemeDisplay());
+
+			Assert.assertEquals(expectedValue, templateNode.getData());
+		}
+		finally {
+			LocaleThreadLocal.setThemeDisplayLocale(originalThemeDisplayLocale);
+		}
+	}
+
+	private void _testCreateTemplateNodeNumericDDMFormFieldWithTrailingZero(
+		String expectedValue, Locale locale, String text) {
+
+		DDMFormField ddmFormField = new DDMFormField(
+			"numeric", DDMFormFieldTypeConstants.NUMERIC);
+
+		ddmFormField.setDataType("double");
+
+		Document document = SAXReaderUtil.createDocument();
+
+		Element rootElement = document.addElement("root");
+
+		Element dynamicContentElement = rootElement.addElement(
+			"dynamic-content");
+
+		dynamicContentElement.setText(text);
+
+		Locale originalThemeDisplayLocale =
+			LocaleThreadLocal.getThemeDisplayLocale();
+
+		try {
+			LocaleThreadLocal.setThemeDisplayLocale(locale);
+
+			ThemeDisplay themeDisplay = new ThemeDisplay();
+
+			themeDisplay.setSiteDefaultLocale(locale);
+
+			TemplateNode templateNode = ReflectionTestUtil.invoke(
+				_journalTransformer, "_createTemplateNode",
+				new Class<?>[] {
+					DDMFormField.class, Element.class, Locale.class,
+					ThemeDisplay.class
+				},
+				ddmFormField, rootElement, locale, themeDisplay);
+
+			Assert.assertEquals(expectedValue, templateNode.getData());
+		}
+		finally {
+			LocaleThreadLocal.setThemeDisplayLocale(originalThemeDisplayLocale);
+		}
+	}
+
+	private void _testCreateTemplateNodeSingleSelectTypeDDMFormFieldWithOptions() {
+		DDMFormField ddmFormField = new DDMFormField(
+			"name", DDMFormFieldTypeConstants.SELECT);
+
+		ddmFormField.setDataType("string");
+		ddmFormField.setMultiple(false);
+
+		Document document = SAXReaderUtil.createDocument();
+
+		Element rootElement = document.addElement("root");
+
+		Element dynamicContentElement = rootElement.addElement(
+			"dynamic-content");
+
+		Element optionElement = dynamicContentElement.addElement("option");
+
+		optionElement.setText("value");
+
+		TemplateNode templateNode = ReflectionTestUtil.invoke(
+			_journalTransformer, "_createTemplateNode",
+			new Class<?>[] {
+				DDMFormField.class, Element.class, Locale.class,
+				ThemeDisplay.class
+			},
+			ddmFormField, rootElement, LocaleUtil.getDefault(),
+			new ThemeDisplay());
+
+		Assert.assertTrue(MapUtil.isEmpty(templateNode.getAttributes()));
+		Assert.assertEquals("value", templateNode.getData());
+
+		List<String> options = templateNode.getOptions();
+
+		Assert.assertEquals(options.toString(), 1, options.size());
+		Assert.assertEquals("value", options.get(0));
+	}
+
+	private void _testCreateTemplateNodeTextDDMFormField(String text) {
+		DDMFormField ddmFormField = new DDMFormField(
+			"text", DDMFormFieldTypeConstants.TEXT);
+
+		ddmFormField.setDataType("text");
+
+		Document document = SAXReaderUtil.createDocument();
+
+		Element rootElement = document.addElement("root");
+
+		Element dynamicContentElement = rootElement.addElement(
+			"dynamic-content");
+
+		dynamicContentElement.setText(text);
+
+		TemplateNode templateNode = ReflectionTestUtil.invoke(
+			_journalTransformer, "_createTemplateNode",
+			new Class<?>[] {
+				DDMFormField.class, Element.class, Locale.class,
+				ThemeDisplay.class
+			},
+			ddmFormField, rootElement, LocaleUtil.getDefault(),
+			new ThemeDisplay());
+
+		Assert.assertEquals(HtmlUtil.escape(text), templateNode.getData());
+	}
+
+	private void _testCreateTemplateNodeTextDDMFormFieldWithHTML() {
+		_testCreateTemplateNodeTextDDMFormField(
+			"<img src=\"x\" onerror=alert(document.cookie)>");
+	}
+
+	private void _testCreateTemplateNodeTextDDMFormFieldWithPlaintext() {
+		_testCreateTemplateNodeTextDDMFormField(RandomTestUtil.randomString());
+	}
+
+	private void _testTransformSameArticleWithDefaultDDMTemplate()
+		throws Exception {
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.journal.internal.transformer.JournalTransformer",
+				LoggerTestUtil.WARN)) {
+
+			Assert.assertEquals(
+				"DEFAULT:",
+				_transform(
+					_journalArticle, null,
+					StringBundler.concat(
+						"DEFAULT:${journalContent.getContent(groupId, ",
+						".vars[\"reserved-article-id\"].data, \"view\", ",
+						"\"en_US\")}")));
+
+			_assertRecursionGuardLogEntry(
+				_journalArticle.getArticleId(), "DEFAULT_TEMPLATE", logCapture);
+		}
+	}
+
+	private void _testTransformSameArticleWithDifferentDDMTemplate()
+		throws Exception {
+
+		DDMStructure ddmStructure = DDMStructureTestUtil.addStructure(
+			_group.getGroupId(), JournalArticle.class.getName());
+
+		DDMTemplate sectionDDMTemplate = _addDDMTemplate(
+			ddmStructure, "SECTION:${name.getData()}");
+
+		DDMTemplate mainDDMTemplate = _addDDMTemplate(
+			ddmStructure,
+			StringBundler.concat(
+				"MAIN:${journalContent.getContent(groupId, ",
+				".vars[\"reserved-article-id\"].data, \"",
+				sectionDDMTemplate.getTemplateKey(),
+				"\", \"view\", \"en_US\", null, null)}"));
+
+		JournalArticle journalArticle = _addJournalArticle(
+			ddmStructure, mainDDMTemplate);
+
+		Assert.assertEquals(
+			"MAIN:SECTION:title",
+			_transform(
+				journalArticle, mainDDMTemplate, mainDDMTemplate.getScript()));
+	}
+
+	private void _testTransformSameArticleWithSameDDMTemplateIndirectly()
+		throws Exception {
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.journal.internal.transformer.JournalTransformer",
+				LoggerTestUtil.WARN)) {
+
+			DDMStructure ddmStructure = DDMStructureTestUtil.addStructure(
+				_group.getGroupId(), JournalArticle.class.getName());
+
+			DDMTemplate innerDDMTemplate = _addDDMTemplate(
+				ddmStructure,
+				StringBundler.concat(
+					"INNER:${journalContent.getContent(groupId, ",
+					".vars[\"reserved-article-id\"].data, \"view\", ",
+					"\"en_US\")}"));
+
+			DDMTemplate outerDDMTemplate = _addDDMTemplate(
+				ddmStructure,
+				StringBundler.concat(
+					"OUTER:${journalContent.getContent(groupId, ",
+					".vars[\"reserved-article-id\"].data, \"",
+					innerDDMTemplate.getTemplateKey(),
+					"\", \"view\", \"en_US\", null, null)}"));
+
+			JournalArticle journalArticle = _addJournalArticle(
+				ddmStructure, outerDDMTemplate);
+
+			Assert.assertEquals(
+				"OUTER:INNER:",
+				_transform(
+					journalArticle, outerDDMTemplate,
+					outerDDMTemplate.getScript()));
+
+			_assertRecursionGuardLogEntry(
+				journalArticle.getArticleId(),
+				outerDDMTemplate.getTemplateKey(), logCapture);
+		}
+	}
+
+	private String _transform(
+			JournalArticle article, DDMTemplate ddmTemplate, String script)
+		throws Exception {
+
+		return (String)_transformMethod.invoke(
+			_journalTransformer, article, ddmTemplate, _journalHelper,
+			LocaleUtil.toLanguageId(LocaleUtil.US),
+			_layoutDisplayPageProviderRegistry,
+			ListUtil.filter(
+				_serviceTrackerList.toList(), TransformerListener::isEnabled),
+			null, false, script, null, Constants.VIEW);
 	}
 
 	private static Object _journalTransformer;
@@ -890,7 +1181,7 @@ public class JournalTransformerTest {
 	private ThemeLocalService _themeLocalService;
 
 	@Inject(
-		filter = "component.name=com.liferay.journal.internal.transformer.RegexTransformerListener"
+		filter = "component.name=com.liferay.journal.internal.template.parser.RegexTransformerListener"
 	)
 	private TransformerListener _transformerListener;
 

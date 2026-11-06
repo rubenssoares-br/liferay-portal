@@ -111,11 +111,7 @@ public class AccountRolePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		AccountRole newAccountRole = _persistence.create(pk);
-
-		newAccountRole.setMvccVersion(RandomTestUtil.nextLong());
+		AccountRole newAccountRole = addAccountRole();
 
 		newAccountRole.setExternalReferenceCode(RandomTestUtil.randomString());
 
@@ -125,7 +121,9 @@ public class AccountRolePersistenceTest {
 
 		newAccountRole.setRoleId(RandomTestUtil.nextLong());
 
-		_accountRoles.add(_persistence.update(newAccountRole));
+		newAccountRole = _persistence.update(newAccountRole);
+
+		_accountRoles.add(newAccountRole);
 
 		AccountRole existingAccountRole = _persistence.findByPrimaryKey(
 			newAccountRole.getPrimaryKey());
@@ -166,13 +164,6 @@ public class AccountRolePersistenceTest {
 			accountRole.getExternalReferenceCode());
 
 		_persistence.update(newAccountRole);
-	}
-
-	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
 	}
 
 	@Test
@@ -532,8 +523,6 @@ public class AccountRolePersistenceTest {
 
 		AccountRole accountRole = _persistence.create(pk);
 
-		accountRole.setMvccVersion(RandomTestUtil.nextLong());
-
 		accountRole.setExternalReferenceCode(RandomTestUtil.randomString());
 
 		accountRole.setCompanyId(RandomTestUtil.nextLong());
@@ -552,3 +541,4 @@ public class AccountRolePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-959278036

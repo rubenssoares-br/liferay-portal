@@ -14,7 +14,6 @@ portletDisplay.setShowStagingIcon(false);
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems="<%= layoutPageTemplatesAdminDisplayContext.getNavigationItems() %>"
 />
 
@@ -31,7 +30,7 @@ LayoutPrototypeManagementToolbarDisplayContext layoutPrototypeManagementToolbarD
 	<portlet:param name="redirect" value="<%= currentURL %>" />
 </portlet:actionURL>
 
-<aui:form action="<%= deleteLayoutPrototypesURL %>" cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form action="<%= deleteLayoutPrototypesURL %>" cssClass="container-fluid container-fluid-max-xxxl" name="fm">
 	<liferay-ui:error embed="<%= false %>" exception="<%= RequiredLayoutPrototypeException.class %>" message="you-cannot-delete-page-templates-that-are-used-by-a-page" />
 
 	<liferay-ui:search-container

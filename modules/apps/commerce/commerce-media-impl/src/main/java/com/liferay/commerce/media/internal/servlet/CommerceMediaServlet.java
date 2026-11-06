@@ -6,6 +6,8 @@
 package com.liferay.commerce.media.internal.servlet;
 
 import com.liferay.account.constants.AccountConstants;
+import com.liferay.account.exception.NoSuchEntryException;
+import com.liferay.account.service.AccountEntryService;
 import com.liferay.asset.kernel.model.AssetCategory;
 import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.commerce.media.CommerceMediaProvider;
@@ -56,17 +58,18 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portlet.asset.service.permission.AssetCategoryPermission;
 
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -128,6 +131,21 @@ public class CommerceMediaServlet extends HttpServlet {
 			httpServletRequest, httpServletResponse, contentDisposition);
 	}
 
+	private void _checkPermission(
+			long commerceAccountId, CPDefinition cpDefinition)
+		throws PortalException {
+
+		if (cpDefinition.isAccountGroupFilterEnabled() &&
+			(commerceAccountId != AccountConstants.ACCOUNT_ENTRY_ID_GUEST)) {
+
+			_accountEntryService.getAccountEntry(commerceAccountId);
+		}
+
+		_commerceProductViewPermission.check(
+			PermissionThreadLocal.getPermissionChecker(), commerceAccountId,
+			cpDefinition.getCPDefinitionId());
+	}
+
 	private FileEntry _getFileEntry(HttpServletRequest httpServletRequest)
 		throws PortalException {
 
@@ -153,20 +171,8 @@ public class CommerceMediaServlet extends HttpServlet {
 			_cpAttachmentFileEntryLocalService.getCPAttachmentFileEntry(
 				GetterUtil.getLongStrict(cpAttachmentFileEntryIdParam));
 
-		return _getFileEntry(cpAttachmentFileEntry.getFileEntryId());
-	}
-
-	private FileEntry _getFileEntry(long fileEntryId) {
-		try {
-			return _dlAppLocalService.getFileEntry(fileEntryId);
-		}
-		catch (PortalException portalException) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(portalException);
-			}
-
-			return null;
-		}
+		return _dlAppLocalService.fetchFileEntry(
+			cpAttachmentFileEntry.getFileEntryId());
 	}
 
 	private long _getGroupId(
@@ -210,9 +216,7 @@ public class CommerceMediaServlet extends HttpServlet {
 					cpDefinition.getCommerceCatalog(), ActionKeys.VIEW);
 			}
 			else {
-				_commerceProductViewPermission.check(
-					PermissionThreadLocal.getPermissionChecker(),
-					commerceAccountId, cpDefinition.getCPDefinitionId());
+				_checkPermission(commerceAccountId, cpDefinition);
 			}
 
 			return cpDefinition.getGroupId();
@@ -231,11 +235,9 @@ public class CommerceMediaServlet extends HttpServlet {
 				_commerceMediaProvider.getDefaultImageFileEntry(
 					_portal.getCompanyId(httpServletRequest), groupId);
 
-			ServletResponseUtil.sendFile(
-				httpServletRequest, httpServletResponse,
-				fileEntry.getFileName(),
-				_file.getBytes(fileEntry.getContentStream()),
-				fileEntry.getMimeType(), contentDisposition);
+			_sendFile(
+				contentDisposition, fileEntry, httpServletRequest,
+				httpServletResponse);
 		}
 		catch (Exception exception) {
 			_log.error(exception);
@@ -269,6 +271,24 @@ public class CommerceMediaServlet extends HttpServlet {
 			httpServletResponse.setStatus(
 				HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	private void _sendFile(
+			String contentDisposition, FileEntry fileEntry,
+			HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse)
+		throws IOException, PortalException {
+
+		if (!ArrayUtil.contains(
+				PropsValues.MIME_TYPES_WEB_IMAGES, fileEntry.getMimeType())) {
+
+			contentDisposition = HttpHeaders.CONTENT_DISPOSITION_ATTACHMENT;
+		}
+
+		ServletResponseUtil.sendFile(
+			httpServletRequest, httpServletResponse, fileEntry.getFileName(),
+			_file.getBytes(fileEntry.getContentStream()),
+			fileEntry.getMimeType(), contentDisposition);
 	}
 
 	private void _sendMediaBytes(
@@ -330,7 +350,8 @@ public class CommerceMediaServlet extends HttpServlet {
 					return;
 				}
 
-				FileEntry fileEntry = _getFileEntry(fileEntryId);
+				FileEntry fileEntry = _dlAppLocalService.fetchFileEntry(
+					fileEntryId);
 
 				if (fileEntry == null) {
 					_sendError(
@@ -486,7 +507,11 @@ public class CommerceMediaServlet extends HttpServlet {
 
 			FileEntry fileEntry = _getFileEntry(httpServletRequest);
 
-			if (fileEntry == null) {
+			if ((fileEntry == null) ||
+				!_fileEntryModelResourcePermission.contains(
+					PermissionThreadLocal.getPermissionChecker(), fileEntry,
+					ActionKeys.VIEW)) {
+
 				_sendDefaultMediaBytes(
 					groupId, httpServletRequest, httpServletResponse,
 					contentDisposition);
@@ -494,11 +519,9 @@ public class CommerceMediaServlet extends HttpServlet {
 				return;
 			}
 
-			ServletResponseUtil.sendFile(
-				httpServletRequest, httpServletResponse,
-				fileEntry.getFileName(),
-				_file.getBytes(fileEntry.getContentStream()),
-				fileEntry.getMimeType(), contentDisposition);
+			_sendFile(
+				contentDisposition, fileEntry, httpServletRequest,
+				httpServletResponse);
 		}
 		catch (PortalException portalException) {
 			_log.error(portalException);
@@ -556,9 +579,7 @@ public class CommerceMediaServlet extends HttpServlet {
 			}
 			else {
 				if (sample) {
-					_commerceProductViewPermission.check(
-						PermissionThreadLocal.getPermissionChecker(),
-						commerceAccountId, cpDefinition.getCPDefinitionId());
+					_checkPermission(commerceAccountId, cpDefinition);
 				}
 				else {
 					_sendError(
@@ -615,7 +636,7 @@ public class CommerceMediaServlet extends HttpServlet {
 					return;
 				}
 
-				fileEntry = _getFileEntry(fileEntryId);
+				fileEntry = _dlAppLocalService.fetchFileEntry(fileEntryId);
 			}
 
 			ServletResponseUtil.sendFile(
@@ -630,7 +651,9 @@ public class CommerceMediaServlet extends HttpServlet {
 				_log.debug(portalException);
 			}
 
-			if (portalException instanceof PrincipalException) {
+			if (portalException instanceof NoSuchEntryException ||
+				portalException instanceof PrincipalException) {
+
 				_sendError(
 					httpServletResponse, HttpServletResponse.SC_UNAUTHORIZED,
 					"You do not have permission to access the requested " +
@@ -648,6 +671,9 @@ public class CommerceMediaServlet extends HttpServlet {
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		CommerceMediaServlet.class);
+
+	@Reference
+	private AccountEntryService _accountEntryService;
 
 	@Reference
 	private AssetCategoryLocalService _assetCategoryLocalService;
@@ -699,6 +725,12 @@ public class CommerceMediaServlet extends HttpServlet {
 
 	@Reference
 	private File _file;
+
+	@Reference(
+		target = "(model.class.name=com.liferay.portal.kernel.repository.model.FileEntry)"
+	)
+	private ModelResourcePermission<FileEntry>
+		_fileEntryModelResourcePermission;
 
 	@Reference
 	private Portal _portal;

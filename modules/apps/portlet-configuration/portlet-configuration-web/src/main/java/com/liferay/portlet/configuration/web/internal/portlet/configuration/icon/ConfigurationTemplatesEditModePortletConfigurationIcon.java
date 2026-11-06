@@ -26,7 +26,7 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portlet.configuration.kernel.util.PortletConfigurationApplicationType;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -41,6 +41,11 @@ public class ConfigurationTemplatesEditModePortletConfigurationIcon
 	@Override
 	public String getIcon() {
 		return "";
+	}
+
+	@Override
+	public int getPortletConfigurationIconGroup() {
+		return PORTLET_CONFIGURATION_ICON_GROUP_CONFIGURATION;
 	}
 
 	@Override

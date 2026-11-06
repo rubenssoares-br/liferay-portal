@@ -5,18 +5,21 @@
 
 package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 
-import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.CustomField;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.Option;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.OptionValue;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -46,6 +49,9 @@ public class OptionSerDes {
 
 		sb.append("{");
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ssXX");
+
 		if (option.getActions() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -66,6 +72,16 @@ public class OptionSerDes {
 			sb.append(option.getCatalogId());
 		}
 
+		if (option.getCreator() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(option.getCreator()));
+		}
+
 		if (option.getCustomFields() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -76,7 +92,7 @@ public class OptionSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < option.getCustomFields().length; i++) {
-				sb.append(String.valueOf(option.getCustomFields()[i]));
+				sb.append(option.getCustomFields()[i]);
 
 				if ((i + 1) < option.getCustomFields().length) {
 					sb.append(", ");
@@ -84,6 +100,34 @@ public class OptionSerDes {
 			}
 
 			sb.append("]");
+		}
+
+		if (option.getDateCreated() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateCreated\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(option.getDateCreated()));
+
+			sb.append("\"");
+		}
+
+		if (option.getDateModified() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateModified\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(option.getDateModified()));
+
+			sb.append("\"");
 		}
 
 		if (option.getDescription() != null) {
@@ -128,9 +172,7 @@ public class OptionSerDes {
 			sb.append("\"fieldType\": ");
 
 			sb.append("\"");
-
 			sb.append(option.getFieldType());
-
 			sb.append("\"");
 		}
 
@@ -188,6 +230,26 @@ public class OptionSerDes {
 			sb.append("]");
 		}
 
+		if (option.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < option.getPermissions().length; i++) {
+				sb.append(option.getPermissions()[i]);
+
+				if ((i + 1) < option.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (option.getPriority() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -236,6 +298,9 @@ public class OptionSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ssXX");
+
 		if (option.getActions() == null) {
 			map.put("actions", null);
 		}
@@ -250,11 +315,36 @@ public class OptionSerDes {
 			map.put("catalogId", String.valueOf(option.getCatalogId()));
 		}
 
+		if (option.getCreator() == null) {
+			map.put("creator", null);
+		}
+		else {
+			map.put("creator", String.valueOf(option.getCreator()));
+		}
+
 		if (option.getCustomFields() == null) {
 			map.put("customFields", null);
 		}
 		else {
 			map.put("customFields", String.valueOf(option.getCustomFields()));
+		}
+
+		if (option.getDateCreated() == null) {
+			map.put("dateCreated", null);
+		}
+		else {
+			map.put(
+				"dateCreated",
+				liferayToJSONDateFormat.format(option.getDateCreated()));
+		}
+
+		if (option.getDateModified() == null) {
+			map.put("dateModified", null);
+		}
+		else {
+			map.put(
+				"dateModified",
+				liferayToJSONDateFormat.format(option.getDateModified()));
 		}
 
 		if (option.getDescription() == null) {
@@ -315,6 +405,13 @@ public class OptionSerDes {
 			map.put("optionValues", String.valueOf(option.getOptionValues()));
 		}
 
+		if (option.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put("permissions", String.valueOf(option.getPermissions()));
+		}
+
 		if (option.getPriority() == null) {
 			map.put("priority", null);
 		}
@@ -360,7 +457,16 @@ public class OptionSerDes {
 			else if (Objects.equals(jsonParserFieldName, "catalogId")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "customFields")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateModified")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "description")) {
@@ -387,6 +493,9 @@ public class OptionSerDes {
 				return true;
 			}
 			else if (Objects.equals(jsonParserFieldName, "optionValues")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "priority")) {
@@ -419,20 +528,42 @@ public class OptionSerDes {
 						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				if (jsonParserFieldValue != null) {
+					option.setCreator(
+						CreatorSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "customFields")) {
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.commerce.admin.catalog.client.custom.
+						field.CustomField[] customFieldsArray = new
+						com.liferay.headless.commerce.admin.catalog.client.
+							custom.field.CustomField
+							[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.commerce.admin.catalog.client.
+								custom.field.CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					option.setCustomFields(customFieldsArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
+				if (jsonParserFieldValue != null) {
+					option.setDateCreated(toDate((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateModified")) {
+				if (jsonParserFieldValue != null) {
+					option.setDateModified(
+						toDate((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "description")) {
@@ -489,6 +620,26 @@ public class OptionSerDes {
 					}
 
 					option.setOptionValues(optionValuesArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.commerce.admin.catalog.client.
+						permission.Permission[] permissionsArray = new
+						com.liferay.headless.commerce.admin.catalog.client.
+							permission.Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.commerce.admin.catalog.client.
+								permission.Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					option.setPermissions(permissionsArray);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "priority")) {
@@ -552,6 +703,16 @@ public class OptionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -584,3 +745,4 @@ public class OptionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:356410016

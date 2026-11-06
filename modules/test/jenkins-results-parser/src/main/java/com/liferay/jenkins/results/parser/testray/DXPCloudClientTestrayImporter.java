@@ -6,6 +6,7 @@
 package com.liferay.jenkins.results.parser.testray;
 
 import com.liferay.jenkins.results.parser.Dom4JUtil;
+import com.liferay.jenkins.results.parser.Environment;
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
 
 import java.io.File;
@@ -23,6 +24,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.http.client.utils.URIBuilder;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -60,9 +63,11 @@ public class DXPCloudClientTestrayImporter {
 			Element testCaseFailureElement = _getTestCaseFailureElement(
 				testCaseResultElement);
 
-			if (testCaseFailureElement != null) {
-				testCaseElement.add(testCaseFailureElement);
+			if (testCaseFailureElement == null) {
+				continue;
 			}
+
+			testCaseElement.add(testCaseFailureElement);
 		}
 
 		TestrayBuild testrayBuild = _getTestrayBuild();
@@ -72,7 +77,7 @@ public class DXPCloudClientTestrayImporter {
 		File resultsTarGzFile = new File(
 			JenkinsResultsParserUtil.combine(
 				String.valueOf(JenkinsResultsParserUtil.getCurrentTimeMillis()),
-				"-", String.valueOf(testrayBuild.getID()), "-results.tar.gz"));
+				"-", String.valueOf(testrayBuild.getId()), "-results.tar.gz"));
 
 		try {
 			JenkinsResultsParserUtil.delete(testrayResultsDir);
@@ -83,7 +88,7 @@ public class DXPCloudClientTestrayImporter {
 				testrayResultsDir,
 				JenkinsResultsParserUtil.combine(
 					"TESTS-dxp-cloud-client-",
-					String.valueOf(testrayBuild.getID()), ".xml"));
+					String.valueOf(testrayBuild.getId()), ".xml"));
 
 			JenkinsResultsParserUtil.write(
 				resultsFile, Dom4JUtil.format(rootElement));
@@ -91,12 +96,12 @@ public class DXPCloudClientTestrayImporter {
 			JenkinsResultsParserUtil.tarGzip(
 				testrayResultsDir, resultsTarGzFile);
 
-			if (_testrayS3Bucket == null) {
+			if (_testrayCloudBucket == null) {
 				throw new RuntimeException(
 					"ERROR: Testray 2 requires GCP to be configured");
 			}
 
-			_testrayS3Bucket.createTestrayS3Object(
+			_testrayCloudBucket.createTestrayCloudObject(
 				"inbox/" + resultsTarGzFile.getName(), resultsTarGzFile);
 		}
 		catch (Exception exception) {
@@ -121,7 +126,7 @@ public class DXPCloudClientTestrayImporter {
 				htmlFileContent.replaceAll(
 					"(screenshots/(?:after|before|screenshot)\\d+)\\.jpg",
 					JenkinsResultsParserUtil.combine(
-						_testrayS3Bucket.getTestrayS3BaseURL(), "/",
+						_testrayCloudBucket.getTestrayCloudBaseURL(), "/",
 						_getRelativeURLPath(), "/", parentFile.getName(),
 						"/$1.jpg.gz")));
 		}
@@ -131,7 +136,7 @@ public class DXPCloudClientTestrayImporter {
 	}
 
 	private static String _getEnvVarValue(String varName) {
-		String varValue = System.getenv(varName);
+		String varValue = Environment.get(varName);
 
 		if (JenkinsResultsParserUtil.isNullOrEmpty(varValue)) {
 			varValue = System.getProperty(varName);
@@ -143,7 +148,7 @@ public class DXPCloudClientTestrayImporter {
 	private static Element _getPoshiLogAttachmentElement(
 		Element testCaseResultElement) {
 
-		if (_testrayS3Bucket == null) {
+		if (_testrayCloudBucket == null) {
 			return null;
 		}
 
@@ -232,7 +237,7 @@ public class DXPCloudClientTestrayImporter {
 
 			JenkinsResultsParserUtil.gzip(poshiLogFile, poshiLogGzipFile);
 
-			_testrayS3Bucket.createTestrayS3Object(key, poshiLogGzipFile);
+			_testrayCloudBucket.createTestrayCloudObject(key, poshiLogGzipFile);
 		}
 		catch (DocumentException | IOException exception) {
 			exception.printStackTrace();
@@ -243,12 +248,16 @@ public class DXPCloudClientTestrayImporter {
 		Element attachmentElement = Dom4JUtil.getNewElement("file");
 
 		attachmentElement.addAttribute("name", "Poshi Log");
-		attachmentElement.addAttribute(
-			"url",
+
+		URIBuilder uriBuilder = JenkinsResultsParserUtil.newURIBuilder(
 			JenkinsResultsParserUtil.combine(
-				_testrayS3Bucket.getTestrayS3BaseURL(), "/", key,
-				"?authuser=0"));
-		attachmentElement.addAttribute("value", key + "?authuser=0");
+				_testrayCloudBucket.getTestrayCloudBaseURL(), "/", key));
+
+		uriBuilder.addParameter("authuser", "0");
+
+		attachmentElement.addAttribute("url", uriBuilder.toString());
+
+		attachmentElement.addAttribute("value", key);
 
 		return attachmentElement;
 	}
@@ -284,7 +293,7 @@ public class DXPCloudClientTestrayImporter {
 
 		_relativeURLPath = JenkinsResultsParserUtil.combine(
 			"gcp/", _localDate.format(DateTimeFormatter.ofPattern("yyyy-MM")),
-			"/dxp-cloud/", String.valueOf(testrayBuild.getID()));
+			"/dxp-cloud/", String.valueOf(testrayBuild.getId()));
 
 		return _relativeURLPath;
 	}
@@ -294,7 +303,7 @@ public class DXPCloudClientTestrayImporter {
 
 		Element attachmentsElement = Dom4JUtil.getNewElement("attachments");
 
-		if (_testrayS3Bucket == null) {
+		if (_testrayCloudBucket == null) {
 			return attachmentsElement;
 		}
 
@@ -352,7 +361,7 @@ public class DXPCloudClientTestrayImporter {
 				JenkinsResultsParserUtil.getPathRelativeTo(
 					file, testDir.getParentFile()));
 
-			_testrayS3Bucket.createTestrayS3Object(key, file);
+			_testrayCloudBucket.createTestrayCloudObject(key, file);
 
 			String attachmentName;
 
@@ -392,12 +401,15 @@ public class DXPCloudClientTestrayImporter {
 
 			attachmentElement.addAttribute("name", attachmentName);
 
-			attachmentElement.addAttribute(
-				"url",
+			URIBuilder uriBuilder = JenkinsResultsParserUtil.newURIBuilder(
 				JenkinsResultsParserUtil.combine(
-					_testrayS3Bucket.getTestrayS3BaseURL(), "/", key,
-					"?authuser=0"));
-			attachmentElement.addAttribute("value", key + "?authuser=0");
+					_testrayCloudBucket.getTestrayCloudBaseURL(), "/", key));
+
+			uriBuilder.addParameter("authuser", "0");
+
+			attachmentElement.addAttribute("url", uriBuilder.toString());
+
+			attachmentElement.addAttribute("value", key);
 		}
 
 		if (_testType.equals("poshi")) {
@@ -509,36 +521,36 @@ public class DXPCloudClientTestrayImporter {
 			for (File childFile : parentDir.listFiles()) {
 				String childFileName = childFile.getName();
 
-				if (childFileName.endsWith(".xml")) {
-					try {
-						Document document = Dom4JUtil.parse(
-							JenkinsResultsParserUtil.read(childFile));
+				if (!childFileName.endsWith(".xml")) {
+					continue;
+				}
 
-						Element rootElement = document.getRootElement();
+				try {
+					Document document = Dom4JUtil.parse(
+						JenkinsResultsParserUtil.read(childFile));
 
-						for (Element testCaseElement :
-								rootElement.elements("testcase")) {
+					Element rootElement = document.getRootElement();
 
-							testCaseElements.add(testCaseElement);
-						}
+					for (Element testCaseElement :
+							rootElement.elements("testcase")) {
+
+						testCaseElements.add(testCaseElement);
 					}
-					catch (Exception exception) {
-						if (childFile.exists()) {
-							File xmlGzipFile = new File(
-								childFile.getParentFile(),
-								childFile.getName() + ".gz");
+				}
+				catch (Exception exception) {
+					if (childFile.exists()) {
+						File xmlGzipFile = new File(
+							childFile.getParentFile(),
+							childFile.getName() + ".gz");
 
-							JenkinsResultsParserUtil.gzip(
-								childFile, xmlGzipFile);
+						JenkinsResultsParserUtil.gzip(childFile, xmlGzipFile);
 
-							_testrayS3Bucket.createTestrayS3Object(
-								_getRelativeURLPath() + "/" +
-									xmlGzipFile.getName(),
-								xmlGzipFile);
-						}
-
-						throw new RuntimeException(exception);
+						_testrayCloudBucket.createTestrayCloudObject(
+							_getRelativeURLPath() + "/" + xmlGzipFile.getName(),
+							xmlGzipFile);
 					}
+
+					throw new RuntimeException(exception);
 				}
 			}
 
@@ -560,13 +572,62 @@ public class DXPCloudClientTestrayImporter {
 
 				JenkinsResultsParserUtil.gzip(xmlFile, xmlGzipFile);
 
-				_testrayS3Bucket.createTestrayS3Object(
+				_testrayCloudBucket.createTestrayCloudObject(
 					_getRelativeURLPath() + "/" + xmlGzipFile.getName(),
 					xmlGzipFile);
 			}
 
 			throw new RuntimeException(exception);
 		}
+	}
+
+	private static Element _getTestSuiteEnvironmentsElement() {
+		Element environmentsElement = Dom4JUtil.getNewElement("environments");
+
+		Element browserEnvironmentElement = environmentsElement.addElement(
+			"environment");
+
+		browserEnvironmentElement.addAttribute(
+			"option", _environmentBrowserName);
+		browserEnvironmentElement.addAttribute("type", "Browser");
+
+		Element operatingSystemEnvironmentElement =
+			environmentsElement.addElement("environment");
+
+		operatingSystemEnvironmentElement.addAttribute(
+			"option", _environmentOperatingSystemName);
+		operatingSystemEnvironmentElement.addAttribute(
+			"type", "Operating System");
+
+		return environmentsElement;
+	}
+
+	private static Element _getTestSuitePropertiesElement() {
+		TestrayBuild testrayBuild = _getTestrayBuild();
+
+		TestrayProductVersion testrayProductVersion =
+			testrayBuild.getTestrayProductVersion();
+		TestrayProject testrayProject = testrayBuild.getTestrayProject();
+		TestrayRoutine testrayRoutine = testrayBuild.getTestrayRoutine();
+
+		Properties properties = new Properties();
+
+		properties.setProperty(
+			"testray.build.date",
+			JenkinsResultsParserUtil.toDateString(
+				new Date(), "yyy-MM-dd HH:mm:ss", "America/Los_Angeles"));
+		properties.setProperty("testray.build.name", testrayBuild.getName());
+		properties.setProperty("testray.build.type", testrayRoutine.getName());
+		properties.setProperty(
+			"testray.product.version", testrayProductVersion.getName());
+		properties.setProperty(
+			"testray.project.name", testrayProject.getName());
+		properties.setProperty(
+			"testray.run.id",
+			JenkinsResultsParserUtil.join(
+				"|", _environmentBrowserName, _environmentOperatingSystemName));
+
+		return _getPropertiesElement(properties);
 	}
 
 	private static TestrayBuild _getTestrayBuild() {
@@ -618,55 +679,6 @@ public class DXPCloudClientTestrayImporter {
 			JenkinsResultsParserUtil.toDateString(
 				new Date(_START_TIME), "yyyy-MM-dd[HH:mm:ss]",
 				"America/Los_Angeles"));
-	}
-
-	private static Element _getTestSuiteEnvironmentsElement() {
-		Element environmentsElement = Dom4JUtil.getNewElement("environments");
-
-		Element browserEnvironmentElement = environmentsElement.addElement(
-			"environment");
-
-		browserEnvironmentElement.addAttribute(
-			"option", _environmentBrowserName);
-		browserEnvironmentElement.addAttribute("type", "Browser");
-
-		Element operatingSystemEnvironmentElement =
-			environmentsElement.addElement("environment");
-
-		operatingSystemEnvironmentElement.addAttribute(
-			"option", _environmentOperatingSystemName);
-		operatingSystemEnvironmentElement.addAttribute(
-			"type", "Operating System");
-
-		return environmentsElement;
-	}
-
-	private static Element _getTestSuitePropertiesElement() {
-		TestrayBuild testrayBuild = _getTestrayBuild();
-
-		TestrayProductVersion testrayProductVersion =
-			testrayBuild.getTestrayProductVersion();
-		TestrayProject testrayProject = testrayBuild.getTestrayProject();
-		TestrayRoutine testrayRoutine = testrayBuild.getTestrayRoutine();
-
-		Properties properties = new Properties();
-
-		properties.setProperty(
-			"testray.build.date",
-			JenkinsResultsParserUtil.toDateString(
-				new Date(), "yyy-MM-dd HH:mm:ss", "America/Los_Angeles"));
-		properties.setProperty("testray.build.name", testrayBuild.getName());
-		properties.setProperty("testray.build.type", testrayRoutine.getName());
-		properties.setProperty(
-			"testray.product.version", testrayProductVersion.getName());
-		properties.setProperty(
-			"testray.project.name", testrayProject.getName());
-		properties.setProperty(
-			"testray.run.id",
-			JenkinsResultsParserUtil.join(
-				"|", _environmentBrowserName, _environmentOperatingSystemName));
-
-		return _getPropertiesElement(properties);
 	}
 
 	private static void _initEnvironmentVariables() {
@@ -765,16 +777,22 @@ public class DXPCloudClientTestrayImporter {
 			_testrayRoutineName = testrayRoutineName;
 		}
 
-		String testrayS3BucketName = _getEnvVarValue("testrayS3BucketName");
+		String testrayCloudBucketName = _getEnvVarValue(
+			"testrayCloudBucketName");
 
-		if (JenkinsResultsParserUtil.isNullOrEmpty(testrayS3BucketName)) {
-			testrayS3BucketName = TestrayS3Bucket.DEFAULT_BUCKET_NAME;
+		if (JenkinsResultsParserUtil.isNullOrEmpty(testrayCloudBucketName)) {
+			testrayCloudBucketName = _getEnvVarValue("testrayS3BucketName");
 		}
 
-		if (TestrayS3Bucket.hasGoogleApplicationCredentials(
-				testrayS3BucketName)) {
+		if (JenkinsResultsParserUtil.isNullOrEmpty(testrayCloudBucketName)) {
+			testrayCloudBucketName = TestrayCloudBucket.DEFAULT_BUCKET_NAME;
+		}
 
-			_testrayS3Bucket = TestrayS3Bucket.getInstance(testrayS3BucketName);
+		if (TestrayCloudBucket.hasGoogleApplicationCredentials(
+				testrayCloudBucketName)) {
+
+			_testrayCloudBucket = TestrayCloudBucket.getInstance(
+				testrayCloudBucketName);
 		}
 
 		String testrayServerURL = _getEnvVarValue("testrayServerURL");
@@ -889,20 +907,20 @@ public class DXPCloudClientTestrayImporter {
 		"test\\[(?<testName>[^\\]]{1,150})[^\\]]*\\]");
 	private static File _projectDir = new File(".");
 	private static String _relativeURLPath;
+	private static String _testType;
 	private static TestrayBuild _testrayBuild;
 	private static String _testrayBuildName =
 		"DXP Cloud Client Build - $(start.time)";
 	private static String _testrayBuildSHA;
 	private static Integer _testrayCasePriority = 1;
+	private static TestrayCloudBucket _testrayCloudBucket;
 	private static String _testrayComponentName = "DXP Cloud Client Component";
 	private static String _testrayOAuth2ClientId;
 	private static String _testrayOAuth2ClientSecret;
 	private static String _testrayProductVersion = "1.x";
 	private static String _testrayProjectName = "DXP Cloud Client";
 	private static String _testrayRoutineName = "DXP Cloud Client Routine";
-	private static TestrayS3Bucket _testrayS3Bucket;
 	private static String _testrayServerURL = "https://testray.liferay.com";
 	private static String _testrayTeamName = "DXP Cloud Client Team";
-	private static String _testType;
 
 }

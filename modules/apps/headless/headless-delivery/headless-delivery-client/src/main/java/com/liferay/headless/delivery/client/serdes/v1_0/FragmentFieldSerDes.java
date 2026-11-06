@@ -8,13 +8,14 @@ package com.liferay.headless.delivery.client.serdes.v1_0;
 import com.liferay.headless.delivery.client.dto.v1_0.FragmentField;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -67,14 +68,7 @@ public class FragmentFieldSerDes {
 
 			sb.append("\"value\": ");
 
-			if (fragmentField.getValue() instanceof String) {
-				sb.append("\"");
-				sb.append((String)fragmentField.getValue());
-				sb.append("\"");
-			}
-			else {
-				sb.append(fragmentField.getValue());
-			}
+			sb.append(_toJSON(fragmentField.getValue()));
 		}
 
 		sb.append("}");
@@ -198,6 +192,16 @@ public class FragmentFieldSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -230,3 +234,4 @@ public class FragmentFieldSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1498016949

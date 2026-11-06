@@ -6,6 +6,7 @@
 import ClayButton from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import ClayManagementToolbar from '@clayui/management-toolbar';
+import {ClayTooltipProvider} from '@clayui/tooltip';
 import classNames from 'classnames';
 import {navigate, sub} from 'frontend-js-web';
 import React, {useState} from 'react';
@@ -27,10 +28,13 @@ interface ManagementToolbarProps {
 	hasUpdatePermission: boolean;
 	helpMessage: string;
 	inheritanceClassName?: string;
+	inheritanceIconSymbol?: string;
 	inheritanceLabel?: string;
+	inheritanceTitle?: string;
 	isApproved?: boolean;
 	isRootDescendantNode?: boolean;
 	label: string;
+	loading?: boolean;
 	objectDefinitionExternalReferenceCode: string;
 	objectDefinitionExternalReferenceCodeSaveURL: string;
 	onExternalReferenceCodeChange?: (value: string) => void;
@@ -52,10 +56,13 @@ export function ManagementToolbar({
 	hasUpdatePermission,
 	helpMessage,
 	inheritanceClassName,
+	inheritanceIconSymbol,
 	inheritanceLabel,
+	inheritanceTitle,
 	isApproved,
 	isRootDescendantNode,
 	label,
+	loading,
 	objectDefinitionExternalReferenceCode:
 		initialObjectDefinitionExternalReferenceCode,
 	objectDefinitionExternalReferenceCodeSaveURL,
@@ -72,18 +79,6 @@ export function ManagementToolbar({
 	] = useState(initialObjectDefinitionExternalReferenceCode);
 	const [visibleModal, setVisibleModal] = useState<boolean>(false);
 
-	const [disabled, setDisabled] = useState(!hasPublishPermission);
-
-	const onPublish = () => {
-		onSubmit(false);
-
-		setDisabled(true);
-
-		setTimeout(() => {
-			setDisabled(false);
-		}, 1000);
-	};
-
 	return (
 		<>
 			<ClayManagementToolbar
@@ -91,19 +86,32 @@ export function ManagementToolbar({
 					`lfr__management-toolbar ${className}`,
 					enableBoxShadow && 'lfr__management-toolbar--box-shadow'
 				)}
+				fluidSize="xxxl"
 			>
 				<ClayManagementToolbar.ItemList>
 					<div className="border-right ml-sm-2 mr-3 pr-3">
 						<h3 className="mb-0 text-truncate">{label}</h3>
 
-						{Liferay.FeatureFlags['LPS-187142'] &&
-							inheritanceLabel && (
+						{inheritanceLabel && (
+							<ClayTooltipProvider>
 								<strong
 									className={`${inheritanceClassName} label`}
+									title={inheritanceTitle}
 								>
-									{inheritanceLabel}
+									<span className="align-items-center d-inline-flex">
+										{inheritanceLabel}
+
+										{inheritanceIconSymbol && (
+											<ClayIcon
+												aria-hidden="true"
+												className="c-ml-1"
+												symbol={inheritanceIconSymbol}
+											/>
+										)}
+									</span>
 								</strong>
-							)}
+							</ClayTooltipProvider>
+						)}
 
 						{badgeLabel && (
 							<strong className={`${badgeClassName} label`}>
@@ -170,7 +178,7 @@ export function ManagementToolbar({
 							</ClayButton>
 
 							<ClayButton
-								disabled={!hasUpdatePermission}
+								disabled={!hasUpdatePermission || loading}
 								displayType={
 									isApproved ||
 									isApproved === undefined ||
@@ -185,20 +193,16 @@ export function ManagementToolbar({
 								{Liferay.Language.get('save')}
 							</ClayButton>
 
-							{isApproved !== undefined &&
-								!isApproved &&
-								!isRootDescendantNode && (
-									<ClayButton
-										disabled={
-											!hasUpdatePermission || disabled
-										}
-										id={`${portletNamespace}publish`}
-										name="publish"
-										onClick={() => onPublish()}
-									>
-										{Liferay.Language.get('publish')}
-									</ClayButton>
-								)}
+							{isApproved !== undefined && !isApproved && (
+								<ClayButton
+									disabled={!hasPublishPermission || loading}
+									id={`${portletNamespace}publish`}
+									name="publish"
+									onClick={() => onSubmit(false)}
+								>
+									{Liferay.Language.get('publish')}
+								</ClayButton>
+							)}
 						</ClayButton.Group>
 					</ClayManagementToolbar.ItemList>
 				)}

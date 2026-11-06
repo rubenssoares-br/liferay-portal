@@ -7,9 +7,9 @@ package com.liferay.portal.workflow.metrics.rest.client.problem;
 
 import com.liferay.portal.workflow.metrics.rest.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Rafael Praxedes
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-233037363

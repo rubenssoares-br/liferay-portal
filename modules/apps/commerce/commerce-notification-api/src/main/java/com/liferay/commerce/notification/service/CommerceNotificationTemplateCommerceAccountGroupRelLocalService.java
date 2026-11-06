@@ -38,8 +38,10 @@ import org.osgi.annotation.versioning.ProviderType;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationTemplateCommerceAccountGroupRelLocalServiceUtil
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 @ProviderType
 @Transactional(
 	isolation = Isolation.PORTAL,
@@ -92,10 +94,6 @@ public interface CommerceNotificationTemplateCommerceAccountGroupRelLocalService
 	 */
 	public PersistedModel createPersistedModel(Serializable primaryKeyObj)
 		throws PortalException;
-
-	public void
-		deleteCNTemplateCommerceAccountGroupRelsBycommerceAccountGroupId(
-			long commerceAccountGroupId);
 
 	public void
 		deleteCNTemplateCommerceAccountGroupRelsByCommerceNotificationTemplateId(
@@ -306,3 +304,4 @@ public interface CommerceNotificationTemplateCommerceAccountGroupRelLocalService
 				commerceNotificationTemplateCommerceAccountGroupRel);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:267971395

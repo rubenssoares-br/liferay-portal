@@ -47,6 +47,27 @@ public class AssetTagServiceUtil {
 		getService().deleteTags(tagIds);
 	}
 
+	public static AssetTag fetchAssetTagByExternalReferenceCode(
+		String externalReferenceCode, long groupId) {
+
+		return getService().fetchAssetTagByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
+	public static AssetTag fetchTag(long groupId, String name)
+		throws PortalException {
+
+		return getService().fetchTag(groupId, name);
+	}
+
+	public static AssetTag getAssetTagByExternalReferenceCode(
+			String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		return getService().getAssetTagByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
 	public static List<AssetTag> getGroupsTags(long[] groupIds) {
 		return getService().getGroupsTags(groupIds);
 	}
@@ -84,6 +105,12 @@ public class AssetTagServiceUtil {
 
 	public static AssetTag getTag(long tagId) throws PortalException {
 		return getService().getTag(tagId);
+	}
+
+	public static AssetTag getTag(long groupId, String name)
+		throws PortalException {
+
+		return getService().getTag(groupId, name);
 	}
 
 	public static List<AssetTag> getTags(
@@ -203,3 +230,4 @@ public class AssetTagServiceUtil {
 	private static volatile AssetTagService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-841028467

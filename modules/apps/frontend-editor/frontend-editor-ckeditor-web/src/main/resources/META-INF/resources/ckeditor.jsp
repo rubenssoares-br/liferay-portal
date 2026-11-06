@@ -49,6 +49,12 @@ boolean required = GetterUtil.getBoolean((String)request.getAttribute(CKEditorCo
 boolean skipEditorLoading = GetterUtil.getBoolean((String)request.getAttribute(CKEditorConstants.ATTRIBUTE_NAMESPACE + ":skipEditorLoading"));
 String toolbarSet = (String)request.getAttribute(CKEditorConstants.ATTRIBUTE_NAMESPACE + ":toolbarSet");
 
+String ariaLabel = StringPool.BLANK;
+
+if (Validator.isNotNull(placeholder)) {
+	ariaLabel = LanguageUtil.get(request, placeholder);
+}
+
 if (!inlineEdit) {
 	name = namespace + name;
 }
@@ -110,7 +116,7 @@ if (inlineEdit && Validator.isNotNull(inlineEditSaveURL)) {
 		</label>
 	</c:if>
 
-	<textarea id="<%= textareaName %>" name="<%= textareaName %>" style="display: none;"></textarea>
+	<textarea class="hide" id="<%= textareaName %>" name="<%= textareaName %>"></textarea>
 </liferay-util:buffer>
 
 <div class="<%= HtmlUtil.escapeAttribute(cssClass) %>" id="<%= HtmlUtil.escapeAttribute(name) %>Container">
@@ -177,7 +183,7 @@ name = HtmlUtil.escapeJS(name);
 	var preventImageDropHandler = windowNode.on('drop', (event) => {
 		var element = event.target.getDOMNode();
 		var validDropTarget =
-			element.isContentEditable || !!element.getAttribute('droppable');
+			element.isContentEditable || !!element.getAttribute('data-droppable');
 
 		var droppedFiles = event._event.dataTransfer.files || [];
 
@@ -341,6 +347,19 @@ name = HtmlUtil.escapeJS(name);
 	};
 
 	window['<%= name %>']._setStyles = function () {
+		<c:if test="<%= Validator.isNotNull(ariaLabel) %>">
+			var ckEditorInstance = CKEDITOR.instances['<%= name %>'];
+
+			var editable = ckEditorInstance && ckEditorInstance.editable();
+
+			if (editable) {
+				editable.setAttribute(
+					'aria-label',
+					'<%= HtmlUtil.escapeJS(ariaLabel) %>'
+				);
+			}
+		</c:if>
+
 		var ckEditor = A.one('#cke_<%= name %>');
 
 		if (ckEditor) {
@@ -441,9 +460,11 @@ name = HtmlUtil.escapeJS(name);
 		if (!editorNode) {
 			editorContainer.setHTML('');
 
-			editorNode = A.Node.create('<%= HtmlUtil.escapeJS(editor) %>');
+			editorContainer.appendChild(
+				A.Node.create('<%= HtmlUtil.escapeJS(editor) %>')
+			);
 
-			editorContainer.appendChild(editorNode);
+			editorNode = A.one('#<%= textareaName %>');
 		}
 
 		if (editorNode) {

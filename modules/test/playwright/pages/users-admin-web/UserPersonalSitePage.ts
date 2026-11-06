@@ -9,10 +9,14 @@ import {waitForAlert} from '../../utils/waitForAlert';
 
 export class UserPersonalSitePage {
 	readonly addWidgetButton: Locator;
+	readonly beYourselfAgainMenuItem: Locator;
 	readonly languageSelectorButton: Locator;
 	readonly languageSelectorMenuItem: Locator;
 	readonly languageSelectorOptionsMenu: Locator;
 	readonly myDashboardMenuItem: Locator;
+	readonly myProfileMenuItem: Locator;
+	readonly mySitesLink: Locator;
+	readonly navItem: (pageName: string) => Locator;
 	readonly page: Page;
 	readonly removeMenuItem: Locator;
 	readonly searchBar: Locator;
@@ -20,6 +24,9 @@ export class UserPersonalSitePage {
 
 	constructor(page: Page) {
 		this.addWidgetButton = page.getByTestId('add');
+		this.beYourselfAgainMenuItem = page.getByRole('menuitem', {
+			name: 'Be yourself again.',
+		});
 		this.languageSelectorButton = page.getByTitle('Select a Language');
 		this.languageSelectorMenuItem = page
 			.getByTestId('addPanelTabItem')
@@ -28,6 +35,12 @@ export class UserPersonalSitePage {
 		this.myDashboardMenuItem = page.getByRole('menuitem', {
 			name: 'My Dashboard',
 		});
+		this.myProfileMenuItem = page.getByRole('menuitem', {
+			name: 'MY Profile',
+		});
+		this.mySitesLink = page.getByRole('link', {name: 'My Sites'});
+		this.navItem = (pageName: string) =>
+			page.locator('.nav-item').getByText(pageName, {exact: true});
 		this.page = page;
 		this.searchBar = page
 			.getByRole('tabpanel')

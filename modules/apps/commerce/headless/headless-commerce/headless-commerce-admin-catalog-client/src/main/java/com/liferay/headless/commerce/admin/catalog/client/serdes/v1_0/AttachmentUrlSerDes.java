@@ -6,19 +6,19 @@
 package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.AttachmentUrl;
-import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.CustomField;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
+
+import jakarta.annotation.Generated;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -77,7 +77,7 @@ public class AttachmentUrlSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < attachmentUrl.getCustomFields().length; i++) {
-				sb.append(String.valueOf(attachmentUrl.getCustomFields()[i]));
+				sb.append(attachmentUrl.getCustomFields()[i]);
 
 				if ((i + 1) < attachmentUrl.getCustomFields().length) {
 					sb.append(", ");
@@ -450,12 +450,17 @@ public class AttachmentUrlSerDes {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.commerce.admin.catalog.client.custom.
+						field.CustomField[] customFieldsArray = new
+						com.liferay.headless.commerce.admin.catalog.client.
+							custom.field.CustomField
+							[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.commerce.admin.catalog.client.
+								custom.field.CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					attachmentUrl.setCustomFields(customFieldsArray);
@@ -578,6 +583,16 @@ public class AttachmentUrlSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -610,3 +625,4 @@ public class AttachmentUrlSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:985642028

@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductGroupProduct;
 import com.liferay.headless.commerce.admin.catalog.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Page;
@@ -28,23 +31,29 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -83,8 +88,10 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -97,17 +104,27 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		_productGroupProductResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ProductGroupProductResource.Builder builder =
-			ProductGroupProductResource.builder();
-
-		productGroupProductResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		productGroupProductResource = ProductGroupProductResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -170,9 +187,13 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		ProductGroupProduct productGroupProduct = randomProductGroupProduct();
 
+		productGroupProduct.setCatalogCurrencyCode(regex);
+		productGroupProduct.setCatalogCurrencyExternalReferenceCode(regex);
+		productGroupProduct.setCatalogExternalReferenceCode(regex);
 		productGroupProduct.setProductExternalReferenceCode(regex);
 		productGroupProduct.setProductGroupExternalReferenceCode(regex);
 		productGroupProduct.setProductName(regex);
+		productGroupProduct.setProductType(regex);
 		productGroupProduct.setSku(regex);
 
 		String json = ProductGroupProductSerDes.toJSON(productGroupProduct);
@@ -182,10 +203,18 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		productGroupProduct = ProductGroupProductSerDes.toDTO(json);
 
 		Assert.assertEquals(
+			regex, productGroupProduct.getCatalogCurrencyCode());
+		Assert.assertEquals(
+			regex,
+			productGroupProduct.getCatalogCurrencyExternalReferenceCode());
+		Assert.assertEquals(
+			regex, productGroupProduct.getCatalogExternalReferenceCode());
+		Assert.assertEquals(
 			regex, productGroupProduct.getProductExternalReferenceCode());
 		Assert.assertEquals(
 			regex, productGroupProduct.getProductGroupExternalReferenceCode());
 		Assert.assertEquals(regex, productGroupProduct.getProductName());
+		Assert.assertEquals(regex, productGroupProduct.getProductType());
 		Assert.assertEquals(regex, productGroupProduct.getSku());
 	}
 
@@ -214,6 +243,7 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		ProductGroupProduct productGroupProduct1 =
 			testGraphQLDeleteProductGroupProduct_addProductGroupProduct();
 
@@ -231,6 +261,7 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		// Using the namespace headlessCommerceAdminCatalog_v1_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		ProductGroupProduct productGroupProduct2 =
 			testGraphQLDeleteProductGroupProduct_addProductGroupProduct();
 
@@ -256,6 +287,44 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		throws Exception {
 
 		return testGraphQLProductGroupProduct_addProductGroupProduct();
+	}
+
+	@Test
+	public void testDeleteProductGroupProductBatch() throws Exception {
+		ProductGroupProduct productGroupProduct1 =
+			testDeleteProductGroupProductBatch_addProductGroupProduct();
+
+		testDeleteProductGroupProductBatch_deleteProductGroupProduct(
+			202, null, productGroupProduct1.getId());
+	}
+
+	protected ProductGroupProduct
+			testDeleteProductGroupProductBatch_addProductGroupProduct()
+		throws Exception {
+
+		return testDeleteProductGroupProduct_addProductGroupProduct();
+	}
+
+	protected void testDeleteProductGroupProductBatch_deleteProductGroupProduct(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			productGroupProductResource.
+				deleteProductGroupProductBatchHttpResponse(
+					null,
+					JSONUtil.putAll(
+						JSONUtil.put(
+							"externalReferenceCode", () -> externalReferenceCode
+						).put(
+							"id", () -> id
+						)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
 	}
 
 	@Test
@@ -308,7 +377,8 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		page =
 			productGroupProductResource.
 				getProductGroupByExternalReferenceCodeProductGroupProductsPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -345,13 +415,13 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		String externalReferenceCode =
 			testGetProductGroupByExternalReferenceCodeProductGroupProductsPage_getExternalReferenceCode();
 
-		Page<ProductGroupProduct> productGroupProductPage =
+		Page<ProductGroupProduct> productGroupProductsPage =
 			productGroupProductResource.
 				getProductGroupByExternalReferenceCodeProductGroupProductsPage(
 					externalReferenceCode, null);
 
 		int totalCount = GetterUtil.getInteger(
-			productGroupProductPage.getTotalCount());
+			productGroupProductsPage.getTotalCount());
 
 		ProductGroupProduct productGroupProduct1 =
 			testGetProductGroupByExternalReferenceCodeProductGroupProductsPage_addProductGroupProduct(
@@ -481,30 +551,6 @@ public abstract class BaseProductGroupProductResourceTestCase {
 	}
 
 	@Test
-	public void testPostProductGroupByExternalReferenceCodeProductGroupProduct()
-		throws Exception {
-
-		ProductGroupProduct randomProductGroupProduct =
-			randomProductGroupProduct();
-
-		ProductGroupProduct postProductGroupProduct =
-			testPostProductGroupByExternalReferenceCodeProductGroupProduct_addProductGroupProduct(
-				randomProductGroupProduct);
-
-		assertEquals(randomProductGroupProduct, postProductGroupProduct);
-		assertValid(postProductGroupProduct);
-	}
-
-	protected ProductGroupProduct
-			testPostProductGroupByExternalReferenceCodeProductGroupProduct_addProductGroupProduct(
-				ProductGroupProduct productGroupProduct)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetProductGroupIdProductGroupProductsPage()
 		throws Exception {
 
@@ -551,7 +597,7 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		page =
 			productGroupProductResource.
 				getProductGroupIdProductGroupProductsPage(
-					id, Pagination.of(1, 10));
+					id, Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -587,12 +633,12 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		Long id = testGetProductGroupIdProductGroupProductsPage_getId();
 
-		Page<ProductGroupProduct> productGroupProductPage =
+		Page<ProductGroupProduct> productGroupProductsPage =
 			productGroupProductResource.
 				getProductGroupIdProductGroupProductsPage(id, null);
 
 		int totalCount = GetterUtil.getInteger(
-			productGroupProductPage.getTotalCount());
+			productGroupProductsPage.getTotalCount());
 
 		ProductGroupProduct productGroupProduct1 =
 			testGetProductGroupIdProductGroupProductsPage_addProductGroupProduct(
@@ -717,6 +763,30 @@ public abstract class BaseProductGroupProductResourceTestCase {
 	}
 
 	@Test
+	public void testPostProductGroupByExternalReferenceCodeProductGroupProduct()
+		throws Exception {
+
+		ProductGroupProduct randomProductGroupProduct =
+			randomProductGroupProduct();
+
+		ProductGroupProduct postProductGroupProduct =
+			testPostProductGroupByExternalReferenceCodeProductGroupProduct_addProductGroupProduct(
+				randomProductGroupProduct);
+
+		assertEquals(randomProductGroupProduct, postProductGroupProduct);
+		assertValid(postProductGroupProduct);
+	}
+
+	protected ProductGroupProduct
+			testPostProductGroupByExternalReferenceCodeProductGroupProduct_addProductGroupProduct(
+				ProductGroupProduct productGroupProduct)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostProductGroupIdProductGroupProduct() throws Exception {
 		ProductGroupProduct randomProductGroupProduct =
 			randomProductGroupProduct();
@@ -736,6 +806,58 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		ProductGroupProduct productGroupProduct1 =
+			testBatchEngineDeleteImportTask_addProductGroupProduct();
+
+		testBatchEngineDeleteImportTask_deleteProductGroupProduct(
+			200, null, productGroupProduct1.getId());
+	}
+
+	protected ProductGroupProduct
+			testBatchEngineDeleteImportTask_addProductGroupProduct()
+		throws Exception {
+
+		return testDeleteProductGroupProduct_addProductGroupProduct();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteProductGroupProduct(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductGroupProduct",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	protected ProductGroupProduct
@@ -839,6 +961,42 @@ public abstract class BaseProductGroupProductResourceTestCase {
 				getAdditionalAssertFieldNames()) {
 
 			if (Objects.equals(
+					"catalogCurrencyCode", additionalAssertFieldName)) {
+
+				if (productGroupProduct.getCatalogCurrencyCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (productGroupProduct.
+						getCatalogCurrencyExternalReferenceCode() == null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (productGroupProduct.getCatalogExternalReferenceCode() ==
+						null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
 					"productExternalReferenceCode",
 					additionalAssertFieldName)) {
 
@@ -882,6 +1040,14 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 			if (Objects.equals("productName", additionalAssertFieldName)) {
 				if (productGroupProduct.getProductName() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("productType", additionalAssertFieldName)) {
+				if (productGroupProduct.getProductType() == null) {
 					valid = false;
 				}
 
@@ -955,6 +1121,8 @@ public abstract class BaseProductGroupProductResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.commerce.admin.catalog.dto.v1_0.
@@ -1016,6 +1184,50 @@ public abstract class BaseProductGroupProductResourceTestCase {
 
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
+
+			if (Objects.equals(
+					"catalogCurrencyCode", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						productGroupProduct1.getCatalogCurrencyCode(),
+						productGroupProduct2.getCatalogCurrencyCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						productGroupProduct1.
+							getCatalogCurrencyExternalReferenceCode(),
+						productGroupProduct2.
+							getCatalogCurrencyExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						productGroupProduct1.getCatalogExternalReferenceCode(),
+						productGroupProduct2.
+							getCatalogExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
 
 			if (Objects.equals("id", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
@@ -1085,6 +1297,17 @@ public abstract class BaseProductGroupProductResourceTestCase {
 				if (!Objects.deepEquals(
 						productGroupProduct1.getProductName(),
 						productGroupProduct2.getProductName())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("productType", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						productGroupProduct1.getProductType(),
+						productGroupProduct2.getProductType())) {
 
 					return false;
 				}
@@ -1210,6 +1433,146 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		sb.append(" ");
 		sb.append(operator);
 		sb.append(" ");
+
+		if (entityFieldName.equals("catalogCurrencyCode")) {
+			Object object = productGroupProduct.getCatalogCurrencyCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("catalogCurrencyExternalReferenceCode")) {
+			Object object =
+				productGroupProduct.getCatalogCurrencyExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("catalogExternalReferenceCode")) {
+			Object object =
+				productGroupProduct.getCatalogExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
 
 		if (entityFieldName.equals("id")) {
 			throw new IllegalArgumentException(
@@ -1366,6 +1729,52 @@ public abstract class BaseProductGroupProductResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("productType")) {
+			Object object = productGroupProduct.getProductType();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("sku")) {
 			Object object = productGroupProduct.getSku();
 
@@ -1425,7 +1834,9 @@ public abstract class BaseProductGroupProductResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1457,6 +1868,12 @@ public abstract class BaseProductGroupProductResourceTestCase {
 	protected ProductGroupProduct randomProductGroupProduct() throws Exception {
 		return new ProductGroupProduct() {
 			{
+				catalogCurrencyCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				catalogCurrencyExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				catalogExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				id = RandomTestUtil.randomLong();
 				productExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
@@ -1465,6 +1882,8 @@ public abstract class BaseProductGroupProductResourceTestCase {
 				productGroupId = RandomTestUtil.randomLong();
 				productId = RandomTestUtil.randomLong();
 				productName = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				productType = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				sku = StringUtil.toLowerCase(RandomTestUtil.randomString());
 			}
@@ -1486,7 +1905,30 @@ public abstract class BaseProductGroupProductResourceTestCase {
 		return randomProductGroupProduct();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected ProductGroupProductResource productGroupProductResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1687,10 +2129,13 @@ public abstract class BaseProductGroupProductResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseProductGroupProductResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.catalog.resource.v1_0.
 		ProductGroupProductResource _productGroupProductResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:147102285

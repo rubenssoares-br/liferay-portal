@@ -52,19 +52,20 @@ import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ServiceScope;
 
 /**
  * @author Marcos Martins
  */
 @Component(
 	property = "batch.engine.task.item.delegate.name=user-analytics-dxp-entities",
-	service = BatchEngineTaskItemDelegate.class
+	scope = ServiceScope.PROTOTYPE, service = BatchEngineTaskItemDelegate.class
 )
 public class UserAnalyticsDXPEntityBatchEngineTaskItemDelegate
 	extends BaseAnalyticsDXPEntityBatchEngineTaskItemDelegate<DXPEntity> {
 
 	@Override
-	public Page<DXPEntity> read(
+	protected Page<DXPEntity> doRead(
 			Filter filter, Pagination pagination, Sort[] sorts,
 			Map<String, Serializable> parameters, String search)
 		throws Exception {
@@ -79,7 +80,7 @@ public class UserAnalyticsDXPEntityBatchEngineTaskItemDelegate
 		}
 
 		if (pagination.getPage() == 1) {
-			_lastSeenUserIdThreadLocal.set(0L);
+			_lastSeenUserId.set(0L);
 		}
 
 		List<User> users = _userLocalService.dslQuery(
@@ -89,7 +90,7 @@ public class UserAnalyticsDXPEntityBatchEngineTaskItemDelegate
 		Long[] userIds = ListUtil.toArray(users, User.USER_ID_ACCESSOR);
 
 		if (userIds.length != 0) {
-			_lastSeenUserIdThreadLocal.set(userIds[userIds.length - 1]);
+			_lastSeenUserId.set(userIds[userIds.length - 1]);
 		}
 
 		Set<Serializable> contactIds = new HashSet<>();
@@ -274,7 +275,7 @@ public class UserAnalyticsDXPEntityBatchEngineTaskItemDelegate
 				).and(
 					Predicate.withParentheses(predicate)
 				).and(
-					userTableAlias.userId.gt(_lastSeenUserIdThreadLocal.get())
+					userTableAlias.userId.gt(_lastSeenUserId.get())
 				))
 		).orderBy(
 			orderByStep -> orderByStep.orderBy(
@@ -419,10 +420,10 @@ public class UserAnalyticsDXPEntityBatchEngineTaskItemDelegate
 		return idsMap;
 	}
 
-	private static final ThreadLocal<Long> _lastSeenUserIdThreadLocal =
+	private static final ThreadLocal<Long> _lastSeenUserId =
 		new CentralizedThreadLocal<>(
 			UserAnalyticsDXPEntityBatchEngineTaskItemDelegate.class.getName() +
-				"._lastSeenUserIdThreadLocal");
+				"._lastSeenUserId");
 
 	@Reference
 	private AnalyticsConfigurationRegistry _analyticsConfigurationRegistry;

@@ -18,6 +18,10 @@ import com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductVirtualSettin
 import com.liferay.headless.commerce.admin.catalog.internal.util.FileEntryUtil;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
 import com.liferay.journal.model.JournalArticle;
+import com.liferay.journal.service.JournalArticleService;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.service.GroupService;
 import com.liferay.portal.kernel.service.RepositoryLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -42,7 +46,8 @@ public class ProductVirtualSettingsUtil {
 			ProductVirtualSettings productVirtualSettings,
 			CPDefinitionVirtualSettingService cpDefinitionVirtualSettingService,
 			CPDVirtualSettingFileEntryService cpdVirtualSettingFileEntryService,
-			DLAppService dlAppService,
+			DLAppService dlAppService, GroupService groupService,
+			JournalArticleService journalArticleService,
 			RepositoryLocalService repositoryLocalService,
 			UniqueFileNameProvider uniqueFileNameProvider,
 			ServiceContext serviceContext)
@@ -56,15 +61,17 @@ public class ProductVirtualSettingsUtil {
 			return _addProductVirtualSettings(
 				cpDefinition, productVirtualSettings,
 				cpDefinitionVirtualSettingService,
-				cpdVirtualSettingFileEntryService, dlAppService,
-				repositoryLocalService, uniqueFileNameProvider, serviceContext);
+				cpdVirtualSettingFileEntryService, dlAppService, groupService,
+				journalArticleService, repositoryLocalService,
+				uniqueFileNameProvider, serviceContext);
 		}
 
 		return _updateProductVirtualSettings(
 			cpDefinition, cpDefinitionVirtualSetting, productVirtualSettings,
 			cpDefinitionVirtualSettingService,
-			cpdVirtualSettingFileEntryService, dlAppService,
-			repositoryLocalService, uniqueFileNameProvider, serviceContext);
+			cpdVirtualSettingFileEntryService, dlAppService, groupService,
+			journalArticleService, repositoryLocalService,
+			uniqueFileNameProvider, serviceContext);
 	}
 
 	private static CPDefinitionVirtualSetting _addProductVirtualSettings(
@@ -72,7 +79,8 @@ public class ProductVirtualSettingsUtil {
 			ProductVirtualSettings productVirtualSettings,
 			CPDefinitionVirtualSettingService cpDefinitionVirtualSettingService,
 			CPDVirtualSettingFileEntryService cpdVirtualSettingFileEntryService,
-			DLAppService dlAppService,
+			DLAppService dlAppService, GroupService groupService,
+			JournalArticleService journalArticleService,
 			RepositoryLocalService repositoryLocalService,
 			UniqueFileNameProvider uniqueFileNameProvider,
 			ServiceContext serviceContext)
@@ -112,8 +120,9 @@ public class ProductVirtualSettingsUtil {
 		if (termsOfUseRequired) {
 			termsOfUseContentMap = LanguageUtils.getLocalizedMap(
 				productVirtualSettings.getTermsOfUseContent());
-			termsOfUseJournalArticleId = GetterUtil.getLong(
-				productVirtualSettings.getTermsOfUseJournalArticleId());
+			termsOfUseJournalArticleId = _getTermsOfUseJournalArticleId(
+				cpDefinition.getCompanyId(), cpDefinition.getGroupId(),
+				groupService, journalArticleService, productVirtualSettings);
 		}
 
 		CPDefinitionVirtualSetting cpDefinitionVirtualSetting =
@@ -135,6 +144,20 @@ public class ProductVirtualSettingsUtil {
 				null) {
 
 			return cpDefinitionVirtualSetting;
+		}
+
+		if (LazyReferencingThreadLocal.isEnabled()) {
+			for (CPDVirtualSettingFileEntry cpdVirtualSettingFileEntry :
+					cpDefinitionVirtualSetting.
+						getCPDVirtualSettingFileEntries()) {
+
+				cpdVirtualSettingFileEntryService.
+					deleteCPDVirtualSettingFileEntry(
+						CPDefinition.class.getName(),
+						cpDefinitionVirtualSetting.getClassPK(),
+						cpdVirtualSettingFileEntry.
+							getCPDefinitionVirtualSettingFileEntryId());
+			}
 		}
 
 		for (ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry :
@@ -168,13 +191,53 @@ public class ProductVirtualSettingsUtil {
 		return CommerceOrderConstants.ORDER_STATUS_COMPLETED;
 	}
 
+	private static long _getTermsOfUseJournalArticleId(
+			long companyId, long groupId, GroupService groupService,
+			JournalArticleService journalArticleService,
+			ProductVirtualSettings productVirtualSettings)
+		throws Exception {
+
+		String externalReferenceCode =
+			productVirtualSettings.
+				getTermsOfUseJournalArticleExternalReferenceCode();
+
+		if (Validator.isNull(externalReferenceCode)) {
+			return GetterUtil.getLong(
+				productVirtualSettings.getTermsOfUseJournalArticleId());
+		}
+
+		String groupExternalReferenceCode =
+			productVirtualSettings.
+				getTermsOfUseJournalArticleGroupExternalReferenceCode();
+
+		long journalArticleGroupId = groupId;
+
+		if (Validator.isNotNull(groupExternalReferenceCode)) {
+			Group group = groupService.getGroupByExternalReferenceCode(
+				groupExternalReferenceCode, companyId);
+
+			journalArticleGroupId = group.getGroupId();
+		}
+
+		JournalArticle journalArticle =
+			journalArticleService.fetchLatestArticleByExternalReferenceCode(
+				journalArticleGroupId, externalReferenceCode);
+
+		if (journalArticle == null) {
+			return 0;
+		}
+
+		return journalArticle.getResourcePrimKey();
+	}
+
 	private static CPDefinitionVirtualSetting _updateProductVirtualSettings(
 			CPDefinition cpDefinition,
 			CPDefinitionVirtualSetting cpDefinitionVirtualSetting,
 			ProductVirtualSettings productVirtualSettings,
 			CPDefinitionVirtualSettingService cpDefinitionVirtualSettingService,
 			CPDVirtualSettingFileEntryService cpdVirtualSettingFileEntryService,
-			DLAppService dlAppService,
+			DLAppService dlAppService, GroupService groupService,
+			JournalArticleService journalArticleService,
 			RepositoryLocalService repositoryLocalService,
 			UniqueFileNameProvider uniqueFileNameProvider,
 			ServiceContext serviceContext)
@@ -258,8 +321,10 @@ public class ProductVirtualSettingsUtil {
 		if (termsOfUseRequired) {
 			termsOfUseContentMap = LanguageUtils.getLocalizedMap(
 				productVirtualSettings.getTermsOfUseContent());
-			termsOfUseJournalArticleId = GetterUtil.getLong(
-				productVirtualSettings.getTermsOfUseJournalArticleId());
+			termsOfUseJournalArticleId = _getTermsOfUseJournalArticleId(
+				cpDefinitionVirtualSetting.getCompanyId(),
+				cpDefinitionVirtualSetting.getGroupId(), groupService,
+				journalArticleService, productVirtualSettings);
 
 			if ((termsOfUseContentMap == null) &&
 				(termsOfUseJournalArticleId == 0)) {
@@ -334,13 +399,13 @@ public class ProductVirtualSettingsUtil {
 	}
 
 	private static String _validateURL(String value) throws Exception {
-		if (Validator.isNotNull(value)) {
-			URL url = new URL(value);
-
-			return url.toString();
+		if (Validator.isNull(value)) {
+			return null;
 		}
 
-		return null;
+		URL url = new URL(value);
+
+		return url.toString();
 	}
 
 }

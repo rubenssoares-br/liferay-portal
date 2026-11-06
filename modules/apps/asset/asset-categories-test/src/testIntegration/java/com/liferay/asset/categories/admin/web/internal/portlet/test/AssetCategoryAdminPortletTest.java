@@ -42,12 +42,12 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.Portlet;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.Portlet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -104,7 +104,8 @@ public class AssetCategoryAdminPortletTest {
 				HashMapBuilder.put(
 					LocaleUtil.US, RandomTestUtil.randomString()
 				).build(),
-				null, assetVocabulary.getVocabularyId(), null, serviceContext);
+				null, assetVocabulary.getVocabularyId(), false, null,
+				serviceContext);
 
 		assetCategories.add(childAssetCategory1);
 
@@ -115,7 +116,8 @@ public class AssetCategoryAdminPortletTest {
 				HashMapBuilder.put(
 					LocaleUtil.US, RandomTestUtil.randomString()
 				).build(),
-				null, assetVocabulary.getVocabularyId(), null, serviceContext);
+				null, assetVocabulary.getVocabularyId(), false, null,
+				serviceContext);
 
 		assetCategories.add(childAssetCategory2);
 
@@ -160,8 +162,8 @@ public class AssetCategoryAdminPortletTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, 0, 0,
-				RandomTestUtil.randomString(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, null,
+				0, null, RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0,
 				0, 0, WorkflowConstants.STATUS_APPROVED, new ServiceContext());
 

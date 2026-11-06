@@ -1,6 +1,6 @@
 Bundle-Name: Liferay Portal Vulcan Implementation
 Bundle-SymbolicName: com.liferay.portal.vulcan.impl
-Bundle-Version: 5.0.129
+Bundle-Version: 5.0.162
 Import-Package:\
 	!com.google.errorprone.annotations.*,\
 	!com.google.gson.*,\
@@ -16,6 +16,10 @@ Import-Package:\
 	\
 	!javax.money.*,\
 	\
+	!javax.servlet,\
+	\
+	!javax.xml.bind,\
+	\
 	!lombok,\
 	\
 	!org.checkerframework.checker.nullness.qual.*,\
@@ -25,4 +29,4 @@ Import-Package:\
 	!org.jsoup.*,\
 	\
 	*
--fixupmessages: "^Classes found in the wrong directory: \\\\{META-INF/versions/9/";is:=warning
+-fixupmessages "Classes found in the wrong directory"; restrict:=error; is:=warning

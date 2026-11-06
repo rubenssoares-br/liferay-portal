@@ -116,6 +116,14 @@ public class CommercePricingClassServiceUtil {
 			cpDefinitionId, title);
 	}
 
+	public static CommercePricingClass getOrAddEmptyCommercePricingClass(
+			String externalReferenceCode)
+		throws PortalException {
+
+		return getService().getOrAddEmptyCommercePricingClass(
+			externalReferenceCode);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -172,3 +180,4 @@ public class CommercePricingClassServiceUtil {
 			CommercePricingClassService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:495652909

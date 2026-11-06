@@ -5,21 +5,25 @@
 
 package com.liferay.object.web.internal.info.item.handler;
 
+import com.liferay.asset.kernel.exception.AssetCategoryException;
 import com.liferay.info.exception.InfoFormValidationException;
 import com.liferay.info.exception.NoSuchFormVariationException;
 import com.liferay.info.field.InfoField;
 import com.liferay.info.form.InfoForm;
 import com.liferay.info.item.provider.InfoItemFormProvider;
 import com.liferay.object.exception.ObjectEntryCountException;
+import com.liferay.object.exception.ObjectEntryExpirationDateException;
 import com.liferay.object.exception.ObjectEntryValuesException;
 import com.liferay.object.exception.ObjectValidationRuleEngineException;
-import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectFieldSetting;
+import com.liferay.object.rest.manager.exception.ObjectEntryManagerHttpException;
 import com.liferay.object.service.ObjectFieldLocalServiceUtil;
 import com.liferay.object.service.ObjectFieldSettingLocalServiceUtil;
 import com.liferay.object.validation.rule.ObjectValidationRuleResult;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.DuplicateExternalReferenceCodeException;
+import com.liferay.portal.kernel.exception.GroupFriendlyURLException;
 import com.liferay.portal.kernel.exception.InfoFormException;
 import com.liferay.portal.kernel.exception.ModelListenerException;
 import com.liferay.portal.kernel.log.Log;
@@ -36,14 +40,69 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 	public static void handleInfoFormException(
 			Exception exception, long groupId,
 			InfoItemFormProvider<?> infoItemFormProvider,
-			ObjectDefinition objectDefinition)
+			long objectDefinitionId)
 		throws InfoFormException {
+
+		if (exception instanceof AssetCategoryException) {
+			AssetCategoryException assetCategoryException =
+				(AssetCategoryException)exception;
+
+			if (assetCategoryException.getType() ==
+					AssetCategoryException.AT_LEAST_ONE_CATEGORY) {
+
+				throw new InfoFormValidationException.RequiredAssetCategory(
+					assetCategoryException,
+					assetCategoryException.getVocabulary());
+			}
+			else if (assetCategoryException.getType() ==
+						AssetCategoryException.TOO_MANY_CATEGORIES) {
+
+				throw new InfoFormValidationException.AssetTooManyCategories(
+					assetCategoryException,
+					assetCategoryException.getVocabulary());
+			}
+		}
+
+		if (exception instanceof DuplicateExternalReferenceCodeException) {
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
+				"externalReferenceCode");
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			throw new InfoFormValidationException.
+				DuplicateExternalReferenceCode(infoFieldUniqueId);
+		}
 
 		if (exception instanceof ModelListenerException) {
 			ModelListenerException modelListenerException =
 				(ModelListenerException)exception;
 
 			Throwable throwable = modelListenerException.getCause();
+
+			if (throwable instanceof GroupFriendlyURLException) {
+				GroupFriendlyURLException groupFriendlyURLException =
+					(GroupFriendlyURLException)throwable;
+
+				int type = groupFriendlyURLException.getType();
+
+				if ((type == GroupFriendlyURLException.DUPLICATE) ||
+					(type == GroupFriendlyURLException.POSSIBLE_DUPLICATE)) {
+
+					String infoFieldUniqueId = _getInfoFieldUniqueId(
+						groupId, infoItemFormProvider, objectDefinitionId,
+						"friendlyURL");
+
+					if (infoFieldUniqueId == null) {
+						throw new InfoFormException();
+					}
+
+					throw new InfoFormValidationException.DuplicateFriendlyURL(
+						infoFieldUniqueId);
+				}
+			}
 
 			if (throwable instanceof ObjectValidationRuleEngineException) {
 				ObjectValidationRuleEngineException
@@ -68,8 +127,11 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 
 					infoFormValidationExceptionRuleValidation.
 						addCustomValidation(
+							objectValidationRuleResult.
+								getObjectEntryExternalReferenceCode(),
 							_getInfoFieldUniqueId(
-								groupId, infoItemFormProvider, objectDefinition,
+								groupId, infoItemFormProvider,
+								objectDefinitionId,
 								objectValidationRuleResult.
 									getObjectFieldName()),
 							objectValidationRuleResult.getErrorMessage());
@@ -90,6 +152,48 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 				objectEntryCountException.getMessageKey());
 		}
 
+		if (exception instanceof ObjectEntryExpirationDateException) {
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
+				"expirationDate");
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			ObjectEntryExpirationDateException
+				objectEntryExpirationDateException =
+					(ObjectEntryExpirationDateException)exception;
+
+			throw new InfoFormValidationException.InvalidExpirationDate(
+				infoFieldUniqueId,
+				objectEntryExpirationDateException.getMessageKey());
+		}
+
+		if (exception instanceof ObjectEntryManagerHttpException) {
+			throw new InfoFormException(exception.getMessage());
+		}
+
+		if (exception instanceof
+				ObjectEntryValuesException.BlockedEmailAddressDomain) {
+
+			ObjectEntryValuesException.BlockedEmailAddressDomain
+				objectEntryValuesException =
+					(ObjectEntryValuesException.BlockedEmailAddressDomain)
+						exception;
+
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
+				objectEntryValuesException.getObjectFieldName());
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			throw new InfoFormValidationException.BlockedEmailAddressDomain(
+				infoFieldUniqueId);
+		}
+
 		if (exception instanceof
 				ObjectEntryValuesException.ExceedsIntegerSize) {
 
@@ -98,7 +202,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ExceedsIntegerSize)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -117,7 +221,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ExceedsLongMaxSize)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -136,7 +240,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ExceedsLongMinSize)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -153,7 +257,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ExceedsLongSize)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -172,7 +276,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ExceedsMaxFileSize)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -192,7 +296,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ExceedsTextMaxLength)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -204,6 +308,25 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 		}
 
 		if (exception instanceof
+				ObjectEntryValuesException.InvalidEmailAddress) {
+
+			ObjectEntryValuesException.InvalidEmailAddress
+				objectEntryValuesException =
+					(ObjectEntryValuesException.InvalidEmailAddress)exception;
+
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
+				objectEntryValuesException.getObjectFieldName());
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			throw new InfoFormValidationException.InvalidEmailAddress(
+				infoFieldUniqueId);
+		}
+
+		if (exception instanceof
 				ObjectEntryValuesException.InvalidFileExtension) {
 
 			ObjectEntryValuesException.InvalidFileExtension
@@ -211,7 +334,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.InvalidFileExtension)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -221,8 +344,43 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 			throw new InfoFormValidationException.InvalidFileExtension(
 				infoFieldUniqueId,
 				_getAcceptedFileExtensions(
-					objectDefinition.getObjectDefinitionId(),
+					objectDefinitionId,
 					objectEntryValuesException.getObjectFieldName()));
+		}
+
+		if (exception instanceof
+				ObjectEntryValuesException.InvalidPhoneNumber) {
+
+			ObjectEntryValuesException.InvalidPhoneNumber
+				objectEntryValuesException =
+					(ObjectEntryValuesException.InvalidPhoneNumber)exception;
+
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
+				objectEntryValuesException.getObjectFieldName());
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			throw new InfoFormValidationException.InvalidPhoneNumber(
+				infoFieldUniqueId);
+		}
+
+		if (exception instanceof ObjectEntryValuesException.InvalidValue) {
+			ObjectEntryValuesException.InvalidValue objectEntryValuesException =
+				(ObjectEntryValuesException.InvalidValue)exception;
+
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
+				objectEntryValuesException.getObjectFieldName());
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			throw new InfoFormValidationException.InvalidInfoFieldValue(
+				infoFieldUniqueId);
 		}
 
 		if (exception instanceof ObjectEntryValuesException.ListTypeEntry) {
@@ -231,7 +389,7 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 					(ObjectEntryValuesException.ListTypeEntry)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -247,7 +405,26 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 				(ObjectEntryValuesException.Required)exception;
 
 			String infoFieldUniqueId = _getInfoFieldUniqueId(
-				groupId, infoItemFormProvider, objectDefinition,
+				groupId, infoItemFormProvider, objectDefinitionId,
+				objectEntryValuesException.getObjectFieldName());
+
+			if (infoFieldUniqueId == null) {
+				throw new InfoFormException();
+			}
+
+			throw new InfoFormValidationException.RequiredInfoField(
+				infoFieldUniqueId);
+		}
+
+		if (exception instanceof
+				ObjectEntryValuesException.RequiredLanguageId) {
+
+			ObjectEntryValuesException.RequiredLanguageId
+				objectEntryValuesException =
+					(ObjectEntryValuesException.RequiredLanguageId)exception;
+
+			String infoFieldUniqueId = _getInfoFieldUniqueId(
+				groupId, infoItemFormProvider, objectDefinitionId,
 				objectEntryValuesException.getObjectFieldName());
 
 			if (infoFieldUniqueId == null) {
@@ -303,12 +480,11 @@ public class ObjectEntryInfoItemExceptionRequestHandler {
 
 	private static String _getInfoFieldUniqueId(
 		long groupId, InfoItemFormProvider<?> infoItemFormProvider,
-		ObjectDefinition objectDefinition, String objectFieldName) {
+		long objectDefinitionId, String objectFieldName) {
 
 		try {
 			InfoForm infoForm = infoItemFormProvider.getInfoForm(
-				String.valueOf(objectDefinition.getObjectDefinitionId()),
-				groupId);
+				String.valueOf(objectDefinitionId), groupId);
 
 			InfoField<?> infoField = infoForm.getInfoField(objectFieldName);
 

@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class TypeOptions implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(TypeOptions.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getBoost() {
 		if (_boostSupplier != null) {
 			boost = _boostSupplier.get();
@@ -92,7 +92,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _boostSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFormat() {
 		if (_formatSupplier != null) {
 			format = _formatSupplier.get();
@@ -133,7 +133,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _formatSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getMax() {
 		if (_maxSupplier != null) {
@@ -173,7 +173,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _maxSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getMin() {
 		if (_minSupplier != null) {
@@ -213,7 +213,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _minSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getNullable() {
 		if (_nullableSupplier != null) {
 			nullable = _nullableSupplier.get();
@@ -254,7 +254,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _nullableSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Option[] getOptions() {
 		if (_optionsSupplier != null) {
@@ -296,7 +296,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Option[]> _optionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getRequired() {
 		if (_requiredSupplier != null) {
 			required = _requiredSupplier.get();
@@ -337,7 +337,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _requiredSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getStep() {
 		if (_stepSupplier != null) {
@@ -377,7 +377,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _stepSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getUnit() {
 		if (_unitSupplier != null) {
 			unit = _unitSupplier.get();
@@ -416,7 +416,7 @@ public class TypeOptions implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _unitSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getUnitSuffix() {
 		if (_unitSuffixSupplier != null) {
 			unitSuffix = _unitSuffixSupplier.get();
@@ -521,17 +521,7 @@ public class TypeOptions implements Serializable {
 
 			sb.append("\"max\": ");
 
-			if (max instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)max));
-			}
-			else if (max instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)max));
-				sb.append("\"");
-			}
-			else {
-				sb.append(max);
-			}
+			sb.append(_toJSON(max));
 		}
 
 		Object min = getMin();
@@ -543,17 +533,7 @@ public class TypeOptions implements Serializable {
 
 			sb.append("\"min\": ");
 
-			if (min instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)min));
-			}
-			else if (min instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)min));
-				sb.append("\"");
-			}
-			else {
-				sb.append(min);
-			}
+			sb.append(_toJSON(min));
 		}
 
 		Boolean nullable = getNullable();
@@ -611,17 +591,7 @@ public class TypeOptions implements Serializable {
 
 			sb.append("\"step\": ");
 
-			if (step instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)step));
-			}
-			else if (step instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)step));
-				sb.append("\"");
-			}
-			else {
-				sb.append(step);
-			}
+			sb.append(_toJSON(step));
 		}
 
 		String unit = getUnit();
@@ -661,8 +631,8 @@ public class TypeOptions implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.TypeOptions",
 		name = "x-class-name"
 	)
@@ -749,6 +719,27 @@ public class TypeOptions implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -757,3 +748,4 @@ public class TypeOptions implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1730669026

@@ -14,20 +14,72 @@ import ClayLink from '@clayui/link';
 import ClayNavigationBar from '@clayui/navigation-bar';
 import ClayTable from '@clayui/table';
 import classNames from 'classnames';
-import {FeatureIndicator} from 'frontend-js-components-web';
+import {
+	openConfirmModal,
+	openSimpleInputModal,
+	openToast,
+} from 'frontend-js-components-web';
 import {
 	createPortletURL,
 	fetch,
 	navigate as navigateUtil,
-	openConfirmModal,
-	openSimpleInputModal,
-	openToast,
 } from 'frontend-js-web';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 
 import ExperienceDropdown from '../components/ExperienceDropdown';
+import ShadowDomContainer from '../components/ShadowDomContainer';
 import {WorkflowStatusLabel} from '../components/WorkflowStatusLabel';
 import ChangeTrackingWorkflowView from './ChangeTrackingWorkflowView';
+
+const PREVIEW_PAGE_WIDTH = 1280;
+const PREVIEW_PANEL_PADDING = 48;
+
+const DIFF_HTML_STYLES = `
+.taglib-diff-html div.diff-removed-image {
+	background: light-dark(#fdc6c6, #470606);
+	height: 300px;
+	margin: 2px;
+	opacity: 0.55;
+	position: absolute;
+	width: 200px;
+}
+
+.taglib-diff-html div.diff-added-image {
+	background: light-dark(#cfc, #13391b);
+	height: 300px;
+	margin: 2px;
+	opacity: 0.55;
+	position: absolute;
+	width: 200px;
+}
+
+.taglib-diff-html span.diff-html-added {
+	background-color: light-dark(#cfc, #13391b);
+	font-size: 1em;
+}
+
+.taglib-diff-html span.diff-html-added img {
+	border: 2px solid light-dark(#cfc, #13391b);
+}
+
+.taglib-diff-html span.diff-html-changed {
+	border-bottom: 1px dotted light-dark(#009, #b8d8ff);
+}
+
+.taglib-diff-html span.diff-html-changed img {
+	border: 2px dotted light-dark(#009, #b8d8ff);
+}
+
+.taglib-diff-html span.diff-html-removed {
+	background-color: light-dark(#fdc6c6, #470606);
+	font-size: 1em;
+	text-decoration: line-through;
+}
+
+.taglib-diff-html span.diff-html-removed img {
+	border: 2px solid light-dark(#fdc6c6, #470606);
+}
+`;
 
 const LocalizationDropdown = ({
 	currentLocale,
@@ -137,10 +189,13 @@ export default function ChangeTrackingRenderView({
 	description,
 	discardURL,
 	handleNavigation,
+	handleOpenSidePanel,
 	initialDataURL,
+	isOpenSidePanel,
 	moveChangesURL,
 	namespace,
 	parentEntries,
+	showChangesSidePanel,
 	showDropdown,
 	showHeader = true,
 	showWorkflow,
@@ -174,6 +229,28 @@ export default function ChangeTrackingRenderView({
 		renderData: null,
 		view: VIEW_UNIFIED,
 	});
+	const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+	useEffect(() => {
+		let timeoutId;
+
+		const handleResize = () => {
+			clearTimeout(timeoutId);
+
+			timeoutId = setTimeout(
+				() => setWindowWidth(window.innerWidth),
+				150
+			);
+		};
+
+		window.addEventListener('resize', handleResize);
+
+		return () => {
+			clearTimeout(timeoutId);
+
+			window.removeEventListener('resize', handleResize);
+		};
+	}, []);
 
 	useEffect(() => {
 		setLoading(true);
@@ -345,6 +422,20 @@ export default function ChangeTrackingRenderView({
 		return Liferay.Language.get('unified-view');
 	};
 
+	const previewZoom = useMemo(() => {
+		if (state.view === VIEW_SPLIT) {
+			return Math.min(
+				1,
+				(windowWidth / 2 - PREVIEW_PANEL_PADDING) / PREVIEW_PAGE_WIDTH
+			);
+		}
+
+		return Math.min(
+			1,
+			(windowWidth - PREVIEW_PANEL_PADDING * 2) / PREVIEW_PAGE_WIDTH
+		);
+	}, [state.view, windowWidth]);
+
 	const renderPreviewLeft = () => {
 		if (
 			state.contentType === CONTENT_TYPE_RENDER &&
@@ -392,10 +483,10 @@ export default function ChangeTrackingRenderView({
 		) {
 			if (state.renderData.leftPreview) {
 				return (
-					<div
-						dangerouslySetInnerHTML={{
-							__html: state.renderData.leftPreview,
-						}}
+					<ShadowDomContainer
+						html={state.renderData.leftPreview}
+						previewStyles={state.renderData.leftPreviewStyles}
+						zoom={previewZoom}
 					/>
 				);
 			}
@@ -415,12 +506,14 @@ export default function ChangeTrackingRenderView({
 		) {
 			if (state.renderData.leftLocalizedPreview[currentLocale.label]) {
 				return (
-					<div
-						dangerouslySetInnerHTML={{
-							__html: state.renderData.leftLocalizedPreview[
+					<ShadowDomContainer
+						html={
+							state.renderData.leftLocalizedPreview[
 								currentLocale.label
-							],
-						}}
+							]
+						}
+						previewStyles={state.renderData.leftPreviewStyles}
+						zoom={previewZoom}
 					/>
 				);
 			}
@@ -511,10 +604,10 @@ export default function ChangeTrackingRenderView({
 		) {
 			if (state.renderData.rightPreview) {
 				return (
-					<div
-						dangerouslySetInnerHTML={{
-							__html: state.renderData.rightPreview,
-						}}
+					<ShadowDomContainer
+						html={state.renderData.rightPreview}
+						previewStyles={state.renderData.rightPreviewStyles}
+						zoom={previewZoom}
 					/>
 				);
 			}
@@ -534,12 +627,14 @@ export default function ChangeTrackingRenderView({
 		) {
 			if (state.renderData.rightLocalizedPreview[currentLocale.label]) {
 				return (
-					<div
-						dangerouslySetInnerHTML={{
-							__html: state.renderData.rightLocalizedPreview[
+					<ShadowDomContainer
+						html={
+							state.renderData.rightLocalizedPreview[
 								currentLocale.label
-							],
-						}}
+							]
+						}
+						previewStyles={state.renderData.rightPreviewStyles}
+						zoom={previewZoom}
 					/>
 				);
 			}
@@ -617,13 +712,13 @@ export default function ChangeTrackingRenderView({
 		) {
 			if (state.renderData.unifiedPreview) {
 				return (
-					<div className="taglib-diff-html">
-						<div
-							dangerouslySetInnerHTML={{
-								__html: state.renderData.unifiedPreview,
-							}}
-						/>
-					</div>
+					<ShadowDomContainer
+						className="taglib-diff-html"
+						html={state.renderData.unifiedPreview}
+						previewStyles={state.renderData.rightPreviewStyles}
+						styles={DIFF_HTML_STYLES}
+						zoom={previewZoom}
+					/>
 				);
 			}
 
@@ -642,16 +737,17 @@ export default function ChangeTrackingRenderView({
 		) {
 			if (state.renderData.unifiedLocalizedPreview[currentLocale.label]) {
 				return (
-					<div className="taglib-diff-html">
-						<div
-							dangerouslySetInnerHTML={{
-								__html: state.renderData
-									.unifiedLocalizedPreview[
-									currentLocale.label
-								],
-							}}
-						/>
-					</div>
+					<ShadowDomContainer
+						className="taglib-diff-html"
+						html={
+							state.renderData.unifiedLocalizedPreview[
+								currentLocale.label
+							]
+						}
+						previewStyles={state.renderData.rightPreviewStyles}
+						styles={DIFF_HTML_STYLES}
+						zoom={previewZoom}
+					/>
 				);
 			}
 
@@ -763,9 +859,20 @@ export default function ChangeTrackingRenderView({
 	};
 
 	const navigate = (editURL, checkoutURL, confirmationMessage) => {
-		const editPortletURL = createPortletURL(editURL, {
-			redirect: window.location.pathname + window.location.search,
-		});
+		const url = new URL(editURL);
+
+		let editPortletURL;
+
+		if (url.searchParams.has('p_l_back_url')) {
+			url.searchParams.set('p_l_back_url', window.location.href);
+
+			editPortletURL = url.toString();
+		}
+		else {
+			editPortletURL = createPortletURL(editURL, {
+				redirect: window.location.pathname + window.location.search,
+			});
+		}
 
 		if (!checkoutURL) {
 			navigateUtil(editPortletURL);
@@ -819,16 +926,8 @@ export default function ChangeTrackingRenderView({
 
 		if (moveChangesURL !== null) {
 			dropdownItems.push({
-				label: (
-					<>
-						{Liferay.Language.get('move-changes')}
-
-						<div className="float-right">
-							<FeatureIndicator type="beta" />
-						</div>
-					</>
-				),
-				onClick: () => navigate(moveChangesURL),
+				label: Liferay.Language.get('move-changes'),
+				onClick: () => navigateUtil(moveChangesURL),
 				symbolLeft: 'move-folder',
 			});
 		}
@@ -882,7 +981,7 @@ export default function ChangeTrackingRenderView({
 							mainFieldName: 'comment',
 							mainFieldPlaceholder:
 								Liferay.Language.get('comment'),
-							namespace,
+							namespace: workflowAction.namespace,
 							onFormSuccess: () =>
 								setTimeout(
 									() => setShowWorkflowSuccessMessage(true),
@@ -927,22 +1026,42 @@ export default function ChangeTrackingRenderView({
 		}
 
 		return (
-			<div className="autofit-col">
-				<ClayDropDownWithItems
-					alignmentPosition={Align.BottomLeft}
-					items={dropdownItems}
-					spritemap={spritemap}
-					trigger={
+			<>
+				{showChangesSidePanel ? (
+					<div className="autofit-col">
 						<ClayButtonWithIcon
-							aria-label="more-actions"
-							displayType="unstyled"
+							aria-label={Liferay.Language.get(
+								'view-content-changes'
+							)}
+							aria-pressed={isOpenSidePanel ? true : false}
+							borderless
+							className={isOpenSidePanel ? 'active' : ''}
+							displayType="secondary"
+							onClick={handleOpenSidePanel}
 							small
 							spritemap={spritemap}
-							symbol="ellipsis-v"
+							symbol="columns"
+							title={Liferay.Language.get('view-content-changes')}
 						/>
-					}
-				/>
-			</div>
+					</div>
+				) : null}
+				<div className="autofit-col">
+					<ClayDropDownWithItems
+						alignmentPosition={Align.BottomLeft}
+						items={dropdownItems}
+						spritemap={spritemap}
+						trigger={
+							<ClayButtonWithIcon
+								aria-label="more-actions"
+								displayType="unstyled"
+								small
+								spritemap={spritemap}
+								symbol="ellipsis-v"
+							/>
+						}
+					/>
+				</div>
+			</>
 		);
 	};
 
@@ -970,7 +1089,8 @@ export default function ChangeTrackingRenderView({
 				title = state.renderData.rightTitle;
 
 				if (state.renderData.changeType === CHANGE_TYPE_ADDED) {
-					title += ' (' + Liferay.Language.get('new') + ')';
+					title +=
+						' (' + Liferay.Language.get('new[adjective]') + ')';
 				}
 			}
 
@@ -1086,17 +1206,13 @@ export default function ChangeTrackingRenderView({
 						</td>
 					</tr>
 					<tr className="publications-render-view-divider table-divider">
-						{
-							<td className="publications-render-view-divider">
-								{Liferay.Language.get('production')}
-							</td>
-						}
+						<td className="publications-render-view-divider">
+							{Liferay.Language.get('production')}
+						</td>
 
-						{
-							<td className="publications-render-view-divider">
-								{state.renderData.rightTitle}
-							</td>
-						}
+						<td className="publications-render-view-divider">
+							{state.renderData.rightTitle}
+						</td>
 					</tr>
 				</>
 			);
@@ -1152,7 +1268,13 @@ export default function ChangeTrackingRenderView({
 					description={Liferay.Language.get(
 						'there-are-no-changes-to-display-in-this-view'
 					)}
-					imgSrc={`${themeDisplay.getPathThemeImages()}/states/search_state.svg`}
+					image={
+						<ClayIcon
+							className="c-empty-state-icon c-empty-state-icon-search-state"
+							illustration
+							symbol="search-state"
+						/>
+					}
 					title={Liferay.Language.get('no-results-found')}
 				/>
 			);
@@ -1237,7 +1359,10 @@ export default function ChangeTrackingRenderView({
 					state.contentType === CONTENT_TYPE_PARENTS ||
 					state.contentType === CONTENT_TYPE_CHILDREN
 				}
-				striped={state.contentType !== CONTENT_TYPE_WORKFLOW}
+				striped={
+					state.contentType !== CONTENT_TYPE_WORKFLOW &&
+					state.view !== VIEW_SPLIT
+				}
 			>
 				<ClayTable.Head>{renderToolbar()}</ClayTable.Head>
 
@@ -1545,14 +1670,18 @@ export default function ChangeTrackingRenderView({
 								!!state.renderData.segmentsExperiences
 									.length && (
 									<ExperienceDropdown
-										activeSegmentsExperience={
-											state.renderData.segmentsExperiences.filter(
-												(experience) =>
-													experience.active
-											)[0]
-										}
 										segmentsExperiences={
 											state.renderData.segmentsExperiences
+										}
+										selectedSegmentsExperience={
+											(selectedSegmentsExperienceId &&
+												state.renderData.segmentsExperiences.find(
+													(experience) =>
+														experience.id ===
+														selectedSegmentsExperienceId
+												)) ||
+											state.renderData
+												.segmentsExperiences[0]
 										}
 										updatePreviewRender={
 											updatePreviewRender

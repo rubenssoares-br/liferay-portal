@@ -115,10 +115,11 @@ public interface UserGroupRole extends PersistedModel, UserGroupRoleModel {
 	public User getUser()
 		throws com.liferay.portal.kernel.exception.PortalException;
 
-	public int hashCode();
-
 	public boolean hasOrganizationRole();
 
 	public boolean hasSiteRole();
 
+	public int hashCode();
+
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1313566012

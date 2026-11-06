@@ -19,7 +19,6 @@ import com.liferay.portal.kernel.model.BaseModel;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
-import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 
 import java.io.Serializable;
@@ -29,19 +28,20 @@ import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ServiceScope;
 
 /**
  * @author Marcos Martins
  */
 @Component(
 	property = "batch.engine.task.item.delegate.name=role-analytics-dxp-entities",
-	service = BatchEngineTaskItemDelegate.class
+	scope = ServiceScope.PROTOTYPE, service = BatchEngineTaskItemDelegate.class
 )
 public class RoleAnalyticsDXPEntityBatchEngineTaskItemDelegate
 	extends BaseAnalyticsDXPEntityBatchEngineTaskItemDelegate<DXPEntity> {
 
 	@Override
-	public Page<DXPEntity> read(
+	protected Page<DXPEntity> doRead(
 			Filter filter, Pagination pagination, Sort[] sorts,
 			Map<String, Serializable> parameters, String search)
 		throws Exception {
@@ -60,17 +60,17 @@ public class RoleAnalyticsDXPEntityBatchEngineTaskItemDelegate
 
 		return Page.of(
 			DTOConverterUtil.toDTOs(
-				_roleLocalService.dynamicQuery(
+				roleLocalService.dynamicQuery(
 					dynamicQuery, pagination.getStartPosition(),
 					pagination.getEndPosition()),
 				_dxpEntityDTOConverter),
-			pagination, _roleLocalService.dynamicQueryCount(dynamicQuery));
+			pagination, roleLocalService.dynamicQueryCount(dynamicQuery));
 	}
 
 	private DynamicQuery _buildDynamicQuery(
 		long companyId, Map<String, Serializable> parameters) {
 
-		DynamicQuery dynamicQuery = _roleLocalService.dynamicQuery();
+		DynamicQuery dynamicQuery = roleLocalService.dynamicQuery();
 
 		Property nameProperty = PropertyFactoryUtil.forName("name");
 
@@ -89,8 +89,5 @@ public class RoleAnalyticsDXPEntityBatchEngineTaskItemDelegate
 
 	@Reference(target = DTOConverterConstants.DXP_ENTITY_DTO_CONVERTER)
 	private DTOConverter<BaseModel<?>, DXPEntity> _dxpEntityDTOConverter;
-
-	@Reference
-	private RoleLocalService _roleLocalService;
 
 }

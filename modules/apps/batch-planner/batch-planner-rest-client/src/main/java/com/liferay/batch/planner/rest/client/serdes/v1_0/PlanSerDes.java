@@ -10,13 +10,14 @@ import com.liferay.batch.planner.rest.client.dto.v1_0.Plan;
 import com.liferay.batch.planner.rest.client.dto.v1_0.Policy;
 import com.liferay.batch.planner.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Matija Petanjek
@@ -592,6 +593,16 @@ public class PlanSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -624,3 +635,4 @@ public class PlanSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1833876319

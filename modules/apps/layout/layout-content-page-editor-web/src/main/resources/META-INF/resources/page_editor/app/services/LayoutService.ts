@@ -68,10 +68,10 @@ export default {
 	},
 
 	changeMasterLayout({
-		masterLayoutPlid,
+		masterLayoutPageTemplateEntryERC,
 		onNetworkStatus,
 	}: {
-		masterLayoutPlid: string;
+		masterLayoutPageTemplateEntryERC: string;
 		onNetworkStatus: OnNetworkStatus;
 	}) {
 		return draftServiceFetch<
@@ -82,21 +82,28 @@ export default {
 			| undefined
 		>(
 			config.changeMasterLayoutURL,
-			{body: {masterLayoutPlid}},
+			{body: {masterLayoutPageTemplateEntryERC}},
 			onNetworkStatus
 		);
 	},
 
 	changeStyleBookEntry({
 		onNetworkStatus,
-		styleBookEntryId,
+		styleBookEntryERC,
+		styleBookEntryScopeERC,
 	}: {
 		onNetworkStatus: OnNetworkStatus;
-		styleBookEntryId: string;
+		styleBookEntryERC: string;
+		styleBookEntryScopeERC?: string;
 	}) {
 		return draftServiceFetch<{tokenValues: StyleBookTokenValueMap}>(
 			config.changeStyleBookEntryURL,
-			{body: {styleBookEntryId}},
+			{
+				body: {
+					styleBookEntryERC,
+					styleBookEntryScopeERC: styleBookEntryScopeERC || '',
+				},
+			},
 			onNetworkStatus
 		);
 	},
@@ -235,6 +242,7 @@ export default {
 		onNetworkStatus,
 		removedItemIds,
 		segmentsExperienceId,
+		stepperFragmentEntryLinkId,
 	}: {
 		addedItemIds: string[];
 		itemConfig: FormLayoutDataItem['config'];
@@ -242,9 +250,11 @@ export default {
 		movedItemIds: {itemId: string; parentId: string}[];
 		onNetworkStatus: OnNetworkStatus;
 		removedItemIds: string[];
-		segmentsExperienceId: string | null;
+		segmentsExperienceId: string;
+		stepperFragmentEntryLinkId?: FragmentEntryLink['fragmentEntryLinkId'];
 	}) {
 		return draftServiceFetch<{
+			fragmentEntryLinks: FragmentEntryLinkMap;
 			layoutData: LayoutData;
 		}>(
 			config.undoUpdateFormConfigURL,
@@ -256,6 +266,7 @@ export default {
 					movedItemIds: JSON.stringify(movedItemIds),
 					removedItemIds,
 					segmentsExperienceId,
+					stepperFragmentEntryLinkId,
 				},
 			},
 			onNetworkStatus
@@ -287,12 +298,14 @@ export default {
 	},
 
 	updateCollectionDisplayConfig({
+		editableValuesChanges,
 		itemConfig,
 		itemId,
 		languageId,
 		onNetworkStatus,
 		segmentsExperienceId,
 	}: {
+		editableValuesChanges: Record<string, unknown>;
 		itemConfig: CollectionItemLayoutDataItem['config'];
 		itemId: string;
 		languageId: Liferay.Language.Locale;
@@ -307,6 +320,9 @@ export default {
 			config.updateCollectionDisplayConfigURL,
 			{
 				body: {
+					editableValuesChanges: JSON.stringify(
+						editableValuesChanges
+					),
 					itemConfig: JSON.stringify(itemConfig),
 					itemId,
 					languageId,

@@ -22,17 +22,19 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
 import com.liferay.segments.asah.rest.client.dto.v1_0.Experiment;
 import com.liferay.segments.asah.rest.client.dto.v1_0.Status;
@@ -41,9 +43,13 @@ import com.liferay.segments.asah.rest.client.pagination.Page;
 import com.liferay.segments.asah.rest.client.resource.v1_0.StatusResource;
 import com.liferay.segments.asah.rest.client.serdes.v1_0.StatusSerDes;
 
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,10 +61,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -82,8 +84,10 @@ public abstract class BaseStatusResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -96,16 +100,16 @@ public abstract class BaseStatusResourceTestCase {
 
 		_statusResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		StatusResource.Builder builder = StatusResource.builder();
-
-		statusResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		statusResource = StatusResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -178,6 +182,11 @@ public abstract class BaseStatusResourceTestCase {
 
 		Assert.assertEquals(regex, status.getStatus());
 		Assert.assertEquals(regex, status.getWinnerVariantId());
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Assert.assertTrue(true);
 	}
 
 	@Test
@@ -790,7 +799,9 @@ public abstract class BaseStatusResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1055,10 +1066,13 @@ public abstract class BaseStatusResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseStatusResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.segments.asah.rest.resource.v1_0.StatusResource
 		_statusResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2065580320

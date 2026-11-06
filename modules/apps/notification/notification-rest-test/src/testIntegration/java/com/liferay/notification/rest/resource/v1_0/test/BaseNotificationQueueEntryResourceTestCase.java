@@ -13,29 +13,44 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.notification.rest.client.dto.v1_0.NotificationQueueEntry;
 import com.liferay.notification.rest.client.http.HttpInvoker;
 import com.liferay.notification.rest.client.pagination.Page;
 import com.liferay.notification.rest.client.pagination.Pagination;
 import com.liferay.notification.rest.client.resource.v1_0.NotificationQueueEntryResource;
 import com.liferay.notification.rest.client.serdes.v1_0.NotificationQueueEntrySerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -43,12 +58,27 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,13 +87,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -72,6 +100,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Gabriel Albuquerque
@@ -82,13 +113,17 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -101,17 +136,27 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 
 		_notificationQueueEntryResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		NotificationQueueEntryResource.Builder builder =
-			NotificationQueueEntryResource.builder();
-
-		notificationQueueEntryResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		notificationQueueEntryResource = NotificationQueueEntryResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -205,6 +250,170 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 	}
 
 	@Test
+	public void testDeleteNotificationQueueEntry() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		NotificationQueueEntry notificationQueueEntry =
+			testDeleteNotificationQueueEntry_addNotificationQueueEntry();
+
+		assertHttpResponseStatusCode(
+			204,
+			notificationQueueEntryResource.
+				deleteNotificationQueueEntryHttpResponse(
+					notificationQueueEntry.getId()));
+
+		assertHttpResponseStatusCode(
+			404,
+			notificationQueueEntryResource.
+				getNotificationQueueEntryHttpResponse(
+					notificationQueueEntry.getId()));
+		assertHttpResponseStatusCode(
+			404,
+			notificationQueueEntryResource.
+				getNotificationQueueEntryHttpResponse(0L));
+	}
+
+	protected NotificationQueueEntry
+			testDeleteNotificationQueueEntry_addNotificationQueueEntry()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteNotificationQueueEntry() throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		NotificationQueueEntry notificationQueueEntry1 =
+			testGraphQLDeleteNotificationQueueEntry_addNotificationQueueEntry();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteNotificationQueueEntry",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"notificationQueueEntryId",
+									notificationQueueEntry1.getId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteNotificationQueueEntry"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"notificationQueueEntry",
+					new HashMap<String, Object>() {
+						{
+							put(
+								"notificationQueueEntryId",
+								notificationQueueEntry1.getId());
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace notification_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		NotificationQueueEntry notificationQueueEntry2 =
+			testGraphQLDeleteNotificationQueueEntry_addNotificationQueueEntry();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"notification_v1_0",
+						new GraphQLField(
+							"deleteNotificationQueueEntry",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"notificationQueueEntryId",
+										notificationQueueEntry2.getId());
+								}
+							}))),
+				"JSONObject/data", "JSONObject/notification_v1_0",
+				"Object/deleteNotificationQueueEntry"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"notification_v1_0",
+					new GraphQLField(
+						"notificationQueueEntry",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"notificationQueueEntryId",
+									notificationQueueEntry2.getId());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected NotificationQueueEntry
+			testGraphQLDeleteNotificationQueueEntry_addNotificationQueueEntry()
+		throws Exception {
+
+		return testGraphQLNotificationQueueEntry_addNotificationQueueEntry();
+	}
+
+	@Test
+	public void testDeleteNotificationQueueEntryBatch() throws Exception {
+		NotificationQueueEntry notificationQueueEntry1 =
+			testDeleteNotificationQueueEntryBatch_addNotificationQueueEntry();
+
+		testDeleteNotificationQueueEntryBatch_deleteNotificationQueueEntry(
+			202, null, notificationQueueEntry1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			notificationQueueEntryResource.
+				getNotificationQueueEntryHttpResponse(
+					notificationQueueEntry1.getId()));
+	}
+
+	protected NotificationQueueEntry
+			testDeleteNotificationQueueEntryBatch_addNotificationQueueEntry()
+		throws Exception {
+
+		return testDeleteNotificationQueueEntry_addNotificationQueueEntry();
+	}
+
+	protected void
+			testDeleteNotificationQueueEntryBatch_deleteNotificationQueueEntry(
+				int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			notificationQueueEntryResource.
+				deleteNotificationQueueEntryBatchHttpResponse(
+					null,
+					JSONUtil.putAll(
+						JSONUtil.put(
+							"externalReferenceCode", () -> externalReferenceCode
+						).put(
+							"id", () -> id
+						)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
 	public void testGetNotificationQueueEntriesPage() throws Exception {
 		Page<NotificationQueueEntry> page =
 			notificationQueueEntryResource.getNotificationQueueEntriesPage(
@@ -221,7 +430,7 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 				randomNotificationQueueEntry());
 
 		page = notificationQueueEntryResource.getNotificationQueueEntriesPage(
-			null, null, Pagination.of(1, 10), null);
+			null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -351,12 +560,12 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 	public void testGetNotificationQueueEntriesPageWithPagination()
 		throws Exception {
 
-		Page<NotificationQueueEntry> notificationQueueEntryPage =
+		Page<NotificationQueueEntry> notificationQueueEntriesPage =
 			notificationQueueEntryResource.getNotificationQueueEntriesPage(
 				null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			notificationQueueEntryPage.getTotalCount());
+			notificationQueueEntriesPage.getTotalCount());
 
 		NotificationQueueEntry notificationQueueEntry1 =
 			testGetNotificationQueueEntriesPage_addNotificationQueueEntry(
@@ -621,16 +830,8 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 
 	@Test
 	public void testGraphQLGetNotificationQueueEntriesPage() throws Exception {
-		GraphQLField graphQLField = new GraphQLField(
-			"notificationQueueEntries",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
+		GraphQLField graphQLField =
+			testGraphQLGetNotificationQueueEntriesPageNotificationQueueEntry_getGraphQLField();
 
 		// No namespace
 
@@ -643,9 +844,12 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 			"totalCount");
 
 		NotificationQueueEntry notificationQueueEntry1 =
-			testGraphQLGetNotificationQueueEntriesPage_addNotificationQueueEntry();
+			testGraphQLNotificationQueueEntry_addNotificationQueueEntry(
+				randomNotificationQueueEntry());
+
 		NotificationQueueEntry notificationQueueEntry2 =
-			testGraphQLGetNotificationQueueEntriesPage_addNotificationQueueEntry();
+			testGraphQLNotificationQueueEntry_addNotificationQueueEntry(
+				randomNotificationQueueEntry());
 
 		notificationQueueEntriesJSONObject = JSONUtil.getValueAsJSONObject(
 			invokeGraphQLQuery(graphQLField), "JSONObject/data",
@@ -690,151 +894,21 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 					notificationQueueEntriesJSONObject.getString("items"))));
 	}
 
-	protected NotificationQueueEntry
-			testGraphQLGetNotificationQueueEntriesPage_addNotificationQueueEntry()
+	protected GraphQLField
+			testGraphQLGetNotificationQueueEntriesPageNotificationQueueEntry_getGraphQLField()
 		throws Exception {
 
-		return testGraphQLNotificationQueueEntry_addNotificationQueueEntry();
-	}
-
-	@Test
-	public void testPostNotificationQueueEntry() throws Exception {
-		NotificationQueueEntry randomNotificationQueueEntry =
-			randomNotificationQueueEntry();
-
-		NotificationQueueEntry postNotificationQueueEntry =
-			testPostNotificationQueueEntry_addNotificationQueueEntry(
-				randomNotificationQueueEntry);
-
-		assertEquals(randomNotificationQueueEntry, postNotificationQueueEntry);
-		assertValid(postNotificationQueueEntry);
-	}
-
-	protected NotificationQueueEntry
-			testPostNotificationQueueEntry_addNotificationQueueEntry(
-				NotificationQueueEntry notificationQueueEntry)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testDeleteNotificationQueueEntry() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		NotificationQueueEntry notificationQueueEntry =
-			testDeleteNotificationQueueEntry_addNotificationQueueEntry();
-
-		assertHttpResponseStatusCode(
-			204,
-			notificationQueueEntryResource.
-				deleteNotificationQueueEntryHttpResponse(
-					notificationQueueEntry.getId()));
-
-		assertHttpResponseStatusCode(
-			404,
-			notificationQueueEntryResource.
-				getNotificationQueueEntryHttpResponse(
-					notificationQueueEntry.getId()));
-
-		assertHttpResponseStatusCode(
-			404,
-			notificationQueueEntryResource.
-				getNotificationQueueEntryHttpResponse(0L));
-	}
-
-	protected NotificationQueueEntry
-			testDeleteNotificationQueueEntry_addNotificationQueueEntry()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLDeleteNotificationQueueEntry() throws Exception {
-
-		// No namespace
-
-		NotificationQueueEntry notificationQueueEntry1 =
-			testGraphQLDeleteNotificationQueueEntry_addNotificationQueueEntry();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"deleteNotificationQueueEntry",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"notificationQueueEntryId",
-									notificationQueueEntry1.getId());
-							}
-						})),
-				"JSONObject/data", "Object/deleteNotificationQueueEntry"));
-
-		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"notificationQueueEntry",
-					new HashMap<String, Object>() {
-						{
-							put(
-								"notificationQueueEntryId",
-								notificationQueueEntry1.getId());
-						}
-					},
-					new GraphQLField("id"))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray1.length() > 0);
-
-		// Using the namespace notification_v1_0
-
-		NotificationQueueEntry notificationQueueEntry2 =
-			testGraphQLDeleteNotificationQueueEntry_addNotificationQueueEntry();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"notification_v1_0",
-						new GraphQLField(
-							"deleteNotificationQueueEntry",
-							new HashMap<String, Object>() {
-								{
-									put(
-										"notificationQueueEntryId",
-										notificationQueueEntry2.getId());
-								}
-							}))),
-				"JSONObject/data", "JSONObject/notification_v1_0",
-				"Object/deleteNotificationQueueEntry"));
-
-		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"notification_v1_0",
-					new GraphQLField(
-						"notificationQueueEntry",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"notificationQueueEntryId",
-									notificationQueueEntry2.getId());
-							}
-						},
-						new GraphQLField("id")))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray2.length() > 0);
-	}
-
-	protected NotificationQueueEntry
-			testGraphQLDeleteNotificationQueueEntry_addNotificationQueueEntry()
-		throws Exception {
-
-		return testGraphQLNotificationQueueEntry_addNotificationQueueEntry();
+		return new GraphQLField(
+			"notificationQueueEntries",
+			new HashMap<String, Object>() {
+				{
+					put("search", null);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
 	}
 
 	@Test
@@ -848,6 +922,206 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 
 		assertEquals(postNotificationQueueEntry, getNotificationQueueEntry);
 		assertValid(getNotificationQueueEntry);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		NotificationQueueEntry postNotificationQueueEntry =
+			testGetNotificationQueueEntry_addNotificationQueueEntry();
+
+		NotificationQueueEntry getNotificationQueueEntry =
+			notificationQueueEntryResource.getNotificationQueueEntry(
+				postNotificationQueueEntry.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.notification.rest.dto.v1_0.NotificationQueueEntry"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(
+			postNotificationQueueEntry.getId());
+
+		assertEquals(
+			getNotificationQueueEntry,
+			NotificationQueueEntrySerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
 	}
 
 	protected NotificationQueueEntry
@@ -962,6 +1236,41 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 	}
 
 	@Test
+	public void testPostNotificationQueueEntry() throws Exception {
+		NotificationQueueEntry randomNotificationQueueEntry =
+			randomNotificationQueueEntry();
+
+		NotificationQueueEntry postNotificationQueueEntry =
+			testPostNotificationQueueEntry_addNotificationQueueEntry(
+				randomNotificationQueueEntry);
+
+		assertEquals(randomNotificationQueueEntry, postNotificationQueueEntry);
+		assertValid(postNotificationQueueEntry);
+	}
+
+	protected NotificationQueueEntry
+			testPostNotificationQueueEntry_addNotificationQueueEntry(
+				NotificationQueueEntry notificationQueueEntry)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLPostNotificationQueueEntry() throws Exception {
+		NotificationQueueEntry randomNotificationQueueEntry =
+			randomNotificationQueueEntry();
+
+		NotificationQueueEntry notificationQueueEntry =
+			testGraphQLNotificationQueueEntry_addNotificationQueueEntry(
+				randomNotificationQueueEntry);
+
+		Assert.assertTrue(
+			equals(randomNotificationQueueEntry, notificationQueueEntry));
+	}
+
+	@Test
 	public void testPutNotificationQueueEntryResend() throws Exception {
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		NotificationQueueEntry notificationQueueEntry =
@@ -987,6 +1296,64 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		NotificationQueueEntry notificationQueueEntry1 =
+			testBatchEngineDeleteImportTask_addNotificationQueueEntry();
+
+		testBatchEngineDeleteImportTask_deleteNotificationQueueEntry(
+			200, null, notificationQueueEntry1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			notificationQueueEntryResource.
+				getNotificationQueueEntryHttpResponse(
+					notificationQueueEntry1.getId()));
+	}
+
+	protected NotificationQueueEntry
+			testBatchEngineDeleteImportTask_addNotificationQueueEntry()
+		throws Exception {
+
+		return testDeleteNotificationQueueEntry_addNotificationQueueEntry();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteNotificationQueueEntry(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.notification.rest.dto.v1_0.NotificationQueueEntry",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
 
@@ -994,8 +1361,126 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 			testGraphQLNotificationQueueEntry_addNotificationQueueEntry()
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testGraphQLNotificationQueueEntry_addNotificationQueueEntry(
+			randomNotificationQueueEntry());
+	}
+
+	protected NotificationQueueEntry
+			testGraphQLNotificationQueueEntry_addNotificationQueueEntry(
+				NotificationQueueEntry notificationQueueEntry)
+		throws Exception {
+
+		JSONDeserializer<NotificationQueueEntry> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field :
+				getDeclaredFields(NotificationQueueEntry.class)) {
+
+			if (getGraphQLValue(field.get(notificationQueueEntry)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(notificationQueueEntry)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createNotificationQueueEntry",
+						new HashMap<String, Object>() {
+							{
+								put("notificationQueueEntry", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data", "JSONObject/createNotificationQueueEntry"),
+			NotificationQueueEntry.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(
@@ -1242,6 +1727,8 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1709,13 +2196,11 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1725,8 +2210,7 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(notificationQueueEntry.getSentDate()));
+				sb.append(_format.format(notificationQueueEntry.getSentDate()));
 			}
 
 			return sb.toString();
@@ -1935,7 +2419,9 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2002,7 +2488,30 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 		return randomNotificationQueueEntry();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected NotificationQueueEntryResource notificationQueueEntryResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -2203,11 +2712,36 @@ public abstract class BaseNotificationQueueEntryResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseNotificationQueueEntryResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
 		com.liferay.notification.rest.resource.v1_0.
 			NotificationQueueEntryResource _notificationQueueEntryResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:-686226840

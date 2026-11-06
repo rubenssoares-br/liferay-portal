@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.WidgetPageTemplateSettings;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -65,16 +66,16 @@ public class WidgetPageTemplateSettingsSerDes {
 			sb.append("\"");
 		}
 
-		if (widgetPageTemplateSettings.getNavigationMenuSettings() != null) {
+		if (widgetPageTemplateSettings.getNavigationSettings() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"navigationMenuSettings\": ");
+			sb.append("\"navigationSettings\": ");
 
 			sb.append(
 				String.valueOf(
-					widgetPageTemplateSettings.getNavigationMenuSettings()));
+					widgetPageTemplateSettings.getNavigationSettings()));
 		}
 
 		if (widgetPageTemplateSettings.getType() != null) {
@@ -85,9 +86,7 @@ public class WidgetPageTemplateSettingsSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(widgetPageTemplateSettings.getType());
-
 			sb.append("\"");
 		}
 
@@ -123,14 +122,14 @@ public class WidgetPageTemplateSettingsSerDes {
 					widgetPageTemplateSettings.getLayoutTemplateId()));
 		}
 
-		if (widgetPageTemplateSettings.getNavigationMenuSettings() == null) {
-			map.put("navigationMenuSettings", null);
+		if (widgetPageTemplateSettings.getNavigationSettings() == null) {
+			map.put("navigationSettings", null);
 		}
 		else {
 			map.put(
-				"navigationMenuSettings",
+				"navigationSettings",
 				String.valueOf(
-					widgetPageTemplateSettings.getNavigationMenuSettings()));
+					widgetPageTemplateSettings.getNavigationSettings()));
 		}
 
 		if (widgetPageTemplateSettings.getType() == null) {
@@ -163,7 +162,7 @@ public class WidgetPageTemplateSettingsSerDes {
 				return false;
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "navigationMenuSettings")) {
+						jsonParserFieldName, "navigationSettings")) {
 
 				return false;
 			}
@@ -186,11 +185,11 @@ public class WidgetPageTemplateSettingsSerDes {
 				}
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "navigationMenuSettings")) {
+						jsonParserFieldName, "navigationSettings")) {
 
 				if (jsonParserFieldValue != null) {
-					widgetPageTemplateSettings.setNavigationMenuSettings(
-						NavigationMenuSettingsSerDes.toDTO(
+					widgetPageTemplateSettings.setNavigationSettings(
+						NavigationSettingsSerDes.toDTO(
 							(String)jsonParserFieldValue));
 				}
 			}
@@ -246,6 +245,16 @@ public class WidgetPageTemplateSettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -278,3 +287,4 @@ public class WidgetPageTemplateSettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-376120470

@@ -5,6 +5,8 @@
 
 const path = require('path');
 
+const nodeScriptsConfig = require('./node-scripts.config.js');
+
 const CONFIG_FILES = [
 	'**/.babelrc.js',
 	'**/.eslintrc.js',
@@ -12,9 +14,6 @@ const CONFIG_FILES = [
 	'**/.stylelintrc.js',
 	'**/gulpfile.js',
 	'**/liferay-npm-bundler.config.js',
-	'**/npmscripts.config.js',
-	'**/webpack.config.dev.js',
-	'**/webpack.config.js',
 	'**/node-scripts.config.js',
 ];
 
@@ -34,7 +33,6 @@ const config = {
 		svg4everybody: true,
 		themeDisplay: true,
 	},
-	ignorePatterns: ['!*'],
 	overrides: [
 		{
 			env: {
@@ -63,7 +61,7 @@ const config = {
 		'@liferay/no-extraneous-dependencies': [
 			'error',
 			[
-				'@liferay/npm-scripts',
+				'@eslint/eslintrc',
 				'@testing-library/dom',
 				'@testing-library/jest-dom',
 				'@testing-library/react-hooks',
@@ -71,21 +69,26 @@ const config = {
 				'@testing-library/user-event',
 				'alloy-ui',
 				'buffer',
+				'execa',
 				'fs',
 				'path',
 				'process',
-				'webpack',
+				'url',
 				'~',
 			],
 		],
 		'@liferay/no-get-data-attribute': 'off',
+		'@liferay/portal/no-cross-module-deep-import': [
+			'error',
+			{nodeScriptsConfig},
+		],
 		'@liferay/portal/no-document-cookie': 'off',
 		'@liferay/portal/no-global-storage': 'off',
 		'no-empty': ['error', {allowEmptyCatch: true}],
 		'notice/notice': [
 			'error',
 			{
-				nonMatchingTolerance: 0.7,
+				nonMatchingTolerance: 0.95,
 				onNonMatchingHeader: 'replace',
 				templateFile: path.join(__dirname, 'copyright.js'),
 			},

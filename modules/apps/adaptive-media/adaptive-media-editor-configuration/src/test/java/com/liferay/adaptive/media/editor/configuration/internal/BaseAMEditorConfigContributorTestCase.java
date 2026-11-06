@@ -23,6 +23,8 @@ import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 
+import jakarta.portlet.PortletURL;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,8 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-
-import javax.portlet.PortletURL;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -51,6 +51,69 @@ public abstract class BaseAMEditorConfigContributorTestCase {
 	public void setUp() {
 		_inputEditorTaglibAttributes.put(
 			"liferay-ui:input-editor:name", "testEditor");
+	}
+
+	@Test
+	public void testAMReturnTypeIsAddedToAllItemSelectorCriteria()
+		throws Exception {
+
+		ItemSelectorCriterion[] itemSelectorCriteria = {
+			_initializeItemSelectorCriterion(getItemSelectorCriterion()),
+			_initializeItemSelectorCriterion(new FileItemSelectorCriterion()),
+			_initializeItemSelectorCriterion(new ImageItemSelectorCriterion()),
+			_initializeItemSelectorCriterion(new UploadItemSelectorCriterion())
+		};
+
+		JSONObject jsonObject = JSONUtil.put(
+			"filebrowserImageBrowseLinkUrl", RandomTestUtil.randomString());
+
+		Mockito.when(
+			_itemSelector.getItemSelectorCriteria(Mockito.anyString())
+		).thenReturn(
+			Arrays.asList(itemSelectorCriteria)
+		);
+
+		Mockito.when(
+			_itemSelector.getItemSelectedEventName(Mockito.anyString())
+		).thenReturn(
+			RandomTestUtil.randomString()
+		);
+
+		Mockito.when(
+			_itemSelector.getItemSelectorURL(
+				Mockito.any(RequestBackedPortletURLFactory.class),
+				Mockito.anyString(), Mockito.any(ItemSelectorCriterion[].class))
+		).thenReturn(
+			_portletURL
+		);
+
+		Mockito.when(
+			_portletURL.toString()
+		).thenReturn(
+			RandomTestUtil.randomString()
+		);
+
+		BaseAMEditorConfigContributor baseAMEditorConfigContributor =
+			getBaseAMEditorConfigContributor();
+
+		ReflectionTestUtil.setFieldValue(
+			baseAMEditorConfigContributor, "itemSelector", _itemSelector);
+
+		baseAMEditorConfigContributor.populateConfigJSONObject(
+			jsonObject, _inputEditorTaglibAttributes, _themeDisplay,
+			_requestBackedPortletURLFactory);
+
+		for (ItemSelectorCriterion itemSelectorCriterion :
+				itemSelectorCriteria) {
+
+			for (ItemSelectorReturnType itemSelectorReturnType :
+					itemSelectorCriterion.getDesiredItemSelectorReturnTypes()) {
+
+				Assert.assertTrue(
+					itemSelectorReturnType instanceof
+						AMImageFileEntryItemSelectorReturnType);
+			}
+		}
 	}
 
 	@Test
@@ -244,69 +307,6 @@ public abstract class BaseAMEditorConfigContributorTestCase {
 			itemSelectorReturnType ->
 				itemSelectorReturnType instanceof
 					FileEntryItemSelectorReturnType);
-	}
-
-	@Test
-	public void testAMReturnTypeIsAddedToAllItemSelectorCriteria()
-		throws Exception {
-
-		ItemSelectorCriterion[] itemSelectorCriteria = {
-			_initializeItemSelectorCriterion(getItemSelectorCriterion()),
-			_initializeItemSelectorCriterion(new FileItemSelectorCriterion()),
-			_initializeItemSelectorCriterion(new ImageItemSelectorCriterion()),
-			_initializeItemSelectorCriterion(new UploadItemSelectorCriterion())
-		};
-
-		JSONObject jsonObject = JSONUtil.put(
-			"filebrowserImageBrowseLinkUrl", RandomTestUtil.randomString());
-
-		Mockito.when(
-			_itemSelector.getItemSelectorCriteria(Mockito.anyString())
-		).thenReturn(
-			Arrays.asList(itemSelectorCriteria)
-		);
-
-		Mockito.when(
-			_itemSelector.getItemSelectedEventName(Mockito.anyString())
-		).thenReturn(
-			RandomTestUtil.randomString()
-		);
-
-		Mockito.when(
-			_itemSelector.getItemSelectorURL(
-				Mockito.any(RequestBackedPortletURLFactory.class),
-				Mockito.anyString(), Mockito.<ItemSelectorCriterion>any())
-		).thenReturn(
-			_portletURL
-		);
-
-		Mockito.when(
-			_portletURL.toString()
-		).thenReturn(
-			RandomTestUtil.randomString()
-		);
-
-		BaseAMEditorConfigContributor baseAMEditorConfigContributor =
-			getBaseAMEditorConfigContributor();
-
-		ReflectionTestUtil.setFieldValue(
-			baseAMEditorConfigContributor, "itemSelector", _itemSelector);
-
-		baseAMEditorConfigContributor.populateConfigJSONObject(
-			jsonObject, _inputEditorTaglibAttributes, _themeDisplay,
-			_requestBackedPortletURLFactory);
-
-		for (ItemSelectorCriterion itemSelectorCriterion :
-				itemSelectorCriteria) {
-
-			for (ItemSelectorReturnType itemSelectorReturnType :
-					itemSelectorCriterion.getDesiredItemSelectorReturnTypes()) {
-
-				Assert.assertTrue(
-					itemSelectorReturnType instanceof
-						AMImageFileEntryItemSelectorReturnType);
-			}
-		}
 	}
 
 	@Test

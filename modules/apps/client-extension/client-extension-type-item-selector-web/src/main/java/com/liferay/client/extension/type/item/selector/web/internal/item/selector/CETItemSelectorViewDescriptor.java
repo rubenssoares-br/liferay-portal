@@ -7,9 +7,11 @@ package com.liferay.client.extension.type.item.selector.web.internal.item.select
 
 import com.liferay.client.extension.constants.ClientExtensionEntryConstants;
 import com.liferay.client.extension.type.CET;
+import com.liferay.client.extension.type.GlobalCSSCET;
 import com.liferay.client.extension.type.GlobalJSCET;
+import com.liferay.client.extension.type.ThemeCSSCET;
+import com.liferay.client.extension.type.item.selector.CETItemSelectorCriterion;
 import com.liferay.client.extension.type.item.selector.CETItemSelectorReturnType;
-import com.liferay.client.extension.type.item.selector.criterion.CETItemSelectorCriterion;
 import com.liferay.client.extension.type.manager.CETManager;
 import com.liferay.item.selector.ItemSelectorReturnType;
 import com.liferay.item.selector.ItemSelectorViewDescriptor;
@@ -18,17 +20,19 @@ import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.JavaConstants;
+import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
+import java.util.function.Predicate;
 
 /**
  * @author Víctor Galán
@@ -70,7 +74,7 @@ public class CETItemSelectorViewDescriptor
 
 		SearchContainer<CET> searchContainer = new SearchContainer<>(
 			(PortletRequest)_httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_REQUEST),
+				JavaConstants.JAKARTA_PORTLET_REQUEST),
 			_portletURL, null, "there-are-no-items-to-display");
 
 		List<CET> cets = _cetManager.getCETs(
@@ -78,21 +82,11 @@ public class CETItemSelectorViewDescriptor
 			_cetItemSelectorCriterion.getType(),
 			Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS), null);
 
-		if (Objects.equals(
-				_cetItemSelectorCriterion.getType(),
-				ClientExtensionEntryConstants.TYPE_GLOBAL_JS)) {
+		Predicate<CET> predicate = _getPredicate(
+			_cetItemSelectorCriterion.getType());
 
-			List<CET> filteredCETs = new ArrayList<>();
-
-			for (CET cet : cets) {
-				GlobalJSCET globalJSCET = (GlobalJSCET)cet;
-
-				if (!Objects.equals(globalJSCET.getScope(), "instance")) {
-					filteredCETs.add(cet);
-				}
-			}
-
-			cets = filteredCETs;
+		if (predicate != null) {
+			cets = ListUtil.filter(cets, predicate);
 		}
 
 		searchContainer.setResultsAndTotal(cets);
@@ -108,6 +102,41 @@ public class CETItemSelectorViewDescriptor
 	@Override
 	public boolean isShowBreadcrumb() {
 		return false;
+	}
+
+	private Predicate<CET> _getPredicate(String type) {
+		if (Objects.equals(
+				type, ClientExtensionEntryConstants.TYPE_GLOBAL_CSS)) {
+
+			return cet -> {
+				GlobalCSSCET globalCSSCET = (GlobalCSSCET)cet;
+
+				return !StringUtil.equalsIgnoreCase(
+					globalCSSCET.getScope(), "company");
+			};
+		}
+		else if (Objects.equals(
+					type, ClientExtensionEntryConstants.TYPE_GLOBAL_JS)) {
+
+			return cet -> {
+				GlobalJSCET globalJSCET = (GlobalJSCET)cet;
+
+				return !StringUtil.equalsIgnoreCase(
+					globalJSCET.getScope(), "company");
+			};
+		}
+		else if (Objects.equals(
+					type, ClientExtensionEntryConstants.TYPE_THEME_CSS)) {
+
+			return cet -> {
+				ThemeCSSCET themeCSSCET = (ThemeCSSCET)cet;
+
+				return !StringUtil.equalsIgnoreCase(
+					themeCSSCET.getScope(), "controlPanel");
+			};
+		}
+
+		return null;
 	}
 
 	private static final ItemSelectorReturnType

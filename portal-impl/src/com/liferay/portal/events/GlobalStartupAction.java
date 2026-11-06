@@ -6,7 +6,6 @@
 package com.liferay.portal.events;
 
 import com.liferay.portal.kernel.deploy.auto.AutoDeployDir;
-import com.liferay.portal.kernel.deploy.auto.AutoDeployUtil;
 import com.liferay.portal.kernel.deploy.hot.HotDeployListener;
 import com.liferay.portal.kernel.deploy.hot.HotDeployUtil;
 import com.liferay.portal.kernel.events.SimpleAction;
@@ -14,13 +13,11 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.InstanceFactory;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.struts.AuthPublicPathRegistry;
 import com.liferay.portal.util.BrowserLauncher;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
-
-import java.io.File;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,18 +66,12 @@ public class GlobalStartupAction extends SimpleAction {
 		// Auto deploy
 
 		try {
-			File deployDir = new File(PropsValues.AUTO_DEPLOY_DEPLOY_DIR);
-			long interval = PropsValues.AUTO_DEPLOY_INTERVAL;
-
-			AutoDeployDir autoDeployDir = new AutoDeployDir(
-				AutoDeployDir.DEFAULT_NAME, deployDir, interval);
-
 			if (PropsValues.AUTO_DEPLOY_ENABLED) {
 				if (_log.isInfoEnabled()) {
 					_log.info("Registering auto deploy directories");
 				}
 
-				AutoDeployUtil.registerDir(autoDeployDir);
+				AutoDeployDir.start();
 			}
 			else {
 				if (_log.isInfoEnabled()) {

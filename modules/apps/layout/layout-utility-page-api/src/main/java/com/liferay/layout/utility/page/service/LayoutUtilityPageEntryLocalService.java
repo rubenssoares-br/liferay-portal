@@ -78,10 +78,11 @@ public interface LayoutUtilityPageEntryLocalService
 	public LayoutUtilityPageEntry addLayoutUtilityPageEntry(
 		LayoutUtilityPageEntry layoutUtilityPageEntry);
 
+	@Indexable(type = IndexableType.REINDEX)
 	public LayoutUtilityPageEntry addLayoutUtilityPageEntry(
 			String externalReferenceCode, long userId, long groupId, long plid,
 			long previewFileEntryId, boolean defaultLayoutUtilityPageEntry,
-			String name, String type, long masterLayoutPlid,
+			String name, String type, String masterLayoutPageTemplateEntryERC,
 			ServiceContext serviceContext)
 		throws PortalException;
 
@@ -118,7 +119,10 @@ public interface LayoutUtilityPageEntryLocalService
 	 * @throws PortalException
 	 */
 	@Indexable(type = IndexableType.DELETE)
-	@SystemEvent(type = SystemEventConstants.TYPE_DELETE)
+	@SystemEvent(
+		action = SystemEventConstants.ACTION_SKIP,
+		type = SystemEventConstants.TYPE_DELETE
+	)
 	public LayoutUtilityPageEntry deleteLayoutUtilityPageEntry(
 			LayoutUtilityPageEntry layoutUtilityPageEntry)
 		throws PortalException;
@@ -417,11 +421,16 @@ public interface LayoutUtilityPageEntryLocalService
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
 		LayoutUtilityPageEntry layoutUtilityPageEntry);
 
+	@Indexable(type = IndexableType.REINDEX)
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-		long layoutUtilityPageEntryId, long previewFileEntryId);
+			long layoutUtilityPageEntryId, long previewFileEntryId,
+			ServiceContext serviceContext)
+		throws PortalException;
 
+	@Indexable(type = IndexableType.REINDEX)
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, String name)
+			long layoutUtilityPageEntryId, String name,
+			ServiceContext serviceContext)
 		throws PortalException;
 
 	@Override
@@ -440,3 +449,4 @@ public interface LayoutUtilityPageEntryLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1917251900

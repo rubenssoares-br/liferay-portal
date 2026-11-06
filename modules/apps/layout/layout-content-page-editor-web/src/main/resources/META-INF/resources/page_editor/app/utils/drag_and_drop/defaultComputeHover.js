@@ -8,7 +8,6 @@ import {collectionIsMapped} from '../collectionIsMapped';
 import {formIsMapped} from '../formIsMapped';
 import isItemContainerFlex from '../isItemContainerFlex';
 import isItemEmpty from '../isItemEmpty';
-import checkAllowedChild from './checkAllowedChild';
 import {DRAG_DROP_TARGET_TYPE} from './constants/dragDropTargetType';
 import {ORIENTATIONS} from './constants/orientations';
 import {TARGET_POSITIONS} from './constants/targetPositions';
@@ -23,8 +22,6 @@ const ORIENTATION_BORDER_SIZE = 80;
 
 export default function defaultComputeHover({
 	dispatch,
-	fragmentEntryLinksRef,
-	getWidgets,
 	layoutDataRef,
 	monitor,
 	sourceItem,
@@ -108,15 +105,8 @@ export default function defaultComputeHover({
 		!itemIsAncestor(sourceItem, targetItem, layoutDataRef)
 	) {
 		return dispatch({
-			dropItem: sourceItem,
-			dropTargetItem: targetItem,
-			droppable: checkAllowedChild(
-				sourceItem,
-				targetItem,
-				layoutDataRef.current,
-				fragmentEntryLinksRef.current,
-				getWidgets
-			),
+			dragSource: sourceItem,
+			dropTarget: targetItem,
 			elevate: null,
 			targetPositionWithMiddle,
 			targetPositionWithoutMiddle,
@@ -125,25 +115,13 @@ export default function defaultComputeHover({
 	}
 
 	// Try to elevate to some valid ancestor
-	// Using dropTargetItem parent as target and dropTargetItem as sibling
+	// Using dropTarget parent as target and dropTarget as sibling
 	// It will try elevate multiple levels if elevationDepth is enough and
 	// there are valid ancestors
 
 	if (elevationDepth) {
 		const getElevatedTargetItem = (sibling, maximumDepth) => {
-			let parent = layoutDataRef.current.items[sibling.parentId];
-
-			if (parent) {
-				parent = {
-					...parent,
-					collectionItemIndex: sibling.collectionItemIndex,
-					parentToControlsId: sibling.parentToControlsId,
-					toControlsId:
-						parent.type === LAYOUT_DATA_ITEM_TYPES.collection
-							? sibling.parentToControlsId
-							: sibling.toControlsId,
-				};
-			}
+			const parent = layoutDataRef.current.items[sibling.parentId];
 
 			if (parent) {
 				const [siblingPositionWithMiddle] = getItemPosition(
@@ -193,7 +171,7 @@ export default function defaultComputeHover({
 		if (elevatedTargetItem && elevatedTargetItem !== targetItem) {
 
 			// Valid elevation:
-			// - sourceItem should be child of dropTargetItem
+			// - sourceItem should be child of dropTarget
 			// - sourceItem should be sibling of siblingItem
 			// - siblingItem should have flex parent for horizontal elevation
 			//   and no-flex parent for vertical elevation
@@ -208,19 +186,17 @@ export default function defaultComputeHover({
 					targetPositionWithMiddle
 				) &&
 				!shouldBeIgnoredInElevation(parent) &&
-				validElevation(siblingItem, orientation, layoutDataRef) &&
+				validElevation(
+					siblingItem,
+					orientation,
+					layoutDataRef,
+					targetPositionWithMiddle
+				) &&
 				!itemIsAncestor(sourceItem, siblingItem, layoutDataRef)
 			) {
 				return dispatch({
-					dropItem: sourceItem,
-					dropTargetItem: siblingItem,
-					droppable: checkAllowedChild(
-						sourceItem,
-						elevatedTargetItem,
-						layoutDataRef.current,
-						fragmentEntryLinksRef.current,
-						getWidgets
-					),
+					dragSource: sourceItem,
+					dropTarget: siblingItem,
 					elevate: true,
 					targetPositionWithMiddle,
 					targetPositionWithoutMiddle,
@@ -239,7 +215,7 @@ function getOrientation(item, monitor, targetRefs, layoutDataRef) {
 		return ORIENTATIONS.vertical;
 	}
 
-	const targetRef = targetRefs.get(item.toControlsId(item.itemId));
+	const targetRef = targetRefs.get(item.itemId);
 	const targetRect = targetRef.current.getBoundingClientRect();
 	const hoverMiddle = targetRect.left + targetRect.width / 2;
 	const clientOffsetX = monitor.getClientOffset().x;
@@ -260,7 +236,7 @@ function getOrientation(item, monitor, targetRefs, layoutDataRef) {
 }
 
 function getItemPosition(item, monitor, targetRefs, orientation) {
-	const targetRef = targetRefs.get(item.toControlsId(item.itemId));
+	const targetRef = targetRefs.get(item.itemId);
 
 	if (!targetRef || !targetRef.current) {
 		return [null, null, 0];
@@ -319,16 +295,23 @@ function shouldBeIgnoredInElevation(item) {
 	// Dropping inside a collection or inside a row is illegal
 	// but in those cases we don't want to inform the user about it,
 	// we just want to ignore those cases and try to elevate in the direct parent.
-	// This is why this case is handled separately in the checkAllowedChild function
 
 	return (
 		item.type === LAYOUT_DATA_ITEM_TYPES.collection ||
-		item.type === LAYOUT_DATA_ITEM_TYPES.row
+		item.type === LAYOUT_DATA_ITEM_TYPES.row ||
+		item.type === LAYOUT_DATA_ITEM_TYPES.formStepContainer
 	);
 }
 
-function validElevation(siblingItem, orientation, layoutDataRef) {
+function validElevation(siblingItem, orientation, layoutDataRef, position) {
 	const targetItemParent = layoutDataRef.current.items[siblingItem.parentId];
+
+	if (
+		siblingItem.type === LAYOUT_DATA_ITEM_TYPES.fragmentDropZone &&
+		position !== TARGET_POSITIONS.MIDDLE
+	) {
+		return false;
+	}
 
 	return orientation === ORIENTATIONS.horizontal
 		? isItemContainerFlex(targetItemParent)
@@ -337,10 +320,8 @@ function validElevation(siblingItem, orientation, layoutDataRef) {
 
 function stateHasChanged(state, sourceItem, targetItem, position) {
 	if (
-		state.dropItem?.itemId === sourceItem.itemId &&
-		state.dropTargetItem?.itemId === targetItem.itemId &&
-		state.dropTargetItem?.collectionItemIndex ===
-			targetItem.collectionItemIndex &&
+		state.dragSource?.itemId === sourceItem.itemId &&
+		state.dropTarget?.itemId === targetItem.itemId &&
 		state.targetPositionWithMiddle === position
 	) {
 		return false;

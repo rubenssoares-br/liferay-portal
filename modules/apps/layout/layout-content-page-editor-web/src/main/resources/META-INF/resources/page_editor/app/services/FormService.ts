@@ -3,27 +3,17 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {MappingFields} from '../../types/MappingField';
 import {config} from '../config/index';
 import draftServiceFetch, {OnNetworkStatus} from './draftServiceFetch';
 import serviceFetch from './serviceFetch';
 
 import type {FormLayoutDataItem} from '../../types/layout_data/FormLayoutDataItem';
 import type {LayoutData} from '../../types/layout_data/LayoutData';
-import type {FragmentEntryLinkMap} from '../actions/addFragmentEntryLinks';
-
-export interface FormField {
-	key: string;
-	label: string;
-	name: string;
-	required: boolean;
-	type: string;
-	typeLabel: string;
-}
-
-export interface FormFieldSet {
-	fields: FormField[];
-	label?: string;
-}
+import type {
+	FragmentEntryLink,
+	FragmentEntryLinkMap,
+} from '../actions/addFragmentEntryLinks';
 
 export default {
 	getFormConfig({classNameId}: {classNameId: string}) {
@@ -39,7 +29,7 @@ export default {
 		classNameId: string;
 		classTypeId: string;
 	}) {
-		return serviceFetch<FormFieldSet[]>(config.getFormFieldsURL, {
+		return serviceFetch<MappingFields>(config.getFormFieldsURL, {
 			body: {
 				classNameId,
 				classTypeId,
@@ -65,22 +55,53 @@ export default {
 		);
 	},
 
+	removeFormStep({
+		itemId,
+		onNetworkStatus,
+		segmentsExperienceId,
+		stepperFragmentEntryLinkId,
+	}: {
+		itemId: string;
+		onNetworkStatus: OnNetworkStatus;
+		segmentsExperienceId: string;
+		stepperFragmentEntryLinkId?: string;
+	}) {
+		return draftServiceFetch<{
+			fragmentEntryLinks: FragmentEntryLinkMap;
+			layoutData: LayoutData;
+			movedItemIds: {itemId: string; parentId: string}[];
+			removedItemIds: string[];
+		}>(
+			config.deleteFormStepURL,
+			{
+				body: {
+					itemId,
+					segmentsExperienceId,
+					stepperFragmentEntryLinkId,
+				},
+			},
+			onNetworkStatus
+		);
+	},
+
 	updateFormItemConfig({
 		fields,
 		itemConfig,
 		itemId,
 		onNetworkStatus,
 		segmentsExperienceId,
+		stepperFragmentEntryLinkId,
 	}: {
 		fields: string[] | undefined;
 		itemConfig: FormLayoutDataItem['config'];
 		itemId: string;
 		onNetworkStatus: OnNetworkStatus;
 		segmentsExperienceId: string;
+		stepperFragmentEntryLinkId: FragmentEntryLink['fragmentEntryLinkId'];
 	}) {
 		return draftServiceFetch<{
-			addedFragmentEntryLinks: FragmentEntryLinkMap;
 			errorMessage?: string;
+			fragmentEntryLinks: FragmentEntryLinkMap;
 			layoutData: LayoutData;
 			removedFragmentEntryLinkIds: string[];
 		}>(
@@ -91,6 +112,7 @@ export default {
 					itemConfig: JSON.stringify(itemConfig),
 					itemId,
 					segmentsExperienceId,
+					stepperFragmentEntryLinkId,
 				},
 			},
 			onNetworkStatus

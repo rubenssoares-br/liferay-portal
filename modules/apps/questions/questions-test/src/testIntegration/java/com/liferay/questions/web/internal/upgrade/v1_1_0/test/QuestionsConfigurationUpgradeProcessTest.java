@@ -72,12 +72,14 @@ public class QuestionsConfigurationUpgradeProcessTest {
 		_originalScopedConfigurationsProperties = new ArrayList<>();
 
 		for (Configuration scopedConfiguration : scopedConfigurations) {
-			if (scopedConfiguration != null) {
-				_originalScopedConfigurationsProperties.add(
-					scopedConfiguration.getProperties());
-
-				scopedConfiguration.delete();
+			if (scopedConfiguration == null) {
+				continue;
 			}
+
+			_originalScopedConfigurationsProperties.add(
+				scopedConfiguration.getProperties());
+
+			scopedConfiguration.delete();
 		}
 	}
 
@@ -179,9 +181,11 @@ public class QuestionsConfigurationUpgradeProcessTest {
 		Configuration[] configurations = _getScopedConfigurations();
 
 		for (Configuration configuration : configurations) {
-			if (configuration != null) {
-				configuration.delete();
+			if (configuration == null) {
+				continue;
 			}
+
+			configuration.delete();
 		}
 	}
 
@@ -281,11 +285,6 @@ public class QuestionsConfigurationUpgradeProcessTest {
 		"com.liferay.questions.web.internal.upgrade.v1_1_0." +
 			"QuestionsConfigurationUpgradeProcess";
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.questions.web.internal.upgrade.registry.QuestionsWebUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private ConfigurationAdmin _configurationAdmin;
 
@@ -295,5 +294,10 @@ public class QuestionsConfigurationUpgradeProcessTest {
 	private List<Dictionary<String, Object>>
 		_originalScopedConfigurationsProperties;
 	private Dictionary<String, Object> _originalSystemConfigurationProperties;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.questions.web.internal.upgrade.registry.QuestionsWebUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

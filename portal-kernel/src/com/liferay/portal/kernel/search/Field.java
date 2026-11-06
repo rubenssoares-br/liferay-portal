@@ -143,6 +143,8 @@ public class Field implements Serializable {
 
 	public static final String REMOVED_DATE = "removedDate";
 
+	public static final String REVIEW_DATE = "reviewDate";
+
 	public static final String ROLE_ID = "roleId";
 
 	public static final String ROLE_IDS = "roleIds";
@@ -152,6 +154,8 @@ public class Field implements Serializable {
 	public static final String ROOT_ENTRY_CLASS_PK = "rootEntryClassPK";
 
 	public static final String SCOPE_GROUP_ID = "scopeGroupId";
+
+	public static final String SENT_DATE = "sentDate";
 
 	public static final String SNIPPET = "snippet";
 
@@ -209,11 +213,6 @@ public class Field implements Serializable {
 		return LocalizationUtil.getLocalizedName(name, languageId);
 	}
 
-	public static String getSortableFieldName(String name) {
-		return StringBundler.concat(
-			name, StringPool.UNDERLINE, SORTABLE_FIELD_SUFFIX);
-	}
-
 	public static String getSortFieldName(Sort sort, String scoreFieldName) {
 		if (sort.getType() == Sort.SCORE_TYPE) {
 			return scoreFieldName;
@@ -236,6 +235,10 @@ public class Field implements Serializable {
 		}
 
 		return getSortableFieldName(fieldName);
+	}
+
+	public static String getSortableFieldName(String name) {
+		return name.concat(_SORTABLE_FIELD_SUFFIX);
 	}
 
 	public static String getUID(String portletId, String field1) {
@@ -276,7 +279,7 @@ public class Field implements Serializable {
 	}
 
 	public static boolean isSortableFieldName(String name) {
-		return name.endsWith(_SORTABLE_FIELD_SUFFIX);
+		return name.endsWith(SORTABLE_FIELD_SUFFIX);
 	}
 
 	public static boolean validateFieldName(String name) {
@@ -293,14 +296,10 @@ public class Field implements Serializable {
 	}
 
 	public Field(String name) {
-		validate(name);
-
 		_name = name;
 	}
 
 	public Field(String name, Map<Locale, String> localizedValues) {
-		validate(name);
-
 		_name = name;
 		_localizedValues = localizedValues;
 	}
@@ -310,8 +309,6 @@ public class Field implements Serializable {
 	}
 
 	public Field(String name, String[] values) {
-		validate(name);
-
 		_name = name;
 		_values = values;
 	}
@@ -529,34 +526,7 @@ public class Field implements Serializable {
 
 	}
 
-	protected void validate(String name) {
-		if (name.contains(StringPool.COMMA)) {
-			throw new IllegalArgumentException(
-				"Name must not contain ,: " + name);
-		}
-
-		if (name.contains(StringPool.POUND)) {
-			throw new IllegalArgumentException(
-				"Name must not contain #: " + name);
-		}
-
-		if (name.contains(StringPool.SLASH)) {
-			throw new IllegalArgumentException(
-				"Name must not contain /: " + name);
-		}
-
-		if (name.contains(StringPool.STAR)) {
-			throw new IllegalArgumentException(
-				"Name must not contain *: " + name);
-		}
-
-		if (name.startsWith(StringPool.UNDERLINE)) {
-			throw new IllegalArgumentException(
-				"Name must not start with _: " + name);
-		}
-	}
-
-	private static final String _SORTABLE_FIELD_SUFFIX = "sortable";
+	private static final String _SORTABLE_FIELD_SUFFIX = "_sortable";
 
 	private static final String _UID_FIELD = "_FIELD_";
 

@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://java.sun.com/portlet_2_0" prefix="portlet" %>
 
@@ -22,7 +22,7 @@ page import="com.liferay.journal.model.JournalFolder" %><%@
 page import="com.liferay.journal.service.JournalArticleServiceUtil" %><%@
 page import="com.liferay.journal.service.JournalFolderServiceUtil" %><%@
 page import="com.liferay.journal.web.internal.display.context.AssetFullContentDisplayContext" %><%@
-page import="com.liferay.journal.web.internal.display.context.JournalDisplayContext" %><%@
+page import="com.liferay.journal.web.internal.display.context.JournalFolderDisplayContext" %><%@
 page import="com.liferay.portal.kernel.util.GetterUtil" %><%@
 page import="com.liferay.portal.kernel.util.HtmlUtil" %><%@
 page import="com.liferay.portal.kernel.util.StringUtil" %><%@

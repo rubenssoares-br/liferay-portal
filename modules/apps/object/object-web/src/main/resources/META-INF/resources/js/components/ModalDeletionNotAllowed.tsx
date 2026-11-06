@@ -17,17 +17,17 @@ function ModalDeletionNotAllowed({
 	onModalClose,
 }: ModalDeletionNotAllowedProps) {
 	const [bodyContent, setBodyContent] = useState<React.ReactNode>(content);
-	const [visibility, setVisibility] = useState(false);
+	const [visible, setVisible] = useState(false);
 
 	const {observer, onClose} = useModal({
 		onClose: () => {
-			onModalClose ? onModalClose() : setVisibility(false);
+			onModalClose ? onModalClose() : setVisible(false);
 		},
 	});
 
 	useEffect(() => {
 		const openModal = ({contentLiferayFire = <></>}) => {
-			setVisibility(true);
+			setVisible(true);
 			setBodyContent(contentLiferayFire);
 		};
 
@@ -42,9 +42,11 @@ function ModalDeletionNotAllowed({
 
 	return (
 		<>
-			{(visibility || !!content) && (
+			{(visible || !!content) && (
 				<ClayModal center observer={observer} status="warning">
-					<ClayModal.Header>
+					<ClayModal.Header
+						closeButtonAriaLabel={Liferay.Language.get('close')}
+					>
 						{Liferay.Language.get('deletion-not-allowed')}
 					</ClayModal.Header>
 

@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class SearchResponse implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(SearchResponse.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map[] getErrors() {
 		if (_errorsSupplier != null) {
@@ -93,7 +93,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<Map[]> _errorsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getPage() {
 		if (_pageSupplier != null) {
 			page = _pageSupplier.get();
@@ -132,7 +132,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _pageSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getPageSize() {
 		if (_pageSizeSupplier != null) {
 			pageSize = _pageSizeSupplier.get();
@@ -173,7 +173,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _pageSizeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getRequest() {
 		if (_requestSupplier != null) {
@@ -215,7 +215,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _requestSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getRequestString() {
 		if (_requestStringSupplier != null) {
 			requestString = _requestStringSupplier.get();
@@ -256,7 +256,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _requestStringSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getResponse() {
 		if (_responseSupplier != null) {
@@ -298,7 +298,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _responseSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getResponseString() {
 		if (_responseStringSupplier != null) {
 			responseString = _responseStringSupplier.get();
@@ -339,7 +339,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _responseStringSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public SearchHits getSearchHits() {
 		if (_searchHitsSupplier != null) {
@@ -381,7 +381,7 @@ public class SearchResponse implements Serializable {
 	@JsonIgnore
 	private Supplier<SearchHits> _searchHitsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public SearchRequest getSearchRequest() {
 		if (_searchRequestSupplier != null) {
@@ -505,17 +505,7 @@ public class SearchResponse implements Serializable {
 
 			sb.append("\"request\": ");
 
-			if (request instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)request));
-			}
-			else if (request instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)request));
-				sb.append("\"");
-			}
-			else {
-				sb.append(request);
-			}
+			sb.append(_toJSON(request));
 		}
 
 		String requestString = getRequestString();
@@ -543,18 +533,7 @@ public class SearchResponse implements Serializable {
 
 			sb.append("\"response\": ");
 
-			if (response instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)response));
-			}
-			else if (response instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)response));
-				sb.append("\"");
-			}
-			else {
-				sb.append(response);
-			}
+			sb.append(_toJSON(response));
 		}
 
 		String responseString = getResponseString();
@@ -602,8 +581,8 @@ public class SearchResponse implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.SearchResponse",
 		name = "x-class-name"
 	)
@@ -690,6 +669,27 @@ public class SearchResponse implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -698,3 +698,4 @@ public class SearchResponse implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:260029969

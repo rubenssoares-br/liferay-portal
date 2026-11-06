@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +40,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "Represents a fragment image.", value = "FragmentImage"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a fragment image."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "FragmentImage")
@@ -53,7 +56,9 @@ public class FragmentImage implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(FragmentImage.class, json);
 	}
 
-	@Schema(description = "The fragment image's description.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment image's description."
+	)
 	@Valid
 	public Object getDescription() {
 		if (_descriptionSupplier != null) {
@@ -95,7 +100,9 @@ public class FragmentImage implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _descriptionSupplier;
 
-	@Schema(description = "A reference to a fragment image class primary key.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A reference to a fragment image class primary key."
+	)
 	@Valid
 	public FragmentImageClassPKReference getFragmentImageClassPKReference() {
 		if (_fragmentImageClassPKReferenceSupplier != null) {
@@ -144,7 +151,9 @@ public class FragmentImage implements Serializable {
 	private Supplier<FragmentImageClassPKReference>
 		_fragmentImageClassPKReferenceSupplier;
 
-	@Schema(description = "The fragment image's title.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment image's title."
+	)
 	@Valid
 	public Object getTitle() {
 		if (_titleSupplier != null) {
@@ -186,7 +195,7 @@ public class FragmentImage implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _titleSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The fragment image's url. Can be inline or mapped to an external value."
 	)
 	@Valid
@@ -266,18 +275,7 @@ public class FragmentImage implements Serializable {
 
 			sb.append("\"description\": ");
 
-			if (description instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)description));
-			}
-			else if (description instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)description));
-				sb.append("\"");
-			}
-			else {
-				sb.append(description);
-			}
+			sb.append(_toJSON(description));
 		}
 
 		FragmentImageClassPKReference fragmentImageClassPKReference =
@@ -302,17 +300,7 @@ public class FragmentImage implements Serializable {
 
 			sb.append("\"title\": ");
 
-			if (title instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)title));
-			}
-			else if (title instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)title));
-				sb.append("\"");
-			}
-			else {
-				sb.append(title);
-			}
+			sb.append(_toJSON(title));
 		}
 
 		Object url = getUrl();
@@ -324,17 +312,7 @@ public class FragmentImage implements Serializable {
 
 			sb.append("\"url\": ");
 
-			if (url instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)url));
-			}
-			else if (url instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)url));
-				sb.append("\"");
-			}
-			else {
-				sb.append(url);
-			}
+			sb.append(_toJSON(url));
 		}
 
 		sb.append("}");
@@ -342,8 +320,8 @@ public class FragmentImage implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.FragmentImage",
 		name = "x-class-name"
 	)
@@ -430,6 +408,27 @@ public class FragmentImage implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -438,3 +437,4 @@ public class FragmentImage implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1922961201

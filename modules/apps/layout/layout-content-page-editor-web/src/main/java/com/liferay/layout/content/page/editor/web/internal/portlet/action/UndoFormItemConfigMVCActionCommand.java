@@ -5,8 +5,15 @@
 
 package com.liferay.layout.content.page.editor.web.internal.portlet.action;
 
+import com.liferay.fragment.model.FragmentEntryLink;
+import com.liferay.fragment.service.FragmentEntryLinkLocalService;
 import com.liferay.layout.content.page.editor.constants.ContentPageEditorPortletKeys;
+import com.liferay.layout.content.page.editor.web.internal.manager.FormItemManager;
+import com.liferay.layout.content.page.editor.web.internal.manager.FragmentEntryLinkManager;
 import com.liferay.layout.content.page.editor.web.internal.util.layout.structure.LayoutStructureUtil;
+import com.liferay.layout.page.template.model.LayoutPageTemplateStructure;
+import com.liferay.layout.page.template.service.LayoutPageTemplateStructureLocalService;
+import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.layout.util.structure.LayoutStructureItem;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
@@ -15,13 +22,14 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ParamUtil;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
+
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import java.util.Arrays;
 import java.util.Collections;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -31,7 +39,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
+		"jakarta.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 		"mvc.command.name=/layout_content_page_editor/undo_form_item_config"
 	},
 	service = MVCActionCommand.class
@@ -60,6 +68,45 @@ public class UndoFormItemConfigMVCActionCommand
 			actionRequest, "segmentsExperienceId");
 
 		return JSONUtil.put(
+			"fragmentEntryLinks",
+			() -> {
+				long stepperFragmentEntryLinkId = ParamUtil.getLong(
+					actionRequest, "stepperFragmentEntryLinkId");
+
+				FragmentEntryLink stepperFragmentEntryLink =
+					_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
+						stepperFragmentEntryLinkId);
+
+				if (stepperFragmentEntryLink == null) {
+					return null;
+				}
+
+				stepperFragmentEntryLink =
+					_formItemManager.updateNumberOfStepps(
+						_portal.getHttpServletRequest(actionRequest),
+						_portal.getHttpServletResponse(actionResponse),
+						configJSONObject.getInt("numberOfSteps"),
+						stepperFragmentEntryLink);
+
+				LayoutPageTemplateStructure layoutPageTemplateStructure =
+					_layoutPageTemplateStructureLocalService.
+						fetchLayoutPageTemplateStructure(
+							themeDisplay.getScopeGroupId(),
+							themeDisplay.getPlid());
+
+				LayoutStructure layoutStructure = LayoutStructure.of(
+					layoutPageTemplateStructure.getData(segmentsExperienceId));
+
+				return JSONUtil.put(
+					String.valueOf(
+						stepperFragmentEntryLink.getFragmentEntryLinkId()),
+					_fragmentEntryLinkManager.getFragmentEntryLinkJSONObject(
+						stepperFragmentEntryLink,
+						_portal.getHttpServletRequest(actionRequest),
+						_portal.getHttpServletResponse(actionResponse),
+						layoutStructure));
+			}
+		).put(
 			"layoutData",
 			LayoutStructureUtil.updateLayoutPageTemplateData(
 				themeDisplay.getScopeGroupId(), segmentsExperienceId,
@@ -76,7 +123,8 @@ public class UndoFormItemConfigMVCActionCommand
 
 						layoutStructure.moveLayoutStructureItem(
 							jsonObject.getString("itemId"),
-							jsonObject.getString("parentId"), -1);
+							jsonObject.getString("parentId"),
+							jsonObject.getInt("position"));
 					}
 
 					layoutStructure.markLayoutStructureItemForDeletion(
@@ -86,10 +134,27 @@ public class UndoFormItemConfigMVCActionCommand
 						layoutStructure.unmarkLayoutStructureItemForDeletion(
 							addedItemId);
 					}
-				}));
+				})
+		);
 	}
 
 	@Reference
+	private FormItemManager _formItemManager;
+
+	@Reference
+	private FragmentEntryLinkLocalService _fragmentEntryLinkLocalService;
+
+	@Reference
+	private FragmentEntryLinkManager _fragmentEntryLinkManager;
+
+	@Reference
 	private JSONFactory _jsonFactory;
+
+	@Reference
+	private LayoutPageTemplateStructureLocalService
+		_layoutPageTemplateStructureLocalService;
+
+	@Reference
+	private Portal _portal;
 
 }

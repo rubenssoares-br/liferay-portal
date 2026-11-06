@@ -11,6 +11,7 @@ import com.liferay.asset.kernel.service.AssetCategoryLocalServiceUtil;
 import com.liferay.asset.kernel.service.AssetTagLocalServiceUtil;
 import com.liferay.exportimport.kernel.lifecycle.ExportImportLifecycleManagerUtil;
 import com.liferay.exportimport.kernel.lifecycle.constants.ExportImportLifecycleConstants;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.comment.CommentManagerUtil;
 import com.liferay.portal.kernel.comment.DiscussionStagingHandler;
 import com.liferay.portal.kernel.exception.NoSuchModelException;
@@ -19,6 +20,7 @@ import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.AuditedModel;
+import com.liferay.portal.kernel.model.ExternalReferenceCodeModel;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.LocalizedModel;
 import com.liferay.portal.kernel.model.ResourcedModel;
@@ -26,6 +28,7 @@ import com.liferay.portal.kernel.model.StagedGroupedModel;
 import com.liferay.portal.kernel.model.StagedModel;
 import com.liferay.portal.kernel.model.TrashedModel;
 import com.liferay.portal.kernel.model.WorkflowedModel;
+import com.liferay.portal.kernel.model.change.tracking.CTModel;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -319,7 +322,7 @@ public abstract class BaseStagedModelDataHandler<T extends StagedModel>
 			PortletDataContext portletDataContext, T stagedModel)
 		throws PortletDataException {
 
-		if (!isEnabled(stagedModel.getCompanyId())) {
+		if (!isEnabled(_getCompanyId(portletDataContext))) {
 			return;
 		}
 
@@ -327,6 +330,18 @@ public abstract class BaseStagedModelDataHandler<T extends StagedModel>
 
 		if (portletDataContext.isPathProcessed(path)) {
 			return;
+		}
+
+		if (stagedModel instanceof CTModel) {
+			CTModel<?> ctModel = (CTModel)stagedModel;
+
+			if ((ctModel.getCtCollectionId() !=
+					CTCollectionThreadLocal.CT_COLLECTION_ID_PRODUCTION) &&
+				(ctModel.getCtCollectionId() !=
+					CTCollectionThreadLocal.getCTCollectionId())) {
+
+				return;
+			}
 		}
 
 		try {
@@ -440,7 +455,7 @@ public abstract class BaseStagedModelDataHandler<T extends StagedModel>
 			PortletDataContext portletDataContext, T stagedModel)
 		throws PortletDataException {
 
-		if (!isEnabled(_getCompanyId(stagedModel))) {
+		if (!isEnabled(_getCompanyId(portletDataContext))) {
 			return;
 		}
 
@@ -632,6 +647,25 @@ public abstract class BaseStagedModelDataHandler<T extends StagedModel>
 		}
 	}
 
+	protected T fetchExistingStagedModel(
+		StagedModel stagedModel, long groupId) {
+
+		if (stagedModel instanceof
+				ExternalReferenceCodeModel externalReferenceCodeModel) {
+
+			T existingStagedModel =
+				fetchStagedModelByExternalReferenceCodeAndGroupId(
+					externalReferenceCodeModel.getExternalReferenceCode(),
+					groupId);
+
+			if (existingStagedModel != null) {
+				return existingStagedModel;
+			}
+		}
+
+		return fetchStagedModelByUuidAndGroupId(stagedModel.getUuid(), groupId);
+	}
+
 	protected int getProcessFlag() {
 
 		// Ordered by precedence
@@ -744,9 +778,11 @@ public abstract class BaseStagedModelDataHandler<T extends StagedModel>
 			AssetTag assetTag = AssetTagLocalServiceUtil.fetchAssetTag(
 				importedStagedAssetTagId);
 
-			if (assetTag != null) {
-				assetTagNames.add(assetTag.getName());
+			if (assetTag == null) {
+				continue;
 			}
+
+			assetTagNames.add(assetTag.getName());
 		}
 
 		if (assetTagNames.isEmpty()) {

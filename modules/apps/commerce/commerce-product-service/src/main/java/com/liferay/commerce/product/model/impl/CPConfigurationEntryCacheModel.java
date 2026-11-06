@@ -71,7 +71,7 @@ public class CPConfigurationEntryCacheModel
 
 	@Override
 	public String toString() {
-		StringBundler sb = new StringBundler(71);
+		StringBundler sb = new StringBundler(73);
 
 		sb.append("{mvccVersion=");
 		sb.append(mvccVersion);
@@ -83,6 +83,8 @@ public class CPConfigurationEntryCacheModel
 		sb.append(externalReferenceCode);
 		sb.append(", CPConfigurationEntryId=");
 		sb.append(CPConfigurationEntryId);
+		sb.append(", groupId=");
+		sb.append(groupId);
 		sb.append(", companyId=");
 		sb.append(companyId);
 		sb.append(", userId=");
@@ -105,6 +107,8 @@ public class CPConfigurationEntryCacheModel
 		sb.append(allowedOrderQuantities);
 		sb.append(", backOrders=");
 		sb.append(backOrders);
+		sb.append(", commerceAvailabilityEstimateId=");
+		sb.append(commerceAvailabilityEstimateId);
 		sb.append(", CPDefinitionInventoryEngine=");
 		sb.append(CPDefinitionInventoryEngine);
 		sb.append(", depth=");
@@ -137,8 +141,6 @@ public class CPConfigurationEntryCacheModel
 		sb.append(shipSeparately);
 		sb.append(", taxExempt=");
 		sb.append(taxExempt);
-		sb.append(", visible=");
-		sb.append(visible);
 		sb.append(", weight=");
 		sb.append(weight);
 		sb.append(", width=");
@@ -173,6 +175,7 @@ public class CPConfigurationEntryCacheModel
 
 		cpConfigurationEntryImpl.setCPConfigurationEntryId(
 			CPConfigurationEntryId);
+		cpConfigurationEntryImpl.setGroupId(groupId);
 		cpConfigurationEntryImpl.setCompanyId(companyId);
 		cpConfigurationEntryImpl.setUserId(userId);
 
@@ -212,6 +215,8 @@ public class CPConfigurationEntryCacheModel
 		}
 
 		cpConfigurationEntryImpl.setBackOrders(backOrders);
+		cpConfigurationEntryImpl.setCommerceAvailabilityEstimateId(
+			commerceAvailabilityEstimateId);
 
 		if (CPDefinitionInventoryEngine == null) {
 			cpConfigurationEntryImpl.setCPDefinitionInventoryEngine("");
@@ -244,7 +249,6 @@ public class CPConfigurationEntryCacheModel
 		cpConfigurationEntryImpl.setShippingExtraPrice(shippingExtraPrice);
 		cpConfigurationEntryImpl.setShipSeparately(shipSeparately);
 		cpConfigurationEntryImpl.setTaxExempt(taxExempt);
-		cpConfigurationEntryImpl.setVisible(visible);
 		cpConfigurationEntryImpl.setWeight(weight);
 		cpConfigurationEntryImpl.setWidth(width);
 
@@ -265,6 +269,8 @@ public class CPConfigurationEntryCacheModel
 
 		CPConfigurationEntryId = objectInput.readLong();
 
+		groupId = objectInput.readLong();
+
 		companyId = objectInput.readLong();
 
 		userId = objectInput.readLong();
@@ -282,6 +288,8 @@ public class CPConfigurationEntryCacheModel
 		allowedOrderQuantities = objectInput.readUTF();
 
 		backOrders = objectInput.readBoolean();
+
+		commerceAvailabilityEstimateId = objectInput.readLong();
 		CPDefinitionInventoryEngine = objectInput.readUTF();
 
 		depth = objectInput.readDouble();
@@ -309,8 +317,6 @@ public class CPConfigurationEntryCacheModel
 
 		taxExempt = objectInput.readBoolean();
 
-		visible = objectInput.readBoolean();
-
 		weight = objectInput.readDouble();
 
 		width = objectInput.readDouble();
@@ -337,6 +343,8 @@ public class CPConfigurationEntryCacheModel
 		}
 
 		objectOutput.writeLong(CPConfigurationEntryId);
+
+		objectOutput.writeLong(groupId);
 
 		objectOutput.writeLong(companyId);
 
@@ -368,6 +376,8 @@ public class CPConfigurationEntryCacheModel
 		}
 
 		objectOutput.writeBoolean(backOrders);
+
+		objectOutput.writeLong(commerceAvailabilityEstimateId);
 
 		if (CPDefinitionInventoryEngine == null) {
 			objectOutput.writeUTF("");
@@ -408,8 +418,6 @@ public class CPConfigurationEntryCacheModel
 
 		objectOutput.writeBoolean(taxExempt);
 
-		objectOutput.writeBoolean(visible);
-
 		objectOutput.writeDouble(weight);
 
 		objectOutput.writeDouble(width);
@@ -420,6 +428,7 @@ public class CPConfigurationEntryCacheModel
 	public String uuid;
 	public String externalReferenceCode;
 	public long CPConfigurationEntryId;
+	public long groupId;
 	public long companyId;
 	public long userId;
 	public String userName;
@@ -431,6 +440,7 @@ public class CPConfigurationEntryCacheModel
 	public long CPTaxCategoryId;
 	public String allowedOrderQuantities;
 	public boolean backOrders;
+	public long commerceAvailabilityEstimateId;
 	public String CPDefinitionInventoryEngine;
 	public double depth;
 	public boolean displayAvailability;
@@ -447,8 +457,8 @@ public class CPConfigurationEntryCacheModel
 	public double shippingExtraPrice;
 	public boolean shipSeparately;
 	public boolean taxExempt;
-	public boolean visible;
 	public double weight;
 	public double width;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-788385515

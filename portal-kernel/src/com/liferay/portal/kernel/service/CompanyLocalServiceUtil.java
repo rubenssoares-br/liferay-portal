@@ -87,17 +87,10 @@ public class CompanyLocalServiceUtil {
 			companyId, name, virtualHostname, webId);
 	}
 
-	/**
-	 * Returns the company with the web domain.
-	 *
-	 * The method sets mail domain to the web domain to the default name set in
-	 * portal.properties
-	 *
-	 * @param webId the company's web domain
-	 * @return the company with the web domain
-	 */
-	public static Company checkCompany(String webId) throws PortalException {
-		return getService().checkCompany(webId);
+	public static Company checkCompany(Company company, boolean newCompany)
+		throws PortalException {
+
+		return getService().checkCompany(company, newCompany);
 	}
 
 	/**
@@ -276,10 +269,8 @@ public class CompanyLocalServiceUtil {
 		return getService().dynamicQueryCount(dynamicQuery, projection);
 	}
 
-	public static Company extractDBPartitionCompany(long companyId)
-		throws PortalException {
-
-		return getService().extractDBPartitionCompany(companyId);
+	public static Company exportCompany(long companyId) throws PortalException {
+		return getService().exportCompany(companyId);
 	}
 
 	public static Company fetchCompany(long companyId) {
@@ -295,17 +286,6 @@ public class CompanyLocalServiceUtil {
 	 */
 	public static Company fetchCompanyById(long companyId) {
 		return getService().fetchCompanyById(companyId);
-	}
-
-	/**
-	 * Returns the company with the virtual host name.
-	 *
-	 * @param virtualHostname the virtual host name
-	 * @return the company with the virtual host name, <code>null</code> if a
-	 company with the virtual host could not be found
-	 */
-	public static Company fetchCompanyByVirtualHost(String virtualHostname) {
-		return getService().fetchCompanyByVirtualHost(virtualHostname);
 	}
 
 	public static <E extends Exception> void forEachCompany(
@@ -400,40 +380,6 @@ public class CompanyLocalServiceUtil {
 		throws PortalException {
 
 		return getService().getCompanyById(companyId);
-	}
-
-	/**
-	 * Returns the company with the logo.
-	 *
-	 * @param logoId the ID of the company's logo
-	 * @return the company with the logo
-	 */
-	public static Company getCompanyByLogoId(long logoId)
-		throws PortalException {
-
-		return getService().getCompanyByLogoId(logoId);
-	}
-
-	/**
-	 * Returns the company with the mail domain.
-	 *
-	 * @param mx the company's mail domain
-	 * @return the company with the mail domain
-	 */
-	public static Company getCompanyByMx(String mx) throws PortalException {
-		return getService().getCompanyByMx(mx);
-	}
-
-	/**
-	 * Returns the company with the virtual host name.
-	 *
-	 * @param virtualHostname the company's virtual host name
-	 * @return the company with the virtual host name
-	 */
-	public static Company getCompanyByVirtualHost(String virtualHostname)
-		throws PortalException {
-
-		return getService().getCompanyByVirtualHost(virtualHostname);
 	}
 
 	/**
@@ -740,6 +686,13 @@ public class CompanyLocalServiceUtil {
 			strangersWithMx, strangersVerify, siteLogo);
 	}
 
+	public static void validateCompany(
+			String webId, String virtualHostname, String mx, int maxUsers)
+		throws PortalException {
+
+		getService().validateCompany(webId, virtualHostname, mx, maxUsers);
+	}
+
 	public static CompanyLocalService getService() {
 		return _service;
 	}
@@ -751,3 +704,4 @@ public class CompanyLocalServiceUtil {
 	private static volatile CompanyLocalService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-313236327

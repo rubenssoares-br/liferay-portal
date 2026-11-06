@@ -8,9 +8,12 @@ package com.liferay.commerce.test.util;
 import com.liferay.account.constants.AccountConstants;
 import com.liferay.account.model.AccountEntry;
 import com.liferay.commerce.account.test.util.CommerceAccountTestUtil;
+import com.liferay.commerce.constants.CommerceAddressConstants;
+import com.liferay.commerce.constants.CommerceConstants;
 import com.liferay.commerce.constants.CommerceShipmentConstants;
 import com.liferay.commerce.context.CommerceContext;
 import com.liferay.commerce.currency.model.CommerceCurrency;
+import com.liferay.commerce.currency.service.CommerceCurrencyLocalServiceUtil;
 import com.liferay.commerce.currency.test.util.CommerceCurrencyTestUtil;
 import com.liferay.commerce.inventory.model.CommerceInventoryWarehouse;
 import com.liferay.commerce.model.CPDefinitionInventory;
@@ -28,6 +31,7 @@ import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.model.CommerceCatalog;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.model.CommerceChannelRel;
+import com.liferay.commerce.product.service.CPDefinitionLocalServiceUtil;
 import com.liferay.commerce.product.service.CPInstanceLocalServiceUtil;
 import com.liferay.commerce.product.service.CommerceCatalogLocalServiceUtil;
 import com.liferay.commerce.product.service.CommerceChannelLocalServiceUtil;
@@ -45,7 +49,9 @@ import com.liferay.commerce.tax.engine.fixed.service.CommerceTaxFixedRateLocalSe
 import com.liferay.commerce.tax.model.CommerceTaxMethod;
 import com.liferay.commerce.tax.service.CommerceTaxMethodLocalServiceUtil;
 import com.liferay.commerce.test.util.context.TestCommerceContext;
+import com.liferay.petra.function.UnsafeRunnable;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.configuration.test.util.GroupConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Country;
 import com.liferay.portal.kernel.model.Region;
@@ -55,6 +61,7 @@ import com.liferay.portal.kernel.service.RegionLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
+import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 
 import java.math.BigDecimal;
@@ -92,9 +99,13 @@ public class CommerceTestUtil {
 			CommerceChannelLocalServiceUtil.
 				getCommerceChannelGroupIdBySiteGroupId(groupId);
 
+		CommerceCurrency commerceCurrency =
+			CommerceCurrencyLocalServiceUtil.getCommerceCurrency(
+				commerceCurrencyId);
+
 		return CommerceOrderLocalServiceUtil.addCommerceOrder(
 			userId, commerceChannelGroupId, commerceAccountId,
-			commerceCurrencyId);
+			commerceCurrency.getCode(), 0);
 	}
 
 	public static CommerceOrder addB2CCommerceOrder(
@@ -113,7 +124,7 @@ public class CommerceTestUtil {
 
 		return CommerceOrderLocalServiceUtil.addCommerceOrder(
 			userId, groupId, accountEntry.getAccountEntryId(),
-			commerceCurrency.getCommerceCurrencyId());
+			commerceCurrency.getCode(), 0);
 	}
 
 	public static CommerceOrder addB2CCommerceOrder(
@@ -138,9 +149,13 @@ public class CommerceTestUtil {
 				userId);
 		}
 
+		CommerceCurrency commerceCurrency =
+			CommerceCurrencyLocalServiceUtil.getCommerceCurrency(
+				commerceCurrencyId);
+
 		return CommerceOrderLocalServiceUtil.addCommerceOrder(
 			userId, groupId, accountEntry.getAccountEntryId(),
-			commerceCurrencyId);
+			commerceCurrency.getCode(), 0);
 	}
 
 	public static CommerceOrder addCheckoutDetailsToCommerceOrder(
@@ -249,6 +264,12 @@ public class CommerceTestUtil {
 
 		CPDefinition cpDefinition = cpInstance.getCPDefinition();
 
+		cpDefinition.setCPTaxCategoryId(
+			CommerceTaxTestUtil.addTaxCategoryId(groupId));
+
+		cpDefinition = CPDefinitionLocalServiceUtil.updateCPDefinition(
+			cpDefinition);
+
 		addCommerceTaxFixedRate(
 			userId, commerceOrder.getGroupId(),
 			cpDefinition.getCPTaxCategoryId(), false, true);
@@ -312,8 +333,7 @@ public class CommerceTestUtil {
 				CommerceCurrencyTestUtil.addCommerceCurrency(
 					commerceOrder.getCompanyId());
 
-			commerceOrder.setCommerceCurrencyId(
-				commerceCurrency.getCommerceCurrencyId());
+			commerceOrder.setCommerceCurrencyCode(commerceCurrency.getCode());
 
 			commerceOrder = CommerceOrderLocalServiceUtil.updateCommerceOrder(
 				commerceOrder);
@@ -359,8 +379,7 @@ public class CommerceTestUtil {
 				CommerceCurrencyTestUtil.addCommerceCurrency(
 					commerceOrder.getCompanyId());
 
-			commerceOrder.setCommerceCurrencyId(
-				commerceCurrency.getCommerceCurrencyId());
+			commerceOrder.setCommerceCurrencyCode(commerceCurrency.getCode());
 
 			commerceOrder = CommerceOrderLocalServiceUtil.updateCommerceOrder(
 				commerceOrder);
@@ -534,12 +553,14 @@ public class CommerceTestUtil {
 		Region region = _setUpRegion(country, serviceContext);
 
 		return CommerceAddressLocalServiceUtil.addCommerceAddress(
-			User.class.getName(), userId, RandomTestUtil.randomString(),
+			StringPool.BLANK, User.class.getName(), userId,
+			country.getCountryId(), region.getRegionId(),
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), String.valueOf(30133),
-			region.getRegionId(), country.getCountryId(),
-			RandomTestUtil.randomString(), false, false, serviceContext);
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(), StringPool.BLANK,
+			CommerceAddressConstants.ADDRESS_TYPE_BILLING_AND_SHIPPING,
+			String.valueOf(30133), serviceContext);
 	}
 
 	public static CommerceChannelRel addWarehouseCommerceChannelRel(
@@ -609,6 +630,48 @@ public class CommerceTestUtil {
 		return CommerceOrderLocalServiceUtil.updateCommerceOrder(commerceOrder);
 	}
 
+	public static void runWithGuestBrowsingDisabled(
+			long groupId, UnsafeRunnable<Exception> unsafeRunnable)
+		throws Exception {
+
+		try (GroupConfigurationTemporarySwapper
+				groupConfigurationTemporarySwapper =
+					new GroupConfigurationTemporarySwapper(
+						groupId,
+						CommerceConstants.SERVICE_NAME_COMMERCE_ACCOUNT,
+						HashMapDictionaryBuilder.<String, Object>put(
+							"guestBrowsingEnabled", false
+						).build())) {
+
+			unsafeRunnable.run();
+		}
+	}
+
+	public static void runWithGuestCheckoutDisabledOnB2BChannel(
+			long groupId, UnsafeRunnable<Exception> unsafeRunnable)
+		throws Exception {
+
+		try (GroupConfigurationTemporarySwapper
+				guestCheckoutGroupConfigurationTemporarySwapper =
+					new GroupConfigurationTemporarySwapper(
+						groupId, CommerceConstants.SERVICE_NAME_COMMERCE_ORDER,
+						HashMapDictionaryBuilder.<String, Object>put(
+							"guestCheckoutEnabled", false
+						).build());
+			GroupConfigurationTemporarySwapper
+				siteTypeGroupConfigurationTemporarySwapper =
+					new GroupConfigurationTemporarySwapper(
+						groupId,
+						CommerceConstants.SERVICE_NAME_COMMERCE_ACCOUNT,
+						HashMapDictionaryBuilder.<String, Object>put(
+							"commerceSiteType",
+							CommerceChannelConstants.SITE_TYPE_B2B
+						).build())) {
+
+			unsafeRunnable.run();
+		}
+	}
+
 	public static CPDefinitionInventory updateBackOrderCPDefinitionInventory(
 			CPDefinition cpDefinition)
 		throws PortalException {
@@ -637,8 +700,9 @@ public class CommerceTestUtil {
 
 		if (country == null) {
 			country = CountryLocalServiceUtil.addCountry(
-				"ZZ", "ZZZ", true, true, null, RandomTestUtil.randomString(),
-				"000", RandomTestUtil.randomDouble(), true, false, false,
+				null, "ZZ", "ZZZ", true, true, null,
+				RandomTestUtil.randomString(), "000",
+				RandomTestUtil.randomDouble(), true, false, false,
 				serviceContext);
 		}
 
@@ -657,7 +721,7 @@ public class CommerceTestUtil {
 		}
 
 		return RegionLocalServiceUtil.addRegion(
-			country.getCountryId(), true, RandomTestUtil.randomString(),
+			null, country.getCountryId(), true, RandomTestUtil.randomString(),
 			RandomTestUtil.randomDouble(), RandomTestUtil.randomString(),
 			serviceContext);
 	}

@@ -116,11 +116,7 @@ public class JournalArticlePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		JournalArticle newJournalArticle = _persistence.create(pk);
-
-		newJournalArticle.setMvccVersion(RandomTestUtil.nextLong());
+		JournalArticle newJournalArticle = addJournalArticle();
 
 		newJournalArticle.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -191,7 +187,9 @@ public class JournalArticlePersistenceTest {
 
 		newJournalArticle.setStatusDate(RandomTestUtil.nextDate());
 
-		_journalArticles.add(_persistence.update(newJournalArticle));
+		newJournalArticle = _persistence.update(newJournalArticle);
+
+		_journalArticles.add(newJournalArticle);
 
 		JournalArticle existingJournalArticle = _persistence.findByPrimaryKey(
 			newJournalArticle.getPrimaryKey());
@@ -358,36 +356,10 @@ public class JournalArticlePersistenceTest {
 	}
 
 	@Test
-	public void testCountByDDMTemplateKey() throws Exception {
-		_persistence.countByDDMTemplateKey("");
-
-		_persistence.countByDDMTemplateKey("null");
-
-		_persistence.countByDDMTemplateKey((String)null);
-	}
-
-	@Test
-	public void testCountByLayoutUuid() throws Exception {
-		_persistence.countByLayoutUuid("");
-
-		_persistence.countByLayoutUuid("null");
-
-		_persistence.countByLayoutUuid((String)null);
-	}
-
-	@Test
 	public void testCountBySmallImageId() throws Exception {
 		_persistence.countBySmallImageId(RandomTestUtil.nextLong());
 
 		_persistence.countBySmallImageId(0L);
-	}
-
-	@Test
-	public void testCountByR_I() throws Exception {
-		_persistence.countByR_I(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
-
-		_persistence.countByR_I(0L, RandomTestUtil.randomBoolean());
 	}
 
 	@Test
@@ -402,14 +374,6 @@ public class JournalArticlePersistenceTest {
 	public void testCountByR_STArrayable() throws Exception {
 		_persistence.countByR_ST(
 			RandomTestUtil.nextLong(), new int[] {RandomTestUtil.nextInt(), 0});
-	}
-
-	@Test
-	public void testCountByG_U() throws Exception {
-		_persistence.countByG_U(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByG_U(0L, 0L);
 	}
 
 	@Test
@@ -463,15 +427,6 @@ public class JournalArticlePersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_DDMTK() throws Exception {
-		_persistence.countByG_DDMTK(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_DDMTK(0L, "null");
-
-		_persistence.countByG_DDMTK(0L, (String)null);
-	}
-
-	@Test
 	public void testCountByG_L() throws Exception {
 		_persistence.countByG_L(RandomTestUtil.nextLong(), "");
 
@@ -481,77 +436,11 @@ public class JournalArticlePersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_NotL() throws Exception {
-		_persistence.countByG_NotL(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_NotL(0L, "null");
-
-		_persistence.countByG_NotL(0L, (String)null);
-	}
-
-	@Test
-	public void testCountByG_NotLArrayable() throws Exception {
-		_persistence.countByG_NotL(
-			RandomTestUtil.nextLong(),
-			new String[] {
-				RandomTestUtil.randomString(), "", "null", null, null
-			});
-	}
-
-	@Test
-	public void testCountByG_ST() throws Exception {
-		_persistence.countByG_ST(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByG_ST(0L, 0);
-	}
-
-	@Test
-	public void testCountByC_V() throws Exception {
-		_persistence.countByC_V(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextDouble());
-
-		_persistence.countByC_V(0L, 0D);
-	}
-
-	@Test
-	public void testCountByC_ST() throws Exception {
-		_persistence.countByC_ST(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByC_ST(0L, 0);
-	}
-
-	@Test
-	public void testCountByC_NotST() throws Exception {
-		_persistence.countByC_NotST(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByC_NotST(0L, 0);
-	}
-
-	@Test
 	public void testCountByLtD_S() throws Exception {
 		_persistence.countByLtD_S(
 			RandomTestUtil.nextDate(), RandomTestUtil.nextInt());
 
 		_persistence.countByLtD_S(RandomTestUtil.nextDate(), 0);
-	}
-
-	@Test
-	public void testCountByR_I_S() throws Exception {
-		_persistence.countByR_I_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByR_I_S(0L, RandomTestUtil.randomBoolean(), 0);
-	}
-
-	@Test
-	public void testCountByR_I_SArrayable() throws Exception {
-		_persistence.countByR_I_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean(),
-			new int[] {RandomTestUtil.nextInt(), 0});
 	}
 
 	@Test
@@ -571,6 +460,23 @@ public class JournalArticlePersistenceTest {
 		_persistence.countByG_ERC_V(0L, "null", 0D);
 
 		_persistence.countByG_ERC_V(0L, (String)null, 0D);
+	}
+
+	@Test
+	public void testCountByG_ERC_ST() throws Exception {
+		_persistence.countByG_ERC_ST(
+			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt());
+
+		_persistence.countByG_ERC_ST(0L, "null", 0);
+
+		_persistence.countByG_ERC_ST(0L, (String)null, 0);
+	}
+
+	@Test
+	public void testCountByG_ERC_STArrayable() throws Exception {
+		_persistence.countByG_ERC_ST(
+			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
+			new int[] {RandomTestUtil.nextInt(), 0});
 	}
 
 	@Test
@@ -599,32 +505,22 @@ public class JournalArticlePersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_C_DDMSI() throws Exception {
-		_persistence.countByG_C_DDMSI(
+	public void testCountByG_C_NotL() throws Exception {
+		_persistence.countByG_C_NotL(
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "");
+
+		_persistence.countByG_C_NotL(0L, 0L, "null");
+
+		_persistence.countByG_C_NotL(0L, 0L, (String)null);
+	}
+
+	@Test
+	public void testCountByG_C_NotLArrayable() throws Exception {
+		_persistence.countByG_C_NotL(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong());
-
-		_persistence.countByG_C_DDMSI(0L, 0L, 0L);
-	}
-
-	@Test
-	public void testCountByG_C_DDMTK() throws Exception {
-		_persistence.countByG_C_DDMTK(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_C_DDMTK(0L, 0L, "null");
-
-		_persistence.countByG_C_DDMTK(0L, 0L, (String)null);
-	}
-
-	@Test
-	public void testCountByG_C_L() throws Exception {
-		_persistence.countByG_C_L(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_C_L(0L, 0L, "null");
-
-		_persistence.countByG_C_L(0L, 0L, (String)null);
+			new String[] {
+				RandomTestUtil.randomString(), "", "null", null, null
+			});
 	}
 
 	@Test
@@ -672,24 +568,6 @@ public class JournalArticlePersistenceTest {
 		_persistence.countByG_UT_ST(0L, "null", 0);
 
 		_persistence.countByG_UT_ST(0L, (String)null, 0);
-	}
-
-	@Test
-	public void testCountByC_V_ST() throws Exception {
-		_persistence.countByC_V_ST(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextDouble(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByC_V_ST(0L, 0D, 0);
-	}
-
-	@Test
-	public void testCountByG_F_C_NotST() throws Exception {
-		_persistence.countByG_F_C_NotST(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByG_F_C_NotST(0L, 0L, 0L, 0);
 	}
 
 	@Test
@@ -1047,22 +925,6 @@ public class JournalArticlePersistenceTest {
 				journalArticle, "getColumnOriginalValue",
 				new Class<?>[] {String.class}, "groupId"));
 		Assert.assertEquals(
-			Long.valueOf(journalArticle.getClassNameId()),
-			ReflectionTestUtil.<Long>invoke(
-				journalArticle, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "classNameId"));
-		Assert.assertEquals(
-			Long.valueOf(journalArticle.getDDMStructureId()),
-			ReflectionTestUtil.<Long>invoke(
-				journalArticle, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "DDMStructureId"));
-
-		Assert.assertEquals(
-			Long.valueOf(journalArticle.getGroupId()),
-			ReflectionTestUtil.<Long>invoke(
-				journalArticle, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "groupId"));
-		Assert.assertEquals(
 			journalArticle.getArticleId(),
 			ReflectionTestUtil.invoke(
 				journalArticle, "getColumnOriginalValue",
@@ -1078,8 +940,6 @@ public class JournalArticlePersistenceTest {
 		long pk = RandomTestUtil.nextLong();
 
 		JournalArticle journalArticle = _persistence.create(pk);
-
-		journalArticle.setMvccVersion(RandomTestUtil.nextLong());
 
 		journalArticle.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -1160,3 +1020,4 @@ public class JournalArticlePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1211180202

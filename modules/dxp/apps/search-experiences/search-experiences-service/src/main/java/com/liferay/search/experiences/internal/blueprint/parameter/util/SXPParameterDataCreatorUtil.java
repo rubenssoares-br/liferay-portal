@@ -196,15 +196,17 @@ public class SXPParameterDataCreatorUtil {
 							searchContext.getCompanyId(),
 							searchContext.getLocale());
 
-			if (ListUtil.isNotEmpty(sxpParameterContributorDefinitions)) {
-				for (SXPParameterContributorDefinition
-						sxpParameterContributorDefinition :
-							sxpParameterContributorDefinitions) {
+			if (ListUtil.isEmpty(sxpParameterContributorDefinitions)) {
+				continue;
+			}
 
-					_addSXPParameter(
-						searchContext, sxpParameterContributorDefinition,
-						sxpParameters);
-				}
+			for (SXPParameterContributorDefinition
+					sxpParameterContributorDefinition :
+						sxpParameterContributorDefinitions) {
+
+				_addSXPParameter(
+					searchContext, sxpParameterContributorDefinition,
+					sxpParameters);
 			}
 		}
 	}
@@ -382,7 +384,27 @@ public class SXPParameterDataCreatorUtil {
 		}
 
 		if (object != null) {
-			return ArrayUtil.toArray(GetterUtil.getIntegerValues(object));
+			int[] intArray = GetterUtil.getIntegerValues(object);
+
+			if (ArrayUtil.isNotEmpty(intArray)) {
+				return ArrayUtil.toArray(intArray);
+			}
+
+			if (object instanceof List<?> list) {
+				boolean allInteger = true;
+
+				for (Object element : list) {
+					if (!(element instanceof Integer)) {
+						allInteger = false;
+
+						break;
+					}
+				}
+
+				if (allInteger) {
+					return list.toArray(new Integer[0]);
+				}
+			}
 		}
 
 		if (defaultValue != null) {
@@ -441,7 +463,27 @@ public class SXPParameterDataCreatorUtil {
 		}
 
 		if (object != null) {
-			return ArrayUtil.toArray(GetterUtil.getLongValues(object));
+			long[] longArray = GetterUtil.getLongValues(object);
+
+			if (ArrayUtil.isNotEmpty(longArray)) {
+				return ArrayUtil.toArray(longArray);
+			}
+
+			if (object instanceof List<?> list) {
+				boolean allLong = true;
+
+				for (Object element : list) {
+					if (!(element instanceof Long)) {
+						allLong = false;
+
+						break;
+					}
+				}
+
+				if (allLong) {
+					return list.toArray(new Long[0]);
+				}
+			}
 		}
 
 		if (defaultValue != null) {
@@ -476,57 +518,6 @@ public class SXPParameterDataCreatorUtil {
 		return new LongSXPParameter(
 			name, true,
 			_fit((Long)parameter.getMax(), (Long)parameter.getMin(), value));
-	}
-
-	private static String _getString(String defaultValue, Object object) {
-		if (object != null) {
-			return GetterUtil.getString(object);
-		}
-
-		if (defaultValue != null) {
-			return defaultValue;
-		}
-
-		return null;
-	}
-
-	private static String[] _getStringArray(
-		String[] defaultValue, Object object) {
-
-		if (object != null) {
-			return GetterUtil.getStringValues(object);
-		}
-
-		if (defaultValue != null) {
-			return defaultValue;
-		}
-
-		return null;
-	}
-
-	private static SXPParameter _getStringArraySXPParameter(
-		String name, Object object, Parameter parameter) {
-
-		String[] value = _getStringArray(
-			(String[])parameter.getDefaultValue(), object);
-
-		if (ArrayUtil.isEmpty(value)) {
-			return null;
-		}
-
-		return new StringArraySXPParameter(name, true, value);
-	}
-
-	private static SXPParameter _getStringSXPParameter(
-		String name, Object object, Parameter parameter) {
-
-		String value = _getString((String)parameter.getDefaultValue(), object);
-
-		if (value == null) {
-			return null;
-		}
-
-		return new StringSXPParameter(name, true, value);
 	}
 
 	private static SXPParameter _getSXPParameter(
@@ -569,6 +560,77 @@ public class SXPParameterDataCreatorUtil {
 		}
 
 		throw new IllegalArgumentException();
+	}
+
+	private static String _getString(String defaultValue, Object object) {
+		if (object != null) {
+			return GetterUtil.getString(object);
+		}
+
+		if (defaultValue != null) {
+			return defaultValue;
+		}
+
+		return null;
+	}
+
+	private static String[] _getStringArray(
+		String[] defaultValue, Object object) {
+
+		if (object != null) {
+			String[] stringArray = GetterUtil.getStringValues(object);
+
+			if (ArrayUtil.isNotEmpty(stringArray)) {
+				return stringArray;
+			}
+
+			if (object instanceof List<?> list) {
+				boolean allString = true;
+
+				for (Object element : list) {
+					if (!(element instanceof String)) {
+						allString = false;
+
+						break;
+					}
+				}
+
+				if (allString) {
+					return list.toArray(new String[0]);
+				}
+			}
+		}
+
+		if (defaultValue != null) {
+			return defaultValue;
+		}
+
+		return null;
+	}
+
+	private static SXPParameter _getStringArraySXPParameter(
+		String name, Object object, Parameter parameter) {
+
+		String[] value = _getStringArray(
+			(String[])parameter.getDefaultValue(), object);
+
+		if (ArrayUtil.isEmpty(value)) {
+			return null;
+		}
+
+		return new StringArraySXPParameter(name, true, value);
+	}
+
+	private static SXPParameter _getStringSXPParameter(
+		String name, Object object, Parameter parameter) {
+
+		String value = _getString((String)parameter.getDefaultValue(), object);
+
+		if (value == null) {
+			return null;
+		}
+
+		return new StringSXPParameter(name, true, value);
 	}
 
 	private static SXPParameter _getTimeRangeSXPParameter(

@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("DiscountAccountGroup")
+@GraphQLName(
+	description = "Account-group binding that restricts a discount to a specific AccountGroup. Backed by discount account group link; one row per (discount, accountGroup) pair, the pair is enforced unique by the underlying service.",
+	value = "DiscountAccountGroup"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Account-group binding that restricts a discount to a specific AccountGroup. Backed by discount account group link; one row per (discount, accountGroup) pair, the pair is enforced unique by the underlying service."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "DiscountAccountGroup")
 public class DiscountAccountGroup implements Serializable {
@@ -51,7 +58,10 @@ public class DiscountAccountGroup implements Serializable {
 			DiscountAccountGroup.class, json);
 	}
 
-	@Schema(example = "PAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the target AccountGroup. Either this or `accountGroupId` must be supplied on create; resolved through AccountGroupLocalService.fetchByExternalReferenceCode.",
+		example = "ACG-PARTNERS"
+	)
 	public String getAccountGroupExternalReferenceCode() {
 		if (_accountGroupExternalReferenceCodeSupplier != null) {
 			accountGroupExternalReferenceCode =
@@ -90,7 +100,9 @@ public class DiscountAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the target AccountGroup. Either this or `accountGroupId` must be supplied on create; resolved through AccountGroupLocalService.fetchByExternalReferenceCode."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String accountGroupExternalReferenceCode;
 
@@ -98,7 +110,10 @@ public class DiscountAccountGroup implements Serializable {
 	private Supplier<String> _accountGroupExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the target AccountGroup. Either this or `accountGroupExternalReferenceCode` must be supplied on create.",
+		example = "41001"
+	)
 	public Long getAccountGroupId() {
 		if (_accountGroupIdSupplier != null) {
 			accountGroupId = _accountGroupIdSupplier.get();
@@ -132,14 +147,19 @@ public class DiscountAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the target AccountGroup. Either this or `accountGroupExternalReferenceCode` must be supplied on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long accountGroupId;
 
 	@JsonIgnore
 	private Supplier<Long> _accountGroupIdSupplier;
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the parent discount. Populated by the server on response; on create the discount is resolved from the URL path.",
+		example = "DISC-SUMMER-2025"
+	)
 	public String getDiscountExternalReferenceCode() {
 		if (_discountExternalReferenceCodeSupplier != null) {
 			discountExternalReferenceCode =
@@ -177,7 +197,9 @@ public class DiscountAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the parent discount. Populated by the server on response; on create the discount is resolved from the URL path."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String discountExternalReferenceCode;
 
@@ -185,7 +207,10 @@ public class DiscountAccountGroup implements Serializable {
 	private Supplier<String> _discountExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the parent discount. Populated by the server on response; on create the discount is resolved from the URL path.",
+		example = "30130"
+	)
 	public Long getDiscountId() {
 		if (_discountIdSupplier != null) {
 			discountId = _discountIdSupplier.get();
@@ -219,7 +244,9 @@ public class DiscountAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the parent discount. Populated by the server on response; on create the discount is resolved from the URL path."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long discountId;
 
@@ -227,7 +254,10 @@ public class DiscountAccountGroup implements Serializable {
 	private Supplier<Long> _discountIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the discount account group link; read-only and assigned by the service on create.",
+		example = "30643"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -259,7 +289,9 @@ public class DiscountAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the discount account group link; read-only and assigned by the service on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
@@ -369,8 +401,8 @@ public class DiscountAccountGroup implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v1_0.DiscountAccountGroup",
 		name = "x-class-name"
 	)
@@ -457,6 +489,27 @@ public class DiscountAccountGroup implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -465,3 +518,4 @@ public class DiscountAccountGroup implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:750777402

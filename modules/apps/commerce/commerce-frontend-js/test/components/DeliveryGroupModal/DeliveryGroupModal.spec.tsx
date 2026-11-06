@@ -13,7 +13,7 @@ import {
 	IPostalAddressAPIResponse,
 } from '../../../src/main/resources/META-INF/resources/components/multishipping/Types';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {RenderResult, cleanup, render, waitFor} from '@testing-library/react';
 import React from 'react';
 import {act} from 'react-dom/test-utils';
@@ -64,6 +64,8 @@ describe('DeliveryGroupModal', () => {
 	const handleSubmit = jest.fn();
 
 	beforeEach(async () => {
+		fetchMock.mockGlobal();
+
 		fetchMock.get(
 			/headless-admin-address\/.*\/countries/i,
 			(): ICountryAPIResponse => {
@@ -124,7 +126,7 @@ describe('DeliveryGroupModal', () => {
 	});
 
 	afterEach(() => {
-		fetchMock.restore();
+		fetchMock.hardReset();
 		jest.clearAllMocks();
 
 		cleanup();

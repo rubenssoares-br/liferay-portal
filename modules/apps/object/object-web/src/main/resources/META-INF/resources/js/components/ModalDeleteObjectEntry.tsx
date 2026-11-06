@@ -10,6 +10,7 @@ import React, {useEffect, useState} from 'react';
 
 interface ModalDeleteObjectEntryProps {
 	byExternalReferenceCodePath: string;
+	portletNamespace: string;
 }
 
 interface ModalDeleteObjectEntryState {
@@ -20,6 +21,7 @@ interface ModalDeleteObjectEntryState {
 
 export default function ModalDeleteObjectEntry({
 	byExternalReferenceCodePath,
+	portletNamespace,
 }: ModalDeleteObjectEntryProps) {
 	const [modalDeleteObjectEntryState, setModalDeleteObjectEntryState] =
 		useState<ModalDeleteObjectEntryState>({
@@ -27,6 +29,9 @@ export default function ModalDeleteObjectEntry({
 			objectEntry: null,
 			visible: false,
 		});
+
+	const [deleteButtonDisabled, setDeleteButtonDisabled] =
+		useState<boolean>(false);
 
 	const {observer, onClose} = useModal({
 		onClose: () => {
@@ -73,14 +78,14 @@ export default function ModalDeleteObjectEntry({
 			}));
 		};
 
-		Liferay.on('openModalDeleteObjectEntry', openModal);
+		Liferay.on(`${portletNamespace}openModalDeleteObjectEntry`, openModal);
 
 		return () =>
 			Liferay.detach(
-				'openModalDeleteObjectEntry',
+				`${portletNamespace}openModalDeleteObjectEntry`,
 				openModal as () => void
 			);
-	}, []);
+	}, [portletNamespace]);
 
 	return modalDeleteObjectEntryState.visible ? (
 		<ClayModal
@@ -92,7 +97,9 @@ export default function ModalDeleteObjectEntry({
 					: 'danger'
 			}
 		>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{modalDeleteObjectEntryState.deletionErrorMessage
 					? Liferay.Language.get('deletion-not-possible')
 					: Liferay.Language.get('delete-entry')}
@@ -118,16 +125,18 @@ export default function ModalDeleteObjectEntry({
 						)}
 
 						<ClayButton
+							disabled={deleteButtonDisabled}
 							displayType={
 								modalDeleteObjectEntryState.deletionErrorMessage
 									? 'warning'
 									: 'danger'
 							}
-							onClick={() =>
+							onClick={() => {
+								setDeleteButtonDisabled(true);
 								modalDeleteObjectEntryState.deletionErrorMessage
 									? onClose()
-									: onSubmit()
-							}
+									: onSubmit();
+							}}
 						>
 							{modalDeleteObjectEntryState.deletionErrorMessage
 								? Liferay.Language.get('close')

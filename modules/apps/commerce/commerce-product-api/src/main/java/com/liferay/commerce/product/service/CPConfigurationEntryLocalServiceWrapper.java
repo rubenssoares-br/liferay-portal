@@ -50,6 +50,35 @@ public class CPConfigurationEntryLocalServiceWrapper
 			cpConfigurationEntry);
 	}
 
+	@Override
+	public CPConfigurationEntry addCPConfigurationEntry(
+			String externalReferenceCode, long userId, long groupId,
+			long classNameId, long classPK, long cpConfigurationListId,
+			long cpTaxCategoryId, String allowedOrderQuantities,
+			boolean backOrders, long commerceAvailabilityEstimateId,
+			String cpDefinitionInventoryEngine, double depth,
+			boolean displayAvailability, boolean displayStockQuantity,
+			boolean freeShipping, double height, String lowStockActivity,
+			java.math.BigDecimal maxOrderQuantity,
+			java.math.BigDecimal minOrderQuantity,
+			java.math.BigDecimal minStockQuantity,
+			java.math.BigDecimal multipleOrderQuantity, boolean purchasable,
+			boolean shippable, double shippingExtraPrice,
+			boolean shipSeparately, boolean taxExempt, double weight,
+			double width)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpConfigurationEntryLocalService.addCPConfigurationEntry(
+			externalReferenceCode, userId, groupId, classNameId, classPK,
+			cpConfigurationListId, cpTaxCategoryId, allowedOrderQuantities,
+			backOrders, commerceAvailabilityEstimateId,
+			cpDefinitionInventoryEngine, depth, displayAvailability,
+			displayStockQuantity, freeShipping, height, lowStockActivity,
+			maxOrderQuantity, minOrderQuantity, minStockQuantity,
+			multipleOrderQuantity, purchasable, shippable, shippingExtraPrice,
+			shipSeparately, taxExempt, weight, width);
+	}
+
 	/**
 	 * Creates a new cp configuration entry with the primary key. Does not add the cp configuration entry to the database.
 	 *
@@ -76,6 +105,23 @@ public class CPConfigurationEntryLocalServiceWrapper
 			primaryKeyObj);
 	}
 
+	@Override
+	public void deleteCPConfigurationEntries(long cpConfigurationListId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		_cpConfigurationEntryLocalService.deleteCPConfigurationEntries(
+			cpConfigurationListId);
+	}
+
+	@Override
+	public void deleteCPConfigurationEntries(
+			long classNameId, long classPK, boolean force)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		_cpConfigurationEntryLocalService.deleteCPConfigurationEntries(
+			classNameId, classPK, force);
+	}
+
 	/**
 	 * Deletes the cp configuration entry from the database. Also notifies the appropriate model listeners.
 	 *
@@ -85,13 +131,24 @@ public class CPConfigurationEntryLocalServiceWrapper
 	 *
 	 * @param cpConfigurationEntry the cp configuration entry
 	 * @return the cp configuration entry that was removed
+	 * @throws PortalException
 	 */
 	@Override
 	public CPConfigurationEntry deleteCPConfigurationEntry(
-		CPConfigurationEntry cpConfigurationEntry) {
+			CPConfigurationEntry cpConfigurationEntry)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _cpConfigurationEntryLocalService.deleteCPConfigurationEntry(
 			cpConfigurationEntry);
+	}
+
+	@Override
+	public CPConfigurationEntry deleteCPConfigurationEntry(
+			CPConfigurationEntry cpConfigurationEntry, boolean force)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpConfigurationEntryLocalService.deleteCPConfigurationEntry(
+			cpConfigurationEntry, force);
 	}
 
 	/**
@@ -112,6 +169,15 @@ public class CPConfigurationEntryLocalServiceWrapper
 
 		return _cpConfigurationEntryLocalService.deleteCPConfigurationEntry(
 			CPConfigurationEntryId);
+	}
+
+	@Override
+	public CPConfigurationEntry deleteCPConfigurationEntry(
+			long cpConfigurationEntryId, boolean force)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpConfigurationEntryLocalService.deleteCPConfigurationEntry(
+			cpConfigurationEntryId, force);
 	}
 
 	/**
@@ -239,6 +305,14 @@ public class CPConfigurationEntryLocalServiceWrapper
 	}
 
 	@Override
+	public CPConfigurationEntry fetchCPConfigurationEntry(
+		long classNameId, long classPK, long cpConfigurationListId) {
+
+		return _cpConfigurationEntryLocalService.fetchCPConfigurationEntry(
+			classNameId, classPK, cpConfigurationListId);
+	}
+
+	@Override
 	public CPConfigurationEntry
 		fetchCPConfigurationEntryByExternalReferenceCode(
 			String externalReferenceCode, long companyId) {
@@ -249,18 +323,18 @@ public class CPConfigurationEntryLocalServiceWrapper
 	}
 
 	/**
-	 * Returns the cp configuration entry with the matching UUID and company.
+	 * Returns the cp configuration entry matching the UUID and group.
 	 *
 	 * @param uuid the cp configuration entry's UUID
-	 * @param companyId the primary key of the company
+	 * @param groupId the primary key of the group
 	 * @return the matching cp configuration entry, or <code>null</code> if a matching cp configuration entry could not be found
 	 */
 	@Override
-	public CPConfigurationEntry fetchCPConfigurationEntryByUuidAndCompanyId(
-		String uuid, long companyId) {
+	public CPConfigurationEntry fetchCPConfigurationEntryByUuidAndGroupId(
+		String uuid, long groupId) {
 
 		return _cpConfigurationEntryLocalService.
-			fetchCPConfigurationEntryByUuidAndCompanyId(uuid, companyId);
+			fetchCPConfigurationEntryByUuidAndGroupId(uuid, groupId);
 	}
 
 	@Override
@@ -287,6 +361,60 @@ public class CPConfigurationEntryLocalServiceWrapper
 
 		return _cpConfigurationEntryLocalService.getCPConfigurationEntries(
 			start, end);
+	}
+
+	@Override
+	public java.util.List<CPConfigurationEntry> getCPConfigurationEntries(
+		long cpConfigurationListId) {
+
+		return _cpConfigurationEntryLocalService.getCPConfigurationEntries(
+			cpConfigurationListId);
+	}
+
+	@Override
+	public java.util.List<CPConfigurationEntry> getCPConfigurationEntries(
+		long classNameId, long classPK) {
+
+		return _cpConfigurationEntryLocalService.getCPConfigurationEntries(
+			classNameId, classPK);
+	}
+
+	/**
+	 * Returns all the cp configuration entries matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the cp configuration entries
+	 * @param companyId the primary key of the company
+	 * @return the matching cp configuration entries, or an empty list if no matches were found
+	 */
+	@Override
+	public java.util.List<CPConfigurationEntry>
+		getCPConfigurationEntriesByUuidAndCompanyId(
+			String uuid, long companyId) {
+
+		return _cpConfigurationEntryLocalService.
+			getCPConfigurationEntriesByUuidAndCompanyId(uuid, companyId);
+	}
+
+	/**
+	 * Returns a range of cp configuration entries matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the cp configuration entries
+	 * @param companyId the primary key of the company
+	 * @param start the lower bound of the range of cp configuration entries
+	 * @param end the upper bound of the range of cp configuration entries (not inclusive)
+	 * @param orderByComparator the comparator to order the results by (optionally <code>null</code>)
+	 * @return the range of matching cp configuration entries, or an empty list if no matches were found
+	 */
+	@Override
+	public java.util.List<CPConfigurationEntry>
+		getCPConfigurationEntriesByUuidAndCompanyId(
+			String uuid, long companyId, int start, int end,
+			com.liferay.portal.kernel.util.OrderByComparator
+				<CPConfigurationEntry> orderByComparator) {
+
+		return _cpConfigurationEntryLocalService.
+			getCPConfigurationEntriesByUuidAndCompanyId(
+				uuid, companyId, start, end, orderByComparator);
 	}
 
 	/**
@@ -317,6 +445,15 @@ public class CPConfigurationEntryLocalServiceWrapper
 	}
 
 	@Override
+	public CPConfigurationEntry getCPConfigurationEntry(
+			long classNameId, long classPK, long cpConfigurationListId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpConfigurationEntryLocalService.getCPConfigurationEntry(
+			classNameId, classPK, cpConfigurationListId);
+	}
+
+	@Override
 	public CPConfigurationEntry getCPConfigurationEntryByExternalReferenceCode(
 			String externalReferenceCode, long companyId)
 		throws com.liferay.portal.kernel.exception.PortalException {
@@ -327,20 +464,20 @@ public class CPConfigurationEntryLocalServiceWrapper
 	}
 
 	/**
-	 * Returns the cp configuration entry with the matching UUID and company.
+	 * Returns the cp configuration entry matching the UUID and group.
 	 *
 	 * @param uuid the cp configuration entry's UUID
-	 * @param companyId the primary key of the company
+	 * @param groupId the primary key of the group
 	 * @return the matching cp configuration entry
 	 * @throws PortalException if a matching cp configuration entry could not be found
 	 */
 	@Override
-	public CPConfigurationEntry getCPConfigurationEntryByUuidAndCompanyId(
-			String uuid, long companyId)
+	public CPConfigurationEntry getCPConfigurationEntryByUuidAndGroupId(
+			String uuid, long groupId)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _cpConfigurationEntryLocalService.
-			getCPConfigurationEntryByUuidAndCompanyId(uuid, companyId);
+			getCPConfigurationEntryByUuidAndGroupId(uuid, groupId);
 	}
 
 	@Override
@@ -402,6 +539,33 @@ public class CPConfigurationEntryLocalServiceWrapper
 	}
 
 	@Override
+	public CPConfigurationEntry updateCPConfigurationEntry(
+			String externalReferenceCode, long cpConfigurationEntryId,
+			long cpTaxCategoryId, String allowedOrderQuantities,
+			boolean backOrders, long commerceAvailabilityEstimateId,
+			String cpDefinitionInventoryEngine, double depth,
+			boolean displayAvailability, boolean displayStockQuantity,
+			boolean freeShipping, double height, String lowStockActivity,
+			java.math.BigDecimal maxOrderQuantity,
+			java.math.BigDecimal minOrderQuantity,
+			java.math.BigDecimal minStockQuantity,
+			java.math.BigDecimal multipleOrderQuantity, boolean purchasable,
+			boolean shippable, double shippingExtraPrice,
+			boolean shipSeparately, boolean taxExempt, double weight,
+			double width)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpConfigurationEntryLocalService.updateCPConfigurationEntry(
+			externalReferenceCode, cpConfigurationEntryId, cpTaxCategoryId,
+			allowedOrderQuantities, backOrders, commerceAvailabilityEstimateId,
+			cpDefinitionInventoryEngine, depth, displayAvailability,
+			displayStockQuantity, freeShipping, height, lowStockActivity,
+			maxOrderQuantity, minOrderQuantity, minStockQuantity,
+			multipleOrderQuantity, purchasable, shippable, shippingExtraPrice,
+			shipSeparately, taxExempt, weight, width);
+	}
+
+	@Override
 	public BasePersistence<?> getBasePersistence() {
 		return _cpConfigurationEntryLocalService.getBasePersistence();
 	}
@@ -441,3 +605,4 @@ public class CPConfigurationEntryLocalServiceWrapper
 	private CPConfigurationEntryLocalService _cpConfigurationEntryLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:549738440

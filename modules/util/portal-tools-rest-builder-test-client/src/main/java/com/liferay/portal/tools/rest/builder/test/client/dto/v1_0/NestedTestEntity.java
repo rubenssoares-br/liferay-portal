@@ -8,12 +8,12 @@ package com.liferay.portal.tools.rest.builder.test.client.dto.v1_0;
 import com.liferay.portal.tools.rest.builder.test.client.function.UnsafeSupplier;
 import com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0.NestedTestEntitySerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -127,6 +127,27 @@ public class NestedTestEntity implements Cloneable, Serializable {
 
 	protected String name;
 
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public void setPassword(
+		UnsafeSupplier<String, Exception> passwordUnsafeSupplier) {
+
+		try {
+			password = passwordUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String password;
+
 	public TestEntity getTestEntity() {
 		return testEntity;
 	}
@@ -180,3 +201,4 @@ public class NestedTestEntity implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2006044128

@@ -10,9 +10,11 @@ import com.liferay.dispatch.exception.DispatchTriggerSchedulerException;
 import com.liferay.dispatch.model.DispatchTrigger;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.cluster.ClusterableContextThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.messaging.Message;
+import com.liferay.portal.kernel.scheduler.SchedulerEngine;
 import com.liferay.portal.kernel.scheduler.SchedulerEngineHelper;
 import com.liferay.portal.kernel.scheduler.SchedulerException;
 import com.liferay.portal.kernel.scheduler.StorageType;
@@ -32,15 +34,42 @@ import org.osgi.service.component.annotations.Reference;
 @Component(service = DispatchTriggerHelper.class)
 public class DispatchTriggerHelper {
 
+	public void addLocalSchedulerJob(
+			DispatchTrigger dispatchTrigger, String timeZoneId)
+		throws DispatchTriggerSchedulerException {
+
+		ClusterableContextThreadLocal.putThreadLocalContext(
+			SchedulerEngine.SCHEDULER_CLUSTER_INVOKING, false);
+
+		try {
+			addSchedulerJob(dispatchTrigger, StorageType.MEMORY, timeZoneId);
+		}
+		finally {
+			ClusterableContextThreadLocal.putThreadLocalContext(
+				SchedulerEngine.SCHEDULER_CLUSTER_INVOKING, true);
+		}
+	}
+
 	public void addSchedulerJob(
 			DispatchTrigger dispatchTrigger, StorageType storageType,
 			String timeZoneId)
 		throws DispatchTriggerSchedulerException {
 
+		Date date = new Date();
+
+		Date endDate = dispatchTrigger.getEndDate();
+		Date startDate = dispatchTrigger.getStartDate();
+
+		if ((startDate != null) && startDate.before(date) &&
+			((endDate == null) ||
+			 (startDate.before(endDate) && endDate.after(date)))) {
+
+			startDate = date;
+		}
+
 		Trigger trigger = _triggerFactory.createTrigger(
 			_getJobName(dispatchTrigger), _getGroupName(dispatchTrigger),
-			dispatchTrigger.getStartDate(), dispatchTrigger.getEndDate(),
-			dispatchTrigger.getCronExpression(),
+			startDate, endDate, dispatchTrigger.getCronExpression(),
 			TimeZone.getTimeZone(timeZoneId));
 
 		Message message = new Message();
@@ -65,6 +94,27 @@ public class DispatchTriggerHelper {
 				"Unable to create scheduler entry for dispatch trigger " +
 					dispatchTrigger.getDispatchTriggerId(),
 				schedulerException);
+		}
+	}
+
+	public void deleteLocalSchedulerJob(DispatchTrigger dispatchTrigger) {
+		ClusterableContextThreadLocal.putThreadLocalContext(
+			SchedulerEngine.SCHEDULER_CLUSTER_INVOKING, false);
+
+		try {
+			_schedulerEngineHelper.delete(
+				_getJobName(dispatchTrigger), _getGroupName(dispatchTrigger),
+				StorageType.MEMORY);
+		}
+		catch (SchedulerException schedulerException) {
+			_log.error(
+				"Unable to delete scheduler entry for dispatch trigger " +
+					dispatchTrigger.getDispatchTriggerId(),
+				schedulerException);
+		}
+		finally {
+			ClusterableContextThreadLocal.putThreadLocalContext(
+				SchedulerEngine.SCHEDULER_CLUSTER_INVOKING, true);
 		}
 	}
 
@@ -107,7 +157,7 @@ public class DispatchTriggerHelper {
 			return null;
 		}
 
-		return _schedulerEngineHelper.getNextFireTime(schedulerResponse);
+		return _schedulerEngineHelper.getNextFireDate(schedulerResponse);
 	}
 
 	public Date getPreviousFireDate(
@@ -123,7 +173,23 @@ public class DispatchTriggerHelper {
 			return null;
 		}
 
-		return _schedulerEngineHelper.getPreviousFireTime(schedulerResponse);
+		return _schedulerEngineHelper.getPreviousFireDate(schedulerResponse);
+	}
+
+	public boolean hasSchedulerJob(
+			DispatchTrigger dispatchTrigger, StorageType storageType)
+		throws SchedulerException {
+
+		SchedulerResponse schedulerResponse =
+			_schedulerEngineHelper.getScheduledJob(
+				_getJobName(dispatchTrigger), _getGroupName(dispatchTrigger),
+				storageType);
+
+		if (schedulerResponse == null) {
+			return false;
+		}
+
+		return true;
 	}
 
 	private String _getGroupName(DispatchTrigger dispatchTrigger) {

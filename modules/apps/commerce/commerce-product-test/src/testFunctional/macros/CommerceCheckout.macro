@@ -85,12 +85,17 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro gotoCheckoutViaMiniCart() {
+	macro gotoCheckoutViaMiniCart(asGuest = null) {
 		ScrollBy(value1 = "0, 1000");
 
 		CommerceNavigator.gotoMiniCart();
 
-		Button.click(button = "Submit");
+		if (${asGuest} == "true") {
+			Button.click(button = "Proceed as Guest");
+		}
+		else {
+			Button.click(button = "Submit");
+		}
 
 		WaitForPageLoad();
 	}
@@ -388,18 +393,6 @@ definition {
 				locator1 = "Select#ANY",
 				value1 = ${selectedAddressName});
 		}
-	}
-
-	@summary = "Default summary"
-	macro setDeliveryDate(displayDateMonth = null, displayDateYear = null, displayDateDay = null) {
-		var displayDate = "${displayDateMonth}/${displayDateDay}/${displayDateYear}";
-
-		Type(
-			key_fieldName = "mm/dd/yyyy",
-			locator1 = "CommerceAccelerators#CHECKOUT_GENERIC_TEXT_INPUT",
-			value1 = ${displayDate});
-
-		Click(locator1 = "Button#CONTINUE");
 	}
 
 	@summary = "Default summary"

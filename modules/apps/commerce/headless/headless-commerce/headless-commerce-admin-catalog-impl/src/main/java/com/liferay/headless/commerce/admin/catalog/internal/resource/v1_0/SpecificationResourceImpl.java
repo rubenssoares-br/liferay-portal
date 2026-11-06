@@ -6,21 +6,27 @@
 package com.liferay.headless.commerce.admin.catalog.internal.resource.v1_0;
 
 import com.liferay.commerce.product.exception.NoSuchCPSpecificationOptionException;
+import com.liferay.commerce.product.model.CPOptionCategory;
 import com.liferay.commerce.product.model.CPSpecificationOption;
+import com.liferay.commerce.product.service.CPOptionCategoryService;
 import com.liferay.commerce.product.service.CPSpecificationOptionService;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.OptionCategory;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.Specification;
 import com.liferay.headless.commerce.admin.catalog.internal.odata.entity.v1_0.SpecificationEntityModel;
 import com.liferay.headless.commerce.admin.catalog.resource.v1_0.SpecificationResource;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.list.type.model.ListTypeDefinition;
+import com.liferay.list.type.service.ListTypeDefinitionService;
 import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.odata.entity.EntityModel;
@@ -30,10 +36,11 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.SearchUtil;
 
-import java.util.Collections;
-import java.util.Map;
+import jakarta.ws.rs.core.MultivaluedMap;
 
-import javax.ws.rs.core.MultivaluedMap;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -168,18 +175,29 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 				fetchCPSpecificationOptionByExternalReferenceCode(
 					externalReferenceCode, contextCompany.getCompanyId());
 
+		long[] listTypeDefinitionIds = _getListTypeDefinitionIds(specification);
+
+		if (listTypeDefinitionIds == null) {
+			listTypeDefinitionIds = GetterUtil.getLongValues(
+				specification.getListTypeDefinitionIds(),
+				new long[] {
+					GetterUtil.getLong(specification.getListTypeDefinitionId())
+				});
+		}
+
 		if (cpSpecificationOption == null) {
 			cpSpecificationOption =
 				_cpSpecificationOptionService.addCPSpecificationOption(
 					specification.getExternalReferenceCode(),
 					_getCPOptionCategoryId(specification),
-					GetterUtil.getLong(specification.getListTypeDefinitionId()),
+					listTypeDefinitionIds,
 					LanguageUtils.getLocalizedMap(specification.getTitle()),
 					LanguageUtils.getLocalizedMap(
 						specification.getDescription()),
 					GetterUtil.getBoolean(specification.getFacetable()),
 					GetterUtil.getString(specification.getKey()),
 					GetterUtil.getDouble(specification.getPriority()),
+					GetterUtil.getBoolean(specification.getVisible(), true),
 					_serviceContextHelper.getServiceContext());
 
 			return _toSpecification(
@@ -193,12 +211,13 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 			GetterUtil.getString(specification.getExternalReferenceCode()),
 			cpSpecificationOption.getCPSpecificationOptionId(),
 			GetterUtil.getLong(_getCPOptionCategoryId(specification)),
-			GetterUtil.getLong(specification.getListTypeDefinitionId()),
-			LanguageUtils.getLocalizedMap(titleMap),
+			listTypeDefinitionIds, LanguageUtils.getLocalizedMap(titleMap),
 			LanguageUtils.getLocalizedMap(descriptionMap),
 			GetterUtil.getBoolean(specification.getFacetable()),
 			GetterUtil.getString(specification.getKey()),
 			GetterUtil.getDouble(specification.getPriority()),
+			GetterUtil.getBoolean(
+				specification.getVisible(), cpSpecificationOption.isVisible()),
 			_serviceContextHelper.getServiceContext());
 
 		return _toSpecification(
@@ -291,30 +310,111 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 			}
 		}
 
+		long[] listTypeDefinitionIds = _getListTypeDefinitionIds(specification);
+
+		if (listTypeDefinitionIds == null) {
+			listTypeDefinitionIds = GetterUtil.getLongValues(
+				specification.getListTypeDefinitionIds(),
+				new long[] {
+					GetterUtil.getLong(specification.getListTypeDefinitionId())
+				});
+		}
+
 		CPSpecificationOption cpSpecificationOption =
 			_cpSpecificationOptionService.addCPSpecificationOption(
 				specification.getExternalReferenceCode(),
-				_getCPOptionCategoryId(specification),
-				GetterUtil.getLong(specification.getListTypeDefinitionId()),
+				_getCPOptionCategoryId(specification), listTypeDefinitionIds,
 				LanguageUtils.getLocalizedMap(specification.getTitle()),
 				LanguageUtils.getLocalizedMap(specification.getDescription()),
 				GetterUtil.getBoolean(specification.getFacetable()),
 				specificationKey,
-				GetterUtil.getDouble(specification.getPriority()),
+				GetterUtil.getDouble(specification.getPriority()), true,
 				_serviceContextHelper.getServiceContext());
 
 		return _toSpecification(
 			cpSpecificationOption.getCPSpecificationOptionId());
 	}
 
-	private long _getCPOptionCategoryId(Specification specification) {
+	private long _getCPOptionCategoryId(Specification specification)
+		throws PortalException {
+
 		OptionCategory optionCategory = specification.getOptionCategory();
 
 		if (optionCategory == null) {
 			return 0;
 		}
 
-		return optionCategory.getId();
+		CPOptionCategory cpOptionCategory = null;
+
+		long optionCategoryId = GetterUtil.getLong(optionCategory.getId());
+
+		if (optionCategoryId > 0) {
+			cpOptionCategory = _cpOptionCategoryService.fetchCPOptionCategory(
+				optionCategoryId);
+		}
+
+		if (cpOptionCategory != null) {
+			return cpOptionCategory.getCPOptionCategoryId();
+		}
+
+		String externalReferenceCode = GetterUtil.getString(
+			optionCategory.getExternalReferenceCode());
+
+		if (Validator.isNull(externalReferenceCode)) {
+			return 0;
+		}
+
+		cpOptionCategory =
+			_cpOptionCategoryService.
+				fetchCPOptionCategoryByExternalReferenceCode(
+					externalReferenceCode, contextCompany.getCompanyId());
+
+		if (cpOptionCategory != null) {
+			return cpOptionCategory.getCPOptionCategoryId();
+		}
+
+		if (!LazyReferencingThreadLocal.isEnabled()) {
+			return 0;
+		}
+
+		cpOptionCategory =
+			_cpOptionCategoryService.getOrAddEmptyCPOptionCategory(
+				externalReferenceCode);
+
+		return cpOptionCategory.getCPOptionCategoryId();
+	}
+
+	private long _getListTypeDefinitionId(String externalReferenceCode)
+		throws PortalException {
+
+		if (!LazyReferencingThreadLocal.isEnabled()) {
+			ListTypeDefinition listTypeDefinition =
+				_listTypeDefinitionService.
+					getListTypeDefinitionByExternalReferenceCode(
+						externalReferenceCode, contextCompany.getCompanyId());
+
+			return listTypeDefinition.getListTypeDefinitionId();
+		}
+
+		ListTypeDefinition listTypeDefinition =
+			_listTypeDefinitionService.getOrAddEmptyListTypeDefinition(
+				externalReferenceCode, false);
+
+		return listTypeDefinition.getListTypeDefinitionId();
+	}
+
+	private long[] _getListTypeDefinitionIds(Specification specification)
+		throws PortalException {
+
+		String[] externalReferenceCodes =
+			specification.getListTypeDefinitionExternalReferenceCodes();
+
+		if (ArrayUtil.isEmpty(externalReferenceCodes)) {
+			return null;
+		}
+
+		return transformToLongArray(
+			externalReferenceCodes, this::_getListTypeDefinitionId);
 	}
 
 	private Specification _toSpecification(Long cpSpecificationOptionId)
@@ -338,6 +438,35 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 				cpSpecificationOption.getDescriptionMap());
 		}
 
+		long[] listTypeDefinitionIds = _getListTypeDefinitionIds(specification);
+
+		if (listTypeDefinitionIds == null) {
+			listTypeDefinitionIds = GetterUtil.getLongValues(
+				specification.getListTypeDefinitionIds(),
+				transformToLongArray(
+					cpSpecificationOption.getListTypeDefinitions(),
+					ListTypeDefinition::getListTypeDefinitionId));
+
+			if (specification.getListTypeDefinitionIds() == null) {
+				long listTypeDefinitionId = GetterUtil.getLong(
+					specification.getListTypeDefinitionId());
+
+				List<ListTypeDefinition> listTypeDefinitions =
+					cpSpecificationOption.getListTypeDefinitions();
+
+				if (!listTypeDefinitions.isEmpty()) {
+					ListTypeDefinition listTypeDefinition =
+						listTypeDefinitions.get(0);
+
+					listTypeDefinitionId = GetterUtil.getLong(
+						specification.getListTypeDefinitionId(),
+						listTypeDefinition.getListTypeDefinitionId());
+				}
+
+				listTypeDefinitionIds = new long[] {listTypeDefinitionId};
+			}
+		}
+
 		Map<String, String> titleMap = specification.getTitle();
 
 		if (titleMap == null) {
@@ -353,10 +482,7 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 			GetterUtil.getLong(
 				cpSpecificationOption.getCPOptionCategoryId(),
 				_getCPOptionCategoryId(specification)),
-			GetterUtil.getLong(
-				specification.getListTypeDefinitionId(),
-				cpSpecificationOption.getListTypeDefinitionId()),
-			LanguageUtils.getLocalizedMap(titleMap),
+			listTypeDefinitionIds, LanguageUtils.getLocalizedMap(titleMap),
 			LanguageUtils.getLocalizedMap(descriptionMap),
 			GetterUtil.getBoolean(
 				specification.getFacetable(),
@@ -366,6 +492,8 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 			GetterUtil.getDouble(
 				specification.getPriority(),
 				cpSpecificationOption.getPriority()),
+			GetterUtil.getBoolean(
+				specification.getVisible(), cpSpecificationOption.isVisible()),
 			_serviceContextHelper.getServiceContext());
 	}
 
@@ -376,7 +504,13 @@ public class SpecificationResourceImpl extends BaseSpecificationResourceImpl {
 		new SpecificationEntityModel();
 
 	@Reference
+	private CPOptionCategoryService _cpOptionCategoryService;
+
+	@Reference
 	private CPSpecificationOptionService _cpSpecificationOptionService;
+
+	@Reference
+	private ListTypeDefinitionService _listTypeDefinitionService;
 
 	@Reference
 	private ServiceContextHelper _serviceContextHelper;

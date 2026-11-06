@@ -12,30 +12,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.liferay.headless.admin.user.dto.v1_0.Creator;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -45,6 +46,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "A display page template folder.",
 	value = "DisplayPageTemplateFolder"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A display page template folder."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "DisplayPageTemplateFolder")
@@ -60,7 +64,54 @@ public class DisplayPageTemplateFolder implements Serializable {
 			DisplayPageTemplateFolder.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Block of actions allowed by the user making the request."
+	)
+	@Valid
+	public Map<String, Map<String, String>> getActions() {
+		if (_actionsSupplier != null) {
+			actions = _actionsSupplier.get();
+
+			_actionsSupplier = null;
+		}
+
+		return actions;
+	}
+
+	public void setActions(Map<String, Map<String, String>> actions) {
+		this.actions = actions;
+
+		_actionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setActions(
+		UnsafeSupplier<Map<String, Map<String, String>>, Exception>
+			actionsUnsafeSupplier) {
+
+		_actionsSupplier = () -> {
+			try {
+				return actionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Block of actions allowed by the user making the request."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Map<String, Map<String, String>> actions;
+
+	@JsonIgnore
+	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The display page template folder's creator. It is not returned by default. It can be embedded via nestedFields."
 	)
 	@Valid
@@ -106,56 +157,9 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(
-		description = "The display page template folder's creator external reference code."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template folder's creation date."
 	)
-	public String getCreatorExternalReferenceCode() {
-		if (_creatorExternalReferenceCodeSupplier != null) {
-			creatorExternalReferenceCode =
-				_creatorExternalReferenceCodeSupplier.get();
-
-			_creatorExternalReferenceCodeSupplier = null;
-		}
-
-		return creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		String creatorExternalReferenceCode) {
-
-		this.creatorExternalReferenceCode = creatorExternalReferenceCode;
-
-		_creatorExternalReferenceCodeSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setCreatorExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			creatorExternalReferenceCodeUnsafeSupplier) {
-
-		_creatorExternalReferenceCodeSupplier = () -> {
-			try {
-				return creatorExternalReferenceCodeUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The display page template folder's creator external reference code."
-	)
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String creatorExternalReferenceCode;
-
-	@JsonIgnore
-	private Supplier<String> _creatorExternalReferenceCodeSupplier;
-
-	@Schema(description = "The display page template folder's creation date.")
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -198,7 +202,7 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The last time any field of the display page template folder was changed."
 	)
 	public Date getDateModified() {
@@ -243,7 +247,9 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The display page template folder's description.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template folder's description."
+	)
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -286,7 +292,7 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The display page template folder's external reference code."
 	)
 	public String getExternalReferenceCode() {
@@ -331,7 +337,9 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The display page template folder's key.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template folder's key."
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -370,7 +378,9 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(description = "The display page template folder's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template folder's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -409,7 +419,56 @@ public class DisplayPageTemplateFolder implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The parent display page template folder."
+	)
+	@Valid
+	public DisplayPageTemplateFolder getParentDisplayPageTemplateFolder() {
+		if (_parentDisplayPageTemplateFolderSupplier != null) {
+			parentDisplayPageTemplateFolder =
+				_parentDisplayPageTemplateFolderSupplier.get();
+
+			_parentDisplayPageTemplateFolderSupplier = null;
+		}
+
+		return parentDisplayPageTemplateFolder;
+	}
+
+	public void setParentDisplayPageTemplateFolder(
+		DisplayPageTemplateFolder parentDisplayPageTemplateFolder) {
+
+		this.parentDisplayPageTemplateFolder = parentDisplayPageTemplateFolder;
+
+		_parentDisplayPageTemplateFolderSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setParentDisplayPageTemplateFolder(
+		UnsafeSupplier<DisplayPageTemplateFolder, Exception>
+			parentDisplayPageTemplateFolderUnsafeSupplier) {
+
+		_parentDisplayPageTemplateFolderSupplier = () -> {
+			try {
+				return parentDisplayPageTemplateFolderUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The parent display page template folder.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected DisplayPageTemplateFolder parentDisplayPageTemplateFolder;
+
+	@JsonIgnore
+	private Supplier<DisplayPageTemplateFolder>
+		_parentDisplayPageTemplateFolderSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The parent display page template folder's external reference code."
 	)
 	public String getParentDisplayPageTemplateFolderExternalReferenceCode() {
@@ -465,7 +524,54 @@ public class DisplayPageTemplateFolder implements Serializable {
 	private Supplier<String>
 		_parentDisplayPageTemplateFolderExternalReferenceCodeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public com.liferay.portal.vulcan.permission.Permission[] getPermissions() {
+		if (_permissionsSupplier != null) {
+			permissions = _permissionsSupplier.get();
+
+			_permissionsSupplier = null;
+		}
+
+		return permissions;
+	}
+
+	public void setPermissions(
+		com.liferay.portal.vulcan.permission.Permission[] permissions) {
+
+		this.permissions = permissions;
+
+		_permissionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.permission.Permission[], Exception>
+				permissionsUnsafeSupplier) {
+
+		_permissionsSupplier = () -> {
+			try {
+				return permissionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.permission.Permission[] permissions;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.permission.Permission[]>
+		_permissionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A valid external identifier to reference this page template folder."
 	)
 	public String getUuid() {
@@ -539,6 +645,18 @@ public class DisplayPageTemplateFolder implements Serializable {
 		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
 
+		Map<String, Map<String, String>> actions = getActions();
+
+		if (actions != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"actions\": ");
+
+			sb.append(_toJSON(actions));
+		}
+
 		Creator creator = getCreator();
 
 		if (creator != null) {
@@ -549,22 +667,6 @@ public class DisplayPageTemplateFolder implements Serializable {
 			sb.append("\"creator\": ");
 
 			sb.append(creator);
-		}
-
-		String creatorExternalReferenceCode = getCreatorExternalReferenceCode();
-
-		if (creatorExternalReferenceCode != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(creatorExternalReferenceCode));
-
-			sb.append("\"");
 		}
 
 		Date dateCreated = getDateCreated();
@@ -663,6 +765,19 @@ public class DisplayPageTemplateFolder implements Serializable {
 			sb.append("\"");
 		}
 
+		DisplayPageTemplateFolder parentDisplayPageTemplateFolder =
+			getParentDisplayPageTemplateFolder();
+
+		if (parentDisplayPageTemplateFolder != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"parentDisplayPageTemplateFolder\": ");
+
+			sb.append(String.valueOf(parentDisplayPageTemplateFolder));
+		}
+
 		String parentDisplayPageTemplateFolderExternalReferenceCode =
 			getParentDisplayPageTemplateFolderExternalReferenceCode();
 
@@ -680,6 +795,29 @@ public class DisplayPageTemplateFolder implements Serializable {
 				_escape(parentDisplayPageTemplateFolderExternalReferenceCode));
 
 			sb.append("\"");
+		}
+
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
+
+		if (permissions != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
+
+				if ((i + 1) < permissions.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
 		String uuid = getUuid();
@@ -703,8 +841,8 @@ public class DisplayPageTemplateFolder implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateFolder",
 		name = "x-class-name"
 	)
@@ -791,6 +929,27 @@ public class DisplayPageTemplateFolder implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -799,3 +958,4 @@ public class DisplayPageTemplateFolder implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1390021446

@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductSpecification")
+@GraphQLName(
+	description = "A specification attribute value assigned to a specific product; it binds a specification template to a product and carries the localized value, an optional override of the category, a per-product priority, and a visibility flag.",
+	value = "ProductSpecification"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A specification attribute value assigned to a specific product; it binds a specification template to a product and carries the localized value, an optional override of the category, a per-product priority, and a visibility flag.",
+	requiredProperties = {"value"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"value"})
 @XmlRootElement(name = "ProductSpecification")
 public class ProductSpecification implements Serializable {
 
@@ -54,7 +61,10 @@ public class ProductSpecification implements Serializable {
 			ProductSpecification.class, json);
 	}
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per product specification within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -88,7 +98,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per product specification within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -96,7 +108,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "31130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Primary key; assigned by the service on create.",
+		example = "31130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -128,14 +143,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Primary key; assigned by the service on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Machine identifier on the product specification row; the service generates it from the primary key on create.",
+		example = "material"
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -167,14 +187,17 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Machine identifier on the product specification row; the service generates it from the primary key on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String key;
 
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized label of the underlying specification, returned as a convenience; map keys are locale codes and values are the translated strings; read-only on this resource.",
 		example = "{en_US=Hand Saw, hr_HR=Product Name HR, hu_HU=Product Name HU}"
 	)
 	@Valid
@@ -211,14 +234,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized label of the underlying specification, returned as a convenience; map keys are locale codes and values are the translated strings; read-only on this resource."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> label;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _labelSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the linked option category; used as an alternative to `optionCategoryId` when overriding the specification's default category for this product.",
+		example = "AB-34098-789-N"
+	)
 	public String getOptionCategoryExternalReferenceCode() {
 		if (_optionCategoryExternalReferenceCodeSupplier != null) {
 			optionCategoryExternalReferenceCode =
@@ -257,7 +285,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the linked option category; used as an alternative to `optionCategoryId` when overriding the specification's default category for this product."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String optionCategoryExternalReferenceCode;
 
@@ -265,7 +295,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<String> _optionCategoryExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to an option category that overrides, for this product, the category inherited from the underlying specification.",
+		example = "30129"
+	)
 	public Long getOptionCategoryId() {
 		if (_optionCategoryIdSupplier != null) {
 			optionCategoryId = _optionCategoryIdSupplier.get();
@@ -299,7 +332,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to an option category that overrides, for this product, the category inherited from the underlying specification."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long optionCategoryId;
 
@@ -307,7 +342,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<Long> _optionCategoryIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display order of this specification within the product; lower values appear first.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -341,7 +379,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display order of this specification within the product; lower values appear first."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
@@ -349,7 +389,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<Double> _prioritySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the product that owns this specification value.",
+		example = "30129"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -383,14 +426,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the product that owns this specification value."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the underlying specification; used as an alternative to `specificationId` on writes.",
+		example = "AB-34098-789-N"
+	)
 	public String getSpecificationExternalReferenceCode() {
 		if (_specificationExternalReferenceCodeSupplier != null) {
 			specificationExternalReferenceCode =
@@ -429,7 +477,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the underlying specification; used as an alternative to `specificationId` on writes."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String specificationExternalReferenceCode;
 
@@ -437,7 +487,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<String> _specificationExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the specification template this value is for.",
+		example = "30129"
+	)
 	public Long getSpecificationId() {
 		if (_specificationIdSupplier != null) {
 			specificationId = _specificationIdSupplier.get();
@@ -471,14 +524,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the specification template this value is for."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long specificationId;
 
 	@JsonIgnore
 	private Supplier<Long> _specificationIdSupplier;
 
-	@Schema(example = "specification-key")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Machine key of the underlying specification; returned as a convenience.",
+		example = "specification-key"
+	)
 	public String getSpecificationKey() {
 		if (_specificationKeySupplier != null) {
 			specificationKey = _specificationKeySupplier.get();
@@ -512,14 +570,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Machine key of the underlying specification; returned as a convenience."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String specificationKey;
 
 	@JsonIgnore
 	private Supplier<String> _specificationKeySupplier;
 
-	@Schema(example = "1.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display order configured on the underlying specification template; returned as a convenience and not editable on this resource.",
+		example = "1.1"
+	)
 	public Double getSpecificationPriority() {
 		if (_specificationPrioritySupplier != null) {
 			specificationPriority = _specificationPrioritySupplier.get();
@@ -553,14 +616,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display order configured on the underlying specification template; returned as a convenience and not editable on this resource."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double specificationPriority;
 
 	@JsonIgnore
 	private Supplier<Double> _specificationPrioritySupplier;
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized value for this specification on this product; map keys are locale codes and values are the translated strings.",
+		example = "{en_US=Steel, hr_HR=Celik, hu_HU=Acel}"
+	)
 	@Valid
 	public Map<String, String> getValue() {
 		if (_valueSupplier != null) {
@@ -595,13 +663,61 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized value for this specification on this product; map keys are locale codes and values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> value;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _valueSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the specification value is shown to shoppers on the storefront; values where `visible` is false are filtered out of public product detail views.",
+		example = "true"
+	)
+	public Boolean getVisible() {
+		if (_visibleSupplier != null) {
+			visible = _visibleSupplier.get();
+
+			_visibleSupplier = null;
+		}
+
+		return visible;
+	}
+
+	public void setVisible(Boolean visible) {
+		this.visible = visible;
+
+		_visibleSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setVisible(
+		UnsafeSupplier<Boolean, Exception> visibleUnsafeSupplier) {
+
+		_visibleSupplier = () -> {
+			try {
+				return visibleUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Whether the specification value is shown to shoppers on the storefront; values where `visible` is false are filtered out of public product detail views."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Boolean visible;
+
+	@JsonIgnore
+	private Supplier<Boolean> _visibleSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -809,13 +925,25 @@ public class ProductSpecification implements Serializable {
 			sb.append(_toJSON(value));
 		}
 
+		Boolean visible = getVisible();
+
+		if (visible != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"visible\": ");
+
+			sb.append(visible);
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductSpecification",
 		name = "x-class-name"
 	)
@@ -902,6 +1030,27 @@ public class ProductSpecification implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -910,3 +1059,4 @@ public class ProductSpecification implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-819520682

@@ -5,6 +5,9 @@
 
 package com.liferay.commerce.inventory.service.impl;
 
+import com.liferay.account.model.AccountEntry;
+import com.liferay.account.model.AccountGroup;
+import com.liferay.account.service.AccountGroupLocalService;
 import com.liferay.commerce.inventory.exception.CommerceInventoryWarehouseActiveException;
 import com.liferay.commerce.inventory.exception.CommerceInventoryWarehouseNameException;
 import com.liferay.commerce.inventory.exception.DuplicateCommerceInventoryWarehouseException;
@@ -12,9 +15,11 @@ import com.liferay.commerce.inventory.exception.MVCCException;
 import com.liferay.commerce.inventory.internal.search.CommerceInventoryWarehouseIndexer;
 import com.liferay.commerce.inventory.model.CommerceInventoryWarehouse;
 import com.liferay.commerce.inventory.model.CommerceInventoryWarehouseItemTable;
+import com.liferay.commerce.inventory.model.CommerceInventoryWarehouseRelTable;
 import com.liferay.commerce.inventory.model.CommerceInventoryWarehouseTable;
 import com.liferay.commerce.inventory.service.CommerceInventoryReplenishmentItemLocalService;
 import com.liferay.commerce.inventory.service.CommerceInventoryWarehouseItemLocalService;
+import com.liferay.commerce.inventory.service.CommerceInventoryWarehouseRelLocalService;
 import com.liferay.commerce.inventory.service.base.CommerceInventoryWarehouseLocalServiceBaseImpl;
 import com.liferay.commerce.product.model.CommerceChannelRelTable;
 import com.liferay.commerce.product.model.CommerceChannelTable;
@@ -45,11 +50,14 @@ import com.liferay.portal.kernel.service.ResourceLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.systemevent.SystemEvent;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LinkedHashMapBuilder;
 import com.liferay.portal.kernel.util.OrderByComparator;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
 import java.io.Serializable;
 
@@ -112,6 +120,7 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 			commerceCountryCode);
 		commerceInventoryWarehouse.setLatitude(latitude);
 		commerceInventoryWarehouse.setLongitude(longitude);
+		commerceInventoryWarehouse.setStatus(WorkflowConstants.STATUS_APPROVED);
 		commerceInventoryWarehouse.setExpandoBridgeAttributes(serviceContext);
 
 		commerceInventoryWarehouse =
@@ -146,6 +155,10 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 
 		_commerceInventoryReplenishmentItemLocalService.
 			deleteCommerceInventoryReplenishmentItems(
+				commerceInventoryWarehouse.getCommerceInventoryWarehouseId());
+
+		_commerceInventoryWarehouseRelLocalService.
+			deleteCommerceInventoryWarehouseRels(
 				commerceInventoryWarehouse.getCommerceInventoryWarehouseId());
 
 		_expandoRowLocalService.deleteRows(
@@ -226,7 +239,7 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 
 	@Override
 	public List<CommerceInventoryWarehouse> getCommerceInventoryWarehouses(
-		long companyId, long groupId, boolean active) {
+		long companyId, long accountEntryId, long groupId, boolean active) {
 
 		return dslQuery(
 			DSLQueryFactoryUtil.select(
@@ -246,11 +259,49 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 				GroupTable.INSTANCE,
 				CommerceChannelTable.INSTANCE.commerceChannelId.eq(
 					GroupTable.INSTANCE.classPK)
+			).leftJoinOn(
+				CommerceInventoryWarehouseRelTable.INSTANCE,
+				CommerceInventoryWarehouseTable.INSTANCE.
+					commerceInventoryWarehouseId.eq(
+						CommerceInventoryWarehouseRelTable.INSTANCE.
+							commerceInventoryWarehouseId)
 			).where(
 				CommerceInventoryWarehouseTable.INSTANCE.companyId.eq(
 					companyId
 				).and(
 					GroupTable.INSTANCE.groupId.eq(groupId)
+				).and(
+					CommerceInventoryWarehouseRelTable.INSTANCE.classPK.eq(
+						accountEntryId
+					).and(
+						CommerceInventoryWarehouseRelTable.INSTANCE.classNameId.
+							eq(
+								_portal.getClassNameId(
+									AccountEntry.class.getName()))
+					).or(
+						() -> {
+							Long[] accountGroupIds = ArrayUtil.toLongArray(
+								_accountGroupLocalService.getAccountGroupIds(
+									accountEntryId));
+
+							if (accountGroupIds.length <= 0) {
+								accountGroupIds = new Long[] {0L};
+							}
+
+							return CommerceInventoryWarehouseRelTable.INSTANCE.
+								classPK.in(
+									accountGroupIds
+								).and(
+									CommerceInventoryWarehouseRelTable.INSTANCE.
+										classNameId.eq(
+											_portal.getClassNameId(
+												AccountGroup.class.getName()))
+								).withParentheses();
+						}
+					).or(
+						CommerceInventoryWarehouseRelTable.INSTANCE.classPK.
+							isNull()
+					).withParentheses()
 				).and(
 					CommerceInventoryWarehouseTable.INSTANCE.active.eq(active)
 				)
@@ -259,7 +310,7 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 
 	@Override
 	public List<CommerceInventoryWarehouse> getCommerceInventoryWarehouses(
-		long groupId, String sku) {
+		long accountEntryId, long groupId, String sku) {
 
 		return dslQuery(
 			DSLQueryFactoryUtil.select(
@@ -285,9 +336,47 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 					commerceInventoryWarehouseId.eq(
 						CommerceInventoryWarehouseTable.INSTANCE.
 							commerceInventoryWarehouseId)
+			).leftJoinOn(
+				CommerceInventoryWarehouseRelTable.INSTANCE,
+				CommerceInventoryWarehouseTable.INSTANCE.
+					commerceInventoryWarehouseId.eq(
+						CommerceInventoryWarehouseRelTable.INSTANCE.
+							commerceInventoryWarehouseId)
 			).where(
 				GroupTable.INSTANCE.groupId.eq(
 					groupId
+				).and(
+					CommerceInventoryWarehouseRelTable.INSTANCE.classPK.eq(
+						accountEntryId
+					).and(
+						CommerceInventoryWarehouseRelTable.INSTANCE.classNameId.
+							eq(
+								_portal.getClassNameId(
+									AccountEntry.class.getName()))
+					).or(
+						() -> {
+							Long[] accountGroupIds = ArrayUtil.toLongArray(
+								_accountGroupLocalService.getAccountGroupIds(
+									accountEntryId));
+
+							if (accountGroupIds.length <= 0) {
+								accountGroupIds = new Long[] {0L};
+							}
+
+							return CommerceInventoryWarehouseRelTable.INSTANCE.
+								classPK.in(
+									accountGroupIds
+								).and(
+									CommerceInventoryWarehouseRelTable.INSTANCE.
+										classNameId.eq(
+											_portal.getClassNameId(
+												AccountGroup.class.getName()))
+								).withParentheses();
+						}
+					).or(
+						CommerceInventoryWarehouseRelTable.INSTANCE.classPK.
+							isNull()
+					).withParentheses()
 				).and(
 					CommerceInventoryWarehouseItemTable.INSTANCE.sku.eq(sku)
 				).and(
@@ -319,8 +408,8 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 				companyId, active, commerceCountryCode);
 		}
 
-		return commerceInventoryWarehouseLocalService.
-			getCommerceInventoryWarehousesCount(companyId, active);
+		return commerceInventoryWarehousePersistence.countByC_A(
+			companyId, active);
 	}
 
 	@Override
@@ -502,9 +591,8 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 				document.get(Field.ENTRY_CLASS_PK));
 
 			CommerceInventoryWarehouse commerceInventoryWarehouse =
-				commerceInventoryWarehouseLocalService.
-					fetchCommerceInventoryWarehouse(
-						commerceInventoryWarehouseId);
+				commerceInventoryWarehousePersistence.fetchByPrimaryKey(
+					commerceInventoryWarehouseId);
 
 			if (commerceInventoryWarehouse == null) {
 				commerceInventoryWarehouses = null;
@@ -608,6 +696,9 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 	};
 
 	@Reference
+	private AccountGroupLocalService _accountGroupLocalService;
+
+	@Reference
 	private CommerceInventoryReplenishmentItemLocalService
 		_commerceInventoryReplenishmentItemLocalService;
 
@@ -616,10 +707,17 @@ public class CommerceInventoryWarehouseLocalServiceImpl
 		_commerceInventoryWarehouseItemLocalService;
 
 	@Reference
+	private CommerceInventoryWarehouseRelLocalService
+		_commerceInventoryWarehouseRelLocalService;
+
+	@Reference
 	private CompanyLocalService _companyLocalService;
 
 	@Reference
 	private ExpandoRowLocalService _expandoRowLocalService;
+
+	@Reference
+	private Portal _portal;
 
 	@Reference
 	private ResourceLocalService _resourceLocalService;

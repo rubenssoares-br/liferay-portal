@@ -18,6 +18,7 @@ import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.layout.util.structure.LayoutStructureItem;
 import com.liferay.layout.util.structure.RowStyledLayoutStructureItem;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
@@ -29,6 +30,7 @@ import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
@@ -76,7 +78,7 @@ public class LayoutStructureTest {
 			StringUtil.randomString(), StringUtil.randomString(),
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
 			RandomTestUtil.randomString(), false, "{fieldSets: []}", null, 0,
-			false, FragmentConstants.TYPE_COMPONENT, null,
+			false, false, FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED, serviceContext);
 
 		long defaultSegmentsExperienceId =
@@ -85,8 +87,10 @@ public class LayoutStructureTest {
 
 		_fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					_fragmentEntry.getGroupId(), _group.getGroupId()),
 				defaultSegmentsExperienceId, _layout.getPlid(),
 				_fragmentEntry.getCss(), _fragmentEntry.getHtml(),
 				_fragmentEntry.getJs(), _fragmentEntry.getConfiguration(), null,
@@ -270,58 +274,6 @@ public class LayoutStructureTest {
 			1, 1, 0, copiedLayoutStructureItems, formStepLayoutStructureItem);
 	}
 
-	@Test(expected = UnsupportedOperationException.class)
-	public void testCopyLayoutStructureItemsWithCollectionItemAsParent() {
-		LayoutStructure layoutStructure = new LayoutStructure();
-
-		LayoutStructureItem rootLayoutStructureItem =
-			layoutStructure.addRootLayoutStructureItem();
-
-		LayoutStructureItem collectionStyledLayoutStructureItem =
-			layoutStructure.addCollectionStyledLayoutStructureItem(
-				rootLayoutStructureItem.getItemId(), 0);
-
-		List<String> childrenItemIds =
-			collectionStyledLayoutStructureItem.getChildrenItemIds();
-
-		layoutStructure.copyLayoutStructureItems(
-			Collections.singletonList(rootLayoutStructureItem.getItemId()),
-			childrenItemIds.get(0));
-	}
-
-	@Test(expected = UnsupportedOperationException.class)
-	public void testCopyLayoutStructureItemsWithParentItemAsChildrenOfItemId()
-		throws Exception {
-
-		LayoutStructure layoutStructure = new LayoutStructure();
-
-		LayoutStructureItem rootLayoutStructureItem =
-			layoutStructure.addRootLayoutStructureItem();
-
-		LayoutStructureItem containerStyledLayoutStructureItem =
-			layoutStructure.addContainerStyledLayoutStructureItem(
-				rootLayoutStructureItem.getItemId(), 0);
-
-		LayoutStructureItem rowStyledLayoutStructureItem =
-			layoutStructure.addRowStyledLayoutStructureItem(
-				containerStyledLayoutStructureItem.getItemId(), 0, 1);
-
-		LayoutStructureItem columnLayoutStructureItem =
-			layoutStructure.addColumnLayoutStructureItem(
-				rowStyledLayoutStructureItem.getItemId(), 0);
-
-		FragmentEntryLink fragmentEntryLink = _addFragmentEntryLink();
-
-		layoutStructure.addFragmentStyledLayoutStructureItem(
-			fragmentEntryLink.getFragmentEntryLinkId(),
-			columnLayoutStructureItem.getItemId(), 0);
-
-		layoutStructure.copyLayoutStructureItems(
-			Collections.singletonList(
-				containerStyledLayoutStructureItem.getItemId()),
-			columnLayoutStructureItem.getItemId());
-	}
-
 	@Test
 	public void testCopyLayoutStructureItemWithCollectionStyledLayoutStructureItemAsParent()
 		throws Exception {
@@ -348,12 +300,10 @@ public class LayoutStructureTest {
 					fragmentStyledLayoutStructureItem.getItemId()),
 				collectionStyledLayoutStructureItem.getItemId());
 
-		List<String> childrenItemIds =
-			collectionStyledLayoutStructureItem.getChildrenItemIds();
-
 		_assertParentLayoutStructureItem(
 			1, 1, 0, copiedLayoutStructureItems,
-			layoutStructure.getLayoutStructureItem(childrenItemIds.get(0)));
+			layoutStructure.getLayoutStructureItem(
+				collectionStyledLayoutStructureItem.getChildrenItemId(0)));
 	}
 
 	@Test
@@ -629,6 +579,30 @@ public class LayoutStructureTest {
 	}
 
 	@Test
+	public void testCopyLayoutStructureItemWithRowStyleLayoutStructureItemAsParent() {
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		LayoutStructureItem rowStyledLayoutStructureItem =
+			layoutStructure.addRowStyledLayoutStructureItem(
+				rootLayoutStructureItem.getItemId(), 0, 3);
+
+		layoutStructure.addContainerStyledLayoutStructureItem(
+			rootLayoutStructureItem.getItemId(), 1);
+
+		List<LayoutStructureItem> copiedLayoutStructureItems =
+			layoutStructure.copyLayoutStructureItems(
+				Collections.singletonList(
+					rowStyledLayoutStructureItem.getItemId()),
+				rowStyledLayoutStructureItem.getItemId());
+
+		_assertParentLayoutStructureItem(
+			1, 3, 1, copiedLayoutStructureItems, rootLayoutStructureItem);
+	}
+
+	@Test
 	public void testCopyLayoutStructureItemWithRowStyledLayoutStructureItemAsParent()
 		throws Exception {
 
@@ -668,30 +642,6 @@ public class LayoutStructureTest {
 	}
 
 	@Test
-	public void testCopyLayoutStructureItemWithRowStyleLayoutStructureItemAsParent() {
-		LayoutStructure layoutStructure = new LayoutStructure();
-
-		LayoutStructureItem rootLayoutStructureItem =
-			layoutStructure.addRootLayoutStructureItem();
-
-		LayoutStructureItem rowStyledLayoutStructureItem =
-			layoutStructure.addRowStyledLayoutStructureItem(
-				rootLayoutStructureItem.getItemId(), 0, 3);
-
-		layoutStructure.addContainerStyledLayoutStructureItem(
-			rootLayoutStructureItem.getItemId(), 1);
-
-		List<LayoutStructureItem> copiedLayoutStructureItems =
-			layoutStructure.copyLayoutStructureItems(
-				Collections.singletonList(
-					rowStyledLayoutStructureItem.getItemId()),
-				rowStyledLayoutStructureItem.getItemId());
-
-		_assertParentLayoutStructureItem(
-			1, 3, 1, copiedLayoutStructureItems, rootLayoutStructureItem);
-	}
-
-	@Test
 	public void testCopyLayoutStructureItemWithSameItemIdAndParentItemId() {
 		LayoutStructure layoutStructure = new LayoutStructure();
 
@@ -710,6 +660,55 @@ public class LayoutStructureTest {
 
 		_assertParentLayoutStructureItem(
 			1, 2, 1, copiedLayoutStructureItems, rootLayoutStructureItem);
+	}
+
+	@Test(expected = UnsupportedOperationException.class)
+	public void testCopyLayoutStructureItemsWithCollectionItemAsParent() {
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		LayoutStructureItem collectionStyledLayoutStructureItem =
+			layoutStructure.addCollectionStyledLayoutStructureItem(
+				rootLayoutStructureItem.getItemId(), 0);
+
+		layoutStructure.copyLayoutStructureItems(
+			Collections.singletonList(rootLayoutStructureItem.getItemId()),
+			collectionStyledLayoutStructureItem.getChildrenItemId(0));
+	}
+
+	@Test(expected = UnsupportedOperationException.class)
+	public void testCopyLayoutStructureItemsWithParentItemAsChildrenOfItemId()
+		throws Exception {
+
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		LayoutStructureItem containerStyledLayoutStructureItem =
+			layoutStructure.addContainerStyledLayoutStructureItem(
+				rootLayoutStructureItem.getItemId(), 0);
+
+		LayoutStructureItem rowStyledLayoutStructureItem =
+			layoutStructure.addRowStyledLayoutStructureItem(
+				containerStyledLayoutStructureItem.getItemId(), 0, 1);
+
+		LayoutStructureItem columnLayoutStructureItem =
+			layoutStructure.addColumnLayoutStructureItem(
+				rowStyledLayoutStructureItem.getItemId(), 0);
+
+		FragmentEntryLink fragmentEntryLink = _addFragmentEntryLink();
+
+		layoutStructure.addFragmentStyledLayoutStructureItem(
+			fragmentEntryLink.getFragmentEntryLinkId(),
+			columnLayoutStructureItem.getItemId(), 0);
+
+		layoutStructure.copyLayoutStructureItems(
+			Collections.singletonList(
+				containerStyledLayoutStructureItem.getItemId()),
+			columnLayoutStructureItem.getItemId());
 	}
 
 	@Test
@@ -873,8 +872,29 @@ public class LayoutStructureTest {
 				fragmentStyledLayoutStructureItem2);
 	}
 
+	@Test(expected = UnsupportedOperationException.class)
+	public void testDuplicateDropZoneLayoutStructureItem() {
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		LayoutStructureItem containerStyledLayoutStructureItem =
+			layoutStructure.addContainerStyledLayoutStructureItem(
+				rootLayoutStructureItem.getItemId(), 0);
+
+		layoutStructure.addDropZoneLayoutStructureItem(
+			containerStyledLayoutStructureItem.getItemId(), 0);
+
+		layoutStructure.duplicateLayoutStructureItem(
+			Collections.singletonList(
+				containerStyledLayoutStructureItem.getItemId()));
+	}
+
 	@Test
-	public void testMarkLayoutStructureItemForDeletion1() {
+	public void testMarkLayoutStructureItemForDeletion1()
+		throws PortalException {
+
 		LayoutStructure layoutStructure = new LayoutStructure();
 
 		LayoutStructureItem rootLayoutStructureItem =
@@ -905,8 +925,7 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			0,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 
 		layoutStructure.unmarkLayoutStructureItemForDeletion(
 			fragmentStyledLayoutStructureItem.getItemId());
@@ -914,12 +933,13 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			1,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 	}
 
 	@Test
-	public void testMarkLayoutStructureItemForDeletion2() {
+	public void testMarkLayoutStructureItemForDeletion2()
+		throws PortalException {
+
 		LayoutStructure layoutStructure = new LayoutStructure();
 
 		LayoutStructureItem rootLayoutStructureItem =
@@ -948,8 +968,7 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			0,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 
 		layoutStructure.unmarkLayoutStructureItemForDeletion(
 			columnLayoutStructureItem.getItemId());
@@ -957,12 +976,13 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			1,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 	}
 
 	@Test
-	public void testMarkLayoutStructureItemForDeletion3() {
+	public void testMarkLayoutStructureItemForDeletion3()
+		throws PortalException {
+
 		LayoutStructure layoutStructure = new LayoutStructure();
 
 		LayoutStructureItem rootLayoutStructureItem =
@@ -991,8 +1011,7 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			0,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 
 		layoutStructure.unmarkLayoutStructureItemForDeletion(
 			rowStyledLayoutStructureItem.getItemId());
@@ -1000,12 +1019,13 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			1,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 	}
 
 	@Test
-	public void testMarkLayoutStructureItemForDeletion4() {
+	public void testMarkLayoutStructureItemForDeletion4()
+		throws PortalException {
+
 		LayoutStructure layoutStructure = new LayoutStructure();
 
 		LayoutStructureItem rootLayoutStructureItem =
@@ -1035,8 +1055,7 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			0,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 
 		layoutStructure.unmarkLayoutStructureItemForDeletion(
 			containerStyledLayoutStructureItem.getItemId());
@@ -1044,8 +1063,7 @@ public class LayoutStructureTest {
 		Assert.assertEquals(
 			1,
 			_fragmentEntryLinkLocalService.
-				getAllFragmentEntryLinksCountByFragmentEntryId(
-					_group.getGroupId(), _fragmentEntry.getFragmentEntryId()));
+				getAllFragmentEntryLinksCountByFragmentEntry(_fragmentEntry));
 	}
 
 	private FragmentEntryLink _addFragmentEntryLink() throws Exception {
@@ -1054,12 +1072,14 @@ public class LayoutStructureTest {
 				_layout.getPlid());
 
 		return _fragmentEntryLinkLocalService.addFragmentEntryLink(
-			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-			_fragmentEntry.getFragmentEntryId(), defaultSegmentsExperienceId,
-			_layout.getPlid(), _fragmentEntry.getCss(),
-			_fragmentEntry.getHtml(), _fragmentEntry.getJs(),
-			_fragmentEntry.getConfiguration(), null, StringPool.BLANK, 0, null,
-			_fragmentEntry.getType(),
+			null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+			_fragmentEntry.getExternalReferenceCode(),
+			ScopeUtil.getItemScopeExternalReferenceCode(
+				_fragmentEntry.getGroupId(), _group.getGroupId()),
+			defaultSegmentsExperienceId, _layout.getPlid(),
+			_fragmentEntry.getCss(), _fragmentEntry.getHtml(),
+			_fragmentEntry.getJs(), _fragmentEntry.getConfiguration(), null,
+			StringPool.BLANK, 0, null, _fragmentEntry.getType(),
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 	}
 

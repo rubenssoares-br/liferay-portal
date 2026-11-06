@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -12,7 +12,7 @@ import {LAYOUT_DATA_ITEM_TYPES} from '../../../../../../../../src/main/resources
 import {VIEWPORT_SIZES} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/config/constants/viewportSizes';
 import {
 	ClipboardContextProvider,
-	useSetCopiedItemIds,
+	useSetClipboard,
 } from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext';
 import {useSetMovementSources} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/KeyboardMovementContext';
 import deleteItem from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/deleteItem';
@@ -24,13 +24,13 @@ import StoreMother from '../../../../../../../../src/main/resources/META-INF/res
 jest.mock(
 	'../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext',
 	() => {
-		const setCopiedItemIds = jest.fn();
+		const setClipboard = jest.fn();
 
 		return {
 			...jest.requireActual(
 				'../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext'
 			),
-			useSetCopiedItemIds: () => setCopiedItemIds,
+			useSetClipboard: () => setClipboard,
 		};
 	}
 );
@@ -60,11 +60,6 @@ jest.mock(
 		};
 	}
 );
-
-jest.mock('frontend-js-web', () => ({
-	...jest.requireActual('frontend-js-web'),
-	sub: jest.fn((langKey, arg) => langKey.replace('x', arg)),
-}));
 
 const renderComponent = ({
 	activeItemIds = [],
@@ -128,16 +123,8 @@ const renderComponent = ({
 	);
 
 describe('PageStructureSidebarToolbar', () => {
-	beforeAll(() => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-	});
-
 	beforeEach(() => {
 		jest.clearAllMocks();
-	});
-
-	afterAll(() => {
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
 	it('shows the number of selected items', () => {
@@ -148,42 +135,42 @@ describe('PageStructureSidebarToolbar', () => {
 		expect(screen.getByText('2-items-selected')).toBeInTheDocument();
 	});
 
-	it('calls deleteItem when Delete action is pressed', () => {
+	it('calls deleteItem when Delete action is pressed', async () => {
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment02'],
 		});
 
-		userEvent.click(screen.getByText('delete'));
+		await userEvent.click(screen.getByText('delete'));
 
-		expect(deleteItem).toBeCalledWith(
+		expect(deleteItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01', 'fragment02'],
 			})
 		);
 	});
 
-	it('calls duplicateItem when Duplicate action is pressed', () => {
+	it('calls duplicateItem when Duplicate action is pressed', async () => {
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment03'],
 		});
 
-		userEvent.click(screen.getByText('duplicate'));
+		await userEvent.click(screen.getByText('duplicate'));
 
-		expect(duplicateItem).toBeCalledWith(
+		expect(duplicateItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01', 'fragment03'],
 			})
 		);
 	});
 
-	it('calls updateItemStyle when Hide Fragments action is pressed', () => {
+	it('calls updateItemStyle when Hide Fragments action is pressed', async () => {
 		renderComponent({
 			activeItemIds: ['fragment03', 'fragment02'],
 		});
 
-		userEvent.click(screen.getByText('hide-fragments'));
+		await userEvent.click(screen.getByText('hide-fragments'));
 
-		expect(updateItemStyle).toBeCalledWith(
+		expect(updateItemStyle).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment03', 'fragment02'],
 				styleName: 'display',
@@ -192,14 +179,14 @@ describe('PageStructureSidebarToolbar', () => {
 		);
 	});
 
-	it('calls useSetMovementSources when Move x Items action is pressed', () => {
+	it('calls useSetMovementSources when Move x Items action is pressed', async () => {
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment02'],
 		});
 
-		userEvent.click(screen.getByText('move-2-items'));
+		await userEvent.click(screen.getByText('move-2-items'));
 
-		expect(useSetMovementSources()).toBeCalledWith([
+		expect(useSetMovementSources()).toHaveBeenCalledWith([
 			{isWidget: false, itemId: 'fragment01', type: 'fragment'},
 			{isWidget: false, itemId: 'fragment02', type: 'fragment'},
 		]);
@@ -224,50 +211,50 @@ describe('PageStructureSidebarToolbar', () => {
 		expect(screen.getByText('show-fragments')).toBeInTheDocument();
 	});
 
-	it('calls deleteItem when Delete action is pressed', () => {
+	it('calls deleteItem when Delete action is pressed', async () => {
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment02'],
 		});
 
-		userEvent.click(screen.getByText('delete'));
+		await userEvent.click(screen.getByText('delete'));
 
-		expect(deleteItem).toBeCalledWith(
+		expect(deleteItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01', 'fragment02'],
 			})
 		);
 	});
 
-	it('calls setCopiedItemIds and deleteItem when Cut action is pressed', () => {
-		const setCopiedItemIds = useSetCopiedItemIds();
+	it('calls setClipboard and deleteItem when Cut action is pressed', async () => {
+		const setClipboard = useSetClipboard();
 
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment02'],
 		});
 
-		userEvent.click(screen.getByText('cut'));
+		await userEvent.click(screen.getByText('cut'));
 
-		expect(deleteItem).toBeCalledWith(
+		expect(deleteItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01', 'fragment02'],
 			})
 		);
 
-		expect(setCopiedItemIds).toBeCalledWith(
+		expect(setClipboard).toHaveBeenCalledWith(
 			expect.objectContaining(['fragment01', 'fragment02'])
 		);
 	});
 
-	it('calls setCopiedItemIds when Copy action is pressed', () => {
-		const setCopiedItemIds = useSetCopiedItemIds();
+	it('calls setClipboard when Copy action is pressed', async () => {
+		const setClipboard = useSetClipboard();
 
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment02'],
 		});
 
-		userEvent.click(screen.getByText('copy'));
+		await userEvent.click(screen.getByText('copy'));
 
-		expect(setCopiedItemIds).toBeCalledWith(
+		expect(setClipboard).toHaveBeenCalledWith(
 			expect.objectContaining(['fragment01', 'fragment02'])
 		);
 	});

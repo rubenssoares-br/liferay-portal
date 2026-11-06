@@ -7,6 +7,7 @@ package com.liferay.jenkins.results.parser.test.clazz.group;
 
 import com.google.common.collect.Lists;
 
+import com.liferay.jenkins.results.parser.Environment;
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
 import com.liferay.jenkins.results.parser.PortalAcceptancePullRequestJob;
 import com.liferay.jenkins.results.parser.PortalGitWorkingDirectory;
@@ -15,10 +16,12 @@ import com.liferay.jenkins.results.parser.job.property.JobProperty;
 import com.liferay.jenkins.results.parser.test.batch.JUnitTestBatch;
 import com.liferay.jenkins.results.parser.test.batch.JUnitTestSelector;
 import com.liferay.jenkins.results.parser.test.clazz.JUnitTestClass;
-import com.liferay.jenkins.results.parser.test.clazz.JUnitTestClassBalancedListSplitter;
 import com.liferay.jenkins.results.parser.test.clazz.TestClass;
+import com.liferay.jenkins.results.parser.test.clazz.TestClassBalancedListSplitter;
 import com.liferay.jenkins.results.parser.test.clazz.TestClassFactory;
 import com.liferay.jenkins.results.parser.test.clazz.TestClassMethod;
+import com.liferay.jenkins.results.parser.test.clazz.TestTaskBalancedListSplitter;
+import com.liferay.jenkins.results.parser.test.task.TestTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,10 +38,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -47,6 +53,12 @@ import org.json.JSONObject;
  * @author Yi-Chen Tsai
  */
 public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
+
+	public static void clear() {
+		_javaDirPathStrings.clear();
+		_javaFileDirPaths.clear();
+		_javaTestClassFiles.clear();
+	}
 
 	@Override
 	public int getAxisCount() {
@@ -64,6 +76,10 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 	}
 
 	public List<JobProperty> getExcludesJobProperties() {
+		if (isRootCauseAnalysis()) {
+			return new ArrayList<>();
+		}
+
 		if (_jUnitTestBatch != null) {
 			List<JobProperty> testBatchJobProperties =
 				getTestSelectorExcludesJobProperties();
@@ -113,6 +129,15 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		return filterJobProperties;
 	}
 
+	@Override
+	public Map<String, List<String>> getGlobTestClassMethodNamesMap() {
+		if (!isRootCauseAnalysis()) {
+			return super.getGlobTestClassMethodNamesMap();
+		}
+
+		return _globTestClassMethodNamesMap;
+	}
+
 	public List<JobProperty> getIncludesJobProperties() {
 		if (_jUnitTestBatch != null) {
 			List<JobProperty> testBatchJobProperties =
@@ -151,6 +176,27 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		return includesJobProperties;
 	}
 
+	@Override
+	public JSONObject getJSONObject() {
+		if (jsonObject != null) {
+			return jsonObject;
+		}
+
+		jsonObject = super.getJSONObject();
+
+		jsonObject.put("auto_balance_test_files", _autoBalanceTestFiles);
+		jsonObject.put("exclude_globs", getGlobs(getExcludesJobProperties()));
+		jsonObject.put("filter_globs", getGlobs(getFilterJobProperties()));
+		jsonObject.put("include_auto_balance_tests", _includeAutoBalanceTests);
+		jsonObject.put("include_globs", getGlobs(getIncludesJobProperties()));
+		jsonObject.put(
+			"include_unstaged_test_class_files",
+			_includeUnstagedTestClassFiles);
+		jsonObject.put("target_duration", getTargetAxisDuration());
+
+		return jsonObject;
+	}
+
 	public File getJavaFileFromFullClassName(String fullClassName) {
 		String classFileName =
 			fullClassName.replaceAll(".*\\.([^\\.]+)", "$1") + ".java";
@@ -185,25 +231,27 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		return null;
 	}
 
-	@Override
-	public JSONObject getJSONObject() {
-		if (jsonObject != null) {
-			return jsonObject;
+	public List<String> getTestClassMethodNames(
+		File file, Map<String, List<String>> globTestClassMethodNamesMap) {
+
+		for (Map.Entry<String, List<String>> globTestClassMethodEntry :
+				globTestClassMethodNamesMap.entrySet()) {
+
+			String glob = globTestClassMethodEntry.getKey();
+
+			PathMatcher pathMatcher = JenkinsResultsParserUtil.toPathMatcher(
+				_getWorkingDirectory() + "/", glob);
+
+			if (pathMatcher.matches(file.toPath())) {
+				return globTestClassMethodNamesMap.get(glob);
+			}
 		}
 
-		jsonObject = super.getJSONObject();
+		return null;
+	}
 
-		jsonObject.put("auto_balance_test_files", _autoBalanceTestFiles);
-		jsonObject.put("exclude_globs", getGlobs(getExcludesJobProperties()));
-		jsonObject.put("filter_globs", getGlobs(getFilterJobProperties()));
-		jsonObject.put("include_auto_balance_tests", _includeAutoBalanceTests);
-		jsonObject.put("include_globs", getGlobs(getIncludesJobProperties()));
-		jsonObject.put(
-			"include_unstaged_test_class_files",
-			_includeUnstagedTestClassFiles);
-		jsonObject.put("target_duration", getTargetAxisDuration());
-
-		return jsonObject;
+	public List<TestTask> getTestTasks() {
+		return new ArrayList<>();
 	}
 
 	public void writeTestCSVReportFile() throws Exception {
@@ -316,6 +364,12 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 
 		_loadJavaFiles(_getWorkingDirectory());
 
+		File portalPrivateWorkspacesDir = getPortalPrivateWorkspacesDir();
+
+		if (portalPrivateWorkspacesDir != null) {
+			_loadJavaFiles(portalPrivateWorkspacesDir);
+		}
+
 		setTestClasses();
 
 		_setAutoBalanceTestFiles();
@@ -354,6 +408,12 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 
 		_loadJavaFiles(_getWorkingDirectory());
 
+		File portalPrivateWorkspacesDir = getPortalPrivateWorkspacesDir();
+
+		if (portalPrivateWorkspacesDir != null) {
+			_loadJavaFiles(portalPrivateWorkspacesDir);
+		}
+
 		setTestClasses(jUnitTestBatch.getTestSelector());
 
 		_setAutoBalanceTestFiles();
@@ -387,14 +447,22 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		return includesJobProperties;
 	}
 
+	protected List<PathMatcher> getExcludesPathMatchers(
+		List<JobProperty> excludesJobProperties) {
+
+		return getPathMatchers(excludesJobProperties);
+	}
+
+	protected List<PathMatcher> getFilterPathMatchers() {
+		return getPathMatchers(getFilterJobProperties());
+	}
+
 	protected List<PathMatcher> getIncludesPathMatchers() {
 		if (!isRootCauseAnalysis()) {
-			return getPathMatchers(getIncludesJobProperties());
+			return getIncludePathMatchers(getIncludesJobProperties());
 		}
 
-		List<String> includeGlobs = new ArrayList<>();
-
-		String portalBatchTestSelector = System.getenv(
+		String portalBatchTestSelector = Environment.get(
 			"PORTAL_BATCH_TEST_SELECTOR");
 
 		if (JenkinsResultsParserUtil.isNullOrEmpty(portalBatchTestSelector)) {
@@ -402,11 +470,37 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 				"PORTAL_BATCH_TEST_SELECTOR");
 		}
 
-		if (!JenkinsResultsParserUtil.isNullOrEmpty(portalBatchTestSelector)) {
+		if (JenkinsResultsParserUtil.isNullOrEmpty(portalBatchTestSelector)) {
+			return getIncludePathMatchers(getIncludesJobProperties());
+		}
+
+		List<String> includeGlobs = new ArrayList<>();
+
+		for (String glob : portalBatchTestSelector.split(",(?![^{}]*})")) {
+			Matcher matcher = _globClassMethodPattern.matcher(glob);
+
+			if (!matcher.matches()) {
+				Collections.addAll(
+					includeGlobs,
+					JenkinsResultsParserUtil.getGlobsFromProperty(glob));
+
+				continue;
+			}
+
+			String testClassGlob = matcher.group("testClassGlob");
+
+			List<String> testClassMethodNames =
+				_globTestClassMethodNamesMap.getOrDefault(
+					testClassGlob, new ArrayList<>());
+
+			testClassMethodNames.add(matcher.group("testClassMethodName"));
+
+			_globTestClassMethodNamesMap.put(
+				testClassGlob, testClassMethodNames);
+
 			Collections.addAll(
 				includeGlobs,
-				JenkinsResultsParserUtil.getGlobsFromProperty(
-					portalBatchTestSelector));
+				JenkinsResultsParserUtil.getGlobsFromProperty(testClassGlob));
 		}
 
 		return JenkinsResultsParserUtil.toPathMatchers(
@@ -415,6 +509,10 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 					portalGitWorkingDirectory.getWorkingDirectory()),
 				File.separator),
 			includeGlobs.toArray(new String[0]));
+	}
+
+	protected File getPortalPrivateWorkspacesDir() {
+		return null;
 	}
 
 	protected List<JobProperty> getReleaseExcludesJobProperties() {
@@ -619,23 +717,49 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 					0, TestClassGroupFactory.newAxisTestClassGroup(this));
 			}
 			else {
-				List<TestClass> batchTestClasses = new ArrayList<>(testClasses);
+				GroupingStrategy groupingStrategy = getGroupingStrategy();
 
-				JUnitTestClassBalancedListSplitter
-					jUnitTestClassBalancedListSplitter =
-						new JUnitTestClassBalancedListSplitter(
-							targetAxisDuration);
+				if ((this instanceof ModulesJUnitBatchTestClassGroup) &&
+					((groupingStrategy ==
+						GroupingStrategy.TEST_TASK_AVERAGE_DURATION) ||
+					 (groupingStrategy ==
+						 GroupingStrategy.TEST_TASK_AVERAGE_TOTAL_DURATION) ||
+					 (groupingStrategy ==
+						 GroupingStrategy.TEST_TASK_LONGEST_DURATION))) {
 
-				List<List<TestClass>> testClassLists =
-					jUnitTestClassBalancedListSplitter.split(batchTestClasses);
+					TestTaskBalancedListSplitter testTaskBalancedListSplitter =
+						new TestTaskBalancedListSplitter(targetAxisDuration);
 
-				for (List<TestClass> testClassList : testClassLists) {
-					AxisTestClassGroup axisTestClassGroup =
-						TestClassGroupFactory.newAxisTestClassGroup(this);
+					List<List<TestTask>> testTasksLists =
+						testTaskBalancedListSplitter.split(getTestTasks());
 
-					axisTestClassGroup.addTestClasses(testClassList);
+					for (List<TestTask> testTasks : testTasksLists) {
+						if (_isIsolatedOversizedTestTask(testTasks)) {
+							_splitOversizedTestTask(testTasks.get(0));
+						}
+						else {
+							_createAxisTestClassGroup(testTasks);
+						}
+					}
+				}
+				else {
+					TestClassBalancedListSplitter
+						testClassBalancedListSplitter =
+							new TestClassBalancedListSplitter(
+								targetAxisDuration);
 
-					axisTestClassGroups.add(axisTestClassGroup);
+					List<List<TestClass>> testClassLists =
+						testClassBalancedListSplitter.split(
+							new ArrayList<>(testClasses));
+
+					for (List<TestClass> testClassList : testClassLists) {
+						AxisTestClassGroup axisTestClassGroup =
+							TestClassGroupFactory.newAxisTestClassGroup(this);
+
+						axisTestClassGroup.addTestClasses(testClassList);
+
+						axisTestClassGroups.add(axisTestClassGroup);
+					}
 				}
 			}
 		}
@@ -646,9 +770,7 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 				return;
 			}
 
-			int testClassCount = testClasses.size();
-
-			if (testClassCount == 0) {
+			if (!containsTestClasses()) {
 				if (!_includeAutoBalanceTests) {
 					return;
 				}
@@ -657,8 +779,10 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 					0, TestClassGroupFactory.newAxisTestClassGroup(this));
 			}
 			else {
+				List<TestClass> testClasses = getTestClasses();
+
 				int axisSize = (int)Math.ceil(
-					(double)testClassCount / axisCount);
+					(double)getTestClassCount() / axisCount);
 
 				for (List<TestClass> axisTestClasses :
 						Lists.partition(testClasses, axisSize)) {
@@ -706,12 +830,9 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 
 		long start = System.currentTimeMillis();
 
-		List<PathMatcher> filterPathMatchers = getPathMatchers(
-			getFilterJobProperties());
-		List<PathMatcher> excludesPathMatchers = getPathMatchers(
+		List<PathMatcher> excludesPathMatchers = getExcludesPathMatchers(
 			getExcludesJobProperties());
-
-		BatchTestClassGroup batchTestClassGroup = this;
+		List<PathMatcher> filterPathMatchers = getFilterPathMatchers();
 
 		for (final File javaTestClassFile : _javaTestClassFiles) {
 			if (JenkinsResultsParserUtil.isFileExcluded(
@@ -725,14 +846,29 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 				continue;
 			}
 
-			TestClass testClass = TestClassFactory.newTestClass(
-				batchTestClassGroup, javaTestClassFile);
+			TestClass testClass = null;
 
-			if ((testClass != null) && !testClass.isIgnored() &&
-				testClass.hasTestClassMethods()) {
+			List<String> testClassMethodNames = getTestClassMethodNames(
+				javaTestClassFile, getGlobTestClassMethodNamesMap());
 
-				testClasses.add(testClass);
+			if ((testClassMethodNames != null) &&
+				!testClassMethodNames.isEmpty()) {
+
+				testClass = TestClassFactory.newTestClass(
+					this, javaTestClassFile, testClassMethodNames);
 			}
+			else {
+				testClass = TestClassFactory.newTestClass(
+					this, javaTestClassFile);
+			}
+
+			if ((testClass == null) || testClass.isIgnored() ||
+				!testClass.hasTestClassMethods()) {
+
+				continue;
+			}
+
+			addTestClass(testClass);
 		}
 
 		long duration = System.currentTimeMillis() - start;
@@ -740,10 +876,8 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		System.out.println(
 			JenkinsResultsParserUtil.combine(
 				"[", getBatchName(), "] Found ",
-				String.valueOf(testClasses.size()), " test classes in ",
+				String.valueOf(getTestClassCount()), " test classes in ",
 				JenkinsResultsParserUtil.toDurationString(duration)));
-
-		Collections.sort(testClasses);
 	}
 
 	protected void setTestClasses(JUnitTestSelector jUnitTestSelector) {
@@ -761,13 +895,12 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 
 		long start = System.currentTimeMillis();
 
-		List<PathMatcher> filterPathMatchers = getPathMatchers(
-			getFilterJobProperties());
+		List<PathMatcher> filterPathMatchers = getFilterPathMatchers();
 
 		List<JobProperty> excludesJobProperties =
 			jUnitTestSelector.getExcludesJobProperties();
 
-		List<PathMatcher> excludesPathMatchers = getPathMatchers(
+		List<PathMatcher> excludesPathMatchers = getExcludesPathMatchers(
 			excludesJobProperties);
 
 		recordJobProperties(excludesJobProperties);
@@ -789,11 +922,13 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 			TestClass testClass = TestClassFactory.newTestClass(
 				batchTestClassGroup, javaTestClassFile);
 
-			if ((testClass != null) && !testClass.isIgnored() &&
-				testClass.hasTestClassMethods()) {
+			if ((testClass == null) || testClass.isIgnored() ||
+				!testClass.hasTestClassMethods()) {
 
-				testClasses.add(testClass);
+				continue;
 			}
+
+			addTestClass(testClass);
 		}
 
 		long duration = System.currentTimeMillis() - start;
@@ -801,10 +936,28 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		System.out.println(
 			JenkinsResultsParserUtil.combine(
 				"[", getBatchName(), "] Found ",
-				String.valueOf(testClasses.size()), " test classes in ",
+				String.valueOf(getTestClassCount()), " test classes in ",
 				JenkinsResultsParserUtil.toDurationString(duration)));
+	}
 
-		Collections.sort(testClasses);
+	private void _createAxisTestClassGroup(List<TestTask> testTasks) {
+		AxisTestClassGroup axisTestClassGroup =
+			TestClassGroupFactory.newAxisTestClassGroup(this);
+
+		for (TestTask testTask : testTasks) {
+			axisTestClassGroup.addTestClasses(testTask.getTestClasses());
+		}
+
+		if (axisTestClassGroup instanceof ModulesJUnitAxisTestClassGroup) {
+			ModulesJUnitAxisTestClassGroup modulesJUnitAxisTestClassGroup =
+				(ModulesJUnitAxisTestClassGroup)axisTestClassGroup;
+
+			for (TestTask testTask : testTasks) {
+				modulesJUnitAxisTestClassGroup.addTestTask(testTask);
+			}
+		}
+
+		axisTestClassGroups.add(axisTestClassGroup);
 	}
 
 	private File _getWorkingDirectory() {
@@ -824,11 +977,33 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		return workingDirectory;
 	}
 
+	private boolean _isIsolatedOversizedTestTask(List<TestTask> testTasks) {
+		if (testTasks.size() > 1) {
+			return false;
+		}
+
+		TestTask testTask = testTasks.get(0);
+
+		long totalTaskDuration =
+			testTask.getWeight() + testTask.getOverheadWeight();
+
+		if (totalTaskDuration <= getTargetAxisDuration()) {
+			return false;
+		}
+
+		return true;
+	}
+
 	private void _loadJavaFiles(File workingDirectory) {
-		synchronized (_javaFilesLoaded) {
-			if (_javaFilesLoaded.get()) {
+		synchronized (_javaFileDirPaths) {
+			String workingDirectoryPath =
+				JenkinsResultsParserUtil.getCanonicalPath(workingDirectory);
+
+			if (_javaFileDirPaths.contains(workingDirectoryPath)) {
 				return;
 			}
+
+			_javaFileDirPaths.add(workingDirectoryPath);
 
 			long start = System.currentTimeMillis();
 
@@ -857,8 +1032,6 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 						public FileVisitResult visitFile(
 							Path path,
 							BasicFileAttributes basicFileAttributes) {
-
-							_searchedFileCount++;
 
 							String pathString = path.toString();
 
@@ -898,8 +1071,6 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 					" Java test class files in ", workingDirectory.toString(),
 					" in ",
 					JenkinsResultsParserUtil.toDurationString(duration)));
-
-			_javaFilesLoaded.set(true);
 		}
 	}
 
@@ -924,7 +1095,8 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 			File javaTestClassFile = getJavaFileFromFullClassName(
 				fullClassName);
 
-			if (!JenkinsResultsParserUtil.isFileIncluded(
+			if ((javaTestClassFile == null) ||
+				!JenkinsResultsParserUtil.isFileIncluded(
 					null, getPathMatchers(getFilterJobProperties()),
 					javaTestClassFile)) {
 
@@ -936,7 +1108,7 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 	}
 
 	private void _setIncludeAutoBalanceTests() {
-		if (!testClasses.isEmpty()) {
+		if (containsTestClasses()) {
 			_includeAutoBalanceTests = true;
 
 			return;
@@ -960,19 +1132,56 @@ public class JUnitBatchTestClassGroup extends BatchTestClassGroup {
 		_includeAutoBalanceTests = false;
 	}
 
+	private void _splitOversizedTestTask(TestTask testTask) {
+		testTask.setSplit(true);
+
+		long targetAxisDuration = getTargetAxisDuration();
+
+		TestClassBalancedListSplitter testClassBalancedListSplitter =
+			new TestClassBalancedListSplitter(targetAxisDuration);
+
+		List<List<TestClass>> testClassesList = new ArrayList<>(
+			testClassBalancedListSplitter.split(testTask.getTestClasses()));
+
+		for (List<TestClass> testClasses : testClassesList) {
+			AxisTestClassGroup axisTestClassGroup =
+				TestClassGroupFactory.newAxisTestClassGroup(this);
+
+			axisTestClassGroup.addTestClasses(testClasses);
+
+			if (axisTestClassGroup instanceof ModulesJUnitAxisTestClassGroup) {
+				ModulesJUnitAxisTestClassGroup modulesJUnitAxisTestClassGroup =
+					(ModulesJUnitAxisTestClassGroup)axisTestClassGroup;
+
+				modulesJUnitAxisTestClassGroup.addTestTask(testTask);
+			}
+
+			axisTestClassGroups.add(axisTestClassGroup);
+		}
+
+		System.out.println(
+			JenkinsResultsParserUtil.combine(
+				"Split ", testTask.getName(), " into ",
+				String.valueOf(testClassesList.size()), " groups."));
+	}
+
 	private static final String[] _IGNORABLE_DIRS = {
 		"/.git", "/.gradle", "/.m2", "/.m2-tmp", "/build/node", "/build/tmp",
 		"/node_modules"
 	};
 
+	private static final Pattern _globClassMethodPattern = Pattern.compile(
+		"(?<testClassGlob>[^#]+)#(?<testClassMethodName>.+)");
 	private static final Set<String> _javaDirPathStrings =
 		ConcurrentHashMap.newKeySet();
-	private static final AtomicBoolean _javaFilesLoaded = new AtomicBoolean();
+	private static final Set<String> _javaFileDirPaths =
+		ConcurrentHashMap.newKeySet();
 	private static final Set<File> _javaTestClassFiles =
 		ConcurrentHashMap.newKeySet();
-	private static int _searchedFileCount;
 
 	private final List<File> _autoBalanceTestFiles = new ArrayList<>();
+	private final Map<String, List<String>> _globTestClassMethodNamesMap =
+		new HashMap<>();
 	private boolean _includeAutoBalanceTests;
 	private final boolean _includeUnstagedTestClassFiles;
 	private JUnitTestBatch _jUnitTestBatch;

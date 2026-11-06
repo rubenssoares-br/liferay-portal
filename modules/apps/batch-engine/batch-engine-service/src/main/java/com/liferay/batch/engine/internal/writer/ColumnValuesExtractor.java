@@ -5,7 +5,7 @@
 
 package com.liferay.batch.engine.internal.writer;
 
-import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.liferay.batch.engine.csv.ColumnDescriptor;
 import com.liferay.batch.engine.csv.ColumnDescriptorProvider;
@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.CSVUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ObjectValuePair;
+import com.liferay.portal.vulcan.jackson.databind.ObjectMapperProviderUtil;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -55,9 +56,9 @@ public class ColumnValuesExtractor {
 	public List<Object[]> extractValues(Object item)
 		throws ReflectiveOperationException {
 
-		List<Object[]> valuesList = new ArrayList<>();
+		List<Object[]> values = new ArrayList<>();
 
-		Object[] values = _getBlankValues(_columnDescriptors.length);
+		Object[] blankValues = _getBlankValues(_columnDescriptors.length);
 
 		List<ColumnDescriptor> childFieldColumnDescriptors = new ArrayList<>();
 
@@ -68,11 +69,11 @@ public class ColumnValuesExtractor {
 				continue;
 			}
 
-			values[columnDescriptor.getIndex()] = columnDescriptor.getValue(
-				item);
+			blankValues[columnDescriptor.getIndex()] =
+				columnDescriptor.getValue(item);
 		}
 
-		valuesList.add(values);
+		values.add(blankValues);
 
 		int hash = -1;
 
@@ -82,16 +83,16 @@ public class ColumnValuesExtractor {
 			if (hash != childFieldColumnDescriptor.getParentHashCode()) {
 				hash = childFieldColumnDescriptor.getParentHashCode();
 
-				values = _getBlankValues(_columnDescriptors.length);
+				blankValues = _getBlankValues(_columnDescriptors.length);
 
-				valuesList.add(values);
+				values.add(blankValues);
 			}
 
-			values[childFieldColumnDescriptor.getIndex()] =
+			blankValues[childFieldColumnDescriptor.getIndex()] =
 				childFieldColumnDescriptor.getValue(item);
 		}
 
-		return valuesList;
+		return values;
 	}
 
 	public String[] getHeaders() {
@@ -228,7 +229,10 @@ public class ColumnValuesExtractor {
 
 		if (ItemClassIndexUtil.isSingleColumnAdoptableValue(fieldClass)) {
 			if (ItemClassIndexUtil.isDate(fieldClass)) {
-				DateFormat dateFormat = new ISO8601DateFormat();
+				ObjectMapper objectMapper =
+					ObjectMapperProviderUtil.getBatchEngineObjectMapper();
+
+				DateFormat dateFormat = objectMapper.getDateFormat();
 
 				return new UnsafeFunction
 					<Object, Object, ReflectiveOperationException>() {
@@ -325,9 +329,11 @@ public class ColumnValuesExtractor {
 							sb.append(StringPool.BLANK);
 						}
 
-						if (iterator.hasNext()) {
-							sb.append(StringPool.COMMA_AND_SPACE);
+						if (!iterator.hasNext()) {
+							continue;
 						}
+
+						sb.append(StringPool.COMMA_AND_SPACE);
 					}
 
 					return sb.toString();

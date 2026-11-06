@@ -10,10 +10,8 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.NoSuchUserException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.access.control.AccessControlUtil;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.security.auth.http.HttpAuthorizationHeader;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
@@ -21,26 +19,25 @@ import com.liferay.portal.kernel.service.UserLocalServiceUtil;
 import com.liferay.portal.kernel.servlet.ProtectedServletRequest;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
-import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.security.auth.http.HttpAuthManagerUtil;
 import com.liferay.portal.servlet.filters.BasePortalFilter;
-import com.liferay.portal.util.PropsUtil;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 /**
  * @author Brian Wing Shun Chan
@@ -210,8 +207,6 @@ public abstract class BaseAuthFilter extends BasePortalFilter {
 	}
 
 	protected void initThreadLocals(User user) throws Exception {
-		CompanyThreadLocal.setCompanyId(user.getCompanyId());
-
 		PrincipalThreadLocal.setName(user.getUserId());
 
 		if (!_usePermissionChecker) {
@@ -311,18 +306,9 @@ public abstract class BaseAuthFilter extends BasePortalFilter {
 			initThreadLocals(user);
 
 			if (!user.isGuestUser()) {
-				String authType = ParamUtil.getString(
-					httpServletRequest, "authType");
-
-				if (authType == null) {
-					Company company = PortalUtil.getCompany(httpServletRequest);
-
-					authType = company.getAuthType();
-				}
-
 				httpServletRequest = setCredentials(
 					httpServletRequest, httpServletRequest.getSession(), user,
-					authType);
+					HttpServletRequest.FORM_AUTH);
 			}
 			else {
 				if (_digestAuthEnabled) {

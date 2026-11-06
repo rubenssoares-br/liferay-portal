@@ -313,10 +313,6 @@ public class LayoutLocalizationLocalServiceUtil {
 		return getService().getLayoutLocalizations(start, end);
 	}
 
-	public static List<LayoutLocalization> getLayoutLocalizations(long plid) {
-		return getService().getLayoutLocalizations(plid);
-	}
-
 	/**
 	 * Returns all the layout localizations matching the UUID and company.
 	 *
@@ -411,3 +407,4 @@ public class LayoutLocalizationLocalServiceUtil {
 			LayoutLocalizationLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-506589787

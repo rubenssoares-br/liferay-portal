@@ -8,13 +8,13 @@ package com.liferay.headless.delivery.client.dto.v1_0;
 import com.liferay.headless.delivery.client.function.UnsafeSupplier;
 import com.liferay.headless.delivery.client.serdes.v1_0.DocumentMetadataSetSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -221,6 +221,27 @@ public class DocumentMetadataSet implements Cloneable, Serializable {
 
 	protected Map<String, String> description_i18n;
 
+	public String getExternalReferenceCode() {
+		return externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
+		try {
+			externalReferenceCode = externalReferenceCodeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String externalReferenceCode;
+
 	public Long getId() {
 		return id;
 	}
@@ -334,3 +355,4 @@ public class DocumentMetadataSet implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-384067690

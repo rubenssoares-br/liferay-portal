@@ -33,7 +33,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Carlos Correa
  */
 @Component(
-	property = "dto.class.name=com.liferay.portal.kernel.model.UserNotificationEvent",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.portal.kernel.model.UserNotificationEvent"
+	},
 	service = DTOConverter.class
 )
 public class UserNotificationDTOConverter
@@ -93,7 +96,8 @@ public class UserNotificationDTOConverter
 	@Activate
 	protected void activate(BundleContext bundleContext) {
 		_serviceTrackerMap = ServiceTrackerMapFactory.openSingleValueMap(
-			bundleContext, UserNotificationHandler.class, "javax.portlet.name");
+			bundleContext, UserNotificationHandler.class,
+			"jakarta.portlet.name");
 	}
 
 	@Deactivate

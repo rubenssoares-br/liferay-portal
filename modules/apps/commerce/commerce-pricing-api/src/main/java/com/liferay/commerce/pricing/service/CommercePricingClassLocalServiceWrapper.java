@@ -367,14 +367,6 @@ public class CommercePricingClassLocalServiceWrapper
 			getCommercePricingClassByUuidAndCompanyId(uuid, companyId);
 	}
 
-	@Override
-	public int getCommercePricingClassCountByCPDefinitionId(
-		long cpDefinitionId, String title) {
-
-		return _commercePricingClassLocalService.
-			getCommercePricingClassCountByCPDefinitionId(cpDefinitionId, title);
-	}
-
 	/**
 	 * Returns a range of all the commerce pricing classes.
 	 *
@@ -422,14 +414,6 @@ public class CommercePricingClassLocalServiceWrapper
 	}
 
 	@Override
-	public int getCommercePricingClassesCount(
-		long cpDefinitionId, String title) {
-
-		return _commercePricingClassLocalService.getCommercePricingClassesCount(
-			cpDefinitionId, title);
-	}
-
-	@Override
 	public com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
 		getExportActionableDynamicQuery(
 			com.liferay.exportimport.kernel.lar.PortletDataContext
@@ -445,6 +429,16 @@ public class CommercePricingClassLocalServiceWrapper
 
 		return _commercePricingClassLocalService.
 			getIndexableActionableDynamicQuery();
+	}
+
+	@Override
+	public CommercePricingClass getOrAddEmptyCommercePricingClass(
+			String externalReferenceCode, long companyId, long userId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _commercePricingClassLocalService.
+			getOrAddEmptyCommercePricingClass(
+				externalReferenceCode, companyId, userId);
 	}
 
 	/**
@@ -467,14 +461,6 @@ public class CommercePricingClassLocalServiceWrapper
 
 		return _commercePricingClassLocalService.getPersistedModel(
 			primaryKeyObj);
-	}
-
-	@Override
-	public java.util.List<CommercePricingClass> searchByCPDefinitionId(
-		long cpDefinitionId, String title, int start, int end) {
-
-		return _commercePricingClassLocalService.searchByCPDefinitionId(
-			cpDefinitionId, title, start, end);
 	}
 
 	@Override
@@ -569,3 +555,4 @@ public class CommercePricingClassLocalServiceWrapper
 	private CommercePricingClassLocalService _commercePricingClassLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1410284591

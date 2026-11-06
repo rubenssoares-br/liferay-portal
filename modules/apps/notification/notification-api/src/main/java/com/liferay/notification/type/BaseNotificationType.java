@@ -6,17 +6,12 @@
 package com.liferay.notification.type;
 
 import com.liferay.notification.constants.NotificationQueueEntryConstants;
-import com.liferay.notification.constants.NotificationRecipientConstants;
 import com.liferay.notification.constants.NotificationRecipientSettingConstants;
 import com.liferay.notification.context.NotificationContext;
 import com.liferay.notification.exception.NotificationQueueEntrySubjectException;
 import com.liferay.notification.exception.NotificationRecipientSettingNameException;
 import com.liferay.notification.exception.NotificationTemplateAttachmentObjectFieldIdException;
-import com.liferay.notification.exception.NotificationTemplateDescriptionException;
-import com.liferay.notification.exception.NotificationTemplateEditorTypeException;
-import com.liferay.notification.exception.NotificationTemplateNameException;
 import com.liferay.notification.exception.NotificationTemplateObjectDefinitionIdException;
-import com.liferay.notification.exception.NotificationTemplateSubjectException;
 import com.liferay.notification.model.NotificationQueueEntry;
 import com.liferay.notification.model.NotificationRecipient;
 import com.liferay.notification.model.NotificationRecipientSetting;
@@ -33,22 +28,21 @@ import com.liferay.object.service.ObjectDefinitionLocalServiceUtil;
 import com.liferay.object.service.ObjectFieldLocalServiceUtil;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.UserGroup;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserGroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -103,59 +97,9 @@ public abstract class BaseNotificationType implements NotificationType {
 		createNotificationRecipientSettings(
 			long notificationRecipientId, Object[] recipients, User user) {
 
-		List<NotificationRecipientSetting> notificationRecipientSettings =
-			new ArrayList<>();
-
-		for (Object recipient : recipients) {
-			Map<String, Object> recipientMap = (Map<String, Object>)recipient;
-
-			for (Map.Entry<String, Object> entry : recipientMap.entrySet()) {
-				if (!Objects.equals(
-						recipientMap.get(
-							NotificationRecipientSettingConstants.
-								getRecipientTypeName(entry.getKey())),
-						NotificationRecipientConstants.TYPE_ROLE)) {
-
-					_addNotificationRecipientSetting(
-						entry.getKey(), notificationRecipientId,
-						notificationRecipientSettings, user, entry.getValue());
-
-					continue;
-				}
-
-				Set<String> roleNames = new HashSet<>();
-
-				for (Map<String, String> roleMap : _toList(entry.getValue())) {
-					String roleName = roleMap.get(
-						NotificationRecipientSettingConstants.NAME_ROLE_NAME);
-
-					if (Validator.isNull(roleName) ||
-						roleNames.contains(roleName)) {
-
-						continue;
-					}
-
-					Role role = roleLocalService.fetchRole(
-						user.getCompanyId(), roleName);
-
-					if ((role == null) ||
-						((role.getType() != RoleConstants.TYPE_ACCOUNT) &&
-						 (role.getType() != RoleConstants.TYPE_ORGANIZATION) &&
-						 (role.getType() != RoleConstants.TYPE_REGULAR))) {
-
-						continue;
-					}
-
-					roleNames.add(roleName);
-
-					_addNotificationRecipientSetting(
-						entry.getKey(), notificationRecipientId,
-						notificationRecipientSettings, user, roleName);
-				}
-			}
-		}
-
-		return notificationRecipientSettings;
+		return notificationRecipientSettingLocalService.
+			createNotificationRecipientSettings(
+				notificationRecipientId, null, recipients, user);
 	}
 
 	@Override
@@ -187,12 +131,7 @@ public abstract class BaseNotificationType implements NotificationType {
 		List<NotificationRecipientSetting> notificationRecipientSettings) {
 
 		return TransformUtil.transformToArray(
-			notificationRecipientSettings,
-			notificationRecipientSetting -> HashMapBuilder.put(
-				notificationRecipientSetting.getName(),
-				notificationRecipientSetting.getValue()
-			).build(),
-			Object.class);
+			notificationRecipientSettings, this::_toRecipientMap, Object.class);
 	}
 
 	@Override
@@ -251,26 +190,6 @@ public abstract class BaseNotificationType implements NotificationType {
 			}
 		}
 
-		String description = notificationTemplate.getDescription();
-
-		if (description.length() > 255) {
-			throw new NotificationTemplateDescriptionException(
-				"The description cannot contain more than 255 characters");
-		}
-
-		if (Validator.isNull(notificationTemplate.getEditorType())) {
-			throw new NotificationTemplateEditorTypeException(
-				"Editor type is null");
-		}
-
-		if (Validator.isNull(notificationTemplate.getName())) {
-			throw new NotificationTemplateNameException("Name is null");
-		}
-
-		if (Validator.isNull(notificationTemplate.getSubject())) {
-			throw new NotificationTemplateSubjectException("Subject is null");
-		}
-
 		for (long attachmentObjectFieldId :
 				notificationContext.getAttachmentObjectFieldIds()) {
 
@@ -287,6 +206,67 @@ public abstract class BaseNotificationType implements NotificationType {
 					notificationTemplate.getObjectDefinitionId())) {
 
 				throw new NotificationTemplateAttachmentObjectFieldIdException();
+			}
+		}
+	}
+
+	protected void addRecipientReferences(
+		long companyId, Map<String, String> recipientMap) {
+
+		if (!FeatureFlagManagerUtil.isEnabled(companyId, "LPD-49854")) {
+			return;
+		}
+
+		String roleName = recipientMap.get(
+			NotificationRecipientSettingConstants.NAME_ROLE_NAME);
+
+		if (roleName != null) {
+			Role role = roleLocalService.fetchRole(companyId, roleName);
+
+			if (role != null) {
+				recipientMap.put(
+					NotificationRecipientSettingConstants.
+						NAME_ROLE_EXTERNAL_REFERENCE_CODE,
+					role.getExternalReferenceCode());
+				recipientMap.put(
+					NotificationRecipientSettingConstants.NAME_ROLE_TYPE,
+					RoleConstants.getTypeLabel(role.getType()));
+			}
+
+			return;
+		}
+
+		String userGroupName = recipientMap.get(
+			NotificationRecipientSettingConstants.NAME_USER_GROUP_NAME);
+
+		if (userGroupName != null) {
+			UserGroup userGroup = userGroupLocalService.fetchUserGroup(
+				companyId, userGroupName);
+
+			if (userGroup != null) {
+				recipientMap.put(
+					NotificationRecipientSettingConstants.
+						NAME_USER_GROUP_EXTERNAL_REFERENCE_CODE,
+					userGroup.getExternalReferenceCode());
+			}
+
+			return;
+		}
+
+		String userScreenName = recipientMap.get(
+			NotificationRecipientSettingConstants.NAME_USER_SCREEN_NAME);
+
+		if ((userScreenName != null) &&
+			!NotificationTypeUtil.isTermValue(userScreenName)) {
+
+			User user = userLocalService.fetchUserByScreenName(
+				companyId, userScreenName);
+
+			if (user != null) {
+				recipientMap.put(
+					NotificationRecipientSettingConstants.
+						NAME_USER_EXTERNAL_REFERENCE_CODE,
+					user.getExternalReferenceCode());
 			}
 		}
 	}
@@ -423,44 +403,27 @@ public abstract class BaseNotificationType implements NotificationType {
 	protected RoleLocalService roleLocalService;
 
 	protected Locale siteDefaultLocale;
-	protected Locale userLocale;
+
+	@Reference
+	protected UserGroupLocalService userGroupLocalService;
 
 	@Reference
 	protected UserLocalService userLocalService;
 
-	private void _addNotificationRecipientSetting(
-		String name, long notificationRecipientId,
-		List<NotificationRecipientSetting> notificationRecipientSettings,
-		User user, Object value) {
+	protected Locale userLocale;
 
-		NotificationRecipientSetting notificationRecipientSetting =
-			notificationRecipientSettingLocalService.
-				createNotificationRecipientSetting(0);
+	private Map<String, String> _toRecipientMap(
+		NotificationRecipientSetting notificationRecipientSetting) {
 
-		notificationRecipientSetting.setCompanyId(user.getCompanyId());
-		notificationRecipientSetting.setUserId(user.getUserId());
-		notificationRecipientSetting.setUserName(user.getFullName());
-		notificationRecipientSetting.setNotificationRecipientId(
-			notificationRecipientId);
-		notificationRecipientSetting.setName(name);
+		Map<String, String> recipientMap = HashMapBuilder.put(
+			notificationRecipientSetting.getName(),
+			notificationRecipientSetting.getValue()
+		).build();
 
-		if (value instanceof LinkedHashMap) {
-			notificationRecipientSetting.setValueMap(
-				LocalizedMapUtil.getLocalizedMap((LinkedHashMap)value));
-		}
-		else {
-			notificationRecipientSetting.setValue(String.valueOf(value));
-		}
+		addRecipientReferences(
+			notificationRecipientSetting.getCompanyId(), recipientMap);
 
-		notificationRecipientSettings.add(notificationRecipientSetting);
-	}
-
-	private List<Map<String, String>> _toList(Object value) {
-		if (value instanceof Object[]) {
-			value = Arrays.asList((Object[])value);
-		}
-
-		return (List<Map<String, String>>)value;
+		return recipientMap;
 	}
 
 }

@@ -6,8 +6,8 @@
 import ClayButton from '@clayui/button';
 import {useModal} from '@clayui/modal';
 import {CommerceServiceProvider} from 'commerce-frontend-js';
-import {openConfirmModal, openToast, sub} from 'frontend-js-web';
-import moment from 'moment';
+import {openConfirmModal, openToast} from 'frontend-js-components-web';
+import {dateUtils, sub} from 'frontend-js-web';
 import React, {useCallback, useEffect, useState} from 'react';
 
 import InfoBoxModalNotes from '../InfoBoxModalNotes';
@@ -15,7 +15,10 @@ import InfoBoxModalNotes from '../InfoBoxModalNotes';
 const OrderNotesView = ({
 	buttonDisplayType,
 	elementId,
-	hasPermission,
+	hasManageOrderNotesPermission,
+	hasManageOrderRestrictedNotesPermission,
+	hasViewPermission,
+	isOpen,
 	label,
 	namespace,
 	orderId,
@@ -40,9 +43,7 @@ const OrderNotesView = ({
 
 	const formatDate = (value) => {
 		if (value.length) {
-			return moment(moment(value, 'YYYYMMDDHHmmss'))
-				.locale(Liferay.ThemeDisplay.getBCP47LanguageId())
-				.format('L LT');
+			return dateUtils.format(new Date(value), 'P p');
 		}
 	};
 
@@ -126,24 +127,25 @@ const OrderNotesView = ({
 
 	return (
 		<div className={namespace + 'info-box'} id={elementId}>
-			{label ? (
+			{label && (
 				<div className="align-items-center d-flex">
 					<div className="h5 info-box-label m-0">{label}</div>
 
-					{hasPermission ? (
+					{hasViewPermission && (
 						<ClayButton
-							aria-controls={`${namespace}InfoBoxModalNotes`}
+							aria-expanded={isOpen}
+							aria-haspopup="dialog"
 							className="ml-2"
 							data-qa-id={`${label}-infoBoxButton`}
 							displayType={buttonDisplayType}
 							onClick={() => onOpenChange(true)}
 							size="xs"
 						>
-							{Liferay.Language.get('open')}
+							{Liferay.Language.get('open[verb]')}
 						</ClayButton>
-					) : null}
+					)}
 				</div>
-			) : null}
+			)}
 
 			<div>
 				<p className="info-box-value">{formatDate(modifiedDate)}</p>
@@ -153,6 +155,10 @@ const OrderNotesView = ({
 				handleDelete={handleDelete}
 				handleSubmit={handleSubmit}
 				handleToggle={handleToggle}
+				hasManageOrderNotesPermission={hasManageOrderNotesPermission}
+				hasManageOrderRestrictedNotesPermission={
+					hasManageOrderRestrictedNotesPermission
+				}
 				id={`${namespace}InfoBoxModalNotes`}
 				isRestricted={isRestricted}
 				isValid={isValid}

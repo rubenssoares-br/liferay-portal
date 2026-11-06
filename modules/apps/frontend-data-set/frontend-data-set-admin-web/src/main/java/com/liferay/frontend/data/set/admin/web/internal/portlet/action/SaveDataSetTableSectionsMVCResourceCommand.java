@@ -5,7 +5,8 @@
 
 package com.liferay.frontend.data.set.admin.web.internal.portlet.action;
 
-import com.liferay.frontend.data.set.admin.web.internal.constants.FDSAdminPortletKeys;
+import com.liferay.frontend.data.set.constants.FDSAdminPortletKeys;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
@@ -22,10 +23,10 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.io.Serializable;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
 
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
+import java.io.Serializable;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -35,7 +36,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + FDSAdminPortletKeys.FDS_ADMIN,
+		"jakarta.portlet.name=" + FDSAdminPortletKeys.FDS_ADMIN,
 		"mvc.command.name=/frontend_data_set_admin/save_data_set_table_sections"
 	},
 	service = MVCResourceCommand.class
@@ -54,8 +55,9 @@ public class SaveDataSetTableSectionsMVCResourceCommand
 			WebKeys.THEME_DISPLAY);
 
 		ObjectDefinition objectDefinition =
-			_objectDefinitionLocalService.fetchObjectDefinition(
-				themeDisplay.getCompanyId(), "DataSetTableSection");
+			_objectDefinitionLocalService.
+				fetchObjectDefinitionByExternalReferenceCode(
+					"L_DATA_SET_TABLE_SECTION", themeDisplay.getCompanyId());
 
 		String dataSetId = ParamUtil.getString(resourceRequest, "dataSetId");
 
@@ -71,6 +73,9 @@ public class SaveDataSetTableSectionsMVCResourceCommand
 
 			ObjectEntry objectEntry = _objectEntryService.addObjectEntry(
 				0, objectDefinition.getObjectDefinitionId(),
+				ObjectEntryFolderConstants.
+					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+				null,
 				HashMapBuilder.<String, Serializable>put(
 					"fieldName",
 					String.valueOf(creationDataJSONObject.get("name"))

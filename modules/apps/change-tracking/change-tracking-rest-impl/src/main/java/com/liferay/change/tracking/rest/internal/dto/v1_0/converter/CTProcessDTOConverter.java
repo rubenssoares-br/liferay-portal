@@ -28,7 +28,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Pei-Jung Lan
  */
 @Component(
-	property = "dto.class.name=com.liferay.change.tracking.model.CTProcess",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.change.tracking.model.CTProcess"
+	},
 	service = DTOConverter.class
 )
 public class CTProcessDTOConverter
@@ -70,8 +73,12 @@ public class CTProcessDTOConverter
 		};
 	}
 
-	private String _getUserName(long userId) throws Exception {
-		User user = _userLocalService.getUser(userId);
+	private String _getUserName(long userId) {
+		User user = _userLocalService.fetchUser(userId);
+
+		if (user == null) {
+			return StringPool.BLANK;
+		}
 
 		return user.getFullName();
 	}

@@ -36,8 +36,24 @@ public class DLFileVersionLocalServiceImpl
 	public DLFileVersion fetchLatestFileVersion(
 		long fileEntryId, boolean excludeWorkingCopy) {
 
-		List<DLFileVersion> dlFileVersions =
-			dlFileVersionPersistence.findByFileEntryId(fileEntryId);
+		return fetchLatestFileVersion(
+			fileEntryId, excludeWorkingCopy, WorkflowConstants.STATUS_ANY);
+	}
+
+	@Override
+	public DLFileVersion fetchLatestFileVersion(
+		long fileEntryId, boolean excludeWorkingCopy, int status) {
+
+		List<DLFileVersion> dlFileVersions = null;
+
+		if (status == WorkflowConstants.STATUS_ANY) {
+			dlFileVersions = dlFileVersionPersistence.findByFileEntryId(
+				fileEntryId);
+		}
+		else {
+			dlFileVersions = dlFileVersionPersistence.findByF_S(
+				fileEntryId, status);
+		}
 
 		if (dlFileVersions.isEmpty()) {
 			return null;
@@ -62,19 +78,6 @@ public class DLFileVersionLocalServiceImpl
 	}
 
 	@Override
-	public DLFileVersion fetchLatestFileVersion(
-		long fileEntryId, boolean excludeWorkingCopy, int status) {
-
-		if (status == WorkflowConstants.STATUS_ANY) {
-			return fetchLatestFileVersion(fileEntryId, excludeWorkingCopy);
-		}
-
-		return dlFileVersionPersistence.fetchByF_S_Last(
-			fileEntryId, status,
-			DLFileVersionVersionComparator.getInstance(false));
-	}
-
-	@Override
 	public DLFileVersion getFileVersion(long fileVersionId)
 		throws PortalException {
 
@@ -86,13 +89,6 @@ public class DLFileVersionLocalServiceImpl
 		throws PortalException {
 
 		return dlFileVersionPersistence.findByF_V(fileEntryId, version);
-	}
-
-	@Override
-	public DLFileVersion getFileVersionByUuidAndGroupId(
-		String uuid, long groupId) {
-
-		return dlFileVersionPersistence.fetchByUUID_G(uuid, groupId);
 	}
 
 	@Override
@@ -173,11 +169,6 @@ public class DLFileVersionLocalServiceImpl
 		}
 
 		return getLatestFileVersion(fileEntryId, excludeWorkingCopy);
-	}
-
-	@Override
-	public void rebuildTree(long companyId) throws PortalException {
-		_dlFolderLocalService.rebuildTree(companyId);
 	}
 
 	@Override

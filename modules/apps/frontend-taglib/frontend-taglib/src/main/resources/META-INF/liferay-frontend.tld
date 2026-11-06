@@ -400,6 +400,12 @@
 			<type>boolean</type>
 		</attribute>
 		<attribute>
+			<name>iconOnly</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
 			<name>interactive</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
@@ -627,10 +633,20 @@
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
+			<name>portletNamespace</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
 			<name>preserveRatio</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<name>type</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 	</tag>
 	<tag>
@@ -746,6 +762,11 @@
 		</attribute>
 		<attribute>
 			<name>modelBean</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<name>navBarCssClass</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>

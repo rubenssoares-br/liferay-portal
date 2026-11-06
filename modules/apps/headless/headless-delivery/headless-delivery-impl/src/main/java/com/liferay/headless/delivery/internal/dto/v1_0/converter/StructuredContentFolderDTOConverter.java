@@ -8,7 +8,6 @@ package com.liferay.headless.delivery.internal.dto.v1_0.converter;
 import com.liferay.document.library.kernel.model.DLFolder;
 import com.liferay.headless.delivery.dto.v1_0.StructuredContentFolder;
 import com.liferay.headless.delivery.dto.v1_0.util.CreatorUtil;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.journal.model.JournalFolder;
 import com.liferay.journal.service.JournalArticleService;
 import com.liferay.journal.service.JournalFolderService;
@@ -17,6 +16,7 @@ import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.portal.vulcan.util.GroupUtil;
@@ -30,7 +30,9 @@ import org.osgi.service.component.annotations.Reference;
  * @author Víctor Galán
  */
 @Component(
-	property = "dto.class.name=com.liferay.journal.model.JournalFolder",
+	property = {
+		"default=true", "dto.class.name=com.liferay.journal.model.JournalFolder"
+	},
 	service = DTOConverter.class
 )
 public class StructuredContentFolderDTOConverter

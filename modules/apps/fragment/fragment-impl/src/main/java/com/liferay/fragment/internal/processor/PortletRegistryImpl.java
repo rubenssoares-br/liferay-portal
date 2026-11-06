@@ -7,9 +7,9 @@ package com.liferay.fragment.internal.processor;
 
 import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.processor.PortletRegistry;
+import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -18,11 +18,13 @@ import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.portlet.render.PortletRenderParts;
 import com.liferay.portal.kernel.portlet.render.PortletRenderUtil;
 import com.liferay.portal.kernel.service.PortletLocalService;
-import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,15 +33,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -52,30 +45,28 @@ public class PortletRegistryImpl implements PortletRegistry {
 
 	@Override
 	public List<String> getFragmentEntryLinkPortletIds(
-		Document document, FragmentEntryLink fragmentEntryLink) {
+		FragmentEntryLink fragmentEntryLink) {
 
 		List<String> portletIds = new ArrayList<>();
 
 		if (fragmentEntryLink.isTypePortlet()) {
-			try {
-				JSONObject jsonObject = _jsonFactory.createJSONObject(
-					fragmentEntryLink.getEditableValues());
+			JSONObject jsonObject =
+				fragmentEntryLink.getEditableValuesJSONObject();
 
-				String portletId = jsonObject.getString("portletId");
-
-				if (Validator.isNotNull(portletId)) {
-					String instanceId = jsonObject.getString("instanceId");
-
-					if (Objects.equals(instanceId, "0")) {
-						instanceId = StringPool.BLANK;
-					}
-
-					portletIds.add(
-						PortletIdCodec.encode(portletId, instanceId));
-				}
+			if (jsonObject == null) {
+				return portletIds;
 			}
-			catch (PortalException portalException) {
-				_log.error("Unable to get portlet IDs", portalException);
+
+			String portletId = jsonObject.getString("portletId");
+
+			if (Validator.isNotNull(portletId)) {
+				String instanceId = jsonObject.getString("instanceId");
+
+				if (Objects.equals(instanceId, "0")) {
+					instanceId = StringPool.BLANK;
+				}
+
+				portletIds.add(PortletIdCodec.encode(portletId, instanceId));
 			}
 
 			return portletIds;
@@ -83,76 +74,10 @@ public class PortletRegistryImpl implements PortletRegistry {
 
 		String html = fragmentEntryLink.getHtml();
 
-		if (!html.contains("@liferay_portlet") &&
-			!html.contains("lfr-widget-")) {
-
-			return portletIds;
-		}
-
-		if (document == null) {
-			document = _getDocument(html);
-		}
-
-		for (Element element : document.select("*")) {
-			String tagName = element.tagName();
-
-			if (!StringUtil.startsWith(tagName, "lfr-widget-")) {
-				continue;
-			}
-
-			String alias = StringUtil.removeSubstring(tagName, "lfr-widget-");
-
-			String portletName = getPortletName(alias);
-
-			if (Validator.isNull(portletName)) {
-				continue;
-			}
-
-			String portletId = PortletIdCodec.encode(
-				PortletIdCodec.decodePortletName(portletName),
-				PortletIdCodec.decodeUserId(portletName),
-				fragmentEntryLink.getNamespace() + element.attr("id"));
-
-			portletIds.add(_portal.getJsSafePortletId(portletId));
-		}
-
-		Matcher liferayPortletRuntimeMatcher =
-			_liferayPortletRuntimePattern.matcher(fragmentEntryLink.getHtml());
-
-		while (liferayPortletRuntimeMatcher.find()) {
-			String portletName = _getAttributeValue(
-				"portletName", liferayPortletRuntimeMatcher.group(2));
-
-			if (Validator.isNull(portletName)) {
-				continue;
-			}
-
-			String instanceId = _getAttributeValue(
-				"instanceId", liferayPortletRuntimeMatcher.group(1));
-
-			if (Validator.isNull(instanceId)) {
-				instanceId = _getAttributeValue(
-					"instanceId", liferayPortletRuntimeMatcher.group(3));
-			}
-
-			String portletId = PortletIdCodec.encode(
-				PortletIdCodec.decodePortletName(portletName),
-				PortletIdCodec.decodeUserId(portletName),
-				StringUtil.replace(
-					instanceId, "fragmentEntryLinkNamespace",
-					fragmentEntryLink.getNamespace()));
-
-			portletIds.add(_portal.getJsSafePortletId(portletId));
-		}
+		_addRuntimeTagPortletIds(fragmentEntryLink, html, portletIds);
+		_addWidgetTagPortletIds(fragmentEntryLink, html, portletIds);
 
 		return portletIds;
-	}
-
-	@Override
-	public List<String> getFragmentEntryLinkPortletIds(
-		FragmentEntryLink fragmentEntryLink) {
-
-		return getFragmentEntryLinkPortletIds(null, fragmentEntryLink);
 	}
 
 	@Override
@@ -224,52 +149,286 @@ public class PortletRegistryImpl implements PortletRegistry {
 		}
 	}
 
+	private void _addRuntimeTagPortletIds(
+		FragmentEntryLink fragmentEntryLink, String html,
+		List<String> portletIds) {
+
+		int index = html.indexOf(_LIFERAY_PORTLET_MACRO);
+
+		while (index != -1) {
+			int contentIndex = index + _LIFERAY_PORTLET_MACRO.length();
+
+			if (!html.startsWith(".runtime", contentIndex) &&
+				!html.startsWith("[\"runtime\"]", contentIndex) &&
+				!html.startsWith("['runtime']", contentIndex)) {
+
+				index = html.indexOf(_LIFERAY_PORTLET_MACRO, index + 1);
+
+				continue;
+			}
+
+			int endIndex = _getMacroEndIndex(html, contentIndex);
+
+			if (endIndex == -1) {
+				endIndex = html.indexOf("/]", contentIndex);
+			}
+
+			if (endIndex == -1) {
+				break;
+			}
+
+			String macro = html.substring(index, endIndex);
+
+			index = html.indexOf(_LIFERAY_PORTLET_MACRO, endIndex);
+
+			String portletName = _getAttributeValue("portletName", macro);
+
+			if (Validator.isNull(portletName)) {
+				continue;
+			}
+
+			String instanceId = _getAttributeValue("instanceId", macro);
+
+			String portletId = PortletIdCodec.encode(
+				PortletIdCodec.decodePortletName(portletName),
+				PortletIdCodec.decodeUserId(portletName),
+				StringUtil.replace(
+					instanceId, "fragmentEntryLinkNamespace",
+					fragmentEntryLink.getNamespace()));
+
+			portletIds.add(_portal.getJsSafePortletId(portletId));
+		}
+	}
+
+	private void _addWidgetTagPortletIds(
+		FragmentEntryLink fragmentEntryLink, String html,
+		List<String> portletIds) {
+
+		int index = html.indexOf(_LFR_WIDGET_TAG_PREFIX);
+
+		if (index == -1) {
+			return;
+		}
+
+		int commentIndex = html.indexOf("<!--");
+
+		while (index != -1) {
+			if ((commentIndex != -1) && (commentIndex < index)) {
+				int commentEndIndex = html.indexOf("-->", commentIndex);
+
+				if (commentEndIndex == -1) {
+					break;
+				}
+
+				if (commentEndIndex > index) {
+					index = html.indexOf(
+						_LFR_WIDGET_TAG_PREFIX, commentEndIndex);
+				}
+
+				commentIndex = html.indexOf("<!--", commentEndIndex);
+
+				continue;
+			}
+
+			int aliasIndex = index + _LFR_WIDGET_TAG_PREFIX.length();
+
+			int aliasEndIndex = aliasIndex;
+
+			while (aliasEndIndex < html.length()) {
+				char c = html.charAt(aliasEndIndex);
+
+				if ((c <= CharPool.SPACE) || (c == CharPool.FORWARD_SLASH) ||
+					(c == CharPool.GREATER_THAN)) {
+
+					break;
+				}
+
+				aliasEndIndex++;
+			}
+
+			int tagEndIndex = _getTagEndIndex(html, aliasEndIndex);
+
+			if (tagEndIndex == -1) {
+				break;
+			}
+
+			index = html.indexOf(_LFR_WIDGET_TAG_PREFIX, tagEndIndex);
+
+			String alias = StringUtil.toLowerCase(
+				html.substring(aliasIndex, aliasEndIndex));
+
+			String portletName = getPortletName(alias);
+
+			if (Validator.isNull(portletName)) {
+				continue;
+			}
+
+			String id = _getAttributeValue(
+				"id", html.substring(aliasEndIndex, tagEndIndex));
+
+			if (id == null) {
+				id = StringPool.BLANK;
+			}
+
+			String portletId = PortletIdCodec.encode(
+				PortletIdCodec.decodePortletName(portletName),
+				PortletIdCodec.decodeUserId(portletName),
+				fragmentEntryLink.getNamespace() + id);
+
+			portletIds.add(_portal.getJsSafePortletId(portletId));
+		}
+	}
+
 	private String _getAttributeValue(String attributeName, String string) {
-		String s = StringUtil.extractLast(
-			string, attributeName + StringPool.EQUAL);
+		int index = 0;
 
-		if (Validator.isNull(s)) {
-			return s;
-		}
+		while (index < string.length()) {
+			if (Character.isWhitespace(string.charAt(index))) {
+				index++;
 
-		if (s.startsWith(StringPool.QUOTE)) {
-			return StringUtil.extractFirst(s.substring(1), StringPool.QUOTE);
-		}
+				continue;
+			}
 
-		String[] strings = s.split("\\s+");
+			int startIndex = index;
 
-		if (ArrayUtil.isNotEmpty(strings)) {
-			return strings[0];
+			while ((index < string.length()) &&
+				   (string.charAt(index) != CharPool.EQUAL) &&
+				   !Character.isWhitespace(string.charAt(index))) {
+
+				index++;
+			}
+
+			String name = string.substring(startIndex, index);
+
+			while ((index < string.length()) &&
+				   Character.isWhitespace(string.charAt(index))) {
+
+				index++;
+			}
+
+			if ((index >= string.length()) ||
+				(string.charAt(index) != CharPool.EQUAL)) {
+
+				continue;
+			}
+
+			index++;
+
+			while ((index < string.length()) &&
+				   Character.isWhitespace(string.charAt(index))) {
+
+				index++;
+			}
+
+			String value = null;
+
+			if ((index < string.length()) &&
+				((string.charAt(index) == CharPool.APOSTROPHE) ||
+				 (string.charAt(index) == CharPool.QUOTE))) {
+
+				startIndex = index + 1;
+
+				index = _getQuotedStringEndIndex(
+					startIndex, string.charAt(index), string);
+
+				value = string.substring(startIndex, index);
+
+				index++;
+			}
+			else {
+				startIndex = index;
+
+				while ((index < string.length()) &&
+					   !Character.isWhitespace(string.charAt(index))) {
+
+					index++;
+				}
+
+				value = string.substring(startIndex, index);
+			}
+
+			if (name.equals(attributeName)) {
+				return value;
+			}
 		}
 
 		return null;
 	}
 
-	private Document _getDocument(String html) {
-		Document document = Jsoup.parseBodyFragment(html);
+	private int _getMacroEndIndex(String html, int index) {
+		int openBracketCount = 0;
 
-		Document.OutputSettings outputSettings = new Document.OutputSettings();
+		while (index < html.length()) {
+			char c = html.charAt(index);
 
-		outputSettings.prettyPrint(false);
+			if ((c == CharPool.APOSTROPHE) || (c == CharPool.QUOTE)) {
+				index = _getQuotedStringEndIndex(index + 1, c, html);
+			}
+			else if (c == CharPool.OPEN_BRACKET) {
+				openBracketCount++;
+			}
+			else if (c == CharPool.CLOSE_BRACKET) {
+				if (openBracketCount == 0) {
+					if (html.charAt(index - 1) == CharPool.FORWARD_SLASH) {
+						return index - 1;
+					}
 
-		document.outputSettings(outputSettings);
+					return index;
+				}
 
-		return document;
+				openBracketCount--;
+			}
+
+			index++;
+		}
+
+		return -1;
 	}
+
+	private int _getQuotedStringEndIndex(int index, char quote, String string) {
+		while (index < string.length()) {
+			char c = string.charAt(index);
+
+			if (c == quote) {
+				return index;
+			}
+
+			if (c == CharPool.BACK_SLASH) {
+				index++;
+			}
+
+			index++;
+		}
+
+		return string.length();
+	}
+
+	private int _getTagEndIndex(String html, int index) {
+		while (index < html.length()) {
+			char c = html.charAt(index);
+
+			if ((c == CharPool.APOSTROPHE) || (c == CharPool.QUOTE)) {
+				index = _getQuotedStringEndIndex(index + 1, c, html);
+			}
+			else if (c == CharPool.GREATER_THAN) {
+				return index;
+			}
+
+			index++;
+		}
+
+		return -1;
+	}
+
+	private static final String _LFR_WIDGET_TAG_PREFIX = "<lfr-widget-";
+
+	private static final String _LIFERAY_PORTLET_MACRO = "[@liferay_portlet";
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		PortletRegistryImpl.class);
 
-	private static final Pattern _liferayPortletRuntimePattern =
-		Pattern.compile(
-			"\\[@liferay_portlet(?=\\.runtime|\\[\"runtime\"\\])([\\s\\S]*)?" +
-				"(portletName=\"\\w+\")([\\s\\S]*)?\\/\\]");
-
 	private final Map<String, String> _aliasPortletNames =
 		new ConcurrentHashMap<>();
-
-	@Reference
-	private JSONFactory _jsonFactory;
 
 	@Reference
 	private Portal _portal;

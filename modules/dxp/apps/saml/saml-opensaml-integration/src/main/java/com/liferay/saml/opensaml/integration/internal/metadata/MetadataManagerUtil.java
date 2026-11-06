@@ -14,7 +14,7 @@ import com.liferay.saml.runtime.configuration.SamlProviderConfiguration;
 import com.liferay.saml.runtime.configuration.SamlProviderConfigurationHelper;
 import com.liferay.saml.runtime.metadata.LocalEntityManager;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
 import net.shibboleth.utilities.java.support.resolver.ResolverException;
@@ -60,7 +60,17 @@ public class MetadataManagerUtil {
 				PortalUtil.isSecure(httpServletRequest));
 			String localEntityId = localEntityManager.getLocalEntityId();
 
-			if (samlProviderConfigurationHelper.isRoleIdp()) {
+			if (samlProviderConfigurationHelper.isRoleIb()) {
+				return MetadataGeneratorUtil.buildIbEntityDescriptor(
+					portalURL, localEntityId,
+					_isSignAuthnRequest(samlProviderConfigurationHelper),
+					_isWantAuthnRequestSigned(samlProviderConfigurationHelper),
+					_isSignMetadata(samlProviderConfigurationHelper),
+					_getSigningCredential(
+						credentialResolver, localEntityManager),
+					encryptionCredential);
+			}
+			else if (samlProviderConfigurationHelper.isRoleIdp()) {
 				return MetadataGeneratorUtil.buildIdpEntityDescriptor(
 					portalURL, localEntityId,
 					_isWantAuthnRequestSigned(samlProviderConfigurationHelper),
@@ -137,44 +147,49 @@ public class MetadataManagerUtil {
 		}
 	}
 
+	private static boolean _isSSLRequired(
+		SamlProviderConfigurationHelper samlProviderConfigurationHelper) {
+
+		SamlProviderConfiguration samlProviderConfiguration =
+			_getSamlProviderConfiguration(samlProviderConfigurationHelper);
+
+		return samlProviderConfiguration.sslRequired();
+	}
+
 	private static boolean _isSignAuthnRequest(
 		SamlProviderConfigurationHelper samlProviderConfigurationHelper) {
 
-		return _getSamlProviderConfiguration(
-			samlProviderConfigurationHelper
-		).signAuthnRequest();
+		SamlProviderConfiguration samlProviderConfiguration =
+			_getSamlProviderConfiguration(samlProviderConfigurationHelper);
+
+		return samlProviderConfiguration.signAuthnRequest();
 	}
 
 	private static boolean _isSignMetadata(
 		SamlProviderConfigurationHelper samlProviderConfigurationHelper) {
 
-		return _getSamlProviderConfiguration(
-			samlProviderConfigurationHelper
-		).signMetadata();
-	}
+		SamlProviderConfiguration samlProviderConfiguration =
+			_getSamlProviderConfiguration(samlProviderConfigurationHelper);
 
-	private static boolean _isSSLRequired(
-		SamlProviderConfigurationHelper samlProviderConfigurationHelper) {
-
-		return _getSamlProviderConfiguration(
-			samlProviderConfigurationHelper
-		).sslRequired();
+		return samlProviderConfiguration.signMetadata();
 	}
 
 	private static boolean _isWantAssertionsSigned(
 		SamlProviderConfigurationHelper samlProviderConfigurationHelper) {
 
-		return _getSamlProviderConfiguration(
-			samlProviderConfigurationHelper
-		).assertionSignatureRequired();
+		SamlProviderConfiguration samlProviderConfiguration =
+			_getSamlProviderConfiguration(samlProviderConfigurationHelper);
+
+		return samlProviderConfiguration.assertionSignatureRequired();
 	}
 
 	private static boolean _isWantAuthnRequestSigned(
 		SamlProviderConfigurationHelper samlProviderConfigurationHelper) {
 
-		return _getSamlProviderConfiguration(
-			samlProviderConfigurationHelper
-		).authnRequestSignatureRequired();
+		SamlProviderConfiguration samlProviderConfiguration =
+			_getSamlProviderConfiguration(samlProviderConfigurationHelper);
+
+		return samlProviderConfiguration.authnRequestSignatureRequired();
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

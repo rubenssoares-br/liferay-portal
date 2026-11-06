@@ -42,8 +42,8 @@ public class ObjectRelationshipTestUtil {
 
 		List<ObjectEntry> objectEntries =
 			objectRelatedModelsProvider.getRelatedModels(
-				0, objectRelationshipId, primaryKey, null, QueryUtil.ALL_POS,
-				QueryUtil.ALL_POS);
+				0, objectRelationshipId, null, false, primaryKey, null,
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
 
 		Assert.assertEquals(
 			objectEntries.toString(), expectedSize, objectEntries.size());
@@ -57,8 +57,8 @@ public class ObjectRelationshipTestUtil {
 
 		List<ObjectEntry> objectEntries =
 			objectRelatedModelsProvider.getRelatedModels(
-				groupId, objectRelationshipId, primaryKey, search,
-				QueryUtil.ALL_POS, QueryUtil.ALL_POS);
+				groupId, objectRelationshipId, null, false, primaryKey, search,
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
 
 		Assert.assertEquals(
 			objectEntries.toString(), expectedSize, objectEntries.size());
@@ -81,8 +81,8 @@ public class ObjectRelationshipTestUtil {
 		throws Exception {
 
 		return ObjectRelationshipLocalServiceUtil.updateObjectRelationship(
-			externalReferenceCode, objectRelationshipId, 0, deletionType, false,
-			labelMap, null);
+			externalReferenceCode, objectRelationshipId, 0, deletionType, null,
+			false, labelMap, null);
 	}
 
 }

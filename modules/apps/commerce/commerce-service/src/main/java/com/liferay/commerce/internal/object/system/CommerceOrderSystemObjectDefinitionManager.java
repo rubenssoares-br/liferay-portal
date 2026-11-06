@@ -28,6 +28,8 @@ import com.liferay.portal.kernel.model.BaseModel;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -53,10 +55,12 @@ public class CommerceOrderSystemObjectDefinitionManager
 	extends BaseSystemObjectDefinitionManager {
 
 	@Override
-	public long addBaseModel(User user, Map<String, Object> values)
+	public long addBaseModel(
+			boolean checkPermissions, User user, Map<String, Object> values)
 		throws Exception {
 
-		OrderResource orderResource = _buildOrderResource(false, user);
+		OrderResource orderResource = _buildOrderResource(
+			checkPermissions, user);
 
 		Order order = orderResource.postOrder(_toOrder(values));
 
@@ -90,16 +94,6 @@ public class CommerceOrderSystemObjectDefinitionManager
 		return _commerceOrderLocalService.
 			getCommerceOrderByExternalReferenceCode(
 				externalReferenceCode, companyId);
-	}
-
-	@Override
-	public String getBaseModelExternalReferenceCode(long primaryKey)
-		throws PortalException {
-
-		CommerceOrder commerceOrder =
-			_commerceOrderLocalService.getCommerceOrder(primaryKey);
-
-		return commerceOrder.getExternalReferenceCode();
 	}
 
 	@Override
@@ -183,7 +177,7 @@ public class CommerceOrderSystemObjectDefinitionManager
 			).dbColumnName(
 				"orderTypeExternalReferenceCode"
 			).labelMap(
-				createLabelMap("orderTypeExternalReferenceCode")
+				createLabelMap("order-type-external-reference-code")
 			).name(
 				"orderTypeExternalReferenceCode"
 			).system(
@@ -196,6 +190,24 @@ public class CommerceOrderSystemObjectDefinitionManager
 				createLabelMap("order-type-id")
 			).name(
 				"orderTypeId"
+			).system(
+				true
+			).build(),
+			new IntegerObjectFieldBuilder(
+			).labelMap(
+				createLabelMap("payment-status")
+			).name(
+				"paymentStatus"
+			).required(
+				true
+			).system(
+				true
+			).build(),
+			new TextObjectFieldBuilder(
+			).labelMap(
+				createLabelMap("payment-method-key")
+			).name(
+				"paymentMethodKey"
 			).system(
 				true
 			).build(),
@@ -283,7 +295,17 @@ public class CommerceOrderSystemObjectDefinitionManager
 
 	@Override
 	public int getVersion() {
-		return 5;
+		return 6;
+	}
+
+	@Override
+	public boolean hasModelResourcePermission(
+			long objectDefinitionId, PermissionChecker permissionChecker,
+			long primaryKey, String actionId)
+		throws PortalException {
+
+		return _commerceOrderModelResourcePermission.contains(
+			permissionChecker, primaryKey, actionId);
 	}
 
 	@Override
@@ -336,6 +358,10 @@ public class CommerceOrderSystemObjectDefinitionManager
 						values.get("orderTypeExternalReferenceCode")));
 				setOrderTypeId(
 					() -> GetterUtil.getLong(values.get("orderTypeId")));
+				setPaymentMethod(
+					() -> GetterUtil.getString(values.get("paymentMethodKey")));
+				setPaymentStatus(
+					() -> GetterUtil.getInteger(values.get("paymentStatus")));
 				setShippingAmount(
 					() -> {
 						String shippingAmountString = GetterUtil.getString(
@@ -383,6 +409,12 @@ public class CommerceOrderSystemObjectDefinitionManager
 
 	@Reference
 	private CommerceOrderLocalService _commerceOrderLocalService;
+
+	@Reference(
+		target = "(model.class.name=com.liferay.commerce.model.CommerceOrder)"
+	)
+	private ModelResourcePermission<CommerceOrder>
+		_commerceOrderModelResourcePermission;
 
 	@Reference
 	private OrderResource.Factory _orderResourceFactory;

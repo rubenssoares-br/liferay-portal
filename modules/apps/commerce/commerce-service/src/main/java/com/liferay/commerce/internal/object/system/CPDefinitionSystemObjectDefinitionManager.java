@@ -6,10 +6,13 @@
 package com.liferay.commerce.internal.object.system;
 
 import com.liferay.commerce.product.model.CPDefinition;
+import com.liferay.commerce.product.model.CPDefinitionLocalizationTable;
 import com.liferay.commerce.product.model.CPDefinitionTable;
 import com.liferay.commerce.product.model.CProduct;
+import com.liferay.commerce.product.model.CommerceCatalog;
 import com.liferay.commerce.product.service.CPDefinitionLocalService;
 import com.liferay.commerce.product.service.CProductLocalService;
+import com.liferay.commerce.product.service.CommerceCatalogLocalService;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.Product;
 import com.liferay.headless.commerce.admin.catalog.resource.v1_0.ProductResource;
 import com.liferay.object.constants.ObjectDefinitionConstants;
@@ -27,17 +30,24 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.BaseModel;
+import com.liferay.portal.kernel.model.PersistedModel;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
+import java.io.Serializable;
+
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -50,16 +60,28 @@ public class CPDefinitionSystemObjectDefinitionManager
 	extends BaseSystemObjectDefinitionManager {
 
 	@Override
-	public long addBaseModel(User user, Map<String, Object> values)
+	public long addBaseModel(
+			boolean checkPermissions, User user, Map<String, Object> values)
 		throws Exception {
 
-		ProductResource productResource = _buildProductResource(false, user);
+		ProductResource productResource = _buildProductResource(
+			checkPermissions, user);
 
 		Product product = productResource.postProduct(_toProduct(values));
 
 		setExtendedProperties(Product.class.getName(), product, user, values);
 
-		return product.getId();
+		return product.getProductId();
+	}
+
+	@Override
+	public void checkModelResourcePermission(
+			long objectDefinitionId, PermissionChecker permissionChecker,
+			long primaryKey, String actionId)
+		throws PortalException {
+
+		_commerceCatalogModelResourcePermission.check(
+			permissionChecker, _getCommerceCatalog(primaryKey), actionId);
 	}
 
 	@Override
@@ -108,6 +130,42 @@ public class CPDefinitionSystemObjectDefinitionManager
 	}
 
 	@Override
+	public Map<Serializable, String> getBaseModelExternalReferenceCodes(
+		Set<Serializable> primaryKeys) {
+
+		Map<Serializable, String> externalReferenceCodes = new HashMap<>();
+
+		Map<Serializable, CProduct> cProducts =
+			_cProductLocalService.fetchPersistedModels(primaryKeys);
+
+		for (Serializable primaryKey : primaryKeys) {
+			CProduct cProduct = cProducts.get(primaryKey);
+
+			if (cProduct == null) {
+				CPDefinition cpDefinition =
+					_cpDefinitionLocalService.fetchCPDefinition(
+						(Long)primaryKey);
+
+				if (cpDefinition == null) {
+					continue;
+				}
+
+				cProduct = _cProductLocalService.fetchCProduct(
+					cpDefinition.getCProductId());
+
+				if (cProduct == null) {
+					continue;
+				}
+			}
+
+			externalReferenceCodes.put(
+				primaryKey, cProduct.getExternalReferenceCode());
+		}
+
+		return externalReferenceCodes;
+	}
+
+	@Override
 	public String getExternalReferenceCode() {
 		return "L_COMMERCE_PRODUCT_DEFINITION";
 	}
@@ -126,6 +184,11 @@ public class CPDefinitionSystemObjectDefinitionManager
 		).put(
 			"pluralLabel", "cp-definitions"
 		).build();
+	}
+
+	@Override
+	public Table getLocalizationTable() {
+		return CPDefinitionLocalizationTable.INSTANCE;
 	}
 
 	@Override
@@ -159,6 +222,8 @@ public class CPDefinitionSystemObjectDefinitionManager
 			new TextObjectFieldBuilder(
 			).labelMap(
 				createLabelMap("description")
+			).localized(
+				true
 			).name(
 				"description"
 			).system(
@@ -167,6 +232,8 @@ public class CPDefinitionSystemObjectDefinitionManager
 			new TextObjectFieldBuilder(
 			).labelMap(
 				createLabelMap("name")
+			).localized(
+				true
 			).name(
 				"name"
 			).required(
@@ -176,7 +243,7 @@ public class CPDefinitionSystemObjectDefinitionManager
 			).build(),
 			new TextObjectFieldBuilder(
 			).dbColumnName(
-				"CPDefinitionId"
+				"CProductId"
 			).labelMap(
 				createLabelMap("product-id")
 			).name(
@@ -197,6 +264,8 @@ public class CPDefinitionSystemObjectDefinitionManager
 			new TextObjectFieldBuilder(
 			).labelMap(
 				createLabelMap("short-description")
+			).localized(
+				true
 			).name(
 				"shortDescription"
 			).system(
@@ -241,8 +310,16 @@ public class CPDefinitionSystemObjectDefinitionManager
 	}
 
 	@Override
+	public PersistedModel getPersistedModel(long primaryKey)
+		throws PortalException {
+
+		return _cpDefinitionLocalService.getCPDefinitionByCProductId(
+			primaryKey);
+	}
+
+	@Override
 	public Column<?, Long> getPrimaryKeyColumn() {
-		return CPDefinitionTable.INSTANCE.CPDefinitionId;
+		return CPDefinitionTable.INSTANCE.CProductId;
 	}
 
 	@Override
@@ -273,8 +350,10 @@ public class CPDefinitionSystemObjectDefinitionManager
 		Map<String, Object> variables = super.getVariables(
 			contentType, objectDefinition, oldValues, payloadJSONObject);
 
-		if (variables.containsKey("CProductId")) {
-			variables.put("productId", variables.get("CProductId"));
+		Object cProductId = variables.get("CProductId");
+
+		if (cProductId != null) {
+			variables.put("productId", cProductId);
 		}
 
 		return variables;
@@ -283,6 +362,21 @@ public class CPDefinitionSystemObjectDefinitionManager
 	@Override
 	public int getVersion() {
 		return 3;
+	}
+
+	@Override
+	public boolean hasModelResourcePermission(
+			long objectDefinitionId, PermissionChecker permissionChecker,
+			long primaryKey, String actionId)
+		throws PortalException {
+
+		return _commerceCatalogModelResourcePermission.contains(
+			permissionChecker, _getCommerceCatalog(primaryKey), actionId);
+	}
+
+	@Override
+	public boolean isEnableLocalization() {
+		return true;
 	}
 
 	@Override
@@ -317,6 +411,22 @@ public class CPDefinitionSystemObjectDefinitionManager
 		).build();
 	}
 
+	private CommerceCatalog _getCommerceCatalog(long primaryKey)
+		throws PortalException {
+
+		CPDefinition cpDefinition = _cpDefinitionLocalService.fetchCPDefinition(
+			primaryKey);
+
+		if (cpDefinition == null) {
+			cpDefinition =
+				_cpDefinitionLocalService.getCPDefinitionByCProductId(
+					primaryKey);
+		}
+
+		return _commerceCatalogLocalService.fetchCommerceCatalogByGroupId(
+			cpDefinition.getGroupId());
+	}
+
 	private Product _toProduct(Map<String, Object> values) {
 		return new Product() {
 			{
@@ -341,10 +451,19 @@ public class CPDefinitionSystemObjectDefinitionManager
 	}
 
 	@Reference
-	private CPDefinitionLocalService _cpDefinitionLocalService;
+	private CProductLocalService _cProductLocalService;
 
 	@Reference
-	private CProductLocalService _cProductLocalService;
+	private CommerceCatalogLocalService _commerceCatalogLocalService;
+
+	@Reference(
+		target = "(model.class.name=com.liferay.commerce.product.model.CommerceCatalog)"
+	)
+	private ModelResourcePermission<CommerceCatalog>
+		_commerceCatalogModelResourcePermission;
+
+	@Reference
+	private CPDefinitionLocalService _cpDefinitionLocalService;
 
 	@Reference
 	private ProductResource.Factory _productResourceFactory;

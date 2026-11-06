@@ -11,37 +11,42 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("DiscountSku")
+@GraphQLName(
+	description = "SKU (SKU) binding that restricts a discount to a specific SKU. Backed by discount link with the SKU class name.",
+	value = "DiscountSku"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "SKU (SKU) binding that restricts a discount to a specific SKU. Backed by discount link with the SKU class name."
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"skuId"})
 @XmlRootElement(name = "DiscountSku")
 public class DiscountSku implements Serializable {
 
@@ -53,7 +58,9 @@ public class DiscountSku implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(DiscountSku.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -89,14 +96,166 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Currency code of the catalog the referenced product belongs to. On read it mirrors that catalog's currency code; on write it is used only when the catalog does not yet exist, to create it with the right currency.",
+		example = "USD"
+	)
+	public String getCatalogCurrencyCode() {
+		if (_catalogCurrencyCodeSupplier != null) {
+			catalogCurrencyCode = _catalogCurrencyCodeSupplier.get();
+
+			_catalogCurrencyCodeSupplier = null;
+		}
+
+		return catalogCurrencyCode;
+	}
+
+	public void setCatalogCurrencyCode(String catalogCurrencyCode) {
+		this.catalogCurrencyCode = catalogCurrencyCode;
+
+		_catalogCurrencyCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCatalogCurrencyCode(
+		UnsafeSupplier<String, Exception> catalogCurrencyCodeUnsafeSupplier) {
+
+		_catalogCurrencyCodeSupplier = () -> {
+			try {
+				return catalogCurrencyCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Currency code of the catalog the referenced product belongs to. On read it mirrors that catalog's currency code; on write it is used only when the catalog does not yet exist, to create it with the right currency."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String catalogCurrencyCode;
+
+	@JsonIgnore
+	private Supplier<String> _catalogCurrencyCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the catalog currency. On read it mirrors that currency's external reference code; on write it is resolved after `catalogCurrencyCode` and, when the currency has not been imported yet, used to create it as an empty stub.",
+		example = "US_DOLLAR"
+	)
+	public String getCatalogCurrencyExternalReferenceCode() {
+		if (_catalogCurrencyExternalReferenceCodeSupplier != null) {
+			catalogCurrencyExternalReferenceCode =
+				_catalogCurrencyExternalReferenceCodeSupplier.get();
+
+			_catalogCurrencyExternalReferenceCodeSupplier = null;
+		}
+
+		return catalogCurrencyExternalReferenceCode;
+	}
+
+	public void setCatalogCurrencyExternalReferenceCode(
+		String catalogCurrencyExternalReferenceCode) {
+
+		this.catalogCurrencyExternalReferenceCode =
+			catalogCurrencyExternalReferenceCode;
+
+		_catalogCurrencyExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCatalogCurrencyExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			catalogCurrencyExternalReferenceCodeUnsafeSupplier) {
+
+		_catalogCurrencyExternalReferenceCodeSupplier = () -> {
+			try {
+				return catalogCurrencyExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the catalog currency. On read it mirrors that currency's external reference code; on write it is resolved after `catalogCurrencyCode` and, when the currency has not been imported yet, used to create it as an empty stub."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String catalogCurrencyExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _catalogCurrencyExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the catalog the referenced product belongs to. On read it mirrors that catalog's external reference code; on write it is used only when the product does not yet exist, to create it in the right catalog.",
+		example = "CAT0111"
+	)
+	public String getCatalogExternalReferenceCode() {
+		if (_catalogExternalReferenceCodeSupplier != null) {
+			catalogExternalReferenceCode =
+				_catalogExternalReferenceCodeSupplier.get();
+
+			_catalogExternalReferenceCodeSupplier = null;
+		}
+
+		return catalogExternalReferenceCode;
+	}
+
+	public void setCatalogExternalReferenceCode(
+		String catalogExternalReferenceCode) {
+
+		this.catalogExternalReferenceCode = catalogExternalReferenceCode;
+
+		_catalogExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCatalogExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			catalogExternalReferenceCodeUnsafeSupplier) {
+
+		_catalogExternalReferenceCodeSupplier = () -> {
+			try {
+				return catalogExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the catalog the referenced product belongs to. On read it mirrors that catalog's external reference code; on write it is used only when the product does not yet exist, to create it in the right catalog."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String catalogExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _catalogExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the bound discount; alternative to `discountId` for lookup.",
+		example = "DAB-34098-789-N"
+	)
 	public String getDiscountExternalReferenceCode() {
 		if (_discountExternalReferenceCodeSupplier != null) {
 			discountExternalReferenceCode =
@@ -134,7 +293,9 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the bound discount; alternative to `discountId` for lookup."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String discountExternalReferenceCode;
 
@@ -142,7 +303,10 @@ public class DiscountSku implements Serializable {
 	private Supplier<String> _discountExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the discount entity (FK identifier).",
+		example = "30324"
+	)
 	public Long getDiscountId() {
 		if (_discountIdSupplier != null) {
 			discountId = _discountIdSupplier.get();
@@ -176,7 +340,9 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the discount entity (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long discountId;
 
@@ -184,7 +350,10 @@ public class DiscountSku implements Serializable {
 	private Supplier<Long> _discountIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the discountSku entity (FK identifier).",
+		example = "30643"
+	)
 	public Long getDiscountSkuId() {
 		if (_discountSkuIdSupplier != null) {
 			discountSkuId = _discountSkuIdSupplier.get();
@@ -218,15 +387,70 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the discountSku entity (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long discountSkuId;
 
 	@JsonIgnore
 	private Supplier<Long> _discountSkuIdSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the product the bound SKU belongs to. On read it mirrors that product's external reference code; on write it is used only when the SKU does not yet exist, to create it under that product.",
+		example = "PROD0111"
+	)
+	public String getProductExternalReferenceCode() {
+		if (_productExternalReferenceCodeSupplier != null) {
+			productExternalReferenceCode =
+				_productExternalReferenceCodeSupplier.get();
+
+			_productExternalReferenceCodeSupplier = null;
+		}
+
+		return productExternalReferenceCode;
+	}
+
+	public void setProductExternalReferenceCode(
+		String productExternalReferenceCode) {
+
+		this.productExternalReferenceCode = productExternalReferenceCode;
+
+		_productExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setProductExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			productExternalReferenceCodeUnsafeSupplier) {
+
+		_productExternalReferenceCodeSupplier = () -> {
+			try {
+				return productExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the product the bound SKU belongs to. On read it mirrors that product's external reference code; on write it is used only when the SKU does not yet exist, to create it under that product."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String productExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _productExternalReferenceCodeSupplier;
+
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the product entity (FK identifier).",
+		example = "30324"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -260,14 +484,17 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the product entity (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized display name of the bound product, mirrored from the underlying product. Read-only.",
 		example = "{en_US=Hand Saw, hr_HR=Product Name HR, hu_HU=Product Name HU}"
 	)
 	@Valid
@@ -305,14 +532,62 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized display name of the bound product, mirrored from the underlying product. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> productName;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _productNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Product type name of the product the bound SKU belongs to. On read it mirrors that product's type; on write it is used only when neither the SKU nor its product exists yet, to create the product with the right type, and is then required.",
+		example = "simple"
+	)
+	public String getProductType() {
+		if (_productTypeSupplier != null) {
+			productType = _productTypeSupplier.get();
+
+			_productTypeSupplier = null;
+		}
+
+		return productType;
+	}
+
+	public void setProductType(String productType) {
+		this.productType = productType;
+
+		_productTypeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setProductType(
+		UnsafeSupplier<String, Exception> productTypeUnsafeSupplier) {
+
+		_productTypeSupplier = () -> {
+			try {
+				return productTypeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Product type name of the product the bound SKU belongs to. On read it mirrors that product's type; on write it is used only when neither the SKU nor its product exists yet, to create the product with the right type, and is then required."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String productType;
+
+	@JsonIgnore
+	private Supplier<String> _productTypeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Sku getSku() {
 		if (_skuSupplier != null) {
@@ -352,7 +627,10 @@ public class DiscountSku implements Serializable {
 	@JsonIgnore
 	private Supplier<Sku> _skuSupplier;
 
-	@Schema(example = "PAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the bound sku; alternative to `skuId` for lookup.",
+		example = "PAB-34098-789-N"
+	)
 	public String getSkuExternalReferenceCode() {
 		if (_skuExternalReferenceCodeSupplier != null) {
 			skuExternalReferenceCode = _skuExternalReferenceCodeSupplier.get();
@@ -387,7 +665,9 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the bound sku; alternative to `skuId` for lookup."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String skuExternalReferenceCode;
 
@@ -395,7 +675,10 @@ public class DiscountSku implements Serializable {
 	private Supplier<String> _skuExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the sku entity (FK identifier).",
+		example = "30130"
+	)
 	public Long getSkuId() {
 		if (_skuIdSupplier != null) {
 			skuId = _skuIdSupplier.get();
@@ -427,15 +710,17 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the sku entity (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	@NotNull
 	protected Long skuId;
 
 	@JsonIgnore
 	private Supplier<Long> _skuIdSupplier;
 
-	@Schema(example = "m")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Unit-of-measure key for the SKU on this entry. Defaults to the SKU's primary unit-of-measure when omitted.",
+		example = "m"
+	)
 	public String getUnitOfMeasureKey() {
 		if (_unitOfMeasureKeySupplier != null) {
 			unitOfMeasureKey = _unitOfMeasureKeySupplier.get();
@@ -469,7 +754,9 @@ public class DiscountSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Unit-of-measure key for the SKU on this entry. Defaults to the SKU's primary unit-of-measure when omitted."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String unitOfMeasureKey;
 
@@ -515,6 +802,55 @@ public class DiscountSku implements Serializable {
 			sb.append(_toJSON(actions));
 		}
 
+		String catalogCurrencyCode = getCatalogCurrencyCode();
+
+		if (catalogCurrencyCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"catalogCurrencyCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(catalogCurrencyCode));
+
+			sb.append("\"");
+		}
+
+		String catalogCurrencyExternalReferenceCode =
+			getCatalogCurrencyExternalReferenceCode();
+
+		if (catalogCurrencyExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"catalogCurrencyExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(catalogCurrencyExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
+		String catalogExternalReferenceCode = getCatalogExternalReferenceCode();
+
+		if (catalogExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"catalogExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(catalogExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		String discountExternalReferenceCode =
 			getDiscountExternalReferenceCode();
 
@@ -556,6 +892,22 @@ public class DiscountSku implements Serializable {
 			sb.append(discountSkuId);
 		}
 
+		String productExternalReferenceCode = getProductExternalReferenceCode();
+
+		if (productExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(productExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		Long productId = getProductId();
 
 		if (productId != null) {
@@ -578,6 +930,22 @@ public class DiscountSku implements Serializable {
 			sb.append("\"productName\": ");
 
 			sb.append(_toJSON(productName));
+		}
+
+		String productType = getProductType();
+
+		if (productType != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(productType));
+
+			sb.append("\"");
 		}
 
 		Sku sku = getSku();
@@ -641,8 +1009,8 @@ public class DiscountSku implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v2_0.DiscountSku",
 		name = "x-class-name"
 	)
@@ -729,6 +1097,27 @@ public class DiscountSku implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -737,3 +1126,4 @@ public class DiscountSku implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:161775087

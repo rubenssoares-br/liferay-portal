@@ -38,15 +38,9 @@ const renderComponent = () =>
 	);
 
 describe('MultiSelectManager', () => {
-	beforeAll(() => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-	});
-
-	afterAll(() => {
-		Liferay.FeatureFlags['LPD-18221'] = false;
-	});
-
 	afterEach(() => {
+		useMultiSelectType.mockImplementation(() => null);
+
 		jest.clearAllMocks();
 	});
 
@@ -62,7 +56,7 @@ describe('MultiSelectManager', () => {
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith('simple');
+			expect(activateMultiSelect).toHaveBeenCalledWith('simple');
 		});
 
 		it('activates simple multiselect when pressing ctrl + "Enter"', () => {
@@ -77,7 +71,7 @@ describe('MultiSelectManager', () => {
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith('simple');
+			expect(activateMultiSelect).toHaveBeenCalledWith('simple');
 		});
 
 		it('activates simple multiselect when pressing ctrl + "Space"', () => {
@@ -85,14 +79,15 @@ describe('MultiSelectManager', () => {
 
 			document.body.dispatchEvent(
 				new KeyboardEvent('keydown', {
+					code: 'Space',
 					ctrlKey: true,
-					key: 'Space',
+					key: ' ',
 				})
 			);
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith('simple');
+			expect(activateMultiSelect).toHaveBeenCalledWith('simple');
 		});
 
 		it('disable simple multiselect when the ctrl key is released', () => {
@@ -108,9 +103,40 @@ describe('MultiSelectManager', () => {
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith(null);
+			expect(activateMultiSelect).toHaveBeenCalledWith(null);
+		});
 
-			useMultiSelectType.mockImplementation(() => null);
+		it('keeps simple multiselect when the shift key is released while ctrl is pressed', () => {
+			useMultiSelectType.mockImplementation(() => 'simple');
+
+			renderComponent();
+
+			document.body.dispatchEvent(
+				new KeyboardEvent('keyup', {
+					ctrlKey: true,
+					key: 'Shift',
+				})
+			);
+
+			const activateMultiSelect = useActivateMultiSelect();
+
+			expect(activateMultiSelect).not.toHaveBeenCalled();
+		});
+
+		it('does not activate simple multiselect when pressing AltGr', () => {
+			renderComponent();
+
+			document.body.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					altKey: true,
+					ctrlKey: true,
+					key: '@',
+				})
+			);
+
+			const activateMultiSelect = useActivateMultiSelect();
+
+			expect(activateMultiSelect).not.toHaveBeenCalled();
 		});
 	});
 
@@ -127,7 +153,7 @@ describe('MultiSelectManager', () => {
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith('range');
+			expect(activateMultiSelect).toHaveBeenCalledWith('range');
 		});
 
 		it('activates range multiselect when pressing shift', () => {
@@ -143,7 +169,22 @@ describe('MultiSelectManager', () => {
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith('range');
+			expect(activateMultiSelect).toHaveBeenCalledWith('range');
+		});
+
+		it('does not activate range multiselect when typing with shift', () => {
+			renderComponent();
+
+			document.body.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					key: 'A',
+					shiftKey: true,
+				})
+			);
+
+			const activateMultiSelect = useActivateMultiSelect();
+
+			expect(activateMultiSelect).not.toHaveBeenCalled();
 		});
 
 		it('disable range multiselect when the shift key is released', () => {
@@ -159,9 +200,33 @@ describe('MultiSelectManager', () => {
 
 			const activateMultiSelect = useActivateMultiSelect();
 
-			expect(activateMultiSelect).toBeCalledWith(null);
+			expect(activateMultiSelect).toHaveBeenCalledWith(null);
+		});
+	});
 
-			useMultiSelectType.mockImplementation(() => null);
+	describe('Lost keyup', () => {
+		it('disables multiselect on the next interaction without modifiers', () => {
+			useMultiSelectType.mockImplementation(() => 'simple');
+
+			renderComponent();
+
+			document.body.dispatchEvent(new MouseEvent('mousedown'));
+
+			const activateMultiSelect = useActivateMultiSelect();
+
+			expect(activateMultiSelect).toHaveBeenCalledWith(null);
+		});
+
+		it('disables multiselect when the window loses the focus', () => {
+			useMultiSelectType.mockImplementation(() => 'simple');
+
+			renderComponent();
+
+			window.dispatchEvent(new Event('blur'));
+
+			const activateMultiSelect = useActivateMultiSelect();
+
+			expect(activateMultiSelect).toHaveBeenCalledWith(null);
 		});
 	});
 
@@ -178,6 +243,6 @@ describe('MultiSelectManager', () => {
 
 		const selectItem = useSelectItem();
 
-		expect(selectItem).toBeCalledWith(null);
+		expect(selectItem).toHaveBeenCalledWith(null);
 	});
 });

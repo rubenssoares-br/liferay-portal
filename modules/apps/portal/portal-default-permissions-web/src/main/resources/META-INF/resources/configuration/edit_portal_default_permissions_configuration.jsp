@@ -81,8 +81,9 @@ SearchContainer<Role> roleSearchContainer = editPortalDefaultPermissionsConfigur
 
 						List<String> groupDisabledActions = editPortalDefaultPermissionsConfigurationDisplayContext.getGroupDisabledActions();
 						List<String> guestDisabledActions = editPortalDefaultPermissionsConfigurationDisplayContext.getGuestDisabledActions();
+						List<String> ownerDisabledActions = editPortalDefaultPermissionsConfigurationDisplayContext.getOwnerDisabledActions();
 
-						if ((name.equals(RoleConstants.GUEST) && guestDisabledActions.contains(action)) || (name.equals(RoleConstants.SITE_MEMBER) && groupDisabledActions.contains(action))) {
+						if ((RoleConstants.GUEST.equals(name) && guestDisabledActions.contains(action)) || (RoleConstants.OWNER.equals(name) && ownerDisabledActions.contains(action)) || (RoleConstants.SITE_MEMBER.equals(name) && groupDisabledActions.contains(action))) {
 							disabled = true;
 						}
 
@@ -117,6 +118,8 @@ SearchContainer<Role> roleSearchContainer = editPortalDefaultPermissionsConfigur
 									module="{PermissionsCheckbox} from portlet-configuration-web"
 									props='<%=
 										HashMapBuilder.<String, Object>put(
+											"actionId", ResourceActionsUtil.getAction(request, action)
+										).put(
 											"checked", checked
 										).put(
 											"disabled", disabled
@@ -124,6 +127,8 @@ SearchContainer<Role> roleSearchContainer = editPortalDefaultPermissionsConfigur
 											"id", inputId
 										).put(
 											"name", inputName
+										).put(
+											"roleName", role.getName()
 										).build()
 									%>'
 								/>

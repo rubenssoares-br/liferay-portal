@@ -19,8 +19,8 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -30,7 +30,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CTPortletKeys.PUBLICATIONS,
+		"jakarta.portlet.name=" + CTPortletKeys.PUBLICATIONS,
 		"mvc.command.name=/change_tracking/delete_ct_comment"
 	},
 	service = MVCResourceCommand.class
@@ -50,8 +50,9 @@ public class DeleteCTCommentMVCResourceCommand
 
 		CTComment ctComment = ctCommentLocalService.getCTComment(ctCommentId);
 
-		if (!_hasAdminRole(themeDisplay.getPermissionChecker()) &&
-			(ctComment.getUserId() != themeDisplay.getUserId())) {
+		if ((ctComment.getCompanyId() != themeDisplay.getCompanyId()) ||
+			(!_hasAdminRole(themeDisplay.getPermissionChecker()) &&
+			 (ctComment.getUserId() != themeDisplay.getUserId()))) {
 
 			JSONPortletResponseUtil.writeJSON(
 				resourceRequest, resourceResponse,

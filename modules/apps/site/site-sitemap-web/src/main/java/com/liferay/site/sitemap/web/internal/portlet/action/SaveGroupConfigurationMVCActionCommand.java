@@ -17,9 +17,9 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.site.configuration.manager.SitemapConfigurationManager;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletException;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -29,7 +29,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ConfigurationAdminPortletKeys.SITE_SETTINGS,
+		"jakarta.portlet.name=" + ConfigurationAdminPortletKeys.SITE_SETTINGS,
 		"mvc.command.name=/site_sitemap/save_group_configuration"
 	},
 	service = MVCActionCommand.class
@@ -59,6 +59,7 @@ public class SaveGroupConfigurationMVCActionCommand
 		_sitemapConfigurationManager.saveSitemapGroupConfiguration(
 			themeDisplay.getScopeGroupId(),
 			ParamUtil.getBoolean(actionRequest, "includeCategories"),
+			ParamUtil.getBoolean(actionRequest, "includeCommerceProducts"),
 			ParamUtil.getBoolean(actionRequest, "includePages"),
 			ParamUtil.getBoolean(actionRequest, "includeWebContent"));
 

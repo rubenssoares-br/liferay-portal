@@ -5,13 +5,14 @@
 
 package com.liferay.change.tracking.web.internal.portlet.action;
 
+import com.liferay.change.tracking.configuration.helper.CTSettingsConfigurationHelper;
 import com.liferay.change.tracking.constants.CTPortletKeys;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.model.CTCollectionTemplate;
+import com.liferay.change.tracking.model.CTRemote;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.change.tracking.service.CTCollectionTemplateLocalService;
 import com.liferay.change.tracking.service.CTRemoteLocalService;
-import com.liferay.change.tracking.web.internal.configuration.helper.CTSettingsConfigurationHelper;
 import com.liferay.change.tracking.web.internal.constants.CTWebKeys;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -24,12 +25,12 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -39,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CTPortletKeys.PUBLICATIONS,
+		"jakarta.portlet.name=" + CTPortletKeys.PUBLICATIONS,
 		"mvc.command.name=/change_tracking/add_ct_collection",
 		"mvc.command.name=/change_tracking/edit_ct_collection",
 		"mvc.command.name=/change_tracking/undo_ct_collection"
@@ -78,9 +79,22 @@ public class EditCTCollectionMVCRenderCommand implements MVCRenderCommand {
 		long ctRemoteId = ParamUtil.getLong(renderRequest, "ctRemoteId");
 
 		if (ctRemoteId != 0) {
-			renderRequest.setAttribute(
-				CTWebKeys.CT_REMOTE,
-				_ctRemoteLocalService.fetchCTRemote(ctRemoteId));
+			CTRemote ctRemote = _ctRemoteLocalService.fetchCTRemote(ctRemoteId);
+
+			try {
+				if (ctRemote != null) {
+					_ctRemoteModelResourcePermission.check(
+						themeDisplay.getPermissionChecker(), ctRemote,
+						ActionKeys.VIEW);
+				}
+			}
+			catch (Exception exception) {
+				SessionErrors.add(renderRequest, exception.getClass());
+
+				return "/publications/error.jsp";
+			}
+
+			renderRequest.setAttribute(CTWebKeys.CT_REMOTE, ctRemote);
 		}
 
 		JSONSerializer jsonSerializer = _jsonFactory.createJSONSerializer();
@@ -139,6 +153,11 @@ public class EditCTCollectionMVCRenderCommand implements MVCRenderCommand {
 
 	@Reference
 	private CTRemoteLocalService _ctRemoteLocalService;
+
+	@Reference(
+		target = "(model.class.name=com.liferay.change.tracking.model.CTRemote)"
+	)
+	private ModelResourcePermission<CTRemote> _ctRemoteModelResourcePermission;
 
 	@Reference
 	private CTSettingsConfigurationHelper _ctSettingsConfigurationHelper;

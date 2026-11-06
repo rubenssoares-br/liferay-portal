@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.ItemExternalReference;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -82,21 +83,7 @@ public class ItemExternalReferenceSerDes {
 
 			sb.append("\"scope\": ");
 
-			sb.append(String.valueOf(itemExternalReference.getScope()));
-		}
-
-		if (itemExternalReference.getCollectionType() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"collectionType\": ");
-
-			sb.append("\"");
-
-			sb.append(itemExternalReference.getCollectionType());
-
-			sb.append("\"");
+			sb.append(itemExternalReference.getScope());
 		}
 
 		sb.append("}");
@@ -146,15 +133,6 @@ public class ItemExternalReferenceSerDes {
 			map.put("scope", String.valueOf(itemExternalReference.getScope()));
 		}
 
-		if (itemExternalReference.getCollectionType() == null) {
-			map.put("collectionType", null);
-		}
-		else {
-			map.put(
-				"collectionType",
-				String.valueOf(itemExternalReference.getCollectionType()));
-		}
-
 		return map;
 	}
 
@@ -184,9 +162,6 @@ public class ItemExternalReferenceSerDes {
 			else if (Objects.equals(jsonParserFieldName, "scope")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "collectionType")) {
-				return false;
-			}
 
 			return false;
 		}
@@ -213,14 +188,8 @@ public class ItemExternalReferenceSerDes {
 			else if (Objects.equals(jsonParserFieldName, "scope")) {
 				if (jsonParserFieldValue != null) {
 					itemExternalReference.setScope(
-						ScopeSerDes.toDTO((String)jsonParserFieldValue));
-				}
-			}
-			else if (Objects.equals(jsonParserFieldName, "collectionType")) {
-				if (jsonParserFieldValue != null) {
-					itemExternalReference.setCollectionType(
-						ItemExternalReference.CollectionType.create(
-							(String)jsonParserFieldValue));
+						com.liferay.headless.admin.site.client.scope.Scope.
+							toDTO((String)jsonParserFieldValue));
 				}
 			}
 		}
@@ -268,6 +237,16 @@ public class ItemExternalReferenceSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -300,3 +279,4 @@ public class ItemExternalReferenceSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-950766854

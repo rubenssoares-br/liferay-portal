@@ -27,6 +27,7 @@ import com.liferay.source.formatter.parser.JavaClass;
 import com.liferay.source.formatter.parser.JavaClassParser;
 import com.liferay.source.formatter.parser.JavaTerm;
 import com.liferay.source.formatter.parser.JavaVariable;
+import com.liferay.source.formatter.processor.CSPSourceProcessor;
 import com.liferay.source.formatter.processor.JSPSourceProcessor;
 import com.liferay.source.formatter.processor.JavaSourceProcessor;
 import com.liferay.source.formatter.processor.SourceProcessor;
@@ -40,6 +41,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -63,11 +65,8 @@ public abstract class BaseSourceCheck implements SourceCheck {
 	public Set<SourceFormatterMessage> getSourceFormatterMessages(
 		String fileName) {
 
-		if (_sourceFormatterMessagesMap.containsKey(fileName)) {
-			return _sourceFormatterMessagesMap.get(fileName);
-		}
-
-		return Collections.emptySet();
+		return _sourceFormatterMessagesMap.getOrDefault(
+			fileName, Collections.emptySet());
 	}
 
 	@Override
@@ -95,7 +94,9 @@ public abstract class BaseSourceCheck implements SourceCheck {
 			return true;
 		}
 
-		if (_sourceProcessor instanceof JSPSourceProcessor) {
+		if (_sourceProcessor instanceof CSPSourceProcessor ||
+			_sourceProcessor instanceof JSPSourceProcessor) {
+
 			return JSPSourceUtil.isJavaSource(content, pos);
 		}
 
@@ -110,7 +111,9 @@ public abstract class BaseSourceCheck implements SourceCheck {
 			return true;
 		}
 
-		if (_sourceProcessor instanceof JSPSourceProcessor) {
+		if (_sourceProcessor instanceof CSPSourceProcessor ||
+			_sourceProcessor instanceof JSPSourceProcessor) {
+
 			return JSPSourceUtil.isJavaSource(content, pos, checkInsideTags);
 		}
 
@@ -256,10 +259,6 @@ public abstract class BaseSourceCheck implements SourceCheck {
 			absolutePath, _baseDirName);
 	}
 
-	protected String getBaseDirName() {
-		return _baseDirName;
-	}
-
 	protected BNDSettings getBNDSettings(String fileName) throws IOException {
 		String bndFileLocation = fileName;
 
@@ -292,6 +291,10 @@ public abstract class BaseSourceCheck implements SourceCheck {
 			bndFileLocation = StringUtil.replaceLast(
 				bndFileLocation, CharPool.SLASH, StringPool.BLANK);
 		}
+	}
+
+	protected String getBaseDirName() {
+		return _baseDirName;
 	}
 
 	protected String getBuildGradleContent(String absolutePath)
@@ -590,6 +593,34 @@ public abstract class BaseSourceCheck implements SourceCheck {
 		return null;
 	}
 
+	protected List<String> getPrimaryKeys(String tableContent) {
+		List<String> primaryKeys = new ArrayList<>();
+
+		for (String line : StringUtil.splitLines(tableContent)) {
+			String trimmedLine = StringUtil.trimLeading(line);
+
+			if (!trimmedLine.contains("primary key")) {
+				continue;
+			}
+
+			if (trimmedLine.startsWith("primary key")) {
+				String keys = trimmedLine.replaceFirst(
+					"primary key \\((.+)\\)", "$1");
+
+				for (String key : StringUtil.split(keys)) {
+					primaryKeys.add(key.trim());
+				}
+			}
+			else if (trimmedLine.matches("(\\w+) .+ primary key,?")) {
+				int x = trimmedLine.indexOf(" ");
+
+				primaryKeys.add(trimmedLine.substring(0, x));
+			}
+		}
+
+		return primaryKeys;
+	}
+
 	protected String getProjectName() {
 		if (_projectName != null) {
 			return _projectName;
@@ -666,19 +697,20 @@ public abstract class BaseSourceCheck implements SourceCheck {
 			}
 
 			for (JavaTerm childJavaTerm : javaClass.getChildJavaTerms()) {
-				if (childJavaTerm.isJavaVariable()) {
-					JavaVariable javaVariable = (JavaVariable)childJavaTerm;
+				if (!childJavaTerm.isJavaVariable()) {
+					continue;
+				}
 
-					String variableContent = javaVariable.getContent();
+				JavaVariable javaVariable = (JavaVariable)childJavaTerm;
 
-					variableTypeName = _getVariableTypeName(
-						variableContent, variableName,
-						includeArrayOrCollectionTypes,
-						includeFullyQualifiedName);
+				String variableContent = javaVariable.getContent();
 
-					if (variableTypeName != null) {
-						return variableTypeName;
-					}
+				variableTypeName = _getVariableTypeName(
+					variableContent, variableName,
+					includeArrayOrCollectionTypes, includeFullyQualifiedName);
+
+				if (variableTypeName != null) {
+					return variableTypeName;
 				}
 			}
 		}
@@ -693,17 +725,29 @@ public abstract class BaseSourceCheck implements SourceCheck {
 		String className, String content, String fileContent, String fileName,
 		String methodCall) {
 
-		String variable = getVariableName(methodCall);
+		String variableName = getVariableName(methodCall);
 
-		if (variable.isEmpty()) {
+		if (variableName.isEmpty()) {
 			return false;
 		}
 
 		String variableTypeName = getVariableTypeName(
-			content, null, fileContent, fileName, variable.trim(), true, false);
+			content, null, fileContent, fileName, variableName.trim(), true,
+			false);
 
-		if ((variableTypeName != null) &&
-			variableTypeName.startsWith(className)) {
+		if (variableTypeName == null) {
+			return false;
+		}
+
+		variableTypeName = StringUtil.trim(
+			variableTypeName.replaceAll("<[^>]+>", ""));
+
+		String defaultVariableName = StringUtil.lowerCaseFirstLetter(
+			variableTypeName);
+
+		if (StringUtil.equalsIgnoreCase(className, variableTypeName) ||
+			className.startsWith(defaultVariableName) ||
+			className.startsWith("_" + defaultVariableName)) {
 
 			return true;
 		}
@@ -730,6 +774,59 @@ public abstract class BaseSourceCheck implements SourceCheck {
 		return GetterUtil.getBoolean(attributeValue);
 	}
 
+	protected boolean isDerivedFrom(
+		String absolutePath, String content, String fullyQualifiedClassName) {
+
+		Pattern pattern = Pattern.compile(
+			" class " + JavaSourceUtil.getClassName(absolutePath) +
+				"\\s+extends\\s+([\\w.]+)\\b");
+
+		Matcher matcher = pattern.matcher(content);
+
+		if (!matcher.find()) {
+			return false;
+		}
+
+		String extendedClassName = matcher.group(1);
+
+		if (extendedClassName.equals(fullyQualifiedClassName)) {
+			return true;
+		}
+
+		pattern = Pattern.compile("\nimport (.*\\." + extendedClassName + ");");
+
+		matcher = pattern.matcher(content);
+
+		if (matcher.find()) {
+			extendedClassName = matcher.group(1);
+		}
+		else {
+			extendedClassName =
+				JavaSourceUtil.getPackageName(content) + StringPool.PERIOD +
+					extendedClassName;
+		}
+
+		if (extendedClassName.equals(fullyQualifiedClassName)) {
+			return true;
+		}
+
+		if (!extendedClassName.startsWith("com.liferay.")) {
+			return false;
+		}
+
+		File file = JavaSourceUtil.getJavaFile(
+			extendedClassName, SourceUtil.getRootDirName(absolutePath),
+			getBundleSymbolicNamesMap(absolutePath));
+
+		if (file == null) {
+			return false;
+		}
+
+		return isDerivedFrom(
+			file.getAbsolutePath(), FileUtil.read(file),
+			fullyQualifiedClassName);
+	}
+
 	protected boolean isExcludedPath(String key, String path) {
 		return isExcludedPath(key, path, -1);
 	}
@@ -746,6 +843,20 @@ public abstract class BaseSourceCheck implements SourceCheck {
 		return SourceFormatterCheckUtil.isExcludedPath(
 			_excludesJSONObject, _excludesValuesMap, key, path, -1, parameter,
 			_baseDirName);
+	}
+
+	protected boolean isInsideTextBlock(String content, int pos) {
+		String s = content.substring(pos);
+
+		int x = s.indexOf("\"\"\";");
+
+		if (x == -1) {
+			return false;
+		}
+
+		s = s.substring(0, x);
+
+		return !s.contains("\"\"\"");
 	}
 
 	protected boolean isModulesApp(String absolutePath, boolean privateOnly) {
@@ -810,49 +921,9 @@ public abstract class BaseSourceCheck implements SourceCheck {
 	}
 
 	protected boolean isUpgradeProcess(String absolutePath, String content) {
-		Pattern pattern = Pattern.compile(
-			" class " + JavaSourceUtil.getClassName(absolutePath) +
-				"\\s+extends\\s+([\\w.]+) ");
-
-		Matcher matcher = pattern.matcher(content);
-
-		if (!matcher.find()) {
-			return false;
-		}
-
-		String extendedClassName = matcher.group(1);
-
-		if (extendedClassName.equals("UpgradeProcess")) {
-			return true;
-		}
-
-		pattern = Pattern.compile("\nimport (.*\\." + extendedClassName + ");");
-
-		matcher = pattern.matcher(content);
-
-		if (matcher.find()) {
-			extendedClassName = matcher.group(1);
-		}
-
-		if (!extendedClassName.contains(StringPool.PERIOD)) {
-			extendedClassName =
-				JavaSourceUtil.getPackageName(content) + StringPool.PERIOD +
-					extendedClassName;
-		}
-
-		if (!extendedClassName.startsWith("com.liferay.")) {
-			return false;
-		}
-
-		File file = JavaSourceUtil.getJavaFile(
-			extendedClassName, SourceUtil.getRootDirName(absolutePath),
-			getBundleSymbolicNamesMap(absolutePath));
-
-		if (file == null) {
-			return false;
-		}
-
-		return isUpgradeProcess(file.getAbsolutePath(), FileUtil.read(file));
+		return isDerivedFrom(
+			absolutePath, content,
+			"com.liferay.portal.kernel.upgrade.UpgradeProcess");
 	}
 
 	protected synchronized void populateModelInformations() throws IOException {
@@ -997,11 +1068,11 @@ public abstract class BaseSourceCheck implements SourceCheck {
 	private static final Log _log = LogFactoryUtil.getLog(
 		BaseSourceCheck.class);
 
-	private JSONObject _attributesJSONObject = new JSONObjectImpl();
 	private final Map<String, String> _attributeValueMap =
 		new ConcurrentHashMap<>();
 	private final Map<String, List<String>> _attributeValuesMap =
 		new ConcurrentHashMap<>();
+	private JSONObject _attributesJSONObject = new JSONObjectImpl();
 	private String _baseDirName;
 	private final Map<String, BNDSettings> _bndSettingsMap =
 		new ConcurrentHashMap<>();

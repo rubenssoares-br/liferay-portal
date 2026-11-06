@@ -7,12 +7,12 @@ package com.liferay.headless.delivery.internal.dto.v1_0.converter;
 
 import com.liferay.headless.delivery.dto.v1_0.MessageBoardSection;
 import com.liferay.headless.delivery.dto.v1_0.util.CreatorUtil;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.message.boards.model.MBCategory;
 import com.liferay.message.boards.service.MBCategoryService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.subscription.service.SubscriptionLocalService;
@@ -24,7 +24,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Javier Gamarra
  */
 @Component(
-	property = "dto.class.name=com.liferay.message.boards.model.MBCategory",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.message.boards.model.MBCategory"
+	},
 	service = DTOConverter.class
 )
 public class MessageBoardSectionDTOConverter

@@ -42,6 +42,7 @@ import com.liferay.commerce.product.service.CPSpecificationOptionLocalServiceUti
 import com.liferay.commerce.product.service.CommerceCatalogLocalServiceUtil;
 import com.liferay.commerce.product.type.simple.constants.SimpleCPTypeConstants;
 import com.liferay.commerce.service.CPDefinitionInventoryLocalServiceUtil;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -52,7 +53,6 @@ import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
-import com.liferay.portal.kernel.settings.SystemSettingsLocator;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -106,44 +106,16 @@ public class CPTestUtil {
 			catch (NoSuchCurrencyException noSuchCurrencyException) {
 				commerceCurrency =
 					CommerceCurrencyLocalServiceUtil.addCommerceCurrency(
-						serviceContext.getUserId(), currencyCode,
+						null, serviceContext.getUserId(), currencyCode,
 						RandomTestUtil.randomLocaleStringMap(),
 						RandomTestUtil.randomString(), BigDecimal.ONE,
 						new HashMap<>(), 2, 2, "HALF_EVEN", false, 0, true);
 			}
 
 			CommercePriceListLocalServiceUtil.addCatalogBaseCommercePriceList(
-				groupId, serviceContext.getUserId(),
-				commerceCurrency.getCommerceCurrencyId(), type,
-				RandomTestUtil.randomString(), serviceContext);
+				groupId, serviceContext.getUserId(), commerceCurrency.getCode(),
+				RandomTestUtil.randomString(), type, serviceContext);
 		}
-	}
-
-	public static AssetCategory addCategoryToCPDefinitions(
-			long groupId, long... cpDefinitionIds)
-		throws PortalException {
-
-		ServiceContext serviceContext =
-			ServiceContextTestUtil.getServiceContext(groupId);
-
-		AssetVocabulary assetVocabulary =
-			AssetVocabularyLocalServiceUtil.addVocabulary(
-				serviceContext.getUserId(), groupId,
-				RandomTestUtil.randomString(), serviceContext);
-
-		AssetCategory assetCategory = AssetCategoryLocalServiceUtil.addCategory(
-			serviceContext.getUserId(), groupId, RandomTestUtil.randomString(),
-			assetVocabulary.getVocabularyId(), serviceContext);
-
-		serviceContext.setAssetCategoryIds(
-			new long[] {assetCategory.getCategoryId()});
-
-		for (long cpDefinitionId : cpDefinitionIds) {
-			CPDefinitionLocalServiceUtil.updateCPDefinitionCategorization(
-				cpDefinitionId, serviceContext);
-		}
-
-		return assetCategory;
 	}
 
 	public static CPDefinition addCPDefinition(long groupId)
@@ -284,7 +256,8 @@ public class CPTestUtil {
 	public static CPDefinition addCPDefinitionFromCatalog(
 			long groupId, String productTypeName, Date displayDate,
 			Date expirationDate, boolean ignoreSKUCombinations,
-			boolean hasDefaultInstance, int status)
+			boolean hasDefaultInstance, int status,
+			ServiceContext serviceContext)
 		throws PortalException {
 
 		String defaultSku = null;
@@ -295,9 +268,7 @@ public class CPTestUtil {
 
 		return _addCPDefinitionWithSku(
 			groupId, productTypeName, displayDate, expirationDate,
-			ignoreSKUCombinations,
-			ServiceContextTestUtil.getServiceContext(groupId), defaultSku,
-			status);
+			ignoreSKUCombinations, serviceContext, defaultSku, status);
 	}
 
 	public static CPDefinitionOptionRel addCPDefinitionOptionRel(
@@ -337,7 +308,7 @@ public class CPTestUtil {
 		if (cpDefinitionOptionRel == null) {
 			cpDefinitionOptionRel =
 				CPDefinitionOptionRelLocalServiceUtil.addCPDefinitionOptionRel(
-					cpDefinitionId, cpOptionId,
+					null, cpDefinitionId, cpOptionId,
 					RandomTestUtil.randomLocaleStringMap(),
 					RandomTestUtil.randomLocaleStringMap(),
 					CPConstants.PRODUCT_OPTION_SELECT_DATE_KEY,
@@ -347,7 +318,7 @@ public class CPTestUtil {
 
 		return CPDefinitionOptionValueRelLocalServiceUtil.
 			addCPDefinitionOptionValueRel(
-				cpDefinitionOptionRel.getCPDefinitionOptionRelId(), key,
+				null, cpDefinitionOptionRel.getCPDefinitionOptionRelId(), key,
 				HashMapBuilder.put(
 					LocaleUtil.getDefault(), name
 				).build(),
@@ -369,7 +340,7 @@ public class CPTestUtil {
 		if (cpDefinitionOptionRel == null) {
 			cpDefinitionOptionRel =
 				CPDefinitionOptionRelLocalServiceUtil.addCPDefinitionOptionRel(
-					cpDefinitionId, cpOptionId,
+					null, cpDefinitionId, cpOptionId,
 					RandomTestUtil.randomLocaleStringMap(),
 					RandomTestUtil.randomLocaleStringMap(),
 					getDefaultCommerceOptionTypeKey(true),
@@ -380,7 +351,7 @@ public class CPTestUtil {
 		CPDefinitionOptionValueRel cpDefinitionOptionValueRel =
 			CPDefinitionOptionValueRelLocalServiceUtil.
 				addCPDefinitionOptionValueRel(
-					cpDefinitionOptionRel.getCPDefinitionOptionRelId(),
+					null, cpDefinitionOptionRel.getCPDefinitionOptionRelId(),
 					RandomTestUtil.randomString(),
 					RandomTestUtil.randomLocaleStringMap(),
 					RandomTestUtil.randomDouble(), serviceContext);
@@ -541,6 +512,18 @@ public class CPTestUtil {
 	}
 
 	public static CPInstance addCPInstanceFromCatalog(
+			long groupId, long cpTaxCategoryId, boolean taxExempt)
+		throws PortalException {
+
+		CPDefinition cpDefinition = _addCPDefinition(
+			groupId, SimpleCPTypeConstants.NAME, true, true, cpTaxCategoryId,
+			taxExempt, ServiceContextTestUtil.getServiceContext(groupId));
+
+		return CPInstanceLocalServiceUtil.getCPInstance(
+			cpDefinition.getCPDefinitionId(), CPInstanceConstants.DEFAULT_SKU);
+	}
+
+	public static CPInstance addCPInstanceFromCatalog(
 			long groupId, long[] assetCategoryIds)
 		throws PortalException {
 
@@ -572,6 +555,19 @@ public class CPTestUtil {
 		_addCommercePriceEntry(cpInstance);
 
 		return cpInstance;
+	}
+
+	public static CPInstance addCPInstanceFromCatalogWithoutCommercePriceEntry(
+			long groupId, BigDecimal price, BigDecimal promoPrice, String sku)
+		throws PortalException {
+
+		CPInstance cpInstance = addCPInstanceFromCatalog(groupId);
+
+		cpInstance.setSku(sku);
+		cpInstance.setPrice(price);
+		cpInstance.setPromoPrice(promoPrice);
+
+		return CPInstanceLocalServiceUtil.updateCPInstance(cpInstance);
 	}
 
 	public static CPInstanceUnitOfMeasure addCPInstanceUnitOfMeasure(
@@ -741,18 +737,46 @@ public class CPTestUtil {
 			ServiceContextTestUtil.getServiceContext());
 	}
 
-	public static CPSpecificationOption addCPSpecificationOption(long groupId)
+	public static CPSpecificationOption addCPSpecificationOption(
+			long groupId, boolean facetable)
 		throws PortalException {
 
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(groupId);
 
 		return CPSpecificationOptionLocalServiceUtil.addCPSpecificationOption(
-			RandomTestUtil.randomString(), serviceContext.getUserId(), 0, 0,
+			RandomTestUtil.randomString(), serviceContext.getUserId(), 0, null,
 			RandomTestUtil.randomLocaleStringMap(),
-			RandomTestUtil.randomLocaleStringMap(), false,
-			RandomTestUtil.randomString(), RandomTestUtil.randomDouble(),
+			RandomTestUtil.randomLocaleStringMap(), facetable,
+			RandomTestUtil.randomString(), RandomTestUtil.randomDouble(), true,
 			serviceContext);
+	}
+
+	public static AssetCategory addCategoryToCPDefinitions(
+			long groupId, long... cpDefinitionIds)
+		throws PortalException {
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(groupId);
+
+		AssetVocabulary assetVocabulary =
+			AssetVocabularyLocalServiceUtil.addVocabulary(
+				serviceContext.getUserId(), groupId,
+				RandomTestUtil.randomString(), serviceContext);
+
+		AssetCategory assetCategory = AssetCategoryLocalServiceUtil.addCategory(
+			serviceContext.getUserId(), groupId, RandomTestUtil.randomString(),
+			assetVocabulary.getVocabularyId(), serviceContext);
+
+		serviceContext.setAssetCategoryIds(
+			new long[] {assetCategory.getCategoryId()});
+
+		for (long cpDefinitionId : cpDefinitionIds) {
+			CPDefinitionLocalServiceUtil.updateCPDefinitionCategorization(
+				cpDefinitionId, serviceContext);
+		}
+
+		return assetCategory;
 	}
 
 	public static void buildCPInstances(CPDefinition cpDefinition)
@@ -816,26 +840,18 @@ public class CPTestUtil {
 	public static List<CPDefinitionOptionValueRel>
 		getRandomCPDefinitionOptionValueRels(long cpDefinitionId) {
 
-		List<CPDefinitionOptionValueRel> cpDefinitionOptionValueRels =
-			new ArrayList<>();
-
-		List<CPDefinitionOptionRel> cpDefinitionOptionRels =
+		return TransformUtil.transform(
 			CPDefinitionOptionRelLocalServiceUtil.getCPDefinitionOptionRels(
-				cpDefinitionId);
+				cpDefinitionId),
+			cpDefinitionOptionRel -> {
+				List<CPDefinitionOptionValueRel>
+					sourceCPDefinitionOptionValueRels =
+						cpDefinitionOptionRel.getCPDefinitionOptionValueRels();
 
-		for (CPDefinitionOptionRel cpDefinitionOptionRel :
-				cpDefinitionOptionRels) {
-
-			List<CPDefinitionOptionValueRel> sourceCPDefinitionOptionValueRels =
-				cpDefinitionOptionRel.getCPDefinitionOptionValueRels();
-
-			cpDefinitionOptionValueRels.add(
-				sourceCPDefinitionOptionValueRels.get(
+				return sourceCPDefinitionOptionValueRels.get(
 					RandomTestUtil.randomInt(
-						0, sourceCPDefinitionOptionValueRels.size() - 1)));
-		}
-
-		return cpDefinitionOptionValueRels;
+						0, sourceCPDefinitionOptionValueRels.size() - 1));
+			});
 	}
 
 	public static SearchContext getSearchContext(
@@ -849,13 +865,13 @@ public class CPTestUtil {
 			).put(
 				"params",
 				() -> {
-					if (Validator.isNotNull(keywords)) {
-						return LinkedHashMapBuilder.<String, Object>put(
-							"keywords", keywords
-						).build();
+					if (Validator.isNull(keywords)) {
+						return null;
 					}
 
-					return null;
+					return LinkedHashMapBuilder.<String, Object>put(
+						"keywords", keywords
+					).build();
 				}
 			).build());
 		searchContext.setCompanyId(group.getCompanyId());
@@ -884,25 +900,21 @@ public class CPTestUtil {
 		return bigDecimal.stripTrailingZeros();
 	}
 
-	private static void _addCommercePriceEntry(CPInstance cpInstance)
+	private static CPDefinition _addCPDefinition(
+			long groupId, String productTypeName, boolean ignoreSKUCombinations,
+			boolean hasDefaultInstance, long cpTaxCategoryId, boolean taxExempt,
+			ServiceContext serviceContext)
 		throws PortalException {
 
-		CommercePriceList commercePriceList =
-			CommercePriceListLocalServiceUtil.fetchCatalogBaseCommercePriceList(
-				cpInstance.getGroupId());
+		String defaultSku = null;
 
-		if (commercePriceList == null) {
-			return;
+		if (hasDefaultInstance) {
+			defaultSku = CPInstanceConstants.DEFAULT_SKU;
 		}
 
-		CPDefinition cpDefinition = cpInstance.getCPDefinition();
-
-		CommercePriceEntryLocalServiceUtil.addCommercePriceEntry(
-			StringPool.BLANK, cpDefinition.getCProductId(),
-			cpInstance.getCPInstanceUuid(),
-			commercePriceList.getCommercePriceListId(), cpInstance.getPrice(),
-			false, null, null,
-			ServiceContextTestUtil.getServiceContext(cpInstance.getGroupId()));
+		return _addCPDefinitionWithSku(
+			groupId, productTypeName, ignoreSKUCombinations, cpTaxCategoryId,
+			taxExempt, serviceContext, defaultSku);
 	}
 
 	private static CPDefinition _addCPDefinition(
@@ -936,13 +948,18 @@ public class CPTestUtil {
 			boolean hasDefaultInstance, ServiceContext serviceContext)
 		throws PortalException {
 
-		User user = UserLocalServiceUtil.getUser(serviceContext.getUserId());
+		CommerceCurrency commerceCurrency =
+			CommerceCurrencyLocalServiceUtil.addCommerceCurrency(
+				null, serviceContext.getUserId(), RandomTestUtil.randomString(),
+				RandomTestUtil.randomLocaleStringMap(),
+				RandomTestUtil.randomString(), BigDecimal.ONE, new HashMap<>(),
+				2, 2, "HALF_EVEN", false, 0, true);
 
-		List<CommerceCatalog> commerceCatalogs =
-			CommerceCatalogLocalServiceUtil.getCommerceCatalogs(
-				user.getCompanyId(), true);
-
-		CommerceCatalog commerceCatalog = commerceCatalogs.get(0);
+		CommerceCatalog commerceCatalog =
+			CommerceCatalogLocalServiceUtil.addCommerceCatalog(
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				commerceCurrency.getCode(), LocaleUtil.US.getDisplayLanguage(),
+				serviceContext);
 
 		addBaseCommerceCatalogCommercePriceList(
 			commerceCatalog.getGroupId(),
@@ -959,6 +976,104 @@ public class CPTestUtil {
 			ignoreSKUCombinations, hasDefaultInstance,
 			ServiceContextTestUtil.getServiceContext(
 				commerceCatalog.getGroupId()));
+	}
+
+	private static CPDefinition _addCPDefinitionWithSku(
+			long groupId, String productTypeName, boolean ignoreSKUCombinations,
+			long cpTaxCategoryId, boolean taxExempt,
+			ServiceContext serviceContext, String sku)
+		throws PortalException {
+
+		User user = UserLocalServiceUtil.getUser(serviceContext.getUserId());
+
+		Map<Locale, String> titleMap = RandomTestUtil.randomLocaleStringMap();
+		Map<Locale, String> shortDescriptionMap =
+			RandomTestUtil.randomLocaleStringMap();
+		Map<Locale, String> descriptionMap =
+			RandomTestUtil.randomLocaleStringMap();
+		Map<Locale, String> metaTitleMap =
+			RandomTestUtil.randomLocaleStringMap();
+		Map<Locale, String> metaKeywordsMap =
+			RandomTestUtil.randomLocaleStringMap();
+		Map<Locale, String> metaDescriptionMap =
+			RandomTestUtil.randomLocaleStringMap();
+		Map<Locale, String> urlTitleMap =
+			RandomTestUtil.randomLocaleStringMap();
+		boolean shippable = RandomTestUtil.randomBoolean();
+		boolean freeShipping = RandomTestUtil.randomBoolean();
+		boolean shipSeparately = RandomTestUtil.randomBoolean();
+		double shippingExtraPrice = RandomTestUtil.randomDouble();
+		double width = RandomTestUtil.randomDouble();
+		double height = RandomTestUtil.randomDouble();
+		double depth = RandomTestUtil.randomDouble();
+		double weight = RandomTestUtil.randomDouble();
+		boolean telcoOrElectronics = RandomTestUtil.randomBoolean();
+		String ddmStructureKey = null;
+		boolean published = true;
+
+		long time = System.currentTimeMillis();
+
+		Date displayDate = new Date(time - Time.HOUR);
+		Date expirationDate = new Date(time + Time.DAY);
+
+		Calendar displayCal = CalendarFactoryUtil.getCalendar(
+			user.getTimeZone());
+
+		displayCal.setTime(displayDate);
+
+		int displayDateMonth = displayCal.get(Calendar.MONTH);
+		int displayDateDay = displayCal.get(Calendar.DATE);
+		int displayDateYear = displayCal.get(Calendar.YEAR);
+		int displayDateHour = displayCal.get(Calendar.HOUR);
+		int displayDateMinute = displayCal.get(Calendar.MINUTE);
+
+		if (displayCal.get(Calendar.AM_PM) == Calendar.PM) {
+			displayDateHour += 12;
+		}
+
+		Calendar expirationCalendar = CalendarFactoryUtil.getCalendar(
+			user.getTimeZone());
+
+		expirationCalendar.setTime(expirationDate);
+
+		int expirationDateMonth = expirationCalendar.get(Calendar.MONTH);
+		int expirationDateDay = expirationCalendar.get(Calendar.DATE);
+		int expirationDateYear = expirationCalendar.get(Calendar.YEAR);
+		int expirationDateHour = expirationCalendar.get(Calendar.HOUR);
+		int expirationDateMinute = expirationCalendar.get(Calendar.MINUTE);
+
+		if (expirationCalendar.get(Calendar.AM_PM) == Calendar.PM) {
+			expirationDateHour += 12;
+		}
+
+		CPDefinition cpDefinition =
+			CPDefinitionLocalServiceUtil.addCPDefinition(
+				null, user.getUserId(), groupId, cpTaxCategoryId, false, false,
+				ddmStructureKey, sku, 0, false, 1, null, null, depth,
+				descriptionMap, displayDateDay, displayDateHour,
+				displayDateMinute, displayDateMonth, displayDateYear,
+				expirationDateDay, expirationDateHour, expirationDateMinute,
+				expirationDateMonth, expirationDateYear, freeShipping, height,
+				ignoreSKUCombinations, 0L, metaDescriptionMap, metaKeywordsMap,
+				metaTitleMap, titleMap, false, productTypeName, published,
+				shipSeparately, shippable, shippingExtraPrice,
+				shortDescriptionMap, false, 1, null, null, taxExempt,
+				telcoOrElectronics, urlTitleMap, weight, width,
+				WorkflowConstants.STATUS_DRAFT, serviceContext);
+
+		CPDefinitionInventory cpDefinitionInventory =
+			CPDefinitionInventoryLocalServiceUtil.
+				fetchCPDefinitionInventoryByCPDefinitionId(
+					cpDefinition.getCPDefinitionId());
+
+		if (cpDefinitionInventory != null) {
+			cpDefinitionInventory.setBackOrders(false);
+
+			CPDefinitionInventoryLocalServiceUtil.updateCPDefinitionInventory(
+				cpDefinitionInventory);
+		}
+
+		return cpDefinition;
 	}
 
 	private static CPDefinition _addCPDefinitionWithSku(
@@ -1048,17 +1163,18 @@ public class CPTestUtil {
 
 		CPDefinition cpDefinition =
 			CPDefinitionLocalServiceUtil.addCPDefinition(
-				null, groupId, user.getUserId(), titleMap, shortDescriptionMap,
-				descriptionMap, urlTitleMap, metaTitleMap, metaKeywordsMap,
-				metaDescriptionMap, productTypeName, ignoreSKUCombinations,
-				shippable, freeShipping, shipSeparately, shippingExtraPrice,
-				width, height, depth, weight, cpTaxCategoryId, taxExempt,
-				telcoOrElectronics, ddmStructureKey, published,
-				displayDateMonth, displayDateDay, displayDateYear,
-				displayDateHour, displayDateMinute, expirationDateMonth,
-				expirationDateDay, expirationDateYear, expirationDateHour,
-				expirationDateMinute, false, sku, false, 1, null, null, 0L,
-				status, serviceContext);
+				null, user.getUserId(), groupId, cpTaxCategoryId, false, false,
+				ddmStructureKey, sku, 0, false, 1, null, null, depth,
+				descriptionMap, displayDateDay, displayDateHour,
+				displayDateMinute, displayDateMonth, displayDateYear,
+				expirationDateDay, expirationDateHour, expirationDateMinute,
+				expirationDateMonth, expirationDateYear, freeShipping, height,
+				ignoreSKUCombinations, 0L, metaDescriptionMap, metaKeywordsMap,
+				metaTitleMap, titleMap, false, productTypeName, published,
+				shipSeparately, shippable, shippingExtraPrice,
+				shortDescriptionMap, false, 1, null, null, taxExempt,
+				telcoOrElectronics, urlTitleMap, weight, width, status,
+				serviceContext);
 
 		CPDefinitionInventory cpDefinitionInventory =
 			CPDefinitionInventoryLocalServiceUtil.
@@ -1145,16 +1261,17 @@ public class CPTestUtil {
 
 		CPDefinition cpDefinition =
 			CPDefinitionLocalServiceUtil.addCPDefinition(
-				null, groupId, user.getUserId(), titleMap, shortDescriptionMap,
-				descriptionMap, urlTitleMap, metaTitleMap, metaKeywordsMap,
-				metaDescriptionMap, productTypeName, true, shippable,
-				freeShipping, shipSeparately, shippingExtraPrice, width, height,
-				depth, weight, cpTaxCategoryId, taxExempt, telcoOrElectronics,
-				ddmStructureKey, published, displayDateMonth, displayDateDay,
-				displayDateYear, displayDateHour, displayDateMinute,
-				expirationDateMonth, expirationDateDay, expirationDateYear,
-				expirationDateHour, expirationDateMinute, false, sku, false, 1,
-				null, null, 0L, WorkflowConstants.STATUS_DRAFT, serviceContext);
+				null, user.getUserId(), groupId, cpTaxCategoryId, false, false,
+				ddmStructureKey, sku, 0, false, 1, null, null, depth,
+				descriptionMap, displayDateDay, displayDateHour,
+				displayDateMinute, displayDateMonth, displayDateYear,
+				expirationDateDay, expirationDateHour, expirationDateMinute,
+				expirationDateMonth, expirationDateYear, freeShipping, height,
+				true, 0L, metaDescriptionMap, metaKeywordsMap, metaTitleMap,
+				titleMap, false, productTypeName, published, shipSeparately,
+				shippable, shippingExtraPrice, shortDescriptionMap, false, 1,
+				null, null, taxExempt, telcoOrElectronics, urlTitleMap, weight,
+				width, WorkflowConstants.STATUS_DRAFT, serviceContext);
 
 		CPDefinitionInventory cpDefinitionInventory =
 			CPDefinitionInventoryLocalServiceUtil.
@@ -1178,11 +1295,18 @@ public class CPTestUtil {
 
 		User user = UserLocalServiceUtil.getUser(serviceContext.getUserId());
 
-		List<CommerceCatalog> commerceCatalogs =
-			CommerceCatalogLocalServiceUtil.getCommerceCatalogs(
-				user.getCompanyId(), true);
+		CommerceCurrency commerceCurrency =
+			CommerceCurrencyLocalServiceUtil.addCommerceCurrency(
+				null, user.getUserId(), RandomTestUtil.randomString(),
+				RandomTestUtil.randomLocaleStringMap(),
+				RandomTestUtil.randomString(), BigDecimal.ONE, new HashMap<>(),
+				2, 2, "HALF_EVEN", false, 0, true);
 
-		CommerceCatalog commerceCatalog = commerceCatalogs.get(0);
+		CommerceCatalog commerceCatalog =
+			CommerceCatalogLocalServiceUtil.addCommerceCatalog(
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				commerceCurrency.getCode(), LocaleUtil.US.getDisplayLanguage(),
+				serviceContext);
 
 		addBaseCommerceCatalogCommercePriceList(
 			commerceCatalog.getGroupId(),
@@ -1257,25 +1381,45 @@ public class CPTestUtil {
 		}
 
 		return CPDefinitionLocalServiceUtil.addCPDefinition(
-			null, commerceCatalog.getGroupId(), user.getUserId(), titleMap,
-			shortDescriptionMap, descriptionMap, urlTitleMap, metaTitleMap,
-			metaKeywordsMap, metaDescriptionMap, productTypeName,
-			ignoreSKUCombinations, shippable, freeShipping, shipSeparately,
-			shippingExtraPrice, width, height, depth, weight, cpTaxCategoryId,
-			taxExempt, telcoOrElectronics, ddmStructureKey, published,
-			displayDateMonth, displayDateDay, displayDateYear, displayDateHour,
-			displayDateMinute, expirationDateMonth, expirationDateDay,
-			expirationDateYear, expirationDateHour, expirationDateMinute, false,
-			sku, false, 1, null, null, 0L, WorkflowConstants.STATUS_DRAFT,
-			serviceContext);
+			null, user.getUserId(), commerceCatalog.getGroupId(),
+			cpTaxCategoryId, false, false, ddmStructureKey, sku, 0, false, 1,
+			null, null, depth, descriptionMap, displayDateDay, displayDateHour,
+			displayDateMinute, displayDateMonth, displayDateYear,
+			expirationDateDay, expirationDateHour, expirationDateMinute,
+			expirationDateMonth, expirationDateYear, freeShipping, height,
+			ignoreSKUCombinations, 0L, metaDescriptionMap, metaKeywordsMap,
+			metaTitleMap, titleMap, false, productTypeName, published,
+			shipSeparately, shippable, shippingExtraPrice, shortDescriptionMap,
+			false, 1, null, null, taxExempt, telcoOrElectronics, urlTitleMap,
+			weight, width, WorkflowConstants.STATUS_DRAFT, serviceContext);
+	}
+
+	private static void _addCommercePriceEntry(CPInstance cpInstance)
+		throws PortalException {
+
+		CommercePriceList commercePriceList =
+			CommercePriceListLocalServiceUtil.fetchCatalogBaseCommercePriceList(
+				cpInstance.getGroupId());
+
+		if (commercePriceList == null) {
+			return;
+		}
+
+		CPDefinition cpDefinition = cpInstance.getCPDefinition();
+
+		CommercePriceEntryLocalServiceUtil.addCommercePriceEntry(
+			StringPool.BLANK, cpDefinition.getCProductId(),
+			cpInstance.getCPInstanceUuid(),
+			commercePriceList.getCommercePriceListId(), cpInstance.getPrice(),
+			false, null, null,
+			ServiceContextTestUtil.getServiceContext(cpInstance.getGroupId()));
 	}
 
 	private static CPOptionConfiguration _getCPOptionConfiguration()
 		throws ConfigurationException {
 
-		return ConfigurationProviderUtil.getConfiguration(
-			CPOptionConfiguration.class,
-			new SystemSettingsLocator(CPConstants.SERVICE_NAME_CP_OPTION));
+		return ConfigurationProviderUtil.getSystemConfiguration(
+			CPOptionConfiguration.class);
 	}
 
 	private static CPInstance _getRandomApprovedCPInstance(
@@ -1325,9 +1469,6 @@ public class CPTestUtil {
 				List<CPInstance> childCPInstances)
 		throws Exception {
 
-		List<CPDefinitionOptionValueRel> cpDefinitionOptionValueRels =
-			new ArrayList<>();
-
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(groupId);
 
@@ -1336,7 +1477,7 @@ public class CPTestUtil {
 
 		CPDefinitionOptionRel cpDefinitionOptionRel =
 			CPDefinitionOptionRelLocalServiceUtil.addCPDefinitionOptionRel(
-				parentCPDefinition.getCPDefinitionId(),
+				null, parentCPDefinition.getCPDefinitionId(),
 				priceableCPOption.getCPOptionId(),
 				RandomTestUtil.randomLocaleStringMap(),
 				RandomTestUtil.randomLocaleStringMap(),
@@ -1344,25 +1485,28 @@ public class CPTestUtil {
 				RandomTestUtil.nextDouble(), false, false, false, false,
 				priceType, serviceContext);
 
-		for (CPInstance cpInstance : childCPInstances) {
-			CPDefinitionOptionValueRel cpInstanceOptionValueRel =
-				CPDefinitionOptionValueRelLocalServiceUtil.
-					addCPDefinitionOptionValueRel(
-						cpDefinitionOptionRel.getCPDefinitionOptionRelId(),
-						RandomTestUtil.randomString(),
-						RandomTestUtil.randomLocaleStringMap(),
-						RandomTestUtil.nextDouble(), serviceContext);
+		return TransformUtil.transform(
+			childCPInstances,
+			cpInstance -> {
+				CPDefinitionOptionValueRel cpInstanceOptionValueRel =
+					CPDefinitionOptionValueRelLocalServiceUtil.
+						addCPDefinitionOptionValueRel(
+							null,
+							cpDefinitionOptionRel.getCPDefinitionOptionRelId(),
+							RandomTestUtil.randomString(),
+							RandomTestUtil.randomLocaleStringMap(),
+							RandomTestUtil.nextDouble(), serviceContext);
 
-			BigDecimal price = null;
+				BigDecimal price = null;
 
-			if (Objects.equals(
-					priceType, CPConstants.PRODUCT_OPTION_PRICE_TYPE_STATIC)) {
+				if (Objects.equals(
+						priceType,
+						CPConstants.PRODUCT_OPTION_PRICE_TYPE_STATIC)) {
 
-				price = new BigDecimal(RandomTestUtil.randomDouble());
-			}
+					price = new BigDecimal(RandomTestUtil.randomDouble());
+				}
 
-			cpDefinitionOptionValueRels.add(
-				CPDefinitionOptionValueRelLocalServiceUtil.
+				return CPDefinitionOptionValueRelLocalServiceUtil.
 					updateCPDefinitionOptionValueRel(
 						cpInstanceOptionValueRel.
 							getCPDefinitionOptionValueRelId(),
@@ -1372,10 +1516,8 @@ public class CPTestUtil {
 						cpInstanceOptionValueRel.getPriority(),
 						BigDecimal.valueOf(2),
 						cpInstanceOptionValueRel.getUnitOfMeasureKey(),
-						serviceContext));
-		}
-
-		return cpDefinitionOptionValueRels;
+						serviceContext);
+			});
 	}
 
 }

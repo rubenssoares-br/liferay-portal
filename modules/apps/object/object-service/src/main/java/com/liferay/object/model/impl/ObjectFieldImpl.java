@@ -11,11 +11,19 @@ import com.liferay.object.field.setting.util.ObjectFieldSettingUtil;
 import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectFieldSetting;
+import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.service.ObjectDefinitionLocalServiceUtil;
 import com.liferay.object.service.ObjectFieldSettingLocalServiceUtil;
+import com.liferay.object.service.ObjectRelationshipLocalServiceUtil;
+import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.LocalizationUtil;
+import com.liferay.portal.kernel.util.TextFormatter;
 import com.liferay.portal.kernel.util.Validator;
 
 import java.util.List;
@@ -29,11 +37,54 @@ public class ObjectFieldImpl extends ObjectFieldBaseImpl {
 
 	@Override
 	public boolean compareBusinessType(String businessType) {
-		if (Objects.equals(getBusinessType(), businessType)) {
-			return true;
+		return Objects.equals(getBusinessType(), businessType);
+	}
+
+	@Override
+	public String getAttachmentDownloadActionKey() {
+		return StringBundler.concat(
+			ActionKeys.DOWNLOAD, StringPool.UNDERLINE,
+			TextFormatter.format(getName(), TextFormatter.R));
+	}
+
+	@Override
+	public String[] getDBColumnNames() {
+		if (compareBusinessType(ObjectFieldConstants.BUSINESS_TYPE_ASSIGNEE)) {
+			return new String[] {
+				"classNameId_" + getDBColumnName(),
+				"classPK_" + getDBColumnName()
+			};
 		}
 
-		return false;
+		if (compareBusinessType(ObjectFieldConstants.BUSINESS_TYPE_LOCATION)) {
+			return new String[] {
+				"address_" + getDBColumnName(), "latitude_" + getDBColumnName(),
+				"longitude_" + getDBColumnName()
+			};
+		}
+
+		return new String[] {getDBColumnName()};
+	}
+
+	@Override
+	public String getDefaultDBColumnName() {
+		if (compareBusinessType(ObjectFieldConstants.BUSINESS_TYPE_LOCATION)) {
+			return "address_" + getDBColumnName();
+		}
+
+		return getDBColumnName();
+	}
+
+	@Override
+	public String getDefaultLanguageId() {
+		String xml = getLabel();
+
+		if (xml == null) {
+			return "";
+		}
+
+		return LocalizationUtil.getDefaultLanguageId(
+			xml, LocaleUtil.getDefault());
 	}
 
 	@Override
@@ -52,10 +103,27 @@ public class ObjectFieldImpl extends ObjectFieldBaseImpl {
 		if (_objectFieldSettings == null) {
 			_objectFieldSettings =
 				ObjectFieldSettingLocalServiceUtil.
-					getObjectFieldObjectFieldSettings(getObjectFieldId());
+					getObjectFieldObjectFieldSettings(this);
 		}
 
 		return _objectFieldSettings;
+	}
+
+	@Override
+	public ObjectRelationship getObjectRelationship() {
+		return ObjectRelationshipLocalServiceUtil.
+			fetchObjectRelationshipByObjectFieldId2(getObjectFieldId());
+	}
+
+	@Override
+	public String getReadOnly() {
+		String readOnly = super.getReadOnly();
+
+		if (Validator.isNull(readOnly)) {
+			return ObjectFieldConstants.READ_ONLY_FALSE;
+		}
+
+		return readOnly;
 	}
 
 	@Override
@@ -73,6 +141,17 @@ public class ObjectFieldImpl extends ObjectFieldBaseImpl {
 		}
 
 		return true;
+	}
+
+	@Override
+	public boolean hasMultipleDBColumns() {
+		if (compareBusinessType(ObjectFieldConstants.BUSINESS_TYPE_ASSIGNEE) ||
+			compareBusinessType(ObjectFieldConstants.BUSINESS_TYPE_LOCATION)) {
+
+			return true;
+		}
+
+		return false;
 	}
 
 	@Override
@@ -112,9 +191,11 @@ public class ObjectFieldImpl extends ObjectFieldBaseImpl {
 
 		ObjectDefinition objectDefinition = getObjectDefinition();
 
-		if (objectDefinition.isUnmodifiableSystemObject() &&
-			!Objects.equals(
-				objectDefinition.getExtensionDBTableName(), getDBTableName())) {
+		if ((objectDefinition.isUnmodifiableSystemObject() &&
+			 !Objects.equals(
+				 objectDefinition.getExtensionDBTableName(),
+				 getDBTableName())) ||
+			ObjectFieldUtil.isMetadata(getName())) {
 
 			return false;
 		}

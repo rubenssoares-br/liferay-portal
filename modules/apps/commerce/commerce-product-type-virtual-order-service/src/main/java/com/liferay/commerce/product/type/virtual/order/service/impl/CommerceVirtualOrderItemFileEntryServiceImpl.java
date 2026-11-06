@@ -10,8 +10,8 @@ import com.liferay.commerce.model.CommerceOrderItem;
 import com.liferay.commerce.product.type.virtual.order.constants.CommerceVirtualOrderActionKeys;
 import com.liferay.commerce.product.type.virtual.order.model.CommerceVirtualOrderItem;
 import com.liferay.commerce.product.type.virtual.order.model.CommerceVirtualOrderItemFileEntry;
-import com.liferay.commerce.product.type.virtual.order.service.CommerceVirtualOrderItemLocalService;
 import com.liferay.commerce.product.type.virtual.order.service.base.CommerceVirtualOrderItemFileEntryServiceBaseImpl;
+import com.liferay.commerce.product.type.virtual.order.service.persistence.CommerceVirtualOrderItemPersistence;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
@@ -42,9 +42,8 @@ public class CommerceVirtualOrderItemFileEntryServiceImpl
 		throws PortalException {
 
 		CommerceVirtualOrderItemFileEntry commerceVirtualOrderItemFileEntry =
-			commerceVirtualOrderItemFileEntryLocalService.
-				fetchCommerceVirtualOrderItemFileEntry(
-					commerceVirtualOrderItemFileEntryId);
+			commerceVirtualOrderItemFileEntryPersistence.fetchByPrimaryKey(
+				commerceVirtualOrderItemFileEntryId);
 
 		if (commerceVirtualOrderItemFileEntry != null) {
 			_commerceVirtualOrderItemFileEntryModelResourcePermission.check(
@@ -63,7 +62,7 @@ public class CommerceVirtualOrderItemFileEntryServiceImpl
 		throws PortalException {
 
 		CommerceVirtualOrderItem commerceVirtualOrderItem =
-			_commerceVirtualOrderItemLocalService.getCommerceVirtualOrderItem(
+			_commerceVirtualOrderItemPersistence.findByPrimaryKey(
 				commerceVirtualOrderItemId);
 
 		CommerceOrderItem commerceOrderItem =
@@ -73,8 +72,8 @@ public class CommerceVirtualOrderItemFileEntryServiceImpl
 			getPermissionChecker(), commerceOrderItem.getCommerceOrderId(),
 			ActionKeys.VIEW);
 
-		return commerceVirtualOrderItemFileEntryLocalService.
-			getCommerceVirtualOrderItemFileEntries(
+		return commerceVirtualOrderItemFileEntryPersistence.
+			findByCommerceVirtualOrderItemId(
 				commerceVirtualOrderItemId, start, end);
 	}
 
@@ -86,12 +85,11 @@ public class CommerceVirtualOrderItemFileEntryServiceImpl
 		throws PortalException {
 
 		CommerceVirtualOrderItemFileEntry commerceVirtualOrderItemFileEntry =
-			commerceVirtualOrderItemFileEntryLocalService.
-				getCommerceVirtualOrderItemFileEntry(
-					commerceVirtualOrderItemFileEntryId);
+			commerceVirtualOrderItemFileEntryPersistence.findByPrimaryKey(
+				commerceVirtualOrderItemFileEntryId);
 
 		CommerceVirtualOrderItem commerceVirtualOrderItem =
-			_commerceVirtualOrderItemLocalService.getCommerceVirtualOrderItem(
+			_commerceVirtualOrderItemPersistence.findByPrimaryKey(
 				commerceVirtualOrderItemFileEntry.
 					getCommerceVirtualOrderItemId());
 
@@ -121,7 +119,7 @@ public class CommerceVirtualOrderItemFileEntryServiceImpl
 		_commerceVirtualOrderItemFileEntryModelResourcePermission;
 
 	@Reference
-	private CommerceVirtualOrderItemLocalService
-		_commerceVirtualOrderItemLocalService;
+	private CommerceVirtualOrderItemPersistence
+		_commerceVirtualOrderItemPersistence;
 
 }

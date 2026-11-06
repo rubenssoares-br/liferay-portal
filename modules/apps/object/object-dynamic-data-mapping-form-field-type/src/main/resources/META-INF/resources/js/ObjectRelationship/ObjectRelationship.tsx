@@ -13,17 +13,22 @@ import {
 	useForm,
 	useFormState,
 } from 'data-engine-js-components-web';
-import {ReactFieldBase as FieldBase} from 'dynamic-data-mapping-form-field-type';
-import {Locale} from 'dynamic-data-mapping-form-field-type/src/main/resources/META-INF/resources/types';
+import {ReactFieldBase as FieldBase} from 'dynamic-data-mapping-form-field-type/api';
 import {fetch} from 'frontend-js-web';
 import React, {useEffect, useRef, useState} from 'react';
 
-type LocalizedValue<T> = Liferay.Language.LocalizedValue<T>;
+import {getItemValue} from './getItemValue';
+
+import type {
+	Locale,
+	LocalizedValue,
+} from 'dynamic-data-mapping-form-field-type';
 
 async function fetchOptions<T>(url: string) {
 	const response = await fetch(url, {
 		headers: {
 			'Accept': 'application/json',
+			'Accept-Language': Liferay.ThemeDisplay.getBCP47LanguageId(),
 			'Content-Type': 'application/json',
 		},
 		method: 'GET',
@@ -40,34 +45,33 @@ export function getLabel<T extends ObjectMap<any>>(
 ) {
 	const value = item[key];
 
-	if (typeof value !== 'object') {
-		if (objectFieldBusinessType === 'Date') {
-			return DateTimeRenderer({
-				options: {
-					format: {
-						day: 'numeric',
-						month: 'short',
-						timeZone: 'UTC',
-						year: 'numeric',
-					},
-				},
-				value: String(value),
-			});
-		}
-
-		if (objectFieldBusinessType === 'Boolean') {
-			return String(value);
-		}
-
-		return value ? String(value) : '';
+	if (!value && objectFieldBusinessType !== 'Boolean') {
+		return '';
 	}
 
-	return stringUtils.getLocalizableLabel(
-		objectDefinitionDefaultLanguageId,
-		value as LocalizedValue<string>,
-		(value as {[key: string]: string})['name'] ??
-			(value as {[key: string]: string})['label_i18n']
-	);
+	if (objectFieldBusinessType === 'Date') {
+		return DateTimeRenderer({
+			options: {
+				format: {
+					day: 'numeric',
+					month: 'short',
+					timeZone: 'UTC',
+					year: 'numeric',
+				},
+			},
+			value: String(value),
+		});
+	}
+
+	return typeof value === 'object'
+		? stringUtils.getLocalizableLabel({
+				fallbackLabel:
+					(value as {[key: string]: string})['name'] ??
+					(value as {[key: string]: string})['label_i18n'],
+				fallbackLanguageId: objectDefinitionDefaultLanguageId,
+				labels: value as LocalizedValue<string>,
+			})
+		: String(value);
 }
 
 function LoadingWithDebounce({
@@ -112,12 +116,14 @@ function LoadingWithDebounce({
 					key={item.id}
 					match={searchTerm}
 					onClick={() => onSelect(item)}
-					value={getLabel(
-						item,
-						labelKey,
-						objectDefinitionDefaultLanguageId,
-						objectFieldBusinessType
-					)}
+					value={
+						getLabel(
+							item,
+							labelKey,
+							objectDefinitionDefaultLanguageId,
+							objectFieldBusinessType
+						) || undefined
+					}
 				/>
 			))}
 		</>
@@ -140,14 +146,17 @@ export default function ObjectRelationship({
 	placeholder = Liferay.Language.get('search'),
 	readOnly,
 	required,
+	selectedOptionLabel,
 	value,
 	valueKey = 'value',
 	...otherProps
 }: IProps) {
 	const autocompleteRef = useRef<HTMLInputElement>(null);
 	const dropdownRef = useRef<HTMLDivElement>(null);
-	const [{active, list, loading, searchTerm, selected, url}, setState] =
-		useState<State>({url: null});
+	const [
+		{active, list, loading, searchTerm, selected, selectedLabel, url},
+		setState,
+	] = useState<State>({url: null});
 
 	const dispatch = useForm();
 
@@ -155,9 +164,17 @@ export default function ObjectRelationship({
 		objectRelationships?: ObjectMap<number>;
 	}>();
 
+	const onChangeRef = useRef(onChange);
+
+	const latestURLRef = useRef<string | null>(null);
+
 	const parameterObjectFieldId = parameterObjectFieldName
 		? objectRelationships?.[parameterObjectFieldName]
 		: null;
+
+	useEffect(() => {
+		onChangeRef.current = onChange;
+	}, [onChange]);
 
 	/**
 	 * Provides selected value for dependant relationships
@@ -179,21 +196,28 @@ export default function ObjectRelationship({
 			let newURL: string | null = null;
 
 			if (!parameterObjectFieldName || parameterObjectFieldId) {
+				const searchSeparator = apiURL.includes('?') ? '&' : '?';
+
 				newURL = parameterObjectFieldId
 					? apiURL.replace(/{\w+}/, String(parameterObjectFieldId))
-					: `${apiURL}?pageSize=-1${
-							searchTerm ? `&search=${searchTerm}` : ''
-						}`;
+					: `${apiURL}${searchTerm ? `${searchSeparator}search=${encodeURIComponent(searchTerm)}` : ''}`;
 			}
 
 			if (!newURL || newURL === url) {
 				return;
 			}
 
+			latestURLRef.current = newURL;
+
 			setState((prevState) => ({...prevState, loading: true}));
 
 			try {
-				const {items} = await fetchOptions<Resource>(newURL);
+				const items =
+					(await fetchOptions<Resource>(newURL))?.items ?? [];
+
+				if (latestURLRef.current !== newURL) {
+					return;
+				}
 
 				const state: State = {
 					list:
@@ -207,21 +231,20 @@ export default function ObjectRelationship({
 				};
 
 				if (value) {
-					let selected: Item | void = items.find(
-						({id}) => id === Number(value)
+					const selected = items.find(
+						(item) =>
+							Number(getItemValue(item, valueKey)) ===
+							Number(value)
 					);
-
-					if (!selected && !parameterObjectFieldName) {
-						selected = await fetchOptions<Item>(
-							`${apiURL}/${value}`
-						);
-					}
 
 					if (selected) {
 						state.selected = selected;
 					}
+					else if (selectedOptionLabel) {
+						state.selectedLabel = selectedOptionLabel;
+					}
 					else {
-						onChange({target: {value: null}});
+						onChangeRef.current({target: {value: null}});
 					}
 				}
 				setState(({active, searchTerm}) => ({
@@ -231,13 +254,18 @@ export default function ObjectRelationship({
 				}));
 			}
 			catch (error) {
+				console.error(error);
+
+				if (latestURLRef.current !== newURL) {
+					return;
+				}
+
 				setState(({active, searchTerm}) => ({
 					active,
 					loading: false,
 					searchTerm,
 					url,
 				}));
-				console.error(error);
 			}
 		};
 
@@ -245,12 +273,13 @@ export default function ObjectRelationship({
 	}, [
 		apiURL,
 		objectEntryId,
-		onChange,
 		parameterObjectFieldId,
 		parameterObjectFieldName,
 		searchTerm,
+		selectedOptionLabel,
 		value,
 		url,
+		valueKey,
 	]);
 
 	/**
@@ -285,6 +314,7 @@ export default function ObjectRelationship({
 				objectDefinitionDefaultLanguageId,
 				objectFieldBusinessType
 			)) ??
+		selectedLabel ??
 		searchTerm;
 
 	return (
@@ -326,6 +356,8 @@ export default function ObjectRelationship({
 								delete state.selected;
 							}
 
+							delete state.selectedLabel;
+
 							state.searchTerm = value;
 
 							return state;
@@ -337,13 +369,13 @@ export default function ObjectRelationship({
 							}
 
 							if (selected) {
-								return String(selected[valueKey]);
+								return String(getItemValue(selected, valueKey));
 							}
 
 							return null;
 						};
 
-						onChange({
+						onChangeRef.current({
 							target: {
 								value: getValue(),
 							},
@@ -381,15 +413,18 @@ export default function ObjectRelationship({
 									objectFieldBusinessType
 								}
 								onSelect={(selected) => {
-									onChange({
+									onChangeRef.current({
 										target: {
-											value: String(selected[valueKey]),
+											value: String(
+												getItemValue(selected, valueKey)
+											),
 										},
 									});
 									setState((prevState) => ({
 										...prevState,
 										active: false,
 										selected,
+										selectedLabel: undefined,
 									}));
 								}}
 								searchTerm={label}
@@ -401,7 +436,11 @@ export default function ObjectRelationship({
 				{loading && <ClayAutocomplete.LoadingIndicator />}
 			</ClayAutocomplete>
 
-			<input name={name} type="hidden" value={selected?.id} />
+			<input
+				name={name}
+				type="hidden"
+				value={selectedLabel ? value : getItemValue(selected, valueKey)}
+			/>
 		</FieldBase>
 	);
 }
@@ -422,6 +461,7 @@ interface IProps {
 	placeholder?: string;
 	readOnly?: boolean;
 	required?: boolean;
+	selectedOptionLabel?: string;
 	value?: string;
 	valueKey?: string;
 }
@@ -444,5 +484,6 @@ interface State {
 	loading?: boolean;
 	searchTerm?: string;
 	selected?: Item;
+	selectedLabel?: string;
 	url: string | null;
 }

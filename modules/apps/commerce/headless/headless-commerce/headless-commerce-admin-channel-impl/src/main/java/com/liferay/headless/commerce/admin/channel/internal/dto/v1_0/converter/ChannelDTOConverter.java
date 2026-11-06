@@ -7,6 +7,8 @@ package com.liferay.headless.commerce.admin.channel.internal.dto.v1_0.converter;
 
 import com.liferay.account.model.AccountEntry;
 import com.liferay.account.service.AccountEntryLocalService;
+import com.liferay.commerce.currency.model.CommerceCurrency;
+import com.liferay.commerce.currency.service.CommerceCurrencyLocalService;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelService;
 import com.liferay.headless.commerce.admin.channel.dto.v1_0.Channel;
@@ -20,7 +22,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Andrea Sbarra
  */
 @Component(
-	property = "dto.class.name=com.liferay.commerce.product.model.CommerceChannel",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.commerce.product.model.CommerceChannel"
+	},
 	service = DTOConverter.class
 )
 public class ChannelDTOConverter
@@ -39,6 +44,11 @@ public class ChannelDTOConverter
 			_commerceChannelService.getCommerceChannel(
 				(Long)dtoConverterContext.getId());
 
+		CommerceCurrency commerceCurrency =
+			_commerceCurrencyLocalService.getCommerceCurrency(
+				commerceChannel.getCompanyId(),
+				commerceChannel.getCommerceCurrencyCode());
+
 		return new Channel() {
 			{
 				setAccountExternalReferenceCode(
@@ -54,7 +64,10 @@ public class ChannelDTOConverter
 						return accountEntry.getExternalReferenceCode();
 					});
 				setAccountId(commerceChannel::getAccountEntryId);
-				setCurrencyCode(commerceChannel::getCommerceCurrencyCode);
+				setCurrencyCode(commerceCurrency::getCode);
+				setCurrencyExternalReferenceCode(
+					commerceCurrency::getExternalReferenceCode);
+				setCurrencyId(commerceCurrency::getCommerceCurrencyId);
 				setExternalReferenceCode(
 					commerceChannel::getExternalReferenceCode);
 				setId(commerceChannel::getCommerceChannelId);
@@ -70,5 +83,8 @@ public class ChannelDTOConverter
 
 	@Reference
 	private CommerceChannelService _commerceChannelService;
+
+	@Reference
+	private CommerceCurrencyLocalService _commerceCurrencyLocalService;
 
 }

@@ -12,6 +12,7 @@ import com.liferay.commerce.product.model.CommerceCatalog;
 import com.liferay.commerce.product.service.CPInstanceLocalService;
 import com.liferay.commerce.product.service.CommerceCatalogLocalService;
 import com.liferay.commerce.product.test.util.CPTestUtil;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Document;
@@ -34,7 +35,6 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -69,7 +69,7 @@ public class CPInstanceIndexerTest {
 
 	@Test
 	public void testSearchSkuGTIN() throws Exception {
-		CommerceCatalog catalog =
+		CommerceCatalog commerceCatalog =
 			_commerceCatalogLocalService.addCommerceCatalog(
 				null, RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(),
@@ -77,7 +77,7 @@ public class CPInstanceIndexerTest {
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
 		CPInstance cpInstance = CPTestUtil.addCPInstanceFromCatalog(
-			catalog.getGroupId());
+			commerceCatalog.getGroupId());
 
 		cpInstance.setPurchasable(true);
 
@@ -94,7 +94,7 @@ public class CPInstanceIndexerTest {
 
 	@Test
 	public void testSkuPrefix() throws Exception {
-		CommerceCatalog catalog =
+		CommerceCatalog commerceCatalog =
 			_commerceCatalogLocalService.addCommerceCatalog(
 				null, RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(),
@@ -102,7 +102,7 @@ public class CPInstanceIndexerTest {
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
 		CPInstance cpInstance = CPTestUtil.addCPInstanceFromCatalog(
-			catalog.getGroupId());
+			commerceCatalog.getGroupId());
 
 		cpInstance.setPurchasable(true);
 
@@ -176,15 +176,8 @@ public class CPInstanceIndexerTest {
 	}
 
 	private List<CPInstance> _getCPInstances(Hits hits) throws Exception {
-		Document[] documents = hits.getDocs();
-
-		List<CPInstance> cpInstances = new ArrayList<>(documents.length);
-
-		for (Document document : documents) {
-			cpInstances.add(_getCPInstance(document));
-		}
-
-		return cpInstances;
+		return TransformUtil.transformToList(
+			hits.getDocs(), document -> _getCPInstance(document));
 	}
 
 	private SearchContext _getSearchContext(long cpDefinitionId) {
@@ -197,13 +190,6 @@ public class CPInstanceIndexerTest {
 		return searchContext;
 	}
 
-	private static Indexer<CPInstance> _indexer;
-
-	@Inject
-	private static IndexerRegistry _indexerRegistry;
-
-	private static User _user;
-
 	@Inject
 	private CommerceCatalogLocalService _commerceCatalogLocalService;
 
@@ -212,5 +198,12 @@ public class CPInstanceIndexerTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	private Indexer<CPInstance> _indexer;
+
+	@Inject
+	private IndexerRegistry _indexerRegistry;
+
+	private User _user;
 
 }

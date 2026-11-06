@@ -715,10 +715,8 @@ public class UserLocalServiceWrapper
 	 * the confirmation email.
 	 *
 	 * @param user the user
-	 * @param serviceContext the service context to be applied. You can specify
-	 an unencrypted custom password for the user via attribute
-	 <code>passwordUnencrypted</code>. You automatically generate a
-	 password for the user by setting attribute
+	 * @param serviceContext the service context to be applied. You
+	 automatically generate a password for the user by setting attribute
 	 <code>autoPassword</code> to <code>true</code>. You can send a
 	 confirmation email to the user by setting attribute
 	 <code>sendEmail</code> to <code>true</code>.
@@ -1109,26 +1107,10 @@ public class UserLocalServiceWrapper
 	 * @param facebookId the user's Facebook ID
 	 * @return the user with the Facebook ID, or <code>null</code> if a user
 	 with the Facebook ID could not be found
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
 	 */
-	@Deprecated
 	@Override
 	public User fetchUserByFacebookId(long companyId, long facebookId) {
 		return _userLocalService.fetchUserByFacebookId(companyId, facebookId);
-	}
-
-	/**
-	 * Returns the user with the Google user ID.
-	 *
-	 * @param companyId the primary key of the user's company
-	 * @param googleUserId the user's Google user ID
-	 * @return the user with the Google user ID, or <code>null</code> if a user
-	 with the Google user ID could not be found
-	 */
-	@Override
-	public User fetchUserByGoogleUserId(long companyId, String googleUserId) {
-		return _userLocalService.fetchUserByGoogleUserId(
-			companyId, googleUserId);
 	}
 
 	/**
@@ -1141,21 +1123,6 @@ public class UserLocalServiceWrapper
 	@Override
 	public User fetchUserById(long userId) {
 		return _userLocalService.fetchUserById(userId);
-	}
-
-	/**
-	 * Returns the user with the OpenID.
-	 *
-	 * @param companyId the primary key of the user's company
-	 * @param openId the user's OpenID
-	 * @return the user with the OpenID, or <code>null</code> if a user with
-	 the OpenID could not be found
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User fetchUserByOpenId(long companyId, String openId) {
-		return _userLocalService.fetchUserByOpenId(companyId, openId);
 	}
 
 	/**
@@ -1421,29 +1388,6 @@ public class UserLocalServiceWrapper
 
 		return _userLocalService.getInheritedRoleUsers(
 			roleId, start, end, orderByComparator);
-	}
-
-	/**
-	 * Returns all the users who have not had any announcements of the type
-	 * delivered, excluding the default user.
-	 *
-	 * @param type the type of announcement
-	 * @return the users who have not had any annoucements of the type delivered
-	 */
-	@Override
-	public java.util.List<User> getNoAnnouncementsDeliveries(String type) {
-		return _userLocalService.getNoAnnouncementsDeliveries(type);
-	}
-
-	/**
-	 * Returns all the users who do not belong to any groups, excluding the
-	 * default user.
-	 *
-	 * @return the users who do not belong to any groups
-	 */
-	@Override
-	public java.util.List<User> getNoGroups() {
-		return _userLocalService.getNoGroups();
 	}
 
 	/**
@@ -1876,36 +1820,6 @@ public class UserLocalServiceWrapper
 	}
 
 	/**
-	 * Returns the user with the Facebook ID.
-	 *
-	 * @param companyId the primary key of the user's company
-	 * @param facebookId the user's Facebook ID
-	 * @return the user with the Facebook ID
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User getUserByFacebookId(long companyId, long facebookId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.getUserByFacebookId(companyId, facebookId);
-	}
-
-	/**
-	 * Returns the user with the Google user ID.
-	 *
-	 * @param companyId the primary key of the user's company
-	 * @param googleUserId the user's Google user ID
-	 * @return the user with the Google user ID
-	 */
-	@Override
-	public User getUserByGoogleUserId(long companyId, String googleUserId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.getUserByGoogleUserId(companyId, googleUserId);
-	}
-
-	/**
 	 * Returns the user with the primary key.
 	 *
 	 * @param userId the primary key of the user
@@ -1930,35 +1844,6 @@ public class UserLocalServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _userLocalService.getUserById(companyId, userId);
-	}
-
-	/**
-	 * Returns the user with the OpenID.
-	 *
-	 * @param companyId the primary key of the user's company
-	 * @param openId the user's OpenID
-	 * @return the user with the OpenID
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User getUserByOpenId(long companyId, String openId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.getUserByOpenId(companyId, openId);
-	}
-
-	/**
-	 * Returns the user with the portrait ID.
-	 *
-	 * @param portraitId the user's portrait ID
-	 * @return the user with the portrait ID
-	 */
-	@Override
-	public User getUserByPortraitId(long portraitId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.getUserByPortraitId(portraitId);
 	}
 
 	/**
@@ -2537,6 +2422,14 @@ public class UserLocalServiceWrapper
 	}
 
 	@Override
+	public int searchCountBySocial(
+		long companyId, long[] groupIds, long[] userGroupIds, String keywords) {
+
+		return _userLocalService.searchCountBySocial(
+			companyId, groupIds, userGroupIds, keywords);
+	}
+
+	@Override
 	public java.util.Map<Long, Integer> searchCounts(
 		long companyId, int status, long[] groupIds) {
 
@@ -3000,36 +2893,6 @@ public class UserLocalServiceWrapper
 	}
 
 	/**
-	 * Updates the user's Facebook ID.
-	 *
-	 * @param userId the primary key of the user
-	 * @param facebookId the user's new Facebook ID
-	 * @return the user
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User updateFacebookId(long userId, long facebookId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.updateFacebookId(userId, facebookId);
-	}
-
-	/**
-	 * Updates the user's Google user ID.
-	 *
-	 * @param userId the primary key of the user
-	 * @param googleUserId the new Google user ID
-	 * @return the user
-	 */
-	@Override
-	public User updateGoogleUserId(long userId, String googleUserId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.updateGoogleUserId(userId, googleUserId);
-	}
-
-	/**
 	 * Sets the groups the user is in, removing and adding groups as necessary.
 	 *
 	 * @param userId the primary key of the user
@@ -3216,22 +3079,6 @@ public class UserLocalServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _userLocalService.updateModifiedDate(userId, modifiedDate);
-	}
-
-	/**
-	 * Updates the user's OpenID.
-	 *
-	 * @param userId the primary key of the user
-	 * @param openId the new OpenID
-	 * @return the user
-	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
-	 */
-	@Deprecated
-	@Override
-	public User updateOpenId(long userId, String openId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _userLocalService.updateOpenId(userId, openId);
 	}
 
 	/**
@@ -3551,3 +3398,4 @@ public class UserLocalServiceWrapper
 	private UserLocalService _userLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1730365100

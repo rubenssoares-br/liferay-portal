@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rafael Praxedes
@@ -38,6 +39,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "https://schema.org/AssigneeBulkSelection",
 	value = "AssigneeBulkSelection"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "https://schema.org/AssigneeBulkSelection"
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "AssigneeBulkSelection")
@@ -52,7 +56,7 @@ public class AssigneeBulkSelection implements Serializable {
 			AssigneeBulkSelection.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long[] getInstanceIds() {
 		if (_instanceIdsSupplier != null) {
 			instanceIds = _instanceIdsSupplier.get();
@@ -148,8 +152,8 @@ public class AssigneeBulkSelection implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.workflow.metrics.rest.dto.v1_0.AssigneeBulkSelection",
 		name = "x-class-name"
 	)
@@ -236,6 +240,27 @@ public class AssigneeBulkSelection implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -244,3 +269,4 @@ public class AssigneeBulkSelection implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1485824937

@@ -46,16 +46,19 @@ public class DynamicObjectDefinitionTable
 				continue;
 			}
 
-			_createColumn(
-				objectField.getDBColumnName(), objectField.getDBType());
+			for (String dbColumnName : objectField.getDBColumnNames()) {
+				_createColumn(dbColumnName, objectField.getDBType());
+			}
 
-			if (objectField.compareBusinessType(
+			if (!objectField.compareBusinessType(
 					ObjectFieldConstants.BUSINESS_TYPE_AUTO_INCREMENT)) {
 
-				_createColumn(
-					objectField.getSortableDBColumnName(),
-					ObjectFieldConstants.DB_TYPE_LONG);
+				continue;
 			}
+
+			_createColumn(
+				objectField.getSortableDBColumnName(),
+				ObjectFieldConstants.DB_TYPE_LONG);
 		}
 	}
 
@@ -88,18 +91,22 @@ public class DynamicObjectDefinitionTable
 				continue;
 			}
 
-			_append(
-				sb, objectField.getBusinessType(),
-				objectField.getDBColumnName(), objectField.getDBType());
+			for (String dbColumnName : objectField.getDBColumnNames()) {
+				_append(
+					sb, objectField.getBusinessType(), dbColumnName,
+					objectField.getDBType());
+			}
 
-			if (objectField.compareBusinessType(
+			if (!objectField.compareBusinessType(
 					ObjectFieldConstants.BUSINESS_TYPE_AUTO_INCREMENT)) {
 
-				_append(
-					sb, objectField.getBusinessType(),
-					objectField.getSortableDBColumnName(),
-					ObjectFieldConstants.DB_TYPE_LONG);
+				continue;
 			}
+
+			_append(
+				sb, objectField.getBusinessType(),
+				objectField.getSortableDBColumnName(),
+				ObjectFieldConstants.DB_TYPE_LONG);
 		}
 
 		sb.append(");");

@@ -5,11 +5,14 @@
 
 package com.liferay.jenkins.results.parser.test.clazz;
 
-import com.liferay.jenkins.results.parser.BatchHistory;
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
 import com.liferay.jenkins.results.parser.PortalGitWorkingDirectory;
-import com.liferay.jenkins.results.parser.TestHistory;
+import com.liferay.jenkins.results.parser.history.BatchHistory;
+import com.liferay.jenkins.results.parser.history.TestClassHistory;
+import com.liferay.jenkins.results.parser.history.TestTaskHistory;
+import com.liferay.jenkins.results.parser.test.clazz.group.AxisTestClassGroup;
 import com.liferay.jenkins.results.parser.test.clazz.group.BatchTestClassGroup;
+import com.liferay.jenkins.results.parser.test.clazz.group.SegmentTestClassGroup;
 
 import java.io.File;
 
@@ -49,53 +52,44 @@ public abstract class BaseTestClass implements TestClass {
 			return false;
 		}
 
-		if (Objects.equals(hashCode(), object.hashCode())) {
-			return true;
-		}
-
-		return false;
+		return Objects.equals(hashCode(), object.hashCode());
 	}
 
 	@Override
 	public long getAverageDuration() {
-		if (_averageDuration != null) {
-			return _averageDuration;
+		TestClassHistory testClassHistory = getTestClassHistory();
+
+		if (testClassHistory == null) {
+			return _batchTestClassGroup.getDefaultTestDuration();
 		}
 
-		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
-
-		_averageDuration = batchTestClassGroup.getAverageTestDuration(
-			getTestName());
-
-		return _averageDuration;
+		return testClassHistory.getAverageDuration();
 	}
 
 	@Override
 	public long getAverageOverheadDuration() {
-		if (_averageOverheadDuration != null) {
-			return _averageOverheadDuration;
+		TestClassHistory testClassHistory = getTestClassHistory();
+
+		if (testClassHistory == null) {
+			return _batchTestClassGroup.getDefaultTestOverheadDuration();
 		}
 
-		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
-
-		_averageOverheadDuration =
-			batchTestClassGroup.getAverageTestOverheadDuration(getTestName());
-
-		return _averageOverheadDuration;
+		return testClassHistory.getAverageOverheadDuration();
 	}
 
 	@Override
-	public long getAverageTestTaskDuration() {
-		if (_averageTestTaskDuration != null) {
-			return _averageTestTaskDuration;
-		}
+	public AxisTestClassGroup getAxisTestClassGroup() {
+		return _axisTestClassGroup;
+	}
 
-		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
+	@Override
+	public BatchHistory getBatchHistory() {
+		return _batchTestClassGroup.getBatchHistory();
+	}
 
-		_averageTestTaskDuration =
-			batchTestClassGroup.getAverageTestTaskDuration(getTestName());
-
-		return _averageTestTaskDuration;
+	@Override
+	public BatchTestClassGroup getBatchTestClassGroup() {
+		return _batchTestClassGroup;
 	}
 
 	@Override
@@ -107,7 +101,8 @@ public abstract class BaseTestClass implements TestClass {
 		).put(
 			"average_overhead_duration", getAverageOverheadDuration()
 		).put(
-			"file", getTestClassFile()
+			"file",
+			JenkinsResultsParserUtil.getCanonicalPath(getTestClassFile())
 		).put(
 			"ignored", isIgnored()
 		);
@@ -138,19 +133,24 @@ public abstract class BaseTestClass implements TestClass {
 	}
 
 	@Override
+	public long getOverheadWeight() {
+		return getAverageOverheadDuration();
+	}
+
+	@Override
+	public SegmentTestClassGroup getSegmentTestClassGroup() {
+		return _segmentTestClassGroup;
+	}
+
+	@Override
 	public File getTestClassFile() {
 		return _testClassFile;
 	}
 
 	@Override
-	public List<TestClassMethod> getTestClassMethods() {
-		return _testClassMethods;
-	}
-
-	@Override
-	public TestHistory getTestHistory() {
-		if (_testHistory != null) {
-			return _testHistory;
+	public TestClassHistory getTestClassHistory() {
+		if (_testClassHistory != null) {
+			return _testClassHistory;
 		}
 
 		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
@@ -161,23 +161,52 @@ public abstract class BaseTestClass implements TestClass {
 			return null;
 		}
 
-		_testHistory = batchHistory.getTestHistory(getTestName());
+		_testClassHistory = batchHistory.getTestClassHistory(getTestName());
 
-		return _testHistory;
+		return _testClassHistory;
+	}
+
+	@Override
+	public List<TestClassMethod> getTestClassMethods() {
+		return _testClassMethods;
+	}
+
+	@Override
+	public String getTestClassName() {
+		return getName();
+	}
+
+	@Override
+	public TestTaskHistory getTestTaskHistory() {
+		if (_testTaskHistory != null) {
+			return _testTaskHistory;
+		}
+
+		String testTaskName = getTestTaskName();
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(testTaskName)) {
+			return null;
+		}
+
+		BatchHistory batchHistory = getBatchHistory();
+
+		if (batchHistory == null) {
+			return null;
+		}
+
+		_testTaskHistory = batchHistory.getTestTaskHistory(testTaskName);
+
+		return _testTaskHistory;
 	}
 
 	@Override
 	public String getTestTaskName() {
-		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
-
-		return batchTestClassGroup.getTestTaskName(getTestName());
+		return null;
 	}
 
 	@Override
-	public int hashCode() {
-		JSONObject jsonObject = getJSONObject();
-
-		return jsonObject.hashCode();
+	public long getWeight() {
+		return getAverageDuration();
 	}
 
 	@Override
@@ -192,8 +221,46 @@ public abstract class BaseTestClass implements TestClass {
 	}
 
 	@Override
+	public int hashCode() {
+		JSONObject jsonObject = getJSONObject();
+
+		return jsonObject.hashCode();
+	}
+
+	@Override
+	public boolean isBuildCachingEnabled() {
+		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
+
+		return batchTestClassGroup.isBuildCachingEnabled();
+	}
+
+	@Override
 	public boolean isIgnored() {
 		return false;
+	}
+
+	@Override
+	public boolean isIsolated() {
+		return false;
+	}
+
+	@Override
+	public void setAxisTestClassGroup(AxisTestClassGroup axisTestClassGroup) {
+		_axisTestClassGroup = axisTestClassGroup;
+	}
+
+	@Override
+	public void setBatchTestClassGroup(
+		BatchTestClassGroup batchTestClassGroup) {
+
+		_batchTestClassGroup = batchTestClassGroup;
+	}
+
+	@Override
+	public void setSegmentTestClassGroup(
+		SegmentTestClassGroup segmentTestClassGroup) {
+
+		_segmentTestClassGroup = segmentTestClassGroup;
 	}
 
 	protected BaseTestClass(
@@ -235,12 +302,16 @@ public abstract class BaseTestClass implements TestClass {
 				methodIgnored, methodName, this));
 	}
 
-	protected void addTestClassMethod(String methodName) {
-		addTestClassMethod(false, methodName);
+	protected void addTestClassMethod(
+		boolean methodIgnored, String methodName, String issues) {
+
+		addTestClassMethod(
+			TestClassFactory.newTestClassMethod(
+				methodIgnored, methodName, issues, this));
 	}
 
-	protected BatchTestClassGroup getBatchTestClassGroup() {
-		return _batchTestClassGroup;
+	protected void addTestClassMethod(String methodName) {
+		addTestClassMethod(false, methodName);
 	}
 
 	protected PortalGitWorkingDirectory getPortalGitWorkingDirectory() {
@@ -284,12 +355,12 @@ public abstract class BaseTestClass implements TestClass {
 		return canonicalFile;
 	}
 
-	private Long _averageDuration;
-	private Long _averageOverheadDuration;
-	private Long _averageTestTaskDuration;
-	private final BatchTestClassGroup _batchTestClassGroup;
+	private AxisTestClassGroup _axisTestClassGroup;
+	private BatchTestClassGroup _batchTestClassGroup;
+	private SegmentTestClassGroup _segmentTestClassGroup;
 	private final File _testClassFile;
+	private TestClassHistory _testClassHistory;
 	private final List<TestClassMethod> _testClassMethods = new ArrayList<>();
-	private TestHistory _testHistory;
+	private TestTaskHistory _testTaskHistory;
 
 }

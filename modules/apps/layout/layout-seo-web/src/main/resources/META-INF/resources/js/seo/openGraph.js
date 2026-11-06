@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {openSelectionModal, toggleDisabled} from 'frontend-js-web';
+import {openSelectionModal} from 'frontend-js-components-web';
+import {toggleDisabled} from 'frontend-js-web';
 
 import {previewSeoFireChange} from './PreviewSeoEvents';
 
@@ -20,6 +21,12 @@ export default function ({namespace, uploadOpenGraphImageURL}) {
 	const openGraphImageFileEntryId = document.getElementById(
 		`${namespace}openGraphImageFileEntryId`
 	);
+	const openGraphImageFileEntryERC = document.getElementById(
+		`${namespace}openGraphImageFileEntryERC`
+	);
+	const openGraphImageFileEntryScopeERC = document.getElementById(
+		`${namespace}openGraphImageFileEntryScopeERC`
+	);
 	const openGraphImageAltField = document.getElementById(
 		`${namespace}openGraphImageAlt`
 	);
@@ -27,7 +34,7 @@ export default function ({namespace, uploadOpenGraphImageURL}) {
 		`${namespace}openGraphImageAlt_${Liferay.ThemeDisplay.getDefaultLanguageId()}`
 	);
 	const openGraphImageAltLabel = document.querySelector(
-		`[for="${namespace}openGraphImageAlt"`
+		`[for="${namespace}openGraphImageAlt"]`
 	);
 
 	const openImageSelector = () => {
@@ -37,6 +44,21 @@ export default function ({namespace, uploadOpenGraphImageURL}) {
 					const itemValue = JSON.parse(selectedItem.value);
 
 					openGraphImageFileEntryId.value = itemValue.fileEntryId;
+					openGraphImageFileEntryERC.value =
+						itemValue.externalReferenceCode;
+
+					let fileEntryScopeERC = '';
+
+					if (
+						String(itemValue.groupId) !==
+						String(Liferay.ThemeDisplay.getScopeGroupId())
+					) {
+						fileEntryScopeERC =
+							itemValue.groupExternalReferenceCode || '';
+					}
+
+					openGraphImageFileEntryScopeERC.value = fileEntryScopeERC;
+
 					openGraphImageInput.value = itemValue.title;
 
 					previewSeoFireChange(namespace, {
@@ -66,6 +88,9 @@ export default function ({namespace, uploadOpenGraphImageURL}) {
 
 	openGraphClearImageButton.addEventListener('click', () => {
 		openGraphImageFileEntryId.value = '';
+		openGraphImageFileEntryERC.value = '';
+		openGraphImageFileEntryScopeERC.value = '';
+
 		openGraphImageInput.value = '';
 
 		toggleDisabled(

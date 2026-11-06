@@ -74,6 +74,7 @@ export default function BasicInfo({
 				<Input
 					disabled={isApproved || values.system}
 					error={errors.name}
+					id="actionNameInput"
 					label={Liferay.Language.get('action-name')}
 					name="name"
 					onChange={handleChange}
@@ -81,14 +82,20 @@ export default function BasicInfo({
 					value={values.name}
 				/>
 
-				<Input
+				<InputLocalized
 					component="textarea"
 					disabled={values.system}
 					error={errors.description}
+					helpMessage={Liferay.Language.get(
+						'provide-descriptive-text-used-only-by-ai-agents-and-api-consumers'
+					)}
+					id="actionDescriptionInput"
 					label={Liferay.Language.get('description')}
-					name="description"
-					onChange={handleChange}
-					value={values.description}
+					onChange={(description) => setValues({description})}
+					placeholder=""
+					translations={
+						(values.description ?? {}) as LocalizedValue<string>
+					}
 				/>
 
 				<ClayForm.Group>

@@ -5,24 +5,24 @@
 
 package com.liferay.portal.kernel.servlet;
 
+import com.liferay.petra.io.DummyOutputStream;
+import com.liferay.petra.io.DummyWriter;
+import com.liferay.petra.io.unsync.UnsyncByteArrayOutputStream;
 import com.liferay.petra.io.unsync.UnsyncPrintWriter;
+import com.liferay.petra.io.unsync.UnsyncStringWriter;
 import com.liferay.petra.nio.CharsetDecoderUtil;
 import com.liferay.petra.nio.CharsetEncoderUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.io.DummyOutputStream;
-import com.liferay.portal.kernel.io.DummyWriter;
-import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayOutputStream;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringWriter;
+
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Shuyang Zhou

@@ -9,10 +9,12 @@ import com.adyen.model.notification.NotificationRequest;
 import com.adyen.model.notification.NotificationRequestItem;
 import com.adyen.util.HMACValidator;
 
-import com.liferay.client.extension.util.spring.boot.BaseRestController;
-import com.liferay.client.extension.util.spring.boot.LiferayOAuth2AccessTokenManager;
+import com.liferay.client.extension.util.spring.boot3.BaseRestController;
+import com.liferay.client.extension.util.spring.boot3.client.LiferayOAuth2AccessTokenManager;
 
 import java.nio.charset.StandardCharsets;
+
+import java.security.MessageDigest;
 
 import java.util.Base64;
 import java.util.List;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author Crescenzo Rega
@@ -68,8 +71,11 @@ public class NotificationsRestController extends BaseRestController {
 					_liferayOAuth2AccessTokenManager.getAuthorization(
 						"liferay-adyen-commerce-payment-integration-oauth-" +
 							"application-headless-server"),
-					"/o/c/n1a0adyenwebhooks/by-external-reference-code/" +
-						externalReferenceCode));
+					UriComponentsBuilder.fromPath(
+						"/o/c/n1a0adyenwebhooks/by-external-reference-code/" +
+							externalReferenceCode
+					).build(
+					).toUri()));
 
 			if (!_hasAuthentication(
 					headers.get("authorization"), n1a0AdyenWebhookJSONObject)) {
@@ -132,9 +138,12 @@ public class NotificationsRestController extends BaseRestController {
 					_liferayOAuth2AccessTokenManager.getAuthorization(
 						"liferay-adyen-commerce-payment-integration-oauth-" +
 							"application-headless-server"),
-					null,
-					"/o/c/n1a0adyenwebhooks/by-external-reference-code/" +
-						externalReferenceCode);
+					"",
+					UriComponentsBuilder.fromPath(
+						"/o/c/n1a0adyenwebhooks/by-external-reference-code/" +
+							externalReferenceCode
+					).build(
+					).toUri());
 			}
 		}
 		catch (Exception exception) {
@@ -176,9 +185,14 @@ public class NotificationsRestController extends BaseRestController {
 				_liferayOAuth2AccessTokenManager.getAuthorization(
 					"liferay-adyen-commerce-payment-integration-oauth-" +
 						"application-headless-server"),
-				"/o/headless-commerce-admin-payment/v1.0/payments/?filter=" +
+				UriComponentsBuilder.fromPath(
+					"/o/headless-commerce-admin-payment/v1.0/payments"
+				).queryParam(
+					"filter",
 					"relatedItemId eq " +
-						notificationRequestItem.getMerchantReference()));
+						notificationRequestItem.getMerchantReference()
+				).build(
+				).toUri()));
 
 		JSONArray itemsJSONArray = paymentsJSONObject.getJSONArray("items");
 
@@ -206,13 +220,13 @@ public class NotificationsRestController extends BaseRestController {
 			return false;
 		}
 
+		Base64.Decoder decoder = Base64.getDecoder();
+
 		String[] authorizationParts = new String(
-			Base64.getDecoder(
-			).decode(
+			decoder.decode(
 				authorization.substring(
 					"Basic".length()
-				).trim()
-			),
+				).trim()),
 			StandardCharsets.UTF_8
 		).split(
 			":", 2
@@ -221,8 +235,12 @@ public class NotificationsRestController extends BaseRestController {
 		String webhookPassword = authorizationParts[1];
 		String webhookUserName = authorizationParts[0];
 
-		if (webhookPassword.equals(
-				n1a0AdyenWebhookJSONObject.getString("webhookPassword")) &&
+		String n1a0AdyenWebhookPassword = n1a0AdyenWebhookJSONObject.getString(
+			"webhookPassword");
+
+		if (MessageDigest.isEqual(
+				webhookPassword.getBytes(StandardCharsets.UTF_8),
+				n1a0AdyenWebhookPassword.getBytes(StandardCharsets.UTF_8)) &&
 			webhookUserName.equals(
 				n1a0AdyenWebhookJSONObject.getString("webhookUsername"))) {
 
@@ -253,7 +271,10 @@ public class NotificationsRestController extends BaseRestController {
 			).put(
 				"paymentStatus", paymentStatus
 			).toString(),
-			"/o/headless-commerce-admin-payment/v1.0/payments/" + paymentId);
+			UriComponentsBuilder.fromPath(
+				"/o/headless-commerce-admin-payment/v1.0/payments/" + paymentId
+			).build(
+			).toUri());
 	}
 
 	private static final Log _log = LogFactory.getLog(

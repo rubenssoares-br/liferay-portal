@@ -8,6 +8,7 @@ package com.liferay.frontend.js.walkthrough.web.internal.servlet.taglib;
 import com.liferay.frontend.js.loader.modules.extender.esm.ESImportUtil;
 import com.liferay.frontend.js.walkthrough.web.internal.configuration.WalkthroughConfiguration;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -20,12 +21,12 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilder;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilderFactory;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.Arrays;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -36,6 +37,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	configurationPid = "com.liferay.frontend.js.walkthrough.web.internal.configuration.WalkthroughConfiguration",
+	property = "dynamic.include.key=/html/common/themes/bottom.jsp#post",
 	service = DynamicInclude.class
 )
 public class WalkthroughBottomJSPDynamicInclude implements DynamicInclude {
@@ -50,6 +52,12 @@ public class WalkthroughBottomJSPDynamicInclude implements DynamicInclude {
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
 
+		if (!FeatureFlagManagerUtil.isEnabled(
+				themeDisplay.getCompanyId(), "LPD-44091")) {
+
+			return;
+		}
+
 		Group group = themeDisplay.getScopeGroup();
 
 		String steps = null;
@@ -57,7 +65,8 @@ public class WalkthroughBottomJSPDynamicInclude implements DynamicInclude {
 		try {
 			WalkthroughConfiguration walkthroughConfiguration =
 				_configurationProvider.getGroupConfiguration(
-					WalkthroughConfiguration.class, group.getGroupId());
+					WalkthroughConfiguration.class, group.getCompanyId(),
+					group.getGroupId());
 
 			if (!walkthroughConfiguration.enabled()) {
 				return;
@@ -89,13 +98,6 @@ public class WalkthroughBottomJSPDynamicInclude implements DynamicInclude {
 						"{main} from frontend-js-walkthrough-web"))));
 
 		scriptData.writeTo(httpServletResponse.getWriter());
-	}
-
-	@Override
-	public void register(
-		DynamicInclude.DynamicIncludeRegistry dynamicIncludeRegistry) {
-
-		dynamicIncludeRegistry.register("/html/common/themes/bottom.jsp#post");
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

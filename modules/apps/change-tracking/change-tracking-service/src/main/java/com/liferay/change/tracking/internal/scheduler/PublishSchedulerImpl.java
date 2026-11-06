@@ -12,8 +12,8 @@ import com.liferay.change.tracking.scheduler.PublishScheduler;
 import com.liferay.change.tracking.scheduler.ScheduledPublishInfo;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.change.tracking.service.CTPreferencesLocalService;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.lang.SafeCloseable;
-import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
@@ -28,12 +28,8 @@ import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
-import com.liferay.portal.kernel.transaction.Propagation;
-import com.liferay.portal.kernel.transaction.TransactionConfig;
-import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -65,47 +61,40 @@ public class PublishSchedulerImpl implements PublishScheduler {
 
 		return new ScheduledPublishInfo(
 			ctCollection, schedulerResponse.getJobName(),
-			_schedulerEngineHelper.getStartTime(schedulerResponse),
+			_schedulerEngineHelper.getStartDate(schedulerResponse),
 			message.getLong("userId"));
 	}
 
 	public List<ScheduledPublishInfo> getScheduledPublishInfos()
 		throws PortalException {
 
-		List<SchedulerResponse> schedulerResponses =
-			_schedulerEngineHelper.getScheduledJobs(
-				CTDestinationNames.CT_COLLECTION_SCHEDULED_PUBLISH,
-				StorageType.PERSISTED);
-
-		List<ScheduledPublishInfo> scheduledPublishInfos = new ArrayList<>(
-			schedulerResponses.size());
-
 		PermissionChecker permissionChecker =
 			PermissionThreadLocal.getPermissionChecker();
 
-		for (SchedulerResponse schedulerResponse : schedulerResponses) {
-			Message message = schedulerResponse.getMessage();
+		return TransformUtil.transform(
+			_schedulerEngineHelper.getScheduledJobs(
+				CTDestinationNames.CT_COLLECTION_SCHEDULED_PUBLISH,
+				StorageType.PERSISTED),
+			schedulerResponse -> {
+				Message message = schedulerResponse.getMessage();
 
-			long ctCollectionId = message.getLong("ctCollectionId");
+				long ctCollectionId = message.getLong("ctCollectionId");
 
-			CTCollection ctCollection =
-				_ctCollectionLocalService.fetchCTCollection(ctCollectionId);
+				CTCollection ctCollection =
+					_ctCollectionLocalService.fetchCTCollection(ctCollectionId);
 
-			if ((ctCollection == null) ||
-				!_ctCollectionModelResourcePermission.contains(
-					permissionChecker, ctCollection, ActionKeys.VIEW)) {
+				if ((ctCollection == null) ||
+					!_ctCollectionModelResourcePermission.contains(
+						permissionChecker, ctCollection, ActionKeys.VIEW)) {
 
-				continue;
-			}
+					return null;
+				}
 
-			scheduledPublishInfos.add(
-				new ScheduledPublishInfo(
+				return new ScheduledPublishInfo(
 					ctCollection, schedulerResponse.getJobName(),
-					_schedulerEngineHelper.getStartTime(schedulerResponse),
-					message.getLong("userId")));
-		}
-
-		return scheduledPublishInfos;
+					_schedulerEngineHelper.getStartDate(schedulerResponse),
+					message.getLong("userId"));
+			});
 	}
 
 	@Override
@@ -116,20 +105,12 @@ public class PublishSchedulerImpl implements PublishScheduler {
 		try (SafeCloseable safeCloseable =
 				CTCollectionThreadLocal.setProductionModeWithSafeCloseable()) {
 
-			TransactionInvokerUtil.invoke(
-				_transactionConfig,
-				() -> _schedulePublish(ctCollectionId, userId, startDate));
-		}
-		catch (PortalException portalException) {
-			throw portalException;
-		}
-		catch (Throwable throwable) {
-			ReflectionUtil.throwException(throwable);
+			_schedulePublish(ctCollectionId, userId, startDate);
 		}
 	}
 
 	@Override
-	public void unschedulePublish(long ctCollectionId) throws PortalException {
+	public void unschedulePublish(long ctCollectionId) throws Exception {
 		CTCollection ctCollection = _ctCollectionLocalService.fetchCTCollection(
 			ctCollectionId);
 
@@ -154,7 +135,14 @@ public class PublishSchedulerImpl implements PublishScheduler {
 			PermissionThreadLocal.getPermissionChecker(), ctCollection,
 			CTActionKeys.PUBLISH);
 
-		ctCollection.setStatus(WorkflowConstants.STATUS_DRAFT);
+		if (_ctCollectionLocalService.hasUnapprovedChanges(ctCollectionId)) {
+			ctCollection.setStatus(WorkflowConstants.STATUS_INCOMPLETE);
+		}
+		else {
+			ctCollection.setStatus(WorkflowConstants.STATUS_DRAFT);
+		}
+
+		ctCollection.setScheduledDate(null);
 		ctCollection.setStatusByUserId(UserConstants.USER_ID_DEFAULT);
 
 		_ctCollectionLocalService.updateCTCollection(ctCollection);
@@ -170,7 +158,7 @@ public class PublishSchedulerImpl implements PublishScheduler {
 			ctCollection.getCompanyId());
 	}
 
-	private Void _schedulePublish(
+	private void _schedulePublish(
 			long ctCollectionId, long userId, Date startDate)
 		throws PortalException {
 
@@ -184,13 +172,14 @@ public class PublishSchedulerImpl implements PublishScheduler {
 				StorageType.PERSISTED);
 
 		if (schedulerResponse != null) {
-			return null;
+			return;
 		}
 
 		_ctCollectionModelResourcePermission.check(
 			PermissionThreadLocal.getPermissionChecker(), ctCollection,
 			CTActionKeys.PUBLISH);
 
+		ctCollection.setScheduledDate(startDate);
 		ctCollection.setStatus(WorkflowConstants.STATUS_SCHEDULED);
 		ctCollection.setStatusByUserId(userId);
 
@@ -212,19 +201,6 @@ public class PublishSchedulerImpl implements PublishScheduler {
 				null, 0, null),
 			StorageType.PERSISTED, String.valueOf(ctCollectionId),
 			CTDestinationNames.CT_COLLECTION_SCHEDULED_PUBLISH, message);
-
-		return null;
-	}
-
-	private static final TransactionConfig _transactionConfig;
-
-	static {
-		TransactionConfig.Builder builder = new TransactionConfig.Builder();
-
-		builder.setPropagation(Propagation.REQUIRES_NEW);
-		builder.setRollbackForClasses(Exception.class);
-
-		_transactionConfig = builder.build();
 	}
 
 	@Reference

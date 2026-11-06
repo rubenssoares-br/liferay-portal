@@ -13,12 +13,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductVirtualSettingsFileEntry;
 import com.liferay.headless.commerce.admin.catalog.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Page;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Pagination;
 import com.liferay.headless.commerce.admin.catalog.client.resource.v1_0.ProductVirtualSettingsFileEntryResource;
 import com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0.ProductVirtualSettingsFileEntrySerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
@@ -28,26 +32,50 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.io.File;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,13 +84,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -71,6 +96,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Zoltán Takács
@@ -81,13 +109,17 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,17 +132,28 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 
 		_productVirtualSettingsFileEntryResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ProductVirtualSettingsFileEntryResource.Builder builder =
-			ProductVirtualSettingsFileEntryResource.builder();
+		productVirtualSettingsFileEntryResource =
+			ProductVirtualSettingsFileEntryResource.builder(
+			).authentication(
+				_testCompanyAdminUser.getEmailAddress(),
+				PropsValues.DEFAULT_ADMIN_PASSWORD
+			).endpoint(
+				testCompany.getVirtualHostname(),
+				PortalUtil.getPortalServerPort(false), "http"
+			).locale(
+				LocaleUtil.getDefault()
+			).build();
 
-		productVirtualSettingsFileEntryResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -220,12 +263,10 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 			productVirtualSettingsFileEntryResource.
 				getProductVirtualSettingsFileEntryHttpResponse(
 					productVirtualSettingsFileEntry.getId()));
-
 		assertHttpResponseStatusCode(
 			404,
 			productVirtualSettingsFileEntryResource.
-				getProductVirtualSettingsFileEntryHttpResponse(
-					productVirtualSettingsFileEntry.getId()));
+				getProductVirtualSettingsFileEntryHttpResponse(0L));
 	}
 
 	protected ProductVirtualSettingsFileEntry
@@ -242,6 +283,7 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
 			testGraphQLDeleteProductVirtualSettingsFileEntry_addProductVirtualSettingsFileEntry();
 
@@ -269,13 +311,14 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 							put("id", productVirtualSettingsFileEntry1.getId());
 						}
 					},
-					new GraphQLField("id"))),
+					getGraphQLFields())),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray1.length() > 0);
 
 		// Using the namespace headlessCommerceAdminCatalog_v1_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry2 =
 			testGraphQLDeleteProductVirtualSettingsFileEntry_addProductVirtualSettingsFileEntry();
 
@@ -311,7 +354,7 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 									productVirtualSettingsFileEntry2.getId());
 							}
 						},
-						new GraphQLField("id")))),
+						getGraphQLFields()))),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray2.length() > 0);
@@ -322,6 +365,279 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 		throws Exception {
 
 		return testGraphQLProductVirtualSettingsFileEntry_addProductVirtualSettingsFileEntry();
+	}
+
+	@Test
+	public void testDeleteProductVirtualSettingsFileEntryBatch()
+		throws Exception {
+
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
+			testDeleteProductVirtualSettingsFileEntryBatch_addProductVirtualSettingsFileEntry();
+
+		testDeleteProductVirtualSettingsFileEntryBatch_deleteProductVirtualSettingsFileEntry(
+			202, null, productVirtualSettingsFileEntry1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			productVirtualSettingsFileEntryResource.
+				getProductVirtualSettingsFileEntryHttpResponse(
+					productVirtualSettingsFileEntry1.getId()));
+	}
+
+	protected ProductVirtualSettingsFileEntry
+			testDeleteProductVirtualSettingsFileEntryBatch_addProductVirtualSettingsFileEntry()
+		throws Exception {
+
+		return testDeleteProductVirtualSettingsFileEntry_addProductVirtualSettingsFileEntry();
+	}
+
+	protected void
+			testDeleteProductVirtualSettingsFileEntryBatch_deleteProductVirtualSettingsFileEntry(
+				int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			productVirtualSettingsFileEntryResource.
+				deleteProductVirtualSettingsFileEntryBatchHttpResponse(
+					null,
+					JSONUtil.putAll(
+						JSONUtil.put(
+							"externalReferenceCode", () -> externalReferenceCode
+						).put(
+							"id", () -> id
+						)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
+	public void testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage()
+		throws Exception {
+
+		Long id =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getId();
+		Long irrelevantId =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getIrrelevantId();
+
+		Page<ProductVirtualSettingsFileEntry> page =
+			productVirtualSettingsFileEntryResource.
+				getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+					id, Pagination.of(1, 10));
+
+		long totalCount = page.getTotalCount();
+
+		if (irrelevantId != null) {
+			ProductVirtualSettingsFileEntry
+				irrelevantProductVirtualSettingsFileEntry =
+					testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+						irrelevantId,
+						randomIrrelevantProductVirtualSettingsFileEntry());
+
+			page =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						irrelevantId, Pagination.of(1, (int)totalCount + 1));
+
+			Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+			assertContains(
+				irrelevantProductVirtualSettingsFileEntry,
+				(List<ProductVirtualSettingsFileEntry>)page.getItems());
+			assertValid(
+				page,
+				testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getExpectedActions(
+					irrelevantId));
+		}
+
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+				id, randomProductVirtualSettingsFileEntry());
+
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry2 =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+				id, randomProductVirtualSettingsFileEntry());
+
+		page =
+			productVirtualSettingsFileEntryResource.
+				getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+					id, Pagination.of(1, (int)totalCount + 2));
+
+		Assert.assertEquals(totalCount + 2, page.getTotalCount());
+
+		assertContains(
+			productVirtualSettingsFileEntry1,
+			(List<ProductVirtualSettingsFileEntry>)page.getItems());
+		assertContains(
+			productVirtualSettingsFileEntry2,
+			(List<ProductVirtualSettingsFileEntry>)page.getItems());
+		assertValid(
+			page,
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getExpectedActions(
+				id));
+
+		productVirtualSettingsFileEntryResource.
+			deleteProductVirtualSettingsFileEntry(
+				productVirtualSettingsFileEntry1.getId());
+
+		productVirtualSettingsFileEntryResource.
+			deleteProductVirtualSettingsFileEntry(
+				productVirtualSettingsFileEntry2.getId());
+	}
+
+	protected Map<String, Map<String, String>>
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getExpectedActions(
+				Long id)
+		throws Exception {
+
+		Map<String, Map<String, String>> expectedActions = new HashMap<>();
+
+		return expectedActions;
+	}
+
+	@Test
+	public void testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPageWithPagination()
+		throws Exception {
+
+		Long id =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getId();
+
+		Page<ProductVirtualSettingsFileEntry>
+			productVirtualSettingsFileEntriesPage =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id, null);
+
+		int totalCount = GetterUtil.getInteger(
+			productVirtualSettingsFileEntriesPage.getTotalCount());
+
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+				id, randomProductVirtualSettingsFileEntry());
+
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry2 =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+				id, randomProductVirtualSettingsFileEntry());
+
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry3 =
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+				id, randomProductVirtualSettingsFileEntry());
+
+		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
+
+		int pageSizeLimit = 500;
+
+		if (totalCount >= (pageSizeLimit - 2)) {
+			Page<ProductVirtualSettingsFileEntry> page1 =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+							pageSizeLimit));
+
+			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
+
+			assertContains(
+				productVirtualSettingsFileEntry1,
+				(List<ProductVirtualSettingsFileEntry>)page1.getItems());
+
+			Page<ProductVirtualSettingsFileEntry> page2 =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+							pageSizeLimit));
+
+			assertContains(
+				productVirtualSettingsFileEntry2,
+				(List<ProductVirtualSettingsFileEntry>)page2.getItems());
+
+			Page<ProductVirtualSettingsFileEntry> page3 =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+							pageSizeLimit));
+
+			assertContains(
+				productVirtualSettingsFileEntry3,
+				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
+		}
+		else {
+			Page<ProductVirtualSettingsFileEntry> page1 =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id, Pagination.of(1, totalCount + 2));
+
+			List<ProductVirtualSettingsFileEntry>
+				productVirtualSettingsFileEntries1 =
+					(List<ProductVirtualSettingsFileEntry>)page1.getItems();
+
+			Assert.assertEquals(
+				productVirtualSettingsFileEntries1.toString(), totalCount + 2,
+				productVirtualSettingsFileEntries1.size());
+
+			Page<ProductVirtualSettingsFileEntry> page2 =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id, Pagination.of(2, totalCount + 2));
+
+			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
+
+			List<ProductVirtualSettingsFileEntry>
+				productVirtualSettingsFileEntries2 =
+					(List<ProductVirtualSettingsFileEntry>)page2.getItems();
+
+			Assert.assertEquals(
+				productVirtualSettingsFileEntries2.toString(), 1,
+				productVirtualSettingsFileEntries2.size());
+
+			Page<ProductVirtualSettingsFileEntry> page3 =
+				productVirtualSettingsFileEntryResource.
+					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
+						id, Pagination.of(1, (int)totalCount + 3));
+
+			assertContains(
+				productVirtualSettingsFileEntry1,
+				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
+			assertContains(
+				productVirtualSettingsFileEntry2,
+				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
+			assertContains(
+				productVirtualSettingsFileEntry3,
+				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
+		}
+	}
+
+	protected ProductVirtualSettingsFileEntry
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
+				Long id,
+				ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long
+			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getIrrelevantId()
+		throws Exception {
+
+		return null;
 	}
 
 	@Test
@@ -338,6 +654,207 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 			postProductVirtualSettingsFileEntry,
 			getProductVirtualSettingsFileEntry);
 		assertValid(getProductVirtualSettingsFileEntry);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		ProductVirtualSettingsFileEntry postProductVirtualSettingsFileEntry =
+			testGetProductVirtualSettingsFileEntry_addProductVirtualSettingsFileEntry();
+
+		ProductVirtualSettingsFileEntry getProductVirtualSettingsFileEntry =
+			productVirtualSettingsFileEntryResource.
+				getProductVirtualSettingsFileEntry(
+					postProductVirtualSettingsFileEntry.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductVirtualSettingsFileEntry"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(
+			postProductVirtualSettingsFileEntry.getId());
+
+		assertEquals(
+			getProductVirtualSettingsFileEntry,
+			ProductVirtualSettingsFileEntrySerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
 	}
 
 	protected ProductVirtualSettingsFileEntry
@@ -501,232 +1018,6 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 	}
 
 	@Test
-	public void testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage()
-		throws Exception {
-
-		Long id =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getId();
-		Long irrelevantId =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getIrrelevantId();
-
-		Page<ProductVirtualSettingsFileEntry> page =
-			productVirtualSettingsFileEntryResource.
-				getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-					id, Pagination.of(1, 10));
-
-		long totalCount = page.getTotalCount();
-
-		if (irrelevantId != null) {
-			ProductVirtualSettingsFileEntry
-				irrelevantProductVirtualSettingsFileEntry =
-					testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-						irrelevantId,
-						randomIrrelevantProductVirtualSettingsFileEntry());
-
-			page =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						irrelevantId, Pagination.of(1, (int)totalCount + 1));
-
-			Assert.assertEquals(totalCount + 1, page.getTotalCount());
-
-			assertContains(
-				irrelevantProductVirtualSettingsFileEntry,
-				(List<ProductVirtualSettingsFileEntry>)page.getItems());
-			assertValid(
-				page,
-				testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getExpectedActions(
-					irrelevantId));
-		}
-
-		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-				id, randomProductVirtualSettingsFileEntry());
-
-		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry2 =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-				id, randomProductVirtualSettingsFileEntry());
-
-		page =
-			productVirtualSettingsFileEntryResource.
-				getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-					id, Pagination.of(1, 10));
-
-		Assert.assertEquals(totalCount + 2, page.getTotalCount());
-
-		assertContains(
-			productVirtualSettingsFileEntry1,
-			(List<ProductVirtualSettingsFileEntry>)page.getItems());
-		assertContains(
-			productVirtualSettingsFileEntry2,
-			(List<ProductVirtualSettingsFileEntry>)page.getItems());
-		assertValid(
-			page,
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getExpectedActions(
-				id));
-
-		productVirtualSettingsFileEntryResource.
-			deleteProductVirtualSettingsFileEntry(
-				productVirtualSettingsFileEntry1.getId());
-
-		productVirtualSettingsFileEntryResource.
-			deleteProductVirtualSettingsFileEntry(
-				productVirtualSettingsFileEntry2.getId());
-	}
-
-	protected Map<String, Map<String, String>>
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getExpectedActions(
-				Long id)
-		throws Exception {
-
-		Map<String, Map<String, String>> expectedActions = new HashMap<>();
-
-		return expectedActions;
-	}
-
-	@Test
-	public void testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPageWithPagination()
-		throws Exception {
-
-		Long id =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getId();
-
-		Page<ProductVirtualSettingsFileEntry>
-			productVirtualSettingsFileEntryPage =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id, null);
-
-		int totalCount = GetterUtil.getInteger(
-			productVirtualSettingsFileEntryPage.getTotalCount());
-
-		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-				id, randomProductVirtualSettingsFileEntry());
-
-		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry2 =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-				id, randomProductVirtualSettingsFileEntry());
-
-		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry3 =
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-				id, randomProductVirtualSettingsFileEntry());
-
-		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
-
-		int pageSizeLimit = 500;
-
-		if (totalCount >= (pageSizeLimit - 2)) {
-			Page<ProductVirtualSettingsFileEntry> page1 =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id,
-						Pagination.of(
-							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
-							pageSizeLimit));
-
-			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
-
-			assertContains(
-				productVirtualSettingsFileEntry1,
-				(List<ProductVirtualSettingsFileEntry>)page1.getItems());
-
-			Page<ProductVirtualSettingsFileEntry> page2 =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id,
-						Pagination.of(
-							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
-							pageSizeLimit));
-
-			assertContains(
-				productVirtualSettingsFileEntry2,
-				(List<ProductVirtualSettingsFileEntry>)page2.getItems());
-
-			Page<ProductVirtualSettingsFileEntry> page3 =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id,
-						Pagination.of(
-							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
-							pageSizeLimit));
-
-			assertContains(
-				productVirtualSettingsFileEntry3,
-				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
-		}
-		else {
-			Page<ProductVirtualSettingsFileEntry> page1 =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id, Pagination.of(1, totalCount + 2));
-
-			List<ProductVirtualSettingsFileEntry>
-				productVirtualSettingsFileEntries1 =
-					(List<ProductVirtualSettingsFileEntry>)page1.getItems();
-
-			Assert.assertEquals(
-				productVirtualSettingsFileEntries1.toString(), totalCount + 2,
-				productVirtualSettingsFileEntries1.size());
-
-			Page<ProductVirtualSettingsFileEntry> page2 =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id, Pagination.of(2, totalCount + 2));
-
-			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
-
-			List<ProductVirtualSettingsFileEntry>
-				productVirtualSettingsFileEntries2 =
-					(List<ProductVirtualSettingsFileEntry>)page2.getItems();
-
-			Assert.assertEquals(
-				productVirtualSettingsFileEntries2.toString(), 1,
-				productVirtualSettingsFileEntries2.size());
-
-			Page<ProductVirtualSettingsFileEntry> page3 =
-				productVirtualSettingsFileEntryResource.
-					getProductVirtualSettingIdProductVirtualSettingsFileEntriesPage(
-						id, Pagination.of(1, (int)totalCount + 3));
-
-			assertContains(
-				productVirtualSettingsFileEntry1,
-				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
-			assertContains(
-				productVirtualSettingsFileEntry2,
-				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
-			assertContains(
-				productVirtualSettingsFileEntry3,
-				(List<ProductVirtualSettingsFileEntry>)page3.getItems());
-		}
-	}
-
-	protected ProductVirtualSettingsFileEntry
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_addProductVirtualSettingsFileEntry(
-				Long id,
-				ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Long
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getId()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Long
-			testGetProductVirtualSettingIdProductVirtualSettingsFileEntriesPage_getIrrelevantId()
-		throws Exception {
-
-		return null;
-	}
-
-	@Test
 	public void testPostProductVirtualSettingIdProductVirtualSettingsFileEntry()
 		throws Exception {
 
@@ -755,6 +1046,65 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		ProductVirtualSettingsFileEntry productVirtualSettingsFileEntry1 =
+			testBatchEngineDeleteImportTask_addProductVirtualSettingsFileEntry();
+
+		testBatchEngineDeleteImportTask_deleteProductVirtualSettingsFileEntry(
+			200, null, productVirtualSettingsFileEntry1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			productVirtualSettingsFileEntryResource.
+				getProductVirtualSettingsFileEntryHttpResponse(
+					productVirtualSettingsFileEntry1.getId()));
+	}
+
+	protected ProductVirtualSettingsFileEntry
+			testBatchEngineDeleteImportTask_addProductVirtualSettingsFileEntry()
+		throws Exception {
+
+		return testDeleteProductVirtualSettingsFileEntry_addProductVirtualSettingsFileEntry();
+	}
+
+	protected void
+			testBatchEngineDeleteImportTask_deleteProductVirtualSettingsFileEntry(
+				int expectedStatusCode, String externalReferenceCode, Long id,
+				String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductVirtualSettingsFileEntry",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	protected ProductVirtualSettingsFileEntry
@@ -986,6 +1336,8 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1439,7 +1791,9 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1502,8 +1856,31 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 		return randomProductVirtualSettingsFileEntry();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected ProductVirtualSettingsFileEntryResource
 		productVirtualSettingsFileEntryResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1705,11 +2082,36 @@ public abstract class BaseProductVirtualSettingsFileEntryResourceTestCase {
 		LogFactoryUtil.getLog(
 			BaseProductVirtualSettingsFileEntryResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.catalog.resource.v1_0.
 		ProductVirtualSettingsFileEntryResource
 			_productVirtualSettingsFileEntryResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:-78377821

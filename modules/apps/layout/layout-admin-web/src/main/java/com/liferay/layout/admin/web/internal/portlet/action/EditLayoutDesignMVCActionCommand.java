@@ -10,10 +10,11 @@ import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.client.extension.constants.ClientExtensionEntryConstants;
 import com.liferay.client.extension.model.ClientExtensionEntryRel;
 import com.liferay.client.extension.service.ClientExtensionEntryRelLocalService;
-import com.liferay.document.library.kernel.service.DLAppLocalService;
+import com.liferay.document.library.kernel.service.DLAppService;
 import com.liferay.layout.admin.constants.LayoutAdminPortletKeys;
 import com.liferay.layout.constants.LayoutTypeSettingsConstants;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.LayoutJavaScriptException;
 import com.liferay.portal.kernel.exception.LayoutNameException;
 import com.liferay.portal.kernel.exception.ModelListenerException;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -43,8 +44,8 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.sites.kernel.util.Sites;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -54,7 +55,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
+		"jakarta.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
 		"mvc.command.name=/layout_admin/edit_layout_design"
 	},
 	service = MVCActionCommand.class
@@ -86,7 +87,7 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 		ClientExtensionEntryRel clientExtensionEntryRel =
 			_clientExtensionEntryRelLocalService.
 				fetchClientExtensionEntryRelByExternalReferenceCode(
-					cetExternalReferenceCode, layout.getCompanyId());
+					cetExternalReferenceCode, layout.getGroupId());
 
 		if (clientExtensionEntryRel != null) {
 			return;
@@ -203,23 +204,29 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 				uploadPortletRequest, "fileEntryId");
 
 			if (fileEntryId > 0) {
-				FileEntry fileEntry = _dlAppLocalService.getFileEntry(
-					fileEntryId);
+				FileEntry fileEntry = _dlAppService.getFileEntry(fileEntryId);
 
 				iconBytes = FileUtil.getBytes(fileEntry.getContentStream());
 			}
 
 			Layout layout = _layoutLocalService.getLayout(selPlid);
 
-			long styleBookEntryId = ParamUtil.getLong(
-				uploadPortletRequest, "styleBookEntryId",
-				layout.getStyleBookEntryId());
-			long faviconFileEntryId = ParamUtil.getLong(
-				uploadPortletRequest, "faviconFileEntryId",
-				layout.getFaviconFileEntryId());
-			long masterLayoutPlid = ParamUtil.getLong(
-				uploadPortletRequest, "masterLayoutPlid",
-				layout.getMasterLayoutPlid());
+			String styleBookEntryERC = ParamUtil.getString(
+				uploadPortletRequest, "styleBookEntryERC",
+				layout.getStyleBookEntryERC());
+			String styleBookEntryScopeERC = ParamUtil.getString(
+				uploadPortletRequest, "styleBookEntryScopeERC",
+				layout.getStyleBookEntryScopeERC());
+
+			String faviconFileEntryERC = ParamUtil.getString(
+				uploadPortletRequest, "faviconFileEntryERC",
+				layout.getFaviconFileEntryERC());
+			String faviconFileEntryScopeERC = ParamUtil.getString(
+				uploadPortletRequest, "faviconFileEntryScopeERC",
+				layout.getFaviconFileEntryScopeERC());
+			String masterLayoutPageTemplateEntryERC = ParamUtil.getString(
+				uploadPortletRequest, "masterLayoutPageTemplateEntryERC",
+				layout.getMasterLayoutPageTemplateEntryERC());
 
 			ServiceContext serviceContext = ServiceContextFactory.getInstance(
 				Layout.class.getName(), actionRequest);
@@ -253,8 +260,10 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 				layout.getTitleMap(), layout.getDescriptionMap(),
 				layout.getKeywordsMap(), layout.getRobotsMap(),
 				layout.getType(), layout.isHidden(), layout.getFriendlyURLMap(),
-				!deleteLogo, iconBytes, styleBookEntryId, faviconFileEntryId,
-				masterLayoutPlid, serviceContext);
+				!deleteLogo, iconBytes, styleBookEntryERC,
+				styleBookEntryScopeERC, faviconFileEntryERC,
+				faviconFileEntryScopeERC, masterLayoutPageTemplateEntryERC,
+				serviceContext);
 
 			_updateClientExtensionEntryRels(
 				actionRequest, layout, themeDisplay.getUserId());
@@ -279,8 +288,10 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 					draftLayout.getKeywordsMap(), draftLayout.getRobotsMap(),
 					draftLayout.getType(), draftLayout.isHidden(),
 					draftLayout.getFriendlyURLMap(), !deleteLogo, iconBytes,
-					styleBookEntryId, faviconFileEntryId,
-					draftLayout.getMasterLayoutPlid(), serviceContext);
+					styleBookEntryERC, styleBookEntryScopeERC,
+					faviconFileEntryERC, faviconFileEntryScopeERC,
+					draftLayout.getMasterLayoutPageTemplateEntryERC(),
+					serviceContext);
 
 				_updateClientExtensionEntryRels(
 					actionRequest, draftLayout, themeDisplay.getUserId());
@@ -302,7 +313,7 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 					Boolean.TRUE.toString());
 			}
 
-			layout = _layoutService.updateLayout(
+			layout = _layoutService.updateTypeSettings(
 				groupId, layout.isPrivateLayout(), layout.getLayoutId(),
 				layoutTypeSettingsUnicodeProperties.toString());
 
@@ -329,12 +340,12 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 
 			actionRequest.setAttribute(WebKeys.REDIRECT, redirect);
 		}
-		catch (LayoutNameException layoutNameException) {
+		catch (LayoutJavaScriptException | LayoutNameException exception) {
 			if (_log.isDebugEnabled()) {
-				_log.debug(layoutNameException);
+				_log.debug(exception);
 			}
 
-			SessionErrors.add(actionRequest, LayoutNameException.class);
+			SessionErrors.add(actionRequest, exception.getClass());
 
 			hideDefaultSuccessMessage(actionRequest);
 
@@ -360,7 +371,7 @@ public class EditLayoutDesignMVCActionCommand extends BaseMVCActionCommand {
 		_clientExtensionEntryRelLocalService;
 
 	@Reference
-	private DLAppLocalService _dlAppLocalService;
+	private DLAppService _dlAppService;
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;

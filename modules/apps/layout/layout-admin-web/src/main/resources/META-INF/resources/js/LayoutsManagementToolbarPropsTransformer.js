@@ -4,15 +4,12 @@
  */
 
 import {
-	addParams,
-	fetch,
-	navigate,
 	openConfirmModal,
 	openModal,
 	openSelectionModal,
 	openToast,
-	sub,
-} from 'frontend-js-web';
+} from 'frontend-js-components-web';
+import {addParams, fetch, navigate, sub} from 'frontend-js-web';
 
 import openDeleteLayoutModal from './openDeleteLayoutModal';
 
@@ -47,7 +44,7 @@ export default function propsTransformer({portletNamespace, ...otherProps}) {
 
 				const url = new URL(itemData?.deleteLayoutURL);
 
-				fetch(
+				return fetch(
 					addParams(
 						{
 							[`_${url.searchParams.get('p_p_id')}_rowIds`]:

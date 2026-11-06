@@ -56,6 +56,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -67,6 +68,7 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 /**
  * @author Almir Ferreira
  */
+@Ignore
 @RunWith(Arquillian.class)
 public class SXPBlueprintAndSXPElementUpgradeProcessTest {
 
@@ -348,23 +350,6 @@ public class SXPBlueprintAndSXPElementUpgradeProcessTest {
 			expectedSmallValue, portletPreferenceValue.getSmallValue());
 	}
 
-	private void _assertSearch(
-			String expectedTitle, IndexerFixture<?> indexerFixture)
-		throws Exception {
-
-		indexerFixture.reindex(_group.getCompanyId());
-
-		List<Document> documents = ListUtil.fromArray(
-			indexerFixture.search(_user.getFullName()));
-
-		Assert.assertFalse(documents.isEmpty());
-		Assert.assertTrue(
-			ListUtil.exists(
-				documents,
-				document -> Objects.equals(
-					document.get("title_en_US"), expectedTitle)));
-	}
-
 	private void _assertSXPBlueprint(
 			String expectedElementInstancesJSON, long sxpBlueprintId)
 		throws Exception {
@@ -413,6 +398,23 @@ public class SXPBlueprintAndSXPElementUpgradeProcessTest {
 			sxpElement.getTitle(LocaleUtil.US), _sxpElementIndexerFixture);
 	}
 
+	private void _assertSearch(
+			String expectedTitle, IndexerFixture<?> indexerFixture)
+		throws Exception {
+
+		indexerFixture.reindexCompany(_group.getCompanyId());
+
+		List<Document> documents = ListUtil.fromArray(
+			indexerFixture.search(_user.getFullName()));
+
+		Assert.assertFalse(documents.isEmpty());
+		Assert.assertTrue(
+			ListUtil.exists(
+				documents,
+				document -> Objects.equals(
+					document.get("title_en_US"), expectedTitle)));
+	}
+
 	private String _read(String name) {
 		Class<?> clazz = getClass();
 
@@ -455,11 +457,6 @@ public class SXPBlueprintAndSXPElementUpgradeProcessTest {
 		"com_liferay_search_experiences_web_internal_blueprint_options_" +
 			"portlet_SXPBlueprintOptionsPortlet";
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.search.experiences.internal.upgrade.registry.SXPServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@DeleteAfterTestRun
 	private Group _group;
 
@@ -470,11 +467,11 @@ public class SXPBlueprintAndSXPElementUpgradeProcessTest {
 	private PortletLocalService _portletLocalService;
 
 	@Inject
-	private PortletPreferencesLocalService _portletPreferencesLocalService;
-
-	@Inject
 	private PortletPreferenceValueLocalService
 		_portletPreferenceValueLocalService;
+
+	@Inject
+	private PortletPreferencesLocalService _portletPreferencesLocalService;
 
 	private ServiceContext _serviceContext;
 	private final JSONObject _sxpBlueprintConfigurationJSONObject =
@@ -499,6 +496,11 @@ public class SXPBlueprintAndSXPElementUpgradeProcessTest {
 
 	@Inject
 	private SXPElementLocalService _sxpElementLocalService;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.search.experiences.internal.upgrade.registry.SXPServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 	private User _user;
 

@@ -13,29 +13,44 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.pricing.client.dto.v1_0.PriceList;
 import com.liferay.headless.commerce.admin.pricing.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.pricing.client.pagination.Page;
 import com.liferay.headless.commerce.admin.pricing.client.pagination.Pagination;
 import com.liferay.headless.commerce.admin.pricing.client.resource.v1_0.PriceListResource;
 import com.liferay.headless.commerce.admin.pricing.client.serdes.v1_0.PriceListSerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -43,12 +58,27 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,13 +87,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -72,6 +100,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Zoltán Takács
@@ -82,13 +113,17 @@ public abstract class BasePriceListResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -101,16 +136,27 @@ public abstract class BasePriceListResourceTestCase {
 
 		_priceListResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		PriceListResource.Builder builder = PriceListResource.builder();
-
-		priceListResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		priceListResource = PriceListResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -172,7 +218,11 @@ public abstract class BasePriceListResourceTestCase {
 
 		PriceList priceList = randomPriceList();
 
+		priceList.setCatalogCurrencyCode(regex);
+		priceList.setCatalogCurrencyExternalReferenceCode(regex);
+		priceList.setCatalogExternalReferenceCode(regex);
 		priceList.setCurrencyCode(regex);
+		priceList.setCurrencyExternalReferenceCode(regex);
 		priceList.setExternalReferenceCode(regex);
 		priceList.setName(regex);
 
@@ -182,9 +232,746 @@ public abstract class BasePriceListResourceTestCase {
 
 		priceList = PriceListSerDes.toDTO(json);
 
+		Assert.assertEquals(regex, priceList.getCatalogCurrencyCode());
+		Assert.assertEquals(
+			regex, priceList.getCatalogCurrencyExternalReferenceCode());
+		Assert.assertEquals(regex, priceList.getCatalogExternalReferenceCode());
 		Assert.assertEquals(regex, priceList.getCurrencyCode());
+		Assert.assertEquals(
+			regex, priceList.getCurrencyExternalReferenceCode());
 		Assert.assertEquals(regex, priceList.getExternalReferenceCode());
 		Assert.assertEquals(regex, priceList.getName());
+	}
+
+	@Test
+	public void testDeletePriceList() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PriceList priceList = testDeletePriceList_addPriceList();
+
+		assertHttpResponseStatusCode(
+			204,
+			priceListResource.deletePriceListHttpResponse(priceList.getId()));
+
+		assertHttpResponseStatusCode(
+			404, priceListResource.getPriceListHttpResponse(priceList.getId()));
+		assertHttpResponseStatusCode(
+			404, priceListResource.getPriceListHttpResponse(0L));
+	}
+
+	protected PriceList testDeletePriceList_addPriceList() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeletePriceList() throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PriceList priceList1 = testGraphQLDeletePriceList_addPriceList();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deletePriceList",
+						new HashMap<String, Object>() {
+							{
+								put("id", priceList1.getId());
+							}
+						})),
+				"JSONObject/data", "Object/deletePriceList"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"priceList",
+					new HashMap<String, Object>() {
+						{
+							put("id", priceList1.getId());
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessCommerceAdminPricing_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PriceList priceList2 = testGraphQLDeletePriceList_addPriceList();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminPricing_v1_0",
+						new GraphQLField(
+							"deletePriceList",
+							new HashMap<String, Object>() {
+								{
+									put("id", priceList2.getId());
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminPricing_v1_0",
+				"Object/deletePriceList"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessCommerceAdminPricing_v1_0",
+					new GraphQLField(
+						"priceList",
+						new HashMap<String, Object>() {
+							{
+								put("id", priceList2.getId());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected PriceList testGraphQLDeletePriceList_addPriceList()
+		throws Exception {
+
+		return testGraphQLPriceList_addPriceList();
+	}
+
+	@Test
+	public void testDeletePriceListBatch() throws Exception {
+		PriceList priceList1 = testDeletePriceListBatch_addPriceList();
+
+		testDeletePriceListBatch_deletePriceList(
+			202, priceList1.getExternalReferenceCode(), null);
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList1.getId()));
+
+		priceList1 = testDeletePriceListBatch_addPriceList();
+
+		testDeletePriceListBatch_deletePriceList(202, null, priceList1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList1.getId()));
+
+		priceList1 = testDeletePriceListBatch_addPriceList();
+		PriceList priceList2 = testDeletePriceListBatch_addPriceList();
+
+		testDeletePriceListBatch_deletePriceList(
+			202, priceList2.getExternalReferenceCode(), priceList1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList1.getId()));
+		assertHttpResponseStatusCode(
+			200,
+			priceListResource.getPriceListHttpResponse(priceList2.getId()));
+
+		testDeletePriceListBatch_deletePriceList(
+			202, priceList2.getExternalReferenceCode(), priceList1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList2.getId()));
+	}
+
+	protected PriceList testDeletePriceListBatch_addPriceList()
+		throws Exception {
+
+		return testDeletePriceList_addPriceList();
+	}
+
+	protected void testDeletePriceListBatch_deletePriceList(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			priceListResource.deletePriceListBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
+	public void testDeletePriceListByExternalReferenceCode() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PriceList priceList =
+			testDeletePriceListByExternalReferenceCode_addPriceList();
+
+		assertHttpResponseStatusCode(
+			204,
+			priceListResource.
+				deletePriceListByExternalReferenceCodeHttpResponse(
+					priceList.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListByExternalReferenceCodeHttpResponse(
+				priceList.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListByExternalReferenceCodeHttpResponse(
+				"-"));
+	}
+
+	protected PriceList
+			testDeletePriceListByExternalReferenceCode_addPriceList()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeletePriceListByExternalReferenceCode()
+		throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PriceList priceList1 =
+			testGraphQLDeletePriceListByExternalReferenceCode_addPriceList();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deletePriceListByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" +
+										priceList1.getExternalReferenceCode() +
+											"\"");
+							}
+						})),
+				"JSONObject/data",
+				"Object/deletePriceListByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"priceListByExternalReferenceCode",
+					new HashMap<String, Object>() {
+						{
+							put(
+								"externalReferenceCode",
+								"\"" + priceList1.getExternalReferenceCode() +
+									"\"");
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessCommerceAdminPricing_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PriceList priceList2 =
+			testGraphQLDeletePriceListByExternalReferenceCode_addPriceList();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminPricing_v1_0",
+						new GraphQLField(
+							"deletePriceListByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										"\"" +
+											priceList2.
+												getExternalReferenceCode() +
+													"\"");
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminPricing_v1_0",
+				"Object/deletePriceListByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessCommerceAdminPricing_v1_0",
+					new GraphQLField(
+						"priceListByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" +
+										priceList2.getExternalReferenceCode() +
+											"\"");
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected PriceList
+			testGraphQLDeletePriceListByExternalReferenceCode_addPriceList()
+		throws Exception {
+
+		return testGraphQLPriceList_addPriceList();
+	}
+
+	@Test
+	public void testGetPriceList() throws Exception {
+		PriceList postPriceList = testGetPriceList_addPriceList();
+
+		PriceList getPriceList = priceListResource.getPriceList(
+			postPriceList.getId());
+
+		assertEquals(postPriceList, getPriceList);
+		assertValid(getPriceList);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		PriceList postPriceList = testGetPriceList_addPriceList();
+
+		PriceList getPriceList = priceListResource.getPriceList(
+			postPriceList.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.commerce.admin.pricing.dto.v1_0.PriceList"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(postPriceList.getId());
+
+		assertEquals(getPriceList, PriceListSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
+	}
+
+	protected PriceList testGetPriceList_addPriceList() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetPriceList() throws Exception {
+		PriceList priceList = testGraphQLGetPriceList_addPriceList();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				priceList,
+				PriceListSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"priceList",
+								new HashMap<String, Object>() {
+									{
+										put("id", priceList.getId());
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data", "Object/priceList"))));
+
+		// Using the namespace headlessCommerceAdminPricing_v1_0
+
+		Assert.assertTrue(
+			equals(
+				priceList,
+				PriceListSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceAdminPricing_v1_0",
+								new GraphQLField(
+									"priceList",
+									new HashMap<String, Object>() {
+										{
+											put("id", priceList.getId());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceAdminPricing_v1_0",
+						"Object/priceList"))));
+	}
+
+	@Test
+	public void testGraphQLGetPriceListNotFound() throws Exception {
+		Long irrelevantId = RandomTestUtil.randomLong();
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"priceList",
+						new HashMap<String, Object>() {
+							{
+								put("id", irrelevantId);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceAdminPricing_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceAdminPricing_v1_0",
+						new GraphQLField(
+							"priceList",
+							new HashMap<String, Object>() {
+								{
+									put("id", irrelevantId);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected PriceList testGraphQLGetPriceList_addPriceList()
+		throws Exception {
+
+		return testGraphQLPriceList_addPriceList();
+	}
+
+	@Test
+	public void testGetPriceListByExternalReferenceCode() throws Exception {
+		PriceList postPriceList =
+			testGetPriceListByExternalReferenceCode_addPriceList();
+
+		PriceList getPriceList =
+			priceListResource.getPriceListByExternalReferenceCode(
+				postPriceList.getExternalReferenceCode());
+
+		assertEquals(postPriceList, getPriceList);
+		assertValid(getPriceList);
+	}
+
+	protected PriceList testGetPriceListByExternalReferenceCode_addPriceList()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetPriceListByExternalReferenceCode()
+		throws Exception {
+
+		PriceList priceList =
+			testGraphQLGetPriceListByExternalReferenceCode_addPriceList();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				priceList,
+				PriceListSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"priceListByExternalReferenceCode",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"externalReferenceCode",
+											"\"" +
+												priceList.
+													getExternalReferenceCode() +
+														"\"");
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/priceListByExternalReferenceCode"))));
+
+		// Using the namespace headlessCommerceAdminPricing_v1_0
+
+		Assert.assertTrue(
+			equals(
+				priceList,
+				PriceListSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceAdminPricing_v1_0",
+								new GraphQLField(
+									"priceListByExternalReferenceCode",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"externalReferenceCode",
+												"\"" +
+													priceList.
+														getExternalReferenceCode() +
+															"\"");
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceAdminPricing_v1_0",
+						"Object/priceListByExternalReferenceCode"))));
+	}
+
+	@Test
+	public void testGraphQLGetPriceListByExternalReferenceCodeNotFound()
+		throws Exception {
+
+		String irrelevantExternalReferenceCode =
+			"\"" + RandomTestUtil.randomString() + "\"";
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"priceListByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									irrelevantExternalReferenceCode);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceAdminPricing_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceAdminPricing_v1_0",
+						new GraphQLField(
+							"priceListByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										irrelevantExternalReferenceCode);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected PriceList
+			testGraphQLGetPriceListByExternalReferenceCode_addPriceList()
+		throws Exception {
+
+		return testGraphQLPriceList_addPriceList();
 	}
 
 	@Test
@@ -201,7 +988,7 @@ public abstract class BasePriceListResourceTestCase {
 			randomPriceList());
 
 		page = priceListResource.getPriceListsPage(
-			null, Pagination.of(1, 10), null);
+			null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -303,10 +1090,10 @@ public abstract class BasePriceListResourceTestCase {
 
 	@Test
 	public void testGetPriceListsPageWithPagination() throws Exception {
-		Page<PriceList> priceListPage = priceListResource.getPriceListsPage(
+		Page<PriceList> priceListsPage = priceListResource.getPriceListsPage(
 			null, null, null);
 
-		int totalCount = GetterUtil.getInteger(priceListPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(priceListsPage.getTotalCount());
 
 		PriceList priceList1 = testGetPriceListsPage_addPriceList(
 			randomPriceList());
@@ -514,16 +1301,8 @@ public abstract class BasePriceListResourceTestCase {
 
 	@Test
 	public void testGraphQLGetPriceListsPage() throws Exception {
-		GraphQLField graphQLField = new GraphQLField(
-			"priceLists",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
+		GraphQLField graphQLField =
+			testGraphQLGetPriceListsPagePriceList_getGraphQLField();
 
 		// No namespace
 
@@ -533,8 +1312,11 @@ public abstract class BasePriceListResourceTestCase {
 
 		long totalCount = priceListsJSONObject.getLong("totalCount");
 
-		PriceList priceList1 = testGraphQLGetPriceListsPage_addPriceList();
-		PriceList priceList2 = testGraphQLGetPriceListsPage_addPriceList();
+		PriceList priceList1 = testGraphQLPriceList_addPriceList(
+			randomPriceList());
+
+		PriceList priceList2 = testGraphQLPriceList_addPriceList(
+			randomPriceList());
 
 		priceListsJSONObject = JSONUtil.getValueAsJSONObject(
 			invokeGraphQLQuery(graphQLField), "JSONObject/data",
@@ -578,10 +1360,30 @@ public abstract class BasePriceListResourceTestCase {
 					priceListsJSONObject.getString("items"))));
 	}
 
-	protected PriceList testGraphQLGetPriceListsPage_addPriceList()
+	protected GraphQLField
+			testGraphQLGetPriceListsPagePriceList_getGraphQLField()
 		throws Exception {
 
-		return testGraphQLPriceList_addPriceList();
+		return new GraphQLField(
+			"priceLists",
+			new HashMap<String, Object>() {
+				{
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
+	}
+
+	@Test
+	public void testPatchPriceList() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testPatchPriceListByExternalReferenceCode() throws Exception {
+		Assert.assertTrue(false);
 	}
 
 	@Test
@@ -603,173 +1405,13 @@ public abstract class BasePriceListResourceTestCase {
 	}
 
 	@Test
-	public void testDeletePriceListByExternalReferenceCode() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		PriceList priceList =
-			testDeletePriceListByExternalReferenceCode_addPriceList();
+	public void testGraphQLPostPriceList() throws Exception {
+		PriceList randomPriceList = randomPriceList();
 
-		assertHttpResponseStatusCode(
-			204,
-			priceListResource.
-				deletePriceListByExternalReferenceCodeHttpResponse(
-					priceList.getExternalReferenceCode()));
+		PriceList priceList = testGraphQLPriceList_addPriceList(
+			randomPriceList);
 
-		assertHttpResponseStatusCode(
-			404,
-			priceListResource.getPriceListByExternalReferenceCodeHttpResponse(
-				priceList.getExternalReferenceCode()));
-
-		assertHttpResponseStatusCode(
-			404,
-			priceListResource.getPriceListByExternalReferenceCodeHttpResponse(
-				priceList.getExternalReferenceCode()));
-	}
-
-	protected PriceList
-			testDeletePriceListByExternalReferenceCode_addPriceList()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGetPriceListByExternalReferenceCode() throws Exception {
-		PriceList postPriceList =
-			testGetPriceListByExternalReferenceCode_addPriceList();
-
-		PriceList getPriceList =
-			priceListResource.getPriceListByExternalReferenceCode(
-				postPriceList.getExternalReferenceCode());
-
-		assertEquals(postPriceList, getPriceList);
-		assertValid(getPriceList);
-	}
-
-	protected PriceList testGetPriceListByExternalReferenceCode_addPriceList()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetPriceListByExternalReferenceCode()
-		throws Exception {
-
-		PriceList priceList =
-			testGraphQLGetPriceListByExternalReferenceCode_addPriceList();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				priceList,
-				PriceListSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"priceListByExternalReferenceCode",
-								new HashMap<String, Object>() {
-									{
-										put(
-											"externalReferenceCode",
-											"\"" +
-												priceList.
-													getExternalReferenceCode() +
-														"\"");
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data",
-						"Object/priceListByExternalReferenceCode"))));
-
-		// Using the namespace headlessCommerceAdminPricing_v1_0
-
-		Assert.assertTrue(
-			equals(
-				priceList,
-				PriceListSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceAdminPricing_v1_0",
-								new GraphQLField(
-									"priceListByExternalReferenceCode",
-									new HashMap<String, Object>() {
-										{
-											put(
-												"externalReferenceCode",
-												"\"" +
-													priceList.
-														getExternalReferenceCode() +
-															"\"");
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceAdminPricing_v1_0",
-						"Object/priceListByExternalReferenceCode"))));
-	}
-
-	@Test
-	public void testGraphQLGetPriceListByExternalReferenceCodeNotFound()
-		throws Exception {
-
-		String irrelevantExternalReferenceCode =
-			"\"" + RandomTestUtil.randomString() + "\"";
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"priceListByExternalReferenceCode",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"externalReferenceCode",
-									irrelevantExternalReferenceCode);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceAdminPricing_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceAdminPricing_v1_0",
-						new GraphQLField(
-							"priceListByExternalReferenceCode",
-							new HashMap<String, Object>() {
-								{
-									put(
-										"externalReferenceCode",
-										irrelevantExternalReferenceCode);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected PriceList
-			testGraphQLGetPriceListByExternalReferenceCode_addPriceList()
-		throws Exception {
-
-		return testGraphQLPriceList_addPriceList();
-	}
-
-	@Test
-	public void testPatchPriceListByExternalReferenceCode() throws Exception {
-		Assert.assertTrue(false);
+		Assert.assertTrue(equals(randomPriceList, priceList));
 	}
 
 	@Test
@@ -812,13 +1454,6 @@ public abstract class BasePriceListResourceTestCase {
 			putPriceList.getExternalReferenceCode());
 	}
 
-	protected PriceList
-			testPutPriceListByExternalReferenceCode_createPriceList()
-		throws Exception {
-
-		return randomPriceList();
-	}
-
 	protected PriceList testPutPriceListByExternalReferenceCode_addPriceList()
 		throws Exception {
 
@@ -826,222 +1461,217 @@ public abstract class BasePriceListResourceTestCase {
 			"This method needs to be implemented");
 	}
 
-	@Test
-	public void testDeletePriceList() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		PriceList priceList = testDeletePriceList_addPriceList();
-
-		assertHttpResponseStatusCode(
-			204,
-			priceListResource.deletePriceListHttpResponse(priceList.getId()));
-
-		assertHttpResponseStatusCode(
-			404, priceListResource.getPriceListHttpResponse(priceList.getId()));
-
-		assertHttpResponseStatusCode(
-			404, priceListResource.getPriceListHttpResponse(priceList.getId()));
-	}
-
-	protected PriceList testDeletePriceList_addPriceList() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLDeletePriceList() throws Exception {
-
-		// No namespace
-
-		PriceList priceList1 = testGraphQLDeletePriceList_addPriceList();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"deletePriceList",
-						new HashMap<String, Object>() {
-							{
-								put("id", priceList1.getId());
-							}
-						})),
-				"JSONObject/data", "Object/deletePriceList"));
-
-		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"priceList",
-					new HashMap<String, Object>() {
-						{
-							put("id", priceList1.getId());
-						}
-					},
-					new GraphQLField("id"))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray1.length() > 0);
-
-		// Using the namespace headlessCommerceAdminPricing_v1_0
-
-		PriceList priceList2 = testGraphQLDeletePriceList_addPriceList();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"headlessCommerceAdminPricing_v1_0",
-						new GraphQLField(
-							"deletePriceList",
-							new HashMap<String, Object>() {
-								{
-									put("id", priceList2.getId());
-								}
-							}))),
-				"JSONObject/data",
-				"JSONObject/headlessCommerceAdminPricing_v1_0",
-				"Object/deletePriceList"));
-
-		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"headlessCommerceAdminPricing_v1_0",
-					new GraphQLField(
-						"priceList",
-						new HashMap<String, Object>() {
-							{
-								put("id", priceList2.getId());
-							}
-						},
-						new GraphQLField("id")))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray2.length() > 0);
-	}
-
-	protected PriceList testGraphQLDeletePriceList_addPriceList()
+	protected PriceList
+			testPutPriceListByExternalReferenceCode_createPriceList()
 		throws Exception {
 
-		return testGraphQLPriceList_addPriceList();
+		return randomPriceList();
 	}
 
 	@Test
-	public void testGetPriceList() throws Exception {
-		PriceList postPriceList = testGetPriceList_addPriceList();
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		PriceList priceList1 = testBatchEngineDeleteImportTask_addPriceList();
 
-		PriceList getPriceList = priceListResource.getPriceList(
-			postPriceList.getId());
+		testBatchEngineDeleteImportTask_deletePriceList(
+			200, priceList1.getExternalReferenceCode(), null);
 
-		assertEquals(postPriceList, getPriceList);
-		assertValid(getPriceList);
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList1.getId()));
+
+		priceList1 = testBatchEngineDeleteImportTask_addPriceList();
+
+		testBatchEngineDeleteImportTask_deletePriceList(
+			200, null, priceList1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList1.getId()));
+
+		priceList1 = testBatchEngineDeleteImportTask_addPriceList();
+		PriceList priceList2 = testBatchEngineDeleteImportTask_addPriceList();
+
+		testBatchEngineDeleteImportTask_deletePriceList(
+			200, priceList2.getExternalReferenceCode(), priceList1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList1.getId()));
+		assertHttpResponseStatusCode(
+			200,
+			priceListResource.getPriceListHttpResponse(priceList2.getId()));
+
+		testBatchEngineDeleteImportTask_deletePriceList(
+			200, priceList2.getExternalReferenceCode(), priceList1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			priceListResource.getPriceListHttpResponse(priceList2.getId()));
 	}
 
-	protected PriceList testGetPriceList_addPriceList() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetPriceList() throws Exception {
-		PriceList priceList = testGraphQLGetPriceList_addPriceList();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				priceList,
-				PriceListSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"priceList",
-								new HashMap<String, Object>() {
-									{
-										put("id", priceList.getId());
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data", "Object/priceList"))));
-
-		// Using the namespace headlessCommerceAdminPricing_v1_0
-
-		Assert.assertTrue(
-			equals(
-				priceList,
-				PriceListSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceAdminPricing_v1_0",
-								new GraphQLField(
-									"priceList",
-									new HashMap<String, Object>() {
-										{
-											put("id", priceList.getId());
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceAdminPricing_v1_0",
-						"Object/priceList"))));
-	}
-
-	@Test
-	public void testGraphQLGetPriceListNotFound() throws Exception {
-		Long irrelevantId = RandomTestUtil.randomLong();
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"priceList",
-						new HashMap<String, Object>() {
-							{
-								put("id", irrelevantId);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceAdminPricing_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceAdminPricing_v1_0",
-						new GraphQLField(
-							"priceList",
-							new HashMap<String, Object>() {
-								{
-									put("id", irrelevantId);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected PriceList testGraphQLGetPriceList_addPriceList()
+	protected PriceList testBatchEngineDeleteImportTask_addPriceList()
 		throws Exception {
 
-		return testGraphQLPriceList_addPriceList();
+		return testDeletePriceList_addPriceList();
 	}
 
-	@Test
-	public void testPatchPriceList() throws Exception {
-		Assert.assertTrue(false);
+	protected void testBatchEngineDeleteImportTask_deletePriceList(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.pricing.dto.v1_0.PriceList",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
 
 	protected PriceList testGraphQLPriceList_addPriceList() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testGraphQLPriceList_addPriceList(randomPriceList());
+	}
+
+	protected PriceList testGraphQLPriceList_addPriceList(PriceList priceList)
+		throws Exception {
+
+		JSONDeserializer<PriceList> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field :
+				getDeclaredFields(PriceList.class)) {
+
+			if (getGraphQLValue(field.get(priceList)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(priceList)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createPriceList",
+						new HashMap<String, Object>() {
+							{
+								put("priceList", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data", "JSONObject/createPriceList"),
+			PriceList.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(
@@ -1127,6 +1757,40 @@ public abstract class BasePriceListResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"catalogCurrencyCode", additionalAssertFieldName)) {
+
+				if (priceList.getCatalogCurrencyCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (priceList.getCatalogCurrencyExternalReferenceCode() ==
+						null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (priceList.getCatalogExternalReferenceCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("catalogId", additionalAssertFieldName)) {
 				if (priceList.getCatalogId() == null) {
 					valid = false;
@@ -1137,6 +1801,17 @@ public abstract class BasePriceListResourceTestCase {
 
 			if (Objects.equals("currencyCode", additionalAssertFieldName)) {
 				if (priceList.getCurrencyCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"currencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (priceList.getCurrencyExternalReferenceCode() == null) {
 					valid = false;
 				}
 
@@ -1277,6 +1952,10 @@ public abstract class BasePriceListResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.commerce.admin.pricing.dto.v1_0.
@@ -1346,6 +2025,47 @@ public abstract class BasePriceListResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"catalogCurrencyCode", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						priceList1.getCatalogCurrencyCode(),
+						priceList2.getCatalogCurrencyCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						priceList1.getCatalogCurrencyExternalReferenceCode(),
+						priceList2.getCatalogCurrencyExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						priceList1.getCatalogExternalReferenceCode(),
+						priceList2.getCatalogExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("catalogId", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						priceList1.getCatalogId(), priceList2.getCatalogId())) {
@@ -1360,6 +2080,20 @@ public abstract class BasePriceListResourceTestCase {
 				if (!Objects.deepEquals(
 						priceList1.getCurrencyCode(),
 						priceList2.getCurrencyCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"currencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						priceList1.getCurrencyExternalReferenceCode(),
+						priceList2.getCurrencyExternalReferenceCode())) {
 
 					return false;
 				}
@@ -1590,6 +2324,144 @@ public abstract class BasePriceListResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("catalogCurrencyCode")) {
+			Object object = priceList.getCatalogCurrencyCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("catalogCurrencyExternalReferenceCode")) {
+			Object object = priceList.getCatalogCurrencyExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("catalogExternalReferenceCode")) {
+			Object object = priceList.getCatalogExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("catalogId")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -1597,6 +2469,52 @@ public abstract class BasePriceListResourceTestCase {
 
 		if (entityFieldName.equals("currencyCode")) {
 			Object object = priceList.getCurrencyCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("currencyExternalReferenceCode")) {
+			Object object = priceList.getCurrencyExternalReferenceCode();
 
 			String value = String.valueOf(object);
 
@@ -1655,13 +2573,11 @@ public abstract class BasePriceListResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1671,7 +2587,7 @@ public abstract class BasePriceListResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(priceList.getDisplayDate()));
+				sb.append(_format.format(priceList.getDisplayDate()));
 			}
 
 			return sb.toString();
@@ -1686,13 +2602,11 @@ public abstract class BasePriceListResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1702,7 +2616,7 @@ public abstract class BasePriceListResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(priceList.getExpirationDate()));
+				sb.append(_format.format(priceList.getExpirationDate()));
 			}
 
 			return sb.toString();
@@ -1839,7 +2753,9 @@ public abstract class BasePriceListResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1872,8 +2788,16 @@ public abstract class BasePriceListResourceTestCase {
 		return new PriceList() {
 			{
 				active = RandomTestUtil.randomBoolean();
+				catalogCurrencyCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				catalogCurrencyExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				catalogExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				catalogId = RandomTestUtil.randomLong();
 				currencyCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				currencyExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				displayDate = RandomTestUtil.nextDate();
 				expirationDate = RandomTestUtil.nextDate();
@@ -1897,7 +2821,30 @@ public abstract class BasePriceListResourceTestCase {
 		return randomPriceList();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected PriceListResource priceListResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -2098,11 +3045,36 @@ public abstract class BasePriceListResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BasePriceListResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
 		com.liferay.headless.commerce.admin.pricing.resource.v1_0.
 			PriceListResource _priceListResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:680841296

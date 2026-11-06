@@ -14,20 +14,24 @@ import com.liferay.content.dashboard.item.action.ContentDashboardItemVersionActi
 import com.liferay.content.dashboard.item.type.ContentDashboardItemSubtypeFactory;
 import com.liferay.content.dashboard.item.type.ContentDashboardItemSubtypeFactoryRegistry;
 import com.liferay.document.library.display.context.DLDisplayContextProvider;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.model.DLFileEntryType;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.document.library.kernel.service.DLFileEntryMetadataLocalService;
-import com.liferay.document.library.util.DLURLHelper;
 import com.liferay.dynamic.data.mapping.service.DDMFieldLocalService;
 import com.liferay.info.item.InfoItemServiceRegistry;
-import com.liferay.info.item.provider.InfoItemFieldValuesProvider;
 import com.liferay.portal.kernel.exception.NoSuchModelException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.repository.model.FileVersion;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
+
+import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -61,10 +65,6 @@ public class FileEntryContentDashboardItemFactory
 			throw new NoSuchModelException();
 		}
 
-		InfoItemFieldValuesProvider<FileEntry> infoItemFieldValuesProvider =
-			infoItemServiceRegistry.getFirstInfoItemService(
-				InfoItemFieldValuesProvider.class, FileEntry.class.getName());
-
 		DLFileEntry dlFileEntry = (DLFileEntry)fileEntry.getModel();
 
 		return new FileEntryContentDashboardItem(
@@ -75,8 +75,8 @@ public class FileEntryContentDashboardItemFactory
 				dlFileEntry.getFileEntryTypeId(), dlFileEntry.getFileEntryId()),
 			_ddmFieldLocalService, _dlDisplayContextProvider,
 			_dlFileEntryMetadataLocalService, _dlURLHelper, fileEntry,
-			_groupLocalService.fetchGroup(fileEntry.getGroupId()),
-			infoItemFieldValuesProvider, _language, _portal);
+			_groupLocalService.fetchGroup(fileEntry.getGroupId()), _language,
+			_getLatestApprovedFileVersion(fileEntry), _portal);
 	}
 
 	@Override
@@ -90,6 +90,17 @@ public class FileEntryContentDashboardItemFactory
 
 	@Reference
 	protected InfoItemServiceRegistry infoItemServiceRegistry;
+
+	private FileVersion _getLatestApprovedFileVersion(FileEntry fileEntry) {
+		List<FileVersion> approvedFileVersions = fileEntry.getFileVersions(
+			WorkflowConstants.STATUS_APPROVED, 0, 1);
+
+		if (ListUtil.isEmpty(approvedFileVersions)) {
+			return null;
+		}
+
+		return approvedFileVersions.get(0);
+	}
 
 	@Reference
 	private AssetEntryLocalService _assetEntryLocalService;

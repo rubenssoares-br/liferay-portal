@@ -202,6 +202,10 @@ if (commerceOrder != null) {
 				<c:if test="<%= commerceOrderContentDisplayContext.hasViewBillingAddressPermission(permissionChecker, accountEntry) && (billingCommerceAddress != null) %>">
 					<p><%= HtmlUtil.escape(billingCommerceAddress.getName()) %></p>
 
+					<c:if test="<%= !Validator.isBlank(billingCommerceAddress.getSubtype()) %>">
+						<p><%= HtmlUtil.escape(billingCommerceAddress.getSubtype(locale)) %></p>
+					</c:if>
+
 					<p><%= HtmlUtil.escape(billingCommerceAddress.getStreet1()) %></p>
 
 					<c:if test="<%= !Validator.isBlank(billingCommerceAddress.getStreet2()) %>">
@@ -247,6 +251,10 @@ if (commerceOrder != null) {
 			<div class="commerce-panel__content" data-qa-id="commerceShippingAddress">
 				<c:if test="<%= shippingCommerceAddress != null %>">
 					<p><%= HtmlUtil.escape(shippingCommerceAddress.getName()) %></p>
+
+					<c:if test="<%= !Validator.isBlank(shippingCommerceAddress.getSubtype()) %>">
+						<p><%= HtmlUtil.escape(shippingCommerceAddress.getSubtype(locale)) %></p>
+					</c:if>
 
 					<p><%= HtmlUtil.escape(shippingCommerceAddress.getStreet1()) %></p>
 
@@ -354,7 +362,7 @@ if (commerceOrder != null) {
 		<aui:button cssClass="btn-lg" onClick='<%= liferayPortletResponse.getNamespace() + "handleCTA(null, 'processQuote', null);" %>' value="process-quote" />
 	</c:if>
 
-	<c:if test='<%= FeatureFlagManagerUtil.isEnabled("LPD-10562") && (commerceOrder.getOrderStatus() == CommerceOrderConstants.ORDER_STATUS_COMPLETED) %>'>
+	<c:if test='<%= FeatureFlagManagerUtil.isEnabled(commerceOrder.getCompanyId(), "LPD-10562") && (commerceOrder.getOrderStatus() == CommerceOrderConstants.ORDER_STATUS_COMPLETED) %>'>
 		<aui:button cssClass="btn-lg" onClick='<%= liferayPortletResponse.getNamespace() + "handleCTA(null, 'makeReturn', null);" %>' value="make-a-return" />
 	</c:if>
 
@@ -380,9 +388,9 @@ if (commerceOrder != null) {
 			contextParams="<%= contextParams %>"
 			dataProviderKey="<%= CommerceOrderFDSNames.PLACED_ORDER_ITEMS %>"
 			id="<%= CommerceOrderFDSNames.PLACED_ORDER_ITEMS %>"
-			itemsPerPage="<%= 10 %>"
 			nestedItemsKey="orderItemId"
 			nestedItemsReferenceKey="orderItems"
+			propsTransformer="{PlacedOrderItemClassicFDSPropsTransformer} from commerce-order-content-web"
 			style="stacked"
 		/>
 	</div>
@@ -396,7 +404,6 @@ if (commerceOrder != null) {
 		direction="right"
 		icon="<%= StringPool.BLANK %>"
 		markupView="lexicon"
-		message="<%= StringPool.BLANK %>"
 		showWhenSingleIcon="<%= true %>"
 		triggerCssClass="btn btn-lg btn-monospaced btn-primary position-fixed thumb-menu"
 	>
@@ -478,18 +485,12 @@ if (commerceOrder != null) {
 
 <aui:script>
 	function <portlet:namespace />viewCommerceOrderShipments(uri) {
-		Liferay.Util.openWindow({
-			dialog: {
-				centered: true,
-				destroyOnClose: true,
-				modal: true,
-			},
-			dialogIframe: {
-				bodyCssClass: 'dialog',
-			},
+		Liferay.Util.openModal({
+			containerProps: {},
 			id: 'viewCommerceOrderShipmentsDialog',
+			iframeBodyCssClass: 'dialog',
 			title: '',
-			uri: uri,
+			url: uri,
 		});
 	}
 </aui:script>

@@ -36,6 +36,8 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 
+import jakarta.portlet.PortletRequest;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,8 +45,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-
-import javax.portlet.PortletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -85,15 +85,13 @@ public class DDMFormInstanceFieldSettingsValidator {
 
 				@Override
 				public void accept(JSONObject jsonObject) {
-					DDMFormFieldValue ddmFormFieldValue =
-						new DDMFormFieldValue();
+					DDMFormFieldValue ddmFormFieldValue = new DDMFormFieldValue(
+						jsonObject.getString("instanceId"));
 
 					ddmFormFieldValue.setDDMFormValues(
 						fieldSettingsDDMFormValues);
 					ddmFormFieldValue.setFieldReference(
 						jsonObject.getString("fieldReference"));
-					ddmFormFieldValue.setInstanceId(
-						jsonObject.getString("instanceId"));
 					ddmFormFieldValue.setName(
 						jsonObject.getString("fieldName"));
 					ddmFormFieldValue.setValue(getValue(jsonObject));
@@ -264,15 +262,17 @@ public class DDMFormInstanceFieldSettingsValidator {
 		for (Map.Entry<DDMFormEvaluatorFieldContextKey, Map<String, Object>>
 				entry : ddmFormFieldsPropertyChanges.entrySet()) {
 
-			if (!MapUtil.getBoolean(entry.getValue(), "valid", true)) {
-				DDMFormEvaluatorFieldContextKey ddmFormFieldContextKey =
-					entry.getKey();
-
-				DDMFormField propertyFormField = ddmFormFieldsMap.get(
-					ddmFormFieldContextKey.getName());
-
-				ddmFormFields.add(_getFieldLabel(propertyFormField, locale));
+			if (MapUtil.getBoolean(entry.getValue(), "valid", true)) {
+				continue;
 			}
+
+			DDMFormEvaluatorFieldContextKey ddmFormFieldContextKey =
+				entry.getKey();
+
+			DDMFormField propertyFormField = ddmFormFieldsMap.get(
+				ddmFormFieldContextKey.getName());
+
+			ddmFormFields.add(_getFieldLabel(propertyFormField, locale));
 		}
 
 		return ddmFormFields;

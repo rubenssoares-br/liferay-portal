@@ -6,7 +6,7 @@
 package com.liferay.adaptive.media.editor.configuration.internal;
 
 import com.liferay.item.selector.ItemSelectorCriterion;
-import com.liferay.journal.item.selector.criterion.JournalItemSelectorCriterion;
+import com.liferay.journal.item.selector.JournalItemSelectorCriterion;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import org.junit.ClassRule;
@@ -23,14 +23,17 @@ public class JournalAMEditorConfigContributorTest
 	public static final LiferayUnitTestRule liferayUnitTestRule =
 		LiferayUnitTestRule.INSTANCE;
 
+	@Override
 	protected BaseAMEditorConfigContributor getBaseAMEditorConfigContributor() {
 		return new JournalAMEditorConfigContributor();
 	}
 
+	@Override
 	protected ItemSelectorCriterion getItemSelectorCriterion() {
 		return new JournalItemSelectorCriterion();
 	}
 
+	@Override
 	protected String
 		getItemSelectorCriterionFileEntryItemSelectorReturnTypeName() {
 

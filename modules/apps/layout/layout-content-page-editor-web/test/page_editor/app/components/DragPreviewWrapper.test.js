@@ -14,8 +14,8 @@ const fragments = [
 			{
 				fragmentEntryKey: 'fragment01',
 				icon: 'icon01',
+				itemType: 'type01',
 				name: 'name01',
-				type: 'type01',
 			},
 			{
 				fragmentEntryKey: 'fragment02',
@@ -144,7 +144,7 @@ describe('DragPreviewWrapper', () => {
 					activeItemIds: ['item01', 'item02'],
 					item,
 				})
-			).toBe('x-items');
+			).toBe('2-items');
 		});
 	});
 });

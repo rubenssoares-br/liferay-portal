@@ -15,7 +15,11 @@ import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpUtil;
 import com.liferay.portal.kernel.util.MapUtil;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
+import com.liferay.portal.kernel.util.Time;
+
+import java.io.InputStream;
 
 import java.nio.charset.StandardCharsets;
 
@@ -43,6 +47,24 @@ public class HTTPTestUtil {
 		Http.Response response = options.getResponse();
 
 		return response.getResponseCode();
+	}
+
+	public static InputStream invokeToInputStream(
+			String body, String endpoint, Http.Method httpMethod)
+		throws Exception {
+
+		return invokeToInputStream(body, endpoint, null, httpMethod);
+	}
+
+	public static InputStream invokeToInputStream(
+			String body, String endpoint, Map<String, String> headers,
+			Http.Method httpMethod)
+		throws Exception {
+
+		Http.Options options = _getHttpOptions(
+			body, endpoint, headers, httpMethod);
+
+		return HttpUtil.URLtoInputStream(options);
 	}
 
 	public static JSONObject invokeToJSONObject(
@@ -93,12 +115,17 @@ public class HTTPTestUtil {
 
 			_credentials = _newCredentials;
 
+			boolean defaultModulePath = _modulePath;
+
+			_modulePath = _newModulePath;
+
 			try {
 				unsafeRunnable.run();
 			}
 			finally {
 				_baseURL = defaultBaseURL;
 				_credentials = defaultCredentials;
+				_modulePath = defaultModulePath;
 			}
 		}
 
@@ -122,14 +149,25 @@ public class HTTPTestUtil {
 			return this;
 		}
 
+		public HTTPTestUtilCustomizer withoutModulePath() {
+			_newModulePath = false;
+
+			return this;
+		}
+
 		private String _newBaseURL = _baseURL;
 		private String _newCredentials = _credentials;
+		private boolean _newModulePath = _modulePath;
 
 	}
 
 	private static Http.Options _getHttpOptions(
 		String body, String endpoint, Map<String, String> headers,
 		Http.Method httpMethod) {
+
+		if (_modulePath) {
+			JAXRSWhiteboardTestUtil.ensureReady();
+		}
 
 		Http.Options options = new Http.Options();
 
@@ -147,8 +185,20 @@ public class HTTPTestUtil {
 		}
 
 		options.setCookieSpec(Http.CookieSpec.STANDARD);
-		options.setLocation(_baseURL + "/o/" + endpoint);
+
+		if (_modulePath) {
+			options.setLocation(_baseURL + "/o/" + endpoint);
+		}
+		else {
+			options.setLocation(_baseURL + "/" + endpoint);
+		}
+
 		options.setMethod(httpMethod);
+
+		// Added because modules/apps/object/**/ExportTaskResourceTest.java was
+		// slow to create companies. See LPD-73606.
+
+		options.setTimeout((int)Time.MINUTE * 2);
 
 		if (body != null) {
 			options.setBody(
@@ -159,8 +209,10 @@ public class HTTPTestUtil {
 		return options;
 	}
 
-	private static String _baseURL = "http://localhost:8080";
+	private static String _baseURL =
+		"http://localhost:" + PortalUtil.getPortalServerPort(false);
 	private static String _credentials =
 		"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD;
+	private static boolean _modulePath = true;
 
 }

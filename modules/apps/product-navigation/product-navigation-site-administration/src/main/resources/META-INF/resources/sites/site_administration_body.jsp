@@ -79,7 +79,7 @@ SiteAdministrationPanelCategoryDisplayContext siteAdministrationPanelCategoryDis
 					cssClass='<%= "list-group-heading navigation-link panel-header-link" + (siteAdministrationPanelCategoryDisplayContext.isFirstLayout() ? " first-layout" : "") %>'
 					href="<%= siteAdministrationPanelCategoryDisplayContext.getGroupURL() %>"
 					icon="home"
-					label="home"
+					label="home[page]"
 				/>
 			</c:if>
 
@@ -110,7 +110,7 @@ SiteAdministrationPanelCategoryDisplayContext siteAdministrationPanelCategoryDis
 		);
 
 		pagesTreeToggle.addEventListener('click', (event) => {
-			Liferay.Portlet.destroy('#p_p_id<portlet:namespace />', true);
+			Liferay.Portlet.destroy('#p_p_id<portlet:namespace />');
 
 			Liferay.Util.Session.set(
 				'com.liferay.product.navigation.product.menu.web_pagesTreeState',
@@ -134,6 +134,8 @@ SiteAdministrationPanelCategoryDisplayContext siteAdministrationPanelCategoryDis
 						);
 
 						sidebar.innerHTML = '';
+
+						response = Liferay.Util.setCSPNonce(response);
 
 						var range = document.createRange();
 						range.selectNode(sidebar);

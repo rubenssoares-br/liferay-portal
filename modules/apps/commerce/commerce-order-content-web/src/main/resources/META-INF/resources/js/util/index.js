@@ -28,6 +28,10 @@ export function formatValue(value, type) {
 				<>
 					<p className="mb-1">{address.name}</p>
 
+					{address.subtype ? (
+						<p className="mb-1">{address.subtype}</p>
+					) : null}
+
 					<p className="mb-1">{`${address.street1}, ${address.zip}, ${address.city}`}</p>
 
 					<p>{`${address.region ? `${address.region}, ` : ''}${address.country}`}</p>
@@ -43,7 +47,7 @@ export function formatValue(value, type) {
 	else if (type === 'date' && value) {
 		const date = new Intl.DateTimeFormat(
 			Liferay.ThemeDisplay.getBCP47LanguageId(),
-			{dateStyle: 'short'}
+			{dateStyle: 'medium'}
 		).format(new Date(value));
 
 		return <p>{date}</p>;

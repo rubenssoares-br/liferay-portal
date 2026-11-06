@@ -3,37 +3,86 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {ORDER_TYPES} from '../../../enums/Order';
+import {OrderCustomFields, OrderTypes} from '../../../enums/Order';
+import {Liferay} from '../../../liferay/liferay';
 import zodSchema, {z} from '../../../schema/zod';
-import analyticsOAuth2 from '../../../services/oauth/Analytics';
+import HeadlessCommerceDeliveryCart from '../../../services/rest/HeadlessCommerceDeliveryCart';
+import {getSiteURL} from '../../../utils/site';
 import {sanitizeStringForURL} from '../../../utils/string';
 import ProductPurchase from './ProductPurchase';
 
-export default class ProductPurchaseAnalytics extends ProductPurchase {
-	protected orderTypeExternalReferenceCode = ORDER_TYPES.ADDONS;
+type AnalyticsProvisioningForm = z.infer<
+	typeof zodSchema.analyticsProvisioning
+>;
 
-	private async startProvisioning(
-		form: z.infer<typeof zodSchema.analyticsProvisioning>,
-		orderId: number
-	) {
-		return analyticsOAuth2.provisioning(orderId, {
-			corpProjectName: form.workspaceName,
-			corpProjectUuid: `KOR-${new Date().getTime()}`,
-			emailAddressDomains: form.allowedEmailDomains,
-			friendlyURL: form.friendlyWorkspaceURL
-				? `/${sanitizeStringForURL(form.friendlyWorkspaceURL)}`
-				: 'TBD',
-			incidentReportEmailAddresses: form.incidentReportContacts,
-			name: form.workspaceName,
-			ownerEmailAddress: form.workspaceOwnerEmail,
-			timeZoneId: form.timezone,
-		});
+export default class ProductPurchaseAnalytics extends ProductPurchase {
+	private form?: AnalyticsProvisioningForm;
+	protected orderTypeExternalReferenceCode = OrderTypes.ADDONS;
+
+	setForm(form: AnalyticsProvisioningForm) {
+		this.form = form;
 	}
 
-	public async create(form: z.infer<typeof zodSchema.analyticsProvisioning>) {
-		const order = await super.createOrder();
+	protected getCart() {
+		const {productKey, productName, productPurchaseKey} = this.form ?? {};
 
-		await this.startProvisioning(form, order.id);
+		const sku = this.product.skus.find(
+			({externalReferenceCode}) => externalReferenceCode === productKey
+		);
+
+		const baseCart = super.getCart();
+		const cartItems = super.getCartItems(sku?.id);
+
+		return {
+			...baseCart,
+			cartItems,
+			customFields: {
+				...baseCart?.customFields,
+				[OrderCustomFields.ORDER_METADATA]: JSON.stringify({
+					analyticsForm: {
+						corpProjectName: this.form?.workspaceName,
+						corpProjectUuid: this.account.externalReferenceCode,
+						emailAddressDomains: this.form?.allowedEmailDomains,
+						friendlyURL: this.form?.friendlyWorkspaceURL
+							? `/${sanitizeStringForURL(this.form?.friendlyWorkspaceURL)}`
+							: '',
+						incidentReportEmailAddresses:
+							this.form?.incidentReportContacts,
+						name: this.form?.workspaceName,
+						ownerEmailAddress:
+							this.form?.workspaceOwnerEmail ??
+							Liferay.ThemeDisplay.getUserEmailAddress(),
+						serverLocation: this.form?.dataCenterLocation,
+					},
+					productKey,
+					productName,
+					productPurchaseKey,
+				}),
+			},
+		} as Cart;
+	}
+
+	public async getNextStepsLink(cart: Cart) {
+		if (this.account.type === 'business') {
+			const callback = `${window.location.origin}${getSiteURL()}/next-steps?orderId=${cart.id}`;
+
+			const url = await HeadlessCommerceDeliveryCart.getPaymentMethodURL(
+				cart.id,
+				callback
+			);
+
+			return url || callback;
+		}
+
+		return super.getNextStepsLink(cart);
+	}
+
+	public async createOrder() {
+		if (!this.form) {
+			throw new Error('Form is missing.');
+		}
+
+		const order = await super.createOrder();
 
 		return order;
 	}

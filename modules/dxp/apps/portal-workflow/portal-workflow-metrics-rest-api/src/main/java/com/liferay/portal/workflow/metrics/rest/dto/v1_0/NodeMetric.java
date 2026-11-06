@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rafael Praxedes
@@ -39,6 +40,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "https://www.schema.org/NodeMetric", value = "NodeMetric"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "https://www.schema.org/NodeMetric"
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "NodeMetric")
@@ -52,7 +56,7 @@ public class NodeMetric implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(NodeMetric.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getBreachedInstanceCount() {
 		if (_breachedInstanceCountSupplier != null) {
 			breachedInstanceCount = _breachedInstanceCountSupplier.get();
@@ -93,7 +97,7 @@ public class NodeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _breachedInstanceCountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getBreachedInstancePercentage() {
 		if (_breachedInstancePercentageSupplier != null) {
 			breachedInstancePercentage =
@@ -138,7 +142,7 @@ public class NodeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _breachedInstancePercentageSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getDurationAvg() {
 		if (_durationAvgSupplier != null) {
 			durationAvg = _durationAvgSupplier.get();
@@ -179,7 +183,7 @@ public class NodeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _durationAvgSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getInstanceCount() {
 		if (_instanceCountSupplier != null) {
 			instanceCount = _instanceCountSupplier.get();
@@ -220,7 +224,7 @@ public class NodeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _instanceCountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Node getNode() {
 		if (_nodeSupplier != null) {
@@ -260,7 +264,7 @@ public class NodeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Node> _nodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getOnTimeInstanceCount() {
 		if (_onTimeInstanceCountSupplier != null) {
 			onTimeInstanceCount = _onTimeInstanceCountSupplier.get();
@@ -301,7 +305,7 @@ public class NodeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _onTimeInstanceCountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getOverdueInstanceCount() {
 		if (_overdueInstanceCountSupplier != null) {
 			overdueInstanceCount = _overdueInstanceCountSupplier.get();
@@ -458,8 +462,8 @@ public class NodeMetric implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.workflow.metrics.rest.dto.v1_0.NodeMetric",
 		name = "x-class-name"
 	)
@@ -546,6 +550,27 @@ public class NodeMetric implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -554,3 +579,4 @@ public class NodeMetric implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-226065657

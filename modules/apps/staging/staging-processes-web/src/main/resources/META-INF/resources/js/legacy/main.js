@@ -174,6 +174,11 @@ AUI.add(
 					if (deletionsNode) {
 						deletionsNode.on('change', () => {
 							instance._refreshDeletions();
+							instance.all('.content-link').each((item) => {
+								instance._setContentLabels(
+									item.attr('data-portletid')
+								);
+							});
 						});
 					}
 
@@ -600,10 +605,9 @@ AUI.add(
 						title = Liferay.Language.get('process-details');
 					}
 
-					Liferay.Util.openWindow({
-						dialog: {
-							bodyContent: bodyNode,
-						},
+					Liferay.Util.openModal({
+						bodyHTML: bodyNode.outerHTML(),
+						containerProps: {},
 						title,
 					});
 				},
@@ -865,9 +869,11 @@ AUI.add(
 					const selectedContent = [];
 
 					inputs.each((item) => {
-						const checked = item.attr(STR_CHECKED);
-
-						if (checked) {
+						if (
+							item.attr(STR_CHECKED) &&
+							(!item.ancestor('.deletions') ||
+								instance._isChecked('deletionsNode'))
+						) {
 							selectedContent.push(item.attr('data-name'));
 						}
 					});

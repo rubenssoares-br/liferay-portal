@@ -942,26 +942,30 @@ public class JournalArticleLocalServiceWrapper
 	}
 
 	@Override
+	public JournalArticle fetchLatestArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int status,
+		boolean preferApproved) {
+
+		return _journalArticleLocalService.
+			fetchLatestArticleByExternalReferenceCode(
+				groupId, externalReferenceCode, status, preferApproved);
+	}
+
+	@Override
+	public JournalArticle fetchLatestArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int[] statuses) {
+
+		return _journalArticleLocalService.
+			fetchLatestArticleByExternalReferenceCode(
+				groupId, externalReferenceCode, statuses);
+	}
+
+	@Override
 	public JournalArticle fetchLatestArticleByUrlTitle(
 		long groupId, String urlTitle, int status) {
 
 		return _journalArticleLocalService.fetchLatestArticleByUrlTitle(
 			groupId, urlTitle, status);
-	}
-
-	/**
-	 * Returns the latest indexable web content article matching the resource
-	 * primary key.
-	 *
-	 * @param resourcePrimKey the primary key of the resource instance
-	 * @return the latest indexable web content article matching the resource
-	 primary key, or <code>null</code> if no matching web content
-	 article could be found
-	 */
-	@Override
-	public JournalArticle fetchLatestIndexableArticle(long resourcePrimKey) {
-		return _journalArticleLocalService.fetchLatestIndexableArticle(
-			resourcePrimKey);
 	}
 
 	@Override
@@ -1164,23 +1168,26 @@ public class JournalArticleLocalServiceWrapper
 
 	@Override
 	public String getArticleDescription(
-		long articlePK, java.util.Locale locale) {
+		long companyId, long articlePK, java.util.Locale locale) {
 
 		return _journalArticleLocalService.getArticleDescription(
-			articlePK, locale);
+			companyId, articlePK, locale);
 	}
 
 	@Override
-	public String getArticleDescription(long articlePK, String languageId) {
+	public String getArticleDescription(
+		long companyId, long articlePK, String languageId) {
+
 		return _journalArticleLocalService.getArticleDescription(
-			articlePK, languageId);
+			companyId, articlePK, languageId);
 	}
 
 	@Override
 	public java.util.Map<java.util.Locale, String> getArticleDescriptionMap(
-		long articlePK) {
+		long companyId, long articlePK) {
 
-		return _journalArticleLocalService.getArticleDescriptionMap(articlePK);
+		return _journalArticleLocalService.getArticleDescriptionMap(
+			companyId, articlePK);
 	}
 
 	/**
@@ -1406,10 +1413,10 @@ public class JournalArticleLocalServiceWrapper
 
 	@Override
 	public java.util.List<String> getArticleLocalizationLanguageIds(
-		long articlePK) {
+		long companyId, long articlePK) {
 
 		return _journalArticleLocalService.getArticleLocalizationLanguageIds(
-			articlePK);
+			companyId, articlePK);
 	}
 
 	/**
@@ -1648,21 +1655,6 @@ public class JournalArticleLocalServiceWrapper
 			companyId, previousCheckDate, reviewDate);
 	}
 
-	/**
-	 * Returns all the web content articles matching the small image ID.
-	 *
-	 * @param smallImageId the primary key of the web content article's small
-	 image
-	 * @return the web content articles matching the small image ID
-	 */
-	@Override
-	public java.util.List<JournalArticle> getArticlesBySmallImageId(
-		long smallImageId) {
-
-		return _journalArticleLocalService.getArticlesBySmallImageId(
-			smallImageId);
-	}
-
 	@Override
 	public java.util.List<JournalArticle> getArticlesByStructureId(
 		long groupId, long ddmStructureId, int status, int start, int end,
@@ -1681,42 +1673,6 @@ public class JournalArticleLocalServiceWrapper
 
 		return _journalArticleLocalService.getArticlesByStructureId(
 			groupId, ddmStructureId, start, end, orderByComparator);
-	}
-
-	@Override
-	public java.util.List<JournalArticle> getArticlesByStructureId(
-		long groupId, long ddmStructureId, java.util.Locale locale, int status,
-		int start, int end,
-		com.liferay.portal.kernel.util.OrderByComparator<JournalArticle>
-			orderByComparator) {
-
-		return _journalArticleLocalService.getArticlesByStructureId(
-			groupId, ddmStructureId, locale, status, start, end,
-			orderByComparator);
-	}
-
-	@Override
-	public java.util.List<JournalArticle> getArticlesByStructureId(
-		long groupId, long classNameId, long ddmStructureId, int status,
-		int start, int end,
-		com.liferay.portal.kernel.util.OrderByComparator<JournalArticle>
-			orderByComparator) {
-
-		return _journalArticleLocalService.getArticlesByStructureId(
-			groupId, classNameId, ddmStructureId, status, start, end,
-			orderByComparator);
-	}
-
-	@Override
-	public java.util.List<JournalArticle> getArticlesByStructureId(
-		long groupId, long classNameId, long ddmStructureId,
-		java.util.Locale locale, int status, int start, int end,
-		com.liferay.portal.kernel.util.OrderByComparator<JournalArticle>
-			orderByComparator) {
-
-		return _journalArticleLocalService.getArticlesByStructureId(
-			groupId, classNameId, ddmStructureId, locale, status, start, end,
-			orderByComparator);
 	}
 
 	@Override
@@ -1779,132 +1735,27 @@ public class JournalArticleLocalServiceWrapper
 	}
 
 	@Override
-	public String getArticleTitle(long articlePK, java.util.Locale locale) {
-		return _journalArticleLocalService.getArticleTitle(articlePK, locale);
+	public String getArticleTitle(
+		long companyId, long articlePK, java.util.Locale locale) {
+
+		return _journalArticleLocalService.getArticleTitle(
+			companyId, articlePK, locale);
 	}
 
 	@Override
-	public String getArticleTitle(long articlePK, String languageId) {
+	public String getArticleTitle(
+		long companyId, long articlePK, String languageId) {
+
 		return _journalArticleLocalService.getArticleTitle(
-			articlePK, languageId);
+			companyId, articlePK, languageId);
 	}
 
 	@Override
 	public java.util.Map<java.util.Locale, String> getArticleTitleMap(
-		long articlePK) {
+		long companyId, long articlePK) {
 
-		return _journalArticleLocalService.getArticleTitleMap(articlePK);
-	}
-
-	/**
-	 * Returns an ordered range of all the web content articles matching the
-	 * company, version, and workflow status.
-	 *
-	 * <p>
-	 * Useful when paginating results. Returns a maximum of <code>end -
-	 * start</code> instances. <code>start</code> and <code>end</code> are not
-	 * primary keys, they are indexes in the result set. Thus, <code>0</code>
-	 * refers to the first result in the set. Setting both <code>start</code>
-	 * and <code>end</code> to {@link QueryUtil#ALL_POS} will return the full
-	 * result set.
-	 * </p>
-	 *
-	 * @param companyId the primary key of the web content article's company
-	 * @param version the web content article's version
-	 * @param status the web content article's workflow status. For more
-	 information see {@link WorkflowConstants} for constants starting
-	 with the "STATUS_" prefix.
-	 * @param start the lower bound of the range of web content articles to
-	 return
-	 * @param end the upper bound of the range of web content articles to
-	 return (not inclusive)
-	 * @return the range of matching web content articles ordered by article ID
-	 */
-	@Override
-	public java.util.List<JournalArticle> getCompanyArticles(
-		long companyId, double version, int status, int start, int end) {
-
-		return _journalArticleLocalService.getCompanyArticles(
-			companyId, version, status, start, end);
-	}
-
-	/**
-	 * Returns an ordered range of all the web content articles matching the
-	 * company and workflow status.
-	 *
-	 * <p>
-	 * Useful when paginating results. Returns a maximum of <code>end -
-	 * start</code> instances. <code>start</code> and <code>end</code> are not
-	 * primary keys, they are indexes in the result set. Thus, <code>0</code>
-	 * refers to the first result in the set. Setting both <code>start</code>
-	 * and <code>end</code> to {@link QueryUtil#ALL_POS} will return the full
-	 * result set.
-	 * </p>
-	 *
-	 * @param companyId the primary key of the web content article's company
-	 * @param status the web content article's workflow status. For more
-	 information see {@link WorkflowConstants} for constants starting
-	 with the "STATUS_" prefix.
-	 * @param start the lower bound of the range of web content articles to
-	 return
-	 * @param end the upper bound of the range of web content articles to
-	 return (not inclusive)
-	 * @return the range of matching web content articles ordered by article ID
-	 */
-	@Override
-	public java.util.List<JournalArticle> getCompanyArticles(
-		long companyId, int status, int start, int end) {
-
-		return _journalArticleLocalService.getCompanyArticles(
-			companyId, status, start, end);
-	}
-
-	/**
-	 * Returns the number of web content articles matching the company, version,
-	 * and workflow status.
-	 *
-	 * <p>
-	 * Useful when paginating results. Returns a maximum of <code>end -
-	 * start</code> instances. <code>start</code> and <code>end</code> are not
-	 * primary keys, they are indexes in the result set. Thus, <code>0</code>
-	 * refers to the first result in the set. Setting both <code>start</code>
-	 * and <code>end</code> to {@link QueryUtil#ALL_POS} will return the full
-	 * result set.
-	 * </p>
-	 *
-	 * @param companyId the primary key of the web content article's company
-	 * @param version the web content article's version
-	 * @param status the web content article's workflow status. For more
-	 information see {@link WorkflowConstants} for constants starting
-	 with the "STATUS_" prefix.
-	 * @param start the lower bound of the range of web content articles to
-	 return
-	 * @param end the upper bound of the range of web content articles to
-	 return (not inclusive)
-	 * @return the number of matching web content articles
-	 */
-	@Override
-	public int getCompanyArticlesCount(
-		long companyId, double version, int status, int start, int end) {
-
-		return _journalArticleLocalService.getCompanyArticlesCount(
-			companyId, version, status, start, end);
-	}
-
-	/**
-	 * Returns the number of web content articles matching the company and
-	 * workflow status.
-	 *
-	 * @param companyId the primary key of the web content article's company
-	 * @param status the web content article's workflow status. For more
-	 information see {@link WorkflowConstants} for constants starting
-	 with the "STATUS_" prefix.
-	 * @return the number of matching web content articles
-	 */
-	@Override
-	public int getCompanyArticlesCount(long companyId, int status) {
-		return _journalArticleLocalService.getCompanyArticlesCount(
-			companyId, status);
+		return _journalArticleLocalService.getArticleTitleMap(
+			companyId, articlePK);
 	}
 
 	/**
@@ -2210,6 +2061,17 @@ public class JournalArticleLocalServiceWrapper
 				groupId, externalReferenceCode);
 	}
 
+	@Override
+	public JournalArticle getLatestArticleByExternalReferenceCode(
+			long groupId, String externalReferenceCode, int status,
+			boolean preferApproved)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _journalArticleLocalService.
+			getLatestArticleByExternalReferenceCode(
+				groupId, externalReferenceCode, status, preferApproved);
+	}
+
 	/**
 	 * Returns the latest web content article matching the group, URL title, and
 	 * workflow status.
@@ -2275,19 +2137,6 @@ public class JournalArticleLocalServiceWrapper
 	@Override
 	public java.util.List<JournalArticle> getNoPermissionArticles() {
 		return _journalArticleLocalService.getNoPermissionArticles();
-	}
-
-	/**
-	 * Returns the number of web content articles that are not recycled.
-	 *
-	 * @param groupId the primary key of the web content article's group
-	 * @param folderId the primary key of the web content article folder
-	 * @return the number of web content articles that are not recycled
-	 */
-	@Override
-	public int getNotInTrashArticlesCount(long groupId, long folderId) {
-		return _journalArticleLocalService.getNotInTrashArticlesCount(
-			groupId, folderId);
 	}
 
 	/**
@@ -2450,72 +2299,6 @@ public class JournalArticleLocalServiceWrapper
 	public int getStructureArticlesCount(long groupId, long ddmStructureId) {
 		return _journalArticleLocalService.getStructureArticlesCount(
 			groupId, ddmStructureId);
-	}
-
-	/**
-	 * Returns the web content articles matching the group and DDM template key.
-	 *
-	 * @param groupId the primary key of the web content article's group
-	 * @param ddmTemplateKey the primary key of the web content article's DDM
-	 template
-	 * @return the matching web content articles
-	 */
-	@Override
-	public java.util.List<JournalArticle> getTemplateArticles(
-		long groupId, String ddmTemplateKey) {
-
-		return _journalArticleLocalService.getTemplateArticles(
-			groupId, ddmTemplateKey);
-	}
-
-	/**
-	 * Returns an ordered range of all the web content articles matching the
-	 * group and DDM template key.
-	 *
-	 * <p>
-	 * Useful when paginating results. Returns a maximum of <code>end -
-	 * start</code> instances. <code>start</code> and <code>end</code> are not
-	 * primary keys, they are indexes in the result set. Thus, <code>0</code>
-	 * refers to the first result in the set. Setting both <code>start</code>
-	 * and <code>end</code> to {@link QueryUtil#ALL_POS} will return the full
-	 * result set.
-	 * </p>
-	 *
-	 * @param groupId the primary key of the web content article's group
-	 * @param ddmTemplateKey the primary key of the web content article's DDM
-	 template
-	 * @param start the lower bound of the range of web content articles to
-	 return
-	 * @param end the upper bound of the range of web content articles to
-	 return (not inclusive)
-	 * @param orderByComparator the comparator to order the web content
-	 articles
-	 * @return the range of matching web content articles ordered by the
-	 comparator
-	 */
-	@Override
-	public java.util.List<JournalArticle> getTemplateArticles(
-		long groupId, String ddmTemplateKey, int start, int end,
-		com.liferay.portal.kernel.util.OrderByComparator<JournalArticle>
-			orderByComparator) {
-
-		return _journalArticleLocalService.getTemplateArticles(
-			groupId, ddmTemplateKey, start, end, orderByComparator);
-	}
-
-	/**
-	 * Returns the number of web content articles matching the group and DDM
-	 * template key.
-	 *
-	 * @param groupId the primary key of the web content article's group
-	 * @param ddmTemplateKey the primary key of the web content article's DDM
-	 template
-	 * @return the number of matching web content articles
-	 */
-	@Override
-	public int getTemplateArticlesCount(long groupId, String ddmTemplateKey) {
-		return _journalArticleLocalService.getTemplateArticlesCount(
-			groupId, ddmTemplateKey);
 	}
 
 	/**
@@ -2768,6 +2551,15 @@ public class JournalArticleLocalServiceWrapper
 
 		return _journalArticleLocalService.restoreArticleFromTrash(
 			userId, article);
+	}
+
+	@Override
+	public JournalArticle revertArticle(
+			long userId, long groupId, String articleId, double version)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _journalArticleLocalService.revertArticle(
+			userId, groupId, articleId, version);
 	}
 
 	@Override
@@ -3155,30 +2947,6 @@ public class JournalArticleLocalServiceWrapper
 	}
 
 	/**
-	 * Updates the web content articles matching the group, class name ID, and
-	 * DDM template key, replacing the DDM template key with a new one.
-	 *
-	 * @param groupId the primary key of the web content article's group
-	 * @param classNameId the primary key of the DDMStructure class if the web
-	 content article is related to a DDM structure, the primary key of
-	 the class name associated with the article, or
-	 JournalArticleConstants.CLASS_NAME_ID_DEFAULT in the journal-api
-	 module otherwise
-	 * @param oldDDMTemplateKey the primary key of the web content article's old
-	 DDM template
-	 * @param newDDMTemplateKey the primary key of the web content article's new
-	 DDM template
-	 */
-	@Override
-	public void updateDDMTemplateKey(
-		long groupId, long classNameId, String oldDDMTemplateKey,
-		String newDDMTemplateKey) {
-
-		_journalArticleLocalService.updateDDMTemplateKey(
-			groupId, classNameId, oldDDMTemplateKey, newDDMTemplateKey);
-	}
-
-	/**
 	 * Updates the journal article in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
 	 *
 	 * <p>
@@ -3329,3 +3097,4 @@ public class JournalArticleLocalServiceWrapper
 	private JournalArticleLocalService _journalArticleLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1108184168

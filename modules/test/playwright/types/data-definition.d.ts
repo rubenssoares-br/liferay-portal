@@ -16,13 +16,21 @@ type DataDefinition = {
 
 type DefinitionField = {
 	customProperties: {
-		dataType: 'string';
-		displayStyle: 'singleline' | 'multiline';
+		dataType: 'double' | 'html' | 'integer' | 'string';
+		displayStyle?: 'singleline' | 'multiline';
 		fieldReference: string;
 		options?: Options;
 	};
 	defaultValue: {[keys: string]: string};
-	fieldType: 'journal_article' | 'select' | 'text';
+	fieldType:
+		| 'document_library'
+		| 'geolocation'
+		| 'image'
+		| 'journal_article'
+		| 'numeric'
+		| 'rich_text'
+		| 'select'
+		| 'text';
 	indexType: 'keyword' | 'text' | 'none';
 	label: {[keys: string]: string};
 	localizable: boolean;

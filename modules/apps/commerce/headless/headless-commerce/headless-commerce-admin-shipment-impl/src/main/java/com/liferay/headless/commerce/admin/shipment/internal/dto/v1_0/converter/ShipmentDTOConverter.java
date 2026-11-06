@@ -7,12 +7,12 @@ package com.liferay.headless.commerce.admin.shipment.internal.dto.v1_0.converter
 
 import com.liferay.commerce.constants.CommerceShipmentConstants;
 import com.liferay.commerce.model.CommerceShipment;
-import com.liferay.commerce.service.CommerceShipmentService;
+import com.liferay.commerce.service.CommerceShipmentLocalService;
 import com.liferay.headless.commerce.admin.shipment.dto.v1_0.Shipment;
 import com.liferay.headless.commerce.admin.shipment.dto.v1_0.Status;
-import com.liferay.headless.commerce.admin.shipment.internal.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.language.LanguageResources;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 
@@ -24,7 +24,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Alessio Antonio Rendina
  */
 @Component(
-	property = "dto.class.name=com.liferay.commerce.model.CommerceShipment",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.commerce.model.CommerceShipment"
+	},
 	service = DTOConverter.class
 )
 public class ShipmentDTOConverter
@@ -40,7 +43,7 @@ public class ShipmentDTOConverter
 		throws Exception {
 
 		CommerceShipment commerceShipment =
-			_commerceShipmentService.getCommerceShipment(
+			_commerceShipmentLocalService.getCommerceShipment(
 				(Long)dtoConverterContext.getId());
 
 		return new Shipment() {
@@ -92,7 +95,7 @@ public class ShipmentDTOConverter
 	}
 
 	@Reference
-	private CommerceShipmentService _commerceShipmentService;
+	private CommerceShipmentLocalService _commerceShipmentLocalService;
 
 	@Reference
 	private Language _language;

@@ -5,27 +5,32 @@
 
 package com.liferay.headless.delivery.internal.resource.v1_0;
 
-import com.liferay.document.library.util.DLURLHelper;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.headless.delivery.dto.v1_0.MessageBoardAttachment;
 import com.liferay.headless.delivery.dto.v1_0.util.ContentValueUtil;
 import com.liferay.headless.delivery.resource.v1_0.MessageBoardAttachmentResource;
 import com.liferay.message.boards.constants.MBConstants;
 import com.liferay.message.boards.model.MBMessage;
 import com.liferay.message.boards.model.MBThread;
+import com.liferay.message.boards.service.MBMessageLocalService;
 import com.liferay.message.boards.service.MBMessageService;
 import com.liferay.message.boards.service.MBThreadLocalService;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.portletfilerepository.PortletFileRepository;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.repository.model.Folder;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.vulcan.multipart.BinaryFile;
 import com.liferay.portal.vulcan.multipart.MultipartBody;
 import com.liferay.portal.vulcan.pagination.Page;
+import com.liferay.portal.vulcan.util.ActionUtil;
+
+import jakarta.ws.rs.BadRequestException;
 
 import java.util.Map;
-
-import javax.ws.rs.BadRequestException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -46,6 +51,13 @@ public class MessageBoardAttachmentResourceImpl
 	public void deleteMessageBoardAttachment(Long messageBoardAttachmentId)
 		throws Exception {
 
+		MBMessage mbMessage = _mbMessageLocalService.getFileEntryMessage(
+			messageBoardAttachmentId);
+
+		_mbMessageModelResourcePermission.check(
+			PermissionThreadLocal.getPermissionChecker(), mbMessage,
+			ActionKeys.UPDATE);
+
 		_portletFileRepository.deletePortletFileEntry(messageBoardAttachmentId);
 	}
 
@@ -60,6 +72,10 @@ public class MessageBoardAttachmentResourceImpl
 			_mbMessageService.getMBMessageByExternalReferenceCode(
 				messageBoardMessageExternalReferenceCode, siteId);
 
+		_mbMessageModelResourcePermission.check(
+			PermissionThreadLocal.getPermissionChecker(), mbMessage,
+			ActionKeys.UPDATE);
+
 		FileEntry fileEntry =
 			mbMessage.getAttachmentsFileEntryByExternalReferenceCode(
 				externalReferenceCode, siteId);
@@ -72,6 +88,13 @@ public class MessageBoardAttachmentResourceImpl
 	public MessageBoardAttachment getMessageBoardAttachment(
 			Long messageBoardAttachmentId)
 		throws Exception {
+
+		MBMessage mbMessage = _mbMessageLocalService.getFileEntryMessage(
+			messageBoardAttachmentId);
+
+		_mbMessageModelResourcePermission.check(
+			PermissionThreadLocal.getPermissionChecker(), mbMessage,
+			ActionKeys.VIEW);
 
 		return _toMessageBoardAttachment(
 			_portletFileRepository.getPortletFileEntry(
@@ -91,10 +114,9 @@ public class MessageBoardAttachmentResourceImpl
 			HashMapBuilder.<String, Map<String, String>>put(
 				"createBatch",
 				addAction(
-					ActionKeys.VIEW, mbMessage.getMessageId(),
+					ActionKeys.UPDATE, mbMessage.getMessageId(),
 					"postMessageBoardMessageMessageBoardAttachmentBatch",
-					mbMessage.getUserId(), MBConstants.RESOURCE_NAME,
-					mbMessage.getGroupId())
+					_mbMessageModelResourcePermission)
 			).build(),
 			mbMessage);
 	}
@@ -114,11 +136,11 @@ public class MessageBoardAttachmentResourceImpl
 		return _getMessageBoardAttachmentsPage(
 			HashMapBuilder.<String, Map<String, String>>put(
 				"createBatch",
-				addAction(
-					ActionKeys.ADD_MESSAGE, mbThread.getThreadId(),
+				ActionUtil.addAction(
+					ActionKeys.UPDATE, getClass(), mbMessage.getMessageId(),
 					"postMessageBoardThreadMessageBoardAttachmentBatch",
-					mbThread.getUserId(), MBConstants.RESOURCE_NAME,
-					mbThread.getGroupId())
+					_mbMessageModelResourcePermission, mbThread.getThreadId(),
+					contextUriInfo)
 			).build(),
 			mbMessage);
 	}
@@ -165,14 +187,18 @@ public class MessageBoardAttachmentResourceImpl
 			Long messageBoardMessageId, MultipartBody multipartBody)
 		throws Exception {
 
+		MBMessage mbMessage = _mbMessageService.getMessage(
+			messageBoardMessageId);
+
+		_mbMessageModelResourcePermission.check(
+			PermissionThreadLocal.getPermissionChecker(), mbMessage,
+			ActionKeys.UPDATE);
+
 		BinaryFile binaryFile = multipartBody.getBinaryFile("file");
 
 		if (binaryFile == null) {
 			throw new BadRequestException("No file found in body");
 		}
-
-		MBMessage mbMessage = _mbMessageService.getMessage(
-			messageBoardMessageId);
 
 		Folder folder = mbMessage.addAttachmentsFolder();
 
@@ -182,7 +208,7 @@ public class MessageBoardAttachmentResourceImpl
 				MBMessage.class.getName(), mbMessage.getClassPK(),
 				MBConstants.SERVICE_NAME, folder.getFolderId(),
 				binaryFile.getInputStream(), binaryFile.getFileName(),
-				binaryFile.getFileName(), false));
+				StringPool.BLANK, false));
 	}
 
 	private Page<MessageBoardAttachment> _getMessageBoardAttachmentsPage(
@@ -204,7 +230,7 @@ public class MessageBoardAttachmentResourceImpl
 			{
 				setContentUrl(
 					() -> _dlURLHelper.getPreviewURL(
-						fileEntry, fileEntry.getFileVersion(), null, "", false,
+						fileEntry, fileEntry.getFileVersion(), null, "", true,
 						false));
 				setContentValue(
 					() -> ContentValueUtil.toContentValue(
@@ -222,6 +248,15 @@ public class MessageBoardAttachmentResourceImpl
 
 	@Reference
 	private DLURLHelper _dlURLHelper;
+
+	@Reference
+	private MBMessageLocalService _mbMessageLocalService;
+
+	@Reference(
+		target = "(model.class.name=com.liferay.message.boards.model.MBMessage)"
+	)
+	private ModelResourcePermission<MBMessage>
+		_mbMessageModelResourcePermission;
 
 	@Reference
 	private MBMessageService _mbMessageService;

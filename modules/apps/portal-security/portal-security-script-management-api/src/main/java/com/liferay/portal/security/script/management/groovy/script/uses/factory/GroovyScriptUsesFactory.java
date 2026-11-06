@@ -7,9 +7,9 @@ package com.liferay.portal.security.script.management.groovy.script.uses.factory
 
 import com.liferay.portal.security.script.management.groovy.script.use.GroovyScriptUse;
 
-import java.util.List;
+import jakarta.portlet.ResourceRequest;
 
-import javax.portlet.ResourceRequest;
+import java.util.List;
 
 /**
  * @author Feliphe Marinho
@@ -18,5 +18,7 @@ public interface GroovyScriptUsesFactory {
 
 	public List<GroovyScriptUse> create(ResourceRequest resourceRequest)
 		throws Exception;
+
+	public boolean hasUses() throws Exception;
 
 }

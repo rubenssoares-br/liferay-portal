@@ -111,11 +111,7 @@ public class AssetTagPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		AssetTag newAssetTag = _persistence.create(pk);
-
-		newAssetTag.setMvccVersion(RandomTestUtil.nextLong());
+		AssetTag newAssetTag = addAssetTag();
 
 		newAssetTag.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -141,7 +137,9 @@ public class AssetTagPersistenceTest {
 
 		newAssetTag.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_assetTags.add(_persistence.update(newAssetTag));
+		newAssetTag = _persistence.update(newAssetTag);
+
+		_assetTags.add(newAssetTag);
 
 		AssetTag existingAssetTag = _persistence.findByPrimaryKey(
 			newAssetTag.getPrimaryKey());
@@ -239,6 +237,13 @@ public class AssetTagPersistenceTest {
 	}
 
 	@Test
+	public void testCountByCompanyId() throws Exception {
+		_persistence.countByCompanyId(RandomTestUtil.nextLong());
+
+		_persistence.countByCompanyId(0L);
+	}
+
+	@Test
 	public void testCountByName() throws Exception {
 		_persistence.countByName("");
 
@@ -253,6 +258,15 @@ public class AssetTagPersistenceTest {
 			new String[] {
 				RandomTestUtil.randomString(), "", "null", null, null
 			});
+	}
+
+	@Test
+	public void testCountByG_N() throws Exception {
+		_persistence.countByG_N(RandomTestUtil.nextLong(), "");
+
+		_persistence.countByG_N(0L, "null");
+
+		_persistence.countByG_N(0L, (String)null);
 	}
 
 	@Test
@@ -591,8 +605,6 @@ public class AssetTagPersistenceTest {
 
 		AssetTag assetTag = _persistence.create(pk);
 
-		assetTag.setMvccVersion(RandomTestUtil.nextLong());
-
 		assetTag.setCtCollectionId(RandomTestUtil.nextLong());
 
 		assetTag.setUuid(RandomTestUtil.randomString());
@@ -627,3 +639,4 @@ public class AssetTagPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1795859303

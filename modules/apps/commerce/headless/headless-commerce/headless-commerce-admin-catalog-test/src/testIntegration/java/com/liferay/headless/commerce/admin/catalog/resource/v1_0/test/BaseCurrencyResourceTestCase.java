@@ -13,29 +13,44 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.Currency;
 import com.liferay.headless.commerce.admin.catalog.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Page;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Pagination;
 import com.liferay.headless.commerce.admin.catalog.client.resource.v1_0.CurrencyResource;
 import com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0.CurrencySerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -43,12 +58,27 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,13 +87,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -72,6 +100,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Zoltán Takács
@@ -82,13 +113,17 @@ public abstract class BaseCurrencyResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -101,16 +136,27 @@ public abstract class BaseCurrencyResourceTestCase {
 
 		_currencyResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		CurrencyResource.Builder builder = CurrencyResource.builder();
-
-		currencyResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		currencyResource = CurrencyResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -173,6 +219,7 @@ public abstract class BaseCurrencyResourceTestCase {
 		Currency currency = randomCurrency();
 
 		currency.setCode(regex);
+		currency.setExternalReferenceCode(regex);
 		currency.setSymbol(regex);
 
 		String json = CurrencySerDes.toJSON(currency);
@@ -182,7 +229,292 @@ public abstract class BaseCurrencyResourceTestCase {
 		currency = CurrencySerDes.toDTO(json);
 
 		Assert.assertEquals(regex, currency.getCode());
+		Assert.assertEquals(regex, currency.getExternalReferenceCode());
 		Assert.assertEquals(regex, currency.getSymbol());
+	}
+
+	@Test
+	public void testDeleteCurrency() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency currency = testDeleteCurrency_addCurrency();
+
+		assertHttpResponseStatusCode(
+			204, currencyResource.deleteCurrencyHttpResponse(currency.getId()));
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency.getId()));
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(0L));
+	}
+
+	protected Currency testDeleteCurrency_addCurrency() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteCurrency() throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency currency1 = testGraphQLDeleteCurrency_addCurrency();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteCurrency",
+						new HashMap<String, Object>() {
+							{
+								put("id", currency1.getId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteCurrency"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"currency",
+					new HashMap<String, Object>() {
+						{
+							put("id", currency1.getId());
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency currency2 = testGraphQLDeleteCurrency_addCurrency();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"deleteCurrency",
+							new HashMap<String, Object>() {
+								{
+									put("id", currency2.getId());
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminCatalog_v1_0",
+				"Object/deleteCurrency"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessCommerceAdminCatalog_v1_0",
+					new GraphQLField(
+						"currency",
+						new HashMap<String, Object>() {
+							{
+								put("id", currency2.getId());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected Currency testGraphQLDeleteCurrency_addCurrency()
+		throws Exception {
+
+		return testGraphQLCurrency_addCurrency();
+	}
+
+	@Test
+	public void testDeleteCurrencyBatch() throws Exception {
+		Currency currency1 = testDeleteCurrencyBatch_addCurrency();
+
+		testDeleteCurrencyBatch_deleteCurrency(
+			202, currency1.getExternalReferenceCode(), null);
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency1.getId()));
+
+		currency1 = testDeleteCurrencyBatch_addCurrency();
+
+		testDeleteCurrencyBatch_deleteCurrency(202, null, currency1.getId());
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency1.getId()));
+
+		currency1 = testDeleteCurrencyBatch_addCurrency();
+		Currency currency2 = testDeleteCurrencyBatch_addCurrency();
+
+		testDeleteCurrencyBatch_deleteCurrency(
+			202, currency2.getExternalReferenceCode(), currency1.getId());
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency1.getId()));
+		assertHttpResponseStatusCode(
+			200, currencyResource.getCurrencyHttpResponse(currency2.getId()));
+
+		testDeleteCurrencyBatch_deleteCurrency(
+			202, currency2.getExternalReferenceCode(), currency1.getId());
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency2.getId()));
+	}
+
+	protected Currency testDeleteCurrencyBatch_addCurrency() throws Exception {
+		return testDeleteCurrency_addCurrency();
+	}
+
+	protected void testDeleteCurrencyBatch_deleteCurrency(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			currencyResource.deleteCurrencyBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
+	public void testDeleteCurrencyByExternalReferenceCode() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency currency =
+			testDeleteCurrencyByExternalReferenceCode_addCurrency();
+
+		assertHttpResponseStatusCode(
+			204,
+			currencyResource.deleteCurrencyByExternalReferenceCodeHttpResponse(
+				currency.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			currencyResource.getCurrencyByExternalReferenceCodeHttpResponse(
+				currency.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			currencyResource.getCurrencyByExternalReferenceCodeHttpResponse(
+				"-"));
+	}
+
+	protected Currency testDeleteCurrencyByExternalReferenceCode_addCurrency()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteCurrencyByExternalReferenceCode()
+		throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency currency1 =
+			testGraphQLDeleteCurrencyByExternalReferenceCode_addCurrency();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteCurrencyByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" +
+										currency1.getExternalReferenceCode() +
+											"\"");
+							}
+						})),
+				"JSONObject/data",
+				"Object/deleteCurrencyByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"currencyByExternalReferenceCode",
+					new HashMap<String, Object>() {
+						{
+							put(
+								"externalReferenceCode",
+								"\"" + currency1.getExternalReferenceCode() +
+									"\"");
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency currency2 =
+			testGraphQLDeleteCurrencyByExternalReferenceCode_addCurrency();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"deleteCurrencyByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										"\"" +
+											currency2.
+												getExternalReferenceCode() +
+													"\"");
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminCatalog_v1_0",
+				"Object/deleteCurrencyByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessCommerceAdminCatalog_v1_0",
+					new GraphQLField(
+						"currencyByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" +
+										currency2.getExternalReferenceCode() +
+											"\"");
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected Currency
+			testGraphQLDeleteCurrencyByExternalReferenceCode_addCurrency()
+		throws Exception {
+
+		return testGraphQLCurrency_addCurrency();
 	}
 
 	@Test
@@ -199,7 +531,7 @@ public abstract class BaseCurrencyResourceTestCase {
 			randomCurrency());
 
 		page = currencyResource.getCurrenciesPage(
-			null, null, Pagination.of(1, 10), null);
+			null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -301,10 +633,10 @@ public abstract class BaseCurrencyResourceTestCase {
 
 	@Test
 	public void testGetCurrenciesPageWithPagination() throws Exception {
-		Page<Currency> currencyPage = currencyResource.getCurrenciesPage(
+		Page<Currency> currenciesPage = currencyResource.getCurrenciesPage(
 			null, null, null, null);
 
-		int totalCount = GetterUtil.getInteger(currencyPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(currenciesPage.getTotalCount());
 
 		Currency currency1 = testGetCurrenciesPage_addCurrency(
 			randomCurrency());
@@ -510,16 +842,8 @@ public abstract class BaseCurrencyResourceTestCase {
 
 	@Test
 	public void testGraphQLGetCurrenciesPage() throws Exception {
-		GraphQLField graphQLField = new GraphQLField(
-			"currencies",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
+		GraphQLField graphQLField =
+			testGraphQLGetCurrenciesPageCurrency_getGraphQLField();
 
 		// No namespace
 
@@ -529,8 +853,9 @@ public abstract class BaseCurrencyResourceTestCase {
 
 		long totalCount = currenciesJSONObject.getLong("totalCount");
 
-		Currency currency1 = testGraphQLGetCurrenciesPage_addCurrency();
-		Currency currency2 = testGraphQLGetCurrenciesPage_addCurrency();
+		Currency currency1 = testGraphQLCurrency_addCurrency(randomCurrency());
+
+		Currency currency2 = testGraphQLCurrency_addCurrency(randomCurrency());
 
 		currenciesJSONObject = JSONUtil.getValueAsJSONObject(
 			invokeGraphQLQuery(graphQLField), "JSONObject/data",
@@ -574,123 +899,21 @@ public abstract class BaseCurrencyResourceTestCase {
 					currenciesJSONObject.getString("items"))));
 	}
 
-	protected Currency testGraphQLGetCurrenciesPage_addCurrency()
+	protected GraphQLField
+			testGraphQLGetCurrenciesPageCurrency_getGraphQLField()
 		throws Exception {
 
-		return testGraphQLCurrency_addCurrency();
-	}
-
-	@Test
-	public void testPostCurrency() throws Exception {
-		Currency randomCurrency = randomCurrency();
-
-		Currency postCurrency = testPostCurrency_addCurrency(randomCurrency);
-
-		assertEquals(randomCurrency, postCurrency);
-		assertValid(postCurrency);
-	}
-
-	protected Currency testPostCurrency_addCurrency(Currency currency)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testDeleteCurrency() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		Currency currency = testDeleteCurrency_addCurrency();
-
-		assertHttpResponseStatusCode(
-			204, currencyResource.deleteCurrencyHttpResponse(currency.getId()));
-
-		assertHttpResponseStatusCode(
-			404, currencyResource.getCurrencyHttpResponse(currency.getId()));
-
-		assertHttpResponseStatusCode(
-			404, currencyResource.getCurrencyHttpResponse(currency.getId()));
-	}
-
-	protected Currency testDeleteCurrency_addCurrency() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLDeleteCurrency() throws Exception {
-
-		// No namespace
-
-		Currency currency1 = testGraphQLDeleteCurrency_addCurrency();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"deleteCurrency",
-						new HashMap<String, Object>() {
-							{
-								put("id", currency1.getId());
-							}
-						})),
-				"JSONObject/data", "Object/deleteCurrency"));
-
-		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"currency",
-					new HashMap<String, Object>() {
-						{
-							put("id", currency1.getId());
-						}
-					},
-					new GraphQLField("id"))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray1.length() > 0);
-
-		// Using the namespace headlessCommerceAdminCatalog_v1_0
-
-		Currency currency2 = testGraphQLDeleteCurrency_addCurrency();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"headlessCommerceAdminCatalog_v1_0",
-						new GraphQLField(
-							"deleteCurrency",
-							new HashMap<String, Object>() {
-								{
-									put("id", currency2.getId());
-								}
-							}))),
-				"JSONObject/data",
-				"JSONObject/headlessCommerceAdminCatalog_v1_0",
-				"Object/deleteCurrency"));
-
-		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"headlessCommerceAdminCatalog_v1_0",
-					new GraphQLField(
-						"currency",
-						new HashMap<String, Object>() {
-							{
-								put("id", currency2.getId());
-							}
-						},
-						new GraphQLField("id")))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray2.length() > 0);
-	}
-
-	protected Currency testGraphQLDeleteCurrency_addCurrency()
-		throws Exception {
-
-		return testGraphQLCurrency_addCurrency();
+		return new GraphQLField(
+			"currencies",
+			new HashMap<String, Object>() {
+				{
+					put("search", null);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
 	}
 
 	@Test
@@ -702,6 +925,201 @@ public abstract class BaseCurrencyResourceTestCase {
 
 		assertEquals(postCurrency, getCurrency);
 		assertValid(getCurrency);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		Currency postCurrency = testGetCurrency_addCurrency();
+
+		Currency getCurrency = currencyResource.getCurrency(
+			postCurrency.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.Currency"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(postCurrency.getId());
+
+		assertEquals(getCurrency, CurrencySerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
 	}
 
 	protected Currency testGetCurrency_addCurrency() throws Exception {
@@ -800,6 +1218,140 @@ public abstract class BaseCurrencyResourceTestCase {
 	}
 
 	@Test
+	public void testGetCurrencyByExternalReferenceCode() throws Exception {
+		Currency postCurrency =
+			testGetCurrencyByExternalReferenceCode_addCurrency();
+
+		Currency getCurrency =
+			currencyResource.getCurrencyByExternalReferenceCode(
+				postCurrency.getExternalReferenceCode());
+
+		assertEquals(postCurrency, getCurrency);
+		assertValid(getCurrency);
+	}
+
+	protected Currency testGetCurrencyByExternalReferenceCode_addCurrency()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetCurrencyByExternalReferenceCode()
+		throws Exception {
+
+		Currency currency =
+			testGraphQLGetCurrencyByExternalReferenceCode_addCurrency();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				currency,
+				CurrencySerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"currencyByExternalReferenceCode",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"externalReferenceCode",
+											"\"" +
+												currency.
+													getExternalReferenceCode() +
+														"\"");
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/currencyByExternalReferenceCode"))));
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		Assert.assertTrue(
+			equals(
+				currency,
+				CurrencySerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceAdminCatalog_v1_0",
+								new GraphQLField(
+									"currencyByExternalReferenceCode",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"externalReferenceCode",
+												"\"" +
+													currency.
+														getExternalReferenceCode() +
+															"\"");
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceAdminCatalog_v1_0",
+						"Object/currencyByExternalReferenceCode"))));
+	}
+
+	@Test
+	public void testGraphQLGetCurrencyByExternalReferenceCodeNotFound()
+		throws Exception {
+
+		String irrelevantExternalReferenceCode =
+			"\"" + RandomTestUtil.randomString() + "\"";
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"currencyByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									irrelevantExternalReferenceCode);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"currencyByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										irrelevantExternalReferenceCode);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Currency
+			testGraphQLGetCurrencyByExternalReferenceCode_addCurrency()
+		throws Exception {
+
+		return testGraphQLCurrency_addCurrency();
+	}
+
+	@Test
 	public void testPatchCurrency() throws Exception {
 		Currency postCurrency = testPatchCurrency_addCurrency();
 
@@ -825,12 +1377,315 @@ public abstract class BaseCurrencyResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	@Test
+	public void testPatchCurrencyByExternalReferenceCode() throws Exception {
+		Currency postCurrency =
+			testPatchCurrencyByExternalReferenceCode_addCurrency();
+
+		Currency randomPatchCurrency = randomPatchCurrency();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Currency patchCurrency =
+			currencyResource.patchCurrencyByExternalReferenceCode(
+				postCurrency.getExternalReferenceCode(), randomPatchCurrency);
+
+		Currency expectedPatchCurrency = postCurrency.clone();
+
+		BeanTestUtil.copyProperties(randomPatchCurrency, expectedPatchCurrency);
+
+		Currency getCurrency =
+			currencyResource.getCurrencyByExternalReferenceCode(
+				patchCurrency.getExternalReferenceCode());
+
+		assertEquals(expectedPatchCurrency, getCurrency);
+		assertValid(getCurrency);
+	}
+
+	protected Currency testPatchCurrencyByExternalReferenceCode_addCurrency()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostCurrency() throws Exception {
+		Currency randomCurrency = randomCurrency();
+
+		Currency postCurrency = testPostCurrency_addCurrency(randomCurrency);
+
+		assertEquals(randomCurrency, postCurrency);
+		assertValid(postCurrency);
+	}
+
+	protected Currency testPostCurrency_addCurrency(Currency currency)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLPostCurrency() throws Exception {
+		Currency randomCurrency = randomCurrency();
+
+		Currency currency = testGraphQLCurrency_addCurrency(randomCurrency);
+
+		Assert.assertTrue(equals(randomCurrency, currency));
+	}
+
+	@Test
+	public void testPutCurrencyByExternalReferenceCode() throws Exception {
+		Currency postCurrency =
+			testPutCurrencyByExternalReferenceCode_addCurrency();
+
+		Currency randomCurrency = randomCurrency();
+
+		Currency putCurrency =
+			currencyResource.putCurrencyByExternalReferenceCode(
+				postCurrency.getExternalReferenceCode(), randomCurrency);
+
+		assertEquals(randomCurrency, putCurrency);
+		assertValid(putCurrency);
+
+		Currency getCurrency =
+			currencyResource.getCurrencyByExternalReferenceCode(
+				putCurrency.getExternalReferenceCode());
+
+		assertEquals(randomCurrency, getCurrency);
+		assertValid(getCurrency);
+
+		Currency newCurrency =
+			testPutCurrencyByExternalReferenceCode_createCurrency();
+
+		putCurrency = currencyResource.putCurrencyByExternalReferenceCode(
+			newCurrency.getExternalReferenceCode(), newCurrency);
+
+		assertEquals(newCurrency, putCurrency);
+		assertValid(putCurrency);
+
+		getCurrency = currencyResource.getCurrencyByExternalReferenceCode(
+			putCurrency.getExternalReferenceCode());
+
+		assertEquals(newCurrency, getCurrency);
+
+		Assert.assertEquals(
+			newCurrency.getExternalReferenceCode(),
+			putCurrency.getExternalReferenceCode());
+	}
+
+	protected Currency testPutCurrencyByExternalReferenceCode_addCurrency()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Currency testPutCurrencyByExternalReferenceCode_createCurrency()
+		throws Exception {
+
+		return randomCurrency();
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Currency currency1 = testBatchEngineDeleteImportTask_addCurrency();
+
+		testBatchEngineDeleteImportTask_deleteCurrency(
+			200, currency1.getExternalReferenceCode(), null);
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency1.getId()));
+
+		currency1 = testBatchEngineDeleteImportTask_addCurrency();
+
+		testBatchEngineDeleteImportTask_deleteCurrency(
+			200, null, currency1.getId());
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency1.getId()));
+
+		currency1 = testBatchEngineDeleteImportTask_addCurrency();
+		Currency currency2 = testBatchEngineDeleteImportTask_addCurrency();
+
+		testBatchEngineDeleteImportTask_deleteCurrency(
+			200, currency2.getExternalReferenceCode(), currency1.getId());
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency1.getId()));
+		assertHttpResponseStatusCode(
+			200, currencyResource.getCurrencyHttpResponse(currency2.getId()));
+
+		testBatchEngineDeleteImportTask_deleteCurrency(
+			200, currency2.getExternalReferenceCode(), currency1.getId());
+
+		assertHttpResponseStatusCode(
+			404, currencyResource.getCurrencyHttpResponse(currency2.getId()));
+	}
+
+	protected Currency testBatchEngineDeleteImportTask_addCurrency()
+		throws Exception {
+
+		return testDeleteCurrency_addCurrency();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteCurrency(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.Currency",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
 
 	protected Currency testGraphQLCurrency_addCurrency() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testGraphQLCurrency_addCurrency(randomCurrency());
+	}
+
+	protected Currency testGraphQLCurrency_addCurrency(Currency currency)
+		throws Exception {
+
+		JSONDeserializer<Currency> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field :
+				getDeclaredFields(Currency.class)) {
+
+			if (getGraphQLValue(field.get(currency)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(currency)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createCurrency",
+						new HashMap<String, Object>() {
+							{
+								put("currency", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data", "JSONObject/createCurrency"),
+			Currency.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(
@@ -901,6 +1756,14 @@ public abstract class BaseCurrencyResourceTestCase {
 	protected void assertValid(Currency currency) throws Exception {
 		boolean valid = true;
 
+		if (currency.getDateCreated() == null) {
+			valid = false;
+		}
+
+		if (currency.getDateModified() == null) {
+			valid = false;
+		}
+
 		if (currency.getId() == null) {
 			valid = false;
 		}
@@ -918,6 +1781,24 @@ public abstract class BaseCurrencyResourceTestCase {
 
 			if (Objects.equals("code", additionalAssertFieldName)) {
 				if (currency.getCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("creator", additionalAssertFieldName)) {
+				if (currency.getCreator() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"externalReferenceCode", additionalAssertFieldName)) {
+
+				if (currency.getExternalReferenceCode() == null) {
 					valid = false;
 				}
 
@@ -1057,6 +1938,10 @@ public abstract class BaseCurrencyResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.commerce.admin.catalog.dto.v1_0.
@@ -1129,6 +2014,51 @@ public abstract class BaseCurrencyResourceTestCase {
 			if (Objects.equals("code", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						currency1.getCode(), currency2.getCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("creator", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						currency1.getCreator(), currency2.getCreator())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("dateCreated", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						currency1.getDateCreated(),
+						currency2.getDateCreated())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("dateModified", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						currency1.getDateModified(),
+						currency2.getDateModified())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"externalReferenceCode", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						currency1.getExternalReferenceCode(),
+						currency2.getExternalReferenceCode())) {
 
 					return false;
 				}
@@ -1400,6 +2330,115 @@ public abstract class BaseCurrencyResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("creator")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("dateCreated")) {
+			if (operator.equals("between")) {
+				Date date = currency.getDateCreated();
+
+				sb = new StringBundler();
+
+				sb.append("(");
+				sb.append(entityFieldName);
+				sb.append(" gt ");
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(" and ");
+				sb.append(entityFieldName);
+				sb.append(" lt ");
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(")");
+			}
+			else {
+				sb.append(entityFieldName);
+
+				sb.append(" ");
+				sb.append(operator);
+				sb.append(" ");
+
+				sb.append(_format.format(currency.getDateCreated()));
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("dateModified")) {
+			if (operator.equals("between")) {
+				Date date = currency.getDateModified();
+
+				sb = new StringBundler();
+
+				sb.append("(");
+				sb.append(entityFieldName);
+				sb.append(" gt ");
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(" and ");
+				sb.append(entityFieldName);
+				sb.append(" lt ");
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(")");
+			}
+			else {
+				sb.append(entityFieldName);
+
+				sb.append(" ");
+				sb.append(operator);
+				sb.append(" ");
+
+				sb.append(_format.format(currency.getDateModified()));
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("externalReferenceCode")) {
+			Object object = currency.getExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("formatPattern")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -1507,7 +2546,9 @@ public abstract class BaseCurrencyResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1541,6 +2582,10 @@ public abstract class BaseCurrencyResourceTestCase {
 			{
 				active = RandomTestUtil.randomBoolean();
 				code = StringUtil.toLowerCase(RandomTestUtil.randomString());
+				dateCreated = RandomTestUtil.nextDate();
+				dateModified = RandomTestUtil.nextDate();
+				externalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				id = RandomTestUtil.randomLong();
 				maxFractionDigits = RandomTestUtil.randomInt();
 				minFractionDigits = RandomTestUtil.randomInt();
@@ -1561,7 +2606,30 @@ public abstract class BaseCurrencyResourceTestCase {
 		return randomCurrency();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected CurrencyResource currencyResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1762,11 +2830,36 @@ public abstract class BaseCurrencyResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseCurrencyResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
 		com.liferay.headless.commerce.admin.catalog.resource.v1_0.
 			CurrencyResource _currencyResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:-1761869054

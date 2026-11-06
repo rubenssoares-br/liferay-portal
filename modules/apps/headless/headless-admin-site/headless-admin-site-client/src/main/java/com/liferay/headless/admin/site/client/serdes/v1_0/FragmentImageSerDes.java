@@ -6,15 +6,17 @@
 package com.liferay.headless.admin.site.client.serdes.v1_0;
 
 import com.liferay.headless.admin.site.client.dto.v1_0.FragmentImage;
+import com.liferay.headless.admin.site.client.dto.v1_0.FragmentImageViewport;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -46,75 +48,60 @@ public class FragmentImageSerDes {
 
 		sb.append("{");
 
-		if (fragmentImage.getConfig() != null) {
+		if (fragmentImage.getDescription_i18n() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"config\": ");
+			sb.append("\"description_i18n\": ");
 
-			sb.append(String.valueOf(fragmentImage.getConfig()));
+			sb.append(_toJSON(fragmentImage.getDescription_i18n()));
 		}
 
-		if (fragmentImage.getDescription() != null) {
+		if (fragmentImage.getFragmentImageValue() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"description\": ");
+			sb.append("\"fragmentImageValue\": ");
 
-			if (fragmentImage.getDescription() instanceof String) {
-				sb.append("\"");
-				sb.append((String)fragmentImage.getDescription());
-				sb.append("\"");
-			}
-			else {
-				sb.append(fragmentImage.getDescription());
-			}
+			sb.append(String.valueOf(fragmentImage.getFragmentImageValue()));
 		}
 
-		if (fragmentImage.getItemExternalReference() != null) {
+		if (fragmentImage.getFragmentImageViewports() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"itemExternalReference\": ");
+			sb.append("\"fragmentImageViewports\": ");
 
-			sb.append(String.valueOf(fragmentImage.getItemExternalReference()));
+			sb.append("[");
+
+			for (int i = 0;
+				 i < fragmentImage.getFragmentImageViewports().length; i++) {
+
+				sb.append(
+					String.valueOf(
+						fragmentImage.getFragmentImageViewports()[i]));
+
+				if ((i + 1) <
+						fragmentImage.getFragmentImageViewports().length) {
+
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
-		if (fragmentImage.getTitle() != null) {
+		if (fragmentImage.getLazyLoading() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"title\": ");
+			sb.append("\"lazyLoading\": ");
 
-			if (fragmentImage.getTitle() instanceof String) {
-				sb.append("\"");
-				sb.append((String)fragmentImage.getTitle());
-				sb.append("\"");
-			}
-			else {
-				sb.append(fragmentImage.getTitle());
-			}
-		}
-
-		if (fragmentImage.getUrl() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"url\": ");
-
-			if (fragmentImage.getUrl() instanceof String) {
-				sb.append("\"");
-				sb.append((String)fragmentImage.getUrl());
-				sb.append("\"");
-			}
-			else {
-				sb.append(fragmentImage.getUrl());
-			}
+			sb.append(fragmentImage.getLazyLoading());
 		}
 
 		sb.append("}");
@@ -136,42 +123,39 @@ public class FragmentImageSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
-		if (fragmentImage.getConfig() == null) {
-			map.put("config", null);
-		}
-		else {
-			map.put("config", String.valueOf(fragmentImage.getConfig()));
-		}
-
-		if (fragmentImage.getDescription() == null) {
-			map.put("description", null);
+		if (fragmentImage.getDescription_i18n() == null) {
+			map.put("description_i18n", null);
 		}
 		else {
 			map.put(
-				"description", String.valueOf(fragmentImage.getDescription()));
+				"description_i18n",
+				String.valueOf(fragmentImage.getDescription_i18n()));
 		}
 
-		if (fragmentImage.getItemExternalReference() == null) {
-			map.put("itemExternalReference", null);
+		if (fragmentImage.getFragmentImageValue() == null) {
+			map.put("fragmentImageValue", null);
 		}
 		else {
 			map.put(
-				"itemExternalReference",
-				String.valueOf(fragmentImage.getItemExternalReference()));
+				"fragmentImageValue",
+				String.valueOf(fragmentImage.getFragmentImageValue()));
 		}
 
-		if (fragmentImage.getTitle() == null) {
-			map.put("title", null);
+		if (fragmentImage.getFragmentImageViewports() == null) {
+			map.put("fragmentImageViewports", null);
 		}
 		else {
-			map.put("title", String.valueOf(fragmentImage.getTitle()));
+			map.put(
+				"fragmentImageViewports",
+				String.valueOf(fragmentImage.getFragmentImageViewports()));
 		}
 
-		if (fragmentImage.getUrl() == null) {
-			map.put("url", null);
+		if (fragmentImage.getLazyLoading() == null) {
+			map.put("lazyLoading", null);
 		}
 		else {
-			map.put("url", String.valueOf(fragmentImage.getUrl()));
+			map.put(
+				"lazyLoading", String.valueOf(fragmentImage.getLazyLoading()));
 		}
 
 		return map;
@@ -192,21 +176,20 @@ public class FragmentImageSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "config")) {
-				return false;
-			}
-			else if (Objects.equals(jsonParserFieldName, "description")) {
-				return false;
+			if (Objects.equals(jsonParserFieldName, "description_i18n")) {
+				return true;
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "itemExternalReference")) {
+						jsonParserFieldName, "fragmentImageValue")) {
 
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "title")) {
+			else if (Objects.equals(
+						jsonParserFieldName, "fragmentImageViewports")) {
+
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "url")) {
+			else if (Objects.equals(jsonParserFieldName, "lazyLoading")) {
 				return false;
 			}
 
@@ -218,34 +201,46 @@ public class FragmentImageSerDes {
 			FragmentImage fragmentImage, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "config")) {
+			if (Objects.equals(jsonParserFieldName, "description_i18n")) {
 				if (jsonParserFieldValue != null) {
-					fragmentImage.setConfig(
-						ConfigSerDes.toDTO((String)jsonParserFieldValue));
-				}
-			}
-			else if (Objects.equals(jsonParserFieldName, "description")) {
-				if (jsonParserFieldValue != null) {
-					fragmentImage.setDescription((Object)jsonParserFieldValue);
+					fragmentImage.setDescription_i18n(
+						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "itemExternalReference")) {
+						jsonParserFieldName, "fragmentImageValue")) {
 
 				if (jsonParserFieldValue != null) {
-					fragmentImage.setItemExternalReference(
-						ItemExternalReferenceSerDes.toDTO(
+					fragmentImage.setFragmentImageValue(
+						FragmentImageValueSerDes.toDTO(
 							(String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "title")) {
+			else if (Objects.equals(
+						jsonParserFieldName, "fragmentImageViewports")) {
+
 				if (jsonParserFieldValue != null) {
-					fragmentImage.setTitle((Object)jsonParserFieldValue);
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					FragmentImageViewport[] fragmentImageViewportsArray =
+						new FragmentImageViewport[jsonParserFieldValues.length];
+
+					for (int i = 0; i < fragmentImageViewportsArray.length;
+						 i++) {
+
+						fragmentImageViewportsArray[i] =
+							FragmentImageViewportSerDes.toDTO(
+								(String)jsonParserFieldValues[i]);
+					}
+
+					fragmentImage.setFragmentImageViewports(
+						fragmentImageViewportsArray);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "url")) {
+			else if (Objects.equals(jsonParserFieldName, "lazyLoading")) {
 				if (jsonParserFieldValue != null) {
-					fragmentImage.setUrl((Object)jsonParserFieldValue);
+					fragmentImage.setLazyLoading((Boolean)jsonParserFieldValue);
 				}
 			}
 		}
@@ -293,6 +288,16 @@ public class FragmentImageSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -325,3 +330,4 @@ public class FragmentImageSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2032464196

@@ -7,9 +7,7 @@
 
 <%@ include file="/publications/init.jsp" %>
 
-<clay:container-fluid
-	cssClass="container-view"
->
+<div class="container-view">
 	<div class="sheet">
 		<h2 class="sheet-title">
 			<liferay-ui:message arguments='<%= HtmlUtil.escape(renderRequest.getParameter("ctCollectionName")) %>' key="x-scheduled-publication-failed-with-an-unexpected-system-error" />
@@ -21,8 +19,14 @@
 			long backgroundTaskId = GetterUtil.getLong(renderRequest.getParameter("backgroundTaskId"));
 
 			BackgroundTask backgroundTask = BackgroundTaskLocalServiceUtil.getBackgroundTask(backgroundTaskId);
+
+			String errorStackTrace = backgroundTask.getErrorStackTrace();
+
+			if (Validator.isNull(errorStackTrace)) {
+				errorStackTrace = backgroundTask.getStatusMessage();
+			}
 			%>
 
-			<pre class="bg-light border p-2"><%= backgroundTask.getStatusMessage() %></pre>
+			<pre class="bg-light border p-2"><%= HtmlUtil.escape(GetterUtil.getString(errorStackTrace)) %></pre>
 		</div>
-</clay:container-fluid>
+</div>

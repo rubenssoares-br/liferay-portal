@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.exception.RequiredLayoutPrototypeException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.LayoutPrototype;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutPrototypeLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.servlet.SessionErrors;
@@ -74,7 +75,7 @@ public class DeleteLayoutPrototypeMVCActionCommandTest {
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					serviceContext);
 
@@ -83,16 +84,13 @@ public class DeleteLayoutPrototypeMVCActionCommandTest {
 				null, TestPropsValues.getUserId(), _group.getGroupId(),
 				layoutPageTemplateCollection.
 					getLayoutPageTemplateCollectionId(),
-				RandomTestUtil.randomString(),
+				null, RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE, 0,
 				WorkflowConstants.STATUS_APPROVED, serviceContext);
 
 		LayoutPrototype layoutPrototype =
 			_layoutPrototypeLocalService.getLayoutPrototype(
 				layoutPageTemplateEntry.getLayoutPrototypeId());
-
-		serviceContext.setAttribute(
-			"layoutPrototypeUuid", layoutPrototype.getUuid());
 
 		LayoutTestUtil.addTypePortletLayout(
 			_group.getGroupId(), false, layoutPrototype, true);
@@ -125,6 +123,9 @@ public class DeleteLayoutPrototypeMVCActionCommandTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject
+	private GroupLocalService _groupLocalService;
 
 	@Inject
 	private LayoutPageTemplateEntryLocalService

@@ -6,6 +6,8 @@
 package com.liferay.site.item.selector.web.internal.display.context;
 
 import com.liferay.item.selector.criteria.group.criterion.GroupItemSelectorCriterion;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -21,15 +23,16 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.site.provider.GroupSearchProvider;
 import com.liferay.site.search.GroupSearch;
+import com.liferay.users.admin.constants.UsersAdminPortletKeys;
+
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Julio Camarero
@@ -55,6 +58,10 @@ public class MySitesItemSelectorViewDisplayContext
 
 	@Override
 	public GroupSearch getGroupSearch() throws Exception {
+		if (_groupSearch != null) {
+			return _groupSearch;
+		}
+
 		GroupItemSelectorCriterion groupItemSelectorCriterion =
 			getGroupItemSelectorCriterion();
 
@@ -67,16 +74,35 @@ public class MySitesItemSelectorViewDisplayContext
 				"groupId", String.valueOf(group.getGroupId()));
 		}
 
-		GroupSearch groupSearch = new GroupSearch(_portletRequest, portletURL);
+		_groupSearch = new GroupSearch(_portletRequest, portletURL);
 
-		GroupSearchProvider.setResultsAndTotal(
-			_getClassNames(), groupItemSelectorCriterion.getExcludedGroupIds(),
-			groupSearch, _portletRequest);
+		long ctCollectionId = CTCollectionThreadLocal.getCTCollectionId();
 
-		if (groupSearch.getStart() == 0) {
+		String itemSelectedEventName = getItemSelectedEventName();
+
+		if ((itemSelectedEventName != null) &&
+			itemSelectedEventName.startsWith(
+				PortalUtil.getPortletNamespace(
+					UsersAdminPortletKeys.USERS_ADMIN))) {
+
+			ctCollectionId =
+				CTCollectionThreadLocal.CT_COLLECTION_ID_PRODUCTION;
+		}
+
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					ctCollectionId)) {
+
+			GroupSearchProvider.setResultsAndTotal(
+				groupItemSelectorCriterion.getActionId(), _getClassNames(),
+				groupItemSelectorCriterion.getExcludedGroupIds(), _groupSearch,
+				_portletRequest);
+		}
+
+		if (_groupSearch.getStart() == 0) {
 			if (groupItemSelectorCriterion.isIncludeUserPersonalSite()) {
 				_prependGroup(
-					groupSearch,
+					_groupSearch,
 					GroupLocalServiceUtil.getGroup(
 						_themeDisplay.getCompanyId(),
 						GroupConstants.USER_PERSONAL_SITE));
@@ -84,13 +110,13 @@ public class MySitesItemSelectorViewDisplayContext
 
 			if (groupItemSelectorCriterion.isIncludeFormsSite()) {
 				_prependGroup(
-					groupSearch,
+					_groupSearch,
 					GroupLocalServiceUtil.getGroup(
 						_themeDisplay.getCompanyId(), GroupConstants.FORMS));
 			}
 		}
 
-		return groupSearch;
+		return _groupSearch;
 	}
 
 	@Override
@@ -188,6 +214,7 @@ public class MySitesItemSelectorViewDisplayContext
 	private static final Log _log = LogFactoryUtil.getLog(
 		MySitesItemSelectorViewDisplayContext.class);
 
+	private GroupSearch _groupSearch;
 	private final PortletRequest _portletRequest;
 	private final ThemeDisplay _themeDisplay;
 

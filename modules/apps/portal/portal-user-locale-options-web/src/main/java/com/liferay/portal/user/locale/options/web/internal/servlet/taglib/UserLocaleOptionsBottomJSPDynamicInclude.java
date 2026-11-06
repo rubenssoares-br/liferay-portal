@@ -16,13 +16,13 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.SessionClicks;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.Locale;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -30,7 +30,10 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Chema Balsas
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/bottom.jsp#pre",
+	service = DynamicInclude.class
+)
 public class UserLocaleOptionsBottomJSPDynamicInclude
 	extends BaseJSPDynamicInclude {
 
@@ -80,13 +83,6 @@ public class UserLocaleOptionsBottomJSPDynamicInclude
 		}
 
 		super.include(httpServletRequest, httpServletResponse, key);
-	}
-
-	@Override
-	public void register(
-		DynamicInclude.DynamicIncludeRegistry dynamicIncludeRegistry) {
-
-		dynamicIncludeRegistry.register("/html/common/themes/bottom.jsp#pre");
 	}
 
 	@Override

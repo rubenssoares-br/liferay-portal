@@ -11,28 +11,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Olivér Kecskeméty
@@ -42,6 +43,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "A complex attribute containing resource metadata.",
 	value = "Meta"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A complex attribute containing resource metadata."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Meta")
@@ -55,7 +59,7 @@ public class Meta implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Meta.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The \"DateTime\" that the resource was added to the service provider."
 	)
 	public Date getCreated() {
@@ -100,7 +104,7 @@ public class Meta implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _createdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The most recent DateTime that the details of this resource were updated at the service provider."
 	)
 	public Date getLastModified() {
@@ -145,7 +149,9 @@ public class Meta implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _lastModifiedSupplier;
 
-	@Schema(description = "The URI of the resource being returned.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The URI of the resource being returned."
+	)
 	public String getLocation() {
 		if (_locationSupplier != null) {
 			location = _locationSupplier.get();
@@ -186,7 +192,9 @@ public class Meta implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _locationSupplier;
 
-	@Schema(description = "The name of the resource type of the resource.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The name of the resource type of the resource."
+	)
 	public String getResourceType() {
 		if (_resourceTypeSupplier != null) {
 			resourceType = _resourceTypeSupplier.get();
@@ -229,7 +237,9 @@ public class Meta implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _resourceTypeSupplier;
 
-	@Schema(description = "The version of the resource being returned.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The version of the resource being returned."
+	)
 	public String getVersion() {
 		if (_versionSupplier != null) {
 			version = _versionSupplier.get();
@@ -385,8 +395,8 @@ public class Meta implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.scim.rest.dto.v1_0.Meta",
 		name = "x-class-name"
 	)
@@ -473,6 +483,27 @@ public class Meta implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -481,3 +512,4 @@ public class Meta implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-32779832

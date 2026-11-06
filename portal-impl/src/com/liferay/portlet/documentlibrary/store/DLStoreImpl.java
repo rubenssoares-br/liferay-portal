@@ -15,21 +15,19 @@ import com.liferay.document.library.kernel.store.StoreArea;
 import com.liferay.document.library.kernel.store.StoreAreaAwareStoreWrapper;
 import com.liferay.document.library.kernel.store.StoreAreaProcessor;
 import com.liferay.document.library.kernel.util.DLValidatorUtil;
+import com.liferay.petra.io.ByteArrayFileInputStream;
 import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
-import com.liferay.portal.kernel.io.ByteArrayFileInputStream;
-import com.liferay.portal.kernel.messaging.DestinationNames;
-import com.liferay.portal.kernel.messaging.Message;
-import com.liferay.portal.kernel.messaging.MessageBusUtil;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.util.FileUtil;
-import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -97,6 +95,41 @@ public class DLStoreImpl implements DLStore {
 
 	@Override
 	public void copyFileVersion(
+			DLStoreRequest dlStoreRequest, String toVersionLabel)
+		throws PortalException {
+
+		if (_isStoreAreaSupported()) {
+			StoreAreaProcessor storeAreaProcessor =
+				_storeAreaProcessorSnapshot.get();
+
+			StoreArea.tryRunWithStoreAreas(
+				sourceStoreArea -> storeAreaProcessor.copy(
+					sourceStoreArea.getPath(
+						dlStoreRequest.getCompanyId(),
+						dlStoreRequest.getRepositoryId(),
+						dlStoreRequest.getFileName(),
+						dlStoreRequest.getVersionLabel()),
+					StoreArea.NEW.getPath(
+						dlStoreRequest.getCompanyId(),
+						dlStoreRequest.getRepositoryId(),
+						dlStoreRequest.getFileName(), toVersionLabel)),
+				StoreArea.LIVE, StoreArea.NEW, StoreArea.DELETED);
+		}
+		else {
+			_wrappedStore.addFile(
+				dlStoreRequest.getCompanyId(), dlStoreRequest.getRepositoryId(),
+				dlStoreRequest.getFileName(), toVersionLabel,
+				_getNullSafeInputStream(
+					_wrappedStore.getFileAsStream(
+						dlStoreRequest.getCompanyId(),
+						dlStoreRequest.getRepositoryId(),
+						dlStoreRequest.getFileName(),
+						dlStoreRequest.getVersionLabel())));
+		}
+	}
+
+	@Override
+	public void copyFileVersion(
 			long companyId, long repositoryId, String fileName,
 			String fromVersionLabel, String toVersionLabel)
 		throws PortalException {
@@ -127,19 +160,14 @@ public class DLStoreImpl implements DLStore {
 			long companyId, long repositoryId, String dirName)
 		throws PortalException {
 
-		Message message = new Message();
-
-		message.setValues(
-			HashMapBuilder.<String, Object>put(
-				"companyId", companyId
-			).put(
-				"dirName", dirName
-			).put(
-				"repositoryId", repositoryId
-			).build());
-
-		MessageBusUtil.sendMessage(
-			DestinationNames.DOCUMENT_LIBRARY_DELETION, message);
+		try {
+			_wrappedStore.deleteDirectory(companyId, repositoryId, dirName);
+		}
+		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(exception);
+			}
+		}
 	}
 
 	@Override
@@ -388,6 +416,8 @@ public class DLStoreImpl implements DLStore {
 
 		DLValidatorUtil.validateVersionLabel(versionLabel);
 	}
+
+	private static final Log _log = LogFactoryUtil.getLog(DLStoreImpl.class);
 
 	private static final Snapshot<StoreAreaProcessor>
 		_storeAreaProcessorSnapshot = new Snapshot<>(

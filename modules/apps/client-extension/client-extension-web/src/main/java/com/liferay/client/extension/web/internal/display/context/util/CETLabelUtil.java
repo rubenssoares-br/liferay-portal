@@ -41,7 +41,15 @@ public class CETLabelUtil {
 	private static String _getCETTypeLanguageKey(String type) {
 		if (Objects.equals(
 				type,
-				ClientExtensionEntryConstants.TYPE_COMMERCE_CHECKOUT_STEP)) {
+				ClientExtensionEntryConstants.
+					TYPE_AUDIENCES_CUSTOM_ATTRIBUTES)) {
+
+			return "audiences-custom-attributes";
+		}
+		else if (Objects.equals(
+					type,
+					ClientExtensionEntryConstants.
+						TYPE_COMMERCE_CHECKOUT_STEP)) {
 
 			return "commerce-checkout-step";
 		}
@@ -67,6 +75,13 @@ public class CETLabelUtil {
 					type, ClientExtensionEntryConstants.TYPE_FDS_FILTER)) {
 
 			return "fds-filter";
+		}
+		else if (Objects.equals(
+					type,
+					ClientExtensionEntryConstants.
+						TYPE_FDS_VISUALIZATION_MODE)) {
+
+			return "fds-visualization-mode";
 		}
 		else if (Objects.equals(
 					type, ClientExtensionEntryConstants.TYPE_GLOBAL_CSS)) {

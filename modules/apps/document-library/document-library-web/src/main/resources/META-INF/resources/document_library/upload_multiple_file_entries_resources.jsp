@@ -10,6 +10,8 @@
 <%
 String redirect = ParamUtil.getString(request, "redirect");
 
+DLAdminDisplayContext dlAdminDisplayContext = (DLAdminDisplayContext)request.getAttribute(DLAdminDisplayContext.class.getName());
+
 FileEntry fileEntry = (FileEntry)request.getAttribute(WebKeys.DOCUMENT_LIBRARY_FILE_ENTRY);
 
 long groupId = BeanParamUtil.getLong(fileEntry, request, "groupId");
@@ -358,6 +360,8 @@ else {
 						className="<%= DLFileEntry.class.getName() %>"
 						classPK="<%= assetClassPK %>"
 						classTypePK="<%= fileEntryTypeId %>"
+						groupIds="<%= SiteConnectedGroupGroupProviderUtil.getCurrentAndAncestorSiteAndDepotGroupIds(dlAdminDisplayContext.getRepositoryGroupId(scopeGroupId, repositoryId)) %>"
+						visibilityTypes="<%= AssetVocabularyConstants.VISIBILITY_TYPES %>"
 					/>
 
 					<liferay-asset:asset-tags-selector
@@ -375,7 +379,7 @@ else {
 			id="dlFileEntryExpirationDatePanel"
 			markupView="lexicon"
 			persistState="<%= true %>"
-			title="schedule"
+			title="schedule[noun]"
 		>
 			<aui:fieldset>
 				<liferay-ui:error exception="<%= FileEntryDisplayDateException.class %>" message="please-enter-a-valid-publish-date" />

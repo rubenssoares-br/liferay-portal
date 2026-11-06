@@ -95,7 +95,7 @@ const BaseNotificationsInfo = ({
 			headers: HEADERS,
 		},
 		fetchPolicy: 'cache-first',
-		link: `${window.location.origin}${contextUrl}${userBaseURL}/roles?restrictFields=rolePermissions`,
+		link: `${window.location.origin}${contextUrl}${userBaseURL}/roles?fields=id,name,roleType`,
 		onNetworkStatusChange: setNetworkStatus,
 		variables: {
 			pageSize: -1,
@@ -137,10 +137,6 @@ const BaseNotificationsInfo = ({
 		{
 			label: Liferay.Language.get('text'),
 			value: 'text',
-		},
-		{
-			label: Liferay.Language.get('velocity'),
-			value: 'velocity',
 		},
 	];
 

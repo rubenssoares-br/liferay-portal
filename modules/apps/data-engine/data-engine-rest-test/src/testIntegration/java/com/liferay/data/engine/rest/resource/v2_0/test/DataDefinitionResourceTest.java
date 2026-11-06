@@ -17,30 +17,44 @@ import com.liferay.data.engine.rest.client.pagination.Page;
 import com.liferay.data.engine.rest.client.pagination.Pagination;
 import com.liferay.data.engine.rest.client.permission.Permission;
 import com.liferay.data.engine.rest.client.problem.Problem;
-import com.liferay.data.engine.rest.resource.exception.DataLayoutValidationException;
-import com.liferay.data.engine.rest.resource.v2_0.DataDefinitionResource;
+import com.liferay.data.engine.rest.client.resource.v2_0.DataDefinitionResource;
 import com.liferay.data.engine.rest.resource.v2_0.test.util.DataDefinitionTestUtil;
 import com.liferay.data.engine.rest.resource.v2_0.test.util.DataLayoutTestUtil;
 import com.liferay.data.engine.rest.resource.v2_0.test.util.content.type.TestDataDefinitionContentType;
 import com.liferay.data.engine.rest.resource.v2_0.test.util.content.type.test.util.ModelResourceActionTestUtil;
+import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalService;
+import com.liferay.dynamic.data.mapping.service.DDMStructureLocalServiceWrapper;
+import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.role.RoleConstants;
-import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
+import com.liferay.portal.kernel.module.util.SystemBundleUtil;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.permission.ResourceActions;
-import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.service.CompanyLocalService;
+import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.ServiceWrapper;
 import com.liferay.portal.kernel.test.rule.DataGuard;
+import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Portal;
-import com.liferay.portal.kernel.util.ProxyUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
+import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
@@ -51,9 +65,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -61,6 +77,9 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceRegistration;
 
 /**
  * @author Jeyvison Nascimento
@@ -127,6 +146,16 @@ public class DataDefinitionResourceTest
 
 	@Override
 	@Test
+	public DataDefinition
+			testDeleteSiteDataDefinitionByContentTypeByExternalReferenceCode_addDataDefinition()
+		throws Exception {
+
+		return dataDefinitionResource.postSiteDataDefinitionByContentType(
+			testGroup.getGroupId(), _CONTENT_TYPE, randomDataDefinition());
+	}
+
+	@Override
+	@Test
 	public void testGetDataDefinitionDataDefinitionFieldFieldTypes()
 		throws Exception {
 
@@ -148,6 +177,16 @@ public class DataDefinitionResourceTest
 				postDataDefinition.getId(), RoleConstants.GUEST);
 
 		Assert.assertNotNull(page);
+	}
+
+	@Override
+	@Test
+	public DataDefinition
+			testGetSiteDataDefinitionByContentTypeByExternalReferenceCode_addDataDefinition()
+		throws Exception {
+
+		return dataDefinitionResource.postSiteDataDefinitionByContentType(
+			testGroup.getGroupId(), _CONTENT_TYPE, randomDataDefinition());
 	}
 
 	@Override
@@ -296,6 +335,40 @@ public class DataDefinitionResourceTest
 						getGraphQLFields())),
 				"JSONArray/errors", "Object/0", "JSONObject/extensions",
 				"Object/code"));
+	}
+
+	@Override
+	@Test
+	public void testGraphQLGetSiteDataDefinitionByContentTypeByExternalReferenceCodeNotFound()
+		throws Exception {
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"dataDefinitionByContentTypeByExternalReferenceCode",
+						HashMapBuilder.<String, Object>put(
+							"contentType", "\"" + _CONTENT_TYPE + "\""
+						).put(
+							"externalReferenceCode",
+							"\"" + RandomTestUtil.randomString() + "\""
+						).put(
+							"siteKey",
+							"\"" + irrelevantGroup.getGroupId() + "\""
+						).build(),
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	@Override
+	@Test
+	public DataDefinition testGraphQLSiteDataDefinition_addDataDefinition()
+		throws Exception {
+
+		return dataDefinitionResource.postSiteDataDefinitionByContentType(
+			testGroup.getGroupId(), _CONTENT_TYPE, randomDataDefinition());
 	}
 
 	@Override
@@ -554,7 +627,7 @@ public class DataDefinitionResourceTest
 				problem.getType());
 		}
 
-		// Provide default layout name when none is informed
+		// Provide default data layout name when no name is provided
 
 		DataDefinition dataDefinition =
 			dataDefinitionResource.postSiteDataDefinitionByContentType(
@@ -566,6 +639,41 @@ public class DataDefinitionResourceTest
 		DataLayout dataLayout = dataDefinition.getDefaultDataLayout();
 
 		Assert.assertEquals(dataDefinition.getName(), dataLayout.getName());
+
+		dataDefinitionResource.deleteDataDefinition(dataDefinition.getId());
+
+		// Provide empty string as the data definition field default value when
+		// no default value is provided
+
+		dataDefinition = DataDefinition.toDTO(
+			DataDefinitionTestUtil.read("data-definition-basic.json"));
+
+		DataDefinitionField[] dataDefinitionFields =
+			dataDefinition.getDataDefinitionFields();
+
+		Assert.assertEquals(
+			Arrays.toString(dataDefinitionFields), 1,
+			dataDefinitionFields.length);
+
+		DataDefinitionField dataDefinitionField = dataDefinitionFields[0];
+
+		Assert.assertNull(dataDefinitionField.getDefaultValue());
+
+		dataDefinition =
+			dataDefinitionResource.postSiteDataDefinitionByContentType(
+				testGroup.getGroupId(), _CONTENT_TYPE, dataDefinition);
+
+		dataDefinitionFields = dataDefinition.getDataDefinitionFields();
+
+		dataDefinitionField = dataDefinitionFields[0];
+
+		Assert.assertEquals(
+			HashMapBuilder.<String, Object>put(
+				"en_US", StringPool.BLANK
+			).build(),
+			dataDefinitionField.getDefaultValue());
+
+		dataDefinitionResource.deleteDataDefinition(dataDefinition.getId());
 	}
 
 	@Override
@@ -594,25 +702,22 @@ public class DataDefinitionResourceTest
 
 		Group group = GroupTestUtil.addGroup();
 
-		DataDefinitionResource.Builder dataDefinitionResourceBuilder =
-			_dataDefinitionResourceFactory.create();
-
-		DataDefinitionResource dataDefinitionResource =
-			dataDefinitionResourceBuilder.user(
-				TestPropsValues.getUser()
-			).build();
-
 		try {
 			dataDefinitionResource.postSiteDataDefinitionByContentType(
 				group.getGroupId(), _CONTENT_TYPE,
-				com.liferay.data.engine.rest.dto.v2_0.DataDefinition.toDTO(
+				DataDefinition.toDTO(
 					DataDefinitionTestUtil.read(
 						"data-definition-invalid-row-size.json")));
 
 			Assert.fail("An exception must be thrown");
 		}
-		catch (DataLayoutValidationException.InvalidRowSize
-					dataLayoutValidationException) {
+		catch (Problem.ProblemException problemException) {
+			Problem problem = problemException.getProblem();
+
+			Assert.assertEquals("BAD_REQUEST", problem.getStatus());
+			Assert.assertEquals(
+				"DataLayoutValidationException.InvalidRowSize",
+				problem.getType());
 
 			Assert.assertEquals(
 				0,
@@ -621,88 +726,36 @@ public class DataDefinitionResourceTest
 					_portal.getClassNameId(
 						TestDataDefinitionContentType.class)));
 		}
+
+		_testPostSiteDataDefinitionByContentTypeWithNestedFieldsets();
 	}
 
 	@Override
 	@Test
 	public void testPutDataDefinition() throws Exception {
-		String originalName = PrincipalThreadLocal.getName();
+		_testPutDataDefinitionPropagatesToLinkedDataDefinitions();
+		_testPutDataDefinitionWithDefaultDataLayout();
+		_testPutDataDefinitionWithFieldsetDefaultValues();
+	}
 
-		try {
-			PrincipalThreadLocal.setName(TestPropsValues.getUserId());
+	@Override
+	@Test
+	public DataDefinition
+			testPutSiteDataDefinitionByContentTypeByExternalReferenceCode_addDataDefinition()
+		throws Exception {
 
-			Queue<Long> queue = new LinkedList<>();
+		return dataDefinitionResource.postSiteDataDefinitionByContentType(
+			testGroup.getGroupId(), _CONTENT_TYPE, randomDataDefinition());
+	}
 
-			ReflectionTestUtil.setFieldValue(
-				_dataDefinitionResource, "_ddmStructureLocalService",
-				ProxyUtil.newProxyInstance(
-					DDMStructureLocalService.class.getClassLoader(),
-					new Class<?>[] {DDMStructureLocalService.class},
-					(proxy, method, arguments) -> {
-						if (Objects.equals(
-								method.getName(), "updateStructure")) {
+	@Override
+	@Test
+	public DataDefinition
+			testPutSiteDataDefinitionByContentTypeByExternalReferenceCode_createDataDefinition()
+		throws Exception {
 
-							queue.add((Long)arguments[1]);
-						}
-
-						return method.invoke(
-							_ddmStructureLocalService, arguments);
-					}));
-
-			DataDefinition dataDefinition =
-				dataDefinitionResource.postSiteDataDefinitionByContentType(
-					testGroup.getGroupId(), _CONTENT_TYPE,
-					DataDefinition.toDTO(
-						DataDefinitionTestUtil.read("data-definition-1.json")));
-
-			dataDefinitionResource.postSiteDataDefinitionByContentType(
-				testGroup.getGroupId(), _CONTENT_TYPE,
-				DataDefinition.toDTO(
-					DataDefinitionTestUtil.read(
-						"data-definition-2-linked-to-data-definition-1.json")));
-
-			dataDefinitionResource.postSiteDataDefinitionByContentType(
-				testGroup.getGroupId(), _CONTENT_TYPE,
-				DataDefinition.toDTO(
-					DataDefinitionTestUtil.read(
-						"data-definition-3-linked-to-data-definition-2.json")));
-
-			_dataDefinitionResource.setContextUser(TestPropsValues.getUser());
-
-			_dataDefinitionResource.putDataDefinition(
-				dataDefinition.getId(),
-				com.liferay.data.engine.rest.dto.v2_0.DataDefinition.toDTO(
-					dataDefinition.toString()));
-
-			Assert.assertEquals(3, queue.size());
-		}
-		finally {
-			PrincipalThreadLocal.setName(originalName);
-		}
-
-		DataDefinition postDataDefinition =
-			testPutDataDefinition_addDataDefinition();
-
-		DataDefinition randomDataDefinition = randomDataDefinition();
-
-		DataLayout newDataLayout = DataLayoutTestUtil.createDataLayout(
-			postDataDefinition.getId(), "Data Layout Updated",
-			postDataDefinition.getSiteId());
-
-		randomDataDefinition.setDefaultDataLayout(newDataLayout);
-
-		DataDefinition putDataDefinition =
-			dataDefinitionResource.putDataDefinition(
-				postDataDefinition.getId(), randomDataDefinition);
-
-		assertEquals(randomDataDefinition, putDataDefinition);
-		assertValid(putDataDefinition);
-
-		DataDefinition getDataDefinition =
-			dataDefinitionResource.getDataDefinition(putDataDefinition.getId());
-
-		assertEquals(randomDataDefinition, getDataDefinition);
-		assertValid(getDataDefinition);
+		return dataDefinitionResource.postSiteDataDefinitionByContentType(
+			testGroup.getGroupId(), _CONTENT_TYPE, randomDataDefinition());
 	}
 
 	@Rule
@@ -718,13 +771,15 @@ public class DataDefinitionResourceTest
 			for (DataDefinitionField dataDefinitionField :
 					dataDefinition.getDataDefinitionFields()) {
 
-				if (Validator.isNull(dataDefinitionField.getFieldType()) ||
-					Validator.isNull(dataDefinitionField.getLabel()) ||
-					Validator.isNull(dataDefinitionField.getName()) ||
-					Validator.isNull(dataDefinitionField.getTip())) {
+				if (Validator.isNotNull(dataDefinitionField.getFieldType()) &&
+					Validator.isNotNull(dataDefinitionField.getLabel()) &&
+					Validator.isNotNull(dataDefinitionField.getName()) &&
+					Validator.isNotNull(dataDefinitionField.getTip())) {
 
-					valid = false;
+					continue;
 				}
+
+				valid = false;
 			}
 		}
 		else {
@@ -886,6 +941,28 @@ public class DataDefinitionResourceTest
 			testGroup.getGroupId(), _CONTENT_TYPE, randomDataDefinition());
 	}
 
+	private DataDefinition _addDataDefinitionWithFieldsets(
+			String fileName, DataDefinition... fieldsetDataDefinitions)
+		throws Exception {
+
+		DataDefinition dataDefinition = DataDefinition.toDTO(
+			DataDefinitionTestUtil.read(fileName));
+
+		DataDefinitionField[] dataDefinitionFields =
+			dataDefinition.getDataDefinitionFields();
+
+		for (int i = 0; i < fieldsetDataDefinitions.length; i++) {
+			Map<String, Object> customProperties =
+				dataDefinitionFields[i].getCustomProperties();
+
+			customProperties.put(
+				"ddmStructureId", fieldsetDataDefinitions[i].getId());
+		}
+
+		return dataDefinitionResource.postSiteDataDefinitionByContentType(
+			testGroup.getGroupId(), _CONTENT_TYPE, dataDefinition);
+	}
+
 	private DataDefinition _createDataDefinition(
 			String description, String name)
 		throws Exception {
@@ -909,6 +986,43 @@ public class DataDefinitionResourceTest
 		dataDefinition.setSiteId(testGroup.getGroupId());
 
 		return dataDefinition;
+	}
+
+	private List<DataDefinitionField> _getAllDataDefinitionFields(
+		DataDefinitionField[] dataDefinitionFields) {
+
+		List<DataDefinitionField> allDataDefinitionFields = new ArrayList<>();
+
+		for (DataDefinitionField dataDefinitionField : dataDefinitionFields) {
+			allDataDefinitionFields.add(dataDefinitionField);
+
+			DataDefinitionField[] nestedDataDefinitionFields =
+				dataDefinitionField.getNestedDataDefinitionFields();
+
+			if (nestedDataDefinitionFields == null) {
+				continue;
+			}
+
+			allDataDefinitionFields.addAll(
+				_getAllDataDefinitionFields(nestedDataDefinitionFields));
+		}
+
+		return allDataDefinitionFields;
+	}
+
+	private DataDefinitionField _getDataDefinitionField(
+		DataDefinition dataDefinition, String name) {
+
+		for (DataDefinitionField dataDefinitionField :
+				_getAllDataDefinitionFields(
+					dataDefinition.getDataDefinitionFields())) {
+
+			if (Objects.equals(dataDefinitionField.getName(), name)) {
+				return dataDefinitionField;
+			}
+		}
+
+		throw new AssertionError("No data definition field named " + name);
 	}
 
 	private List<String> _getDataLayoutColumnFieldNames(DataLayout dataLayout) {
@@ -974,20 +1088,24 @@ public class DataDefinitionResourceTest
 				customProperties1.containsKey("fieldReference"),
 				customProperties2.containsKey("fieldReference"));
 
-			if (customProperties1.containsKey("fieldReference")) {
+			Object fieldReference = customProperties1.get("fieldReference");
+
+			if (fieldReference != null) {
 				Assert.assertEquals(
-					"CopyOf" + customProperties1.get("fieldReference"),
+					"CopyOf" + fieldReference,
 					customProperties2.get("fieldReference"));
 			}
 
-			if (!customProperties1.containsKey("structureId") &&
-				!Objects.equals(
+			if (customProperties1.containsKey("structureId") ||
+				Objects.equals(
 					dataDefinitionFields1[i].getFieldType(), "fieldset")) {
 
-				_testCopiedDataDefinitionFields(
-					dataDefinitionFields1[i].getNestedDataDefinitionFields(),
-					dataDefinitionFields2[i].getNestedDataDefinitionFields());
+				continue;
 			}
+
+			_testCopiedDataDefinitionFields(
+				dataDefinitionFields1[i].getNestedDataDefinitionFields(),
+				dataDefinitionFields2[i].getNestedDataDefinitionFields());
 		}
 	}
 
@@ -1021,16 +1139,257 @@ public class DataDefinitionResourceTest
 		dataDefinitionResource.deleteDataDefinition(dataDefinition.getId());
 	}
 
+	private void _testPostSiteDataDefinitionByContentTypeWithNestedFieldsets()
+		throws Exception {
+
+		DataDefinition fieldsetDataDefinition =
+			dataDefinitionResource.postSiteDataDefinitionByContentType(
+				testGroup.getGroupId(), _CONTENT_TYPE,
+				DataDefinition.toDTO(
+					DataDefinitionTestUtil.read(
+						"data-definition-fieldset-structure.json")));
+
+		DataDefinition dataDefinition = _addDataDefinitionWithFieldsets(
+			"data-definition-with-nested-fieldsets.json",
+			fieldsetDataDefinition,
+			_addDataDefinitionWithFieldsets(
+				"data-definition-with-fieldset.json", fieldsetDataDefinition));
+
+		List<DataDefinitionField> allDataDefinitionFields =
+			_getAllDataDefinitionFields(
+				dataDefinition.getDataDefinitionFields());
+
+		Assert.assertEquals(
+			allDataDefinitionFields.toString(), 5,
+			allDataDefinitionFields.size());
+
+		List<String> names = TransformUtil.transform(
+			allDataDefinitionFields, DataDefinitionField::getName);
+
+		Set<String> namesSet = SetUtil.fromCollection(names);
+
+		Assert.assertEquals(names.toString(), names.size(), namesSet.size());
+
+		List<String> fieldReferences = TransformUtil.transform(
+			allDataDefinitionFields,
+			dataDefinitionField -> MapUtil.getString(
+				dataDefinitionField.getCustomProperties(), "fieldReference"));
+
+		Set<String> fieldReferencesSet = SetUtil.fromCollection(
+			fieldReferences);
+
+		Assert.assertEquals(
+			fieldReferences.toString(), fieldReferences.size(),
+			fieldReferencesSet.size());
+
+		DataDefinitionField fieldsetDataDefinitionField =
+			fieldsetDataDefinition.getDataDefinitionFields()[0];
+
+		Assert.assertTrue(
+			names.toString(),
+			names.contains(fieldsetDataDefinitionField.getName()));
+		Assert.assertTrue(
+			names.toString(),
+			names.contains(fieldsetDataDefinitionField.getName() + "_1"));
+	}
+
+	private void _testPutDataDefinitionPropagatesToLinkedDataDefinitions()
+		throws Exception {
+
+		Queue<Long> queue = new LinkedList<>();
+
+		BundleContext bundleContext = SystemBundleUtil.getBundleContext();
+
+		ServiceRegistration<?> serviceRegistration =
+			bundleContext.registerService(
+				ServiceWrapper.class,
+				new DDMStructureLocalServiceWrapper(_ddmStructureLocalService) {
+
+					@Override
+					public DDMStructure updateStructure(
+							String externalReferenceCode, long userId,
+							long structureId, long groupId,
+							long parentStructureId, long classNameId,
+							String structureKey, Map<Locale, String> nameMap,
+							Map<Locale, String> descriptionMap,
+							String definition, ServiceContext serviceContext)
+						throws PortalException {
+
+						queue.add(structureId);
+
+						return super.updateStructure(
+							externalReferenceCode, userId, structureId, groupId,
+							parentStructureId, classNameId, structureKey,
+							nameMap, descriptionMap, definition,
+							serviceContext);
+					}
+
+				},
+				HashMapDictionaryBuilder.<String, Object>put(
+					"service.ranking", Integer.MAX_VALUE
+				).put(
+					"service.wrapper.class",
+					DDMStructureLocalService.class.getName()
+				).build());
+
+		try {
+			DataDefinition dataDefinition1 =
+				dataDefinitionResource.postSiteDataDefinitionByContentType(
+					testGroup.getGroupId(), _CONTENT_TYPE,
+					DataDefinition.toDTO(
+						DataDefinitionTestUtil.read("data-definition-1.json")));
+			DataDefinition dataDefinition2 =
+				dataDefinitionResource.postSiteDataDefinitionByContentType(
+					testGroup.getGroupId(), _CONTENT_TYPE,
+					DataDefinition.toDTO(
+						DataDefinitionTestUtil.read(
+							"data-definition-2-linked-to-data-definition-1." +
+								"json")));
+			DataDefinition dataDefinition3 =
+				dataDefinitionResource.postSiteDataDefinitionByContentType(
+					testGroup.getGroupId(), _CONTENT_TYPE,
+					DataDefinition.toDTO(
+						DataDefinitionTestUtil.read(
+							"data-definition-3-linked-to-data-definition-2." +
+								"json")));
+
+			dataDefinitionResource.putDataDefinition(
+				dataDefinition1.getId(), dataDefinition1);
+
+			Assert.assertEquals(3, queue.size());
+
+			dataDefinitionResource.deleteDataDefinition(
+				dataDefinition2.getId());
+			dataDefinitionResource.deleteDataDefinition(
+				dataDefinition3.getId());
+
+			queue.clear();
+
+			Company company = CompanyTestUtil.addCompanyWithWebId(
+				"www.able.com");
+
+			long companyId = company.getCompanyId();
+
+			try (SafeCloseable safeCloseable =
+					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+						companyId)) {
+
+				User user = UserTestUtil.getAdminUser(companyId);
+
+				Group group = GroupTestUtil.addGroup(
+					companyId, user.getUserId(), 0);
+
+				DataDefinitionField dataDefinitionField =
+					dataDefinition2.getDataDefinitionFields()[0];
+
+				Map<String, Object> customProperties =
+					dataDefinitionField.getCustomProperties();
+
+				customProperties.put("ddmStructureId", dataDefinition1.getId());
+
+				DataDefinitionResource dataDefinitionResource =
+					DataDefinitionResource.builder(
+					).authentication(
+						user.getEmailAddress(),
+						PropsValues.DEFAULT_ADMIN_PASSWORD
+					).endpoint(
+						company.getVirtualHostname(),
+						PortalUtil.getPortalServerPort(false), "http"
+					).locale(
+						LocaleUtil.getDefault()
+					).build();
+
+				dataDefinitionResource.postSiteDataDefinitionByContentType(
+					group.getGroupId(), _CONTENT_TYPE, dataDefinition2);
+			}
+
+			dataDefinitionResource.putDataDefinition(
+				dataDefinition1.getId(), dataDefinition1);
+
+			Assert.assertEquals(1, queue.size());
+		}
+		finally {
+			serviceRegistration.unregister();
+		}
+	}
+
+	private void _testPutDataDefinitionWithDefaultDataLayout()
+		throws Exception {
+
+		DataDefinition postDataDefinition =
+			testPutDataDefinition_addDataDefinition();
+
+		DataDefinition randomDataDefinition = randomDataDefinition();
+
+		DataLayout newDataLayout = DataLayoutTestUtil.createDataLayout(
+			postDataDefinition.getId(), "Data Layout Updated",
+			postDataDefinition.getSiteId());
+
+		randomDataDefinition.setDefaultDataLayout(newDataLayout);
+
+		DataDefinition putDataDefinition =
+			dataDefinitionResource.putDataDefinition(
+				postDataDefinition.getId(), randomDataDefinition);
+
+		assertEquals(randomDataDefinition, putDataDefinition);
+		assertValid(putDataDefinition);
+
+		DataDefinition getDataDefinition =
+			dataDefinitionResource.getDataDefinition(putDataDefinition.getId());
+
+		assertEquals(randomDataDefinition, getDataDefinition);
+		assertValid(getDataDefinition);
+	}
+
+	private void _testPutDataDefinitionWithFieldsetDefaultValues()
+		throws Exception {
+
+		DataDefinition fieldsetDataDefinition =
+			dataDefinitionResource.postSiteDataDefinitionByContentType(
+				testGroup.getGroupId(), _CONTENT_TYPE,
+				DataDefinition.toDTO(
+					DataDefinitionTestUtil.read(
+						"data-definition-fieldset-structure.json")));
+
+		DataDefinition dataDefinition = _addDataDefinitionWithFieldsets(
+			"data-definition-with-fieldset.json", fieldsetDataDefinition);
+
+		DataDefinitionField[] fieldsetDataDefinitionFields =
+			fieldsetDataDefinition.getDataDefinitionFields();
+
+		String name = fieldsetDataDefinitionFields[0].getName();
+
+		DataDefinitionField dataDefinitionField = _getDataDefinitionField(
+			dataDefinition, name);
+
+		String defaultValue = RandomTestUtil.randomString();
+
+		dataDefinitionField.setDefaultValue(
+			HashMapBuilder.<String, Object>put(
+				"en_US", defaultValue
+			).build());
+
+		dataDefinitionResource.putDataDefinition(
+			dataDefinition.getId(), dataDefinition);
+
+		Assert.assertEquals(
+			defaultValue,
+			MapUtil.getString(
+				_getDataDefinitionField(
+					dataDefinitionResource.getDataDefinition(
+						dataDefinition.getId()),
+					name
+				).getDefaultValue(),
+				"en_US"));
+	}
+
 	private static final String _CONTENT_TYPE = "test";
 
 	@Inject
 	private static ResourceActions _resourceActions;
 
 	@Inject
-	private DataDefinitionResource _dataDefinitionResource;
-
-	@Inject
-	private DataDefinitionResource.Factory _dataDefinitionResourceFactory;
+	private CompanyLocalService _companyLocalService;
 
 	@Inject(type = DataEngineNativeObjectRegistry.class)
 	private DataEngineNativeObjectRegistry _dataEngineNativeObjectRegistry;

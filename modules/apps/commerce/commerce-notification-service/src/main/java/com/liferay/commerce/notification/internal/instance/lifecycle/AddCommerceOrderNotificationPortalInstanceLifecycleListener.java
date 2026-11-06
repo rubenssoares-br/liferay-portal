@@ -8,16 +8,15 @@ package com.liferay.commerce.notification.internal.instance.lifecycle;
 import com.liferay.notification.context.NotificationContext;
 import com.liferay.notification.rest.dto.v1_0.NotificationTemplate;
 import com.liferay.notification.rest.dto.v1_0.util.NotificationUtil;
+import com.liferay.notification.service.NotificationRecipientSettingLocalService;
 import com.liferay.notification.service.NotificationTemplateLocalService;
 import com.liferay.notification.type.NotificationType;
-import com.liferay.notification.type.NotificationTypeServiceTracker;
 import com.liferay.object.model.ObjectAction;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.service.ObjectActionLocalService;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.petra.string.StringBundler;
-import com.liferay.petra.string.StringPool;
 import com.liferay.portal.instance.lifecycle.BasePortalInstanceLifecycleListener;
 import com.liferay.portal.instance.lifecycle.PortalInstanceLifecycleListener;
 import com.liferay.portal.kernel.exception.NoSuchUserException;
@@ -85,7 +84,7 @@ public class AddCommerceOrderNotificationPortalInstanceLifecycleListener
 			serviceBuilderNotificationTemplate =
 				_notificationTemplateLocalService.
 					fetchNotificationTemplateByExternalReferenceCode(
-						"L_COMMERCE_ORDER_TEMPLATE", companyId);
+						"COMMERCE_ORDER_TEMPLATE", companyId);
 
 		if ((_notificationType == null) ||
 			(serviceBuilderNotificationTemplate != null)) {
@@ -108,23 +107,22 @@ public class AddCommerceOrderNotificationPortalInstanceLifecycleListener
 		NotificationTemplate notificationTemplate = NotificationTemplate.toDTO(
 			json);
 
-		NotificationContext notificationContext =
-			NotificationUtil.toNotificationContext(
-				notificationTemplate, _objectFieldLocalService);
-
 		User user = _getAdminUser(companyId);
 
+		NotificationContext notificationContext =
+			NotificationUtil.toNotificationContext(
+				notificationTemplate, _objectFieldLocalService,
+				NotificationUtil.toNotificationTemplate(
+					notificationTemplate, 0, _objectDefinitionLocalService,
+					user));
+
+		notificationContext.setCompanyId(companyId);
 		notificationContext.setNotificationRecipient(
-			NotificationUtil.toNotificationRecipient(user, 0L));
+			NotificationUtil.toNotificationRecipient(0, user));
 		notificationContext.setNotificationRecipientSettings(
-			NotificationUtil.toNotificationRecipientSetting(
-				0L,
-				_notificationTypeServiceTracker.getNotificationType(
-					notificationTemplate.getType()),
-				notificationTemplate.getRecipients(), user));
-		notificationContext.setNotificationTemplate(
-			NotificationUtil.toNotificationTemplate(
-				0L, notificationTemplate, _objectDefinitionLocalService, user));
+			_notificationRecipientSettingLocalService.
+				createNotificationRecipientSettings(
+					0, null, notificationTemplate.getRecipients(), user));
 
 		_notificationTemplateLocalService.addNotificationTemplate(
 			notificationContext);
@@ -155,7 +153,7 @@ public class AddCommerceOrderNotificationPortalInstanceLifecycleListener
 		_objectActionLocalService.addObjectAction(
 			"L_COMMERCE_ORDER_NOTIFICATION", user.getUserId(),
 			objectDefinition.getObjectDefinitionId(), false, "orderStatus == 1",
-			StringPool.BLANK, null,
+			null, null,
 			Collections.singletonMap(
 				LocaleUtil.getDefault(), "Commerce Order Notification"),
 			"commerceOrderNotification", "notification",
@@ -164,7 +162,7 @@ public class AddCommerceOrderNotificationPortalInstanceLifecycleListener
 				true
 			).put(
 				"notificationTemplateExternalReferenceCode",
-				"L_COMMERCE_ORDER_TEMPLATE"
+				"COMMERCE_ORDER_TEMPLATE"
 			).put(
 				"type", "email"
 			).build(),
@@ -175,15 +173,16 @@ public class AddCommerceOrderNotificationPortalInstanceLifecycleListener
 		AddCommerceOrderNotificationPortalInstanceLifecycleListener.class);
 
 	@Reference
+	private NotificationRecipientSettingLocalService
+		_notificationRecipientSettingLocalService;
+
+	@Reference
 	private NotificationTemplateLocalService _notificationTemplateLocalService;
 
 	@Reference(
 		target = "(component.name=com.liferay.notification.internal.type.EmailNotificationType)"
 	)
 	private NotificationType _notificationType;
-
-	@Reference
-	private NotificationTypeServiceTracker _notificationTypeServiceTracker;
 
 	@Reference
 	private ObjectActionLocalService _objectActionLocalService;

@@ -11,20 +11,26 @@ import com.liferay.jenkins.results.parser.Job;
 import com.liferay.jenkins.results.parser.JobFactory;
 import com.liferay.jenkins.results.parser.PortalAcceptancePullRequestJob;
 import com.liferay.jenkins.results.parser.PortalGitWorkingDirectory;
+import com.liferay.jenkins.results.parser.Test;
 
 import java.io.File;
 
 import java.util.List;
+
+import org.json.JSONObject;
 
 import org.junit.After;
 
 /**
  * @author Kenji Heigel
  */
-public abstract class BaseRelevantRuleTestCase {
+public abstract class BaseRelevantRuleTestCase extends Test {
 
 	@After
+	@Override
 	public void tearDown() {
+		super.tearDown();
+
 		RelevantRuleEngine.clear();
 	}
 
@@ -52,17 +58,27 @@ public abstract class BaseRelevantRuleTestCase {
 		String upstreamBranchName = "master";
 		String repositoryName = "liferay-portal";
 
-		PortalGitWorkingDirectory portalGitWorkingDirectory =
-			(PortalGitWorkingDirectory)
-				GitWorkingDirectoryFactory.newGitWorkingDirectory(
-					upstreamBranchName, getPortalDir(null), repositoryName);
-
 		_portalAcceptancePullRequestJob =
 			(PortalAcceptancePullRequestJob)JobFactory.newJob(
 				Job.BuildProfile.DXP,
-				"test-portal-acceptance-pullrequest(master)", null,
-				portalGitWorkingDirectory, upstreamBranchName, null,
-				repositoryName, "relevant", upstreamBranchName);
+				"test-portal-acceptance-pullrequest(master)",
+				new JSONObject(
+				).put(
+					"build_profile", "DXP"
+				).put(
+					"git_repository_dir", "liferay-portal"
+				).put(
+					"job_name", "test-portal-acceptance-pullrequest("
+				).put(
+					"test_suite_name", "relevant"
+				).put(
+					"upstream_branch_name", "master"
+				),
+				(PortalGitWorkingDirectory)
+					GitWorkingDirectoryFactory.newGitWorkingDirectory(
+						upstreamBranchName, getPortalDir(null), repositoryName),
+				upstreamBranchName, null, repositoryName, "relevant",
+				upstreamBranchName);
 
 		List<File> jobPropertiesFiles =
 			_portalAcceptancePullRequestJob.getJobPropertiesFiles();
@@ -81,20 +97,21 @@ public abstract class BaseRelevantRuleTestCase {
 			file = JenkinsResultsParserUtil.getCanonicalFile(file);
 		}
 
-		String fileName = file.getName();
+		File gitFile = new File(file, ".git");
+		File portalImplDir = new File(file, "portal-impl");
 
-		if (fileName.equals("liferay-portal")) {
+		if (gitFile.exists() && portalImplDir.exists()) {
 			return file;
 		}
 
-		file = file.getParentFile();
+		File parentFile = file.getParentFile();
 
-		if (file == null) {
+		if (parentFile == null) {
 			throw new RuntimeException(
 				"Unable to find portal directory from: " + file);
 		}
 
-		return getPortalDir(file);
+		return getPortalDir(parentFile);
 	}
 
 	protected RelevantRuleEngine getRelevantRuleEngine() {

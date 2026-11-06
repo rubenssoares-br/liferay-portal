@@ -8,8 +8,10 @@ package com.liferay.portal.search.opensearch2.internal.connection;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.search.opensearch2.configuration.OpenSearchConnectionConfiguration;
+import com.liferay.portal.security.key.secret.SecretResolver;
 
 import java.util.Collection;
 import java.util.Map;
@@ -104,6 +106,8 @@ public class OpenSearchConnectionsHolderImpl
 				openSearchConnectionConfiguration.active()
 			).authenticationEnabled(
 				openSearchConnectionConfiguration.authenticationEnabled()
+			).compressionEnabled(
+				openSearchConnectionConfiguration.compressionEnabled()
 			).connectionId(
 				openSearchConnectionConfiguration.connectionId()
 			).httpSSLEnabled(
@@ -115,11 +119,15 @@ public class OpenSearchConnectionsHolderImpl
 			).networkHostAddresses(
 				openSearchConnectionConfiguration.networkHostAddresses()
 			).password(
-				openSearchConnectionConfiguration.password()
+				_secretResolver.resolve(
+					CompanyConstants.SYSTEM,
+					openSearchConnectionConfiguration.password())
 			).proxyConfig(
 				createProxyConfig(openSearchConnectionConfiguration)
 			).truststorePassword(
-				openSearchConnectionConfiguration.truststorePassword()
+				_secretResolver.resolve(
+					CompanyConstants.SYSTEM,
+					openSearchConnectionConfiguration.truststorePassword())
 			).truststorePath(
 				openSearchConnectionConfiguration.truststorePath()
 			).truststoreType(
@@ -139,11 +147,13 @@ public class OpenSearchConnectionsHolderImpl
 		).host(
 			openSearchConnectionConfiguration.proxyHost()
 		).password(
-			openSearchConnectionConfiguration.proxyPassword()
+			_secretResolver.resolve(
+				CompanyConstants.SYSTEM,
+				openSearchConnectionConfiguration.proxyPassword())
 		).port(
 			openSearchConnectionConfiguration.proxyPort()
 		).userName(
-			openSearchConnectionConfiguration.proxyHost()
+			openSearchConnectionConfiguration.proxyUserName()
 		).build();
 	}
 
@@ -167,5 +177,8 @@ public class OpenSearchConnectionsHolderImpl
 
 	private final Map<String, OpenSearchConnection> _openSearchConnections =
 		new ConcurrentHashMap<>();
+
+	@Reference
+	private SecretResolver _secretResolver;
 
 }

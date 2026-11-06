@@ -29,12 +29,15 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -42,12 +45,15 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,8 +88,10 @@ public abstract class BaseProductResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,16 +104,16 @@ public abstract class BaseProductResourceTestCase {
 
 		_productResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ProductResource.Builder builder = ProductResource.builder();
-
-		productResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		productResource = ProductResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -203,6 +207,306 @@ public abstract class BaseProductResourceTestCase {
 	}
 
 	@Test
+	public void testGetChannelProduct() throws Exception {
+		Product postProduct = testGetChannelProduct_addProduct();
+
+		Product getProduct = productResource.getChannelProduct(
+			testGetChannelProduct_getChannelId(), postProduct.getId(), null);
+
+		assertEquals(postProduct, getProduct);
+		assertValid(getProduct);
+	}
+
+	protected Product testGetChannelProduct_addProduct() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long testGetChannelProduct_getChannelId() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetChannelProduct() throws Exception {
+		Product product = testGraphQLGetChannelProduct_addProduct();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				product,
+				ProductSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"channelProduct",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"channelId",
+											testGraphQLGetChannelProduct_getChannelId());
+										put("productId", product.getId());
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data", "Object/channelProduct"))));
+
+		// Using the namespace headlessCommerceDeliveryCatalog_v1_0
+
+		Assert.assertTrue(
+			equals(
+				product,
+				ProductSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceDeliveryCatalog_v1_0",
+								new GraphQLField(
+									"channelProduct",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"channelId",
+												testGraphQLGetChannelProduct_getChannelId());
+											put("productId", product.getId());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceDeliveryCatalog_v1_0",
+						"Object/channelProduct"))));
+	}
+
+	protected Long testGraphQLGetChannelProduct_getChannelId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetChannelProductNotFound() throws Exception {
+		Long irrelevantChannelId = RandomTestUtil.randomLong();
+		Long irrelevantProductId = RandomTestUtil.randomLong();
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"channelProduct",
+						new HashMap<String, Object>() {
+							{
+								put("channelId", irrelevantChannelId);
+								put("productId", irrelevantProductId);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceDeliveryCatalog_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceDeliveryCatalog_v1_0",
+						new GraphQLField(
+							"channelProduct",
+							new HashMap<String, Object>() {
+								{
+									put("channelId", irrelevantChannelId);
+									put("productId", irrelevantProductId);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Product testGraphQLGetChannelProduct_addProduct()
+		throws Exception {
+
+		return testGraphQLProduct_addProduct();
+	}
+
+	@Test
+	public void testGetChannelProductByFriendlyUrlPath() throws Exception {
+		Product postProduct =
+			testGetChannelProductByFriendlyUrlPath_addProduct();
+
+		Product getProduct = productResource.getChannelProductByFriendlyUrlPath(
+			testGetChannelProductByFriendlyUrlPath_getChannelId(),
+			testGetChannelProductByFriendlyUrlPath_getFriendlyUrlPath(), null);
+
+		assertEquals(postProduct, getProduct);
+		assertValid(getProduct);
+	}
+
+	protected Product testGetChannelProductByFriendlyUrlPath_addProduct()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long testGetChannelProductByFriendlyUrlPath_getChannelId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String testGetChannelProductByFriendlyUrlPath_getFriendlyUrlPath()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetChannelProductByFriendlyUrlPath()
+		throws Exception {
+
+		Product product =
+			testGraphQLGetChannelProductByFriendlyUrlPath_addProduct();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				product,
+				ProductSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"channelProductByFriendlyUrlPath",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"channelId",
+											testGraphQLGetChannelProductByFriendlyUrlPath_getChannelId());
+
+										put(
+											"friendlyUrlPath",
+											"\"" +
+												testGraphQLGetChannelProductByFriendlyUrlPath_getFriendlyUrlPath() +
+													"\"");
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/channelProductByFriendlyUrlPath"))));
+
+		// Using the namespace headlessCommerceDeliveryCatalog_v1_0
+
+		Assert.assertTrue(
+			equals(
+				product,
+				ProductSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceDeliveryCatalog_v1_0",
+								new GraphQLField(
+									"channelProductByFriendlyUrlPath",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"channelId",
+												testGraphQLGetChannelProductByFriendlyUrlPath_getChannelId());
+
+											put(
+												"friendlyUrlPath",
+												"\"" +
+													testGraphQLGetChannelProductByFriendlyUrlPath_getFriendlyUrlPath() +
+														"\"");
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceDeliveryCatalog_v1_0",
+						"Object/channelProductByFriendlyUrlPath"))));
+	}
+
+	protected Long testGraphQLGetChannelProductByFriendlyUrlPath_getChannelId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGraphQLGetChannelProductByFriendlyUrlPath_getFriendlyUrlPath()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetChannelProductByFriendlyUrlPathNotFound()
+		throws Exception {
+
+		Long irrelevantChannelId = RandomTestUtil.randomLong();
+		String irrelevantFriendlyUrlPath =
+			"\"" + RandomTestUtil.randomString() + "\"";
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"channelProductByFriendlyUrlPath",
+						new HashMap<String, Object>() {
+							{
+								put("channelId", irrelevantChannelId);
+								put(
+									"friendlyUrlPath",
+									irrelevantFriendlyUrlPath);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceDeliveryCatalog_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceDeliveryCatalog_v1_0",
+						new GraphQLField(
+							"channelProductByFriendlyUrlPath",
+							new HashMap<String, Object>() {
+								{
+									put("channelId", irrelevantChannelId);
+									put(
+										"friendlyUrlPath",
+										irrelevantFriendlyUrlPath);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Product testGraphQLGetChannelProductByFriendlyUrlPath_addProduct()
+		throws Exception {
+
+		return testGraphQLProduct_addProduct();
+	}
+
+	@Test
 	public void testGetChannelProductsPage() throws Exception {
 		Long channelId = testGetChannelProductsPage_getChannelId();
 		Long irrelevantChannelId =
@@ -237,7 +541,8 @@ public abstract class BaseProductResourceTestCase {
 			channelId, randomProduct());
 
 		page = productResource.getChannelProductsPage(
-			channelId, null, null, null, Pagination.of(1, 10), null);
+			channelId, null, null, null, Pagination.of(1, (int)totalCount + 2),
+			null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -350,10 +655,10 @@ public abstract class BaseProductResourceTestCase {
 	public void testGetChannelProductsPageWithPagination() throws Exception {
 		Long channelId = testGetChannelProductsPage_getChannelId();
 
-		Page<Product> productPage = productResource.getChannelProductsPage(
+		Page<Product> productsPage = productResource.getChannelProductsPage(
 			channelId, null, null, null, null, null);
 
-		int totalCount = GetterUtil.getInteger(productPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(productsPage.getTotalCount());
 
 		Product product1 = testGetChannelProductsPage_addProduct(
 			channelId, randomProduct());
@@ -577,134 +882,8 @@ public abstract class BaseProductResourceTestCase {
 	}
 
 	@Test
-	public void testGetChannelProduct() throws Exception {
-		Product postProduct = testGetChannelProduct_addProduct();
-
-		Product getProduct = productResource.getChannelProduct(
-			testGetChannelProduct_getChannelId(), postProduct.getId(), null);
-
-		assertEquals(postProduct, getProduct);
-		assertValid(getProduct);
-	}
-
-	protected Long testGetChannelProduct_getChannelId() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Product testGetChannelProduct_addProduct() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetChannelProduct() throws Exception {
-		Product product = testGraphQLGetChannelProduct_addProduct();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				product,
-				ProductSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"channelProduct",
-								new HashMap<String, Object>() {
-									{
-										put(
-											"channelId",
-											testGraphQLGetChannelProduct_getChannelId());
-
-										put("productId", product.getId());
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data", "Object/channelProduct"))));
-
-		// Using the namespace headlessCommerceDeliveryCatalog_v1_0
-
-		Assert.assertTrue(
-			equals(
-				product,
-				ProductSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceDeliveryCatalog_v1_0",
-								new GraphQLField(
-									"channelProduct",
-									new HashMap<String, Object>() {
-										{
-											put(
-												"channelId",
-												testGraphQLGetChannelProduct_getChannelId());
-
-											put("productId", product.getId());
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceDeliveryCatalog_v1_0",
-						"Object/channelProduct"))));
-	}
-
-	protected Long testGraphQLGetChannelProduct_getChannelId()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetChannelProductNotFound() throws Exception {
-		Long irrelevantChannelId = RandomTestUtil.randomLong();
-		Long irrelevantProductId = RandomTestUtil.randomLong();
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"channelProduct",
-						new HashMap<String, Object>() {
-							{
-								put("channelId", irrelevantChannelId);
-								put("productId", irrelevantProductId);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceDeliveryCatalog_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceDeliveryCatalog_v1_0",
-						new GraphQLField(
-							"channelProduct",
-							new HashMap<String, Object>() {
-								{
-									put("channelId", irrelevantChannelId);
-									put("productId", irrelevantProductId);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected Product testGraphQLGetChannelProduct_addProduct()
-		throws Exception {
-
-		return testGraphQLProduct_addProduct();
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Assert.assertTrue(true);
 	}
 
 	@Rule
@@ -1075,6 +1254,10 @@ public abstract class BaseProductResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1613,13 +1796,11 @@ public abstract class BaseProductResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1629,7 +1810,7 @@ public abstract class BaseProductResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(product.getCreateDate()));
+				sb.append(_format.format(product.getCreateDate()));
 			}
 
 			return sb.toString();
@@ -1899,13 +2080,11 @@ public abstract class BaseProductResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1915,7 +2094,7 @@ public abstract class BaseProductResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(product.getModifiedDate()));
+				sb.append(_format.format(product.getModifiedDate()));
 			}
 
 			return sb.toString();
@@ -2210,7 +2389,9 @@ public abstract class BaseProductResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2482,7 +2663,9 @@ public abstract class BaseProductResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseProductResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -2490,3 +2673,4 @@ public abstract class BaseProductResourceTestCase {
 			ProductResource _productResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2135337906

@@ -5,11 +5,11 @@
 
 package com.liferay.portal.verify;
 
+import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.dao.jdbc.AutoBatchPreparedStatementUtil;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
-import com.liferay.portal.kernel.instance.PortalInstancePool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -31,7 +31,6 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LoggingTimer;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.StringBundler;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.service.impl.GroupLocalServiceImpl;
 
@@ -119,7 +118,7 @@ public class VerifyGroup extends VerifyProcess {
 			runSQL(
 				StringBundler.concat(
 					"update Group_ set site = [$TRUE$] where classNameId = ",
-					String.valueOf(organizationClassNameId),
+					organizationClassNameId,
 					" and site = [$FALSE$] and exists (select 1 from Layout ",
 					"where Layout.groupId = Group_.groupId)"));
 		}
@@ -146,14 +145,16 @@ public class VerifyGroup extends VerifyProcess {
 
 				Group stagingGroup = group.getStagingGroup();
 
-				if (!stagingGroup.isStagedRemotely()) {
-					verifyStagingGroupOrganizationMembership(stagingGroup);
-					verifyStagingGroupRoleMembership(stagingGroup);
-					verifyStagingGroupUserGroupMembership(stagingGroup);
-					verifyStagingGroupUserMembership(stagingGroup);
-					verifyStagingUserGroupRolesAssignments(stagingGroup);
-					verifyStagingUserGroupGroupRolesAssignments(stagingGroup);
+				if (stagingGroup.isStagedRemotely()) {
+					continue;
 				}
+
+				verifyStagingGroupOrganizationMembership(stagingGroup);
+				verifyStagingGroupRoleMembership(stagingGroup);
+				verifyStagingGroupUserGroupMembership(stagingGroup);
+				verifyStagingGroupUserMembership(stagingGroup);
+				verifyStagingUserGroupRolesAssignments(stagingGroup);
+				verifyStagingUserGroupGroupRolesAssignments(stagingGroup);
 			}
 		}
 	}
@@ -174,10 +175,12 @@ public class VerifyGroup extends VerifyProcess {
 				stagingGroup.getLiveGroupId());
 
 		for (Organization stagingGroupOrganization : stagingOrganizations) {
-			if (!liveOrganizations.contains(stagingGroupOrganization)) {
-				OrganizationLocalServiceUtil.addGroupOrganization(
-					stagingGroup.getLiveGroupId(), stagingGroupOrganization);
+			if (liveOrganizations.contains(stagingGroupOrganization)) {
+				continue;
 			}
+
+			OrganizationLocalServiceUtil.addGroupOrganization(
+				stagingGroup.getLiveGroupId(), stagingGroupOrganization);
 		}
 
 		OrganizationLocalServiceUtil.clearGroupOrganizations(
@@ -196,10 +199,12 @@ public class VerifyGroup extends VerifyProcess {
 			stagingGroup.getLiveGroupId());
 
 		for (Role stagingRole : stagingRoles) {
-			if (!liveRoles.contains(stagingRole)) {
-				RoleLocalServiceUtil.addGroupRole(
-					stagingGroup.getLiveGroupId(), stagingRole);
+			if (liveRoles.contains(stagingRole)) {
+				continue;
 			}
+
+			RoleLocalServiceUtil.addGroupRole(
+				stagingGroup.getLiveGroupId(), stagingRole);
 		}
 
 		RoleLocalServiceUtil.clearGroupRoles(stagingGroup.getGroupId());
@@ -219,10 +224,12 @@ public class VerifyGroup extends VerifyProcess {
 				stagingGroup.getLiveGroupId());
 
 		for (UserGroup stagingUserGroup : stagingUserGroups) {
-			if (!liveUserGroups.contains(stagingUserGroup)) {
-				UserGroupLocalServiceUtil.addGroupUserGroup(
-					stagingGroup.getLiveGroupId(), stagingUserGroup);
+			if (liveUserGroups.contains(stagingUserGroup)) {
+				continue;
 			}
+
+			UserGroupLocalServiceUtil.addGroupUserGroup(
+				stagingGroup.getLiveGroupId(), stagingUserGroup);
 		}
 
 		UserGroupLocalServiceUtil.clearGroupUserGroups(
@@ -241,10 +248,12 @@ public class VerifyGroup extends VerifyProcess {
 			stagingGroup.getLiveGroupId());
 
 		for (User stagingGroupUser : stagingGroupUsers) {
-			if (!liveGroupUsers.contains(stagingGroupUser)) {
-				UserLocalServiceUtil.addGroupUser(
-					stagingGroup.getLiveGroupId(), stagingGroupUser);
+			if (liveGroupUsers.contains(stagingGroupUser)) {
+				continue;
 			}
+
+			UserLocalServiceUtil.addGroupUser(
+				stagingGroup.getLiveGroupId(), stagingGroupUser);
 		}
 
 		UserLocalServiceUtil.clearGroupUsers(stagingGroup.getGroupId());
@@ -260,15 +269,17 @@ public class VerifyGroup extends VerifyProcess {
 		while (iterator.hasNext()) {
 			String key = iterator.next();
 
-			if (ArrayUtil.contains(
+			if (!ArrayUtil.contains(
 					_LEGACY_STAGED_PORTLET_TYPE_SETTINGS_KEYS, key)) {
 
-				if (_log.isInfoEnabled()) {
-					_log.info("Removing type settings property " + key);
-				}
-
-				iterator.remove();
+				continue;
 			}
+
+			if (_log.isInfoEnabled()) {
+				_log.info("Removing type settings property " + key);
+			}
+
+			iterator.remove();
 		}
 	}
 
@@ -302,10 +313,12 @@ public class VerifyGroup extends VerifyProcess {
 
 			userGroupGroupRole.setGroupId(stagingGroup.getLiveGroupId());
 
-			if (!liveUserGroupGroupRoles.contains(userGroupGroupRole)) {
-				UserGroupGroupRoleLocalServiceUtil.updateUserGroupGroupRole(
-					userGroupGroupRole);
+			if (liveUserGroupGroupRoles.contains(userGroupGroupRole)) {
+				continue;
 			}
+
+			UserGroupGroupRoleLocalServiceUtil.updateUserGroupGroupRole(
+				userGroupGroupRole);
 		}
 
 		UserGroupGroupRoleLocalServiceUtil.deleteUserGroupGroupRolesByGroupId(
@@ -328,10 +341,12 @@ public class VerifyGroup extends VerifyProcess {
 		for (UserGroupRole stagingUserGroupRole : stagingUserGroupRoles) {
 			stagingUserGroupRole.setGroupId(stagingGroup.getLiveGroupId());
 
-			if (!liveUserGroupRoles.contains(stagingUserGroupRole)) {
-				UserGroupRoleLocalServiceUtil.updateUserGroupRole(
-					stagingUserGroupRole);
+			if (liveUserGroupRoles.contains(stagingUserGroupRole)) {
+				continue;
 			}
+
+			UserGroupRoleLocalServiceUtil.updateUserGroupRole(
+				stagingUserGroupRole);
 		}
 
 		UserGroupRoleLocalServiceUtil.deleteUserGroupRolesByGroupId(
@@ -341,8 +356,7 @@ public class VerifyGroup extends VerifyProcess {
 	protected void verifyTree() throws Exception {
 		try (LoggingTimer loggingTimer = new LoggingTimer()) {
 			CompanyLocalServiceUtil.forEachCompanyId(
-				companyId -> GroupLocalServiceUtil.rebuildTree(companyId),
-				PortalInstancePool.getCompanyIds());
+				companyId -> GroupLocalServiceUtil.rebuildTree(companyId));
 		}
 	}
 

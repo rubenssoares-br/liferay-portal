@@ -142,6 +142,13 @@ public class DLFileEntryServiceWrapper
 	}
 
 	@Override
+	public DLFileEntry fetchFileEntry(long fileEntryId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _dlFileEntryService.fetchFileEntry(fileEntryId);
+	}
+
+	@Override
 	public DLFileEntry fetchFileEntry(long groupId, long folderId, String title)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
@@ -542,3 +549,4 @@ public class DLFileEntryServiceWrapper
 	private DLFileEntryService _dlFileEntryService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1353989063

@@ -1,10 +1,11 @@
 @component-name = "portal-content-management"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property custom.properties = "default.layout.template.id=1_column${line.separator}dl.actions.visible=true";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.main.component.name = "Document Management";
+	property testray.main.component.name = "Documents and Media";
 
 	var pageName = "Documents and Media Page";
 	var portletName = "Documents and Media";
@@ -318,28 +319,6 @@ definition {
 			searchAssetType = "Document");
 	}
 
-	@priority = 4
-	@refactordone
-	test CanSearchForDocumentThroughContent {
-		property portal.acceptance = "true";
-
-		JSONDocument.addFileWithUploadedFile(
-			dmDocumentDescription = "DM Document Description",
-			dmDocumentTitle = "DM Document Title",
-			groupName = "Guest",
-			mimeType = "application/msword",
-			sourceFileName = "Document_1.doc");
-
-		Navigator.gotoPage(pageName = "Documents and Media Page");
-
-		SearchPage.searchEmbedded(searchTerm = "This is a *.doc file.");
-
-		SearchResults.viewSearchResults(
-			searchAssetSummary = "This is a *.doc file.",
-			searchAssetTitle = "DM Document Title",
-			searchAssetType = "Document");
-	}
-
 	@description = "This test covers LPS-129887. It ensures that the user can search for documents using file name."
 	@priority = 5
 	@refactordone
@@ -366,7 +345,7 @@ definition {
 
 	@priority = 4
 	@refactordone
-	test CanSearchForDocumentThroughTitle {
+	test CanSearchForDocumentThroughTitleAndContent {
 		property portal.acceptance = "true";
 
 		JSONDocument.addFileWithUploadedFile(
@@ -381,6 +360,15 @@ definition {
 		SearchPage.searchEmbedded(searchTerm = "DM Document Title");
 
 		SearchResults.viewSearchResults(
+			searchAssetTitle = "DM Document Title",
+			searchAssetType = "Document");
+
+		Navigator.gotoPage(pageName = "Documents and Media Page");
+
+		SearchPage.searchEmbedded(searchTerm = "This is a *.doc file.");
+
+		SearchResults.viewSearchResults(
+			searchAssetSummary = "This is a *.doc file.",
 			searchAssetTitle = "DM Document Title",
 			searchAssetType = "Document");
 	}
@@ -423,7 +411,6 @@ definition {
 			workflowStatus = "Approved");
 
 		DMFolder.viewDetailsInListView(
-			authorName = "Test Test",
 			contextualBreadcrumb = "Home",
 			dmFolderName = "DM Asset1");
 	}

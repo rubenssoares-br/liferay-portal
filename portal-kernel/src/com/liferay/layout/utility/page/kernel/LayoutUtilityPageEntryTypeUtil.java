@@ -8,9 +8,9 @@ package com.liferay.layout.utility.page.kernel;
 import com.liferay.layout.utility.page.kernel.constants.LayoutUtilityPageEntryConstants;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 
-import java.util.Map;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 /**
  * @author Lourdes Fernández Besada
@@ -28,6 +28,9 @@ public class LayoutUtilityPageEntryTypeUtil {
 		).put(
 			HttpServletResponse.SC_NOT_FOUND,
 			LayoutUtilityPageEntryConstants.TYPE_SC_NOT_FOUND
+		).put(
+			HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+			LayoutUtilityPageEntryConstants.TYPE_SC_SERVICE_UNAVAILABLE
 		).build();
 
 }

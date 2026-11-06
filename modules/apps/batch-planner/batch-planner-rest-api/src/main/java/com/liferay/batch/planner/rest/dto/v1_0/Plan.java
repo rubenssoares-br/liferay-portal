@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Matija Petanjek
@@ -50,7 +51,7 @@ public class Plan implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Plan.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -91,7 +92,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getExport() {
 		if (_exportSupplier != null) {
 			export = _exportSupplier.get();
@@ -132,7 +133,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _exportSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getExternalType() {
 		if (_externalTypeSupplier != null) {
 			externalType = _externalTypeSupplier.get();
@@ -173,7 +174,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getExternalURL() {
 		if (_externalURLSupplier != null) {
 			externalURL = _externalURLSupplier.get();
@@ -214,7 +215,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalURLSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -253,7 +254,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getInternalClassName() {
 		if (_internalClassNameSupplier != null) {
 			internalClassName = _internalClassNameSupplier.get();
@@ -294,7 +295,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _internalClassNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getInternalClassNameKey() {
 		if (_internalClassNameKeySupplier != null) {
 			internalClassNameKey = _internalClassNameKeySupplier.get();
@@ -335,7 +336,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _internalClassNameKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Mapping[] getMappings() {
 		if (_mappingsSupplier != null) {
@@ -377,7 +378,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Mapping[]> _mappingsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -416,7 +417,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Policy[] getPolicies() {
 		if (_policiesSupplier != null) {
@@ -458,7 +459,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Policy[]> _policiesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getSize() {
 		if (_sizeSupplier != null) {
 			size = _sizeSupplier.get();
@@ -497,7 +498,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _sizeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -538,7 +539,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _statusSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTaskItemDelegateName() {
 		if (_taskItemDelegateNameSupplier != null) {
 			taskItemDelegateName = _taskItemDelegateNameSupplier.get();
@@ -579,7 +580,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _taskItemDelegateNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getTemplate() {
 		if (_templateSupplier != null) {
 			template = _templateSupplier.get();
@@ -620,7 +621,7 @@ public class Plan implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _templateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getTotal() {
 		if (_totalSupplier != null) {
 			total = _totalSupplier.get();
@@ -917,8 +918,8 @@ public class Plan implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.batch.planner.rest.dto.v1_0.Plan",
 		name = "x-class-name"
 	)
@@ -1005,6 +1006,27 @@ public class Plan implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1013,3 +1035,4 @@ public class Plan implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1348425330

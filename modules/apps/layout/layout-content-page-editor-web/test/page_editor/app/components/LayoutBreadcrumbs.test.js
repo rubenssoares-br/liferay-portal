@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render, screen} from '@testing-library/react';
 import React, {useEffect} from 'react';
 import {DndProvider} from 'react-dnd';
@@ -133,8 +133,6 @@ const renderComponent = ({
 
 describe('LayoutBreadcrumbs', () => {
 	beforeAll(() => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
 		const wrapper = document.createElement('div');
 		wrapper.setAttribute('id', 'wrapper');
 		document.body.appendChild(wrapper);
@@ -143,8 +141,6 @@ describe('LayoutBreadcrumbs', () => {
 	afterAll(() => {
 		const wrapper = document.getElementById('wrapper');
 		document.body.removeChild(wrapper);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
 	it('renders item in breadcrumbs when selecting it', () => {

@@ -6,7 +6,6 @@
 package com.liferay.commerce.frontend.taglib.servlet.taglib;
 
 import com.liferay.commerce.configuration.CommercePriceConfiguration;
-import com.liferay.commerce.constants.CommerceConstants;
 import com.liferay.commerce.constants.CommerceWebKeys;
 import com.liferay.commerce.context.CommerceContext;
 import com.liferay.commerce.frontend.helper.ProductHelper;
@@ -30,20 +29,19 @@ import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
-import com.liferay.portal.kernel.settings.SystemSettingsLocator;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.BigDecimalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.taglib.util.IncludeTag;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.PageContext;
+
 import java.math.BigDecimal;
 
 import java.util.List;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.PageContext;
 
 /**
  * @author Marco Leo
@@ -60,6 +58,12 @@ public class PriceTag extends IncludeTag {
 				CommerceWebKeys.COMMERCE_CONTEXT);
 
 		try {
+			if ((commerceContext == null) ||
+				(commerceContext.getCommerceChannelId() == 0)) {
+
+				return SKIP_BODY;
+			}
+
 			long cpInstanceId = 0;
 
 			if (_showDefaultSkuPrice) {
@@ -121,12 +125,12 @@ public class PriceTag extends IncludeTag {
 		return _showDefaultSkuPrice;
 	}
 
-	public void setCompact(boolean compact) {
-		_compact = compact;
-	}
-
 	public void setCPCatalogEntry(CPCatalogEntry cpCatalogEntry) {
 		_cpCatalogEntry = cpCatalogEntry;
+	}
+
+	public void setCompact(boolean compact) {
+		_compact = compact;
 	}
 
 	public void setNamespace(String namespace) {
@@ -249,10 +253,8 @@ public class PriceTag extends IncludeTag {
 
 	private boolean _isDisplayDiscountLevels() throws ConfigurationException {
 		CommercePriceConfiguration commercePriceConfiguration =
-			configurationProvider.getConfiguration(
-				CommercePriceConfiguration.class,
-				new SystemSettingsLocator(
-					CommerceConstants.SERVICE_NAME_COMMERCE_PRICE));
+			configurationProvider.getSystemConfiguration(
+				CommercePriceConfiguration.class);
 
 		return commercePriceConfiguration.displayDiscountLevels();
 	}

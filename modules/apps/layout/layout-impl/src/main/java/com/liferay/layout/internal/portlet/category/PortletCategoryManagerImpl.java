@@ -64,6 +64,12 @@ import com.liferay.portlet.configuration.kernel.util.PortletConfigurationApplica
 import com.liferay.segments.model.SegmentsExperienceModel;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import jakarta.portlet.PortletConfig;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -75,12 +81,6 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TreeSet;
-
-import javax.portlet.PortletConfig;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -163,7 +163,7 @@ public class PortletCategoryManagerImpl implements PortletCategoryManager {
 	@Activate
 	protected void activate(BundleContext bundleContext) {
 		_serviceTrackerMap = ServiceTrackerMapFactory.openSingleValueMap(
-			bundleContext, PortletManager.class, "javax.portlet.name");
+			bundleContext, PortletManager.class, "jakarta.portlet.name");
 	}
 
 	@Deactivate
@@ -333,24 +333,26 @@ public class PortletCategoryManagerImpl implements PortletCategoryManager {
 				httpServletRequest, layoutDecodedPortletNames,
 				currentPortletCategory, themeDisplay);
 
-			if ((childPortletCategoriesJSONArray.length() > 0) ||
-				(portletsJSONArray.length() > 0)) {
+			if ((childPortletCategoriesJSONArray.length() <= 0) &&
+				(portletsJSONArray.length() <= 0)) {
 
-				portletCategoryJSONObjectsMap.put(
-					portletCategoryKey,
-					JSONUtil.put(
-						"categories", childPortletCategoriesJSONArray
-					).put(
-						"path", portletCategoryKey
-					).put(
-						"portlets", portletsJSONArray
-					).put(
-						"title",
-						_getPortletCategoryTitle(
-							httpServletRequest, currentPortletCategory,
-							themeDisplay)
-					));
+				continue;
 			}
+
+			portletCategoryJSONObjectsMap.put(
+				portletCategoryKey,
+				JSONUtil.put(
+					"categories", childPortletCategoriesJSONArray
+				).put(
+					"path", portletCategoryKey
+				).put(
+					"portlets", portletsJSONArray
+				).put(
+					"title",
+					_getPortletCategoryTitle(
+						httpServletRequest, currentPortletCategory,
+						themeDisplay)
+				));
 		}
 
 		return portletCategoryJSONObjectsMap;
@@ -427,8 +429,6 @@ public class PortletCategoryManagerImpl implements PortletCategoryManager {
 		Set<String> highlightedPortletIds, PortletCategory portletCategory,
 		ThemeDisplay themeDisplay) {
 
-		List<Portlet> portlets = new ArrayList<>();
-
 		Set<String> portletIds = portletCategory.getPortletIds();
 
 		Layout layout = themeDisplay.getLayout();
@@ -437,32 +437,33 @@ public class PortletCategoryManagerImpl implements PortletCategoryManager {
 			portletIds = highlightedPortletIds;
 		}
 
-		for (String portletId : portletIds) {
-			Portlet portlet = _portletLocalService.getPortletById(
-				themeDisplay.getCompanyId(), portletId);
+		return TransformUtil.transform(
+			portletIds,
+			portletId -> {
+				Portlet portlet = _portletLocalService.getPortletById(
+					themeDisplay.getCompanyId(), portletId);
 
-			if (!_isVisible(layout, portlet)) {
-				continue;
-			}
-
-			try {
-				if (PortletPermissionUtil.contains(
-						themeDisplay.getPermissionChecker(),
-						themeDisplay.getLayout(), portlet,
-						ActionKeys.ADD_TO_PAGE)) {
-
-					portlets.add(portlet);
+				if (!_isVisible(layout, portlet)) {
+					return null;
 				}
-			}
-			catch (PortalException portalException) {
-				_log.error(
-					"Unable to check portlet permissions for " +
-						portlet.getPortletId(),
-					portalException);
-			}
-		}
 
-		return portlets;
+				try {
+					if (PortletPermissionUtil.contains(
+							themeDisplay.getPermissionChecker(), layout,
+							portlet, ActionKeys.ADD_TO_PAGE)) {
+
+						return portlet;
+					}
+				}
+				catch (PortalException portalException) {
+					_log.error(
+						"Unable to check portlet permissions for " +
+							portlet.getPortletId(),
+						portalException);
+				}
+
+				return null;
+			});
 	}
 
 	private JSONArray _getPortletsJSONArray(
@@ -491,6 +492,8 @@ public class PortletCategoryManagerImpl implements PortletCategoryManager {
 		for (Portlet portlet : portlets) {
 			jsonArray.put(
 				JSONUtil.put(
+					"deprecated", _isDeprecated(portlet)
+				).put(
 					"embedded",
 					() -> {
 						if (deletedFragmentEntryLinksPortletNames.contains(
@@ -570,6 +573,21 @@ public class PortletCategoryManagerImpl implements PortletCategoryManager {
 			portalPreferences,
 			ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 			"sortedPortletCategoryKeys");
+	}
+
+	private boolean _isDeprecated(Portlet portlet) {
+		if (portlet == null) {
+			return false;
+		}
+
+		PortletManager portletManager = _serviceTrackerMap.getService(
+			portlet.getRootPortletId());
+
+		if ((portletManager != null) && portletManager.isDeprecated()) {
+			return true;
+		}
+
+		return false;
 	}
 
 	private boolean _isVisible(Layout layout, Portlet portlet) {

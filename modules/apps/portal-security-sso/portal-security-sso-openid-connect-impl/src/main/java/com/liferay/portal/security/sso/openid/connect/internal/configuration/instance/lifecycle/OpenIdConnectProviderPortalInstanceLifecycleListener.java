@@ -10,8 +10,8 @@ import com.liferay.oauth.client.persistence.model.OAuthClientASLocalMetadata;
 import com.liferay.oauth.client.persistence.model.OAuthClientEntry;
 import com.liferay.oauth.client.persistence.service.OAuthClientASLocalMetadataLocalService;
 import com.liferay.oauth.client.persistence.service.OAuthClientEntryLocalService;
-import com.liferay.petra.lang.SafeCloseable;
-import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.configuration.module.configuration.BaseManagedServiceFactory;
 import com.liferay.portal.instance.lifecycle.BasePortalInstanceLifecycleListener;
 import com.liferay.portal.instance.lifecycle.EveryNodeEveryStartup;
 import com.liferay.portal.instance.lifecycle.PortalInstanceLifecycleListener;
@@ -25,21 +25,17 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.CompanyConstants;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.model.Release;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
-import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.security.sso.openid.connect.internal.util.OpenIdConnectProviderUtil;
 
-import java.net.URI;
-
-import java.security.MessageDigest;
-
 import java.util.Dictionary;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.osgi.framework.BundleContext;
@@ -68,19 +64,29 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 
 	@Override
 	public void portalInstanceRegistered(Company company) throws Exception {
+		_registeredCompanyIds.add(company.getCompanyId());
+
 		if (!_clusterMasterExecutor.isMaster()) {
 			return;
 		}
 
 		_properties.forEach(
 			(pid, properties) -> {
-				if (GetterUtil.getLong(properties.get("companyId")) ==
-						CompanyConstants.SYSTEM) {
+				long companyId = GetterUtil.getLong(
+					properties.get("companyId"));
+
+				if ((companyId == CompanyConstants.SYSTEM) ||
+					(companyId == company.getCompanyId())) {
 
 					_updateOAuthClientEntry(
 						company.getCompanyId(), null, properties);
 				}
 			});
+	}
+
+	@Override
+	public void portalInstanceUnregistered(Company company) throws Exception {
+		_registeredCompanyIds.remove(company.getCompanyId());
 	}
 
 	@Activate
@@ -92,8 +98,13 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 			new OpenIdConnectProviderManagedServiceFactory(),
 			MapUtil.singletonDictionary(
 				Constants.SERVICE_PID,
-				"com.liferay.portal.security.sso.openid.connect.internal." +
-					"configuration.OpenIdConnectProviderConfiguration"));
+				new String[] {
+					"com.liferay.portal.security.sso.openid.connect.internal." +
+						"configuration.OpenIdConnectProviderConfiguration",
+					"com.liferay.portal.security.sso.openid.connect.internal." +
+						"configuration.OpenIdConnectProviderConfiguration." +
+							"scoped"
+				}));
 	}
 
 	@Deactivate
@@ -102,34 +113,43 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 	}
 
 	private void _addOAuthClientEntry(
-			Dictionary<String, ?> properties, long guestUserId)
+			long companyId, Dictionary<String, ?> properties, long guestUserId)
 		throws Exception {
 
 		_oAuthClientEntryLocalService.addOAuthClientEntry(
-			guestUserId, _generateAuthRequestParametersJSON(properties),
-			_updateOAuthClientASLocalMetadata(guestUserId, properties),
+			null, guestUserId, _generateAuthRequestParametersJSON(properties),
+			_updateOAuthClientASLocalMetadata(
+				companyId, guestUserId, properties),
+			_generateCustomClaimsJSON(properties),
 			_generateInfoJSON(properties),
+			GetterUtil.getString(properties.get("matcherField")),
+			GetterUtil.getLong(
+				properties.get("discoveryEndpointCacheInMillis")),
 			OAuthClientEntryConstants.OIDC_USER_INFO_MAPPER_JSON,
+			GetterUtil.getInteger(
+				properties.get("tokenConnectionTimeout"),
+				OAuthClientEntryConstants.TOKEN_CONNECTION_TIMEOUT_DEFAULT),
 			_generateTokenRequestParametersJSON(properties));
 	}
 
 	private String _deleteOAuthClientASLocalMetadata(
-			Dictionary<String, ?> properties)
+			long companyId, Dictionary<String, ?> properties)
 		throws Exception {
 
-		String discoveryEndPoint = _getPropertyAsString(
-			"discoveryEndPoint", properties);
+		String discoveryEndpoint = _getPropertyAsString(
+			"discoveryEndpoint", properties);
 
-		if (Validator.isNotNull(discoveryEndPoint)) {
-			return discoveryEndPoint;
+		if (Validator.isNotNull(discoveryEndpoint)) {
+			return discoveryEndpoint;
 		}
 
-		String localWellKnownURI = _generateLocalWellKnownURI(
-			_getPropertyAsString("issuerURL", properties),
-			_getPropertyAsString("tokenEndPoint", properties));
+		String localWellKnownURI =
+			OpenIdConnectProviderUtil.generateLocalWellKnownURI(
+				_getPropertyAsString("issuerURL", properties),
+				_getPropertyAsString("tokenEndpoint", properties));
 
 		_oAuthClientASLocalMetadataLocalService.
-			deleteOAuthClientASLocalMetadata(localWellKnownURI);
+			deleteOAuthClientASLocalMetadata(companyId, localWellKnownURI);
 
 		return localWellKnownURI;
 	}
@@ -154,7 +174,7 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 
 		try {
 			String authServerWellKnownURI = _deleteOAuthClientASLocalMetadata(
-				properties);
+				companyId, properties);
 
 			_oAuthClientEntryLocalService.deleteOAuthClientEntry(
 				companyId, authServerWellKnownURI,
@@ -189,6 +209,25 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 		return _CLIENT_TO + providerName;
 	}
 
+	private String _generateCustomClaimsJSON(Dictionary<String, ?> properties) {
+		JSONObject customClaimsJSONObject = _jsonFactory.createJSONObject();
+
+		String[] customClaims = GetterUtil.getStringValues(
+			properties.get("customClaims"));
+
+		for (String customClaim : customClaims) {
+			if (customClaim.isEmpty()) {
+				continue;
+			}
+
+			String[] parts = customClaim.split(StringPool.EQUAL);
+
+			customClaimsJSONObject.put(parts[0], parts[1]);
+		}
+
+		return customClaimsJSONObject.toString();
+	}
+
 	private String _generateInfoJSON(Dictionary<String, ?> properties) {
 		return JSONUtil.put(
 			"client_id",
@@ -211,24 +250,10 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 		).toString();
 	}
 
-	private String _generateLocalWellKnownURI(
-			String issuer, String tokenEndPoint)
-		throws Exception {
-
-		URI issuerURI = URI.create(issuer);
-		MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-
-		return StringBundler.concat(
-			issuerURI.getScheme(), "://", issuerURI.getAuthority(),
-			"/.well-known/openid-configuration", issuerURI.getPath(), '/',
-			Base64.encodeToURL(messageDigest.digest(tokenEndPoint.getBytes())),
-			"/local");
-	}
-
 	private String _generateMetadataJSON(Dictionary<String, ?> properties) {
 		return JSONUtil.put(
 			"authorization_endpoint",
-			_getPropertyAsString("authorizationEndPoint", properties)
+			_getPropertyAsString("authorizationEndpoint", properties)
 		).put(
 			"id_token_signing_alg_values_supported",
 			_getPropertyAsJSONArray("idTokenSigningAlgValues", properties)
@@ -242,10 +267,10 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 			"subject_types_supported",
 			_getPropertyAsJSONArray("subjectTypes", properties)
 		).put(
-			"token_endpoint", _getPropertyAsString("tokenEndPoint", properties)
+			"token_endpoint", _getPropertyAsString("tokenEndpoint", properties)
 		).put(
 			"userinfo_endpoint",
-			_getPropertyAsString("userInfoEndPoint", properties)
+			_getPropertyAsString("userInfoEndpoint", properties)
 		).toString();
 	}
 
@@ -327,6 +352,13 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 			_generateRequestParametersJSONObject(
 				"customTokenRequestParameters", properties);
 
+		if (GetterUtil.getBoolean(
+				properties.get("allowUpstreamTokenForwarding"))) {
+
+			requestParametersJSONObject.put(
+				"allow_upstream_token_forwarding", true);
+		}
+
 		return requestParametersJSONObject.put(
 			"grant_type", "authorization_code"
 		).toString();
@@ -370,23 +402,25 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 	}
 
 	private String _updateOAuthClientASLocalMetadata(
-			long guestUserId, Dictionary<String, ?> properties)
+			long companyId, long guestUserId, Dictionary<String, ?> properties)
 		throws Exception {
 
-		String discoveryEndPoint = _getPropertyAsString(
-			"discoveryEndPoint", properties);
+		String discoveryEndpoint = _getPropertyAsString(
+			"discoveryEndpoint", properties);
 
-		if (Validator.isNotNull(discoveryEndPoint)) {
-			return discoveryEndPoint;
+		if (Validator.isNotNull(discoveryEndpoint)) {
+			return discoveryEndpoint;
 		}
 
-		String localWellKnownURI = _generateLocalWellKnownURI(
-			_getPropertyAsString("issuerURL", properties),
-			_getPropertyAsString("tokenEndPoint", properties));
+		String localWellKnownURI =
+			OpenIdConnectProviderUtil.generateLocalWellKnownURI(
+				_getPropertyAsString("issuerURL", properties),
+				_getPropertyAsString("tokenEndpoint", properties));
 
 		OAuthClientASLocalMetadata oAuthClientASLocalMetadata =
 			_oAuthClientASLocalMetadataLocalService.
-				fetchOAuthClientASLocalMetadata(localWellKnownURI);
+				fetchOAuthClientASLocalMetadataByLocalWellKnownURI(
+					companyId, localWellKnownURI);
 
 		if (oAuthClientASLocalMetadata == null) {
 			_oAuthClientASLocalMetadataLocalService.
@@ -426,7 +460,7 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 			if (oldProperties != null) {
 				String oldAuthServerWellKnownURI =
 					_updateOAuthClientASLocalMetadata(
-						guestUserId, oldProperties);
+						companyId, guestUserId, oldProperties);
 
 				OAuthClientEntry oldOAuthClientEntry =
 					_oAuthClientEntryLocalService.fetchOAuthClientEntry(
@@ -439,17 +473,25 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 						oldOAuthClientEntry.getOAuthClientEntryId(),
 						_generateAuthRequestParametersJSON(properties),
 						_updateOAuthClientASLocalMetadata(
-							guestUserId, properties),
+							companyId, guestUserId, properties),
+						_generateCustomClaimsJSON(properties),
 						_generateInfoJSON(properties),
+						GetterUtil.getString(properties.get("matcherField")),
+						GetterUtil.getLong(
+							properties.get("discoveryEndpointCacheInMillis")),
 						oldOAuthClientEntry.getOIDCUserInfoMapperJSON(),
+						GetterUtil.getInteger(
+							properties.get("tokenConnectionTimeout"),
+							OAuthClientEntryConstants.
+								TOKEN_CONNECTION_TIMEOUT_DEFAULT),
 						_generateTokenRequestParametersJSON(properties));
 				}
 				else {
-					_addOAuthClientEntry(properties, guestUserId);
+					_addOAuthClientEntry(companyId, properties, guestUserId);
 				}
 			}
 			else {
-				_addOAuthClientEntry(properties, guestUserId);
+				_addOAuthClientEntry(companyId, properties, guestUserId);
 			}
 
 			OpenIdConnectProviderUtil.removeOAuthClientEntryIdsByCompanyId(
@@ -485,32 +527,21 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 
 	private final Map<String, Dictionary<String, ?>> _properties =
 		new ConcurrentHashMap<>();
+	private final Set<Long> _registeredCompanyIds =
+		ConcurrentHashMap.newKeySet();
+
+	@Reference(
+		target = "(&(release.bundle.symbolic.name=com.liferay.oauth.client.persistence.service)(&(release.schema.version>=1.6.1)))"
+	)
+	private Release _release;
+
 	private ServiceRegistration<ManagedServiceFactory> _serviceRegistration;
 
 	@Reference
 	private UserLocalService _userLocalService;
 
 	private class OpenIdConnectProviderManagedServiceFactory
-		implements ManagedServiceFactory {
-
-		@Override
-		public void deleted(String pid) {
-			Dictionary<String, ?> properties = _properties.remove(pid);
-
-			long companyId = GetterUtil.getLong(properties.get("companyId"));
-
-			if (companyId == CompanyConstants.SYSTEM) {
-				_deleteOAuthClientEntries(properties);
-			}
-			else {
-				try (SafeCloseable safeCloseable =
-						CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-							companyId)) {
-
-					_deleteOAuthClientEntry(companyId, properties);
-				}
-			}
-		}
+		extends BaseManagedServiceFactory {
 
 		@Override
 		public String getName() {
@@ -518,17 +549,33 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 		}
 
 		@Override
-		public void updated(String pid, Dictionary<String, ?> properties) {
-			long companyId = GetterUtil.getLong(properties.get("companyId"));
+		protected void doDeleted(long companyId, String pid) {
+			Dictionary<String, ?> properties = _properties.remove(pid);
 
-			Dictionary<String, ?> oldProperties = _properties.put(
-				pid, properties);
+			if (companyId == CompanyConstants.SYSTEM) {
+				_deleteOAuthClientEntries(properties);
+			}
+			else {
+				_deleteOAuthClientEntry(companyId, properties);
+			}
+		}
+
+		@Override
+		protected void doUpdated(
+			long companyId, Dictionary<String, ?> dictionary, String pid) {
+
+			Dictionary<String, ?> oldDictionary = _properties.put(
+				pid, dictionary);
 
 			if (companyId == CompanyConstants.SYSTEM) {
 				try {
 					_companyLocalService.forEachCompanyId(
-						curCompanyId -> _updateOAuthClientEntry(
-							curCompanyId, oldProperties, properties));
+						curCompanyId -> {
+							if (_registeredCompanyIds.contains(curCompanyId)) {
+								_updateOAuthClientEntry(
+									curCompanyId, oldDictionary, dictionary);
+							}
+						});
 				}
 				catch (Exception exception) {
 					if (_log.isDebugEnabled()) {
@@ -539,11 +586,8 @@ public class OpenIdConnectProviderPortalInstanceLifecycleListener
 				return;
 			}
 
-			try (SafeCloseable safeCloseable =
-					CompanyThreadLocal.setCompanyIdWithSafeCloseable(
-						companyId)) {
-
-				_updateOAuthClientEntry(companyId, oldProperties, properties);
+			if (_registeredCompanyIds.contains(companyId)) {
+				_updateOAuthClientEntry(companyId, oldDictionary, dictionary);
 			}
 		}
 

@@ -16,13 +16,14 @@ import com.liferay.portal.kernel.model.ResourceAction;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
 import com.liferay.portal.kernel.test.rule.DataGuard;
-import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.model.impl.ResourceActionImpl;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.portal.upgrade.test.util.UpgradeTestUtil;
+
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -44,28 +45,15 @@ public class AccountRoleResourceUpgradeProcessTest {
 
 	@Test
 	public void testAccountRoleResourceUpgradeProcess() throws Exception {
-		_resourceActionLocalService.addResourceAction(
-			AccountEntry.class.getName(), "EDIT_ORGANIZATIONS",
-			RandomTestUtil.randomLong());
-
-		_deleteResourceAction(
-			AccountEntry.class.getName(),
-			AccountActionKeys.UPDATE_ORGANIZATIONS);
-
-		_resourceActionLocalService.addResourceAction(
-			Organization.class.getName(), "EDIT_SUBORGANIZATIONS",
-			RandomTestUtil.randomLong());
-
-		_deleteResourceAction(
-			Organization.class.getName(), ActionKeys.UPDATE_SUBORGANIZATIONS);
-
-		_resourceActionLocalService.addResourceAction(
-			Organization.class.getName(), "EDIT_SUBORGANIZATIONS_ACCOUNTS",
-			RandomTestUtil.randomLong());
-
-		_deleteResourceAction(
-			Organization.class.getName(),
-			AccountActionKeys.UPDATE_SUBORGANIZATIONS_ACCOUNTS);
+		_replaceResourceAction(
+			AccountActionKeys.UPDATE_ORGANIZATIONS,
+			AccountEntry.class.getName(), "EDIT_ORGANIZATIONS");
+		_replaceResourceAction(
+			ActionKeys.UPDATE_SUBORGANIZATIONS, Organization.class.getName(),
+			"EDIT_SUBORGANIZATIONS");
+		_replaceResourceAction(
+			AccountActionKeys.UPDATE_SUBORGANIZATIONS_ACCOUNTS,
+			Organization.class.getName(), "EDIT_SUBORGANIZATIONS_ACCOUNTS");
 
 		_runUpgrade();
 
@@ -76,43 +64,52 @@ public class AccountRoleResourceUpgradeProcessTest {
 
 		_resourceActionLocalService.checkResourceActions();
 
-		Assert.assertEquals(
-			0,
+		List<ResourceAction> resourceActions =
 			_resourceActionLocalService.getResourceActions(
-				"EDIT_ORGANIZATIONS"
-			).size());
+				"EDIT_ORGANIZATIONS");
+
+		Assert.assertEquals(
+			resourceActions.toString(), 0, resourceActions.size());
+
 		Assert.assertNotNull(
 			_resourceActionLocalService.fetchResourceAction(
 				AccountEntry.class.getName(),
 				AccountActionKeys.UPDATE_ORGANIZATIONS));
+
+		resourceActions = _resourceActionLocalService.getResourceActions(
+			"EDIT_SUBORGANIZATIONS");
+
 		Assert.assertEquals(
-			0,
-			_resourceActionLocalService.getResourceActions(
-				"EDIT_SUBORGANIZATIONS"
-			).size());
+			resourceActions.toString(), 0, resourceActions.size());
+
 		Assert.assertNotNull(
 			_resourceActionLocalService.fetchResourceAction(
 				Organization.class.getName(),
 				ActionKeys.UPDATE_SUBORGANIZATIONS));
+
+		resourceActions = _resourceActionLocalService.getResourceActions(
+			"EDIT_SUBORGANIZATIONS_ACCOUNTS");
+
 		Assert.assertEquals(
-			0,
-			_resourceActionLocalService.getResourceActions(
-				"EDIT_SUBORGANIZATIONS_ACCOUNTS"
-			).size());
+			resourceActions.toString(), 0, resourceActions.size());
+
 		Assert.assertNotNull(
 			_resourceActionLocalService.fetchResourceAction(
 				Organization.class.getName(),
 				AccountActionKeys.UPDATE_SUBORGANIZATIONS_ACCOUNTS));
 	}
 
-	private void _deleteResourceAction(String className, String actionId) {
-		ResourceAction resourceAction =
-			_resourceActionLocalService.fetchResourceAction(
-				className, actionId);
+	private void _replaceResourceAction(
+			String actionId, String className, String oldActionId)
+		throws Exception {
 
-		if (resourceAction != null) {
-			_resourceActionLocalService.deleteResourceAction(resourceAction);
-		}
+		ResourceAction resourceAction =
+			_resourceActionLocalService.getResourceAction(className, actionId);
+
+		_resourceActionLocalService.deleteResourceAction(resourceAction);
+
+		_resourceActionLocalService.addResourceAction(
+			className, oldActionId, resourceAction.getBitwiseValue());
 	}
 
 	private void _runUpgrade() throws Exception {
@@ -127,17 +124,17 @@ public class AccountRoleResourceUpgradeProcessTest {
 			"AccountRoleResourceUpgradeProcess";
 
 	@Inject
-	private static ResourceActionLocalService _resourceActionLocalService;
-
-	@Inject(
-		filter = "(&(component.name=com.liferay.account.internal.upgrade.registry.AccountServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
-	@Inject
 	private EntityCache _entityCache;
 
 	@Inject
 	private FinderCache _finderCache;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.account.internal.upgrade.registry.AccountServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

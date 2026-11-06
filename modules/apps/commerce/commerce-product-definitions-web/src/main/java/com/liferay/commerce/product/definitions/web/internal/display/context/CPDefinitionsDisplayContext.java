@@ -8,12 +8,12 @@ package com.liferay.commerce.product.definitions.web.internal.display.context;
 import com.liferay.account.constants.AccountConstants;
 import com.liferay.account.model.AccountGroupRel;
 import com.liferay.account.service.AccountGroupRelLocalService;
-import com.liferay.commerce.account.item.selector.criterion.CommerceAccountGroupItemSelectorCriterion;
+import com.liferay.commerce.account.item.selector.CommerceAccountGroupItemSelectorCriterion;
 import com.liferay.commerce.frontend.model.HeaderActionModel;
 import com.liferay.commerce.product.configuration.CProductVersionConfiguration;
 import com.liferay.commerce.product.constants.CPActionKeys;
 import com.liferay.commerce.product.display.context.BaseCPDefinitionsDisplayContext;
-import com.liferay.commerce.product.item.selector.criterion.CommerceChannelItemSelectorCriterion;
+import com.liferay.commerce.product.item.selector.CommerceChannelItemSelectorCriterion;
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CProduct;
 import com.liferay.commerce.product.model.CommerceCatalog;
@@ -51,7 +51,6 @@ import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalServiceUtil;
-import com.liferay.portal.kernel.settings.SystemSettingsLocator;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -63,14 +62,14 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.taglib.util.CustomAttributesUtil;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Alessio Antonio Rendina
@@ -171,75 +170,6 @@ public class CPDefinitionsDisplayContext
 				null));
 	}
 
-	public String getChannelItemSelectorUrl() throws PortalException {
-		RequestBackedPortletURLFactory requestBackedPortletURLFactory =
-			RequestBackedPortletURLFactoryUtil.create(httpServletRequest);
-
-		CommerceChannelItemSelectorCriterion
-			commerceChannelItemSelectorCriterion =
-				new CommerceChannelItemSelectorCriterion();
-
-		commerceChannelItemSelectorCriterion.setDesiredItemSelectorReturnTypes(
-			Collections.<ItemSelectorReturnType>singletonList(
-				new UUIDItemSelectorReturnType()));
-
-		return PortletURLBuilder.create(
-			_itemSelector.getItemSelectorURL(
-				requestBackedPortletURLFactory, "channelSelectItem",
-				commerceChannelItemSelectorCriterion)
-		).setParameter(
-			"checkedCommerceChannelIds", getCheckedCommerceChannelIds()
-		).buildString();
-	}
-
-	public CreationMenu getChannelsCreationMenu() throws PortalException {
-		return CreationMenuBuilder.addDropdownItem(
-			dropdownItem -> {
-				String cpDefinitionName = StringPool.BLANK;
-
-				CPDefinition cpDefinition = getCPDefinition();
-
-				if (cpDefinition != null) {
-					cpDefinitionName = cpDefinition.getName(
-						LocaleUtil.toLanguageId(cpRequestHelper.getLocale()));
-				}
-
-				dropdownItem.setHref(
-					liferayPortletResponse.getNamespace() +
-						"selectCommerceChannel");
-				dropdownItem.setLabel(
-					LanguageUtil.format(
-						httpServletRequest, "add-channel-relation-to-x",
-						cpDefinitionName));
-				dropdownItem.setTarget("event");
-			}
-		).build();
-	}
-
-	public String getCheckedCommerceAccountGroupIds() throws PortalException {
-		return StringUtil.merge(
-			TransformUtil.transformToLongArray(
-				_accountGroupRelLocalService.getAccountGroupRels(
-					CPDefinition.class.getName(), getCPDefinitionId(),
-					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null),
-				AccountGroupRel::getAccountGroupId));
-	}
-
-	public String getCheckedCommerceChannelIds() throws PortalException {
-		return StringUtil.merge(
-			TransformUtil.transformToLongArray(
-				_commerceChannelRelService.getCommerceChannelRels(
-					CPDefinition.class.getName(), getCPDefinitionId(), null,
-					QueryUtil.ALL_POS, QueryUtil.ALL_POS),
-				CommerceChannelRel::getCommerceChannelId));
-	}
-
-	public List<CommerceCatalog> getCommerceCatalogs() throws PortalException {
-		return _commerceCatalogService.search(
-			cpRequestHelper.getCompanyId(), null, QueryUtil.ALL_POS,
-			QueryUtil.ALL_POS, null);
-	}
-
 	public CreationMenu getCPDefinitionSpecificationOptionValueCreationMenu()
 		throws Exception {
 
@@ -307,6 +237,75 @@ public class CPDefinitionsDisplayContext
 		}
 
 		return cpDefinition.getCProduct();
+	}
+
+	public String getChannelItemSelectorUrl() throws PortalException {
+		RequestBackedPortletURLFactory requestBackedPortletURLFactory =
+			RequestBackedPortletURLFactoryUtil.create(httpServletRequest);
+
+		CommerceChannelItemSelectorCriterion
+			commerceChannelItemSelectorCriterion =
+				new CommerceChannelItemSelectorCriterion();
+
+		commerceChannelItemSelectorCriterion.setDesiredItemSelectorReturnTypes(
+			Collections.<ItemSelectorReturnType>singletonList(
+				new UUIDItemSelectorReturnType()));
+
+		return PortletURLBuilder.create(
+			_itemSelector.getItemSelectorURL(
+				requestBackedPortletURLFactory, "channelSelectItem",
+				commerceChannelItemSelectorCriterion)
+		).setParameter(
+			"checkedCommerceChannelIds", getCheckedCommerceChannelIds()
+		).buildString();
+	}
+
+	public CreationMenu getChannelsCreationMenu() throws PortalException {
+		return CreationMenuBuilder.addDropdownItem(
+			dropdownItem -> {
+				String cpDefinitionName = StringPool.BLANK;
+
+				CPDefinition cpDefinition = getCPDefinition();
+
+				if (cpDefinition != null) {
+					cpDefinitionName = cpDefinition.getName(
+						LocaleUtil.toLanguageId(cpRequestHelper.getLocale()));
+				}
+
+				dropdownItem.setHref(
+					liferayPortletResponse.getNamespace() +
+						"selectCommerceChannel");
+				dropdownItem.setLabel(
+					LanguageUtil.format(
+						httpServletRequest, "add-channel-relation-to-x",
+						cpDefinitionName));
+				dropdownItem.setTarget("event");
+			}
+		).build();
+	}
+
+	public String getCheckedCommerceAccountGroupIds() throws PortalException {
+		return StringUtil.merge(
+			TransformUtil.transformToLongArray(
+				_accountGroupRelLocalService.getAccountGroupRels(
+					CPDefinition.class.getName(), getCPDefinitionId(),
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null),
+				AccountGroupRel::getAccountGroupId));
+	}
+
+	public String getCheckedCommerceChannelIds() throws PortalException {
+		return StringUtil.merge(
+			TransformUtil.transformToLongArray(
+				_commerceChannelRelService.getCommerceChannelRels(
+					CPDefinition.class.getName(), getCPDefinitionId(), null,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS),
+				CommerceChannelRel::getCommerceChannelId));
+	}
+
+	public List<CommerceCatalog> getCommerceCatalogs() throws PortalException {
+		return _commerceCatalogService.search(
+			cpRequestHelper.getCompanyId(), null, QueryUtil.ALL_POS,
+			QueryUtil.ALL_POS, null);
 	}
 
 	public CreationMenu getCreationMenu() throws Exception {
@@ -448,11 +447,11 @@ public class CPDefinitionsDisplayContext
 		List<HeaderActionModel> headerActionModels = new ArrayList<>();
 
 		CPDefinition cpDefinition = getCPDefinition();
+
 		CProductVersionConfiguration cProductVersionConfiguration =
-			_configurationProvider.getConfiguration(
+			_configurationProvider.getCompanyConfiguration(
 				CProductVersionConfiguration.class,
-				new SystemSettingsLocator(
-					CProductVersionConfiguration.class.getName()));
+				cpDefinition.getCompanyId());
 
 		if (((cpDefinition != null) && cpDefinition.isDraft()) ||
 			cProductVersionConfiguration.enabled()) {
@@ -581,10 +580,9 @@ public class CPDefinitionsDisplayContext
 
 	private boolean _isVersioningEnabled() throws PortalException {
 		CProductVersionConfiguration cProductVersionConfiguration =
-			ConfigurationProviderUtil.getConfiguration(
+			ConfigurationProviderUtil.getCompanyConfiguration(
 				CProductVersionConfiguration.class,
-				new SystemSettingsLocator(
-					CProductVersionConfiguration.class.getName()));
+				cpRequestHelper.getCompanyId());
 
 		return cProductVersionConfiguration.enabled();
 	}

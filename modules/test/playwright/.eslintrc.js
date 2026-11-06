@@ -11,7 +11,6 @@ const config = {
 		node: true,
 	},
 	extends: ['plugin:@liferay/general'],
-	ignorePatterns: ['!*'],
 	parserOptions: {
 		ecmaFeatures: {
 			jsx: true,
@@ -22,10 +21,22 @@ const config = {
 	root: true,
 	rules: {
 		'@liferay/portal/no-global-fetch': 'off',
+		'no-restricted-imports': [
+			'error',
+			{
+				paths: [
+					{
+						message:
+							'Import from the playwright-core source by relative path. The package entry point is built output that CI does not build.',
+						name: '@liferay/playwright-core',
+					},
+				],
+			},
+		],
 		'notice/notice': [
 			'error',
 			{
-				nonMatchingTolerance: 0.7,
+				nonMatchingTolerance: 0.95,
 				onNonMatchingHeader: 'replace',
 				templateFile: path.join(__dirname, 'copyright.js'),
 			},

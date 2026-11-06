@@ -20,6 +20,7 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.module.service.Snapshot;
+import com.liferay.portal.kernel.security.auth.CompanyInheritableThreadLocalCallable;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -146,28 +147,13 @@ public class DDMDataProviderInvokerImpl implements DDMDataProviderInvoker {
 
 		DDMDataProviderInvokeCommand ddmDataProviderInvokeCommand =
 			new DDMDataProviderInvokeCommand(
-				ddmDataProviderInstance.getNameCurrentValue(), ddmDataProvider,
-				ddmDataProviderRequest,
+				new CompanyInheritableThreadLocalCallable<>(
+					() -> ddmDataProvider.getData(ddmDataProviderRequest)),
 				ddmDataProviderInstanceSettings.getSettings(
-					ddmDataProviderInstance,
-					DDMRESTDataProviderSettings.class));
+					ddmDataProviderInstance, DDMRESTDataProviderSettings.class),
+				ddmDataProviderInstance.getNameCurrentValue());
 
-		DDMDataProviderResponse ddmDataProviderResponse =
-			ddmDataProviderInvokeCommand.execute();
-
-		try {
-			deactivate();
-		}
-		catch (Exception exception) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(exception);
-			}
-			else if (_log.isWarnEnabled()) {
-				_log.warn("Unable to deactivate", exception);
-			}
-		}
-
-		return ddmDataProviderResponse;
+		return ddmDataProviderInvokeCommand.execute();
 	}
 
 	protected DDMDataProviderInstance fetchDDMDataProviderInstance(

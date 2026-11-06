@@ -8,8 +8,10 @@ package com.liferay.headless.commerce.delivery.cart.internal.resource.v1_0;
 import com.liferay.commerce.constants.CommerceOrderConstants;
 import com.liferay.commerce.context.CommerceContextFactory;
 import com.liferay.commerce.exception.CommerceOrderStatusException;
+import com.liferay.commerce.helper.CommerceWorkflowedModelHelper;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderItem;
+import com.liferay.commerce.model.CommerceOrderItemModel;
 import com.liferay.commerce.model.CommerceShippingEngine;
 import com.liferay.commerce.model.CommerceShippingMethod;
 import com.liferay.commerce.model.CommerceShippingOption;
@@ -20,16 +22,18 @@ import com.liferay.commerce.payment.model.CommercePaymentMethodGroupRel;
 import com.liferay.commerce.payment.service.CommercePaymentMethodGroupRelLocalService;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
+import com.liferay.commerce.service.CommerceOrderNoteLocalService;
 import com.liferay.commerce.service.CommerceOrderService;
 import com.liferay.commerce.service.CommerceShippingMethodLocalService;
 import com.liferay.commerce.shipping.engine.fixed.model.CommerceShippingFixedOption;
 import com.liferay.commerce.shipping.engine.fixed.service.CommerceShippingFixedOptionLocalService;
 import com.liferay.commerce.term.service.CommerceTermEntryLocalService;
 import com.liferay.commerce.util.CommerceShippingEngineRegistry;
-import com.liferay.commerce.util.CommerceWorkflowedModelHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.CartTransition;
 import com.liferay.headless.commerce.delivery.cart.resource.v1_0.CartTransitionResource;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -92,7 +96,11 @@ public class CartTransitionResourceImpl extends BaseCartTransitionResourceImpl {
 		if (inProgressCommerceOrderStatus.isTransitionCriteriaMet(
 				commerceOrder)) {
 
-			if (commerceOrder.isApproved()) {
+			boolean priceOnApplication = ListUtil.exists(
+				commerceOrder.getCommerceOrderItems(),
+				CommerceOrderItemModel::isPriceOnApplication);
+
+			if (commerceOrder.isApproved() && !priceOnApplication) {
 				transitionOVPs.add(new ObjectValuePair<>(0L, "checkout"));
 			}
 			else if (commerceOrder.isDraft()) {
@@ -122,11 +130,10 @@ public class CartTransitionResourceImpl extends BaseCartTransitionResourceImpl {
 							_getCommercePaymentMethodGroupRelId(commerceOrder));
 
 				if (((deliveryCommerceTermEntriesCount == 0) ||
-					 ((deliveryCommerceTermEntriesCount > 0) &&
-					  (commerceOrder.getDeliveryCommerceTermEntryId() > 0))) &&
+					 (commerceOrder.getDeliveryCommerceTermEntryId() > 0)) &&
 					((paymentCommerceTermEntriesCount == 0) ||
-					 ((paymentCommerceTermEntriesCount > 0) &&
-					  (commerceOrder.getPaymentCommerceTermEntryId() > 0)))) {
+					 (commerceOrder.getPaymentCommerceTermEntryId() > 0)) &&
+					!priceOnApplication) {
 
 					transitionOVPs.add(
 						new ObjectValuePair<>(0L, "quick-checkout"));
@@ -167,6 +174,16 @@ public class CartTransitionResourceImpl extends BaseCartTransitionResourceImpl {
 				comment);
 		}
 		else if (name.equals("request-quote")) {
+			if (Validator.isNotNull(comment)) {
+				boolean restricted = GetterUtil.getBoolean(
+					cartTransition.getRestricted());
+
+				_commerceOrderNoteLocalService.addCommerceOrderNote(
+					commerceOrder.getCommerceOrderId(), comment, restricted,
+					_serviceContextHelper.getServiceContext(
+						commerceOrder.getGroupId()));
+			}
+
 			_commerceOrderEngine.transitionCommerceOrder(
 				commerceOrder,
 				CommerceOrderConstants.ORDER_STATUS_QUOTE_REQUESTED,
@@ -230,27 +247,29 @@ public class CartTransitionResourceImpl extends BaseCartTransitionResourceImpl {
 		for (CommerceShippingOption commerceShippingOption :
 				commerceShippingEngine.getCommerceShippingOptions(
 					_commerceContextFactory.create(
-						contextCompany.getCompanyId(),
-						commerceChannel.getGroupId(), contextUser.getUserId(),
+						commerceOrder.getCommerceAccountId(),
+						commerceChannel.getGroupId(), null,
 						commerceOrder.getCommerceOrderId(),
-						commerceOrder.getCommerceAccountId()),
+						contextCompany.getCompanyId()),
 					commerceOrder,
 					contextAcceptLanguage.getPreferredLocale())) {
 
-			if (StringUtil.equals(
+			if (!StringUtil.equals(
 					commerceOrder.getShippingOptionName(),
 					commerceShippingOption.getKey())) {
 
-				CommerceShippingFixedOption commerceShippingFixedOption =
-					_commerceShippingFixedOptionLocalService.
-						fetchCommerceShippingFixedOption(
-							commerceOrder.getCompanyId(),
-							commerceShippingOption.getKey());
+				continue;
+			}
 
-				if (commerceShippingFixedOption != null) {
-					return commerceShippingFixedOption.
-						getCommerceShippingFixedOptionId();
-				}
+			CommerceShippingFixedOption commerceShippingFixedOption =
+				_commerceShippingFixedOptionLocalService.
+					fetchCommerceShippingFixedOption(
+						commerceOrder.getCompanyId(),
+						commerceShippingOption.getKey());
+
+			if (commerceShippingFixedOption != null) {
+				return commerceShippingFixedOption.
+					getCommerceShippingFixedOptionId();
 			}
 		}
 
@@ -312,6 +331,9 @@ public class CartTransitionResourceImpl extends BaseCartTransitionResourceImpl {
 	private CommerceOrderEngine _commerceOrderEngine;
 
 	@Reference
+	private CommerceOrderNoteLocalService _commerceOrderNoteLocalService;
+
+	@Reference
 	private CommerceOrderService _commerceOrderService;
 
 	@Reference
@@ -340,5 +362,8 @@ public class CartTransitionResourceImpl extends BaseCartTransitionResourceImpl {
 
 	@Reference
 	private DTOConverterRegistry _dtoConverterRegistry;
+
+	@Reference
+	private ServiceContextHelper _serviceContextHelper;
 
 }

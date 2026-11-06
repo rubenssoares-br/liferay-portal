@@ -11,8 +11,10 @@ import com.liferay.fragment.processor.FragmentEntryProcessorContext;
 import com.liferay.fragment.processor.PortletRegistry;
 import com.liferay.fragment.renderer.FragmentPortletRenderer;
 import com.liferay.petra.string.CharPool;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.model.Portlet;
 import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
@@ -25,10 +27,14 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portlet.exportimport.staging.StagingAdvicesThreadLocal;
 
-import java.util.Arrays;
-import java.util.Map;
+import jakarta.portlet.PortletPreferences;
 
-import javax.portlet.PortletPreferences;
+import java.io.Serializable;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -41,7 +47,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Lourdes Fernández Besada
  */
 @Component(
-	property = "fragment.entry.processor.priority:Integer=3",
+	property = {
+		"fragment.entry.processor.marker=<lfr-widget-",
+		"fragment.entry.processor.priority:Integer=3"
+	},
 	service = DocumentFragmentEntryProcessor.class
 )
 public class PortletDocumentFragmentEntryProcessor
@@ -49,14 +58,27 @@ public class PortletDocumentFragmentEntryProcessor
 
 	@Override
 	public void processFragmentEntryLinkHTML(
-			FragmentEntryLink fragmentEntryLink, Document document,
+			Document document, FragmentEntryLink fragmentEntryLink,
+			FragmentEntryProcessorContext fragmentEntryProcessorContext)
+		throws PortalException {
+
+		processFragmentEntryLinkHTML(
+			document, fragmentEntryLink.getEditableValuesJSONObject(),
+			fragmentEntryLink, fragmentEntryProcessorContext);
+	}
+
+	@Override
+	public void processFragmentEntryLinkHTML(
+			Document document, JSONObject editableValuesJSONObject,
+			FragmentEntryLink fragmentEntryLink,
 			FragmentEntryProcessorContext fragmentEntryProcessorContext)
 		throws PortalException {
 
 		String html = fragmentEntryLink.getHtml();
 
-		if (!html.contains("lfr-widget-") &&
-			!html.contains("@liferay_portlet")) {
+		if (fragmentEntryProcessorContext.isDisablePortletRender() ||
+			(!html.contains("lfr-widget-") &&
+			 !html.contains("@liferay_portlet"))) {
 
 			return;
 		}
@@ -128,9 +150,17 @@ public class PortletDocumentFragmentEntryProcessor
 
 			portletElement.attr("class", "portlet");
 
-			portletElement.html(portletHTML);
+			String marker = StringBundler.concat(
+				_MARKER_PREFIX, _counter.incrementAndGet(), StringPool.POUND);
+
+			portletElement.appendText(marker);
 
 			element.replaceWith(portletElement);
+
+			Map<String, String> htmls = _getHTMLs(
+				fragmentEntryProcessorContext);
+
+			htmls.put(marker, portletHTML);
 		}
 	}
 
@@ -159,6 +189,17 @@ public class PortletDocumentFragmentEntryProcessor
 		}
 
 		return true;
+	}
+
+	private Map<String, String> _getHTMLs(
+		FragmentEntryProcessorContext fragmentEntryProcessorContext) {
+
+		Map<String, Serializable> attributes =
+			fragmentEntryProcessorContext.getAttributes();
+
+		return (Map<String, String>)attributes.computeIfAbsent(
+			DocumentFragmentEntryProcessor.class.getName(),
+			key -> new HashMap<String, String>());
 	}
 
 	private String _getInstanceId(String namespace, String id) {
@@ -264,6 +305,10 @@ public class PortletDocumentFragmentEntryProcessor
 			jxPortletPreferences);
 	}
 
+	private static final String _MARKER_PREFIX = StringUtil.randomString(16);
+
+	private static final AtomicLong _counter = new AtomicLong();
+
 	@Reference
 	private FragmentPortletRenderer _fragmentPortletRenderer;
 
@@ -271,11 +316,11 @@ public class PortletDocumentFragmentEntryProcessor
 	private PortletLocalService _portletLocalService;
 
 	@Reference
-	private PortletPreferencesLocalService _portletPreferencesLocalService;
-
-	@Reference
 	private PortletPreferenceValueLocalService
 		_portletPreferenceValueLocalService;
+
+	@Reference
+	private PortletPreferencesLocalService _portletPreferencesLocalService;
 
 	@Reference
 	private PortletRegistry _portletRegistry;

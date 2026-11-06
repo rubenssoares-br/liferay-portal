@@ -124,7 +124,7 @@ public class AssetTagIndexerReindexTest {
 	}
 
 	protected void reindexAllIndexerModels() throws Exception {
-		indexer.reindex(new String[] {String.valueOf(_group.getCompanyId())});
+		indexer.reindexCompany(_group.getCompanyId());
 	}
 
 	protected SearchResponse search(String searchTerm) {
@@ -146,13 +146,13 @@ public class AssetTagIndexerReindexTest {
 	@Inject
 	protected AssetTagLocalService assetTagLocalService;
 
+	@Inject
+	protected IndexWriterHelper indexWriterHelper;
+
 	@Inject(
 		filter = "indexer.class.name=com.liferay.asset.kernel.model.AssetTag"
 	)
 	protected Indexer<AssetTag> indexer;
-
-	@Inject
-	protected IndexWriterHelper indexWriterHelper;
 
 	@Inject
 	protected ResourcePermissionLocalService resourcePermissionLocalService;
@@ -161,10 +161,10 @@ public class AssetTagIndexerReindexTest {
 	protected SearchEngineHelper searchEngineHelper;
 
 	@Inject
-	protected Searcher searcher;
+	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
 
 	@Inject
-	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
+	protected Searcher searcher;
 
 	@Inject
 	protected UIDFactory uidFactory;

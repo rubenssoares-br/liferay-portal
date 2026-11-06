@@ -12,12 +12,12 @@ import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.taglib.util.IncludeTag;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.jsp.PageContext;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.jsp.PageContext;
 
 /**
  * @author Eudaldo Alonso
@@ -169,6 +169,9 @@ public class EmptyResultMessageTag extends IncludeTag {
 		httpServletRequest.setAttribute(
 			"liferay-frontend:empty-result-message:animationTypeCssClass",
 			EmptyResultMessageKeys.getAnimationTypeCssClass(_animationType));
+		httpServletRequest.setAttribute(
+			"liferay-frontend:empty-result-message:animationTypeSymbol",
+			EmptyResultMessageKeys.getAnimationTypeSymbol(_animationType));
 		httpServletRequest.setAttribute(
 			"liferay-frontend:empty-result-message:buttonCssClass",
 			_buttonCssClass);

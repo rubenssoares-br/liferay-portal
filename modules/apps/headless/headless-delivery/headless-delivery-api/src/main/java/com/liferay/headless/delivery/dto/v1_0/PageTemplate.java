@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -43,6 +44,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "Represents a Page template.", value = "PageTemplate"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a Page template."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "PageTemplate")
@@ -56,7 +60,9 @@ public class PageTemplate implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageTemplate.class, json);
 	}
 
-	@Schema(description = "The page template's creator.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's creator."
+	)
 	@Valid
 	public Creator getCreator() {
 		if (_creatorSupplier != null) {
@@ -98,7 +104,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The page template's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -139,7 +147,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The last time the page template changed.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time the page template changed."
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -180,7 +190,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The page template's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's ID."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -219,7 +231,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "A list of keywords describing the page template.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of keywords describing the page template."
+	)
 	public String[] getKeywords() {
 		if (_keywordsSupplier != null) {
 			keywords = _keywordsSupplier.get();
@@ -262,7 +276,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _keywordsSupplier;
 
-	@Schema(description = "The page template's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -301,7 +317,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(description = "The page template's definition.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's definition."
+	)
 	@Valid
 	public PageDefinition getPageDefinition() {
 		if (_pageDefinitionSupplier != null) {
@@ -344,7 +362,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<PageDefinition> _pageDefinitionSupplier;
 
-	@Schema(description = "The page template's collection.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's collection."
+	)
 	@Valid
 	public PageTemplateCollection getPageTemplateCollection() {
 		if (_pageTemplateCollectionSupplier != null) {
@@ -389,7 +409,9 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<PageTemplateCollection> _pageTemplateCollectionSupplier;
 
-	@Schema(description = "The categories associated with this page template.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The categories associated with this page template."
+	)
 	@Valid
 	public TaxonomyCategoryBrief[] getTaxonomyCategoryBriefs() {
 		if (_taxonomyCategoryBriefsSupplier != null) {
@@ -436,7 +458,7 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<TaxonomyCategoryBrief[]> _taxonomyCategoryBriefsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A write-only field that adds `TaxonomyCategory` instances to the page template."
 	)
 	public Long[] getTaxonomyCategoryIds() {
@@ -481,7 +503,7 @@ public class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Long[]> _taxonomyCategoryIdsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A valid external identifier to reference this page template."
 	)
 	public String getUuid() {
@@ -743,8 +765,8 @@ public class PageTemplate implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.PageTemplate",
 		name = "x-class-name"
 	)
@@ -831,6 +853,27 @@ public class PageTemplate implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -839,3 +882,4 @@ public class PageTemplate implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1885844184

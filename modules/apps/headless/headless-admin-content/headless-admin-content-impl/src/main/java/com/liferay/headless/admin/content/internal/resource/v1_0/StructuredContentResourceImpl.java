@@ -21,7 +21,6 @@ import com.liferay.headless.admin.content.resource.v1_0.StructuredContentResourc
 import com.liferay.headless.common.spi.service.context.ServiceContextBuilder;
 import com.liferay.headless.delivery.dto.v1_0.ContentField;
 import com.liferay.headless.delivery.dto.v1_0.StructuredContent;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.dto.v1_0.util.DDMFormValuesUtil;
 import com.liferay.headless.delivery.dto.v1_0.util.StructuredContentUtil;
 import com.liferay.headless.delivery.dynamic.data.mapping.DDMFormFieldUtil;
@@ -56,20 +55,22 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.aggregation.Aggregations;
 import com.liferay.portal.search.legacy.searcher.SearchRequestBuilderFactory;
-import com.liferay.portal.search.query.Queries;
 import com.liferay.portal.search.searcher.SearchRequestBuilder;
 import com.liferay.portal.search.sort.Sorts;
 import com.liferay.portal.vulcan.aggregation.Aggregation;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
-import com.liferay.portal.vulcan.resource.EntityModelResource;
 import com.liferay.portal.vulcan.util.EntityExtensionUtil;
 import com.liferay.portal.vulcan.util.LocalDateTimeUtil;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 import com.liferay.portal.vulcan.util.SearchUtil;
+
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.MultivaluedMap;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -80,9 +81,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.core.MultivaluedMap;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -96,7 +94,7 @@ import org.osgi.service.component.annotations.ServiceScope;
 	scope = ServiceScope.PROTOTYPE, service = StructuredContentResource.class
 )
 public class StructuredContentResourceImpl
-	extends BaseStructuredContentResourceImpl implements EntityModelResource {
+	extends BaseStructuredContentResourceImpl {
 
 	@Override
 	public void deleteStructuredContentByVersion(
@@ -172,12 +170,12 @@ public class StructuredContentResourceImpl
 					_searchRequestBuilderFactory.builder(searchContext);
 
 				AggregationUtil.processVulcanAggregation(
-					_aggregations, _ddmIndexer, _queries, searchRequestBuilder,
+					_aggregations, _ddmIndexer, searchRequestBuilder,
 					aggregation);
 
 				SortUtil.processSorts(
 					_ddmIndexer, searchRequestBuilder, searchContext.getSorts(),
-					_queries, _sorts);
+					_sorts);
 			},
 			sorts,
 			document -> {
@@ -306,7 +304,10 @@ public class StructuredContentResourceImpl
 
 		return _toExtensionStructuredContent(
 			_journalArticleService.addArticle(
-				null, siteId, JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID,
+				null, siteId,
+				GetterUtil.getLong(
+					structuredContent.getStructuredContentFolderId(),
+					JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID),
 				0, 0, null, true, titleMap, descriptionMap, friendlyUrlMap,
 				StructuredContentUtil.getJournalArticleContent(
 					_ddm,
@@ -409,6 +410,9 @@ public class StructuredContentResourceImpl
 		}
 	}
 
+	private static final EntityModel _entityModel =
+		new StructuredContentEntityModel();
+
 	@Reference
 	private Aggregations _aggregations;
 
@@ -430,8 +434,6 @@ public class StructuredContentResourceImpl
 	@Reference
 	private DTOConverterRegistry _dtoConverterRegistry;
 
-	private final EntityModel _entityModel = new StructuredContentEntityModel();
-
 	@Reference
 	private JournalArticleLocalService _journalArticleLocalService;
 
@@ -446,9 +448,6 @@ public class StructuredContentResourceImpl
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;
-
-	@Reference
-	private Queries _queries;
 
 	@Reference
 	private SearchRequestBuilderFactory _searchRequestBuilderFactory;

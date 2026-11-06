@@ -62,7 +62,7 @@ public class PortletPreferencesConstraintResolver
 		PortletPreferences sourcePortletPreferences =
 			constraintResolverContext.getSourceCTModel();
 
-		javax.portlet.PortletPreferences jxPortletPreferences =
+		jakarta.portlet.PortletPreferences jxPortletPreferences =
 			_portletPreferenceValueLocalService.getPreferences(
 				sourcePortletPreferences);
 
@@ -85,10 +85,10 @@ public class PortletPreferencesConstraintResolver
 	}
 
 	@Reference
-	private PortletPreferencesLocalService _portletPreferencesLocalService;
-
-	@Reference
 	private PortletPreferenceValueLocalService
 		_portletPreferenceValueLocalService;
+
+	@Reference
+	private PortletPreferencesLocalService _portletPreferencesLocalService;
 
 }

@@ -11,35 +11,42 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.math.BigDecimal;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Availability")
+@GraphQLName(
+	description = "Stock-availability snapshot for a SKU resolved in the active commerce channel and inventory engine. Computed at response time and never persisted.",
+	value = "Availability"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Stock-availability snapshot for a SKU resolved in the active commerce channel and inventory engine. Computed at response time and never persisted."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Availability")
 public class Availability implements Serializable {
@@ -52,7 +59,10 @@ public class Availability implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Availability.class, json);
 	}
 
-	@Schema(example = "available")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Untranslated availability label key. Computed from the inventory engine's view of current stock against the SKU's thresholds.",
+		example = "available"
+	)
 	public String getLabel() {
 		if (_labelSupplier != null) {
 			label = _labelSupplier.get();
@@ -86,14 +96,19 @@ public class Availability implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Untranslated availability label key. Computed from the inventory engine's view of current stock against the SKU's thresholds."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String label;
 
 	@JsonIgnore
 	private Supplier<String> _labelSupplier;
 
-	@Schema(example = "Available")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized availability label resolved for the request locale.",
+		example = "Available"
+	)
 	public String getLabel_i18n() {
 		if (_label_i18nSupplier != null) {
 			label_i18n = _label_i18nSupplier.get();
@@ -127,14 +142,19 @@ public class Availability implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized availability label resolved for the request locale."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String label_i18n;
 
 	@JsonIgnore
 	private Supplier<String> _label_i18nSupplier;
 
-	@Schema(example = "10.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Quantity currently available across the active inventory engine, expressed in the SKU's primary unit of measure.",
+		example = "10.1"
+	)
 	@Valid
 	public BigDecimal getStockQuantity() {
 		if (_stockQuantitySupplier != null) {
@@ -169,7 +189,9 @@ public class Availability implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Quantity currently available across the active inventory engine, expressed in the SKU's primary unit of measure."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal stockQuantity;
 
@@ -252,8 +274,8 @@ public class Availability implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.Availability",
 		name = "x-class-name"
 	)
@@ -340,6 +362,27 @@ public class Availability implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -348,3 +391,4 @@ public class Availability implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1455139827

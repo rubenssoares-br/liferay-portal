@@ -31,15 +31,15 @@ import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletRequest;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletRequest;
-
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -66,9 +66,11 @@ public class ActionHelperImpl implements ActionHelper {
 				_cpAttachmentFileEntryService.fetchCPAttachmentFileEntry(
 					cpAttachmentFileEntryId);
 
-			if (cpAttachmentFileEntry != null) {
-				cpAttachmentFileEntries.add(cpAttachmentFileEntry);
+			if (cpAttachmentFileEntry == null) {
+				continue;
 			}
+
+			cpAttachmentFileEntries.add(cpAttachmentFileEntry);
 		}
 
 		return cpAttachmentFileEntries;
@@ -302,23 +304,6 @@ public class ActionHelperImpl implements ActionHelper {
 	}
 
 	@Override
-	public List<CPDefinition> getCPDefinitions(PortletRequest portletRequest)
-		throws PortalException {
-
-		List<CPDefinition> cpDefinitions = new ArrayList<>();
-
-		long[] cpDefinitionIds = ParamUtil.getLongValues(
-			portletRequest, "rowIds");
-
-		for (long cpDefinitionId : cpDefinitionIds) {
-			cpDefinitions.add(
-				_cpDefinitionService.getCPDefinition(cpDefinitionId));
-		}
-
-		return cpDefinitions;
-	}
-
-	@Override
 	public CPDefinitionSpecificationOptionValue
 			getCPDefinitionSpecificationOptionValue(
 				PortletRequest portletRequest)
@@ -378,6 +363,23 @@ public class ActionHelperImpl implements ActionHelper {
 	}
 
 	@Override
+	public List<CPDefinition> getCPDefinitions(PortletRequest portletRequest)
+		throws PortalException {
+
+		List<CPDefinition> cpDefinitions = new ArrayList<>();
+
+		long[] cpDefinitionIds = ParamUtil.getLongValues(
+			portletRequest, "rowIds");
+
+		for (long cpDefinitionId : cpDefinitionIds) {
+			cpDefinitions.add(
+				_cpDefinitionService.getCPDefinition(cpDefinitionId));
+		}
+
+		return cpDefinitions;
+	}
+
+	@Override
 	public CPInstance getCPInstance(PortletRequest portletRequest)
 		throws PortalException {
 
@@ -399,22 +401,6 @@ public class ActionHelperImpl implements ActionHelper {
 		}
 
 		return cpInstance;
-	}
-
-	@Override
-	public List<CPInstance> getCPInstances(PortletRequest portletRequest)
-		throws PortalException {
-
-		List<CPInstance> cpInstances = new ArrayList<>();
-
-		long[] cpInstanceIds = ParamUtil.getLongValues(
-			portletRequest, "rowIds");
-
-		for (long cpInstanceId : cpInstanceIds) {
-			cpInstances.add(_cpInstanceService.getCPInstance(cpInstanceId));
-		}
-
-		return cpInstances;
 	}
 
 	@Override
@@ -445,6 +431,22 @@ public class ActionHelperImpl implements ActionHelper {
 		}
 
 		return cpInstanceUnitOfMeasure;
+	}
+
+	@Override
+	public List<CPInstance> getCPInstances(PortletRequest portletRequest)
+		throws PortalException {
+
+		List<CPInstance> cpInstances = new ArrayList<>();
+
+		long[] cpInstanceIds = ParamUtil.getLongValues(
+			portletRequest, "rowIds");
+
+		for (long cpInstanceId : cpInstanceIds) {
+			cpInstances.add(_cpInstanceService.getCPInstance(cpInstanceId));
+		}
+
+		return cpInstances;
 	}
 
 	@Override

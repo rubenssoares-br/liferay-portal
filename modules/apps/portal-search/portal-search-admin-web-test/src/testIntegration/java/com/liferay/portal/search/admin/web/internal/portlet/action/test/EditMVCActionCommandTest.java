@@ -21,6 +21,7 @@ import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionResponse;
+import com.liferay.portal.kernel.test.portlet.MockPortletSession;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -30,11 +31,11 @@ import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.portletmvc4spring.test.mock.web.portlet.MockPortletSession;
 
 import java.util.Map;
 
@@ -219,7 +220,8 @@ public class EditMVCActionCommandTest {
 				entry.getKey(), entry.getValue());
 		}
 
-		mockLiferayPortletActionRequest.setSession(new MockPortletSession());
+		mockLiferayPortletActionRequest.setPortletSession(
+			new MockPortletSession());
 
 		return mockLiferayPortletActionRequest;
 	}
@@ -234,7 +236,7 @@ public class EditMVCActionCommandTest {
 		themeDisplay.setRequest(new MockHttpServletRequest());
 		themeDisplay.setScopeGroupId(_group.getGroupId());
 		themeDisplay.setServerName("localhost");
-		themeDisplay.setServerPort(8080);
+		themeDisplay.setServerPort(PortalUtil.getPortalServerPort(false));
 		themeDisplay.setSiteGroupId(_group.getGroupId());
 		themeDisplay.setUser(TestPropsValues.getUser());
 

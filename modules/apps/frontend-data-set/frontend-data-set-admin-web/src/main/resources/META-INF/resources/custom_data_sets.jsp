@@ -7,16 +7,16 @@
 
 <%@ include file="/init.jsp" %>
 
-<%
-portletDisplay.setBeta(true);
-%>
-
-<div>
+<div class="container-fluid container-fluid-max-xxxl">
 	<react:component
 		module="{CustomDataSets} from frontend-data-set-admin-web"
 		props='<%=
 			HashMapBuilder.<String, Object>put(
+				"deleteCustomDataSetURL", fdsAdminDisplayContext.getDeleteCustomDataSetURL()
+			).put(
 				"editDataSetURL", fdsAdminDisplayContext.getEditDataSetURL()
+			).put(
+				"hasAddDataSetObjectEntryPermission", fdsAdminDisplayContext.hasAddDataSetObjectEntryPermission()
 			).put(
 				"namespace", liferayPortletResponse.getNamespace()
 			).put(
@@ -25,6 +25,8 @@ portletDisplay.setBeta(true);
 				"resolvedRESTSchemas", fdsAdminDisplayContext.getRESTApplicationResolvedSchemasJSONArray()
 			).put(
 				"restApplications", fdsAdminDisplayContext.getRESTApplicationsJSONArray()
+			).put(
+				"systemDataSets", fdsAdminDisplayContext.getSystemFDSEntryJSONArray()
 			).build()
 		%>'
 	/>

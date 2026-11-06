@@ -22,19 +22,20 @@ import com.liferay.dynamic.data.mapping.test.util.DDMFormTestUtil;
 import com.liferay.dynamic.data.mapping.util.DDM;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.model.Group;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.CompanyProviderClassTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.test.log.LogCapture;
-import com.liferay.portal.test.log.LoggerTestUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -45,6 +46,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -61,23 +63,21 @@ public class DDMFieldUpgradeProcessTest {
 	@Rule
 	public static final AggregateTestRule aggregateTestRule =
 		new AggregateTestRule(
-			new LiferayIntegrationTestRule(),
+			new LiferayIntegrationTestRule() {
+				{
+					skipTestRule(CompanyProviderClassTestRule.INSTANCE);
+				}
+			},
 			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@Before
 	public void setUp() throws Exception {
 		_group = GroupTestUtil.addGroup();
-
-		_originalCompanyId = CompanyThreadLocal.getCompanyId();
-
-		CompanyThreadLocal.setCompanyId(CompanyConstants.SYSTEM);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		_ddmFieldLocalService.deleteDDMFormValues(_STORAGE_ID);
-
-		CompanyThreadLocal.setCompanyId(_originalCompanyId);
 	}
 
 	@Test
@@ -86,18 +86,18 @@ public class DDMFieldUpgradeProcessTest {
 			RandomTestUtil.randomString());
 
 		DDMStructure ddmStructure = _ddmStructureLocalService.addStructure(
-			TestPropsValues.getUserId(), _group.getGroupId(), 0,
+			null, _group.getCreatorUserId(), _group.getGroupId(), 0,
 			PortalUtil.getClassNameId(DDLRecordSet.class.getName()),
 			"CUSTOM-META-TAGS", RandomTestUtil.randomLocaleStringMap(), null,
 			ddmForm, _ddm.getDefaultDDMFormLayout(ddmForm),
 			StorageType.DEFAULT.toString(), DDMStructureConstants.TYPE_DEFAULT,
-			ServiceContextTestUtil.getServiceContext());
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
-		List<DDMStructureVersion> structureVersions =
+		List<DDMStructureVersion> ddmStructureVersions =
 			_ddmStructureVersionLocalService.getStructureVersions(
 				ddmStructure.getStructureId());
 
-		DDMStructureVersion ddmStructureVersion = structureVersions.get(0);
+		DDMStructureVersion ddmStructureVersion = ddmStructureVersions.get(0);
 
 		DDMField ddmField = _addDDMField(
 			ddmStructureVersion.getStructureVersionId());
@@ -110,6 +110,27 @@ public class DDMFieldUpgradeProcessTest {
 
 		Assert.assertEquals(
 			ddmStructureVersion.getCompanyId(), ddmField.getCompanyId());
+	}
+
+	@Test
+	public void testUpgradeProcessManyCompanies() throws Exception {
+		Company company = CompanyTestUtil.addCompany();
+
+		try {
+			testUpgradeProcess();
+		}
+		finally {
+			_companyLocalService.deleteCompany(company);
+		}
+	}
+
+	@Test
+	public void testUpgradeProcessWithDatabasePartitionEnabled()
+		throws Exception {
+
+		Assume.assumeTrue(PropsValues.DATABASE_PARTITION_ENABLED);
+
+		testUpgradeProcess();
 	}
 
 	private DDMField _addDDMField(long structureVersionId) {
@@ -129,17 +150,13 @@ public class DDMFieldUpgradeProcessTest {
 	}
 
 	private void _runUpgrade() throws Exception {
-		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
-				_CLASS_NAME, LoggerTestUtil.OFF)) {
+		UpgradeProcess upgradeProcess = UpgradeTestUtil.getUpgradeStep(
+			_upgradeStepRegistrator, _CLASS_NAME);
 
-			UpgradeProcess upgradeProcess = UpgradeTestUtil.getUpgradeStep(
-				_upgradeStepRegistrator, _CLASS_NAME);
+		upgradeProcess.upgrade();
 
-			upgradeProcess.upgrade();
-
-			_entityCache.clearCache();
-			_multiVMPool.clear();
-		}
+		_entityCache.clearCache();
+		_multiVMPool.clear();
 	}
 
 	private static final String _CLASS_NAME =
@@ -148,10 +165,8 @@ public class DDMFieldUpgradeProcessTest {
 
 	private static final long _STORAGE_ID = 0;
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
+	@Inject
+	private CompanyLocalService _companyLocalService;
 
 	@Inject
 	private CounterLocalService _counterLocalService;
@@ -177,6 +192,9 @@ public class DDMFieldUpgradeProcessTest {
 	@Inject
 	private MultiVMPool _multiVMPool;
 
-	private long _originalCompanyId;
+	@Inject(
+		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

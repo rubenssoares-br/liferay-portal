@@ -8,11 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.WidgetPageSettingsSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -25,6 +25,28 @@ public class WidgetPageSettings
 	public static WidgetPageSettings toDTO(String json) {
 		return WidgetPageSettingsSerDes.toDTO(json);
 	}
+
+	public CustomMetaTag[] getCustomMetaTags() {
+		return customMetaTags;
+	}
+
+	public void setCustomMetaTags(CustomMetaTag[] customMetaTags) {
+		this.customMetaTags = customMetaTags;
+	}
+
+	public void setCustomMetaTags(
+		UnsafeSupplier<CustomMetaTag[], Exception>
+			customMetaTagsUnsafeSupplier) {
+
+		try {
+			customMetaTags = customMetaTagsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected CustomMetaTag[] customMetaTags;
 
 	public Boolean getCustomizable() {
 		return customizable;
@@ -69,6 +91,31 @@ public class WidgetPageSettings
 
 	protected String[] customizableSectionIds;
 
+	public String getDefaultAssetPublisherPortletId() {
+		return defaultAssetPublisherPortletId;
+	}
+
+	public void setDefaultAssetPublisherPortletId(
+		String defaultAssetPublisherPortletId) {
+
+		this.defaultAssetPublisherPortletId = defaultAssetPublisherPortletId;
+	}
+
+	public void setDefaultAssetPublisherPortletId(
+		UnsafeSupplier<String, Exception>
+			defaultAssetPublisherPortletIdUnsafeSupplier) {
+
+		try {
+			defaultAssetPublisherPortletId =
+				defaultAssetPublisherPortletIdUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String defaultAssetPublisherPortletId;
+
 	public Boolean getInheritChanges() {
 		return inheritChanges;
 	}
@@ -110,6 +157,49 @@ public class WidgetPageSettings
 	}
 
 	protected String layoutTemplateId;
+
+	public OpenGraphSettings getOpenGraphSettings() {
+		return openGraphSettings;
+	}
+
+	public void setOpenGraphSettings(OpenGraphSettings openGraphSettings) {
+		this.openGraphSettings = openGraphSettings;
+	}
+
+	public void setOpenGraphSettings(
+		UnsafeSupplier<OpenGraphSettings, Exception>
+			openGraphSettingsUnsafeSupplier) {
+
+		try {
+			openGraphSettings = openGraphSettingsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected OpenGraphSettings openGraphSettings;
+
+	public SEOSettings getSeoSettings() {
+		return seoSettings;
+	}
+
+	public void setSeoSettings(SEOSettings seoSettings) {
+		this.seoSettings = seoSettings;
+	}
+
+	public void setSeoSettings(
+		UnsafeSupplier<SEOSettings, Exception> seoSettingsUnsafeSupplier) {
+
+		try {
+			seoSettings = seoSettingsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected SEOSettings seoSettings;
 
 	public ItemExternalReference getWidgetPageTemplateReference() {
 		return widgetPageTemplateReference;
@@ -168,3 +258,4 @@ public class WidgetPageSettings
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-803155053

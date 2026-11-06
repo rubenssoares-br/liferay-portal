@@ -18,18 +18,22 @@ import com.liferay.portal.kernel.dao.orm.Projection;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.model.PersistedModel;
+import com.liferay.portal.kernel.model.SystemEventConstants;
 import com.liferay.portal.kernel.search.Indexable;
 import com.liferay.portal.kernel.search.IndexableType;
 import com.liferay.portal.kernel.service.BaseLocalService;
 import com.liferay.portal.kernel.service.PersistedModelLocalService;
 import com.liferay.portal.kernel.service.change.tracking.CTService;
 import com.liferay.portal.kernel.service.persistence.change.tracking.CTPersistence;
+import com.liferay.portal.kernel.systemevent.SystemEvent;
 import com.liferay.portal.kernel.transaction.Isolation;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.OrderByComparator;
 
 import java.io.Serializable;
+
+import java.math.BigDecimal;
 
 import java.util.List;
 
@@ -75,6 +79,22 @@ public interface CPConfigurationEntryLocalService
 	public CPConfigurationEntry addCPConfigurationEntry(
 		CPConfigurationEntry cpConfigurationEntry);
 
+	@Indexable(type = IndexableType.REINDEX)
+	public CPConfigurationEntry addCPConfigurationEntry(
+			String externalReferenceCode, long userId, long groupId,
+			long classNameId, long classPK, long cpConfigurationListId,
+			long cpTaxCategoryId, String allowedOrderQuantities,
+			boolean backOrders, long commerceAvailabilityEstimateId,
+			String cpDefinitionInventoryEngine, double depth,
+			boolean displayAvailability, boolean displayStockQuantity,
+			boolean freeShipping, double height, String lowStockActivity,
+			BigDecimal maxOrderQuantity, BigDecimal minOrderQuantity,
+			BigDecimal minStockQuantity, BigDecimal multipleOrderQuantity,
+			boolean purchasable, boolean shippable, double shippingExtraPrice,
+			boolean shipSeparately, boolean taxExempt, double weight,
+			double width)
+		throws PortalException;
+
 	/**
 	 * Creates a new cp configuration entry with the primary key. Does not add the cp configuration entry to the database.
 	 *
@@ -91,6 +111,13 @@ public interface CPConfigurationEntryLocalService
 	public PersistedModel createPersistedModel(Serializable primaryKeyObj)
 		throws PortalException;
 
+	public void deleteCPConfigurationEntries(long cpConfigurationListId)
+		throws PortalException;
+
+	public void deleteCPConfigurationEntries(
+			long classNameId, long classPK, boolean force)
+		throws PortalException;
+
 	/**
 	 * Deletes the cp configuration entry from the database. Also notifies the appropriate model listeners.
 	 *
@@ -100,10 +127,18 @@ public interface CPConfigurationEntryLocalService
 	 *
 	 * @param cpConfigurationEntry the cp configuration entry
 	 * @return the cp configuration entry that was removed
+	 * @throws PortalException
 	 */
 	@Indexable(type = IndexableType.DELETE)
 	public CPConfigurationEntry deleteCPConfigurationEntry(
-		CPConfigurationEntry cpConfigurationEntry);
+			CPConfigurationEntry cpConfigurationEntry)
+		throws PortalException;
+
+	@Indexable(type = IndexableType.DELETE)
+	@SystemEvent(type = SystemEventConstants.TYPE_DELETE)
+	public CPConfigurationEntry deleteCPConfigurationEntry(
+			CPConfigurationEntry cpConfigurationEntry, boolean force)
+		throws PortalException;
 
 	/**
 	 * Deletes the cp configuration entry with the primary key from the database. Also notifies the appropriate model listeners.
@@ -119,6 +154,10 @@ public interface CPConfigurationEntryLocalService
 	@Indexable(type = IndexableType.DELETE)
 	public CPConfigurationEntry deleteCPConfigurationEntry(
 			long CPConfigurationEntryId)
+		throws PortalException;
+
+	public CPConfigurationEntry deleteCPConfigurationEntry(
+			long cpConfigurationEntryId, boolean force)
 		throws PortalException;
 
 	/**
@@ -205,20 +244,24 @@ public interface CPConfigurationEntryLocalService
 		long CPConfigurationEntryId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public CPConfigurationEntry fetchCPConfigurationEntry(
+		long classNameId, long classPK, long cpConfigurationListId);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public CPConfigurationEntry
 		fetchCPConfigurationEntryByExternalReferenceCode(
 			String externalReferenceCode, long companyId);
 
 	/**
-	 * Returns the cp configuration entry with the matching UUID and company.
+	 * Returns the cp configuration entry matching the UUID and group.
 	 *
 	 * @param uuid the cp configuration entry's UUID
-	 * @param companyId the primary key of the company
+	 * @param groupId the primary key of the group
 	 * @return the matching cp configuration entry, or <code>null</code> if a matching cp configuration entry could not be found
 	 */
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public CPConfigurationEntry fetchCPConfigurationEntryByUuidAndCompanyId(
-		String uuid, long companyId);
+	public CPConfigurationEntry fetchCPConfigurationEntryByUuidAndGroupId(
+		String uuid, long groupId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public ActionableDynamicQuery getActionableDynamicQuery();
@@ -237,6 +280,42 @@ public interface CPConfigurationEntryLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<CPConfigurationEntry> getCPConfigurationEntries(
 		int start, int end);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<CPConfigurationEntry> getCPConfigurationEntries(
+		long cpConfigurationListId);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<CPConfigurationEntry> getCPConfigurationEntries(
+		long classNameId, long classPK);
+
+	/**
+	 * Returns all the cp configuration entries matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the cp configuration entries
+	 * @param companyId the primary key of the company
+	 * @return the matching cp configuration entries, or an empty list if no matches were found
+	 */
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<CPConfigurationEntry>
+		getCPConfigurationEntriesByUuidAndCompanyId(
+			String uuid, long companyId);
+
+	/**
+	 * Returns a range of cp configuration entries matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the cp configuration entries
+	 * @param companyId the primary key of the company
+	 * @param start the lower bound of the range of cp configuration entries
+	 * @param end the upper bound of the range of cp configuration entries (not inclusive)
+	 * @param orderByComparator the comparator to order the results by (optionally <code>null</code>)
+	 * @return the range of matching cp configuration entries, or an empty list if no matches were found
+	 */
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<CPConfigurationEntry>
+		getCPConfigurationEntriesByUuidAndCompanyId(
+			String uuid, long companyId, int start, int end,
+			OrderByComparator<CPConfigurationEntry> orderByComparator);
 
 	/**
 	 * Returns the number of cp configuration entries.
@@ -259,21 +338,26 @@ public interface CPConfigurationEntryLocalService
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public CPConfigurationEntry getCPConfigurationEntry(
+			long classNameId, long classPK, long cpConfigurationListId)
+		throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public CPConfigurationEntry getCPConfigurationEntryByExternalReferenceCode(
 			String externalReferenceCode, long companyId)
 		throws PortalException;
 
 	/**
-	 * Returns the cp configuration entry with the matching UUID and company.
+	 * Returns the cp configuration entry matching the UUID and group.
 	 *
 	 * @param uuid the cp configuration entry's UUID
-	 * @param companyId the primary key of the company
+	 * @param groupId the primary key of the group
 	 * @return the matching cp configuration entry
 	 * @throws PortalException if a matching cp configuration entry could not be found
 	 */
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public CPConfigurationEntry getCPConfigurationEntryByUuidAndCompanyId(
-			String uuid, long companyId)
+	public CPConfigurationEntry getCPConfigurationEntryByUuidAndGroupId(
+			String uuid, long groupId)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -312,6 +396,21 @@ public interface CPConfigurationEntryLocalService
 	public CPConfigurationEntry updateCPConfigurationEntry(
 		CPConfigurationEntry cpConfigurationEntry);
 
+	@Indexable(type = IndexableType.REINDEX)
+	public CPConfigurationEntry updateCPConfigurationEntry(
+			String externalReferenceCode, long cpConfigurationEntryId,
+			long cpTaxCategoryId, String allowedOrderQuantities,
+			boolean backOrders, long commerceAvailabilityEstimateId,
+			String cpDefinitionInventoryEngine, double depth,
+			boolean displayAvailability, boolean displayStockQuantity,
+			boolean freeShipping, double height, String lowStockActivity,
+			BigDecimal maxOrderQuantity, BigDecimal minOrderQuantity,
+			BigDecimal minStockQuantity, BigDecimal multipleOrderQuantity,
+			boolean purchasable, boolean shippable, double shippingExtraPrice,
+			boolean shipSeparately, boolean taxExempt, double weight,
+			double width)
+		throws PortalException;
+
 	@Override
 	@Transactional(enabled = false)
 	public CTPersistence<CPConfigurationEntry> getCTPersistence();
@@ -328,3 +427,4 @@ public interface CPConfigurationEntryLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1981912022

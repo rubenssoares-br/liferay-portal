@@ -5,47 +5,74 @@
 
 package com.liferay.object.web.internal.info.item.provider;
 
+import com.liferay.asset.info.item.provider.AssetEntryInfoItemFieldSetProvider;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
-import com.liferay.document.library.util.DLURLHelper;
+import com.liferay.friendly.url.service.FriendlyURLEntryLocalService;
+import com.liferay.info.exception.NoSuchInfoItemException;
+import com.liferay.info.field.InfoField;
 import com.liferay.info.field.InfoFieldValue;
+import com.liferay.info.field.type.RelationshipInfoFieldType;
 import com.liferay.info.item.ClassPKInfoItemIdentifier;
 import com.liferay.info.item.ERCInfoItemIdentifier;
 import com.liferay.info.item.InfoItemFieldValues;
 import com.liferay.info.item.InfoItemReference;
 import com.liferay.info.item.field.reader.InfoItemFieldReaderFieldSetProvider;
 import com.liferay.info.item.provider.InfoItemFieldValuesProvider;
+import com.liferay.info.localized.InfoLocalizedValue;
 import com.liferay.info.type.WebImage;
 import com.liferay.layout.page.template.info.item.provider.DisplayPageInfoItemFieldSetProvider;
 import com.liferay.list.type.service.ListTypeEntryLocalService;
+import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.info.field.converter.ObjectFieldInfoFieldConverter;
 import com.liferay.object.info.item.ObjectEntryInfoItemFields;
 import com.liferay.object.info.item.provider.util.ObjectEntryInfoItemValuesProviderUtil;
 import com.liferay.object.info.item.util.ObjectEntryInfoItemUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.model.ObjectField;
+import com.liferay.object.model.ObjectRelationship;
+import com.liferay.object.model.bag.ObjectFieldBag;
+import com.liferay.object.related.models.ObjectRelatedModelsProviderRegistry;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManagerRegistry;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectActionLocalService;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.web.internal.model.ProxyObjectEntry;
+import com.liferay.petra.function.UnsafeSupplierValue;
 import com.liferay.petra.reflect.ReflectionUtil;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.cache.thread.local.Lifecycle;
+import com.liferay.portal.kernel.cache.thread.local.ThreadLocalCache;
+import com.liferay.portal.kernel.cache.thread.local.ThreadLocalCacheManager;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.TimeZoneUtil;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.template.info.item.provider.TemplateInfoItemFieldSetProvider;
 
+import java.time.LocalDateTime;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * @author Guilherme Camacho
@@ -54,53 +81,87 @@ public class ObjectEntryInfoItemFieldValuesProvider
 	implements InfoItemFieldValuesProvider<ObjectEntry> {
 
 	public ObjectEntryInfoItemFieldValuesProvider(
+		AssetEntryInfoItemFieldSetProvider assetEntryInfoItemFieldSetProvider,
 		DisplayPageInfoItemFieldSetProvider displayPageInfoItemFieldSetProvider,
 		DLAppLocalService dlAppLocalService, DLURLHelper dlURLHelper,
+		FriendlyURLEntryLocalService friendlyURLEntryLocalService,
 		InfoItemFieldReaderFieldSetProvider infoItemFieldReaderFieldSetProvider,
 		ListTypeEntryLocalService listTypeEntryLocalService,
 		ObjectActionLocalService objectActionLocalService,
-		ObjectDefinition objectDefinition,
 		ObjectDefinitionLocalService objectDefinitionLocalService,
 		ObjectFieldInfoFieldConverter objectFieldInfoFieldConverter,
 		ObjectEntryLocalService objectEntryLocalService,
 		ObjectEntryManagerRegistry objectEntryManagerRegistry,
+		ObjectEntryService objectEntryService,
 		ObjectFieldLocalService objectFieldLocalService,
+		ObjectRelatedModelsProviderRegistry objectRelatedModelsProviderRegistry,
 		ObjectRelationshipLocalService objectRelationshipLocalService,
-		ObjectScopeProviderRegistry objectScopeProviderRegistry,
+		ObjectScopeProviderRegistry objectScopeProviderRegistry, Portal portal,
 		TemplateInfoItemFieldSetProvider templateInfoItemFieldSetProvider,
 		UserLocalService userLocalService) {
 
+		_assetEntryInfoItemFieldSetProvider =
+			assetEntryInfoItemFieldSetProvider;
 		_displayPageInfoItemFieldSetProvider =
 			displayPageInfoItemFieldSetProvider;
 		_dlAppLocalService = dlAppLocalService;
 		_dlURLHelper = dlURLHelper;
+		_friendlyURLEntryLocalService = friendlyURLEntryLocalService;
 		_infoItemFieldReaderFieldSetProvider =
 			infoItemFieldReaderFieldSetProvider;
 		_listTypeEntryLocalService = listTypeEntryLocalService;
 		_objectActionLocalService = objectActionLocalService;
-		_objectDefinition = objectDefinition;
 		_objectDefinitionLocalService = objectDefinitionLocalService;
 		_objectFieldInfoFieldConverter = objectFieldInfoFieldConverter;
 		_objectEntryLocalService = objectEntryLocalService;
 		_objectEntryManagerRegistry = objectEntryManagerRegistry;
+		_objectEntryService = objectEntryService;
 		_objectFieldLocalService = objectFieldLocalService;
+		_objectRelatedModelsProviderRegistry =
+			objectRelatedModelsProviderRegistry;
 		_objectRelationshipLocalService = objectRelationshipLocalService;
 		_objectScopeProviderRegistry = objectScopeProviderRegistry;
+		_portal = portal;
 		_templateInfoItemFieldSetProvider = templateInfoItemFieldSetProvider;
 		_userLocalService = userLocalService;
 	}
 
 	@Override
 	public InfoItemFieldValues getInfoItemFieldValues(ObjectEntry objectEntry) {
+		ThreadLocalCache<InfoItemFieldValues> threadLocalCache =
+			ThreadLocalCacheManager.getThreadLocalCache(
+				Lifecycle.REQUEST,
+				ObjectEntryInfoItemFieldValuesProvider.class.getName());
+
+		String key = String.valueOf(objectEntry.getObjectEntryId());
+
+		if (objectEntry.getVersion() > 0) {
+			key = StringBundler.concat(
+				key, StringPool.POUND, objectEntry.getVersion());
+		}
+
+		InfoItemFieldValues infoItemFieldValues = threadLocalCache.get(key);
+
+		ThemeDisplay themeDisplay = _getThemeDisplay();
+
+		if ((infoItemFieldValues != null) &&
+			((themeDisplay == null) ||
+			 Validator.isNull(themeDisplay.getDoAsUserId()))) {
+
+			return infoItemFieldValues;
+		}
+
+		ObjectDefinition objectDefinition = objectEntry.getObjectDefinition();
+
 		try {
-			return InfoItemFieldValues.builder(
+			infoItemFieldValues = InfoItemFieldValues.builder(
 			).infoFieldValues(
-				_getInfoFieldValues(objectEntry)
+				_getInfoFieldValues(objectDefinition, objectEntry)
 			).infoFieldValues(
 				_displayPageInfoItemFieldSetProvider.getInfoFieldValues(
-					_getInfoItemReference(objectEntry), StringPool.BLANK,
-					ObjectEntry.class.getSimpleName(), objectEntry,
-					_getThemeDisplay())
+					_getInfoItemReference(objectDefinition, objectEntry),
+					StringPool.BLANK, ObjectEntry.class.getSimpleName(),
+					objectEntry, themeDisplay)
 			).infoFieldValues(
 				_infoItemFieldReaderFieldSetProvider.getInfoFieldValues(
 					objectEntry.getModelClassName(), objectEntry)
@@ -108,23 +169,33 @@ public class ObjectEntryInfoItemFieldValuesProvider
 				_templateInfoItemFieldSetProvider.getInfoFieldValues(
 					objectEntry.getModelClassName(), objectEntry)
 			).infoItemReference(
-				_getInfoItemReference(objectEntry)
+				_getInfoItemReference(objectDefinition, objectEntry)
 			).build();
 		}
 		catch (Exception exception) {
-			throw new RuntimeException("Unexpected exception", exception);
+			throw new RuntimeException(exception);
 		}
+
+		if ((themeDisplay != null) &&
+			Validator.isNull(themeDisplay.getDoAsUserId())) {
+
+			threadLocalCache.put(key, infoItemFieldValues);
+		}
+
+		return infoItemFieldValues;
 	}
 
 	private List<InfoFieldValue<Object>> _getInfoFieldValues(
-		ObjectEntry objectEntry) {
+		ObjectDefinition objectDefinition, ObjectEntry objectEntry) {
 
 		try {
-			if (_objectDefinition.isDefaultStorageType()) {
-				return _getInfoFieldValuesByDefaultStorageType(objectEntry);
+			if (objectDefinition.isDefaultStorageType()) {
+				return _getInfoFieldValuesByDefaultStorageType(
+					objectDefinition, objectEntry);
 			}
 
-			return _getInfoFieldValuesByObjectEntryManager(objectEntry);
+			return _getInfoFieldValuesByObjectEntryManager(
+				objectDefinition, objectEntry);
 		}
 		catch (Exception exception) {
 			return ReflectionUtil.throwException(exception);
@@ -132,7 +203,8 @@ public class ObjectEntryInfoItemFieldValuesProvider
 	}
 
 	private List<InfoFieldValue<Object>>
-			_getInfoFieldValuesByDefaultStorageType(ObjectEntry objectEntry)
+			_getInfoFieldValuesByDefaultStorageType(
+				ObjectDefinition objectDefinition, ObjectEntry objectEntry)
 		throws Exception {
 
 		List<InfoFieldValue<Object>> objectEntryFieldValues = new ArrayList<>();
@@ -145,6 +217,16 @@ public class ObjectEntryInfoItemFieldValuesProvider
 			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.createDateInfoField,
 				objectEntry.getCreateDate()));
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.getDisplayDateInfoField(
+					objectDefinition),
+				_getLocalDateTime(objectEntry.getDisplayDate())));
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.getExpirationDateInfoField(
+					objectDefinition),
+				_getLocalDateTime(objectEntry.getExpirationDate())));
 		objectEntryFieldValues.add(
 			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.externalReferenceCodeInfoField,
@@ -163,41 +245,136 @@ public class ObjectEntryInfoItemFieldValuesProvider
 				objectEntry.getLastPublishDate()));
 		objectEntryFieldValues.add(
 			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.getReviewDateInfoField(
+					objectDefinition),
+				_getLocalDateTime(objectEntry.getReviewDate())));
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.statusInfoField,
 				WorkflowConstants.getStatusLabel(objectEntry.getStatus())));
+
+		UnsafeSupplierValue<WebImage, Exception> webImageUnsafeSupplierValue =
+			new UnsafeSupplierValue<>(
+				() -> _getWebImage(objectEntry.getUserId()));
+
 		objectEntryFieldValues.add(
 			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.userProfileImageInfoField,
-				_getWebImage(objectEntry.getUserId())));
+				() -> {
+					try {
+						return webImageUnsafeSupplierValue.getValue();
+					}
+					catch (Exception exception) {
+						return ReflectionUtil.throwException(exception);
+					}
+				}));
+
+		if (objectDefinition.isEnableCategorization()) {
+			try {
+				objectEntryFieldValues.addAll(
+					_assetEntryInfoItemFieldSetProvider.getInfoFieldValues(
+						objectEntry.getCompanyId(),
+						objectDefinition.getClassName(),
+						objectEntry.getObjectEntryId()));
+			}
+			catch (NoSuchInfoItemException noSuchInfoItemException) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(noSuchInfoItemException);
+				}
+			}
+		}
 
 		ThemeDisplay themeDisplay = ObjectEntryInfoItemUtil.getThemeDisplay();
 
 		Map<String, Object> properties = new HashMap<>();
 
 		com.liferay.object.rest.dto.v1_0.ObjectEntry dtoObjectEntry =
-			_getObjectEntry(_objectDefinition, objectEntry, themeDisplay);
+			_getObjectEntry(objectDefinition, objectEntry, themeDisplay);
 
 		if (dtoObjectEntry != null) {
 			properties = dtoObjectEntry.getProperties();
 		}
 
+		ObjectFieldBag objectFieldBag = objectDefinition.getObjectFieldBag();
+
 		objectEntryFieldValues.addAll(
 			ObjectEntryInfoItemValuesProviderUtil.getInfoFieldValues(
-				_dlAppLocalService, _dlURLHelper, _listTypeEntryLocalService,
-				_objectActionLocalService, _objectDefinition,
-				_objectDefinitionLocalService, _objectEntryLocalService,
-				_objectEntryManagerRegistry, _objectFieldInfoFieldConverter,
-				_objectFieldLocalService,
-				_objectFieldLocalService.getObjectFields(
-					objectEntry.getObjectDefinitionId()),
+				objectEntry.getDefaultLanguageId(), _dlAppLocalService,
+				_dlURLHelper, _friendlyURLEntryLocalService,
+				_listTypeEntryLocalService, _objectActionLocalService,
+				objectDefinition, _objectDefinitionLocalService,
+				_objectEntryLocalService, _objectEntryManagerRegistry,
+				_objectEntryService, _objectFieldInfoFieldConverter,
+				objectFieldBag.getObjectFields(),
 				_objectRelationshipLocalService, _objectScopeProviderRegistry,
-				themeDisplay, properties));
+				_portal, objectEntry, themeDisplay, properties));
+
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.getFriendlyURLInfoField(
+					objectDefinition),
+				() ->
+					ObjectEntryInfoItemValuesProviderUtil.
+						getFriendlyURLInfoFieldValue(
+							_portal.getClassNameId(
+								objectDefinition.getClassName()),
+							_friendlyURLEntryLocalService,
+							objectEntry.getObjectEntryId())));
+
+		for (ObjectRelationship objectRelationship :
+				_objectRelationshipLocalService.getObjectRelationships(
+					objectDefinition.getObjectDefinitionId(),
+					ObjectRelationshipConstants.DELETION_TYPE_DISASSOCIATE,
+					false)) {
+
+			if (!objectRelationship.compareType(
+					ObjectRelationshipConstants.TYPE_MANY_TO_MANY)) {
+
+				continue;
+			}
+
+			objectEntryFieldValues.add(
+				new InfoFieldValue<>(
+					_objectFieldInfoFieldConverter.
+						addRelationshipInfoFieldAttributes(
+							InfoField.builder(
+								ObjectField.class.getSimpleName()
+							).infoFieldType(
+								RelationshipInfoFieldType.INSTANCE
+							).name(
+								ObjectRelationshipConstants.
+									OBJECT_RELATIONSHIP_FIELD_NAME_PREFIX +
+										objectRelationship.getName()
+							).labelInfoLocalizedValue(
+								InfoLocalizedValue.<String>builder(
+								).values(
+									objectRelationship.getLabelMap()
+								).defaultLocale(
+									LocaleUtil.fromLanguageId(
+										objectRelationship.
+											getDefaultLanguageId())
+								).build()
+							).editable(
+								true
+							).localizable(
+								false
+							),
+							objectRelationship),
+					() ->
+						ObjectEntryInfoItemValuesProviderUtil.
+							getMultipleRelationshipInfoFieldValue(
+								objectRelationship,
+								_objectDefinitionLocalService,
+								objectEntry.getObjectEntryId(),
+								_objectRelatedModelsProviderRegistry)));
+		}
 
 		return objectEntryFieldValues;
 	}
 
 	private List<InfoFieldValue<Object>>
 			_getInfoFieldValuesByObjectEntryManager(
+				ObjectDefinition objectDefinition,
 				ObjectEntry serviceBuilderObjectEntry)
 		throws Exception {
 
@@ -211,12 +388,20 @@ public class ObjectEntryInfoItemFieldValuesProvider
 
 		com.liferay.object.rest.dto.v1_0.ObjectEntry objectEntry =
 			_getObjectEntry(
-				_objectDefinition, serviceBuilderObjectEntry, themeDisplay);
+				objectDefinition, serviceBuilderObjectEntry, themeDisplay);
 
 		objectEntryFieldValues.add(
 			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.createDateInfoField,
 				objectEntry.getDateCreated()));
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.expirationDateInfoField,
+				objectEntry.getExpirationDate()));
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.externalReferenceCodeInfoField,
+				objectEntry.getExternalReferenceCode()));
 		objectEntryFieldValues.add(
 			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.modifiedDateInfoField,
@@ -225,31 +410,49 @@ public class ObjectEntryInfoItemFieldValuesProvider
 			new InfoFieldValue<>(
 				ObjectEntryInfoItemFields.publishDateInfoField,
 				objectEntry.getDateModified()));
+		objectEntryFieldValues.add(
+			new InfoFieldValue<>(
+				ObjectEntryInfoItemFields.reviewDateInfoField,
+				objectEntry.getReviewDate()));
 		objectEntryFieldValues.addAll(
 			ObjectEntryInfoItemValuesProviderUtil.getInfoFieldValues(
-				_dlAppLocalService, _dlURLHelper, _listTypeEntryLocalService,
-				_objectActionLocalService, _objectDefinition,
-				_objectDefinitionLocalService, _objectEntryLocalService,
-				_objectEntryManagerRegistry, _objectFieldInfoFieldConverter,
-				_objectFieldLocalService,
+				objectEntry.getDefaultLanguageId(), _dlAppLocalService,
+				_dlURLHelper, _friendlyURLEntryLocalService,
+				_listTypeEntryLocalService, _objectActionLocalService,
+				objectDefinition, _objectDefinitionLocalService,
+				_objectEntryLocalService, _objectEntryManagerRegistry,
+				_objectEntryService, _objectFieldInfoFieldConverter,
 				_objectFieldLocalService.getObjectFields(
 					serviceBuilderObjectEntry.getObjectDefinitionId()),
 				_objectRelationshipLocalService, _objectScopeProviderRegistry,
-				themeDisplay, objectEntry.getProperties()));
+				_portal, serviceBuilderObjectEntry, themeDisplay,
+				objectEntry.getProperties()));
 
 		return objectEntryFieldValues;
 	}
 
-	private InfoItemReference _getInfoItemReference(ObjectEntry objectEntry) {
-		if (_objectDefinition.isDefaultStorageType()) {
+	private InfoItemReference _getInfoItemReference(
+		ObjectDefinition objectDefinition, ObjectEntry objectEntry) {
+
+		if (objectDefinition.isDefaultStorageType()) {
 			return new InfoItemReference(
 				objectEntry.getModelClassName(),
 				new ClassPKInfoItemIdentifier(objectEntry.getObjectEntryId()));
 		}
 
 		return new InfoItemReference(
-			_objectDefinition.getClassName(),
+			objectDefinition.getClassName(),
 			new ERCInfoItemIdentifier(objectEntry.getExternalReferenceCode()));
+	}
+
+	private LocalDateTime _getLocalDateTime(Date date) {
+		if (date == null) {
+			return null;
+		}
+
+		TimeZone timeZone = TimeZoneUtil.getDefault();
+
+		return LocalDateTime.ofInstant(date.toInstant(), timeZone.toZoneId());
 	}
 
 	private com.liferay.object.rest.dto.v1_0.ObjectEntry _getObjectEntry(
@@ -292,34 +495,43 @@ public class ObjectEntryInfoItemFieldValuesProvider
 
 		ThemeDisplay themeDisplay = _getThemeDisplay();
 
-		if (themeDisplay != null) {
-			WebImage webImage = new WebImage(user.getPortraitURL(themeDisplay));
-
-			webImage.setAlt(user.getFullName());
-
-			return webImage;
+		if (themeDisplay == null) {
+			return null;
 		}
 
-		return null;
+		WebImage webImage = new WebImage(user.getPortraitURL(themeDisplay));
+
+		webImage.setAlt(user.getFullName());
+
+		return webImage;
 	}
 
+	private static final Log _log = LogFactoryUtil.getLog(
+		ObjectEntryInfoItemFieldValuesProvider.class);
+
+	private final AssetEntryInfoItemFieldSetProvider
+		_assetEntryInfoItemFieldSetProvider;
 	private final DisplayPageInfoItemFieldSetProvider
 		_displayPageInfoItemFieldSetProvider;
 	private final DLAppLocalService _dlAppLocalService;
 	private final DLURLHelper _dlURLHelper;
+	private final FriendlyURLEntryLocalService _friendlyURLEntryLocalService;
 	private final InfoItemFieldReaderFieldSetProvider
 		_infoItemFieldReaderFieldSetProvider;
 	private final ListTypeEntryLocalService _listTypeEntryLocalService;
 	private final ObjectActionLocalService _objectActionLocalService;
-	private final ObjectDefinition _objectDefinition;
 	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
 	private final ObjectEntryLocalService _objectEntryLocalService;
 	private final ObjectEntryManagerRegistry _objectEntryManagerRegistry;
+	private final ObjectEntryService _objectEntryService;
 	private final ObjectFieldInfoFieldConverter _objectFieldInfoFieldConverter;
 	private final ObjectFieldLocalService _objectFieldLocalService;
+	private final ObjectRelatedModelsProviderRegistry
+		_objectRelatedModelsProviderRegistry;
 	private final ObjectRelationshipLocalService
 		_objectRelationshipLocalService;
 	private final ObjectScopeProviderRegistry _objectScopeProviderRegistry;
+	private final Portal _portal;
 	private final TemplateInfoItemFieldSetProvider
 		_templateInfoItemFieldSetProvider;
 	private final UserLocalService _userLocalService;

@@ -5,6 +5,7 @@
 
 package com.liferay.headless.delivery.internal.resource.v1_0;
 
+import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
 import com.liferay.headless.delivery.dto.v1_0.DefaultValue;
 import com.liferay.headless.delivery.dto.v1_0.DocumentDataDefinitionType;
 import com.liferay.headless.delivery.resource.v1_0.DocumentDataDefinitionTypeResource;
@@ -13,8 +14,6 @@ import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
@@ -35,10 +34,23 @@ import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
 import com.liferay.portal.vulcan.batch.engine.VulcanBatchEngineTaskItemDelegate;
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineExportTaskResource;
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineImportTaskResource;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
 import com.liferay.portal.vulcan.util.ActionUtil;
+import com.liferay.portal.vulcan.util.UriInfoUtil;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.io.Serializable;
 
@@ -49,301 +61,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Generated;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import javax.ws.rs.NotSupportedException;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
-
 /**
  * @author Javier Gamarra
  * @generated
  */
 @Generated("")
-@javax.ws.rs.Path("/v1.0")
+@jakarta.ws.rs.Path("/v1.0")
 public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	implements DocumentDataDefinitionTypeResource, EntityModelResource,
-			   VulcanBatchEngineTaskItemDelegate<DocumentDataDefinitionType> {
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -X 'GET' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types'  -u 'test@liferay.com:test'
-	 */
-	@io.swagger.v3.oas.annotations.Parameters(
-		value = {
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "assetLibraryId"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "aggregationTerms"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "fields"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "filter"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "nestedFields"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "page"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "pageSize"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "restrictFields"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "search"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "sort"
-			)
-		}
-	)
-	@io.swagger.v3.oas.annotations.tags.Tags(
-		value = {
-			@io.swagger.v3.oas.annotations.tags.Tag(
-				name = "DocumentDataDefinitionType"
-			)
-		}
-	)
-	@javax.ws.rs.GET
-	@javax.ws.rs.Path(
-		"/asset-libraries/{assetLibraryId}/document-data-definition-types"
-	)
-	@javax.ws.rs.Produces({"application/json", "application/xml"})
-	@Override
-	public Page<DocumentDataDefinitionType>
-			getAssetLibraryDocumentDataDefinitionTypesPage(
-				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-				@javax.validation.constraints.NotNull
-				@javax.ws.rs.PathParam("assetLibraryId")
-				Long assetLibraryId,
-				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-				@javax.ws.rs.QueryParam("search")
-				String search,
-				@javax.ws.rs.core.Context
-					com.liferay.portal.vulcan.aggregation.Aggregation
-						aggregation,
-				@javax.ws.rs.core.Context Filter filter,
-				@javax.ws.rs.core.Context Pagination pagination,
-				@javax.ws.rs.core.Context Sort[] sorts)
-		throws Exception {
-
-		return Page.of(Collections.emptyList());
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types/export-batch'  -u 'test@liferay.com:test'
-	 */
-	@io.swagger.v3.oas.annotations.Parameters(
-		value = {
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "assetLibraryId"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "filter"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "search"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "sort"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "callbackURL"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "contentType"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "fieldNames"
-			)
-		}
-	)
-	@io.swagger.v3.oas.annotations.tags.Tags(
-		value = {
-			@io.swagger.v3.oas.annotations.tags.Tag(
-				name = "DocumentDataDefinitionType"
-			)
-		}
-	)
-	@javax.ws.rs.Consumes("application/json")
-	@javax.ws.rs.Path(
-		"/asset-libraries/{assetLibraryId}/document-data-definition-types/export-batch"
-	)
-	@javax.ws.rs.POST
-	@javax.ws.rs.Produces("application/json")
-	@Override
-	public Response postAssetLibraryDocumentDataDefinitionTypesPageExportBatch(
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("assetLibraryId")
-			Long assetLibraryId,
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("search")
-			String search,
-			@javax.ws.rs.core.Context Filter filter,
-			@javax.ws.rs.core.Context Sort[] sorts,
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("callbackURL")
-			String callbackURL,
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.DefaultValue("JSON")
-			@javax.ws.rs.QueryParam("contentType")
-			String contentType,
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("fieldNames")
-			String fieldNames)
-		throws Exception {
-
-		vulcanBatchEngineExportTaskResource.setContextAcceptLanguage(
-			contextAcceptLanguage);
-		vulcanBatchEngineExportTaskResource.setContextCompany(contextCompany);
-		vulcanBatchEngineExportTaskResource.setContextHttpServletRequest(
-			contextHttpServletRequest);
-		vulcanBatchEngineExportTaskResource.setContextUriInfo(contextUriInfo);
-		vulcanBatchEngineExportTaskResource.setContextUser(contextUser);
-		vulcanBatchEngineExportTaskResource.setGroupLocalService(
-			groupLocalService);
-
-		Response.ResponseBuilder responseBuilder = Response.accepted();
-
-		return responseBuilder.entity(
-			vulcanBatchEngineExportTaskResource.postExportTask(
-				DocumentDataDefinitionType.class.getName(), callbackURL,
-				contentType, fieldNames)
-		).build();
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types' -d $'{"availableLanguages": ___, "dataDefinitionFields": ___, "dataLayout": ___, "description": ___, "description_i18n": ___, "documentMetadataSetIds": ___, "externalReferenceCode": ___, "name": ___, "name_i18n": ___, "viewableBy": ___}' --header 'Content-Type: application/json' -u 'test@liferay.com:test'
-	 */
-	@io.swagger.v3.oas.annotations.Operation(
-		description = "Creates a new document data definition type."
-	)
-	@io.swagger.v3.oas.annotations.Parameters(
-		value = {
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "assetLibraryId"
-			)
-		}
-	)
-	@io.swagger.v3.oas.annotations.tags.Tags(
-		value = {
-			@io.swagger.v3.oas.annotations.tags.Tag(
-				name = "DocumentDataDefinitionType"
-			)
-		}
-	)
-	@javax.ws.rs.Consumes({"application/json", "application/xml"})
-	@javax.ws.rs.Path(
-		"/asset-libraries/{assetLibraryId}/document-data-definition-types"
-	)
-	@javax.ws.rs.POST
-	@javax.ws.rs.Produces({"application/json", "application/xml"})
-	@Override
-	public DocumentDataDefinitionType
-			postAssetLibraryDocumentDataDefinitionType(
-				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-				@javax.validation.constraints.NotNull
-				@javax.ws.rs.PathParam("assetLibraryId")
-				Long assetLibraryId,
-				DocumentDataDefinitionType documentDataDefinitionType)
-		throws Exception {
-
-		return new DocumentDataDefinitionType();
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types/batch'  -u 'test@liferay.com:test'
-	 */
-	@io.swagger.v3.oas.annotations.Parameters(
-		value = {
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "assetLibraryId"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "callbackURL"
-			)
-		}
-	)
-	@io.swagger.v3.oas.annotations.tags.Tags(
-		value = {
-			@io.swagger.v3.oas.annotations.tags.Tag(
-				name = "DocumentDataDefinitionType"
-			)
-		}
-	)
-	@javax.ws.rs.Consumes("application/json")
-	@javax.ws.rs.Path(
-		"/asset-libraries/{assetLibraryId}/document-data-definition-types/batch"
-	)
-	@javax.ws.rs.POST
-	@javax.ws.rs.Produces("application/json")
-	@Override
-	public Response postAssetLibraryDocumentDataDefinitionTypeBatch(
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("assetLibraryId")
-			Long assetLibraryId,
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("callbackURL")
-			String callbackURL,
-			Object object)
-		throws Exception {
-
-		vulcanBatchEngineImportTaskResource.setContextAcceptLanguage(
-			contextAcceptLanguage);
-		vulcanBatchEngineImportTaskResource.setContextCompany(contextCompany);
-		vulcanBatchEngineImportTaskResource.setContextHttpServletRequest(
-			contextHttpServletRequest);
-		vulcanBatchEngineImportTaskResource.setContextUriInfo(contextUriInfo);
-		vulcanBatchEngineImportTaskResource.setContextUser(contextUser);
-
-		Response.ResponseBuilder responseBuilder = Response.accepted();
-
-		return responseBuilder.entity(
-			vulcanBatchEngineImportTaskResource.postImportTask(
-				DocumentDataDefinitionType.class.getName(), callbackURL, null,
-				object)
-		).build();
-	}
+			   VulcanBatchEngineTaskItemDelegate<DocumentDataDefinitionType>,
+			   VulcanCRUDItemDelegate<DocumentDataDefinitionType> {
 
 	/**
 	 * Invoke this method with the command line:
@@ -354,7 +81,7 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "documentDataDefinitionTypeId"
+				name = "documentDataDefinitionTypeId", required = true
 			)
 		}
 	)
@@ -365,16 +92,16 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			)
 		}
 	)
-	@javax.ws.rs.DELETE
-	@javax.ws.rs.Path(
+	@jakarta.ws.rs.DELETE
+	@jakarta.ws.rs.Path(
 		"/document-data-definition-types/{documentDataDefinitionTypeId}"
 	)
-	@javax.ws.rs.Produces({"application/json", "application/xml"})
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
 	@Override
 	public void deleteDocumentDataDefinitionType(
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("documentDataDefinitionTypeId")
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("documentDataDefinitionTypeId")
 			Long documentDataDefinitionTypeId)
 		throws Exception {
 	}
@@ -399,14 +126,14 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			)
 		}
 	)
-	@javax.ws.rs.Consumes("application/json")
-	@javax.ws.rs.DELETE
-	@javax.ws.rs.Path("/document-data-definition-types/batch")
-	@javax.ws.rs.Produces("application/json")
+	@jakarta.ws.rs.Consumes("application/json")
+	@jakarta.ws.rs.DELETE
+	@jakarta.ws.rs.Path("/document-data-definition-types/batch")
+	@jakarta.ws.rs.Produces("application/json")
 	@Override
 	public Response deleteDocumentDataDefinitionTypeBatch(
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("callbackURL")
+			@jakarta.ws.rs.QueryParam("callbackURL")
 			String callbackURL,
 			Object object)
 		throws Exception {
@@ -430,57 +157,13 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -X 'GET' 'http://localhost:8080/o/headless-delivery/v1.0/document-data-definition-types/{documentDataDefinitionTypeId}'  -u 'test@liferay.com:test'
+	 * curl -X 'GET' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types'  -u 'test@liferay.com:test'
 	 */
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "documentDataDefinitionTypeId"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "fields"
-			),
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
-				name = "restrictFields"
-			)
-		}
-	)
-	@io.swagger.v3.oas.annotations.tags.Tags(
-		value = {
-			@io.swagger.v3.oas.annotations.tags.Tag(
-				name = "DocumentDataDefinitionType"
-			)
-		}
-	)
-	@javax.ws.rs.GET
-	@javax.ws.rs.Path(
-		"/document-data-definition-types/{documentDataDefinitionTypeId}"
-	)
-	@javax.ws.rs.Produces({"application/json", "application/xml"})
-	@Override
-	public DocumentDataDefinitionType getDocumentDataDefinitionType(
-			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("documentDataDefinitionTypeId")
-			Long documentDataDefinitionTypeId)
-		throws Exception {
-
-		return new DocumentDataDefinitionType();
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -X 'GET' 'http://localhost:8080/o/headless-delivery/v1.0/sites/{siteId}/document-data-definition-types'  -u 'test@liferay.com:test'
-	 */
-	@io.swagger.v3.oas.annotations.Parameters(
-		value = {
-			@io.swagger.v3.oas.annotations.Parameter(
-				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteId"
+				name = "assetLibraryId", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -527,25 +210,29 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			)
 		}
 	)
-	@javax.ws.rs.GET
-	@javax.ws.rs.Path("/sites/{siteId}/document-data-definition-types")
-	@javax.ws.rs.Produces({"application/json", "application/xml"})
+	@jakarta.ws.rs.GET
+	@jakarta.ws.rs.Path(
+		"/asset-libraries/{assetLibraryId}/document-data-definition-types"
+	)
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
 	@Override
 	public Page<DocumentDataDefinitionType>
-			getSiteDocumentDataDefinitionTypesPage(
+			getAssetLibraryDocumentDataDefinitionTypesPage(
 				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-				@javax.validation.constraints.NotNull
-				@javax.ws.rs.PathParam("siteId")
-				Long siteId,
+				@jakarta.validation.constraints.NotNull
+				@jakarta.ws.rs.PathParam("assetLibraryId")
+				Long assetLibraryId,
 				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-				@javax.ws.rs.QueryParam("search")
+				@jakarta.ws.rs.QueryParam("search")
 				String search,
-				@javax.ws.rs.core.Context
+				@jakarta.ws.rs.core.Context
 					com.liferay.portal.vulcan.aggregation.Aggregation
 						aggregation,
-				@javax.ws.rs.core.Context Filter filter,
-				@javax.ws.rs.core.Context Pagination pagination,
-				@javax.ws.rs.core.Context Sort[] sorts)
+				@jakarta.ws.rs.core.Context
+					com.liferay.portal.kernel.search.filter.Filter filter,
+				@jakarta.ws.rs.core.Context Pagination pagination,
+				@jakarta.ws.rs.core.Context
+					com.liferay.portal.kernel.search.Sort[] sorts)
 		throws Exception {
 
 		return Page.of(Collections.emptyList());
@@ -554,13 +241,240 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/sites/{siteId}/document-data-definition-types/export-batch'  -u 'test@liferay.com:test'
+	 * curl -X 'GET' 'http://localhost:8080/o/headless-delivery/v1.0/document-data-definition-types/{documentDataDefinitionTypeId}'  -u 'test@liferay.com:test'
 	 */
 	@io.swagger.v3.oas.annotations.Parameters(
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteId"
+				name = "documentDataDefinitionTypeId", required = true
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "fields"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "restrictFields"
+			)
+		}
+	)
+	@io.swagger.v3.oas.annotations.tags.Tags(
+		value = {
+			@io.swagger.v3.oas.annotations.tags.Tag(
+				name = "DocumentDataDefinitionType"
+			)
+		}
+	)
+	@jakarta.ws.rs.GET
+	@jakarta.ws.rs.Path(
+		"/document-data-definition-types/{documentDataDefinitionTypeId}"
+	)
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
+	@Override
+	public DocumentDataDefinitionType getDocumentDataDefinitionType(
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("documentDataDefinitionTypeId")
+			Long documentDataDefinitionTypeId)
+		throws Exception {
+
+		return new DocumentDataDefinitionType();
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -X 'GET' 'http://localhost:8080/o/headless-delivery/v1.0/sites/{siteId}/document-data-definition-types'  -u 'test@liferay.com:test'
+	 */
+	@io.swagger.v3.oas.annotations.Parameters(
+		value = {
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
+				name = "siteId", required = true
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "aggregationTerms"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "fields"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "filter"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "nestedFields"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "page"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "pageSize"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "restrictFields"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "search"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "sort"
+			)
+		}
+	)
+	@io.swagger.v3.oas.annotations.tags.Tags(
+		value = {
+			@io.swagger.v3.oas.annotations.tags.Tag(
+				name = "DocumentDataDefinitionType"
+			)
+		}
+	)
+	@jakarta.ws.rs.GET
+	@jakarta.ws.rs.Path("/sites/{siteId}/document-data-definition-types")
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
+	@Override
+	public Page<DocumentDataDefinitionType>
+			getSiteDocumentDataDefinitionTypesPage(
+				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+				@jakarta.validation.constraints.NotNull
+				@jakarta.ws.rs.PathParam("siteId")
+				Long siteId,
+				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+				@jakarta.ws.rs.QueryParam("search")
+				String search,
+				@jakarta.ws.rs.core.Context
+					com.liferay.portal.vulcan.aggregation.Aggregation
+						aggregation,
+				@jakarta.ws.rs.core.Context
+					com.liferay.portal.kernel.search.filter.Filter filter,
+				@jakarta.ws.rs.core.Context Pagination pagination,
+				@jakarta.ws.rs.core.Context
+					com.liferay.portal.kernel.search.Sort[] sorts)
+		throws Exception {
+
+		return Page.of(Collections.emptyList());
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types' -d $'{"availableLanguages": ___, "dataDefinitionFields": ___, "dataLayout": ___, "description": ___, "description_i18n": ___, "documentMetadataSetIds": ___, "externalReferenceCode": ___, "name": ___, "name_i18n": ___, "viewableBy": ___}' --header 'Content-Type: application/json' -u 'test@liferay.com:test'
+	 */
+	@io.swagger.v3.oas.annotations.Operation(
+		description = "Creates a new document data definition type."
+	)
+	@io.swagger.v3.oas.annotations.Parameters(
+		value = {
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
+				name = "assetLibraryId", required = true
+			)
+		}
+	)
+	@io.swagger.v3.oas.annotations.tags.Tags(
+		value = {
+			@io.swagger.v3.oas.annotations.tags.Tag(
+				name = "DocumentDataDefinitionType"
+			)
+		}
+	)
+	@jakarta.ws.rs.Consumes({"application/json", "application/xml"})
+	@jakarta.ws.rs.Path(
+		"/asset-libraries/{assetLibraryId}/document-data-definition-types"
+	)
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
+	@Override
+	public DocumentDataDefinitionType
+			postAssetLibraryDocumentDataDefinitionType(
+				@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+				@jakarta.validation.constraints.NotNull
+				@jakarta.ws.rs.PathParam("assetLibraryId")
+				Long assetLibraryId,
+				DocumentDataDefinitionType documentDataDefinitionType)
+		throws Exception {
+
+		return new DocumentDataDefinitionType();
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types/batch'  -u 'test@liferay.com:test'
+	 */
+	@io.swagger.v3.oas.annotations.Parameters(
+		value = {
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
+				name = "assetLibraryId", required = true
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "callbackURL"
+			)
+		}
+	)
+	@io.swagger.v3.oas.annotations.tags.Tags(
+		value = {
+			@io.swagger.v3.oas.annotations.tags.Tag(
+				name = "DocumentDataDefinitionType"
+			)
+		}
+	)
+	@jakarta.ws.rs.Consumes("application/json")
+	@jakarta.ws.rs.Path(
+		"/asset-libraries/{assetLibraryId}/document-data-definition-types/batch"
+	)
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces("application/json")
+	@Override
+	public Response postAssetLibraryDocumentDataDefinitionTypeBatch(
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("assetLibraryId")
+			Long assetLibraryId,
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.ws.rs.QueryParam("callbackURL")
+			String callbackURL,
+			Object object)
+		throws Exception {
+
+		vulcanBatchEngineImportTaskResource.setContextAcceptLanguage(
+			contextAcceptLanguage);
+		vulcanBatchEngineImportTaskResource.setContextCompany(contextCompany);
+		vulcanBatchEngineImportTaskResource.setContextHttpServletRequest(
+			contextHttpServletRequest);
+		vulcanBatchEngineImportTaskResource.setContextUriInfo(contextUriInfo);
+		vulcanBatchEngineImportTaskResource.setContextUser(contextUser);
+
+		Response.ResponseBuilder responseBuilder = Response.accepted();
+
+		return responseBuilder.entity(
+			vulcanBatchEngineImportTaskResource.postImportTask(
+				DocumentDataDefinitionType.class.getName(), callbackURL, null,
+				object)
+		).build();
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/asset-libraries/{assetLibraryId}/document-data-definition-types/export-batch'  -u 'test@liferay.com:test'
+	 */
+	@io.swagger.v3.oas.annotations.Parameters(
+		value = {
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
+				name = "assetLibraryId", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -595,32 +509,34 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			)
 		}
 	)
-	@javax.ws.rs.Consumes("application/json")
-	@javax.ws.rs.Path(
-		"/sites/{siteId}/document-data-definition-types/export-batch"
+	@jakarta.ws.rs.Consumes("application/json")
+	@jakarta.ws.rs.Path(
+		"/asset-libraries/{assetLibraryId}/document-data-definition-types/export-batch"
 	)
-	@javax.ws.rs.POST
-	@javax.ws.rs.Produces("application/json")
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces("application/json")
 	@Override
-	public Response postSiteDocumentDataDefinitionTypesPageExportBatch(
+	public Response postAssetLibraryDocumentDataDefinitionTypesPageExportBatch(
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("siteId")
-			Long siteId,
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("assetLibraryId")
+			Long assetLibraryId,
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("search")
+			@jakarta.ws.rs.QueryParam("search")
 			String search,
-			@javax.ws.rs.core.Context Filter filter,
-			@javax.ws.rs.core.Context Sort[] sorts,
+			@jakarta.ws.rs.core.Context
+				com.liferay.portal.kernel.search.filter.Filter filter,
+			@jakarta.ws.rs.core.Context com.liferay.portal.kernel.search.Sort[]
+				sorts,
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("callbackURL")
+			@jakarta.ws.rs.QueryParam("callbackURL")
 			String callbackURL,
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.DefaultValue("JSON")
-			@javax.ws.rs.QueryParam("contentType")
+			@jakarta.ws.rs.DefaultValue("JSON")
+			@jakarta.ws.rs.QueryParam("contentType")
 			String contentType,
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("fieldNames")
+			@jakarta.ws.rs.QueryParam("fieldNames")
 			String fieldNames)
 		throws Exception {
 
@@ -655,7 +571,7 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteId"
+				name = "siteId", required = true
 			)
 		}
 	)
@@ -666,15 +582,15 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			)
 		}
 	)
-	@javax.ws.rs.Consumes({"application/json", "application/xml"})
-	@javax.ws.rs.Path("/sites/{siteId}/document-data-definition-types")
-	@javax.ws.rs.POST
-	@javax.ws.rs.Produces({"application/json", "application/xml"})
+	@jakarta.ws.rs.Consumes({"application/json", "application/xml"})
+	@jakarta.ws.rs.Path("/sites/{siteId}/document-data-definition-types")
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces({"application/json", "application/xml"})
 	@Override
 	public DocumentDataDefinitionType postSiteDocumentDataDefinitionType(
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("siteId")
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("siteId")
 			Long siteId,
 			DocumentDataDefinitionType documentDataDefinitionType)
 		throws Exception {
@@ -691,7 +607,7 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		value = {
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
-				name = "siteId"
+				name = "siteId", required = true
 			),
 			@io.swagger.v3.oas.annotations.Parameter(
 				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
@@ -706,18 +622,18 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			)
 		}
 	)
-	@javax.ws.rs.Consumes("application/json")
-	@javax.ws.rs.Path("/sites/{siteId}/document-data-definition-types/batch")
-	@javax.ws.rs.POST
-	@javax.ws.rs.Produces("application/json")
+	@jakarta.ws.rs.Consumes("application/json")
+	@jakarta.ws.rs.Path("/sites/{siteId}/document-data-definition-types/batch")
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces("application/json")
 	@Override
 	public Response postSiteDocumentDataDefinitionTypeBatch(
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.validation.constraints.NotNull
-			@javax.ws.rs.PathParam("siteId")
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("siteId")
 			Long siteId,
 			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
-			@javax.ws.rs.QueryParam("callbackURL")
+			@jakarta.ws.rs.QueryParam("callbackURL")
 			String callbackURL,
 			Object object)
 		throws Exception {
@@ -736,6 +652,100 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			vulcanBatchEngineImportTaskResource.postImportTask(
 				DocumentDataDefinitionType.class.getName(), callbackURL, null,
 				object)
+		).build();
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -X 'POST' 'http://localhost:8080/o/headless-delivery/v1.0/sites/{siteId}/document-data-definition-types/export-batch'  -u 'test@liferay.com:test'
+	 */
+	@io.swagger.v3.oas.annotations.Parameters(
+		value = {
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.PATH,
+				name = "siteId", required = true
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "filter"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "search"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "sort"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "callbackURL"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "contentType"
+			),
+			@io.swagger.v3.oas.annotations.Parameter(
+				in = io.swagger.v3.oas.annotations.enums.ParameterIn.QUERY,
+				name = "fieldNames"
+			)
+		}
+	)
+	@io.swagger.v3.oas.annotations.tags.Tags(
+		value = {
+			@io.swagger.v3.oas.annotations.tags.Tag(
+				name = "DocumentDataDefinitionType"
+			)
+		}
+	)
+	@jakarta.ws.rs.Consumes("application/json")
+	@jakarta.ws.rs.Path(
+		"/sites/{siteId}/document-data-definition-types/export-batch"
+	)
+	@jakarta.ws.rs.POST
+	@jakarta.ws.rs.Produces("application/json")
+	@Override
+	public Response postSiteDocumentDataDefinitionTypesPageExportBatch(
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.validation.constraints.NotNull
+			@jakarta.ws.rs.PathParam("siteId")
+			Long siteId,
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.ws.rs.QueryParam("search")
+			String search,
+			@jakarta.ws.rs.core.Context
+				com.liferay.portal.kernel.search.filter.Filter filter,
+			@jakarta.ws.rs.core.Context com.liferay.portal.kernel.search.Sort[]
+				sorts,
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.ws.rs.QueryParam("callbackURL")
+			String callbackURL,
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.ws.rs.DefaultValue("JSON")
+			@jakarta.ws.rs.QueryParam("contentType")
+			String contentType,
+			@io.swagger.v3.oas.annotations.Parameter(hidden = true)
+			@jakarta.ws.rs.QueryParam("fieldNames")
+			String fieldNames)
+		throws Exception {
+
+		vulcanBatchEngineExportTaskResource.setContextAcceptLanguage(
+			contextAcceptLanguage);
+		vulcanBatchEngineExportTaskResource.setContextCompany(contextCompany);
+		vulcanBatchEngineExportTaskResource.setContextHttpServletRequest(
+			contextHttpServletRequest);
+		vulcanBatchEngineExportTaskResource.setContextUriInfo(contextUriInfo);
+		vulcanBatchEngineExportTaskResource.setContextUser(contextUser);
+		vulcanBatchEngineExportTaskResource.setGroupLocalService(
+			groupLocalService);
+
+		Response.ResponseBuilder responseBuilder = Response.accepted();
+
+		return responseBuilder.entity(
+			vulcanBatchEngineExportTaskResource.postExportTask(
+				DocumentDataDefinitionType.class.getName(), callbackURL,
+				contentType, fieldNames)
 		).build();
 	}
 
@@ -806,11 +816,33 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			Map<String, Serializable> parameters)
 		throws Exception {
 
-		for (DocumentDataDefinitionType documentDataDefinitionType :
-				documentDataDefinitionTypes) {
+		UnsafeFunction
+			<DocumentDataDefinitionType, DocumentDataDefinitionType, Exception>
+				documentDataDefinitionTypeUnsafeFunction =
+					documentDataDefinitionType -> {
+						deleteDocumentDataDefinitionType(
+							documentDataDefinitionType.getId());
 
-			deleteDocumentDataDefinitionType(
-				documentDataDefinitionType.getId());
+						return documentDataDefinitionType;
+					};
+
+		if (contextBatchUnsafeBiConsumer != null) {
+			contextBatchUnsafeBiConsumer.accept(
+				documentDataDefinitionTypes,
+				documentDataDefinitionTypeUnsafeFunction);
+		}
+		else if (contextBatchUnsafeConsumer != null) {
+			contextBatchUnsafeConsumer.accept(
+				documentDataDefinitionTypes,
+				documentDataDefinitionTypeUnsafeFunction::apply);
+		}
+		else {
+			for (DocumentDataDefinitionType documentDataDefinitionType :
+					documentDataDefinitionTypes) {
+
+				documentDataDefinitionTypeUnsafeFunction.apply(
+					documentDataDefinitionType);
+			}
 		}
 	}
 
@@ -830,13 +862,6 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			new MultivaluedHashMap<String, Object>(multivaluedMap));
 	}
 
-	@Override
-	public EntityModel getEntityModel(MultivaluedMap multivaluedMap)
-		throws Exception {
-
-		return null;
-	}
-
 	public String getResourceName() {
 		return "DocumentDataDefinitionType";
 	}
@@ -847,7 +872,9 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 
 	@Override
 	public Page<DocumentDataDefinitionType> read(
-			Filter filter, Pagination pagination, Sort[] sorts,
+			com.liferay.portal.kernel.search.filter.Filter filter,
+			Pagination pagination,
+			com.liferay.portal.kernel.search.Sort[] sorts,
 			Map<String, Serializable> parameters, String search)
 		throws Exception {
 
@@ -886,6 +913,15 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 				return LocaleUtil.fromLanguageId(languageId);
 			}
 
+			@Override
+			public boolean isAcceptAllLanguages() {
+				if (ExportImportThreadLocal.isExportInProcess()) {
+					return true;
+				}
+
+				return AcceptLanguage.super.isAcceptAllLanguages();
+			}
+
 		};
 	}
 
@@ -897,6 +933,18 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Override
+	public EntityModel getEntityModel(MultivaluedMap multivaluedMap)
+		throws Exception {
+
+		return null;
+	}
+
+	@Override
+	public DocumentDataDefinitionType getItem(Long id) throws Exception {
+		return getDocumentDataDefinitionType(id);
 	}
 
 	public void setContextAcceptLanguage(AcceptLanguage contextAcceptLanguage) {
@@ -942,7 +990,8 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	}
 
 	public void setContextUriInfo(UriInfo contextUriInfo) {
-		this.contextUriInfo = contextUriInfo;
+		this.contextUriInfo = UriInfoUtil.getVulcanUriInfo(
+			getApplicationPath(), contextUriInfo);
 	}
 
 	public void setContextUser(
@@ -952,7 +1001,8 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	}
 
 	public void setExpressionConvert(
-		ExpressionConvert<Filter> expressionConvert) {
+		ExpressionConvert<com.liferay.portal.kernel.search.filter.Filter>
+			expressionConvert) {
 
 		this.expressionConvert = expressionConvert;
 	}
@@ -987,6 +1037,10 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		this.sortParserProvider = sortParserProvider;
 	}
 
+	protected String getApplicationPath() {
+		return "headless-delivery";
+	}
+
 	public void setVulcanBatchEngineExportTaskResource(
 		VulcanBatchEngineExportTaskResource
 			vulcanBatchEngineExportTaskResource) {
@@ -1004,7 +1058,7 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	}
 
 	@Override
-	public Filter toFilter(
+	public com.liferay.portal.kernel.search.filter.Filter toFilter(
 		String filterString, Map<String, List<String>> multivaluedMap) {
 
 		try {
@@ -1029,7 +1083,7 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	}
 
 	@Override
-	public Sort[] toSorts(String sortString) {
+	public com.liferay.portal.kernel.search.Sort[] toSorts(String sortString) {
 		if (Validator.isNull(sortString)) {
 			return null;
 		}
@@ -1047,13 +1101,13 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 					sortParser.parse(sortString));
 
 			List<SortField> sortFields = oDataSort.getSortFields();
-
-			Sort[] sorts = new Sort[sortFields.size()];
+			com.liferay.portal.kernel.search.Sort[] sorts =
+				new com.liferay.portal.kernel.search.Sort[sortFields.size()];
 
 			for (int i = 0; i < sortFields.size(); i++) {
 				SortField sortField = sortFields.get(i);
 
-				sorts[i] = new Sort(
+				sorts[i] = new com.liferay.portal.kernel.search.Sort(
 					sortField.getSortableFieldName(
 						contextAcceptLanguage.getPreferredLocale()),
 					!sortField.isAscending());
@@ -1064,7 +1118,7 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		catch (Exception exception) {
 			_log.error("Invalid sort " + sortString, exception);
 
-			return new Sort[0];
+			return new com.liferay.portal.kernel.search.Sort[0];
 		}
 	}
 
@@ -1110,6 +1164,20 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		return TransformUtil.transform(collection, unsafeFunction);
 	}
 
+	public static <R, E extends Throwable> R[] transform(
+		int[] array, UnsafeFunction<Integer, R, E> unsafeFunction,
+		Class<? extends R> clazz) {
+
+		return TransformUtil.transform(array, unsafeFunction, clazz);
+	}
+
+	public static <R, E extends Throwable> R[] transform(
+		long[] array, UnsafeFunction<Long, R, E> unsafeFunction,
+		Class<? extends R> clazz) {
+
+		return TransformUtil.transform(array, unsafeFunction, clazz);
+	}
+
 	protected <T, R, E extends Throwable> R[] transform(
 		T[] array, UnsafeFunction<T, R, E> unsafeFunction,
 		Class<? extends R> clazz) {
@@ -1125,6 +1193,80 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			collection, unsafeFunction, clazz);
 	}
 
+	public static <T, E extends Throwable> boolean[] transformToBooleanArray(
+		Collection<T> collection,
+		UnsafeFunction<T, Boolean, E> unsafeFunction) {
+
+		return TransformUtil.transformToBooleanArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> boolean[] transformToBooleanArray(
+		T[] array, UnsafeFunction<T, Boolean, E> unsafeFunction) {
+
+		return TransformUtil.transformToBooleanArray(array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> byte[] transformToByteArray(
+		Collection<T> collection, UnsafeFunction<T, Byte, E> unsafeFunction) {
+
+		return TransformUtil.transformToByteArray(collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> byte[] transformToByteArray(
+		T[] array, UnsafeFunction<T, Byte, E> unsafeFunction) {
+
+		return TransformUtil.transformToByteArray(array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> double[] transformToDoubleArray(
+		Collection<T> collection, UnsafeFunction<T, Double, E> unsafeFunction) {
+
+		return TransformUtil.transformToDoubleArray(collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> double[] transformToDoubleArray(
+		T[] array, UnsafeFunction<T, Double, E> unsafeFunction) {
+
+		return TransformUtil.transformToDoubleArray(array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> float[] transformToFloatArray(
+		Collection<T> collection, UnsafeFunction<T, Float, E> unsafeFunction) {
+
+		return TransformUtil.transformToFloatArray(collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> float[] transformToFloatArray(
+		T[] array, UnsafeFunction<T, Float, E> unsafeFunction) {
+
+		return TransformUtil.transformToFloatArray(array, unsafeFunction);
+	}
+
+	public static <T, R, E extends Throwable> int[] transformToIntArray(
+		Collection<T> collection, UnsafeFunction<T, R, E> unsafeFunction) {
+
+		return TransformUtil.transformToIntArray(collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> int[] transformToIntArray(
+		T[] array, UnsafeFunction<T, Integer, E> unsafeFunction) {
+
+		return TransformUtil.transformToIntArray(array, unsafeFunction);
+	}
+
+	public static <R, E extends Throwable> List<R> transformToList(
+		int[] array, UnsafeFunction<Integer, R, E> unsafeFunction) {
+
+		return TransformUtil.transformToList(array, unsafeFunction);
+	}
+
+	public static <R, E extends Throwable> List<R> transformToList(
+		long[] array, UnsafeFunction<Long, R, E> unsafeFunction) {
+
+		return TransformUtil.transformToList(array, unsafeFunction);
+	}
+
 	protected <T, R, E extends Throwable> List<R> transformToList(
 		T[] array, UnsafeFunction<T, R, E> unsafeFunction) {
 
@@ -1137,11 +1279,45 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		return TransformUtil.transformToLongArray(collection, unsafeFunction);
 	}
 
+	public static <T, E extends Throwable> long[] transformToLongArray(
+		T[] array, UnsafeFunction<T, Long, E> unsafeFunction) {
+
+		return TransformUtil.transformToLongArray(array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> short[] transformToShortArray(
+		Collection<T> collection, UnsafeFunction<T, Short, E> unsafeFunction) {
+
+		return TransformUtil.transformToShortArray(collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> short[] transformToShortArray(
+		T[] array, UnsafeFunction<T, Short, E> unsafeFunction) {
+
+		return TransformUtil.transformToShortArray(array, unsafeFunction);
+	}
+
 	protected <T, R, E extends Throwable> List<R> unsafeTransform(
 			Collection<T> collection, UnsafeFunction<T, R, E> unsafeFunction)
 		throws E {
 
 		return TransformUtil.unsafeTransform(collection, unsafeFunction);
+	}
+
+	public static <R, E extends Throwable> R[] unsafeTransform(
+			int[] array, UnsafeFunction<Integer, R, E> unsafeFunction,
+			Class<? extends R> clazz)
+		throws E {
+
+		return TransformUtil.unsafeTransform(array, unsafeFunction, clazz);
+	}
+
+	public static <R, E extends Throwable> R[] unsafeTransform(
+			long[] array, UnsafeFunction<Long, R, E> unsafeFunction,
+			Class<? extends R> clazz)
+		throws E {
+
+		return TransformUtil.unsafeTransform(array, unsafeFunction, clazz);
 	}
 
 	protected <T, R, E extends Throwable> R[] unsafeTransform(
@@ -1161,6 +1337,104 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 			collection, unsafeFunction, clazz);
 	}
 
+	public static <T, E extends Throwable> boolean[]
+			unsafeTransformToBooleanArray(
+				Collection<T> collection,
+				UnsafeFunction<T, Boolean, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToBooleanArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> boolean[]
+			unsafeTransformToBooleanArray(
+				T[] array, UnsafeFunction<T, Boolean, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToBooleanArray(
+			array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> byte[] unsafeTransformToByteArray(
+			Collection<T> collection, UnsafeFunction<T, Byte, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToByteArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> byte[] unsafeTransformToByteArray(
+			T[] array, UnsafeFunction<T, Byte, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToByteArray(array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> double[]
+			unsafeTransformToDoubleArray(
+				Collection<T> collection,
+				UnsafeFunction<T, Double, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToDoubleArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> double[]
+			unsafeTransformToDoubleArray(
+				T[] array, UnsafeFunction<T, Double, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToDoubleArray(
+			array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> float[] unsafeTransformToFloatArray(
+			Collection<T> collection,
+			UnsafeFunction<T, Float, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToFloatArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> float[] unsafeTransformToFloatArray(
+			T[] array, UnsafeFunction<T, Float, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToFloatArray(array, unsafeFunction);
+	}
+
+	public static <T, R, E extends Throwable> int[] unsafeTransformToIntArray(
+			Collection<T> collection, UnsafeFunction<T, R, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToIntArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> int[] unsafeTransformToIntArray(
+			T[] array, UnsafeFunction<T, Integer, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToIntArray(array, unsafeFunction);
+	}
+
+	public static <R, E extends Throwable> List<R> unsafeTransformToList(
+			int[] array, UnsafeFunction<Integer, R, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToList(array, unsafeFunction);
+	}
+
+	public static <R, E extends Throwable> List<R> unsafeTransformToList(
+			long[] array, UnsafeFunction<Long, R, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToList(array, unsafeFunction);
+	}
+
 	protected <T, R, E extends Throwable> List<R> unsafeTransformToList(
 			T[] array, UnsafeFunction<T, R, E> unsafeFunction)
 		throws E {
@@ -1174,6 +1448,29 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 
 		return TransformUtil.unsafeTransformToLongArray(
 			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> long[] unsafeTransformToLongArray(
+			T[] array, UnsafeFunction<T, Long, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToLongArray(array, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> short[] unsafeTransformToShortArray(
+			Collection<T> collection,
+			UnsafeFunction<T, Short, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToShortArray(
+			collection, unsafeFunction);
+	}
+
+	public static <T, E extends Throwable> short[] unsafeTransformToShortArray(
+			T[] array, UnsafeFunction<T, Short, E> unsafeFunction)
+		throws E {
+
+		return TransformUtil.unsafeTransformToShortArray(array, unsafeFunction);
 	}
 
 	protected AcceptLanguage contextAcceptLanguage;
@@ -1193,7 +1490,8 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 	protected Object contextScopeChecker;
 	protected UriInfo contextUriInfo;
 	protected com.liferay.portal.kernel.model.User contextUser;
-	protected ExpressionConvert<Filter> expressionConvert;
+	protected ExpressionConvert<com.liferay.portal.kernel.search.filter.Filter>
+		expressionConvert;
 	protected FilterParserProvider filterParserProvider;
 	protected GroupLocalService groupLocalService;
 	protected ResourceActionLocalService resourceActionLocalService;
@@ -1209,3 +1507,4 @@ public abstract class BaseDocumentDataDefinitionTypeResourceImpl
 		LogFactoryUtil.getLog(BaseDocumentDataDefinitionTypeResourceImpl.class);
 
 }
+// LIFERAY-REST-BUILDER-HASH:-998840850

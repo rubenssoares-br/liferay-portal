@@ -9,9 +9,18 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.petra.io.StreamUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.Http;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.multipart.BinaryFile;
 import com.liferay.portal.vulcan.multipart.MultipartBody;
+
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -25,14 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -81,7 +82,9 @@ public class MultipartBodyMessageBodyReaderTest {
 
 	@Test
 	public void testPostMultipart() throws Exception {
-		URL url = new URL("http://localhost:8080/o/test-vulcan/test-class");
+		URL url = new URL(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/test-vulcan/test-class");
 
 		HttpURLConnection httpURLConnection =
 			(HttpURLConnection)url.openConnection();
@@ -96,6 +99,7 @@ public class MultipartBodyMessageBodyReaderTest {
 			"Content-Type", "multipart/form-data; boundary=" + boundary);
 
 		try (OutputStream outputStream = httpURLConnection.getOutputStream();
+
 			PrintWriter printWriter = new PrintWriter(
 				new OutputStreamWriter(outputStream, StandardCharsets.UTF_8),
 				true)) {

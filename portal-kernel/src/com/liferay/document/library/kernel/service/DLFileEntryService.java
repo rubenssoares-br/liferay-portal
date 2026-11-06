@@ -105,6 +105,9 @@ public interface DLFileEntryService extends BaseService {
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public DLFileEntry fetchFileEntry(long fileEntryId) throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public DLFileEntry fetchFileEntry(long groupId, long folderId, String title)
 		throws PortalException;
 
@@ -308,3 +311,4 @@ public interface DLFileEntryService extends BaseService {
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-135934984

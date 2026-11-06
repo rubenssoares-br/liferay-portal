@@ -215,6 +215,15 @@ public class CPInstanceServiceWrapper
 			cProductId, cpInstanceUuid);
 	}
 
+	@Override
+	public CPInstance getOrAddEmptyCPInstance(
+			String externalReferenceCode, long cpDefinitionId, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpInstanceService.getOrAddEmptyCPInstance(
+			externalReferenceCode, cpDefinitionId, groupId);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -383,3 +392,4 @@ public class CPInstanceServiceWrapper
 	private CPInstanceService _cpInstanceService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1652927503

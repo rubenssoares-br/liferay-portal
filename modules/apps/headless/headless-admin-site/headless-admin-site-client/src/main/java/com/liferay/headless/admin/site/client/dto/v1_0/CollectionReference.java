@@ -8,11 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.CollectionReferenceSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -88,7 +88,9 @@ public abstract class CollectionReference implements Cloneable, Serializable {
 
 	public static enum CollectionType {
 
-		COLLECTION("Collection"), COLLECTION_PROVIDER("CollectionProvider");
+		COLLECTION("Collection"), COLLECTION_PROVIDER("CollectionProvider"),
+		REPEATABLE_FIELDS_COLLECTION_PROVIDER(
+			"RepeatableFieldsCollectionProvider");
 
 		public static CollectionType create(String value) {
 			for (CollectionType collectionType : values()) {
@@ -120,3 +122,4 @@ public abstract class CollectionReference implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-277168643

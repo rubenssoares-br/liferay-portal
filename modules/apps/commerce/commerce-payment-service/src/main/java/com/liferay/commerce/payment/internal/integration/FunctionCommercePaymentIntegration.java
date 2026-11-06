@@ -31,13 +31,13 @@ import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.math.BigDecimal;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -165,14 +165,16 @@ public class FunctionCommercePaymentIntegration
 		for (CommercePaymentMethodGroupRel commercePaymentMethodGroupRel :
 				commercePaymentMethodGroupRels) {
 
-			if (key.equals(
+			if (!key.equals(
 					commercePaymentMethodGroupRel.getPaymentIntegrationKey())) {
 
-				_commercePaymentMethodGroupRelLocalService.
-					deleteCommercePaymentMethodGroupRel(
-						commercePaymentMethodGroupRel.
-							getCommercePaymentMethodGroupRelId());
+				continue;
 			}
+
+			_commercePaymentMethodGroupRelLocalService.
+				deleteCommercePaymentMethodGroupRel(
+					commercePaymentMethodGroupRel.
+						getCommercePaymentMethodGroupRelId());
 		}
 	}
 
@@ -195,14 +197,16 @@ public class FunctionCommercePaymentIntegration
 
 			String key = (String)properties.get("key");
 
-			if (key.equals(
+			if (!key.equals(
 					commercePaymentMethodGroupRel.getPaymentIntegrationKey())) {
 
-				_commercePaymentMethodGroupRelLocalService.
-					deleteCommercePaymentMethodGroupRel(
-						commercePaymentMethodGroupRel.
-							getCommercePaymentMethodGroupRelId());
+				continue;
 			}
+
+			_commercePaymentMethodGroupRelLocalService.
+				deleteCommercePaymentMethodGroupRel(
+					commercePaymentMethodGroupRel.
+						getCommercePaymentMethodGroupRelId());
 		}
 	}
 
@@ -278,7 +282,7 @@ public class FunctionCommercePaymentIntegration
 
 			if (jsonObject.has("amount")) {
 				commercePaymentEntry.setAmount(
-					BigDecimal.valueOf(jsonObject.getDouble("amount")));
+					new BigDecimal(jsonObject.getString("amount", "0")));
 			}
 
 			if (jsonObject.has("callbackURL")) {

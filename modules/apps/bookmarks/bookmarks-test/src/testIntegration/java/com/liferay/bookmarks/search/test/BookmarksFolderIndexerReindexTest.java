@@ -130,7 +130,7 @@ public class BookmarksFolderIndexerReindexTest {
 	}
 
 	protected void reindexAllIndexerModels() throws Exception {
-		indexer.reindex(new String[] {String.valueOf(_group.getCompanyId())});
+		indexer.reindexCompany(_group.getCompanyId());
 	}
 
 	protected SearchResponse search(String searchTerm) {
@@ -157,19 +157,19 @@ public class BookmarksFolderIndexerReindexTest {
 	@Inject
 	protected BookmarksFolderService bookmarksFolderService;
 
+	@Inject
+	protected IndexWriterHelper indexWriterHelper;
+
 	@Inject(
 		filter = "indexer.class.name=com.liferay.bookmarks.model.BookmarksFolder"
 	)
 	protected Indexer<BookmarksFolder> indexer;
 
 	@Inject
-	protected IndexWriterHelper indexWriterHelper;
+	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
 
 	@Inject
 	protected Searcher searcher;
-
-	@Inject
-	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
 
 	@Inject
 	protected UIDFactory uidFactory;

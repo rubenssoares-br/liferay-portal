@@ -1,4 +1,4 @@
-@component-name = "core-infrastructure"
+@component-name = "portal-core-infra"
 definition {
 
 	property portal.release = "false";
@@ -56,14 +56,13 @@ definition {
 			specificURL = "http://localhost:8080",
 			userEmailAddress = "test@liferay.com");
 
-		ApplicationsMenuHelper.openApplicationsMenu();
+		ApplicationsMenu.openApplicationsMenu();
 
 		ApplicationsMenu.gotoPanel(panel = "Control Panel");
 
 		AssertElementNotPresent(
-			key_category = "System",
 			key_portlet = "Gogo Shell",
-			locator1 = "ApplicationsMenu#PORTLET");
+			locator1 = "ApplicationsMenu#ROOT_PORTLET");
 
 		Portlet.shutdownServer();
 
@@ -71,14 +70,13 @@ definition {
 
 		Navigator.openSpecificURL(url = "http://localhost:8080");
 
-		ApplicationsMenuHelper.openApplicationsMenu();
+		ApplicationsMenu.openApplicationsMenu();
 
 		ApplicationsMenu.gotoPanel(panel = "Control Panel");
 
 		AssertElementPresent(
-			key_category = "System",
 			key_portlet = "Gogo Shell",
-			locator1 = "ApplicationsMenu#PORTLET");
+			locator1 = "ApplicationsMenu#ROOT_PORTLET");
 	}
 
 }

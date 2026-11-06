@@ -14,26 +14,27 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -43,6 +44,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a definition of a submission result of type message.",
 	value = "MessageFormSubmissionResult"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a definition of a submission result of type message."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "MessageFormSubmissionResult")
@@ -58,7 +62,9 @@ public class MessageFormSubmissionResult implements Serializable {
 			MessageFormSubmissionResult.class, json);
 	}
 
-	@Schema(description = "The localized submission of message type.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized submission of message type."
+	)
 	@Valid
 	public FragmentInlineValue getMessage() {
 		if (_messageSupplier != null) {
@@ -100,8 +106,10 @@ public class MessageFormSubmissionResult implements Serializable {
 	@JsonIgnore
 	private Supplier<FragmentInlineValue> _messageSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The message form submission type (embedded, none)."
+	)
 	@JsonGetter("messageType")
-	@Schema(description = "The message form submission type (embedded, none).")
 	@Valid
 	public MessageType getMessageType() {
 		if (_messageTypeSupplier != null) {
@@ -156,7 +164,59 @@ public class MessageFormSubmissionResult implements Serializable {
 	@JsonIgnore
 	private Supplier<MessageType> _messageTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized message form submission result's notification text."
+	)
+	@Valid
+	public FragmentInlineValue getNotificationTextFragmentInlineValue() {
+		if (_notificationTextFragmentInlineValueSupplier != null) {
+			notificationTextFragmentInlineValue =
+				_notificationTextFragmentInlineValueSupplier.get();
+
+			_notificationTextFragmentInlineValueSupplier = null;
+		}
+
+		return notificationTextFragmentInlineValue;
+	}
+
+	public void setNotificationTextFragmentInlineValue(
+		FragmentInlineValue notificationTextFragmentInlineValue) {
+
+		this.notificationTextFragmentInlineValue =
+			notificationTextFragmentInlineValue;
+
+		_notificationTextFragmentInlineValueSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setNotificationTextFragmentInlineValue(
+		UnsafeSupplier<FragmentInlineValue, Exception>
+			notificationTextFragmentInlineValueUnsafeSupplier) {
+
+		_notificationTextFragmentInlineValueSupplier = () -> {
+			try {
+				return notificationTextFragmentInlineValueUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "The localized message form submission result's notification text."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected FragmentInlineValue notificationTextFragmentInlineValue;
+
+	@JsonIgnore
+	private Supplier<FragmentInlineValue>
+		_notificationTextFragmentInlineValueSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getShowNotification() {
 		if (_showNotificationSupplier != null) {
 			showNotification = _showNotificationSupplier.get();
@@ -248,10 +308,21 @@ public class MessageFormSubmissionResult implements Serializable {
 			sb.append("\"messageType\": ");
 
 			sb.append("\"");
-
 			sb.append(messageType);
-
 			sb.append("\"");
+		}
+
+		FragmentInlineValue notificationTextFragmentInlineValue =
+			getNotificationTextFragmentInlineValue();
+
+		if (notificationTextFragmentInlineValue != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"notificationTextFragmentInlineValue\": ");
+
+			sb.append(String.valueOf(notificationTextFragmentInlineValue));
 		}
 
 		Boolean showNotification = getShowNotification();
@@ -271,8 +342,8 @@ public class MessageFormSubmissionResult implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.MessageFormSubmissionResult",
 		name = "x-class-name"
 	)
@@ -397,6 +468,27 @@ public class MessageFormSubmissionResult implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -405,3 +497,4 @@ public class MessageFormSubmissionResult implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-560841395

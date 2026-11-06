@@ -14,19 +14,20 @@ package ${configYAML.apiPackagePath}.client.serdes.${escapedVersion};
 
 import ${configYAML.apiPackagePath}.client.json.BaseJSONParser;
 
+import ${configYAML.javaEEPackage}.annotation.Generated;
+
 import java.math.BigDecimal;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author ${configYAML.author}
@@ -56,7 +57,7 @@ public class ${schemaName}SerDes {
 			enumSchemas = freeMarkerTool.getDTOEnumSchemas(configYAML, openAPIYAML, schema)
 			properties = freeMarkerTool.getDTOProperties(configYAML, openAPIYAML, schema, allSchemas)
 
-			dtoParentClassName = freeMarkerTool.getDTOParentClassName(openAPIYAML, schemaName)!
+			dtoParentClassName = freeMarkerTool.getDTOParentClassName(schemaName, allSchemas)!
 		/>
 
 		<#if schema.discriminator?has_content>
@@ -131,23 +132,20 @@ public class ${schemaName}SerDes {
 
 					<#assign propertyType = properties[propertyName] />
 
-					<#if allSchemas[propertyType]??>
+					<#if enumSchemas?keys?seq_contains(propertyType)>
+						sb.append("\"");
+						sb.append(${schemaVarName}.get${capitalizedPropertyName}());
+						sb.append("\"");
+					<#elseif allSchemas[propertyType]??>
 						sb.append(String.valueOf(${schemaVarName}.get${capitalizedPropertyName}()));
 					<#elseif stringUtil.equals(propertyType, "Object")>
-						if (${schemaVarName}.get${capitalizedPropertyName}() instanceof String) {
-							sb.append("\"");
-							sb.append((String)${schemaVarName}.get${capitalizedPropertyName}());
-							sb.append("\"");
-						}
-						else {
-							sb.append(${schemaVarName}.get${capitalizedPropertyName}());
-						}
+						sb.append(_toJSON(${schemaVarName}.get${capitalizedPropertyName}()));
 					<#else>
 						<#if propertyType?contains("[]")>
 							sb.append("[");
 
 							for (int i = 0; i < ${schemaVarName}.get${capitalizedPropertyName}().length; i++) {
-								<#if stringUtil.equals(propertyType, "Date[]") || enumSchemas?keys?seq_contains(propertyType)>
+								<#if stringUtil.equals(propertyType, "Date[]") || enumSchemas?keys?seq_contains(propertyType?remove_ending("[]")) || globalEnumSchemas?keys?seq_contains(propertyType?remove_ending("[]"))>
 									sb.append("\"");
 
 									<#if stringUtil.equals(propertyType, "Date[]")>
@@ -172,15 +170,13 @@ public class ${schemaName}SerDes {
 
 							sb.append("]");
 						<#else>
-							<#if stringUtil.equals(propertyType, "Date") || stringUtil.equals(propertyType, "Object") || stringUtil.equals(propertyType, "String") || enumSchemas?keys?seq_contains(propertyType)>
+							<#if stringUtil.equals(propertyType, "Date") || stringUtil.equals(propertyType, "Object") || stringUtil.equals(propertyType, "String")>
 								sb.append("\"");
 
 								<#if stringUtil.equals(propertyType, "Date")>
 									sb.append(liferayToJSONDateFormat.format(${schemaVarName}.get${capitalizedPropertyName}()));
 								<#elseif stringUtil.equals(propertyType, "Object") || stringUtil.equals(propertyType, "String")>
 									sb.append(_escape(${schemaVarName}.get${capitalizedPropertyName}()));
-								<#else>
-									sb.append(${schemaVarName}.get${capitalizedPropertyName}());
 								</#if>
 
 								sb.append("\"");
@@ -296,7 +292,7 @@ public class ${schemaName}SerDes {
 				</#if>
 
 				if (Objects.equals(jsonParserFieldName, "${fieldName}")) {
-					<#assign propertyType = properties[propertyName]?replace("com.liferay.portal.vulcan.permission.", "${configYAML.apiPackagePath}.client.permission.") />
+					<#assign propertyType = properties[propertyName]?replace("com.liferay.portal.vulcan.", "${configYAML.apiPackagePath}.client.") />
 
 					<#if stringUtil.startsWith(propertyType, "Map<") || stringUtil.equals(propertyType, "Object[]")>
 						return true;
@@ -362,7 +358,7 @@ public class ${schemaName}SerDes {
 							<#assign capitalizedPropertyName = properties[propertyName] />
 						</#if>
 
-						<#assign propertyType = properties[propertyName]?replace("com.liferay.portal.vulcan.permission.", "${configYAML.apiPackagePath}.client.permission.") />
+						<#assign propertyType = properties[propertyName]?replace("com.liferay.portal.vulcan.", "${configYAML.apiPackagePath}.client.") />
 
 						<#if stringUtil.equals(propertyType, "BigDecimal")>
 							${schemaVarName}.set${capitalizedPropertyName}(new BigDecimal((String)jsonParserFieldValue));
@@ -390,9 +386,9 @@ public class ${schemaName}SerDes {
 							${schemaVarName}.set${capitalizedPropertyName}(toIntegers((Object[])jsonParserFieldValue));
 						<#elseif stringUtil.equals(propertyType, "String[]")>
 							${schemaVarName}.set${capitalizedPropertyName}(toStrings((Object[])jsonParserFieldValue));
-						<#elseif stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.permission.Permission")>
+						<#elseif stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.custom.field.CustomField") || stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.permission.Permission") || stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.scope.Scope")>
 							${schemaVarName}.set${capitalizedPropertyName}(${propertyType}.toDTO((String)jsonParserFieldValue));
-						<#elseif stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.permission.Permission[]")>
+						<#elseif stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.custom.field.CustomField[]") || stringUtil.equals(propertyType, "${configYAML.apiPackagePath}.client.permission.Permission[]")>
 							Object[] jsonParserFieldValues = (Object[])jsonParserFieldValue;
 
 							${propertyType?remove_ending("[]")}[] ${propertyName}Array = new ${propertyType?remove_ending("[]")}[jsonParserFieldValues.length];
@@ -402,6 +398,10 @@ public class ${schemaName}SerDes {
 							}
 
 							${schemaVarName}.set${capitalizedPropertyName}(${propertyName}Array);
+						<#elseif enumSchemas?keys?seq_contains(properties[propertyName])>
+							${schemaVarName}.set${capitalizedPropertyName}(${schemaName}.${propertyType}.create((String)jsonParserFieldValue));
+						<#elseif globalEnumSchemas?keys?seq_contains(propertyType)>
+							${schemaVarName}.set${capitalizedPropertyName}(${propertyType}.create((String)jsonParserFieldValue));
 						<#elseif allExternalSchemas?keys?seq_contains(propertyType) || allSchemas?keys?seq_contains(propertyType)>
 							${schemaVarName}.set${capitalizedPropertyName}(${propertyType}SerDes.toDTO((String)jsonParserFieldValue));
 						<#elseif propertyType?ends_with("[]") && (allExternalSchemas?keys?seq_contains(propertyType?remove_ending("[]")) || allSchemas?keys?seq_contains(propertyType?remove_ending("[]")))>
@@ -414,8 +414,16 @@ public class ${schemaName}SerDes {
 							}
 
 							${schemaVarName}.set${capitalizedPropertyName}(${propertyName}Array);
-						<#elseif enumSchemas?keys?seq_contains(properties[propertyName])>
-							${schemaVarName}.set${capitalizedPropertyName}(${schemaName}.${propertyType}.create((String)jsonParserFieldValue));
+						<#elseif propertyType?ends_with("[]") && globalEnumSchemas?keys?seq_contains(propertyType?remove_ending("[]"))>
+							Object[] jsonParserFieldValues = (Object[])jsonParserFieldValue;
+
+							${propertyType?remove_ending("[]")}[] ${propertyName}Array = new ${propertyType?remove_ending("[]")}[jsonParserFieldValues.length];
+
+							for (int i = 0; i < ${propertyName}Array.length; i++) {
+								${propertyName}Array[i] = ${propertyType?remove_ending("[]")}.create((String)jsonParserFieldValues[i]);
+							}
+
+							${schemaVarName}.set${capitalizedPropertyName}(${propertyName}Array);
 						<#else>
 							${schemaVarName}.set${capitalizedPropertyName}((${propertyType})jsonParserFieldValue);
 						</#if>
@@ -466,6 +474,16 @@ public class ${schemaName}SerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}

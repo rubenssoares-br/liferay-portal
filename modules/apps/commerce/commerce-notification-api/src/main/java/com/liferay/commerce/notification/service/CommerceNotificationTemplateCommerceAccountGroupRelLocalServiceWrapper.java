@@ -13,8 +13,10 @@ import com.liferay.portal.kernel.service.persistence.BasePersistence;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationTemplateCommerceAccountGroupRelLocalService
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 public class
 	CommerceNotificationTemplateCommerceAccountGroupRelLocalServiceWrapper
 		implements CommerceNotificationTemplateCommerceAccountGroupRelLocalService,
@@ -99,16 +101,6 @@ public class
 
 		return _commerceNotificationTemplateCommerceAccountGroupRelLocalService.
 			createPersistedModel(primaryKeyObj);
-	}
-
-	@Override
-	public void
-		deleteCNTemplateCommerceAccountGroupRelsBycommerceAccountGroupId(
-			long commerceAccountGroupId) {
-
-		_commerceNotificationTemplateCommerceAccountGroupRelLocalService.
-			deleteCNTemplateCommerceAccountGroupRelsBycommerceAccountGroupId(
-				commerceAccountGroupId);
 	}
 
 	@Override
@@ -466,3 +458,4 @@ public class
 		_commerceNotificationTemplateCommerceAccountGroupRelLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1357430355

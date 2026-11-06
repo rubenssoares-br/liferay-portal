@@ -90,6 +90,7 @@ public interface RoleLocalService
 	@Indexable(type = IndexableType.REINDEX)
 	public Role addRole(Role role);
 
+	@Indexable(type = IndexableType.REINDEX)
 	public Role addRole(
 			String externalReferenceCode, long userId, String className,
 			long classPK, String name, Map<Locale, String> titleMap,
@@ -140,6 +141,11 @@ public interface RoleLocalService
 	 * @throws PortalException
 	 */
 	public void clearUserRoles(long userId) throws PortalException;
+
+	public Role copyRole(
+			long userId, String name, long sourceRoleId,
+			ServiceContext serviceContext)
+		throws PortalException;
 
 	/**
 	 * @throws PortalException
@@ -384,20 +390,26 @@ public interface RoleLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<Role> getGroupRolesAndTeamRoles(
 		long companyId, String name, List<String> excludedNames, String title,
-		String description, int[] types, long excludedTeamRoleId,
-		long teamGroupId, int start, int end);
+		String description, int[] types, String subtype,
+		long excludedTeamRoleId, long teamGroupId, int start, int end);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getGroupRolesAndTeamRolesCount(
 		long companyId, String name, List<String> excludedNames, String title,
-		String description, int[] types, long excludedTeamRoleId,
-		long teamGroupId);
+		String description, int[] types, String subtype,
+		long excludedTeamRoleId, long teamGroupId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getGroupRolesCount(long groupId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public Role getOrAddEmptyRole(
+			String externalReferenceCode, long companyId, long userId,
+			String className, long classPK, String name, int type)
+		throws PortalException;
 
 	/**
 	 * Returns the OSGi service identifier.
@@ -549,24 +561,6 @@ public interface RoleLocalService
 	 */
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getRolesCount();
-
-	/**
-	 * Returns all the roles of the subtype.
-	 *
-	 * @param subtype the role's subtype (optionally <code>null</code>)
-	 * @return the roles of the subtype
-	 */
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<Role> getSubtypeRoles(String subtype);
-
-	/**
-	 * Returns the number of roles of the subtype.
-	 *
-	 * @param subtype the role's subtype (optionally <code>null</code>)
-	 * @return the number of roles of the subtype
-	 */
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getSubtypeRolesCount(String subtype);
 
 	/**
 	 * Returns the team role in the company.
@@ -1005,6 +999,19 @@ public interface RoleLocalService
 		throws PortalException;
 
 	/**
+	 * Updates the role in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
+	 *
+	 * <p>
+	 * <strong>Important:</strong> Inspect RoleLocalServiceImpl for overloaded versions of the method. If provided, use these entry points to the API, as the implementation logic may require the additional parameters defined there.
+	 * </p>
+	 *
+	 * @param role the role
+	 * @return the role that was updated
+	 */
+	@Indexable(type = IndexableType.REINDEX)
+	public Role updateRole(Role role);
+
+	/**
 	 * Updates the role with the primary key.
 	 *
 	 * @param roleId the primary key of the role
@@ -1019,24 +1026,12 @@ public interface RoleLocalService
 	 role.
 	 * @return the role with the primary key
 	 */
-	public Role updateRole(
-			long roleId, String name, Map<Locale, String> titleMap,
-			Map<Locale, String> descriptionMap, String subtype,
-			ServiceContext serviceContext)
-		throws PortalException;
-
-	/**
-	 * Updates the role in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
-	 *
-	 * <p>
-	 * <strong>Important:</strong> Inspect RoleLocalServiceImpl for overloaded versions of the method. If provided, use these entry points to the API, as the implementation logic may require the additional parameters defined there.
-	 * </p>
-	 *
-	 * @param role the role
-	 * @return the role that was updated
-	 */
 	@Indexable(type = IndexableType.REINDEX)
-	public Role updateRole(Role role);
+	public Role updateRole(
+			String externalReferenceCode, long roleId, String name,
+			Map<Locale, String> titleMap, Map<Locale, String> descriptionMap,
+			String subtype, ServiceContext serviceContext)
+		throws PortalException;
 
 	public void validateName(String name) throws PortalException;
 
@@ -1055,3 +1050,4 @@ public interface RoleLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:523811624

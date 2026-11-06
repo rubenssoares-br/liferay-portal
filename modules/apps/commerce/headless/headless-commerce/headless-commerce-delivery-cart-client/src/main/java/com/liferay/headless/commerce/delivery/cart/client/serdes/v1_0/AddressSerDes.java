@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.delivery.cart.client.serdes.v1_0;
 import com.liferay.headless.commerce.delivery.cart.client.dto.v1_0.Address;
 import com.liferay.headless.commerce.delivery.cart.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Andrea Sbarra
@@ -242,6 +243,20 @@ public class AddressSerDes {
 			sb.append("\"");
 		}
 
+		if (address.getSubtype() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"subtype\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(address.getSubtype()));
+
+			sb.append("\"");
+		}
+
 		if (address.getType() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -421,6 +436,13 @@ public class AddressSerDes {
 			map.put("street3", String.valueOf(address.getStreet3()));
 		}
 
+		if (address.getSubtype() == null) {
+			map.put("subtype", null);
+		}
+		else {
+			map.put("subtype", String.valueOf(address.getSubtype()));
+		}
+
 		if (address.getType() == null) {
 			map.put("type", null);
 		}
@@ -511,6 +533,9 @@ public class AddressSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "street3")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "subtype")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -614,6 +639,11 @@ public class AddressSerDes {
 					address.setStreet3((String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "subtype")) {
+				if (jsonParserFieldValue != null) {
+					address.setSubtype((String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
 				if (jsonParserFieldValue != null) {
 					address.setType((String)jsonParserFieldValue);
@@ -680,6 +710,16 @@ public class AddressSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -712,3 +752,4 @@ public class AddressSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1603529221

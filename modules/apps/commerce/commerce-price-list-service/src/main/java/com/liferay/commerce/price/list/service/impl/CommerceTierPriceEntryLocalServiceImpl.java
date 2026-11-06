@@ -195,8 +195,12 @@ public class CommerceTierPriceEntryLocalServiceImpl
 		_commercePriceEntryLocalService.setHasTierPrice(
 			commercePriceEntryId, true, bulkPricing);
 
-		return _startWorkflowInstance(
-			user.getUserId(), commerceTierPriceEntry, serviceContext);
+		if (!commerceTierPriceEntry.isExpired()) {
+			commerceTierPriceEntry = _startWorkflowInstance(
+				user.getUserId(), commerceTierPriceEntry, serviceContext);
+		}
+
+		return commerceTierPriceEntry;
 	}
 
 	@Override
@@ -452,7 +456,7 @@ public class CommerceTierPriceEntryLocalServiceImpl
 		throws PortalException {
 
 		List<CommerceTierPriceEntry> commerceTierPriceEntries =
-			commerceTierPriceEntryLocalService.getCommerceTierPriceEntries(
+			commerceTierPriceEntryPersistence.findByCommercePriceEntryId(
 				commercePriceEntryId, QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 
 		for (CommerceTierPriceEntry commerceTierPriceEntry :
@@ -477,7 +481,7 @@ public class CommerceTierPriceEntryLocalServiceImpl
 		// Commerce price entries
 
 		List<CommerceTierPriceEntry> commerceTierPriceEntries =
-			commerceTierPriceEntryLocalService.getCommerceTierPriceEntries(
+			commerceTierPriceEntryPersistence.findByCommercePriceEntryId(
 				commerceTierPriceEntry.getCommercePriceEntryId(),
 				QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 
@@ -682,8 +686,10 @@ public class CommerceTierPriceEntryLocalServiceImpl
 		commerceTierPriceEntry = commerceTierPriceEntryPersistence.update(
 			commerceTierPriceEntry);
 
-		commerceTierPriceEntry = _startWorkflowInstance(
-			user.getUserId(), commerceTierPriceEntry, serviceContext);
+		if (!commerceTierPriceEntry.isExpired()) {
+			commerceTierPriceEntry = _startWorkflowInstance(
+				user.getUserId(), commerceTierPriceEntry, serviceContext);
+		}
 
 		return commerceTierPriceEntry;
 	}

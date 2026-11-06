@@ -5,6 +5,8 @@
 
 package com.liferay.portal.db.partition.db;
 
+import com.liferay.petra.lang.CentralizedThreadLocal;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.dao.db.PostgreSQLDB;
@@ -45,6 +47,21 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 	}
 
 	@Override
+	public boolean existsPartition(Connection connection, String partitionName)
+		throws SQLException {
+
+		try (PreparedStatement preparedStatement = connection.prepareStatement(
+				"select 1 from pg_namespace where nspname = ?")) {
+
+			preparedStatement.setString(1, partitionName);
+
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				return resultSet.next();
+			}
+		}
+	}
+
+	@Override
 	public String getCreatePartitionSQL(
 			Connection connection, String partitionName)
 		throws SQLException {
@@ -72,6 +89,7 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 
 			try (PreparedStatement preparedStatement =
 					connection.prepareStatement(sql);
+
 				ResultSet resultSet = preparedStatement.executeQuery()) {
 
 				while (resultSet.next()) {
@@ -127,35 +145,40 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 
 		DB db = DBManagerUtil.getDB();
 
-		String[] primaryKeyColumnNames = db.getPrimaryKeyColumnNames(
-			connection, fromTableName);
+		try (SafeCloseable safeCloseable = _setPartitionName(
+				fromPartitionName)) {
 
-		if (ArrayUtil.isNotEmpty(primaryKeyColumnNames)) {
-			sb.append("alter table ");
-			sb.append(toPartitionName + StringPool.PERIOD + toTableName);
-			sb.append(" add primary key (");
+			String[] primaryKeyColumnNames = db.getPrimaryKeyColumnNames(
+				connection, fromTableName);
 
-			for (String columnName : primaryKeyColumnNames) {
-				sb.append(columnName);
-				sb.append(StringPool.COMMA_AND_SPACE);
+			if (ArrayUtil.isNotEmpty(primaryKeyColumnNames)) {
+				sb.append("alter table ");
+				sb.append(toPartitionName + StringPool.PERIOD + toTableName);
+				sb.append(" add primary key (");
+
+				for (String columnName : primaryKeyColumnNames) {
+					sb.append(columnName);
+					sb.append(StringPool.COMMA_AND_SPACE);
+				}
+
+				sb.setIndex(sb.index() - 1);
+
+				sb.append(");");
 			}
 
-			sb.setIndex(sb.index() - 1);
+			for (IndexMetadata indexMetadata :
+					db.getIndexMetadatas(
+						connection, fromTableName, null, false)) {
 
-			sb.append(");");
-		}
+				sb.append(StringPool.NEW_LINE);
 
-		for (IndexMetadata indexMetadata :
-				db.getIndexMetadatas(connection, fromTableName, null, false)) {
-
-			sb.append(StringPool.NEW_LINE);
-
-			sb.append(
-				StringUtil.replace(
-					indexMetadata.getCreateSQL(null), "on " + fromTableName,
-					StringBundler.concat(
-						"on ", toPartitionName, StringPool.PERIOD,
-						toTableName)));
+				sb.append(
+					StringUtil.replace(
+						indexMetadata.getCreateSQL(null), "on " + fromTableName,
+						StringBundler.concat(
+							"on ", toPartitionName, StringPool.PERIOD,
+							toTableName)));
+			}
 		}
 
 		return sb.toString();
@@ -178,6 +201,18 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 	}
 
 	@Override
+	public String[] getRenamePartitionSQLs(
+		Connection connection, String sourcePartitionName,
+		String targetPartitionName) {
+
+		return new String[] {
+			StringBundler.concat(
+				"alter schema ", sourcePartitionName, " rename to ",
+				targetPartitionName)
+		};
+	}
+
+	@Override
 	public String getSafeAlterTable(String alterTableSQL) {
 		String lowerCaseAlterTableSQL = StringUtil.toLowerCase(alterTableSQL);
 
@@ -192,6 +227,10 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 
 	@Override
 	public String getSchema(Connection connection, String partitionName) {
+		if (_partitionName.get() != null) {
+			return _partitionName.get();
+		}
+
 		return partitionName;
 	}
 
@@ -207,7 +246,15 @@ public class DBPartitionPostgreSQLDB implements DBPartitionDB {
 		connection.setSchema(partitionName);
 	}
 
+	private SafeCloseable _setPartitionName(String partitionName) {
+		_partitionName.set(partitionName);
+
+		return () -> _partitionName.set(null);
+	}
+
 	private static String _defaultPartitionName;
+	private static final ThreadLocal<String> _partitionName =
+		new CentralizedThreadLocal<>(String.class.getName());
 	private static final Pattern _rulePattern = Pattern.compile(
 		"create.* rule (.*?) as");
 

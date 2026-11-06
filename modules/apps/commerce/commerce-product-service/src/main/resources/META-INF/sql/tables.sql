@@ -55,6 +55,7 @@ create table CPConfigurationEntry (
 	uuid_ VARCHAR(75) null,
 	externalReferenceCode VARCHAR(75) null,
 	CPConfigurationEntryId LONG not null,
+	groupId LONG,
 	companyId LONG,
 	userId LONG,
 	userName VARCHAR(75) null,
@@ -66,6 +67,7 @@ create table CPConfigurationEntry (
 	CPTaxCategoryId LONG,
 	allowedOrderQuantities VARCHAR(75) null,
 	backOrders BOOLEAN,
+	commerceAvailabilityEstimateId LONG,
 	CPDefinitionInventoryEngine VARCHAR(75) null,
 	depth DOUBLE,
 	displayAvailability BOOLEAN,
@@ -82,10 +84,26 @@ create table CPConfigurationEntry (
 	shippingExtraPrice DOUBLE,
 	shipSeparately BOOLEAN,
 	taxExempt BOOLEAN,
-	visible BOOLEAN,
 	weight DOUBLE,
 	width DOUBLE,
 	primary key (CPConfigurationEntryId, ctCollectionId)
+);
+
+create table CPConfigurationEntrySetting (
+	mvccVersion LONG default 0 not null,
+	ctCollectionId LONG default 0 not null,
+	uuid_ VARCHAR(75) null,
+	CPConfigurationEntrySettingId LONG not null,
+	groupId LONG,
+	companyId LONG,
+	userId LONG,
+	userName VARCHAR(75) null,
+	createDate DATE null,
+	modifiedDate DATE null,
+	CPConfigurationEntryId LONG,
+	type_ INTEGER,
+	value TEXT null,
+	primary key (CPConfigurationEntrySettingId, ctCollectionId)
 );
 
 create table CPConfigurationList (
@@ -101,7 +119,7 @@ create table CPConfigurationList (
 	createDate DATE null,
 	modifiedDate DATE null,
 	parentCPConfigurationListId LONG,
-	masterCPConfigurationList BOOLEAN,
+	master BOOLEAN,
 	name VARCHAR(75) null,
 	priority DOUBLE,
 	displayDate DATE null,
@@ -112,6 +130,21 @@ create table CPConfigurationList (
 	statusByUserName VARCHAR(75) null,
 	statusDate DATE null,
 	primary key (CPConfigurationListId, ctCollectionId)
+);
+
+create table CPConfigurationListRel (
+	mvccVersion LONG default 0 not null,
+	ctCollectionId LONG default 0 not null,
+	CPConfigurationListRelId LONG not null,
+	companyId LONG,
+	userId LONG,
+	userName VARCHAR(75) null,
+	createDate DATE null,
+	modifiedDate DATE null,
+	classNameId LONG,
+	classPK LONG,
+	CPConfigurationListId LONG,
+	primary key (CPConfigurationListRelId, ctCollectionId)
 );
 
 create table CPDSpecificationOptionValue (
@@ -132,6 +165,7 @@ create table CPDSpecificationOptionValue (
 	key_ VARCHAR(75) null,
 	priority DOUBLE,
 	value STRING null,
+	visible BOOLEAN,
 	lastPublishDate DATE null,
 	primary key (CPDSpecificationOptionValueId, ctCollectionId)
 );
@@ -148,39 +182,40 @@ create table CPDefinition (
 	userName VARCHAR(75) null,
 	createDate DATE null,
 	modifiedDate DATE null,
+	CProductExternalReferenceCode VARCHAR(75) null,
 	CProductId LONG,
 	CPTaxCategoryId LONG,
-	productTypeName VARCHAR(75) null,
+	accountGroupFilterEnabled BOOLEAN,
 	availableIndividually BOOLEAN,
-	ignoreSKUCombinations BOOLEAN,
-	shippable BOOLEAN,
-	freeShipping BOOLEAN,
-	shipSeparately BOOLEAN,
-	shippingExtraPrice DOUBLE,
-	width DOUBLE,
-	height DOUBLE,
-	depth DOUBLE,
-	weight DOUBLE,
-	taxExempt BOOLEAN,
-	telcoOrElectronics BOOLEAN,
+	channelFilterEnabled BOOLEAN,
 	DDMStructureKey VARCHAR(75) null,
-	published BOOLEAN,
-	displayDate DATE null,
-	expirationDate DATE null,
-	lastPublishDate DATE null,
-	subscriptionEnabled BOOLEAN,
-	subscriptionLength INTEGER,
-	subscriptionType VARCHAR(75) null,
-	subscriptionTypeSettings TEXT null,
-	maxSubscriptionCycles LONG,
+	deliveryMaxSubscriptionCycles LONG,
 	deliverySubscriptionEnabled BOOLEAN,
 	deliverySubscriptionLength INTEGER,
 	deliverySubscriptionType VARCHAR(75) null,
 	deliverySubTypeSettings VARCHAR(75) null,
-	deliveryMaxSubscriptionCycles LONG,
-	accountGroupFilterEnabled BOOLEAN,
-	channelFilterEnabled BOOLEAN,
+	depth DOUBLE,
+	displayDate DATE null,
+	expirationDate DATE null,
+	freeShipping BOOLEAN,
+	height DOUBLE,
+	ignoreSKUCombinations BOOLEAN,
+	maxSubscriptionCycles LONG,
+	productTypeName VARCHAR(75) null,
+	published BOOLEAN,
+	shipSeparately BOOLEAN,
+	shippable BOOLEAN,
+	shippingExtraPrice DOUBLE,
+	subscriptionEnabled BOOLEAN,
+	subscriptionLength INTEGER,
+	subscriptionType VARCHAR(75) null,
+	subscriptionTypeSettings TEXT null,
+	taxExempt BOOLEAN,
+	telcoOrElectronics BOOLEAN,
 	version INTEGER,
+	weight DOUBLE,
+	width DOUBLE,
+	lastPublishDate DATE null,
 	status INTEGER,
 	statusByUserId LONG,
 	statusByUserName VARCHAR(75) null,
@@ -220,12 +255,13 @@ create table CPDefinitionLocalization (
 	companyId LONG,
 	CPDefinitionId LONG,
 	languageId VARCHAR(75) null,
-	name STRING null,
-	shortDescription STRING null,
+	CProductId LONG,
 	description TEXT null,
-	metaTitle VARCHAR(255) null,
 	metaDescription VARCHAR(255) null,
 	metaKeywords VARCHAR(255) null,
+	metaTitle VARCHAR(255) null,
+	name STRING null,
+	shortDescription STRING null,
 	primary key (cpDefinitionLocalizationId, ctCollectionId)
 );
 
@@ -233,6 +269,7 @@ create table CPDefinitionOptionRel (
 	mvccVersion LONG default 0 not null,
 	ctCollectionId LONG default 0 not null,
 	uuid_ VARCHAR(75) null,
+	externalReferenceCode VARCHAR(75) null,
 	CPDefinitionOptionRelId LONG not null,
 	groupId LONG,
 	companyId LONG,
@@ -254,6 +291,7 @@ create table CPDefinitionOptionRel (
 	key_ VARCHAR(75) null,
 	priceType VARCHAR(75) null,
 	typeSettings TEXT null,
+	status INTEGER,
 	primary key (CPDefinitionOptionRelId, ctCollectionId)
 );
 
@@ -261,6 +299,7 @@ create table CPDefinitionOptionValueRel (
 	mvccVersion LONG default 0 not null,
 	ctCollectionId LONG default 0 not null,
 	uuid_ VARCHAR(75) null,
+	externalReferenceCode VARCHAR(75) null,
 	CPDefinitionOptionValueRelId LONG not null,
 	groupId LONG,
 	companyId LONG,
@@ -278,6 +317,7 @@ create table CPDefinitionOptionValueRel (
 	priority DOUBLE,
 	quantity BIGDECIMAL null,
 	unitOfMeasureKey VARCHAR(75) null,
+	status INTEGER,
 	primary key (CPDefinitionOptionValueRelId, ctCollectionId)
 );
 
@@ -411,6 +451,7 @@ create table CPMeasurementUnit (
 	priority DOUBLE,
 	type_ INTEGER,
 	lastPublishDate DATE null,
+	status INTEGER,
 	primary key (CPMeasurementUnitId, ctCollectionId)
 );
 
@@ -433,6 +474,7 @@ create table CPOption (
 	skuContributor BOOLEAN,
 	key_ VARCHAR(75) null,
 	lastPublishDate DATE null,
+	status INTEGER,
 	primary key (CPOptionId, ctCollectionId)
 );
 
@@ -452,6 +494,7 @@ create table CPOptionCategory (
 	priority DOUBLE,
 	key_ VARCHAR(75) null,
 	lastPublishDate DATE null,
+	status INTEGER,
 	primary key (CPOptionCategoryId, ctCollectionId)
 );
 
@@ -471,7 +514,18 @@ create table CPOptionValue (
 	priority DOUBLE,
 	key_ VARCHAR(75) null,
 	lastPublishDate DATE null,
+	status INTEGER,
 	primary key (CPOptionValueId, ctCollectionId)
+);
+
+create table CPSOListTypeDefinitionRel (
+	mvccVersion LONG default 0 not null,
+	ctCollectionId LONG default 0 not null,
+	CPSOListTypeDefinitionRelId LONG not null,
+	companyId LONG,
+	CPSpecificationOptionId LONG,
+	listTypeDefinitionId LONG,
+	primary key (CPSOListTypeDefinitionRelId, ctCollectionId)
 );
 
 create table CPSpecificationOption (
@@ -486,13 +540,14 @@ create table CPSpecificationOption (
 	createDate DATE null,
 	modifiedDate DATE null,
 	CPOptionCategoryId LONG,
-	listTypeDefinitionId LONG,
 	title STRING null,
 	description STRING null,
 	facetable BOOLEAN,
 	key_ VARCHAR(75) null,
 	priority DOUBLE,
+	visible BOOLEAN,
 	lastPublishDate DATE null,
+	status INTEGER,
 	primary key (CPSpecificationOptionId, ctCollectionId)
 );
 
@@ -509,6 +564,7 @@ create table CPTaxCategory (
 	modifiedDate DATE null,
 	name STRING null,
 	description STRING null,
+	status INTEGER,
 	primary key (CPTaxCategoryId, ctCollectionId)
 );
 
@@ -545,6 +601,7 @@ create table CommerceCatalog (
 	commerceCurrencyCode VARCHAR(75) null,
 	catalogDefaultLanguageId VARCHAR(75) null,
 	system_ BOOLEAN,
+	status INTEGER,
 	primary key (commerceCatalogId, ctCollectionId)
 );
 
@@ -567,6 +624,7 @@ create table CommerceChannel (
 	commerceCurrencyCode VARCHAR(75) null,
 	priceDisplayType VARCHAR(75) null,
 	discountsTargetNetPrice BOOLEAN,
+	status INTEGER,
 	primary key (commerceChannelId, ctCollectionId)
 );
 

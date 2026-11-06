@@ -11,38 +11,42 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("OptionCategory")
+@GraphQLName(
+	description = "A logical grouping of specifications used for display organization in the admin UI; categories are scoped per company and identified by a unique key.",
+	value = "OptionCategory"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A logical grouping of specifications used for display organization in the admin UI; categories are scoped per company and identified by a unique key."
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"key", "title"})
 @XmlRootElement(name = "OptionCategory")
 public class OptionCategory implements Serializable {
 
@@ -54,7 +58,10 @@ public class OptionCategory implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(OptionCategory.class, json);
 	}
 
-	@Schema(example = "{hu_HU=Horvatorszag, hr_HR=Hrvatska, en_US=Croatia}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized administrative description shown in the admin UI; map keys are locale codes and values are the translated strings.",
+		example = "{en_US=Physical attributes grouping, hr_HR=Grupa fizickih svojstava, hu_HU=Fizikai jellemzok csoportja}"
+	)
 	@Valid
 	public Map<String, String> getDescription() {
 		if (_descriptionSupplier != null) {
@@ -90,14 +97,19 @@ public class OptionCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized administrative description shown in the admin UI; map keys are locale codes and values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per option category within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -131,7 +143,9 @@ public class OptionCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per option category within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -139,7 +153,10 @@ public class OptionCategory implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "31130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Primary key; assigned by the service on create.",
+		example = "31130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -171,14 +188,19 @@ public class OptionCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Primary key; assigned by the service on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "oprion-category-key")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Machine identifier used for lookups and integrations; normalized to a friendly URL form and must be unique per company; required.",
+		example = "option-category-key"
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -210,16 +232,20 @@ public class OptionCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Machine identifier used for lookups and integrations; normalized to a friendly URL form and must be unique per company; required."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	@NotEmpty
 	protected String key;
 
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display order used when listing categories in the admin UI; lower values appear first.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -253,14 +279,19 @@ public class OptionCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display order used when listing categories in the admin UI; lower values appear first."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
 	@JsonIgnore
 	private Supplier<Double> _prioritySupplier;
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized display label for the category; map keys are locale codes and values are the translated strings; required.",
+		example = "{en_US=Physical Attributes, hr_HR=Fizicka svojstva, hu_HU=Fizikai jellemzok}"
+	)
 	@Valid
 	public Map<String, String> getTitle() {
 		if (_titleSupplier != null) {
@@ -295,9 +326,10 @@ public class OptionCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized display label for the category; map keys are locale codes and values are the translated strings; required."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	@NotNull
 	protected Map<String, String> title;
 
 	@JsonIgnore
@@ -415,8 +447,8 @@ public class OptionCategory implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.OptionCategory",
 		name = "x-class-name"
 	)
@@ -503,6 +535,27 @@ public class OptionCategory implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -511,3 +564,4 @@ public class OptionCategory implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-489724818

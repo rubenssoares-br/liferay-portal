@@ -5,8 +5,8 @@
 
 package com.liferay.fragment.entry.processor.editable.internal.parser;
 
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
-import com.liferay.document.library.util.DLURLHelper;
 import com.liferay.fragment.entry.processor.editable.parser.EditableElementParser;
 import com.liferay.fragment.entry.processor.helper.FragmentEntryProcessorHelper;
 import com.liferay.fragment.exception.FragmentEntryContentException;
@@ -72,16 +72,8 @@ public class ImageEditableElementParser extends BaseEditableElementParser {
 				alt = altJSONObject.getString(LocaleUtil.toLanguageId(locale));
 			}
 
-			if (fieldValueJSONObject.has("className") &&
-				fieldValueJSONObject.has("classPK")) {
-
-				fileEntryId = _fragmentEntryProcessorHelper.getFileEntryId(
-					fieldValueJSONObject.getString("className"),
-					fieldValueJSONObject.getLong("classPK"));
-			}
-			else if (fieldValueJSONObject.has("fileEntryId")) {
-				fileEntryId = fieldValueJSONObject.getLong("fileEntryId");
-			}
+			fileEntryId = _fragmentEntryProcessorHelper.getFileEntryId(
+				0, fieldValueJSONObject);
 		}
 		else if (fieldValue instanceof WebImage) {
 			WebImage webImage = (WebImage)fieldValue;
@@ -171,7 +163,8 @@ public class ImageEditableElementParser extends BaseEditableElementParser {
 			try {
 				JSONObject jsonObject = _jsonFactory.createJSONObject(value);
 
-				fileEntryId = jsonObject.getLong("fileEntryId");
+				fileEntryId = _fragmentEntryProcessorHelper.getFileEntryId(
+					0, jsonObject);
 				value = jsonObject.getString("url");
 			}
 			catch (JSONException jsonException) {
@@ -182,7 +175,8 @@ public class ImageEditableElementParser extends BaseEditableElementParser {
 			}
 		}
 		else {
-			fileEntryId = configJSONObject.getLong("fileEntryId");
+			fileEntryId = _fragmentEntryProcessorHelper.getFileEntryId(
+				0, configJSONObject);
 		}
 
 		value = value.trim();
@@ -221,9 +215,15 @@ public class ImageEditableElementParser extends BaseEditableElementParser {
 		if (Validator.isNotNull(alt) && JSONUtil.isJSONObject(alt)) {
 			JSONObject altJSONObject = configJSONObject.getJSONObject("alt");
 
-			Locale locale = LocaleThreadLocal.getThemeDisplayLocale();
+			String languageId = LocaleUtil.toLanguageId(
+				LocaleThreadLocal.getThemeDisplayLocale());
 
-			alt = altJSONObject.getString(LocaleUtil.toLanguageId(locale));
+			if (!altJSONObject.has(languageId)) {
+				languageId = LocaleUtil.toLanguageId(
+					LocaleThreadLocal.getSiteDefaultLocale());
+			}
+
+			alt = altJSONObject.getString(languageId);
 		}
 
 		if (Validator.isNotNull(alt)) {
@@ -301,8 +301,8 @@ public class ImageEditableElementParser extends BaseEditableElementParser {
 
 			if (mimeType.startsWith("image")) {
 				return _dlURLHelper.getPreviewURL(
-					fileEntry, fileEntry.getFileVersion(), null,
-					StringPool.BLANK);
+					fileEntry, fileEntry.getFileVersion(), themeDisplay,
+					StringPool.BLANK, true, false);
 			}
 
 			return _dlURLHelper.getImagePreviewURL(

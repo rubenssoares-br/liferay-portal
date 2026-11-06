@@ -17,6 +17,7 @@ import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.test.util.JournalTestUtil;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.test.util.LayoutPageTemplateTestUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.Group;
@@ -39,9 +40,9 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -122,6 +123,7 @@ public class AssetCategoriesSelectorTagTest {
 		ThemeDisplay themeDisplay = new ThemeDisplay();
 
 		themeDisplay.setLocale(LocaleUtil.getDefault());
+		themeDisplay.setScopeGroupId(_group.getGroupId());
 
 		ReflectionTestUtil.setFieldValue(
 			assetCategoriesSelectorTag, "_httpServletRequest",
@@ -138,11 +140,6 @@ public class AssetCategoriesSelectorTagTest {
 
 		String[] categoryIdsTitle = categoryIdsTitles.get(0);
 
-		Assert.assertEquals(StringPool.BLANK, categoryIdsTitle[0]);
-		Assert.assertEquals(StringPool.BLANK, categoryIdsTitle[1]);
-
-		categoryIdsTitle = categoryIdsTitles.get(1);
-
 		Assert.assertEquals(
 			StringBundler.concat(
 				assetCategory1.getCategoryId(), StringPool.COMMA,
@@ -155,17 +152,19 @@ public class AssetCategoriesSelectorTagTest {
 				assetCategory2.getName(), AssetCategoryUtil.CATEGORY_SEPARATOR,
 				assetCategory3.getName()),
 			categoryIdsTitle[1]);
+
+		categoryIdsTitle = categoryIdsTitles.get(1);
+
+		Assert.assertEquals(StringPool.BLANK, categoryIdsTitle[0]);
+		Assert.assertEquals(StringPool.BLANK, categoryIdsTitle[1]);
 	}
 
 	@Test
 	public void testGetGroupIdsWithLayoutPrototype() throws Exception {
-		_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-			null, TestPropsValues.getUserId(), _group.getGroupId(), 0, 0, 0,
-			RandomTestUtil.randomString(),
-			LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE, 0, true,
-			_layoutPrototype.getLayoutPrototypeId(), 0, 0,
-			WorkflowConstants.STATUS_APPROVED,
-			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+		LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+			_group.getGroupId(),
+			LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE,
+			WorkflowConstants.STATUS_APPROVED);
 
 		AssetCategoriesSelectorTag assetCategoriesSelectorTag =
 			new AssetCategoriesSelectorTag();
@@ -189,13 +188,11 @@ public class AssetCategoriesSelectorTagTest {
 	private HttpServletRequest _getMockHttpServletRequest(
 		ThemeDisplay themeDisplay) {
 
-		HttpServletRequest mockHttpServletRequest =
-			new MockHttpServletRequest();
+		HttpServletRequest httpServletRequest = new MockHttpServletRequest();
 
-		mockHttpServletRequest.setAttribute(
-			WebKeys.THEME_DISPLAY, themeDisplay);
+		httpServletRequest.setAttribute(WebKeys.THEME_DISPLAY, themeDisplay);
 
-		return mockHttpServletRequest;
+		return httpServletRequest;
 	}
 
 	@Inject

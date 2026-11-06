@@ -48,10 +48,10 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -80,10 +80,8 @@ public class AssetCategoryAssetDisplayPageFriendlyURLResolver
 
 		urlTitle = _friendlyURLNormalizer.normalizeWithEncoding(urlTitle);
 
-		FriendlyURLEntry friendlyURLEntry =
-			_friendlyURLEntryLocalService.fetchFriendlyURLEntry(
-				companyGroup.getGroupId(),
-				_portal.getClassNameId(AssetCategory.class), urlTitle);
+		FriendlyURLEntry friendlyURLEntry = _fetchAssetCategoryFriendlyURLEntry(
+			companyGroup.getGroupId(), urlTitle);
 
 		if (friendlyURLEntry == null) {
 			return null;
@@ -147,10 +145,8 @@ public class AssetCategoryAssetDisplayPageFriendlyURLResolver
 
 		String urlTitle = friendlyURL.substring(urlSeparator.length());
 
-		FriendlyURLEntry friendlyURLEntry =
-			_friendlyURLEntryLocalService.fetchFriendlyURLEntry(
-				companyGroup.getGroupId(),
-				_portal.getClassNameId(AssetCategory.class), urlTitle);
+		FriendlyURLEntry friendlyURLEntry = _fetchAssetCategoryFriendlyURLEntry(
+			companyGroup.getGroupId(), urlTitle);
 
 		if (friendlyURLEntry == null) {
 			return null;
@@ -197,6 +193,13 @@ public class AssetCategoryAssetDisplayPageFriendlyURLResolver
 	public String getURLSeparator() {
 		return _cpFriendlyURL.getAssetCategoryURLSeparator(
 			CompanyThreadLocal.getCompanyId());
+	}
+
+	private FriendlyURLEntry _fetchAssetCategoryFriendlyURLEntry(
+		long groupId, String urlTitle) {
+
+		return _friendlyURLEntryLocalService.fetchFriendlyURLEntry(
+			groupId, _portal.getClassNameId(AssetCategory.class), urlTitle);
 	}
 
 	private Layout _getAssetCategoryLayout(
@@ -316,6 +319,7 @@ public class AssetCategoryAssetDisplayPageFriendlyURLResolver
 		LayoutDisplayPageProvider<?> layoutDisplayPageProvider =
 			layoutDisplayPageProviderRegistry.
 				getLayoutDisplayPageProviderByClassName(
+					assetCategory.getCompanyId(),
 					AssetCategory.class.getName());
 
 		InfoItemReference infoItemReference = new InfoItemReference(

@@ -6,18 +6,22 @@
 package com.liferay.data.cleanup.internal.upgrade.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.data.cleanup.DataCleanup;
+import com.liferay.data.cleanup.util.DataCleanupUtil;
 import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.service.JournalArticleLocalService;
 import com.liferay.journal.test.util.JournalTestUtil;
-import com.liferay.portal.configuration.test.util.ConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
-import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,24 +62,71 @@ public class ExpiredJournalArticleUpgradeProcessTest {
 		JournalTestUtil.expireArticle(
 			expiredJournalArticle2.getGroupId(), expiredJournalArticle2);
 
-		try (ConfigurationTemporarySwapper configurationTemporarySwapper =
-				new ConfigurationTemporarySwapper(
-					"com.liferay.data.cleanup.internal.configuration." +
-						"DataRemovalConfiguration",
-					HashMapDictionaryBuilder.<String, Object>put(
-						"removeExpiredJournalArticles", true
-					).build())) {
+		for (DataCleanup dataCleanup :
+				DataCleanupUtil.getSystemDataCleanups()) {
 
-			Assert.assertNull(
-				_journalArticleLocalService.fetchArticle(
-					expiredJournalArticle1.getId()));
-			Assert.assertNull(
-				_journalArticleLocalService.fetchArticle(
-					expiredJournalArticle2.getId()));
-			Assert.assertNotNull(
-				_journalArticleLocalService.fetchArticle(
-					unexpiredJournalArticle.getId()));
+			if (StringUtil.equals(
+					dataCleanup.getLabel(),
+					"remove-expired-journal-articles")) {
+
+				dataCleanup.cleanup();
+
+				break;
+			}
 		}
+
+		Assert.assertNull(
+			_journalArticleLocalService.fetchArticle(
+				expiredJournalArticle1.getId()));
+		Assert.assertNull(
+			_journalArticleLocalService.fetchArticle(
+				expiredJournalArticle2.getId()));
+		Assert.assertNotNull(
+			_journalArticleLocalService.fetchArticle(
+				unexpiredJournalArticle.getId()));
+	}
+
+	@Test
+	public void testUpgradeMultipleExpiredJournalArticles() throws Exception {
+		List<JournalArticle> expiredJournalArticles = new ArrayList<>();
+
+		for (int i = 0; i < 5; i++) {
+			JournalArticle journalArticle = JournalTestUtil.addArticle(
+				_group.getGroupId(),
+				JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+			JournalTestUtil.expireArticle(
+				journalArticle.getGroupId(), journalArticle);
+
+			expiredJournalArticles.add(journalArticle);
+		}
+
+		JournalArticle unexpiredJournalArticle = JournalTestUtil.addArticle(
+			_group.getGroupId(),
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		for (DataCleanup dataCleanup :
+				DataCleanupUtil.getSystemDataCleanups()) {
+
+			if (StringUtil.equals(
+					dataCleanup.getLabel(),
+					"remove-expired-journal-articles")) {
+
+				dataCleanup.cleanup();
+
+				break;
+			}
+		}
+
+		for (JournalArticle expiredJournalArticle : expiredJournalArticles) {
+			Assert.assertNull(
+				_journalArticleLocalService.fetchArticle(
+					expiredJournalArticle.getId()));
+		}
+
+		Assert.assertNotNull(
+			_journalArticleLocalService.fetchArticle(
+				unexpiredJournalArticle.getId()));
 	}
 
 	@DeleteAfterTestRun

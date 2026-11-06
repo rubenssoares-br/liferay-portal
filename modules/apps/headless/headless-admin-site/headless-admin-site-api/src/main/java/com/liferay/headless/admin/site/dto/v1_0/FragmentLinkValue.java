@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
@@ -20,21 +22,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -44,9 +46,26 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "A fragment link value.", value = "FragmentLinkValue"
 )
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A fragment link value."
+)
 @JsonFilter("Liferay.Vulcan")
+@JsonSubTypes(
+	{
+		@JsonSubTypes.Type(
+			name = "FragmentInlineValue", value = FragmentLinkInlineValue.class
+		),
+		@JsonSubTypes.Type(
+			name = "FragmentMappedValue", value = FragmentLinkMappedValue.class
+		)
+	}
+)
+@JsonTypeInfo(
+	include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
+	use = JsonTypeInfo.Id.NAME, visible = true
+)
 @XmlRootElement(name = "FragmentLinkValue")
-public class FragmentLinkValue implements Serializable {
+public abstract class FragmentLinkValue implements Serializable {
 
 	public static FragmentLinkValue toDTO(String json) {
 		return ObjectMapperUtil.readValue(FragmentLinkValue.class, json);
@@ -56,89 +75,43 @@ public class FragmentLinkValue implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(FragmentLinkValue.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The fragment link value's hypertext reference. Can be an inline value or mapped to an external value."
 	)
+	@JsonGetter("type")
 	@Valid
-	public Object getHref() {
-		if (_hrefSupplier != null) {
-			href = _hrefSupplier.get();
+	public Type getType() {
+		if (_typeSupplier != null) {
+			type = _typeSupplier.get();
 
-			_hrefSupplier = null;
+			_typeSupplier = null;
 		}
 
-		return href;
-	}
-
-	public void setHref(Object href) {
-		this.href = href;
-
-		_hrefSupplier = null;
+		return type;
 	}
 
 	@JsonIgnore
-	public void setHref(UnsafeSupplier<Object, Exception> hrefUnsafeSupplier) {
-		_hrefSupplier = () -> {
-			try {
-				return hrefUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
+	public String getTypeAsString() {
+		Type type = getType();
 
-	@GraphQLField(
-		description = "The fragment link value's hypertext reference. Can be an inline value or mapped to an external value."
-	)
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object href;
-
-	@JsonIgnore
-	private Supplier<Object> _hrefSupplier;
-
-	@JsonGetter("target")
-	@Schema(
-		description = "The fragment link value's target (blank, parent, self, top)."
-	)
-	@Valid
-	public Target getTarget() {
-		if (_targetSupplier != null) {
-			target = _targetSupplier.get();
-
-			_targetSupplier = null;
-		}
-
-		return target;
-	}
-
-	@JsonIgnore
-	public String getTargetAsString() {
-		Target target = getTarget();
-
-		if (target == null) {
+		if (type == null) {
 			return null;
 		}
 
-		return target.toString();
+		return type.toString();
 	}
 
-	public void setTarget(Target target) {
-		this.target = target;
+	public void setType(Type type) {
+		this.type = type;
 
-		_targetSupplier = null;
+		_typeSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setTarget(
-		UnsafeSupplier<Target, Exception> targetUnsafeSupplier) {
-
-		_targetSupplier = () -> {
+	public void setType(UnsafeSupplier<Type, Exception> typeUnsafeSupplier) {
+		_typeSupplier = () -> {
 			try {
-				return targetUnsafeSupplier.get();
+				return typeUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -150,13 +123,13 @@ public class FragmentLinkValue implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The fragment link value's target (blank, parent, self, top)."
+		description = "The fragment link value's hypertext reference. Can be an inline value or mapped to an external value."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Target target;
+	protected Type type;
 
 	@JsonIgnore
-	private Supplier<Target> _targetSupplier;
+	private Supplier<Type> _typeSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -185,41 +158,17 @@ public class FragmentLinkValue implements Serializable {
 
 		sb.append("{");
 
-		Object href = getHref();
+		Type type = getType();
 
-		if (href != null) {
+		if (type != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"href\": ");
-
-			if (href instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)href));
-			}
-			else if (href instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)href));
-				sb.append("\"");
-			}
-			else {
-				sb.append(href);
-			}
-		}
-
-		Target target = getTarget();
-
-		if (target != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"target\": ");
+			sb.append("\"type\": ");
 
 			sb.append("\"");
-
-			sb.append(target);
-
+			sb.append(type);
 			sb.append("\"");
 		}
 
@@ -228,27 +177,28 @@ public class FragmentLinkValue implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.FragmentLinkValue",
 		name = "x-class-name"
 	)
 	public String xClassName;
 
-	@GraphQLName("Target")
-	public static enum Target {
+	@GraphQLName("Type")
+	public static enum Type {
 
-		BLANK("Blank"), PARENT("Parent"), SELF("Self"), TOP("Top");
+		FRAGMENT_INLINE_VALUE("FragmentInlineValue"),
+		FRAGMENT_MAPPED_VALUE("FragmentMappedValue");
 
 		@JsonCreator
-		public static Target create(String value) {
+		public static Type create(String value) {
 			if ((value == null) || value.equals("")) {
 				return null;
 			}
 
-			for (Target target : values()) {
-				if (Objects.equals(target.getValue(), value)) {
-					return target;
+			for (Type type : values()) {
+				if (Objects.equals(type.getValue(), value)) {
+					return type;
 				}
 			}
 
@@ -265,7 +215,7 @@ public class FragmentLinkValue implements Serializable {
 			return _value;
 		}
 
-		private Target(String value) {
+		private Type(String value) {
 			_value = value;
 		}
 
@@ -354,6 +304,27 @@ public class FragmentLinkValue implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -362,3 +333,4 @@ public class FragmentLinkValue implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1628276565

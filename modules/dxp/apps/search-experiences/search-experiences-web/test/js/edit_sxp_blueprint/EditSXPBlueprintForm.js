@@ -14,7 +14,7 @@ const Toasts = require('../../../src/main/resources/META-INF/resources/sxp_bluep
 import {ENTITY_JSON, INITIAL_CONFIGURATION} from '../mocks/data';
 import {QUERY_SXP_ELEMENTS} from '../mocks/sxpElements';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 
 import {TEST_IDS} from '../../../src/main/resources/META-INF/resources/sxp_blueprint_admin/js/utils/testIds';
 
@@ -102,7 +102,7 @@ describe('EditSXPBlueprintForm', () => {
 			),
 		});
 
-		await findByText('query-settings');
+		await findByText('source');
 
 		const {getByText} = within(
 			container.querySelector('.layout-section-main')
@@ -117,7 +117,7 @@ describe('EditSXPBlueprintForm', () => {
 		const {container, findByText, queryAllByLabelText} =
 			renderEditSXPBlueprintForm();
 
-		await findByText('query-settings');
+		await findByText('source');
 
 		const sxpElementCountBefore =
 			container.querySelectorAll('.sxp-element').length;
@@ -151,7 +151,7 @@ describe('EditSXPBlueprintForm', () => {
 				),
 			});
 
-		await findByText('query-settings');
+		await findByText('source');
 
 		const sxpElementCountBefore =
 			container.querySelectorAll('.sxp-element').length;

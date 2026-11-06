@@ -12,7 +12,7 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.tools.ToolsUtil;
-import com.liferay.source.formatter.check.util.JsonSourceUtil;
+import com.liferay.source.formatter.check.util.JSONSourceUtil;
 import com.liferay.source.formatter.check.util.SourceUtil;
 
 import java.util.regex.Matcher;
@@ -68,9 +68,11 @@ public class PoshiIndentationCheck extends BaseFileCheck {
 					StringPool.CLOSE_BRACKET, StringPool.CLOSE_CURLY_BRACE
 				});
 
-			if (trimmedLine.endsWith("'{")) {
-				level++;
+			if (!trimmedLine.endsWith("'{")) {
+				continue;
 			}
+
+			level++;
 		}
 
 		StringBundler sb = new StringBundler((lines.length * 2) + 2);
@@ -161,15 +163,17 @@ public class PoshiIndentationCheck extends BaseFileCheck {
 					matcher.group(4), matcher.group(1));
 			}
 
-			if ((replacement != null) &&
-				!StringUtil.equals(matcher.group(4), replacement)) {
+			if ((replacement == null) ||
+				StringUtil.equals(matcher.group(4), replacement)) {
 
-				matcher.appendReplacement(
-					sb,
-					Matcher.quoteReplacement(
-						StringUtil.replaceFirst(
-							matcher.group(), matcher.group(4), replacement)));
+				continue;
 			}
+
+			matcher.appendReplacement(
+				sb,
+				Matcher.quoteReplacement(
+					StringUtil.replaceFirst(
+						matcher.group(), matcher.group(4), replacement)));
 		}
 
 		if (sb.length() > 0) {
@@ -210,7 +214,7 @@ public class PoshiIndentationCheck extends BaseFileCheck {
 				continue;
 			}
 
-			JSONObject jsonObject = JsonSourceUtil.getJSONObject(s);
+			JSONObject jsonObject = JSONSourceUtil.getJSONObject(s);
 
 			if (jsonObject == null) {
 				break;
@@ -218,7 +222,7 @@ public class PoshiIndentationCheck extends BaseFileCheck {
 
 			int lineNumber = SourceUtil.getLineNumber(content, x);
 
-			String replacement = JsonSourceUtil.fixIndentation(
+			String replacement = JSONSourceUtil.fixIndentation(
 				jsonObject,
 				SourceUtil.getIndent(SourceUtil.getLine(content, lineNumber)));
 

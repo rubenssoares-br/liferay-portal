@@ -7,9 +7,9 @@ package com.liferay.digital.signature.rest.client.problem;
 
 import com.liferay.digital.signature.rest.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author José Abelenda
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1770334831

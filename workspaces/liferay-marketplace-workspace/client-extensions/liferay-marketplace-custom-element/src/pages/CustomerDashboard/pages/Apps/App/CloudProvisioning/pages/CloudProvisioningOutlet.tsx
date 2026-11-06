@@ -19,14 +19,13 @@ import {useAccount} from '../../../../../../../hooks/data/useAccounts';
 import useGetProductByOrderId from '../../../../../../../hooks/useGetProductByOrderId';
 import i18n from '../../../../../../../i18n';
 import zodSchema, {z, zodResolver} from '../../../../../../../schema/zod';
-import useGetResourceInfo, {
-	convertMegabyteToGigabyte,
-} from '../../../../../../GetApp/hooks/useGetResourceInfo';
-
-import '../index.scss';
 import consoleOAuth2 from '../../../../../../../services/oauth/Console';
 import {ConsoleUserProject} from '../../../../../../../services/oauth/types';
 import {scrollToTop} from '../../../../../../../utils/browser';
+import {convertSize} from '../../../../../../../utils/filesize';
+import useGetResourceInfo from '../../../../../../ProductPurchase/hooks/useGetResourceInfo';
+
+import '../index.scss';
 
 const verifyAvailabilityToInstall = (
 	userProject: any,
@@ -37,8 +36,7 @@ const verifyAvailabilityToInstall = (
 
 	return (
 		availableCPU >= productRequirements?.cpu &&
-		availableRAM >=
-			convertMegabyteToGigabyte({value: productRequirements?.ram})
+		availableRAM >= convertSize(productRequirements?.ram, 'MB', 'GB')
 	);
 };
 
@@ -57,11 +55,10 @@ const SelectedProjectBanner: React.FC<{project: any}> = ({project}) => (
 				</small>
 
 				<small className="subscription-banner-text text-nowrap">
-					{`${project?.environments.length} environments, ${project?.rootProjectPlanUsage.cpu.free} CPUs, ${convertMegabyteToGigabyte(
-						{
-							inverseOperation: true,
-							value: project?.rootProjectPlanUsage.memory.free,
-						}
+					{`${project?.environments.length} environments, ${project?.rootProjectPlanUsage.cpu.free} CPUs, ${convertSize(
+						project?.rootProjectPlanUsage.memory.free,
+						'GB',
+						'MB'
 					)} GB RAM`}
 				</small>
 			</span>
@@ -85,15 +82,6 @@ const getProductRequirements = (product: DeliveryProduct) => {
 
 	return requirements;
 };
-
-const steps = [
-	{key: '', title: i18n.translate('project')},
-	{key: 'environment', title: i18n.translate('environment')},
-	{
-		key: 'installation',
-		title: i18n.translate('installation'),
-	},
-];
 
 const CloudProvisioningOutlet = () => {
 	const {data: selectedAccount} = useAccount();
@@ -133,8 +121,6 @@ const CloudProvisioningOutlet = () => {
 		[resourceResponse?.resourceRequest?.userProjects, productRequirements]
 	);
 
-	const path = pathname.split('/').at(-1) as string;
-
 	const project = form.watch('project');
 
 	const onSubmit = async ({
@@ -169,9 +155,24 @@ const CloudProvisioningOutlet = () => {
 				</ProductPurchase.Header>
 
 				<ProductPurchase.Steps
-					activeKey={path === 'install' ? '' : path}
 					className="mt-5 px-8"
-					steps={steps}
+					steps={[
+						{
+							active: pathname === '/',
+							key: '',
+							title: i18n.translate('project'),
+						},
+						{
+							active: pathname === '/environment',
+							key: 'environment',
+							title: i18n.translate('environment'),
+						},
+						{
+							active: pathname === '/installation',
+							key: 'installation',
+							title: i18n.translate('installation'),
+						},
+					]}
 				/>
 
 				<ProductPurchase.Body>
@@ -196,7 +197,7 @@ const CloudProvisioningOutlet = () => {
 	);
 };
 
-type ConsoleUserProjectWithExtension = ConsoleUserProject & {
+export type ConsoleUserProjectWithExtension = ConsoleUserProject & {
 	availabilityToProduct: boolean;
 };
 

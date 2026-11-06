@@ -6,17 +6,25 @@
 package com.liferay.object.internal.model.listener;
 
 import com.liferay.account.model.AccountEntryOrganizationRel;
+import com.liferay.object.constants.ObjectDefinitionConstants;
 import com.liferay.object.internal.search.ObjectEntryBatchReindexer;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectField;
+import com.liferay.object.rest.filter.factory.FilterFactory;
+import com.liferay.object.scope.ObjectScopeProvider;
+import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMapFactory;
+import com.liferay.petra.sql.dsl.expression.Predicate;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.exception.ModelListenerException;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.ModelListener;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
-import com.liferay.portal.search.batch.DynamicQueryBatchIndexingActionableFactory;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.search.indexer.IndexerDocumentBuilder;
 
 import org.osgi.framework.BundleContext;
@@ -38,7 +46,7 @@ public class AccountEntryOrganizationRelModelListener
 			AccountEntryOrganizationRel accountEntryOrganizationRel)
 		throws ModelListenerException {
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				_reindex(accountEntryOrganizationRel);
 
@@ -51,7 +59,7 @@ public class AccountEntryOrganizationRelModelListener
 			AccountEntryOrganizationRel accountEntryOrganizationRel)
 		throws ModelListenerException {
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				_reindex(accountEntryOrganizationRel);
 
@@ -71,7 +79,8 @@ public class AccountEntryOrganizationRelModelListener
 	}
 
 	private void _reindex(
-		AccountEntryOrganizationRel accountEntryOrganizationRel) {
+			AccountEntryOrganizationRel accountEntryOrganizationRel)
+		throws PortalException {
 
 		for (ObjectDefinition objectDefinition :
 				_objectDefinitionLocalService.getObjectDefinitions(true)) {
@@ -80,9 +89,39 @@ public class AccountEntryOrganizationRelModelListener
 				continue;
 			}
 
+			ObjectScopeProvider objectScopeProvider =
+				_objectScopeProviderRegistry.getObjectScopeProvider(
+					objectDefinition.getScope());
+
+			if (!objectScopeProvider.isGroupAware()) {
+				ObjectField objectField =
+					_objectFieldLocalService.fetchObjectField(
+						objectDefinition.
+							getAccountEntryRestrictedObjectFieldId());
+
+				if (objectField == null) {
+					continue;
+				}
+
+				int count = _objectEntryLocalService.getValuesListCount(
+					new Long[] {0L}, accountEntryOrganizationRel.getCompanyId(),
+					objectDefinition.getUserId(),
+					objectDefinition.getObjectDefinitionId(),
+					_filterFactory.create(
+						StringBundler.concat(
+							objectField.getName(), " eq '",
+							accountEntryOrganizationRel.getAccountEntryId(),
+							"'"),
+						objectDefinition),
+					false, null);
+
+				if (count <= 0) {
+					continue;
+				}
+			}
+
 			ObjectEntryBatchReindexer objectEntryBatchReindexer =
 				new ObjectEntryBatchReindexer(
-					_dynamicQueryBatchIndexingActionableFactory,
 					_objectEntryLocalService, objectDefinition);
 
 			IndexerDocumentBuilder indexerDocumentBuilder =
@@ -96,15 +135,22 @@ public class AccountEntryOrganizationRelModelListener
 		}
 	}
 
-	@Reference
-	private DynamicQueryBatchIndexingActionableFactory
-		_dynamicQueryBatchIndexingActionableFactory;
+	@Reference(
+		target = "(filter.factory.key=" + ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT + ")"
+	)
+	private FilterFactory<Predicate> _filterFactory;
 
 	@Reference
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Reference
 	private ObjectEntryLocalService _objectEntryLocalService;
+
+	@Reference
+	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Reference
+	private ObjectScopeProviderRegistry _objectScopeProviderRegistry;
 
 	private ServiceTrackerMap<String, IndexerDocumentBuilder>
 		_serviceTrackerMap;

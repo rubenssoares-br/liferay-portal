@@ -7,7 +7,7 @@
 
 <%@ include file="/content/init.jsp" %>
 
-<c:if test="<%= !dataSiteLevelPortlets.isEmpty() %>">
+<c:if test="<%= !portlets.isEmpty() %>">
 	<aui:fieldset cssClass="options-group" markupView="lexicon">
 		<clay:sheet-section>
 			<h3 class="sheet-subtitle"><liferay-ui:message key="content" /></h3>
@@ -70,7 +70,7 @@
 														checked="<%= selectedRange.equals(ExportImportDateUtil.RANGE_LAST) %>"
 														disabled="<%= disableInputs %>"
 														id="rangeLast"
-														label='<%= LanguageUtil.get(request, "last") + StringPool.TRIPLE_PERIOD %>'
+														label='<%= LanguageUtil.get(request, "last[time-range]") + StringPool.TRIPLE_PERIOD %>'
 														name="range"
 														popover="export-last-range-help"
 														value="<%= ExportImportDateUtil.RANGE_LAST %>"
@@ -78,13 +78,13 @@
 												</div>
 
 												<div class="range-options c-p-4 <%= disableInputs ? "hide" : StringPool.BLANK %>">
-													<clay:icon
-														symbol="reload"
+													<clay:link
+														cssClass="modify-link"
+														href="javascript:void(0);"
+														icon="reload"
+														id='<%= liferayPortletResponse.getNamespace() + "rangeLink" %>'
+														label="refresh-counts"
 													/>
-
-													<aui:a cssClass="modify-link" href="javascript:void(0);" id="rangeLink" method="get">
-														<liferay-ui:message key="refresh-counts" />
-													</aui:a>
 												</div>
 											</div>
 
@@ -213,7 +213,7 @@
 							<liferay-staging:portlet-list
 								disableInputs="<%= disableInputs %>"
 								exportImportConfigurationId="<%= exportImportConfigurationId %>"
-								portlets="<%= dataSiteLevelPortlets %>"
+								portlets="<%= portlets %>"
 								showAllPortlets="<%= showAllPortlets %>"
 								type="<%= type %>"
 							/>

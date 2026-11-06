@@ -32,6 +32,7 @@ import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
@@ -79,14 +80,17 @@ public class FragmentStyledLayoutStructureItemTest {
 				StringUtil.randomString(), StringUtil.randomString(),
 				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
 				RandomTestUtil.randomString(), false, "{fieldSets: []}", null,
-				0, false, FragmentConstants.TYPE_COMPONENT, null,
+				0, false, false, FragmentConstants.TYPE_COMPONENT, null,
 				WorkflowConstants.STATUS_APPROVED, serviceContext);
 		long defaultSegmentsExperienceId =
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
 				_layout.getPlid());
 
 		_fragmentEntryLink = _fragmentEntryLinkService.addFragmentEntryLink(
-			null, _group.getGroupId(), 0, fragmentEntry.getFragmentEntryId(),
+			null, _group.getGroupId(), null,
+			fragmentEntry.getExternalReferenceCode(),
+			ScopeUtil.getItemScopeExternalReferenceCode(
+				fragmentEntry.getGroupId(), _group.getGroupId()),
 			defaultSegmentsExperienceId, _layout.getPlid(),
 			fragmentEntry.getCss(), fragmentEntry.getHtml(),
 			fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -98,8 +102,8 @@ public class FragmentStyledLayoutStructureItemTest {
 
 		_contributedFragmentEntryLink =
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				contributedFragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				contributedFragmentEntry.getExternalReferenceCode(), null,
 				defaultSegmentsExperienceId, _layout.getPlid(),
 				contributedFragmentEntry.getCss(),
 				contributedFragmentEntry.getHtml(),

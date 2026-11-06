@@ -11,12 +11,13 @@ import com.liferay.portal.kernel.cookies.CookiesManagerUtil;
 import com.liferay.portal.kernel.events.Action;
 import com.liferay.portal.kernel.events.LifecycleAction;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 
@@ -31,13 +32,21 @@ public class LogoutPreAction extends Action {
 		HttpServletRequest httpServletRequest,
 		HttpServletResponse httpServletResponse) {
 
+		long companyId = PortalUtil.getCompanyId(httpServletRequest);
+
+		long groupId = 0;
+
 		ThemeDisplay themeDisplay =
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
 
+		if (themeDisplay != null) {
+			groupId = themeDisplay.getSiteGroupId();
+		}
+
 		ClickToChatConfiguration clickToChatConfiguration =
 			ClickToChatConfigurationUtil.getClickToChatConfiguration(
-				themeDisplay.getCompanyId(), themeDisplay.getSiteGroupId());
+				companyId, groupId);
 
 		if ((clickToChatConfiguration == null) ||
 			!clickToChatConfiguration.enabled() ||
@@ -54,10 +63,12 @@ public class LogoutPreAction extends Action {
 		for (Cookie cookie : cookies) {
 			String name = cookie.getName();
 
-			if (name.startsWith("intercom-")) {
-				CookiesManagerUtil.deleteCookies(
-					domain, httpServletRequest, httpServletResponse, name);
+			if (!name.startsWith("intercom-")) {
+				continue;
 			}
+
+			CookiesManagerUtil.deleteCookies(
+				domain, httpServletRequest, httpServletResponse, name);
 		}
 	}
 

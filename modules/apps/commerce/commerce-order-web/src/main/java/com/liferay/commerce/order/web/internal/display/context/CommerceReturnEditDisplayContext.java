@@ -68,6 +68,11 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.webserver.WebServerServletTokenUtil;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.RenderRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.Serializable;
 
 import java.math.BigDecimal;
@@ -82,11 +87,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.RenderRequest;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Stefano Motta
@@ -146,8 +146,8 @@ public class CommerceReturnEditDisplayContext {
 		CommerceOrder commerceOrder = getCommerceReturnCommerceOrder();
 
 		return _commercePriceFormatter.format(
-			commerceOrder.getCommerceCurrency(), amount,
-			_commerceReturnRequestHelper.getLocale());
+			commerceOrder.getCommerceCurrency(), true,
+			_commerceReturnRequestHelper.getLocale(), amount);
 	}
 
 	public String getCommerceOrderShippingAmountFormatted()
@@ -156,9 +156,9 @@ public class CommerceReturnEditDisplayContext {
 		CommerceOrder commerceOrder = getCommerceReturnCommerceOrder();
 
 		return _commercePriceFormatter.format(
-			commerceOrder.getCommerceCurrency(),
-			commerceOrder.getShippingAmount(),
-			_commerceReturnRequestHelper.getLocale());
+			commerceOrder.getCommerceCurrency(), true,
+			_commerceReturnRequestHelper.getLocale(),
+			commerceOrder.getShippingAmount());
 	}
 
 	public CommerceReturn getCommerceReturn() {
@@ -681,9 +681,9 @@ public class CommerceReturnEditDisplayContext {
 
 		return _objectEntryLocalService.getOneToManyObjectEntries(
 			objectEntry.getGroupId(),
-			objectRelationship.getObjectRelationshipId(),
+			objectRelationship.getObjectRelationshipId(), null, false,
 			objectEntry.getObjectEntryId(), true, null, QueryUtil.ALL_POS,
-			QueryUtil.ALL_POS);
+			QueryUtil.ALL_POS, null);
 	}
 
 	private boolean _hasStatusCompleted() throws Exception {
@@ -749,16 +749,18 @@ public class CommerceReturnEditDisplayContext {
 				key = "processedCount";
 			}
 
-			if (Validator.isNotNull(key)) {
-				Integer count = commerceReturnItemMap.get(key);
-
-				if (count == null) {
-					count = 0;
-				}
-
-				count += 1;
-				commerceReturnItemMap.put(key, count);
+			if (Validator.isNull(key)) {
+				continue;
 			}
+
+			Integer count = commerceReturnItemMap.get(key);
+
+			if (count == null) {
+				count = 0;
+			}
+
+			count += 1;
+			commerceReturnItemMap.put(key, count);
 		}
 
 		return commerceReturnItemMap;

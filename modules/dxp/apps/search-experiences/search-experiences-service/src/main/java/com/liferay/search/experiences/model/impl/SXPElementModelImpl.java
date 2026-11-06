@@ -115,6 +115,10 @@ public class SXPElementModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table SXPElement";
 
+	public static final String ENTITY_ALIAS = "sxpElement";
+
+	public static final String FILTER_PK_COLUMN_NAME = "sxpElementId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY sxpElement.sxpElementId ASC";
 
@@ -152,26 +156,14 @@ public class SXPElementModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long STATUS_COLUMN_BITMASK = 8L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long TYPE_COLUMN_BITMASK = 16L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 32L;
+	public static final long UUID_COLUMN_BITMASK = 8L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long SXPELEMENTID_COLUMN_BITMASK = 64L;
+	public static final long SXPELEMENTID_COLUMN_BITMASK = 16L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
@@ -960,16 +952,6 @@ public class SXPElementModelImpl
 		_type = type;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public int getOriginalType() {
-		return GetterUtil.getInteger(
-			this.<Integer>getColumnOriginalValue("type_"));
-	}
-
 	@JSON
 	@Override
 	public String getVersion() {
@@ -1003,16 +985,6 @@ public class SXPElementModelImpl
 		}
 
 		_status = status;
-	}
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public int getOriginalStatus() {
-		return GetterUtil.getInteger(
-			this.<Integer>getColumnOriginalValue("status"));
 	}
 
 	@Override
@@ -1639,3 +1611,4 @@ public class SXPElementModelImpl
 	private SXPElement _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1205947477

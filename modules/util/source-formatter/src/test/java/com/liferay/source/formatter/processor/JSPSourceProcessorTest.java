@@ -48,13 +48,13 @@ public class JSPSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
-	public void testFormatTaglibs() throws Exception {
-		test("FormatTaglibs.testjsp");
+	public void testFormatTagLineBreaks() throws Exception {
+		test("FormatTagLineBreaks.testjsp");
 	}
 
 	@Test
-	public void testFormatTagLineBreaks() throws Exception {
-		test("FormatTagLineBreaks.testjsp");
+	public void testFormatTaglibs() throws Exception {
+		test("FormatTaglibs.testjsp");
 	}
 
 	@Test
@@ -89,6 +89,15 @@ public class JSPSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testJSONUtilPutCalls() throws Exception {
+		test(
+			"JSONUtilPutCalls.testjsp",
+			"Combine calls \"JSONFactoryUtil.createJSONObject\" (9) and " +
+				"\"jsonObject.put\" (11) into single call \"JSONUtil.put\"",
+			9);
+	}
+
+	@Test
 	public void testLanguageUtilCall() throws Exception {
 		test(
 			"LanguageUtilCall.testjsp",
@@ -105,7 +114,7 @@ public class JSPSourceProcessorTest extends BaseSourceProcessorTestCase {
 		test(
 			"MissingTaglibAttributes.testjsp",
 			"When using <clay:dropdown-actions>, always specify one of the " +
-				"follwing attributes: \"aria-label\", \"aria-labelledby\", " +
+				"following attributes: \"aria-label\", \"aria-labelledby\", " +
 					"\"title\"",
 			10);
 	}

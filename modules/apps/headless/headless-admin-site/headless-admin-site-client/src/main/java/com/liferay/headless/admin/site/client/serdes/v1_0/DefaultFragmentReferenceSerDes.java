@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.DefaultFragmentReference;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -63,6 +64,18 @@ public class DefaultFragmentReferenceSerDes {
 			sb.append("\"");
 		}
 
+		if (defaultFragmentReference.getFragmentReferenceType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"fragmentReferenceType\": ");
+
+			sb.append("\"");
+			sb.append(defaultFragmentReference.getFragmentReferenceType());
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
@@ -94,6 +107,16 @@ public class DefaultFragmentReferenceSerDes {
 					defaultFragmentReference.getDefaultFragmentKey()));
 		}
 
+		if (defaultFragmentReference.getFragmentReferenceType() == null) {
+			map.put("fragmentReferenceType", null);
+		}
+		else {
+			map.put(
+				"fragmentReferenceType",
+				String.valueOf(
+					defaultFragmentReference.getFragmentReferenceType()));
+		}
+
 		return map;
 	}
 
@@ -115,6 +138,11 @@ public class DefaultFragmentReferenceSerDes {
 			if (Objects.equals(jsonParserFieldName, "defaultFragmentKey")) {
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "fragmentReferenceType")) {
+
+				return false;
+			}
 
 			return false;
 		}
@@ -128,6 +156,15 @@ public class DefaultFragmentReferenceSerDes {
 				if (jsonParserFieldValue != null) {
 					defaultFragmentReference.setDefaultFragmentKey(
 						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "fragmentReferenceType")) {
+
+				if (jsonParserFieldValue != null) {
+					defaultFragmentReference.setFragmentReferenceType(
+						DefaultFragmentReference.FragmentReferenceType.create(
+							(String)jsonParserFieldValue));
 				}
 			}
 		}
@@ -175,6 +212,16 @@ public class DefaultFragmentReferenceSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -207,3 +254,4 @@ public class DefaultFragmentReferenceSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-941494321

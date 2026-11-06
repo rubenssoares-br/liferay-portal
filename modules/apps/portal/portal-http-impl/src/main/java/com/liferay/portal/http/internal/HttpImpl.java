@@ -6,6 +6,8 @@
 package com.liferay.portal.http.internal;
 
 import com.liferay.petra.concurrent.DCLSingleton;
+import com.liferay.petra.io.unsync.UnsyncByteArrayOutputStream;
+import com.liferay.petra.io.unsync.UnsyncFilterInputStream;
 import com.liferay.petra.memory.FinalizeAction;
 import com.liferay.petra.memory.FinalizeManager;
 import com.liferay.petra.string.CharPool;
@@ -14,8 +16,6 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.http.internal.configuration.HttpConfiguration;
 import com.liferay.portal.kernel.configuration.Filter;
-import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayOutputStream;
-import com.liferay.portal.kernel.io.unsync.UnsyncFilterInputStream;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.HttpHeaders;
@@ -27,11 +27,13 @@ import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.SystemProperties;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.servlet.http.Cookie;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,8 +53,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import javax.servlet.http.Cookie;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -111,53 +111,6 @@ import org.osgi.service.component.annotations.Modified;
 	service = Http.class
 )
 public class HttpImpl implements Http {
-
-	@Override
-	public Cookie[] getCookies() {
-		return _cookies.get();
-	}
-
-	@Override
-	public boolean hasProxyConfig() {
-		if (Validator.isNotNull(_PROXY_HOST) && (_PROXY_PORT > 0)) {
-			return true;
-		}
-
-		return false;
-	}
-
-	@Override
-	public boolean isNonProxyHost(String host) {
-		if (Validator.isNull(host)) {
-			return false;
-		}
-
-		for (String nonProxyHost : _NON_PROXY_HOSTS) {
-			if (nonProxyHost.equals(host) ||
-				(nonProxyHost.contains(StringPool.STAR) &&
-				 StringUtil.wildcardMatches(
-					 host, nonProxyHost, (char)0, CharPool.STAR, (char)0,
-					 false))) {
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	@Override
-	public boolean isProxyHost(String host) {
-		if (Validator.isNull(host)) {
-			return false;
-		}
-
-		if (hasProxyConfig() && !isNonProxyHost(host)) {
-			return true;
-		}
-
-		return false;
-	}
 
 	@Override
 	public byte[] URLtoByteArray(Http.Options options) throws IOException {
@@ -315,253 +268,51 @@ public class HttpImpl implements Http {
 		return xml;
 	}
 
-	@Activate
-	protected void activate(Map<String, Object> properties) {
-		_httpConfiguration = ConfigurableUtil.createConfigurable(
-			HttpConfiguration.class, properties);
-
-		_proxyAuthPrefs.add(AuthSchemes.BASIC);
-		_proxyAuthPrefs.add(AuthSchemes.DIGEST);
-
-		if (_PROXY_AUTH_TYPE.equals("username-password")) {
-			_proxyCredentials = new UsernamePasswordCredentials(
-				_PROXY_USERNAME, _PROXY_PASSWORD);
-
-			_proxyAuthPrefs.add(AuthSchemes.NTLM);
-		}
-		else if (_PROXY_AUTH_TYPE.equals("ntlm")) {
-			_proxyCredentials = new NTCredentials(
-				_PROXY_USERNAME, _PROXY_PASSWORD, _PROXY_NTLM_HOST,
-				_PROXY_NTLM_DOMAIN);
-
-			_proxyAuthPrefs.add(0, AuthSchemes.NTLM);
-		}
-		else {
-			_proxyCredentials = null;
-		}
+	@Override
+	public Cookie[] getCookies() {
+		return _cookies.get();
 	}
 
-	protected void addProxyCredentials(
-		URI uri, HttpClientContext httpClientContext) {
-
-		if (!isProxyHost(uri.getHost()) || (_proxyCredentials == null)) {
-			return;
+	@Override
+	public boolean hasProxyConfig() {
+		if (Validator.isNotNull(_PROXY_HOST) && (_PROXY_PORT > 0)) {
+			return true;
 		}
 
-		CredentialsProvider credentialsProvider =
-			httpClientContext.getCredentialsProvider();
-
-		if (credentialsProvider == null) {
-			credentialsProvider = new BasicCredentialsProvider();
-
-			httpClientContext.setCredentialsProvider(credentialsProvider);
-		}
-
-		credentialsProvider.setCredentials(
-			new AuthScope(_PROXY_HOST, _PROXY_PORT), _proxyCredentials);
+		return false;
 	}
 
-	@Deactivate
-	protected void deactivate() {
-		_poolingHttpClientConnectionManagerDCLSingleton.destroy(
-			HttpImpl::_destroyPoolingHttpClientConnectionManager);
-	}
-
-	protected boolean hasRequestHeader(
-		RequestBuilder requestBuilder, String name) {
-
-		if (ArrayUtil.isEmpty(requestBuilder.getHeaders(name))) {
+	@Override
+	public boolean isNonProxyHost(String host) {
+		if (Validator.isNull(host)) {
 			return false;
 		}
 
-		return true;
+		for (String nonProxyHost : _NON_PROXY_HOSTS) {
+			if (nonProxyHost.equals(host) ||
+				(nonProxyHost.contains(StringPool.STAR) &&
+				 StringUtil.wildcardMatches(
+					 host, nonProxyHost, (char)0, CharPool.STAR, (char)0,
+					 false))) {
+
+				return true;
+			}
+		}
+
+		return false;
 	}
 
-	@Modified
-	protected void modified(Map<String, Object> properties) {
-		_httpConfiguration = ConfigurableUtil.createConfigurable(
-			HttpConfiguration.class, properties);
-
-		PoolingHttpClientConnectionManager poolingHttpClientConnectionManager =
-			_poolingHttpClientConnectionManagerDCLSingleton.getSingleton(
-				this::_createPoolingHttpClientConnectionManager);
-
-		poolingHttpClientConnectionManager.setDefaultSocketConfig(
-			SocketConfig.custom(
-			).setSoKeepAlive(
-				_httpConfiguration.tcpKeepAliveEnabled()
-			).build());
-	}
-
-	protected void processPostMethod(
-		RequestBuilder requestBuilder, Map<String, String> headers,
-		List<Http.FilePart> fileParts,
-		List<Http.InputStreamPart> inputStreamParts,
-		Map<String, String> parts) {
-
-		if (ListUtil.isEmpty(fileParts) && ListUtil.isEmpty(inputStreamParts)) {
-			if (parts != null) {
-				for (Map.Entry<String, String> entry : parts.entrySet()) {
-					String value = entry.getValue();
-
-					if (value != null) {
-						requestBuilder.addParameter(entry.getKey(), value);
-					}
-				}
-			}
-		}
-		else {
-			MultipartEntityBuilder multipartEntityBuilder =
-				MultipartEntityBuilder.create();
-
-			if (headers.containsKey(HttpHeaders.CONTENT_TYPE)) {
-				ContentType contentType = ContentType.parse(
-					headers.get(HttpHeaders.CONTENT_TYPE));
-
-				String boundary = contentType.getParameter("boundary");
-
-				if (boundary != null) {
-					multipartEntityBuilder.setBoundary(boundary);
-				}
-			}
-
-			if (parts != null) {
-				for (Map.Entry<String, String> entry : parts.entrySet()) {
-					String value = entry.getValue();
-
-					if (value != null) {
-						multipartEntityBuilder.addPart(
-							entry.getKey(),
-							new StringBody(
-								value,
-								ContentType.create(
-									"text/plain", StringPool.UTF8)));
-					}
-				}
-			}
-
-			if (fileParts != null) {
-				for (Http.FilePart filePart : fileParts) {
-					ByteArrayBody byteArrayBody = new ByteArrayBody(
-						filePart.getValue(), ContentType.DEFAULT_BINARY,
-						filePart.getFileName());
-
-					multipartEntityBuilder.addPart(
-						filePart.getName(), byteArrayBody);
-				}
-			}
-
-			if (inputStreamParts != null) {
-				for (Http.InputStreamPart inputStreamPart : inputStreamParts) {
-					ContentType contentType = ContentType.DEFAULT_BINARY;
-
-					if (inputStreamPart.getContentType() != null) {
-						contentType = ContentType.create(
-							inputStreamPart.getContentType());
-					}
-
-					multipartEntityBuilder.addPart(
-						inputStreamPart.getName(),
-						new InputStreamBody(
-							inputStreamPart.getInputStream(), contentType,
-							inputStreamPart.getInputStreamName()));
-				}
-			}
-
-			requestBuilder.setEntity(multipartEntityBuilder.build());
-		}
-	}
-
-	protected org.apache.http.cookie.Cookie toHttpCookie(Cookie cookie) {
-		BasicClientCookie basicClientCookie = new BasicClientCookie(
-			cookie.getName(), cookie.getValue());
-
-		basicClientCookie.setDomain(cookie.getDomain());
-
-		int maxAge = cookie.getMaxAge();
-
-		if (maxAge > 0) {
-			Date expiryDate = new Date(
-				System.currentTimeMillis() + (maxAge * 1000L));
-
-			basicClientCookie.setExpiryDate(expiryDate);
-
-			basicClientCookie.setAttribute(
-				ClientCookie.MAX_AGE_ATTR, String.valueOf(maxAge));
+	@Override
+	public boolean isProxyHost(String host) {
+		if (Validator.isNull(host)) {
+			return false;
 		}
 
-		basicClientCookie.setPath(cookie.getPath());
-		basicClientCookie.setSecure(cookie.getSecure());
-		basicClientCookie.setVersion(cookie.getVersion());
-
-		return basicClientCookie;
-	}
-
-	protected org.apache.http.cookie.Cookie[] toHttpCookies(Cookie[] cookies) {
-		if (cookies == null) {
-			return null;
+		if (hasProxyConfig() && !isNonProxyHost(host)) {
+			return true;
 		}
 
-		org.apache.http.cookie.Cookie[] httpCookies =
-			new org.apache.http.cookie.Cookie[cookies.length];
-
-		for (int i = 0; i < cookies.length; i++) {
-			httpCookies[i] = toHttpCookie(cookies[i]);
-		}
-
-		return httpCookies;
-	}
-
-	protected Cookie toServletCookie(org.apache.http.cookie.Cookie httpCookie) {
-		Cookie cookie = new Cookie(httpCookie.getName(), httpCookie.getValue());
-
-		if (!PropsValues.SESSION_COOKIE_USE_FULL_HOSTNAME) {
-			String domain = httpCookie.getDomain();
-
-			if (Validator.isNotNull(domain)) {
-				cookie.setDomain(domain);
-			}
-		}
-
-		Date expiryDate = httpCookie.getExpiryDate();
-
-		if (expiryDate != null) {
-			int maxAge =
-				(int)(expiryDate.getTime() - System.currentTimeMillis());
-
-			maxAge = maxAge / 1000;
-
-			if (maxAge > -1) {
-				cookie.setMaxAge(maxAge);
-			}
-		}
-
-		String path = httpCookie.getPath();
-
-		if (Validator.isNotNull(path)) {
-			cookie.setPath(path);
-		}
-
-		cookie.setSecure(httpCookie.isSecure());
-		cookie.setVersion(httpCookie.getVersion());
-
-		return cookie;
-	}
-
-	protected Cookie[] toServletCookies(
-		List<org.apache.http.cookie.Cookie> httpCookies) {
-
-		if (httpCookies == null) {
-			return null;
-		}
-
-		Cookie[] cookies = new Cookie[httpCookies.size()];
-
-		for (int i = 0; i < httpCookies.size(); i++) {
-			cookies[i] = toServletCookie(httpCookies.get(i));
-		}
-
-		return cookies;
+		return false;
 	}
 
 	protected byte[] URLtoByteArray(
@@ -658,24 +409,10 @@ public class HttpImpl implements Http {
 					maxConnectionsPerHost);
 			}
 
-			RequestConfig requestConfig = requestConfigBuilder.build();
-
-			CloseableHttpClient httpClient = null;
-
-			if ((requestConfig.getProxy() != null) && hasProxyConfig() &&
-				Validator.isNotNull(_PROXY_USERNAME)) {
-
-				httpClient = _proxyCloseableHttpClientDCLSingleton.getSingleton(
+			CloseableHttpClient closeableHttpClient =
+				_closeableHttpClientDCLSingleton.getSingleton(
 					() -> _createCloseableHttpClient(
-						poolingHttpClientConnectionManager,
-						new HttpHost(_PROXY_HOST, _PROXY_PORT),
-						_proxyAuthPrefs));
-			}
-			else {
-				httpClient = _closeableHttpClientDCLSingleton.getSingleton(
-					() -> _createCloseableHttpClient(
-						poolingHttpClientConnectionManager, null, null));
-			}
+						poolingHttpClientConnectionManager));
 
 			HttpClientContext httpClientContext = HttpClientContext.create();
 
@@ -703,7 +440,9 @@ public class HttpImpl implements Http {
 
 					requestBuilder.setEntity(stringEntity);
 				}
-				else if (method.equals(Http.Method.POST)) {
+				else if (method.equals(Http.Method.POST) ||
+						 method.equals(Http.Method.PUT)) {
+
 					if (!hasRequestHeader(
 							requestBuilder, HttpHeaders.CONTENT_TYPE)) {
 
@@ -717,7 +456,7 @@ public class HttpImpl implements Http {
 							targetHttpHost, connectionConfigBuilder.build());
 					}
 
-					processPostMethod(
+					processEntityParts(
 						requestBuilder, headers, fileParts, inputStreamParts,
 						parts);
 				}
@@ -808,11 +547,15 @@ public class HttpImpl implements Http {
 
 			requestConfigBuilder.setNormalizeUri(normalizeURI);
 
+			if (!followRedirects) {
+				requestConfigBuilder.setRedirectsEnabled(false);
+			}
+
 			addProxyCredentials(uri, httpClientContext);
 
 			requestBuilder.setConfig(requestConfigBuilder.build());
 
-			closeableHttpResponse = httpClient.execute(
+			closeableHttpResponse = closeableHttpClient.execute(
 				targetHttpHost, requestBuilder.build(), httpClientContext);
 
 			httpEntity = closeableHttpResponse.getEntity();
@@ -947,6 +690,255 @@ public class HttpImpl implements Http {
 		}
 	}
 
+	@Activate
+	protected void activate(Map<String, Object> properties) {
+		_httpConfiguration = ConfigurableUtil.createConfigurable(
+			HttpConfiguration.class, properties);
+
+		_proxyAuthPrefs.add(AuthSchemes.BASIC);
+		_proxyAuthPrefs.add(AuthSchemes.DIGEST);
+
+		if (_PROXY_AUTH_TYPE.equals("username-password")) {
+			_proxyCredentials = new UsernamePasswordCredentials(
+				_PROXY_USERNAME, _PROXY_PASSWORD);
+
+			_proxyAuthPrefs.add(AuthSchemes.NTLM);
+		}
+		else if (_PROXY_AUTH_TYPE.equals("ntlm")) {
+			_proxyCredentials = new NTCredentials(
+				_PROXY_USERNAME, _PROXY_PASSWORD, _PROXY_NTLM_HOST,
+				_PROXY_NTLM_DOMAIN);
+
+			_proxyAuthPrefs.add(0, AuthSchemes.NTLM);
+		}
+		else {
+			_proxyCredentials = null;
+		}
+	}
+
+	protected void addProxyCredentials(
+		URI uri, HttpClientContext httpClientContext) {
+
+		if (!isProxyHost(uri.getHost()) || (_proxyCredentials == null)) {
+			return;
+		}
+
+		CredentialsProvider credentialsProvider =
+			httpClientContext.getCredentialsProvider();
+
+		if (credentialsProvider == null) {
+			credentialsProvider = new BasicCredentialsProvider();
+
+			httpClientContext.setCredentialsProvider(credentialsProvider);
+		}
+
+		credentialsProvider.setCredentials(
+			new AuthScope(_PROXY_HOST, _PROXY_PORT), _proxyCredentials);
+	}
+
+	@Deactivate
+	protected void deactivate() {
+		_poolingHttpClientConnectionManagerDCLSingleton.destroy(
+			HttpImpl::_destroyPoolingHttpClientConnectionManager);
+	}
+
+	protected boolean hasRequestHeader(
+		RequestBuilder requestBuilder, String name) {
+
+		return ArrayUtil.isNotEmpty(requestBuilder.getHeaders(name));
+	}
+
+	@Modified
+	protected void modified(Map<String, Object> properties) {
+		_httpConfiguration = ConfigurableUtil.createConfigurable(
+			HttpConfiguration.class, properties);
+
+		PoolingHttpClientConnectionManager poolingHttpClientConnectionManager =
+			_poolingHttpClientConnectionManagerDCLSingleton.getSingleton(
+				this::_createPoolingHttpClientConnectionManager);
+
+		poolingHttpClientConnectionManager.setDefaultSocketConfig(
+			SocketConfig.custom(
+			).setSoKeepAlive(
+				_httpConfiguration.tcpKeepAliveEnabled()
+			).build());
+	}
+
+	protected void processEntityParts(
+		RequestBuilder requestBuilder, Map<String, String> headers,
+		List<Http.FilePart> fileParts,
+		List<Http.InputStreamPart> inputStreamParts,
+		Map<String, String> parts) {
+
+		if (ListUtil.isEmpty(fileParts) && ListUtil.isEmpty(inputStreamParts)) {
+			if (parts != null) {
+				for (Map.Entry<String, String> entry : parts.entrySet()) {
+					String value = entry.getValue();
+
+					if (value == null) {
+						continue;
+					}
+
+					requestBuilder.addParameter(entry.getKey(), value);
+				}
+			}
+		}
+		else {
+			MultipartEntityBuilder multipartEntityBuilder =
+				MultipartEntityBuilder.create();
+
+			String contentTypeValue = headers.get(HttpHeaders.CONTENT_TYPE);
+
+			if (contentTypeValue != null) {
+				ContentType contentType = ContentType.parse(contentTypeValue);
+
+				String boundary = contentType.getParameter("boundary");
+
+				if (boundary != null) {
+					multipartEntityBuilder.setBoundary(boundary);
+				}
+			}
+
+			if (parts != null) {
+				for (Map.Entry<String, String> entry : parts.entrySet()) {
+					String value = entry.getValue();
+
+					if (value == null) {
+						continue;
+					}
+
+					multipartEntityBuilder.addPart(
+						entry.getKey(),
+						new StringBody(
+							value,
+							ContentType.create("text/plain", StringPool.UTF8)));
+				}
+			}
+
+			if (fileParts != null) {
+				for (Http.FilePart filePart : fileParts) {
+					ByteArrayBody byteArrayBody = new ByteArrayBody(
+						filePart.getValue(), ContentType.DEFAULT_BINARY,
+						filePart.getFileName());
+
+					multipartEntityBuilder.addPart(
+						filePart.getName(), byteArrayBody);
+				}
+			}
+
+			if (inputStreamParts != null) {
+				for (Http.InputStreamPart inputStreamPart : inputStreamParts) {
+					ContentType contentType = ContentType.DEFAULT_BINARY;
+
+					if (inputStreamPart.getContentType() != null) {
+						contentType = ContentType.create(
+							inputStreamPart.getContentType());
+					}
+
+					multipartEntityBuilder.addPart(
+						inputStreamPart.getName(),
+						new InputStreamBody(
+							inputStreamPart.getInputStream(), contentType,
+							inputStreamPart.getInputStreamName()));
+				}
+			}
+
+			requestBuilder.setEntity(multipartEntityBuilder.build());
+		}
+	}
+
+	protected org.apache.http.cookie.Cookie toHttpCookie(Cookie cookie) {
+		BasicClientCookie basicClientCookie = new BasicClientCookie(
+			cookie.getName(), cookie.getValue());
+
+		basicClientCookie.setDomain(cookie.getDomain());
+
+		int maxAge = cookie.getMaxAge();
+
+		if (maxAge > 0) {
+			Date expiryDate = new Date(
+				System.currentTimeMillis() + (maxAge * 1000L));
+
+			basicClientCookie.setExpiryDate(expiryDate);
+
+			basicClientCookie.setAttribute(
+				ClientCookie.MAX_AGE_ATTR, String.valueOf(maxAge));
+		}
+
+		basicClientCookie.setPath(cookie.getPath());
+		basicClientCookie.setSecure(cookie.getSecure());
+		basicClientCookie.setVersion(cookie.getVersion());
+
+		return basicClientCookie;
+	}
+
+	protected org.apache.http.cookie.Cookie[] toHttpCookies(Cookie[] cookies) {
+		if (cookies == null) {
+			return null;
+		}
+
+		org.apache.http.cookie.Cookie[] httpCookies =
+			new org.apache.http.cookie.Cookie[cookies.length];
+
+		for (int i = 0; i < cookies.length; i++) {
+			httpCookies[i] = toHttpCookie(cookies[i]);
+		}
+
+		return httpCookies;
+	}
+
+	protected Cookie toServletCookie(org.apache.http.cookie.Cookie httpCookie) {
+		Cookie cookie = new Cookie(httpCookie.getName(), httpCookie.getValue());
+
+		if (!PropsValues.SESSION_COOKIE_USE_FULL_HOSTNAME) {
+			String domain = httpCookie.getDomain();
+
+			if (Validator.isNotNull(domain)) {
+				cookie.setDomain(domain);
+			}
+		}
+
+		Date expiryDate = httpCookie.getExpiryDate();
+
+		if (expiryDate != null) {
+			int maxAge =
+				(int)(expiryDate.getTime() - System.currentTimeMillis());
+
+			maxAge = maxAge / 1000;
+
+			if (maxAge > -1) {
+				cookie.setMaxAge(maxAge);
+			}
+		}
+
+		String path = httpCookie.getPath();
+
+		if (Validator.isNotNull(path)) {
+			cookie.setPath(path);
+		}
+
+		cookie.setSecure(httpCookie.isSecure());
+		cookie.setVersion(httpCookie.getVersion());
+
+		return cookie;
+	}
+
+	protected Cookie[] toServletCookies(
+		List<org.apache.http.cookie.Cookie> httpCookies) {
+
+		if (httpCookies == null) {
+			return null;
+		}
+
+		Cookie[] cookies = new Cookie[httpCookies.size()];
+
+		for (int i = 0; i < httpCookies.size(); i++) {
+			cookies[i] = toServletCookie(httpCookies.get(i));
+		}
+
+		return cookies;
+	}
+
 	private static void _destroyPoolingHttpClientConnectionManager(
 		PoolingHttpClientConnectionManager poolingHttpClientConnectionManager) {
 
@@ -981,8 +973,7 @@ public class HttpImpl implements Http {
 	}
 
 	private CloseableHttpClient _createCloseableHttpClient(
-		PoolingHttpClientConnectionManager poolingHttpClientConnectionManager,
-		HttpHost httpHost, List<String> proxyAuthPrefs) {
+		PoolingHttpClientConnectionManager poolingHttpClientConnectionManager) {
 
 		// Mimic behavior found in
 		// http://java.sun.com/j2se/1.5.0/docs/guide/net/properties.html
@@ -991,22 +982,6 @@ public class HttpImpl implements Http {
 
 		httpClientBuilder.setConnectionManager(
 			poolingHttpClientConnectionManager);
-
-		RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
-
-		requestConfigBuilder = requestConfigBuilder.setConnectTimeout(_TIMEOUT);
-		requestConfigBuilder = requestConfigBuilder.setConnectionRequestTimeout(
-			_TIMEOUT);
-
-		if (httpHost != null) {
-			requestConfigBuilder.setProxy(httpHost);
-		}
-
-		if (proxyAuthPrefs != null) {
-			requestConfigBuilder.setProxyPreferredAuthSchemes(proxyAuthPrefs);
-		}
-
-		httpClientBuilder.setDefaultRequestConfig(requestConfigBuilder.build());
 
 		httpClientBuilder.setKeepAliveStrategy(
 			new DefaultConnectionKeepAliveStrategy() {
@@ -1081,15 +1056,17 @@ public class HttpImpl implements Http {
 			timeout = GetterUtil.getInteger(
 				PropsUtil.get(
 					Http.class.getName() + ".timeout",
-					new Filter(uri.getHost())));
+					new Filter(uri.getHost())),
+				_TIMEOUT);
 		}
 
 		if (timeout > 0) {
-			requestConfigBuilder = requestConfigBuilder.setConnectTimeout(
-				timeout);
-
 			requestConfigBuilder =
 				requestConfigBuilder.setConnectionRequestTimeout(timeout);
+			requestConfigBuilder = requestConfigBuilder.setConnectTimeout(
+				timeout);
+			requestConfigBuilder = requestConfigBuilder.setSocketTimeout(
+				timeout);
 		}
 
 		return requestConfigBuilder;
@@ -1143,8 +1120,6 @@ public class HttpImpl implements Http {
 	private final DCLSingleton<PoolingHttpClientConnectionManager>
 		_poolingHttpClientConnectionManagerDCLSingleton = new DCLSingleton<>();
 	private final List<String> _proxyAuthPrefs = new ArrayList<>();
-	private final DCLSingleton<CloseableHttpClient>
-		_proxyCloseableHttpClientDCLSingleton = new DCLSingleton<>();
 	private Credentials _proxyCredentials;
 
 }

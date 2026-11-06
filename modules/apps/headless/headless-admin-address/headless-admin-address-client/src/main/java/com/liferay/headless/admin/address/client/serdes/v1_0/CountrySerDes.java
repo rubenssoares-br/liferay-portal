@@ -9,13 +9,17 @@ import com.liferay.headless.admin.address.client.dto.v1_0.Country;
 import com.liferay.headless.admin.address.client.dto.v1_0.Region;
 import com.liferay.headless.admin.address.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Drew Brokke
@@ -44,6 +48,9 @@ public class CountrySerDes {
 		StringBuilder sb = new StringBuilder();
 
 		sb.append("{");
+
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ssXX");
 
 		if (country.getA2() != null) {
 			if (sb.length() > 1) {
@@ -91,6 +98,59 @@ public class CountrySerDes {
 			sb.append("\"billingAllowed\": ");
 
 			sb.append(country.getBillingAllowed());
+		}
+
+		if (country.getCreator() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(country.getCreator()));
+		}
+
+		if (country.getDateCreated() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateCreated\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(country.getDateCreated()));
+
+			sb.append("\"");
+		}
+
+		if (country.getDateModified() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateModified\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				liferayToJSONDateFormat.format(country.getDateModified()));
+
+			sb.append("\"");
+		}
+
+		if (country.getExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(country.getExternalReferenceCode()));
+
+			sb.append("\"");
 		}
 
 		if (country.getGroupFilterEnabled() != null) {
@@ -145,6 +205,26 @@ public class CountrySerDes {
 			sb.append("\"number\": ");
 
 			sb.append(country.getNumber());
+		}
+
+		if (country.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < country.getPermissions().length; i++) {
+				sb.append(country.getPermissions()[i]);
+
+				if ((i + 1) < country.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
 		if (country.getPosition() != null) {
@@ -235,6 +315,9 @@ public class CountrySerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ssXX");
+
 		if (country.getA2() == null) {
 			map.put("a2", null);
 		}
@@ -262,6 +345,40 @@ public class CountrySerDes {
 		else {
 			map.put(
 				"billingAllowed", String.valueOf(country.getBillingAllowed()));
+		}
+
+		if (country.getCreator() == null) {
+			map.put("creator", null);
+		}
+		else {
+			map.put("creator", String.valueOf(country.getCreator()));
+		}
+
+		if (country.getDateCreated() == null) {
+			map.put("dateCreated", null);
+		}
+		else {
+			map.put(
+				"dateCreated",
+				liferayToJSONDateFormat.format(country.getDateCreated()));
+		}
+
+		if (country.getDateModified() == null) {
+			map.put("dateModified", null);
+		}
+		else {
+			map.put(
+				"dateModified",
+				liferayToJSONDateFormat.format(country.getDateModified()));
+		}
+
+		if (country.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(country.getExternalReferenceCode()));
 		}
 
 		if (country.getGroupFilterEnabled() == null) {
@@ -299,6 +416,13 @@ public class CountrySerDes {
 		}
 		else {
 			map.put("number", String.valueOf(country.getNumber()));
+		}
+
+		if (country.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put("permissions", String.valueOf(country.getPermissions()));
 		}
 
 		if (country.getPosition() == null) {
@@ -374,6 +498,20 @@ public class CountrySerDes {
 			else if (Objects.equals(jsonParserFieldName, "billingAllowed")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateModified")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "groupFilterEnabled")) {
 
@@ -389,6 +527,9 @@ public class CountrySerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "number")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "position")) {
@@ -438,6 +579,32 @@ public class CountrySerDes {
 					country.setBillingAllowed((Boolean)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				if (jsonParserFieldValue != null) {
+					country.setCreator(
+						CreatorSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
+				if (jsonParserFieldValue != null) {
+					country.setDateCreated(
+						toDate((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "dateModified")) {
+				if (jsonParserFieldValue != null) {
+					country.setDateModified(
+						toDate((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					country.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "groupFilterEnabled")) {
 
@@ -466,6 +633,26 @@ public class CountrySerDes {
 				if (jsonParserFieldValue != null) {
 					country.setNumber(
 						Integer.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.address.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.address.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.address.client.
+								permission.Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					country.setPermissions(permissionsArray);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "position")) {
@@ -556,6 +743,16 @@ public class CountrySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -588,3 +785,4 @@ public class CountrySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1570286083

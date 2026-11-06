@@ -6,6 +6,9 @@
 import EventEmitter from './events/EventEmitter';
 import throttle from './throttle.es';
 import fetch from './util/fetch.es';
+import setCSPNonce from './util/set_csp_nonce';
+
+const SCRIPT_URL = document.currentScript.src;
 
 /**
  * Options
@@ -452,6 +455,8 @@ SideNavigation.prototype = {
 					return response.text();
 				})
 				.then((text) => {
+					text = setCSPNonce(text);
+
 					const range = document.createRange();
 
 					range.selectNode(sidebar);
@@ -812,12 +817,11 @@ SideNavigation.prototype = {
 		const instance = this;
 
 		import(
-
-			// eslint-disable-next-line lines-around-comment
-
-			/* webpackIgnore: true */
-			themeDisplay.getPathContext() +
-				'/o/frontend-js-web/__liferay__/index.js'
+			Liferay.FrontendESM.buildURL(
+				SCRIPT_URL,
+				'accessibility-settings-state-web',
+				'index'
+			)
 		).then(({isReducedMotion}) => {
 			instance.isReducedMotion = isReducedMotion;
 		});

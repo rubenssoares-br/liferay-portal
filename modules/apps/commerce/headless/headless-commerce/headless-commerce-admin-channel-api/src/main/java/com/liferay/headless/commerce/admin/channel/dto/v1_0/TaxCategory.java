@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("TaxCategory")
+@GraphQLName(
+	description = "Tax classification assigned to products to drive tax calculation at checkout. Readable and writable by external reference code so a vocabulary export can be imported into another environment; the Site Setting admin API remains the full featured management surface.",
+	value = "TaxCategory"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Tax classification assigned to products to drive tax calculation at checkout. Readable and writable by external reference code so a vocabulary export can be imported into another environment; the Site Setting admin API remains the full featured management surface.",
+	requiredProperties = {"name"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"name"})
 @XmlRootElement(name = "TaxCategory")
 public class TaxCategory implements Serializable {
 
@@ -53,7 +60,10 @@ public class TaxCategory implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(TaxCategory.class, json);
 	}
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated strings.",
+		example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}"
+	)
 	@Valid
 	public Map<String, String> getDescription() {
 		if (_descriptionSupplier != null) {
@@ -89,15 +99,66 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per tax category within the company. Used to resolve the upsert target, and assigned from the entity UUID when omitted on create.",
+		example = "AB-34098-789-N"
+	)
+	public String getExternalReferenceCode() {
+		if (_externalReferenceCodeSupplier != null) {
+			externalReferenceCode = _externalReferenceCodeSupplier.get();
+
+			_externalReferenceCodeSupplier = null;
+		}
+
+		return externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
+
+		_externalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
+		_externalReferenceCodeSupplier = () -> {
+			try {
+				return externalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per tax category within the company. Used to resolve the upsert target, and assigned from the entity UUID when omitted on create."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String externalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _externalReferenceCodeSupplier;
+
 	@DecimalMin("0")
-	@Schema(example = "23130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Liferay site that owns this tax category (FK identifier); read-only.",
+		example = "30130"
+	)
 	public Long getGroupId() {
 		if (_groupIdSupplier != null) {
 			groupId = _groupIdSupplier.get();
@@ -131,7 +192,9 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Liferay site that owns this tax category (FK identifier); read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long groupId;
 
@@ -139,7 +202,10 @@ public class TaxCategory implements Serializable {
 	private Supplier<Long> _groupIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal long ID of the TaxCategory record; read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -171,14 +237,19 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Internal long ID of the TaxCategory record; read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated strings.",
+		example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}"
+	)
 	@Valid
 	public Map<String, String> getName() {
 		if (_nameSupplier != null) {
@@ -213,7 +284,9 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> name;
@@ -260,6 +333,22 @@ public class TaxCategory implements Serializable {
 			sb.append(_toJSON(description));
 		}
 
+		String externalReferenceCode = getExternalReferenceCode();
+
+		if (externalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(externalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		Long groupId = getGroupId();
 
 		if (groupId != null) {
@@ -301,8 +390,8 @@ public class TaxCategory implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.channel.dto.v1_0.TaxCategory",
 		name = "x-class-name"
 	)
@@ -389,6 +478,27 @@ public class TaxCategory implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -397,3 +507,4 @@ public class TaxCategory implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2074491118

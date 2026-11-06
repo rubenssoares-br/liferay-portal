@@ -5,12 +5,37 @@
 
 import productIconFallback from '../assets/icons/purchased_app_icon.svg';
 import productImageFallback from '../assets/images/app_placeholder.png';
-import {PRODUCT_IMAGE_FALLBACK_CATEGORIES} from '../enums/Product';
+import {
+	ProductImageFallbackCategories,
+	ProductLicense,
+	ProductLicenseType,
+	ProductSpecificationKey,
+	ProductType,
+	SkuOptions,
+} from '../enums/Product';
 import i18n from '../i18n';
+import {getValueFromDeliverySpecifications} from './util';
+
+export function getAiHubTokenSKUs(product: DeliveryProduct) {
+	return product.skus
+		.filter(
+			({purchasable, skuOptions}) =>
+				purchasable &&
+				skuOptions.some((skuOption) =>
+					skuOption.skuOptionValueKey.includes('tokens')
+				)
+		)
+		.sort(
+			(a, b) =>
+				parseInt(a?.sku?.replace(/[^\d]/g, ''), 10) -
+				parseInt(b?.sku?.replace(/[^\d]/g, ''), 10)
+		);
+}
 
 export function getProductFallback(): DeliveryProduct {
 	return {
 		attachments: [],
+		catalogName: '',
 		categories: [],
 		createDate: '',
 		description: i18n.translate('this-product-is-no-longer-available'),
@@ -25,32 +50,43 @@ export function getProductFallback(): DeliveryProduct {
 		shortDescription: i18n.translate('this-product-is-no-longer-available'),
 		skus: [],
 		urlImage: '',
+		urls: {en_US: ''},
 	};
 }
 
-export function getProductImageFallback(
-	type: PRODUCT_IMAGE_FALLBACK_CATEGORIES
-) {
+export function getProductImageFallback(type: ProductImageFallbackCategories) {
 	const productImagesFallback = {
-		[PRODUCT_IMAGE_FALLBACK_CATEGORIES.PRODUCT_IMAGE]: productImageFallback,
-		[PRODUCT_IMAGE_FALLBACK_CATEGORIES.PRODUCT_ICON]: productIconFallback,
+		[ProductImageFallbackCategories.PRODUCT_IMAGE]: productImageFallback,
+		[ProductImageFallbackCategories.PRODUCT_ICON]: productIconFallback,
 	};
 
 	return productImagesFallback[type] || '';
 }
 
-export function getSpecificationByKey(key: string, product: DeliveryProduct) {
+export function getProductSpecification(
+	key: ProductSpecificationKey,
+	product: DeliveryProduct
+) {
 	return product?.productSpecifications?.find(
 		({specificationKey}) => specificationKey === key
 	);
+}
+
+export function getProductSpecificationValue<T = string>(
+	key: ProductSpecificationKey,
+	product: DeliveryProduct,
+	value?: T
+) {
+	return getProductSpecification(key, product)?.value || (value as T);
 }
 
 export function isCloudProduct(product?: DeliveryProduct) {
 	return (
 		product?.productSpecifications?.some(
 			({specificationKey, value}) =>
-				specificationKey === 'type' && value === 'cloud'
-		) ?? false
+				specificationKey === ProductSpecificationKey.APP_TYPE &&
+				value === ProductType.CLOUD
+		) || false
 	);
 }
 
@@ -100,4 +136,76 @@ export function getProductCategoriesByVocabularyName(
 				)
 		)
 		.map(({name}) => name);
+}
+
+export function getSkuByOptionValueKey(
+	product: DeliveryProduct,
+	skuOptionValueKey: SkuOptions
+) {
+	return product.skus.find(
+		({purchasable, skuOptions}) =>
+			purchasable &&
+			skuOptions.find(
+				(skuOption) =>
+					[ProductLicense.CLOUD, ProductLicense.DXP].includes(
+						skuOption.skuOptionKey as ProductLicense
+					) && skuOption.skuOptionValueKey === skuOptionValueKey
+			)
+	);
+}
+
+export function getProductPrice(product: DeliveryProduct) {
+	const {isFreeApp} = getProductPriceModel(product);
+
+	if (isFreeApp) {
+		return 'Free';
+	}
+
+	const standardSku = getSkuByOptionValueKey(product, SkuOptions.STANDARD);
+
+	const standardPrice = standardSku?.price?.priceFormatted || '';
+
+	const trialSku = getSkuByOptionValueKey(product, SkuOptions.TRIAL);
+
+	if (trialSku) {
+		return `30-day trial or ${standardPrice}`;
+	}
+
+	return standardPrice;
+}
+
+export function getProductType(product: DeliveryProduct) {
+	const specification = getProductSpecificationValue(
+		ProductSpecificationKey.APP_TYPE,
+		product
+	);
+
+	return {
+		isCloud: specification === ProductType.CLOUD,
+		isDXP: specification === ProductType.DXP,
+	};
+}
+
+export function getLicenseTagText(product: DeliveryProduct) {
+	const licenseTypeSpecification = getValueFromDeliverySpecifications(
+		product.productSpecifications,
+		ProductSpecificationKey.APP_LICENSING_TYPE
+	).toLowerCase();
+
+	return licenseTypeSpecification === ProductLicenseType.PERPETUAL
+		? 'One-Time'
+		: 'Annually';
+}
+
+export function getProductPriceModel(product: DeliveryProduct) {
+	const priceModel = getProductSpecificationValue(
+		ProductSpecificationKey.APP_PRICING_MODEL,
+		product
+	)?.toLowerCase();
+
+	return {
+		isFreeApp: priceModel === 'free',
+		isPaidApp: priceModel === 'paid',
+		priceModel,
+	};
 }

@@ -26,21 +26,21 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Mika Koivisto
@@ -199,11 +199,11 @@ public class InvokerFilter implements Filter {
 
 		if (_dispatcher == Dispatcher.ERROR) {
 			uri = (String)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_SERVLET_ERROR_REQUEST_URI);
+				JavaConstants.JAKARTA_SERVLET_ERROR_REQUEST_URI);
 		}
 		else if (_dispatcher == Dispatcher.INCLUDE) {
 			uri = (String)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_SERVLET_INCLUDE_REQUEST_URI);
+				JavaConstants.JAKARTA_SERVLET_INCLUDE_REQUEST_URI);
 		}
 		else {
 			uri = httpServletRequest.getRequestURI();
@@ -307,12 +307,14 @@ public class InvokerFilter implements Filter {
 
 			int index = parameter.indexOf(CharPool.EQUAL);
 
-			if ((index != -1) &&
-				_queryStringIgnoredKeys.contains(
+			if ((index == -1) ||
+				!_queryStringIgnoredKeys.contains(
 					parameter.substring(0, index))) {
 
-				parameters[i] = StringPool.BLANK;
+				continue;
 			}
+
+			parameters[i] = StringPool.BLANK;
 		}
 
 		Arrays.sort(parameters);
@@ -320,10 +322,12 @@ public class InvokerFilter implements Filter {
 		StringBundler sb = new StringBundler();
 
 		for (String parameter : parameters) {
-			if (!parameter.isEmpty()) {
-				sb.append(parameter);
-				sb.append(StringPool.AMPERSAND);
+			if (parameter.isEmpty()) {
+				continue;
 			}
+
+			sb.append(parameter);
+			sb.append(StringPool.AMPERSAND);
 		}
 
 		if (sb.index() != 0) {

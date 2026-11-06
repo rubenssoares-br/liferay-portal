@@ -22,29 +22,37 @@ import com.liferay.headless.admin.workflow.client.serdes.v1_0.WorkflowDefinition
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -83,8 +88,10 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -97,17 +104,16 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 
 		_workflowDefinitionLinkResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		WorkflowDefinitionLinkResource.Builder builder =
-			WorkflowDefinitionLinkResource.builder();
-
-		workflowDefinitionLinkResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		workflowDefinitionLinkResource = WorkflowDefinitionLinkResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -177,6 +183,7 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 
 		workflowDefinitionLink.setClassName(regex);
 		workflowDefinitionLink.setExternalReferenceCode(regex);
+		workflowDefinitionLink.setGroupExternalReferenceCode(regex);
 		workflowDefinitionLink.setWorkflowDefinitionName(regex);
 
 		String json = WorkflowDefinitionLinkSerDes.toJSON(
@@ -189,6 +196,8 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 		Assert.assertEquals(regex, workflowDefinitionLink.getClassName());
 		Assert.assertEquals(
 			regex, workflowDefinitionLink.getExternalReferenceCode());
+		Assert.assertEquals(
+			regex, workflowDefinitionLink.getGroupExternalReferenceCode());
 		Assert.assertEquals(
 			regex, workflowDefinitionLink.getWorkflowDefinitionName());
 	}
@@ -243,7 +252,8 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 		page =
 			workflowDefinitionLinkResource.
 				getWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -276,13 +286,13 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 		String externalReferenceCode =
 			testGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPage_getExternalReferenceCode();
 
-		Page<WorkflowDefinitionLink> workflowDefinitionLinkPage =
+		Page<WorkflowDefinitionLink> workflowDefinitionLinksPage =
 			workflowDefinitionLinkResource.
 				getWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPage(
 					externalReferenceCode, null);
 
 		int totalCount = GetterUtil.getInteger(
-			workflowDefinitionLinkPage.getTotalCount());
+			workflowDefinitionLinksPage.getTotalCount());
 
 		WorkflowDefinitionLink workflowDefinitionLink1 =
 			testGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPage_addWorkflowDefinitionLink(
@@ -412,22 +422,111 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 	}
 
 	@Test
-	public void testPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink()
+	public void testGraphQLGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPage()
 		throws Exception {
 
-		WorkflowDefinitionLink randomWorkflowDefinitionLink =
-			randomWorkflowDefinitionLink();
+		String externalReferenceCode =
+			testGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPage_getExternalReferenceCode();
 
-		WorkflowDefinitionLink postWorkflowDefinitionLink =
-			testPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink_addWorkflowDefinitionLink(
-				randomWorkflowDefinitionLink);
+		GraphQLField graphQLField =
+			testGraphQLGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_getGraphQLField(
+				externalReferenceCode);
 
-		assertEquals(randomWorkflowDefinitionLink, postWorkflowDefinitionLink);
-		assertValid(postWorkflowDefinitionLink);
+		// No namespace
+
+		JSONObject
+			workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject =
+				JSONUtil.getValueAsJSONObject(
+					invokeGraphQLQuery(graphQLField), "JSONObject/data",
+					"JSONObject/workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinks");
+
+		long totalCount =
+			workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+				getLong("totalCount");
+
+		WorkflowDefinitionLink workflowDefinitionLink1 =
+			testGraphQLGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				externalReferenceCode, randomWorkflowDefinitionLink());
+
+		WorkflowDefinitionLink workflowDefinitionLink2 =
+			testGraphQLGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				externalReferenceCode, randomWorkflowDefinitionLink());
+
+		workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(graphQLField), "JSONObject/data",
+				"JSONObject/workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinks");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+				getLong("totalCount"));
+
+		assertContains(
+			workflowDefinitionLink1,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+		assertContains(
+			workflowDefinitionLink2,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+
+		// Using the namespace headlessAdminWorkflow_v1_0
+
+		workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessAdminWorkflow_v1_0", graphQLField)),
+				"JSONObject/data", "JSONObject/headlessAdminWorkflow_v1_0",
+				"JSONObject/workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinks");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+				getLong("totalCount"));
+
+		assertContains(
+			workflowDefinitionLink1,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+		assertContains(
+			workflowDefinitionLink2,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+	}
+
+	protected GraphQLField
+			testGraphQLGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_getGraphQLField(
+				String externalReferenceCode)
+		throws Exception {
+
+		return new GraphQLField(
+			"workflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinks",
+			new HashMap<String, Object>() {
+				{
+					put(
+						"externalReferenceCode",
+						"\"" + externalReferenceCode + "\"");
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
 	}
 
 	protected WorkflowDefinitionLink
-			testPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink_addWorkflowDefinitionLink(
+			testGraphQLGetWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				String externalReferenceCode,
 				WorkflowDefinitionLink workflowDefinitionLink)
 		throws Exception {
 
@@ -485,7 +584,8 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 		page =
 			workflowDefinitionLinkResource.
 				getWorkflowDefinitionWorkflowDefinitionLinksPage(
-					workflowDefinitionId, Pagination.of(1, 10));
+					workflowDefinitionId,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -512,10 +612,11 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 		createBatchAction.put("method", "POST");
 		createBatchAction.put(
 			"href",
-			"http://localhost:8080/o/headless-admin-workflow/v1.0/workflow-definitions/{workflowDefinitionId}/workflow-definition-links/batch".
-				replace(
-					"{workflowDefinitionId}",
-					String.valueOf(workflowDefinitionId)));
+			("http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/headless-admin-workflow/v1.0/workflow-definitions/{workflowDefinitionId}/workflow-definition-links/batch").
+					replace(
+						"{workflowDefinitionId}",
+						String.valueOf(workflowDefinitionId)));
 
 		expectedActions.put("createBatch", createBatchAction);
 
@@ -529,13 +630,13 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 		Long workflowDefinitionId =
 			testGetWorkflowDefinitionWorkflowDefinitionLinksPage_getWorkflowDefinitionId();
 
-		Page<WorkflowDefinitionLink> workflowDefinitionLinkPage =
+		Page<WorkflowDefinitionLink> workflowDefinitionLinksPage =
 			workflowDefinitionLinkResource.
 				getWorkflowDefinitionWorkflowDefinitionLinksPage(
 					workflowDefinitionId, null);
 
 		int totalCount = GetterUtil.getInteger(
-			workflowDefinitionLinkPage.getTotalCount());
+			workflowDefinitionLinksPage.getTotalCount());
 
 		WorkflowDefinitionLink workflowDefinitionLink1 =
 			testGetWorkflowDefinitionWorkflowDefinitionLinksPage_addWorkflowDefinitionLink(
@@ -664,6 +765,154 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 	}
 
 	@Test
+	public void testGraphQLGetWorkflowDefinitionWorkflowDefinitionLinksPage()
+		throws Exception {
+
+		Long workflowDefinitionId =
+			testGetWorkflowDefinitionWorkflowDefinitionLinksPage_getWorkflowDefinitionId();
+
+		GraphQLField graphQLField =
+			testGraphQLGetWorkflowDefinitionWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_getGraphQLField(
+				workflowDefinitionId);
+
+		// No namespace
+
+		JSONObject workflowDefinitionWorkflowDefinitionLinksJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(graphQLField), "JSONObject/data",
+				"JSONObject/workflowDefinitionWorkflowDefinitionLinks");
+
+		long totalCount =
+			workflowDefinitionWorkflowDefinitionLinksJSONObject.getLong(
+				"totalCount");
+
+		WorkflowDefinitionLink workflowDefinitionLink1 =
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				workflowDefinitionId, randomWorkflowDefinitionLink());
+
+		WorkflowDefinitionLink workflowDefinitionLink2 =
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				workflowDefinitionId, randomWorkflowDefinitionLink());
+
+		workflowDefinitionWorkflowDefinitionLinksJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(graphQLField), "JSONObject/data",
+				"JSONObject/workflowDefinitionWorkflowDefinitionLinks");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			workflowDefinitionWorkflowDefinitionLinksJSONObject.getLong(
+				"totalCount"));
+
+		assertContains(
+			workflowDefinitionLink1,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+		assertContains(
+			workflowDefinitionLink2,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+
+		// Using the namespace headlessAdminWorkflow_v1_0
+
+		workflowDefinitionWorkflowDefinitionLinksJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessAdminWorkflow_v1_0", graphQLField)),
+				"JSONObject/data", "JSONObject/headlessAdminWorkflow_v1_0",
+				"JSONObject/workflowDefinitionWorkflowDefinitionLinks");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			workflowDefinitionWorkflowDefinitionLinksJSONObject.getLong(
+				"totalCount"));
+
+		assertContains(
+			workflowDefinitionLink1,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+		assertContains(
+			workflowDefinitionLink2,
+			Arrays.asList(
+				WorkflowDefinitionLinkSerDes.toDTOs(
+					workflowDefinitionWorkflowDefinitionLinksJSONObject.
+						getString("items"))));
+	}
+
+	protected GraphQLField
+			testGraphQLGetWorkflowDefinitionWorkflowDefinitionLinksPageWorkflowDefinitionWorkflowDefinitionLink_getGraphQLField(
+				Long workflowDefinitionId)
+		throws Exception {
+
+		return new GraphQLField(
+			"workflowDefinitionWorkflowDefinitionLinks",
+			new HashMap<String, Object>() {
+				{
+					put("workflowDefinitionId", workflowDefinitionId);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
+	}
+
+	@Test
+	public void testPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink()
+		throws Exception {
+
+		WorkflowDefinitionLink randomWorkflowDefinitionLink =
+			randomWorkflowDefinitionLink();
+
+		WorkflowDefinitionLink postWorkflowDefinitionLink =
+			testPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				randomWorkflowDefinitionLink);
+
+		assertEquals(randomWorkflowDefinitionLink, postWorkflowDefinitionLink);
+		assertValid(postWorkflowDefinitionLink);
+	}
+
+	protected WorkflowDefinitionLink
+			testPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				WorkflowDefinitionLink workflowDefinitionLink)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink()
+		throws Exception {
+
+		WorkflowDefinitionLink randomWorkflowDefinitionLink =
+			randomWorkflowDefinitionLink();
+
+		WorkflowDefinitionLink workflowDefinitionLink =
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				testGraphQLPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink_getWorkflowDefinitionId(),
+				randomWorkflowDefinitionLink);
+
+		Assert.assertTrue(
+			equals(randomWorkflowDefinitionLink, workflowDefinitionLink));
+	}
+
+	protected Long
+			testGraphQLPostWorkflowDefinitionByExternalReferenceCodeWorkflowDefinitionLink_getWorkflowDefinitionId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostWorkflowDefinitionWorkflowDefinitionLink()
 		throws Exception {
 
@@ -689,12 +938,245 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 				workflowDefinitionLink);
 	}
 
-	protected WorkflowDefinitionLink
-			testGraphQLWorkflowDefinitionLink_addWorkflowDefinitionLink()
+	@Test
+	public void testGraphQLPostWorkflowDefinitionWorkflowDefinitionLink()
+		throws Exception {
+
+		WorkflowDefinitionLink randomWorkflowDefinitionLink =
+			randomWorkflowDefinitionLink();
+
+		WorkflowDefinitionLink workflowDefinitionLink =
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				testGraphQLPostWorkflowDefinitionWorkflowDefinitionLink_getWorkflowDefinitionId(),
+				randomWorkflowDefinitionLink);
+
+		Assert.assertTrue(
+			equals(randomWorkflowDefinitionLink, workflowDefinitionLink));
+	}
+
+	protected Long
+			testGraphQLPostWorkflowDefinitionWorkflowDefinitionLink_getWorkflowDefinitionId()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPutWorkflowDefinitionLinkByExternalReferenceCode()
+		throws Exception {
+
+		WorkflowDefinitionLink postWorkflowDefinitionLink =
+			testPutWorkflowDefinitionLinkByExternalReferenceCode_addWorkflowDefinitionLink();
+
+		WorkflowDefinitionLink randomWorkflowDefinitionLink =
+			randomWorkflowDefinitionLink();
+
+		WorkflowDefinitionLink putWorkflowDefinitionLink =
+			workflowDefinitionLinkResource.
+				putWorkflowDefinitionLinkByExternalReferenceCode(
+					postWorkflowDefinitionLink.getExternalReferenceCode(),
+					randomWorkflowDefinitionLink);
+
+		assertEquals(randomWorkflowDefinitionLink, putWorkflowDefinitionLink);
+		assertValid(putWorkflowDefinitionLink);
+
+		WorkflowDefinitionLink getWorkflowDefinitionLink =
+			testPutWorkflowDefinitionLinkByExternalReferenceCode_getWorkflowDefinitionLink(
+				putWorkflowDefinitionLink.getExternalReferenceCode());
+
+		assertEquals(randomWorkflowDefinitionLink, getWorkflowDefinitionLink);
+		assertValid(getWorkflowDefinitionLink);
+
+		WorkflowDefinitionLink newWorkflowDefinitionLink =
+			testPutWorkflowDefinitionLinkByExternalReferenceCode_createWorkflowDefinitionLink();
+
+		putWorkflowDefinitionLink =
+			workflowDefinitionLinkResource.
+				putWorkflowDefinitionLinkByExternalReferenceCode(
+					newWorkflowDefinitionLink.getExternalReferenceCode(),
+					newWorkflowDefinitionLink);
+
+		assertEquals(newWorkflowDefinitionLink, putWorkflowDefinitionLink);
+		assertValid(putWorkflowDefinitionLink);
+
+		getWorkflowDefinitionLink =
+			testPutWorkflowDefinitionLinkByExternalReferenceCode_getWorkflowDefinitionLink(
+				putWorkflowDefinitionLink.getExternalReferenceCode());
+
+		assertEquals(newWorkflowDefinitionLink, getWorkflowDefinitionLink);
+
+		Assert.assertEquals(
+			newWorkflowDefinitionLink.getExternalReferenceCode(),
+			putWorkflowDefinitionLink.getExternalReferenceCode());
+	}
+
+	protected WorkflowDefinitionLink
+		testPutWorkflowDefinitionLinkByExternalReferenceCode_getWorkflowDefinitionLink(
+			String externalReferenceCode) {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected WorkflowDefinitionLink
+			testPutWorkflowDefinitionLinkByExternalReferenceCode_addWorkflowDefinitionLink()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected WorkflowDefinitionLink
+			testPutWorkflowDefinitionLinkByExternalReferenceCode_createWorkflowDefinitionLink()
+		throws Exception {
+
+		return randomWorkflowDefinitionLink();
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Assert.assertTrue(true);
+	}
+
+	protected WorkflowDefinitionLink
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink()
+		throws Exception {
+
+		return testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_getWorkflowDefinitionId(),
+			randomWorkflowDefinitionLink());
+	}
+
+	protected Long
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_getWorkflowDefinitionId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected WorkflowDefinitionLink
+			testGraphQLWorkflowDefinitionWorkflowDefinitionLink_addWorkflowDefinitionLink(
+				Long workflowDefinitionId,
+				WorkflowDefinitionLink workflowDefinitionLink)
+		throws Exception {
+
+		JSONDeserializer<WorkflowDefinitionLink> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field :
+				getDeclaredFields(WorkflowDefinitionLink.class)) {
+
+			if (getGraphQLValue(field.get(workflowDefinitionLink)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(workflowDefinitionLink)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createWorkflowDefinitionWorkflowDefinitionLink",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"workflowDefinitionId",
+									workflowDefinitionId);
+								put("workflowDefinitionLink", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data",
+				"JSONObject/createWorkflowDefinitionWorkflowDefinitionLink"),
+			WorkflowDefinitionLink.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(
@@ -811,6 +1293,18 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"groupExternalReferenceCode", additionalAssertFieldName)) {
+
+				if (workflowDefinitionLink.getGroupExternalReferenceCode() ==
+						null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("groupId", additionalAssertFieldName)) {
 				if (workflowDefinitionLink.getGroupId() == null) {
 					valid = false;
@@ -902,6 +1396,10 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.admin.workflow.dto.v1_0.
@@ -981,6 +1479,20 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 				if (!Objects.deepEquals(
 						workflowDefinitionLink1.getExternalReferenceCode(),
 						workflowDefinitionLink2.getExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"groupExternalReferenceCode", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						workflowDefinitionLink1.getGroupExternalReferenceCode(),
+						workflowDefinitionLink2.
+							getGroupExternalReferenceCode())) {
 
 					return false;
 				}
@@ -1237,6 +1749,53 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("groupExternalReferenceCode")) {
+			Object object =
+				workflowDefinitionLink.getGroupExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("groupId")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -1314,7 +1873,9 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1351,6 +1912,8 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 				className = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				externalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				groupExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				groupId = RandomTestUtil.randomLong();
 				id = RandomTestUtil.randomLong();
@@ -1577,10 +2140,13 @@ public abstract class BaseWorkflowDefinitionLinkResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseWorkflowDefinitionLinkResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.admin.workflow.resource.v1_0.
 		WorkflowDefinitionLinkResource _workflowDefinitionLinkResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1223489783

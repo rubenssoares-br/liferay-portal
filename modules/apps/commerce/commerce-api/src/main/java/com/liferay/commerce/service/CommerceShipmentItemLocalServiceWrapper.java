@@ -446,20 +446,6 @@ public class CommerceShipmentItemLocalServiceWrapper
 
 	@Override
 	public java.util.List<com.liferay.commerce.model.CommerceShipmentItem>
-		getCommerceShipmentItems(
-			long commerceShipmentId, long commerceOrderItemId, int start,
-			int end,
-			com.liferay.portal.kernel.util.OrderByComparator
-				<com.liferay.commerce.model.CommerceShipmentItem>
-					orderByComparator) {
-
-		return _commerceShipmentItemLocalService.getCommerceShipmentItems(
-			commerceShipmentId, commerceOrderItemId, start, end,
-			orderByComparator);
-	}
-
-	@Override
-	public java.util.List<com.liferay.commerce.model.CommerceShipmentItem>
 		getCommerceShipmentItemsByCommerceOrderItemId(
 			long commerceOrderItemId) {
 
@@ -581,6 +567,12 @@ public class CommerceShipmentItemLocalServiceWrapper
 			primaryKeyObj);
 	}
 
+	@Override
+	public int getValidCommerceShipmentItemsCount(long commerceShipmentId) {
+		return _commerceShipmentItemLocalService.
+			getValidCommerceShipmentItemsCount(commerceShipmentId);
+	}
+
 	/**
 	 * Updates the commerce shipment item in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
 	 *
@@ -643,3 +635,4 @@ public class CommerceShipmentItemLocalServiceWrapper
 	private CommerceShipmentItemLocalService _commerceShipmentItemLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1766985420

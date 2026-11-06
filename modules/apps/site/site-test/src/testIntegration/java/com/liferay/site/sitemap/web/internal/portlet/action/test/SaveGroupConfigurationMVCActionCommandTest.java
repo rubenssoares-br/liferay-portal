@@ -6,7 +6,7 @@
 package com.liferay.site.sitemap.web.internal.portlet.action.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
-import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
+import com.liferay.configuration.admin.util.ConfigurationFilterStringUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.GroupConstants;
@@ -37,9 +37,9 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import java.util.Dictionary;
+import jakarta.portlet.PortletException;
 
-import javax.portlet.PortletException;
+import java.util.Dictionary;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -94,28 +94,35 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 
 	@Test
 	public void testSaveGroupConfiguration() throws Exception {
-		_assertSaveGroupConfiguration(true, true, true, _groupAdminUser);
+		_assertSaveGroupConfiguration(true, true, true, true, _groupAdminUser);
 	}
 
 	@Test
 	public void testSaveGroupConfigurationDisablingIncludeCategories()
 		throws Exception {
 
-		_assertSaveGroupConfiguration(false, true, true, _groupAdminUser);
+		_assertSaveGroupConfiguration(false, true, true, true, _groupAdminUser);
+	}
+
+	@Test
+	public void testSaveGroupConfigurationDisablingIncludeCommerceProducts()
+		throws Exception {
+
+		_assertSaveGroupConfiguration(true, false, true, true, _groupAdminUser);
 	}
 
 	@Test
 	public void testSaveGroupConfigurationDisablingIncludePages()
 		throws Exception {
 
-		_assertSaveGroupConfiguration(true, false, true, _groupAdminUser);
+		_assertSaveGroupConfiguration(true, true, false, true, _groupAdminUser);
 	}
 
 	@Test
 	public void testSaveGroupConfigurationDisablingIncludeWebContent()
 		throws Exception {
 
-		_assertSaveGroupConfiguration(true, true, false, _groupAdminUser);
+		_assertSaveGroupConfiguration(true, true, true, false, _groupAdminUser);
 	}
 
 	@Test
@@ -128,7 +135,7 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 
 		try {
 			_assertSaveGroupConfiguration(
-				true, true, true, UserTestUtil.addGroupAdminUser(group));
+				true, true, true, true, UserTestUtil.addGroupAdminUser(group));
 		}
 		catch (PortletException portletException) {
 			portletExceptionThrown = true;
@@ -144,16 +151,14 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 	}
 
 	private void _assertGroupConfiguration(
-			boolean includeCategories, boolean includePages,
-			boolean includeWebContent)
+			boolean includeCategories, boolean includeCommerceProducts,
+			boolean includePages, boolean includeWebContent)
 		throws Exception {
 
 		Configuration[] configurations = _configurationAdmin.listConfigurations(
-			String.format(
-				"(&(%s=%s)(%s=%d))", ConfigurationAdmin.SERVICE_FACTORYPID,
-				_PID_SITEMAP_GROUP_CONFIGURATION + ".scoped",
-				ExtendedObjectClassDefinition.Scope.GROUP.getPropertyKey(),
-				_group.getGroupId()));
+			ConfigurationFilterStringUtil.getGroupScopedFilterString(
+				_group.getCompanyId(), _group.getGroupId(),
+				_PID_SITEMAP_GROUP_CONFIGURATION, null));
 
 		Assert.assertTrue(ArrayUtil.isNotEmpty(configurations));
 
@@ -165,6 +170,9 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 			includeCategories,
 			GetterUtil.getBoolean(properties.get("includeCategories")));
 		Assert.assertEquals(
+			includeCommerceProducts,
+			GetterUtil.getBoolean(properties.get("includeCommerceProducts")));
+		Assert.assertEquals(
 			includePages,
 			GetterUtil.getBoolean(properties.get("includePages")));
 		Assert.assertEquals(
@@ -173,13 +181,14 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 	}
 
 	private void _assertSaveGroupConfiguration(
-			boolean includeCategories, boolean includePages,
-			boolean includeWebContent, User user)
+			boolean includeCategories, boolean includeCommerceProducts,
+			boolean includePages, boolean includeWebContent, User user)
 		throws Exception {
 
 		MockLiferayPortletActionRequest mockLiferayPortletActionRequest =
 			_getMockLiferayPortletActionRequest(
-				includeCategories, includePages, includeWebContent, user);
+				includeCategories, includeCommerceProducts, includePages,
+				includeWebContent, user);
 
 		Assert.assertFalse(
 			SessionMessages.contains(
@@ -194,12 +203,13 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 				mockLiferayPortletActionRequest, "requestProcessed"));
 
 		_assertGroupConfiguration(
-			includeCategories, includePages, includeWebContent);
+			includeCategories, includeCommerceProducts, includePages,
+			includeWebContent);
 	}
 
 	private MockLiferayPortletActionRequest _getMockLiferayPortletActionRequest(
-			boolean includeCategories, boolean includePages,
-			boolean includeWebContent, User user)
+			boolean includeCategories, boolean includeCommerceProducts,
+			boolean includePages, boolean includeWebContent, User user)
 		throws Exception {
 
 		MockLiferayPortletActionRequest mockLiferayPortletActionRequest =
@@ -208,11 +218,13 @@ public class SaveGroupConfigurationMVCActionCommandTest {
 		mockLiferayPortletActionRequest.addParameter(
 			"includeCategories", String.valueOf(includeCategories));
 		mockLiferayPortletActionRequest.addParameter(
+			"includeCommerceProducts", String.valueOf(includeCommerceProducts));
+		mockLiferayPortletActionRequest.addParameter(
 			"includePages", String.valueOf(includePages));
 		mockLiferayPortletActionRequest.addParameter(
 			"includeWebContent", String.valueOf(includeWebContent));
 		mockLiferayPortletActionRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletActionResponse());
 		mockLiferayPortletActionRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, _getThemeDisplay(user));

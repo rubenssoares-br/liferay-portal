@@ -11,24 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -39,9 +42,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 	description = "A reference to a default fragment (provided out-of-the-box).",
 	value = "DefaultFragmentReference"
 )
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A reference to a default fragment (provided out-of-the-box).",
+	requiredProperties = {"defaultFragmentKey"}
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "DefaultFragmentReference")
-public class DefaultFragmentReference implements Serializable {
+public class DefaultFragmentReference
+	extends FragmentReference implements Serializable {
 
 	public static DefaultFragmentReference toDTO(String json) {
 		return ObjectMapperUtil.readValue(DefaultFragmentReference.class, json);
@@ -52,7 +60,9 @@ public class DefaultFragmentReference implements Serializable {
 			DefaultFragmentReference.class, json);
 	}
 
-	@Schema(description = "The key of the default fragment.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The key of the default fragment."
+	)
 	public String getDefaultFragmentKey() {
 		if (_defaultFragmentKeySupplier != null) {
 			defaultFragmentKey = _defaultFragmentKeySupplier.get();
@@ -88,6 +98,7 @@ public class DefaultFragmentReference implements Serializable {
 
 	@GraphQLField(description = "The key of the default fragment.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@NotEmpty
 	protected String defaultFragmentKey;
 
 	@JsonIgnore
@@ -137,13 +148,28 @@ public class DefaultFragmentReference implements Serializable {
 			sb.append("\"");
 		}
 
+		FragmentReferenceType fragmentReferenceType =
+			getFragmentReferenceType();
+
+		if (fragmentReferenceType != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"fragmentReferenceType\": ");
+
+			sb.append("\"");
+			sb.append(fragmentReferenceType);
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.DefaultFragmentReference",
 		name = "x-class-name"
 	)
@@ -230,6 +256,27 @@ public class DefaultFragmentReference implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -238,3 +285,4 @@ public class DefaultFragmentReference implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1162257778

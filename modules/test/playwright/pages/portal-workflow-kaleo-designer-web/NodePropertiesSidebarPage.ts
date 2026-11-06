@@ -18,44 +18,38 @@ export class NodePropertiesSidebarPage {
 	readonly addTimerButton: Locator;
 	readonly deleteNotificationsButton: Locator;
 	readonly diagramViewPage: DiagramViewPage;
-	readonly editAssignmentButton: Locator;
 	readonly nodeLabelInput: Locator;
 	readonly notificationPage: NotificationSectionPage;
 	readonly page: Page;
+	readonly roleNameInput: Locator;
 	readonly sidebarBackButton: Locator;
 	readonly sideBarNodes: Locator;
 	readonly timerPage: TimerPage;
 
 	constructor(page: Page) {
-		this.addActionButton = page
-			.getByRole('tablist')
-			.filter({hasText: 'Actions'})
-			.getByRole('button', {name: 'New'})
-			.first();
-		this.addNotificationButton = page
-			.getByRole('tablist')
-			.filter({hasText: 'Notification'})
-			.getByRole('button', {name: 'New'})
-			.first();
-		this.addTimerButton = page
-			.getByRole('tablist')
-			.filter({hasText: 'Timers'})
-			.getByRole('button', {name: 'New'})
-			.first();
+		this.addActionButton = page.getByRole('button', {
+			exact: true,
+			name: 'New Action',
+		});
+		this.addNotificationButton = page.getByRole('button', {
+			exact: true,
+			name: 'New Notification',
+		});
+		this.addTimerButton = page.getByRole('button', {
+			exact: true,
+			name: 'New Timer',
+		});
 		this.deleteNotificationsButton = page.locator(
 			'button[title="Delete Notifications"]'
 		);
 		this.diagramViewPage = new DiagramViewPage(page);
-		this.editAssignmentButton = page.locator(
-			'a.c-link:has-text("Asset Creator")'
-		);
 		this.nodeLabelInput = page.locator('#workflowDefinitionBaseNodeLabel');
 		this.notificationPage = new NotificationSectionPage(page);
 		this.page = page;
+		this.roleNameInput = page.getByLabel('Role Name').first();
 		this.sidebarBackButton = page
 			.locator('div.sidebar-header')
-			.getByRole('button')
-			.first();
+			.getByRole('button', {name: 'Back'});
 		this.sideBarNodes = page.locator('div.sidebar-body div.base-node');
 		this.timerPage = new TimerPage(page);
 		this.actionPage = new ActionPage(page);
@@ -71,7 +65,7 @@ export class NodePropertiesSidebarPage {
 			'week'
 		);
 
-		await this.actionPage.fillWorkflowAction(name, script, typeOption);
+		await this.actionPage.fillWorkflowAction({name, script, typeOption});
 	}
 
 	async createNotification(notification: Notification) {

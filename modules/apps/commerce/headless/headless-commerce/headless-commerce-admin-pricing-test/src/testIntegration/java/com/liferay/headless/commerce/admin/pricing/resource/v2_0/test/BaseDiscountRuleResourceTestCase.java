@@ -13,12 +13,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.pricing.client.dto.v2_0.DiscountRule;
 import com.liferay.headless.commerce.admin.pricing.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.pricing.client.pagination.Page;
 import com.liferay.headless.commerce.admin.pricing.client.pagination.Pagination;
 import com.liferay.headless.commerce.admin.pricing.client.resource.v2_0.DiscountRuleResource;
 import com.liferay.headless.commerce.admin.pricing.client.serdes.v2_0.DiscountRuleSerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
@@ -29,13 +33,22 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -43,12 +56,27 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,13 +85,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -72,6 +97,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Zoltán Takács
@@ -82,13 +110,17 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -101,16 +133,27 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 		_discountRuleResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		DiscountRuleResource.Builder builder = DiscountRuleResource.builder();
-
-		discountRuleResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		discountRuleResource = DiscountRuleResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -172,9 +215,11 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 		DiscountRule discountRule = randomDiscountRule();
 
+		discountRule.setExternalReferenceCode(regex);
 		discountRule.setName(regex);
 		discountRule.setType(regex);
 		discountRule.setTypeSettings(regex);
+		discountRule.setTypeSettingsValue(regex);
 
 		String json = DiscountRuleSerDes.toJSON(discountRule);
 
@@ -182,9 +227,11 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 		discountRule = DiscountRuleSerDes.toDTO(json);
 
+		Assert.assertEquals(regex, discountRule.getExternalReferenceCode());
 		Assert.assertEquals(regex, discountRule.getName());
 		Assert.assertEquals(regex, discountRule.getType());
 		Assert.assertEquals(regex, discountRule.getTypeSettings());
+		Assert.assertEquals(regex, discountRule.getTypeSettingsValue());
 	}
 
 	@Test
@@ -201,11 +248,8 @@ public abstract class BaseDiscountRuleResourceTestCase {
 			404,
 			discountRuleResource.getDiscountRuleHttpResponse(
 				discountRule.getId()));
-
 		assertHttpResponseStatusCode(
-			404,
-			discountRuleResource.getDiscountRuleHttpResponse(
-				discountRule.getId()));
+			404, discountRuleResource.getDiscountRuleHttpResponse(0L));
 	}
 
 	protected DiscountRule testDeleteDiscountRule_addDiscountRule()
@@ -220,6 +264,7 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		DiscountRule discountRule1 =
 			testGraphQLDeleteDiscountRule_addDiscountRule();
 
@@ -244,13 +289,14 @@ public abstract class BaseDiscountRuleResourceTestCase {
 							put("id", discountRule1.getId());
 						}
 					},
-					new GraphQLField("id"))),
+					getGraphQLFields())),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray1.length() > 0);
 
 		// Using the namespace headlessCommerceAdminPricing_v2_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		DiscountRule discountRule2 =
 			testGraphQLDeleteDiscountRule_addDiscountRule();
 
@@ -281,7 +327,7 @@ public abstract class BaseDiscountRuleResourceTestCase {
 								put("id", discountRule2.getId());
 							}
 						},
-						new GraphQLField("id")))),
+						getGraphQLFields()))),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray2.length() > 0);
@@ -294,143 +340,44 @@ public abstract class BaseDiscountRuleResourceTestCase {
 	}
 
 	@Test
-	public void testGetDiscountRule() throws Exception {
-		DiscountRule postDiscountRule = testGetDiscountRule_addDiscountRule();
+	public void testDeleteDiscountRuleBatch() throws Exception {
+		DiscountRule discountRule1 =
+			testDeleteDiscountRuleBatch_addDiscountRule();
 
-		DiscountRule getDiscountRule = discountRuleResource.getDiscountRule(
-			postDiscountRule.getId());
+		testDeleteDiscountRuleBatch_deleteDiscountRule(
+			202, null, discountRule1.getId());
 
-		assertEquals(postDiscountRule, getDiscountRule);
-		assertValid(getDiscountRule);
+		assertHttpResponseStatusCode(
+			404,
+			discountRuleResource.getDiscountRuleHttpResponse(
+				discountRule1.getId()));
 	}
 
-	protected DiscountRule testGetDiscountRule_addDiscountRule()
+	protected DiscountRule testDeleteDiscountRuleBatch_addDiscountRule()
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testDeleteDiscountRule_addDiscountRule();
 	}
 
-	@Test
-	public void testGraphQLGetDiscountRule() throws Exception {
-		DiscountRule discountRule =
-			testGraphQLGetDiscountRule_addDiscountRule();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				discountRule,
-				DiscountRuleSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"discountRule",
-								new HashMap<String, Object>() {
-									{
-										put("id", discountRule.getId());
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data", "Object/discountRule"))));
-
-		// Using the namespace headlessCommerceAdminPricing_v2_0
-
-		Assert.assertTrue(
-			equals(
-				discountRule,
-				DiscountRuleSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceAdminPricing_v2_0",
-								new GraphQLField(
-									"discountRule",
-									new HashMap<String, Object>() {
-										{
-											put("id", discountRule.getId());
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceAdminPricing_v2_0",
-						"Object/discountRule"))));
-	}
-
-	@Test
-	public void testGraphQLGetDiscountRuleNotFound() throws Exception {
-		Long irrelevantId = RandomTestUtil.randomLong();
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"discountRule",
-						new HashMap<String, Object>() {
-							{
-								put("id", irrelevantId);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceAdminPricing_v2_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceAdminPricing_v2_0",
-						new GraphQLField(
-							"discountRule",
-							new HashMap<String, Object>() {
-								{
-									put("id", irrelevantId);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected DiscountRule testGraphQLGetDiscountRule_addDiscountRule()
+	protected void testDeleteDiscountRuleBatch_deleteDiscountRule(
+			int expectedStatusCode, String externalReferenceCode, Long id)
 		throws Exception {
 
-		return testGraphQLDiscountRule_addDiscountRule();
-	}
+		HttpInvoker.HttpResponse httpResponse =
+			discountRuleResource.deleteDiscountRuleBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
 
-	@Test
-	public void testPatchDiscountRule() throws Exception {
-		DiscountRule postDiscountRule = testPatchDiscountRule_addDiscountRule();
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
 
-		DiscountRule randomPatchDiscountRule = randomPatchDiscountRule();
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		DiscountRule patchDiscountRule = discountRuleResource.patchDiscountRule(
-			postDiscountRule.getId(), randomPatchDiscountRule);
-
-		DiscountRule expectedPatchDiscountRule = postDiscountRule.clone();
-
-		BeanTestUtil.copyProperties(
-			randomPatchDiscountRule, expectedPatchDiscountRule);
-
-		DiscountRule getDiscountRule = discountRuleResource.getDiscountRule(
-			patchDiscountRule.getId());
-
-		assertEquals(expectedPatchDiscountRule, getDiscountRule);
-		assertValid(getDiscountRule);
-	}
-
-	protected DiscountRule testPatchDiscountRule_addDiscountRule()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
 	}
 
 	@Test
@@ -482,7 +429,8 @@ public abstract class BaseDiscountRuleResourceTestCase {
 		page =
 			discountRuleResource.
 				getDiscountByExternalReferenceCodeDiscountRulesPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -515,13 +463,13 @@ public abstract class BaseDiscountRuleResourceTestCase {
 		String externalReferenceCode =
 			testGetDiscountByExternalReferenceCodeDiscountRulesPage_getExternalReferenceCode();
 
-		Page<DiscountRule> discountRulePage =
+		Page<DiscountRule> discountRulesPage =
 			discountRuleResource.
 				getDiscountByExternalReferenceCodeDiscountRulesPage(
 					externalReferenceCode, null);
 
 		int totalCount = GetterUtil.getInteger(
-			discountRulePage.getTotalCount());
+			discountRulesPage.getTotalCount());
 
 		DiscountRule discountRule1 =
 			testGetDiscountByExternalReferenceCodeDiscountRulesPage_addDiscountRule(
@@ -637,29 +585,6 @@ public abstract class BaseDiscountRuleResourceTestCase {
 	}
 
 	@Test
-	public void testPostDiscountByExternalReferenceCodeDiscountRule()
-		throws Exception {
-
-		DiscountRule randomDiscountRule = randomDiscountRule();
-
-		DiscountRule postDiscountRule =
-			testPostDiscountByExternalReferenceCodeDiscountRule_addDiscountRule(
-				randomDiscountRule);
-
-		assertEquals(randomDiscountRule, postDiscountRule);
-		assertValid(postDiscountRule);
-	}
-
-	protected DiscountRule
-			testPostDiscountByExternalReferenceCodeDiscountRule_addDiscountRule(
-				DiscountRule discountRule)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetDiscountIdDiscountRulesPage() throws Exception {
 		Long id = testGetDiscountIdDiscountRulesPage_getId();
 		Long irrelevantId =
@@ -699,7 +624,7 @@ public abstract class BaseDiscountRuleResourceTestCase {
 				id, randomDiscountRule());
 
 		page = discountRuleResource.getDiscountIdDiscountRulesPage(
-			id, null, null, Pagination.of(1, 10), null);
+			id, null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -825,12 +750,12 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 		Long id = testGetDiscountIdDiscountRulesPage_getId();
 
-		Page<DiscountRule> discountRulePage =
+		Page<DiscountRule> discountRulesPage =
 			discountRuleResource.getDiscountIdDiscountRulesPage(
 				id, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			discountRulePage.getTotalCount());
+			discountRulesPage.getTotalCount());
 
 		DiscountRule discountRule1 =
 			testGetDiscountIdDiscountRulesPage_addDiscountRule(
@@ -1087,6 +1012,365 @@ public abstract class BaseDiscountRuleResourceTestCase {
 	}
 
 	@Test
+	public void testGetDiscountRule() throws Exception {
+		DiscountRule postDiscountRule = testGetDiscountRule_addDiscountRule();
+
+		DiscountRule getDiscountRule = discountRuleResource.getDiscountRule(
+			postDiscountRule.getId());
+
+		assertEquals(postDiscountRule, getDiscountRule);
+		assertValid(getDiscountRule);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		DiscountRule postDiscountRule = testGetDiscountRule_addDiscountRule();
+
+		DiscountRule getDiscountRule = discountRuleResource.getDiscountRule(
+			postDiscountRule.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.commerce.admin.pricing.dto.v2_0.DiscountRule"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(postDiscountRule.getId());
+
+		assertEquals(
+			getDiscountRule, DiscountRuleSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
+	}
+
+	protected DiscountRule testGetDiscountRule_addDiscountRule()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetDiscountRule() throws Exception {
+		DiscountRule discountRule =
+			testGraphQLGetDiscountRule_addDiscountRule();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				discountRule,
+				DiscountRuleSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"discountRule",
+								new HashMap<String, Object>() {
+									{
+										put("id", discountRule.getId());
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data", "Object/discountRule"))));
+
+		// Using the namespace headlessCommerceAdminPricing_v2_0
+
+		Assert.assertTrue(
+			equals(
+				discountRule,
+				DiscountRuleSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceAdminPricing_v2_0",
+								new GraphQLField(
+									"discountRule",
+									new HashMap<String, Object>() {
+										{
+											put("id", discountRule.getId());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceAdminPricing_v2_0",
+						"Object/discountRule"))));
+	}
+
+	@Test
+	public void testGraphQLGetDiscountRuleNotFound() throws Exception {
+		Long irrelevantId = RandomTestUtil.randomLong();
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"discountRule",
+						new HashMap<String, Object>() {
+							{
+								put("id", irrelevantId);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceAdminPricing_v2_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceAdminPricing_v2_0",
+						new GraphQLField(
+							"discountRule",
+							new HashMap<String, Object>() {
+								{
+									put("id", irrelevantId);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected DiscountRule testGraphQLGetDiscountRule_addDiscountRule()
+		throws Exception {
+
+		return testGraphQLDiscountRule_addDiscountRule();
+	}
+
+	@Test
+	public void testPatchDiscountRule() throws Exception {
+		DiscountRule postDiscountRule = testPatchDiscountRule_addDiscountRule();
+
+		DiscountRule randomPatchDiscountRule = randomPatchDiscountRule();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DiscountRule patchDiscountRule = discountRuleResource.patchDiscountRule(
+			postDiscountRule.getId(), randomPatchDiscountRule);
+
+		DiscountRule expectedPatchDiscountRule = postDiscountRule.clone();
+
+		BeanTestUtil.copyProperties(
+			randomPatchDiscountRule, expectedPatchDiscountRule);
+
+		DiscountRule getDiscountRule = discountRuleResource.getDiscountRule(
+			patchDiscountRule.getId());
+
+		assertEquals(expectedPatchDiscountRule, getDiscountRule);
+		assertValid(getDiscountRule);
+	}
+
+	protected DiscountRule testPatchDiscountRule_addDiscountRule()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostDiscountByExternalReferenceCodeDiscountRule()
+		throws Exception {
+
+		DiscountRule randomDiscountRule = randomDiscountRule();
+
+		DiscountRule postDiscountRule =
+			testPostDiscountByExternalReferenceCodeDiscountRule_addDiscountRule(
+				randomDiscountRule);
+
+		assertEquals(randomDiscountRule, postDiscountRule);
+		assertValid(postDiscountRule);
+	}
+
+	protected DiscountRule
+			testPostDiscountByExternalReferenceCodeDiscountRule_addDiscountRule(
+				DiscountRule discountRule)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostDiscountIdDiscountRule() throws Exception {
 		DiscountRule randomDiscountRule = randomDiscountRule();
 
@@ -1103,6 +1387,62 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		DiscountRule discountRule1 =
+			testBatchEngineDeleteImportTask_addDiscountRule();
+
+		testBatchEngineDeleteImportTask_deleteDiscountRule(
+			200, null, discountRule1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			discountRuleResource.getDiscountRuleHttpResponse(
+				discountRule1.getId()));
+	}
+
+	protected DiscountRule testBatchEngineDeleteImportTask_addDiscountRule()
+		throws Exception {
+
+		return testDeleteDiscountRule_addDiscountRule();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteDiscountRule(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.pricing.dto.v2_0.DiscountRule",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	@Rule
@@ -1209,6 +1549,16 @@ public abstract class BaseDiscountRuleResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"externalReferenceCode", additionalAssertFieldName)) {
+
+				if (discountRule.getExternalReferenceCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("name", additionalAssertFieldName)) {
 				if (discountRule.getName() == null) {
 					valid = false;
@@ -1227,6 +1577,16 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 			if (Objects.equals("typeSettings", additionalAssertFieldName)) {
 				if (discountRule.getTypeSettings() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"typeSettingsValue", additionalAssertFieldName)) {
+
+				if (discountRule.getTypeSettingsValue() == null) {
 					valid = false;
 				}
 
@@ -1290,6 +1650,10 @@ public abstract class BaseDiscountRuleResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1374,6 +1738,19 @@ public abstract class BaseDiscountRuleResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"externalReferenceCode", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						discountRule1.getExternalReferenceCode(),
+						discountRule2.getExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("id", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						discountRule1.getId(), discountRule2.getId())) {
@@ -1408,6 +1785,19 @@ public abstract class BaseDiscountRuleResourceTestCase {
 				if (!Objects.deepEquals(
 						discountRule1.getTypeSettings(),
 						discountRule2.getTypeSettings())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"typeSettingsValue", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						discountRule1.getTypeSettingsValue(),
+						discountRule2.getTypeSettingsValue())) {
 
 					return false;
 				}
@@ -1530,6 +1920,52 @@ public abstract class BaseDiscountRuleResourceTestCase {
 		if (entityFieldName.equals("discountId")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("externalReferenceCode")) {
+			Object object = discountRule.getExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
 		}
 
 		if (entityFieldName.equals("id")) {
@@ -1675,6 +2111,52 @@ public abstract class BaseDiscountRuleResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("typeSettingsValue")) {
+			Object object = discountRule.getTypeSettingsValue();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		throw new IllegalArgumentException(
 			"Invalid entity field " + entityFieldName);
 	}
@@ -1688,7 +2170,9 @@ public abstract class BaseDiscountRuleResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1721,10 +2205,14 @@ public abstract class BaseDiscountRuleResourceTestCase {
 		return new DiscountRule() {
 			{
 				discountId = RandomTestUtil.randomLong();
+				externalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				id = RandomTestUtil.randomLong();
 				name = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				type = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				typeSettings = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				typeSettingsValue = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 			}
 		};
@@ -1740,7 +2228,30 @@ public abstract class BaseDiscountRuleResourceTestCase {
 		return randomDiscountRule();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected DiscountRuleResource discountRuleResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1941,10 +2452,35 @@ public abstract class BaseDiscountRuleResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseDiscountRuleResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.pricing.resource.v2_0.
 		DiscountRuleResource _discountRuleResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:1951619918

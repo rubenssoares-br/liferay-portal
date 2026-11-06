@@ -12,10 +12,12 @@ import {
 	LearnResourcesContext,
 } from 'frontend-js-components-web';
 import {fetch} from 'frontend-js-web';
-import React, {useEffect, useState} from 'react';
+import React, {ComponentType, useEffect, useState} from 'react';
 
-import {API_URL, DEFAULT_FETCH_HEADERS} from '../utils/constants';
-import getFields from '../utils/getFields';
+import {DEFAULT_FETCH_HEADERS} from '../utils/constants';
+import getDataSetResourceURL from '../utils/getDataSetResourceURL';
+import getFields, {getFilterableFields} from '../utils/getFields';
+import getOpenApiData from '../utils/getOpenApiData';
 import openDefaultFailureToast from '../utils/openDefaultFailureToast';
 import {IDataSet, IFieldTreeItem} from '../utils/types';
 import Actions from './actions/Actions';
@@ -26,7 +28,18 @@ import Settings from './settings/Settings';
 import Sorting from './sorting/Sorting';
 import VisualizationModes from './visualization_modes/VisualizationModes';
 
-const NAVIGATION_BAR_ITEMS = [
+interface INavigationBarItem {
+	Component: ComponentType<IDataSetSectionProps>;
+	label: string;
+
+	/**
+	 * Whether the section renders the field trees derived from the OpenAPI
+	 * schema. Only these sections wait for `getOpenApiData`.
+	 */
+	requiresFieldTreeItems?: boolean;
+}
+
+const NAVIGATION_BAR_ITEMS: INavigationBarItem[] = [
 	{
 		Component: Details,
 		label: Liferay.Language.get('details'),
@@ -34,14 +47,17 @@ const NAVIGATION_BAR_ITEMS = [
 	{
 		Component: VisualizationModes,
 		label: Liferay.Language.get('visualization-modes'),
+		requiresFieldTreeItems: true,
 	},
 	{
 		Component: Filters,
 		label: Liferay.Language.get('filters'),
+		requiresFieldTreeItems: true,
 	},
 	{
 		Component: Sorting,
 		label: Liferay.Language.get('sorting'),
+		requiresFieldTreeItems: true,
 	},
 	{
 		Component: Actions,
@@ -63,6 +79,8 @@ export interface IDataSetSectionProps {
 	dataSet: IDataSet;
 	fieldTreeItems: Array<IFieldTreeItem>;
 	filterClientExtensionRenderers: IClientExtensionRenderer[];
+	filterableFieldTreeItems: Array<IFieldTreeItem>;
+	manageUserViewsURL: string;
 	namespace: string;
 	onActiveSectionChange: (section: number) => void;
 	onDataSetUpdate: (data: IDataSet) => void;
@@ -80,6 +98,7 @@ const DataSet = ({
 	fdsViewId,
 	filterClientExtensionRenderers,
 	learnResources,
+	manageUserViewsURL,
 	namespace,
 	resolvedRESTSchemas = [],
 	restApplications,
@@ -93,6 +112,7 @@ const DataSet = ({
 	fdsViewId: string;
 	filterClientExtensionRenderers: IClientExtensionRenderer[];
 	learnResources: ILearnResourceContext;
+	manageUserViewsURL: string;
 	namespace: string;
 	resolvedRESTSchemas: string[];
 	restApplications: string[];
@@ -105,11 +125,20 @@ const DataSet = ({
 	const [fieldTreeItems, setFieldTreeItems] = useState<Array<IFieldTreeItem>>(
 		[]
 	);
+	const [filterableFieldTreeItems, setFilterableFieldTreeItems] = useState<
+		Array<IFieldTreeItem>
+	>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadingFieldTreeItems, setLoadingFieldTreeItems] = useState(true);
 
 	useEffect(() => {
+		setLoading(true);
+		setLoadingFieldTreeItems(true);
+
 		const getDataSet = async () => {
-			const url = `${API_URL.DATA_SETS}/by-external-reference-code/${dataSetERC}`;
+			const url = getDataSetResourceURL({
+				dataSetERC,
+			});
 
 			const response = await fetch(url, {
 				headers: DEFAULT_FETCH_HEADERS,
@@ -117,30 +146,44 @@ const DataSet = ({
 
 			const responseJSON = await response.json();
 
-			if (responseJSON?.id) {
-				setDataSet(responseJSON);
-
-				const {restApplication, restSchema} = responseJSON;
-
-				getFields({restApplication, restSchema}).then((fields) => {
-					setFieldTreeItems(fields);
-
-					setLoading(false);
-				});
-			}
-			else {
+			if (!responseJSON?.id) {
 				openDefaultFailureToast();
+
+				setLoading(false);
+				setLoadingFieldTreeItems(false);
+
+				return;
 			}
+
+			setDataSet(responseJSON);
+
+			setLoading(false);
+
+			const {restApplication, restSchema} = responseJSON;
+
+			getOpenApiData({restApplication, restSchema})
+				.then((oApiData) => {
+					if (oApiData) {
+						setFieldTreeItems(getFields(oApiData));
+
+						setFilterableFieldTreeItems(
+							getFilterableFields(oApiData)
+						);
+					}
+				})
+				.catch(openDefaultFailureToast)
+				.finally(() => setLoadingFieldTreeItems(false));
 		};
 
 		getDataSet();
 	}, [dataSetERC, fdsViewId]);
 
-	const Content = NAVIGATION_BAR_ITEMS[activeIndex].Component;
+	const {Component: Content, requiresFieldTreeItems} =
+		NAVIGATION_BAR_ITEMS[activeIndex];
 
 	return (
 		<LearnResourcesContext.Provider value={learnResources}>
-			<div className="cadmin fds-view">
+			<div className="cadmin fds-admin">
 				<ClayNavigationBar
 					triggerLabel={NAVIGATION_BAR_ITEMS[activeIndex].label}
 				>
@@ -156,7 +199,8 @@ const DataSet = ({
 					))}
 				</ClayNavigationBar>
 
-				{loading ? (
+				{loading ||
+				(requiresFieldTreeItems && loadingFieldTreeItems) ? (
 					<ClayLoadingIndicator />
 				) : (
 					dataSet && (
@@ -170,6 +214,8 @@ const DataSet = ({
 							filterClientExtensionRenderers={
 								filterClientExtensionRenderers
 							}
+							filterableFieldTreeItems={filterableFieldTreeItems}
+							manageUserViewsURL={manageUserViewsURL}
 							namespace={namespace}
 							onActiveSectionChange={(tab) => setActiveIndex(tab)}
 							onDataSetUpdate={(updatedDataSet) => {

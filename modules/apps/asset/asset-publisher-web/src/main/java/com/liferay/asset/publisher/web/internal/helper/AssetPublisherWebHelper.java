@@ -70,15 +70,14 @@ import com.liferay.portal.kernel.xml.SAXReaderUtil;
 import com.liferay.portlet.StrictPortletPreferencesImpl;
 import com.liferay.subscription.service.SubscriptionLocalService;
 
+import jakarta.portlet.PortletPreferences;
+import jakarta.portlet.PortletRequest;
+
 import java.io.IOException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.PortletPreferences;
-import javax.portlet.PortletRequest;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -135,15 +134,14 @@ public class AssetPublisherWebHelper {
 			className, classPK);
 
 		addSelection(
-			portletPreferences, assetEntry.getEntryId(), assetEntryOrder,
-			className);
+			portletPreferences, assetEntry.getEntryId(), assetEntryOrder);
 
 		portletPreferences.store();
 	}
 
 	public void addSelection(
 			PortletPreferences portletPreferences, long assetEntryId,
-			int assetEntryOrder, String assetEntryType)
+			int assetEntryOrder)
 		throws Exception {
 
 		AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
@@ -153,7 +151,7 @@ public class AssetPublisherWebHelper {
 			"assetEntryXml", new String[0]);
 
 		String assetEntryXml = _getAssetEntryXml(
-			assetEntryType, assetEntry.getClassUuid());
+			assetEntry.getClassName(), assetEntry.getClassUuid());
 
 		if (!ArrayUtil.contains(assetEntryXmls, assetEntryXml)) {
 			if (assetEntryOrder > -1) {
@@ -183,11 +181,8 @@ public class AssetPublisherWebHelper {
 		long assetEntryId = ParamUtil.getLong(portletRequest, "assetEntryId");
 		int assetEntryOrder = ParamUtil.getInteger(
 			portletRequest, "assetEntryOrder");
-		String assetEntryType = ParamUtil.getString(
-			portletRequest, "assetEntryType");
 
-		addSelection(
-			portletPreferences, assetEntryId, assetEntryOrder, assetEntryType);
+		addSelection(portletPreferences, assetEntryId, assetEntryOrder);
 	}
 
 	public String encodeName(
@@ -197,18 +192,18 @@ public class AssetPublisherWebHelper {
 	}
 
 	public String[] filterAssetTagNames(long groupId, String[] assetTagNames) {
-		List<String> filteredAssetTagNames = new ArrayList<>();
+		List<String> filteredAssetTagNames = TransformUtil.transformToList(
+			_assetTagLocalService.getTagIds(groupId, assetTagNames),
+			assetTagId -> {
+				AssetTag assetTag = _assetTagLocalService.fetchAssetTag(
+					assetTagId);
 
-		long[] assetTagIds = _assetTagLocalService.getTagIds(
-			groupId, assetTagNames);
+				if (assetTag != null) {
+					return assetTag.getName();
+				}
 
-		for (long assetTagId : assetTagIds) {
-			AssetTag assetTag = _assetTagLocalService.fetchAssetTag(assetTagId);
-
-			if (assetTag != null) {
-				filteredAssetTagNames.add(assetTag.getName());
-			}
-		}
+				return null;
+			});
 
 		return ArrayUtil.toStringArray(filteredAssetTagNames);
 	}

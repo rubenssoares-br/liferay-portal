@@ -34,11 +34,16 @@
 			anchor,
 			'analyticsFileEntryVersion'
 		);
+		var externalReferenceCode = <portlet:namespace />getValueByAttribute(
+			anchor,
+			'analyticsExternalReferenceCode'
+		);
 
 		if (fileEntryId) {
 			Analytics.send('documentDownloaded', 'Document', {
-				groupId: themeDisplay.getScopeGroupId(),
+				externalReferenceCode,
 				fileEntryId,
+				groupId: themeDisplay.getScopeGroupId(),
 				preview:
 					!!window.<%= DocumentLibraryAnalyticsConstants.JS_PREFIX %>isViewFileEntry,
 				title,
@@ -49,18 +54,12 @@
 
 	function <portlet:namespace />handleDownloadClick(event) {
 		if (window.Analytics) {
-			if (event.target.nodeName.toLowerCase() === 'a') {
-				<portlet:namespace />sendDocumentDownloadedAnalyticsEvent(
-					event.target
-				);
-			}
-			else if (
-				event.target.parentNode &&
-				event.target.parentNode.nodeName.toLowerCase() === 'a'
-			) {
-				<portlet:namespace />sendDocumentDownloadedAnalyticsEvent(
-					event.target.parentNode
-				);
+			var anchor =
+				event.target.closest &&
+				event.target.closest('a[data-analytics-file-entry-id]');
+
+			if (anchor) {
+				<portlet:namespace />sendDocumentDownloadedAnalyticsEvent(anchor);
 			}
 			else {
 				var target = event.target;

@@ -5,10 +5,12 @@
 
 package com.liferay.jenkins.results.parser;
 
+import com.liferay.jenkins.results.parser.aws.CloudTrailEventsUtil;
 import com.liferay.jenkins.results.parser.metrics.BuildHistoryProcessor;
 import com.liferay.jenkins.results.parser.metrics.BuildHistoryReport;
-import com.liferay.jenkins.results.parser.testray.TestrayS3Bucket;
-import com.liferay.jenkins.results.parser.testray.TestrayS3Object;
+import com.liferay.jenkins.results.parser.metrics.SpotInterruptionReport;
+import com.liferay.jenkins.results.parser.testray.TestrayCloudBucket;
+import com.liferay.jenkins.results.parser.testray.TestrayCloudObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,23 +19,31 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FileUtils;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * @author Kenji Heigel
@@ -68,16 +78,44 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 				"Unable to delete directory: " + _TMP_BASE_DIR_PATH);
 		}
 
+		try {
+			_deleteStaleTestrayBuildReportJSONFiles();
+		}
+		catch (IOException | TimeoutException exception) {
+			System.out.println(
+				"Unable to delete stale build-report.json files");
+		}
+
 		super.tearDown();
 	}
 
 	public enum Report {
 
+		AWS_BUILD_COMPARISON("AWS Build Comparison"),
 		BUILD_HISTORY("Build History"), CI_SYSTEM_HISTORY("CI System History"),
 		CI_SYSTEM_STATUS("CI System Status"),
+		FLAKY_TEST_7_0_x("Flaky Test 7.0.x"),
+		FLAKY_TEST_7_1_x("Flaky Test 7.1.x"),
+		FLAKY_TEST_7_2_x("Flaky Test 7.2.x"),
+		FLAKY_TEST_7_3_x("Flaky Test 7.3.x"),
+		FLAKY_TEST_MASTER("Flaky Test master"),
 		PULL_REQUEST_HISTORY("Pull Request History"),
 		RELEASE_HISTORY("Release History"),
+		SPOT_INTERRUPTION("Spot Interruption"),
 		UPSTREAM_HISTORY("Upstream History"), UTILIZATION("Utilization");
+
+		public File getDataFile() {
+			String dataFileName = _reportDataFileNames.get(_string);
+
+			if (dataFileName == null) {
+				return null;
+			}
+
+			return new File(
+				JenkinsResultsParserUtil.combine(
+					_REPORT_RSYNC_DESTINATION_DIR_PATH, getDirName(), "/js/",
+					dataFileName));
+		}
 
 		public String getDirName() {
 			return _reportDirNames.get(_string);
@@ -119,23 +157,27 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		_mergeHTMLFiles(filePath);
 
 		JenkinsResultsParserUtil.rsync(
-			"test-1-0",
-			_REPORT_RSYNC_DESTINATION_DIR_PATH + "archived-reports/" +
-				_CURRENT_DATE_STRING,
+			null, _ARCHIVE_BASE_DIR_PATH + "/reports/" + _CURRENT_DATE_STRING,
 			null, filePath);
 
-		CloudStorageSyncUtil.syncGCPFiles(
-			_ARCHIVE_BASE_DIR_PATH + "/reports",
-			CloudStorageSyncUtil.GCP_BUCKET_PATH_JENKINS_CI_DATA + "/reports");
+		try {
+			CloudBucketUtil.syncGCPFiles(
+				_getGCPBucketBasePath() + "/reports",
+				_ARCHIVE_BASE_DIR_PATH + "/reports");
+		}
+		catch (IOException ioException) {
+			System.out.println("Unable to archive report: " + filePath);
+
+			ioException.printStackTrace();
+		}
 	}
 
 	private void _copyArchivedBuildData(
-		long durationDays, String startDateString) {
+		File archivedDataDir, long durationDays, File outputDir,
+		String startDateString) {
 
 		String[] dateStrings = JenkinsResultsParserUtil.getDateStrings(
 			durationDays, LocalDate.parse(startDateString, _dateTimeFormatter));
-
-		File archivedDataDir = new File(_ARCHIVE_BASE_DIR_PATH + "/data");
 
 		List<Callable<Void>> callables = new ArrayList<>();
 
@@ -148,8 +190,7 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 						File archiveFile = new File(
 							archivedDataDir, dateString + ".tar.gz");
 
-						File unarchivedDir = new File(
-							_TMP_BASE_DIR_PATH, "/builds/" + dateString);
+						File unarchivedDir = new File(outputDir, dateString);
 
 						if (archiveFile.exists() && !unarchivedDir.exists()) {
 							System.out.println(
@@ -178,6 +219,14 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		}
 	}
 
+	private void _copyArchivedBuildData(
+		long durationDays, String startDateString) {
+
+		_copyArchivedBuildData(
+			new File(_ARCHIVE_BASE_DIR_PATH + "/data"), durationDays,
+			new File(_TMP_BASE_DIR_PATH + "/builds"), startDateString);
+	}
+
 	private void _copyArchivedNodeData(
 			long durationDays, String startDateString)
 		throws IOException {
@@ -198,10 +247,62 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 			File nodeDataFile = new File(
 				_TMP_BASE_DIR_PATH + "/nodes/" + dateString, "node.json");
 
-			if (nodeDataArchiveFile.exists()) {
-				FileUtils.copyFile(nodeDataArchiveFile, nodeDataFile);
+			if (!nodeDataArchiveFile.exists()) {
+				continue;
+			}
+
+			FileUtils.copyFile(nodeDataArchiveFile, nodeDataFile);
+		}
+	}
+
+	private void _deleteEmptyDirs(File dir) {
+		if (!dir.isDirectory()) {
+			return;
+		}
+
+		for (File file : dir.listFiles()) {
+			_deleteEmptyDirs(file);
+		}
+
+		File[] files = dir.listFiles();
+
+		if (files.length == 0) {
+			boolean deleted = dir.delete();
+
+			if (deleted) {
+				System.out.println(
+					"Deleted empty directory: " + dir.getAbsolutePath());
+			}
+			else {
+				System.out.println(
+					"Unable to delete empty directory: " +
+						dir.getAbsolutePath());
 			}
 		}
+	}
+
+	private void _deleteStaleTestrayBuildReportJSONFiles()
+		throws IOException, TimeoutException {
+
+		File testrayResultsBucketLocalDir = new File(
+			_getBuildProperty("google.cloud.bucket.local.dir[testray]"));
+
+		List<File> buildReportFiles = JenkinsResultsParserUtil.findFiles(
+			testrayResultsBucketLocalDir, Pattern.quote("build-report.json"));
+
+		for (File buildReportFile : buildReportFiles) {
+			long millisSinceLastModification =
+				System.currentTimeMillis() - buildReportFile.lastModified();
+
+			if ((millisSinceLastModification > TimeUnit.DAYS.toMillis(60)) &&
+				(buildReportFile.delete() == false)) {
+
+				throw new RuntimeException(
+					"Unable to delete file " + buildReportFile);
+			}
+		}
+
+		_deleteEmptyDirs(testrayResultsBucketLocalDir);
 	}
 
 	private void _downloadTestrayBuildReportJSONFiles() {
@@ -219,36 +320,89 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 				DateTimeFormatter.ofPattern("yyyy-MM"));
 		}
 
-		TestrayS3Bucket testrayS3Bucket = TestrayS3Bucket.getInstance();
+		List<String> jenkinsMasterNames = new ArrayList<>();
+
+		try {
+			String jenkinsLoadBalancerWhitelist =
+				JenkinsResultsParserUtil.getProperty(
+					JenkinsResultsParserUtil.getBuildProperties(),
+					"jenkins.load.balancer.whitelist");
+
+			jenkinsLoadBalancerWhitelist =
+				JenkinsResultsParserUtil.expandSlaveRange(
+					jenkinsLoadBalancerWhitelist);
+
+			Collections.addAll(
+				jenkinsMasterNames, jenkinsLoadBalancerWhitelist.split(","));
+		}
+		catch (IOException ioException) {
+			throw new RuntimeException(ioException);
+		}
+
+		TestrayCloudBucket testrayCloudBucket =
+			TestrayCloudBucket.getInstance();
 
 		List<String> keys = new ArrayList<>();
 
-		String jobName = "test-portal-acceptance-pullrequest(master)";
-
-		for (int i = 1; i <= 40; i++) {
-			String jenkinsMasterName = "test-1-" + i;
+		for (String jenkinsMasterName : jenkinsMasterNames) {
+			String jobName = "test-portal-acceptance-pullrequest(master)";
 
 			keys.addAll(
 				_getTestrayBucketBuildReportJSONFilePaths(
 					currentMonthString, jenkinsMasterName, jobName));
 
-			if (startMonthString != null) {
-				keys.addAll(
-					_getTestrayBucketBuildReportJSONFilePaths(
-						startMonthString, jenkinsMasterName, jobName));
+			if (startMonthString == null) {
+				continue;
 			}
+
+			keys.addAll(
+				_getTestrayBucketBuildReportJSONFilePaths(
+					startMonthString, jenkinsMasterName, jobName));
 		}
 
 		try {
 			File testrayResultsBucketLocalDir = new File(
 				_getBuildProperty("google.cloud.bucket.local.dir[testray]"));
 
-			testrayS3Bucket.downloadTestrayS3Objects(
+			testrayCloudBucket.downloadTestrayCloudObjects(
 				testrayResultsBucketLocalDir, keys);
 		}
 		catch (TimeoutException timeoutException) {
 			throw new RuntimeException(timeoutException);
 		}
+	}
+
+	private void _generateAWSBuildComparisonReport(String reportName)
+		throws IOException {
+
+		if (JenkinsResultsParserUtil.isCloudCINode()) {
+			return;
+		}
+
+		CloudBucketUtil.syncGCPFiles(
+			_ARCHIVE_BASE_DIR_PATH + "/aws/data",
+			CloudBucketUtil.GCP_BUCKET_PATH_JENKINS_CI_DATA + "/aws/data");
+
+		long reportDurationDays = _getReportDurationDays(reportName);
+		String startDateString = _getStartDateString(reportName);
+
+		_copyArchivedBuildData(reportDurationDays, startDateString);
+
+		_copyArchivedBuildData(
+			new File(_ARCHIVE_BASE_DIR_PATH + "/aws/data"), reportDurationDays,
+			new File(_TMP_BASE_DIR_PATH + "/aws/builds"), startDateString);
+
+		String filePath = _getReportFilePath(reportName);
+
+		BuildHistoryReport awsBuildComparisonReport =
+			BuildHistoryReport.newAWSBuildComparisonReport(
+				reportDurationDays, new File(filePath), startDateString);
+
+		awsBuildComparisonReport.write();
+
+		_updateReport(filePath);
+
+		_archiveReport(filePath);
 	}
 
 	private void _generateBuildHistoryReport(String reportName)
@@ -291,6 +445,8 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 
 		String filePath = _getReportFilePath(reportName);
 
+		CISystemStatusReportUtil.writeConfigJSFile(filePath);
+
 		CISystemStatusReportUtil.copyBaseReportFiles(filePath);
 
 		Files.deleteIfExists(Paths.get(filePath, "js/testray-data.js"));
@@ -304,32 +460,32 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		CISystemStatusReportUtil.writeJenkinsDataJavaScriptFile(
 			filePath + "/js/jenkins-data.js");
 
-		String testrayDataFilepath = null;
+		String testrayDataJSGCPFilePath = JenkinsResultsParserUtil.combine(
+			_getGCPBucketBasePath(), "/data/", _getReportDirName(reportName),
+			"/testray-data.js");
 
-		try {
-			Process process = JenkinsResultsParserUtil.executeBashCommands(
-				1000 * 30,
-				JenkinsResultsParserUtil.combine(
-					"ssh test-1-0 'find ", _REPORT_RSYNC_DESTINATION_DIR_PATH,
-					_getReportDirName(Report.CI_SYSTEM_STATUS.toString()),
-					"/js -name testray-data.js -mmin +60'"));
-
-			testrayDataFilepath = JenkinsResultsParserUtil.readInputStream(
-				process.getInputStream());
-		}
-		catch (IOException | TimeoutException exception) {
-			System.out.println("Unable to get age of testray-data.js");
-		}
-
-		if ((testrayDataFilepath != null) &&
-			testrayDataFilepath.contains("testray-data.js")) {
-
+		if (_isGCPReportFileStale(testrayDataJSGCPFilePath, 60)) {
 			_downloadTestrayBuildReportJSONFiles();
 
 			CISystemStatusReportUtil.writeTestrayDataJavaScriptFile(
 				filePath + "/js/testray-data.js",
 				_getBuildProperty("ci.system.status.report.job.name"),
 				_getBuildProperty("ci.system.status.report.test.suite.name"));
+
+			CloudBucketUtil.copyGCPFile(
+				JenkinsResultsParserUtil.combine(
+					_getGCPBucketBasePath(), "/data/",
+					_getReportDirName(reportName), "/testray-data.js"),
+				filePath + "/js/testray-data.js");
+		}
+
+		String testrayDataJSFilePath = filePath + "/js/testray-data.js";
+
+		File testrayDataJSFile = new File(testrayDataJSFilePath);
+
+		if (!testrayDataJSFile.exists()) {
+			CloudBucketUtil.copyGCPFile(
+				filePath + "/js/testray-data.js", testrayDataJSGCPFilePath);
 		}
 
 		_updateReport(filePath);
@@ -337,6 +493,29 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		_updateNodeDataFile(filePath);
 
 		_archiveReport(filePath);
+	}
+
+	private void _generateFlakyTestReport(String reportName)
+		throws IOException {
+
+		String reportFilePath = _getReportFilePath(null);
+
+		FlakyTestReportUtil.copyCIHistoryFiles(reportFilePath);
+
+		String flakyTestReportFilePath = _getReportFilePath(reportName);
+
+		FlakyTestReportUtil.copyBaseReportFiles(flakyTestReportFilePath);
+
+		Files.deleteIfExists(Paths.get(reportFilePath, "ci-history.json.gz"));
+
+		File ciHistoryJSONFile = FlakyTestReportUtil.createCIHistoryJSONFile(
+			reportFilePath, flakyTestReportFilePath);
+
+		FlakyTestReportUtil.writeHTMLFile(ciHistoryJSONFile, reportFilePath);
+
+		_updateReport(flakyTestReportFilePath);
+
+		_archiveReport(flakyTestReportFilePath);
 	}
 
 	private void _generatePullRequestReport(String reportName)
@@ -386,14 +565,34 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 			return;
 		}
 
-		CloudStorageSyncUtil.syncGCPFiles(
-			CloudStorageSyncUtil.GCP_BUCKET_PATH_JENKINS_CI_DATA + "/reports",
-			_ARCHIVE_BASE_DIR_PATH + "/reports");
-
 		StringBuilder sb = new StringBuilder();
 
+		boolean reportFilesSynced = false;
+
 		for (String reportName : reportNames) {
+			if (!reportName.startsWith("Flaky Test") && !reportFilesSynced) {
+				try {
+					CloudBucketUtil.syncGCPFiles(
+						_ARCHIVE_BASE_DIR_PATH + "/data",
+						_getBuildProperty(
+							"archive.ci.build.data.cloud.bucket.path"));
+
+					CloudBucketUtil.syncGCPFiles(
+						_ARCHIVE_BASE_DIR_PATH + "/reports",
+						_getGCPBucketBasePath() + "/reports");
+				}
+				catch (IOException ioException) {
+					throw new RuntimeException(ioException);
+				}
+
+				reportFilesSynced = true;
+			}
+
 			try {
+				if (reportName.equals(Report.AWS_BUILD_COMPARISON.toString())) {
+					_generateAWSBuildComparisonReport(reportName);
+				}
+
 				if (reportName.equals(Report.BUILD_HISTORY.toString())) {
 					_generateBuildHistoryReport(reportName);
 				}
@@ -406,12 +605,20 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 					_generateCISystemStatusReport(reportName);
 				}
 
+				if (reportName.startsWith("Flaky Test")) {
+					_generateFlakyTestReport(reportName);
+				}
+
 				if (reportName.equals(Report.PULL_REQUEST_HISTORY.toString())) {
 					_generatePullRequestReport(reportName);
 				}
 
 				if (reportName.equals(Report.RELEASE_HISTORY.toString())) {
 					_generateReleaseReport(reportName);
+				}
+
+				if (reportName.equals(Report.SPOT_INTERRUPTION.toString())) {
+					_generateSpotInterruptionReport(reportName);
 				}
 
 				if (reportName.equals(Report.UPSTREAM_HISTORY.toString())) {
@@ -422,16 +629,25 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 					_generateUtilizationReport(reportName);
 				}
 			}
-			catch (IOException ioException) {
+			catch (Exception exception) {
 				System.out.println(
 					"Unable to write " + reportName + " to " +
 						_getReportFilePath(reportName));
 
-				continue;
+				exception.printStackTrace();
+
+				BuildData buildData = getBuildData();
+
+				NotificationUtil.sendSlackNotification(
+					buildData.getBuildURL() + " <@U04GTH03Q>",
+					"ci-notifications",
+					"Unable to generate " + reportName + " report");
+
+				throw new RuntimeException(exception);
 			}
 
 			sb.append("<a href=\"");
-			sb.append("http://test-1-0.liferay.com/userContent/reports/");
+			sb.append("http://test-1-0-aws.liferay.com/userContent/reports/");
 
 			sb.append(_getReportDirName(reportName));
 
@@ -447,6 +663,33 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		buildData.setBuildDescription(sb.toString());
 
 		updateBuildDescription();
+	}
+
+	private void _generateSpotInterruptionReport(String reportName)
+		throws IOException {
+
+		System.out.println(
+			JenkinsResultsParserUtil.combine(
+				"Generating the ", reportName, " report"));
+
+		long reportDurationDays = _getReportDurationDays(reportName);
+
+		File spotInterruptionDataDir = new File(
+			_TMP_BASE_DIR_PATH, "spot-interruption-data");
+
+		_updateSpotInterruptionDataFiles(
+			reportDurationDays, spotInterruptionDataDir);
+
+		String filePath = _getReportFilePath(reportName);
+
+		SpotInterruptionReport spotInterruptionReport =
+			SpotInterruptionReport.newSpotInterruptionReport(
+				spotInterruptionDataDir, reportDurationDays, new File(filePath),
+				_getStartDateString(reportDurationDays - 1));
+
+		spotInterruptionReport.write();
+
+		_updateReport(filePath);
 	}
 
 	private void _generateUpstreamReport(String reportName) throws IOException {
@@ -503,6 +746,14 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		_archiveReport(filePath);
 	}
 
+	private String _getGCPBucketBasePath() {
+		if (JenkinsResultsParserUtil.isCloudCINode()) {
+			return CloudBucketUtil.GCP_BUCKET_PATH_JENKINS_CI_DATA + "/aws";
+		}
+
+		return CloudBucketUtil.GCP_BUCKET_PATH_JENKINS_CI_DATA;
+	}
+
 	private String _getReportDirName(String reportName) {
 		return _reportDirNames.get(reportName);
 	}
@@ -520,7 +771,16 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 	}
 
 	private String _getReportFilePath(String reportName) {
-		return _TMP_BASE_DIR_PATH + "/reports/" + _getReportDirName(reportName);
+		StringBuilder sb = new StringBuilder();
+
+		sb.append(_TMP_BASE_DIR_PATH);
+		sb.append("/reports/");
+
+		if (!JenkinsResultsParserUtil.isNullOrEmpty(reportName)) {
+			sb.append(_getReportDirName(reportName));
+		}
+
+		return sb.toString();
 	}
 
 	private String[] _getReportNames() {
@@ -560,12 +820,14 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		sb.append(jobName);
 		sb.append("/");
 
-		TestrayS3Bucket testrayS3Bucket = TestrayS3Bucket.getInstance();
+		TestrayCloudBucket testrayCloudBucket =
+			TestrayCloudBucket.getInstance();
 
-		for (TestrayS3Object testrayS3Object :
-				testrayS3Bucket.getTestrayS3Objects(sb.toString())) {
+		for (TestrayCloudObject testrayCloudObject :
+				testrayCloudBucket.getTestrayCloudObjects(sb.toString())) {
 
-			String filePath = testrayS3Object.getKey() + "build-report.json.gz";
+			String filePath =
+				testrayCloudObject.getKey() + "build-report.json.gz";
 
 			filePaths.add(filePath);
 		}
@@ -573,7 +835,47 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		return filePaths;
 	}
 
+	private boolean _isGCPReportFileStale(String path, long ageMinutes) {
+		JSONArray jsonArray = null;
+
+		try {
+			jsonArray = new JSONArray(CloudBucketUtil.listGCPFiles(path, "-j"));
+		}
+		catch (IOException | TimeoutException exception) {
+			System.out.println("Unable to get age of " + path);
+
+			return false;
+		}
+
+		JSONObject jsonObject = jsonArray.getJSONObject(0);
+
+		JSONObject metadataJSONObject = jsonObject.getJSONObject("metadata");
+
+		String timeCreatedString = metadataJSONObject.getString("timeCreated");
+
+		Duration duration = Duration.between(
+			Instant.from(
+				DateTimeFormatter.ISO_INSTANT.parse(timeCreatedString)),
+			Instant.now());
+
+		System.out.println(
+			path + " was last updated " + duration.toMinutes() +
+				" minutes ago");
+
+		if (duration.toMinutes() >= ageMinutes) {
+			return true;
+		}
+
+		return false;
+	}
+
 	private void _mergeHTMLFiles(String reportDirPath) {
+		_mergeHTMLFiles(reportDirPath, true);
+	}
+
+	private void _mergeHTMLFiles(
+		String reportDirPath, boolean deleteFrontendFiles) {
+
 		File reportDir = new File(reportDirPath);
 
 		File reportFile = new File(reportDir, "index.html");
@@ -614,37 +916,45 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 					newReportFileContent = newReportFileContent.replace(
 						line, scriptElementContent);
 
-					javaScriptFile.delete();
+					if (deleteFrontendFiles) {
+						javaScriptFile.delete();
+					}
 
 					continue;
 				}
 
 				matcher = _linkElementPattern.matcher(line);
 
-				if (matcher.find()) {
-					String hrefValue = matcher.group("hrefValue");
-
-					if (hrefValue.startsWith("http://") ||
-						hrefValue.startsWith("https://")) {
-
-						continue;
-					}
-
-					File cssFile = new File(reportDir, hrefValue);
-
-					if (!cssFile.exists()) {
-						continue;
-					}
-
-					String styleElementContent =
-						"<style>" + JenkinsResultsParserUtil.read(cssFile) +
-							"</style>";
-
-					newReportFileContent = newReportFileContent.replace(
-						line, styleElementContent);
-
-					cssFile.delete();
+				if (!matcher.find()) {
+					continue;
 				}
+
+				String hrefValue = matcher.group("hrefValue");
+
+				if (hrefValue.startsWith("http://") ||
+					hrefValue.startsWith("https://")) {
+
+					continue;
+				}
+
+				File cssFile = new File(reportDir, hrefValue);
+
+				if (!cssFile.exists()) {
+					continue;
+				}
+
+				String styleElementContent =
+					"<style>" + JenkinsResultsParserUtil.read(cssFile) +
+						"</style>";
+
+				newReportFileContent = newReportFileContent.replace(
+					line, styleElementContent);
+
+				if (!deleteFrontendFiles) {
+					continue;
+				}
+
+				cssFile.delete();
 			}
 
 			if (!reportFileContent.equals(newReportFileContent)) {
@@ -654,6 +964,7 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		}
 		catch (IOException ioException) {
 			System.out.println("Unable to merge files in: " + reportDirPath);
+
 			ioException.printStackTrace();
 		}
 	}
@@ -684,8 +995,142 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 	}
 
 	private void _updateReport(String filePath) {
-		JenkinsResultsParserUtil.rsync(
-			"test-1-0", _REPORT_RSYNC_DESTINATION_DIR_PATH, null, filePath);
+		_mergeHTMLFiles(filePath, false);
+
+		try {
+			JenkinsResultsParserUtil.rsync(
+				"test-1-0", _REPORT_RSYNC_DESTINATION_DIR_PATH, null, filePath);
+		}
+		catch (Exception exception) {
+			System.out.println(
+				"Unable to rsync report " + filePath + " to test-1-0:" +
+					_REPORT_RSYNC_DESTINATION_DIR_PATH);
+
+			exception.printStackTrace();
+		}
+	}
+
+	private void _updateSpotInterruptionDataFiles(
+			long reportDurationDays, File spotInterruptionDataDir)
+		throws IOException {
+
+		String s3SpotInterruptionPath = _getBuildProperty(
+			"cloud.ci.s3.bucket.spot.interruption.path");
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(s3SpotInterruptionPath)) {
+			throw new RuntimeException(
+				"Please set \"cloud.ci.s3.bucket.spot.interruption.path\"");
+		}
+
+		LocalDate startLocalDate = LocalDate.parse(
+			_getStartDateString(reportDurationDays - 1), _dateTimeFormatter);
+
+		String[] dateStrings = JenkinsResultsParserUtil.getDateStrings(
+			reportDurationDays, startLocalDate);
+
+		int startIndex = Math.max(0, dateStrings.length - 2);
+
+		for (int i = 0; i < startIndex; i++) {
+			String s3FilePath = JenkinsResultsParserUtil.combine(
+				s3SpotInterruptionPath, "/", dateStrings[i],
+				"/spot-interruption.json");
+
+			long newestS3ObjectLastModified = Long.MIN_VALUE;
+
+			try {
+				newestS3ObjectLastModified =
+					CloudBucketUtil.getNewestS3ObjectLastModified(s3FilePath);
+			}
+			catch (IOException | TimeoutException exception) {
+			}
+
+			if (newestS3ObjectLastModified == Long.MIN_VALUE) {
+				startIndex = i;
+
+				break;
+			}
+
+			Instant instant = Instant.ofEpochMilli(newestS3ObjectLastModified);
+
+			ZonedDateTime lastModifiedZonedDateTime = instant.atZone(
+				ZoneOffset.UTC);
+
+			if (dateStrings[i].equals(
+					lastModifiedZonedDateTime.format(_dateTimeFormatter))) {
+
+				startIndex = i;
+
+				break;
+			}
+
+			try {
+				CloudBucketUtil.downloadS3File(
+					new File(
+						spotInterruptionDataDir,
+						dateStrings[i] + "/spot-interruption.json"),
+					s3FilePath);
+			}
+			catch (IOException ioException) {
+				startIndex = i;
+
+				break;
+			}
+		}
+
+		String regionName = _getBuildProperty("aws.cloudtrail.region");
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(regionName)) {
+			regionName = "us-east-1";
+		}
+
+		for (int i = startIndex; i < dateStrings.length; i++) {
+			LocalDate localDate = LocalDate.parse(
+				dateStrings[i], _dateTimeFormatter);
+
+			ZonedDateTime startZonedDateTime = localDate.atStartOfDay(
+				ZoneOffset.UTC);
+
+			ZonedDateTime endZonedDateTime = startZonedDateTime.plusDays(1);
+
+			Date endDate = Date.from(endZonedDateTime.toInstant());
+
+			Date startDate = Date.from(startZonedDateTime.toInstant());
+
+			List<JSONObject> bidEvictedEventJSONObjects =
+				CloudTrailEventsUtil.getEventJSONObjects(
+					endDate, "BidEvictedEvent", regionName, startDate);
+
+			List<JSONObject> runInstancesEventJSONObjects =
+				CloudTrailEventsUtil.getEventJSONObjects(
+					endDate, "RunInstances", regionName, startDate);
+
+			if (runInstancesEventJSONObjects.isEmpty()) {
+				System.out.println(
+					JenkinsResultsParserUtil.combine(
+						"WARNING: CloudTrail returned no RunInstances events ",
+						"for ", dateStrings[i], " in region ", regionName,
+						", check the aws.cloudtrail.region property and the ",
+						"cloudtrail:LookupEvents permission"));
+			}
+
+			File spotInterruptionDataFile = new File(
+				spotInterruptionDataDir,
+				dateStrings[i] + "/spot-interruption.json");
+
+			JSONObject dailyDataJSONObject =
+				SpotInterruptionReport.newDailyDataJSONObject(
+					bidEvictedEventJSONObjects, dateStrings[i],
+					runInstancesEventJSONObjects);
+
+			JenkinsResultsParserUtil.write(
+				spotInterruptionDataFile, dailyDataJSONObject.toString());
+
+			CloudBucketUtil.uploadS3File(
+				JenkinsResultsParserUtil.combine(
+					s3SpotInterruptionPath, "/", dateStrings[i],
+					"/spot-interruption.json"),
+				spotInterruptionDataFile);
+		}
 	}
 
 	private void _validateBuildParameters() {
@@ -725,16 +1170,55 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 		DateTimeFormatter.ofPattern("yyyyMMdd");
 	private static final Pattern _linkElementPattern = Pattern.compile(
 		_LINK_ELEMENT_REGEX);
+	private static final Map<String, String> _reportDataFileNames =
+		new HashMap<String, String>() {
+			{
+				put(Report.BUILD_HISTORY.toString(), "table-data.js");
+				put(Report.CI_SYSTEM_HISTORY.toString(), "all-durations.js");
+				put(Report.CI_SYSTEM_STATUS.toString(), "jenkins-data.js");
+				put(Report.FLAKY_TEST_7_0_x.toString(), "flaky-test-data.js");
+				put(Report.FLAKY_TEST_7_1_x.toString(), "flaky-test-data.js");
+				put(Report.FLAKY_TEST_7_2_x.toString(), "flaky-test-data.js");
+				put(Report.FLAKY_TEST_7_3_x.toString(), "flaky-test-data.js");
+				put(Report.FLAKY_TEST_MASTER.toString(), "flaky-test-data.js");
+				put(Report.PULL_REQUEST_HISTORY.toString(), "table-data.js");
+				put(Report.RELEASE_HISTORY.toString(), "table-data.js");
+				put(Report.SPOT_INTERRUPTION.toString(), "table-data.js");
+				put(Report.UPSTREAM_HISTORY.toString(), "table-data.js");
+				put(Report.UTILIZATION.toString(), "table-data.js");
+			}
+		};
 	private static final Map<String, String> _reportDirNames =
 		new HashMap<String, String>() {
 			{
+				put(
+					Report.AWS_BUILD_COMPARISON.toString(),
+					"aws-build-comparison-report");
 				put(Report.BUILD_HISTORY.toString(), "build-history-report");
 				put(Report.CI_SYSTEM_HISTORY.toString(), "ci-system-history");
 				put(Report.CI_SYSTEM_STATUS.toString(), "ci-system-status");
 				put(
+					Report.FLAKY_TEST_7_0_x.toString(),
+					"flaky-test-report-7.0.x");
+				put(
+					Report.FLAKY_TEST_7_1_x.toString(),
+					"flaky-test-report-7.1.x");
+				put(
+					Report.FLAKY_TEST_7_2_x.toString(),
+					"flaky-test-report-7.2.x");
+				put(
+					Report.FLAKY_TEST_7_3_x.toString(),
+					"flaky-test-report-7.3.x");
+				put(
+					Report.FLAKY_TEST_MASTER.toString(),
+					"flaky-test-report-master");
+				put(
 					Report.PULL_REQUEST_HISTORY.toString(),
 					"pull-request-report");
 				put(Report.RELEASE_HISTORY.toString(), "release-report");
+				put(
+					Report.SPOT_INTERRUPTION.toString(),
+					"spot-interruption-report");
 				put(Report.UPSTREAM_HISTORY.toString(), "upstream-report");
 				put(Report.UTILIZATION.toString(), "utilization-report");
 			}
@@ -742,11 +1226,14 @@ public class GenerateReportsBuildRunner extends BaseBuildRunner<BuildData> {
 	private static final Pattern _scriptElementPattern = Pattern.compile(
 		_SCRIPT_ELEMENT_REGEX);
 	private static final List<String> _validReportNames = Arrays.asList(
-		Report.BUILD_HISTORY.toString(), Report.CI_SYSTEM_HISTORY.toString(),
-		Report.CI_SYSTEM_STATUS.toString(),
+		Report.AWS_BUILD_COMPARISON.toString(), Report.BUILD_HISTORY.toString(),
+		Report.CI_SYSTEM_HISTORY.toString(), Report.CI_SYSTEM_STATUS.toString(),
+		Report.FLAKY_TEST_7_0_x.toString(), Report.FLAKY_TEST_7_1_x.toString(),
+		Report.FLAKY_TEST_7_2_x.toString(), Report.FLAKY_TEST_7_3_x.toString(),
+		Report.FLAKY_TEST_MASTER.toString(),
 		Report.PULL_REQUEST_HISTORY.toString(),
-		Report.RELEASE_HISTORY.toString(), Report.UPSTREAM_HISTORY.toString(),
-		Report.UTILIZATION.toString());
+		Report.RELEASE_HISTORY.toString(), Report.SPOT_INTERRUPTION.toString(),
+		Report.UPSTREAM_HISTORY.toString(), Report.UTILIZATION.toString());
 
 	static {
 		Instant instant = Instant.now();

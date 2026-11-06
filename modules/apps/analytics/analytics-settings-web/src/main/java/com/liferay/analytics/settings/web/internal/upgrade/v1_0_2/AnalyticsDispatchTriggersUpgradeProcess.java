@@ -14,13 +14,13 @@ import com.liferay.dispatch.model.DispatchTrigger;
 import com.liferay.dispatch.service.DispatchLogLocalService;
 import com.liferay.dispatch.service.DispatchTriggerLocalService;
 import com.liferay.petra.string.StringBundler;
-import com.liferay.portal.kernel.db.partition.DBPartition;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.time.LocalDateTime;
 
@@ -54,7 +54,7 @@ public class AnalyticsDispatchTriggersUpgradeProcess extends UpgradeProcess {
 	protected void doUpgrade() throws Exception {
 		Configuration[] configurations;
 
-		if (DBPartition.isPartitionEnabled()) {
+		if (PropsValues.DATABASE_PARTITION_ENABLED) {
 			configurations = _configurationAdmin.listConfigurations(
 				StringBundler.concat(
 					"(&(companyId=", CompanyThreadLocal.getCompanyId(),
@@ -85,7 +85,7 @@ public class AnalyticsDispatchTriggersUpgradeProcess extends UpgradeProcess {
 				_dispatchTriggerLocalService.fetchDispatchTrigger(
 					companyId, "export-analytics-dxp-entities");
 
-			if (dispatchTrigger != null) {
+			if ((dispatchTrigger != null) && dispatchTrigger.isActive()) {
 				continue;
 			}
 
@@ -97,10 +97,13 @@ public class AnalyticsDispatchTriggersUpgradeProcess extends UpgradeProcess {
 				continue;
 			}
 
-			dispatchTrigger = _dispatchTriggerLocalService.addDispatchTrigger(
-				null, user.getUserId(), _dispatchTaskExecutor,
-				"export-analytics-dxp-entities", null,
-				"export-analytics-dxp-entities", false);
+			if (dispatchTrigger == null) {
+				dispatchTrigger =
+					_dispatchTriggerLocalService.addDispatchTrigger(
+						null, user.getUserId(), _dispatchTaskExecutor,
+						"export-analytics-dxp-entities", null,
+						"export-analytics-dxp-entities", false);
+			}
 
 			LocalDateTime localDateTime = LocalDateTime.now();
 

@@ -78,7 +78,15 @@ public class FragmentFileInstaller implements FileInstaller {
 	@Override
 	public URL transformURL(File file) throws Exception {
 		try {
+			if (_log.isInfoEnabled()) {
+				_log.info("Deploying " + file.getName());
+			}
+
 			_deploy(file);
+
+			if (_log.isInfoEnabled()) {
+				_log.info("Deployed " + file.getName() + " successfully");
+			}
 		}
 		finally {
 			file.delete();
@@ -149,6 +157,23 @@ public class FragmentFileInstaller implements FileInstaller {
 		}
 	}
 
+	private ZipEntry _getDeployZipEntry(ZipFile zipFile) {
+		Enumeration<? extends ZipEntry> enumeration = zipFile.entries();
+
+		while (enumeration.hasMoreElements()) {
+			ZipEntry zipEntry = enumeration.nextElement();
+
+			if (Objects.equals(
+					_getFileName(zipEntry.getName()),
+					"liferay-deploy-fragments.json")) {
+
+				return zipEntry;
+			}
+		}
+
+		return null;
+	}
+
 	private Group _getDeploymentGroup(long companyId, String groupKey)
 		throws Exception {
 
@@ -165,23 +190,6 @@ public class FragmentFileInstaller implements FileInstaller {
 		}
 
 		return group;
-	}
-
-	private ZipEntry _getDeployZipEntry(ZipFile zipFile) {
-		Enumeration<? extends ZipEntry> enumeration = zipFile.entries();
-
-		while (enumeration.hasMoreElements()) {
-			ZipEntry zipEntry = enumeration.nextElement();
-
-			if (Objects.equals(
-					_getFileName(zipEntry.getName()),
-					"liferay-deploy-fragments.json")) {
-
-				return zipEntry;
-			}
-		}
-
-		return null;
 	}
 
 	private String _getFileName(String path) {
@@ -242,7 +250,7 @@ public class FragmentFileInstaller implements FileInstaller {
 
 			_fragmentsImporter.importFragmentEntries(
 				user.getUserId(), groupId, 0, file,
-				FragmentsImportStrategy.OVERWRITE);
+				FragmentsImportStrategy.OVERWRITE, false);
 
 			if ((group != null) &&
 				(company.getGroupId() != group.getGroupId())) {

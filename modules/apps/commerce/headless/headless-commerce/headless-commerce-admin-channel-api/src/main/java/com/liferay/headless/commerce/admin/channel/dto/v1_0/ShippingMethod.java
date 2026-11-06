@@ -11,34 +11,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("ShippingMethod")
+@GraphQLName(
+	description = "Shipping method available on a channel; selectable by customers at checkout. Read-only on this projection; full shipping-method management lives in the Shipment admin API.",
+	value = "ShippingMethod"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Shipping method available on a channel; selectable by customers at checkout. Read-only on this projection; full shipping-method management lives in the Shipment admin API."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ShippingMethod")
 public class ShippingMethod implements Serializable {
@@ -51,7 +58,10 @@ public class ShippingMethod implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ShippingMethod.class, json);
 	}
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the shipping method is enabled and offered at checkout; when false, it is hidden but preserved.",
+		example = "true"
+	)
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -85,15 +95,18 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the shipping method is enabled and offered at checkout; when false, it is hidden but preserved."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean active;
 
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema(
-		example = "{hu_HU=Product Description HU, hr_HR=Product Description HR, en_US=Professional hand stainless steel saw for wood. Made to last and saw forever. Made of best steel}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated strings.",
+		example = "{en_US=Professional hand stainless steel saw for wood. Made to last and saw forever. Made of best steel, hr_HR=Product Description HR, hu_HU=Product Description HU}"
 	)
 	@Valid
 	public Map<String, String> getDescription() {
@@ -130,14 +143,19 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Key of the shipping-engine backing this method, registered server-side. The default deployment registers `fixed` (flat-rate per option), `by-weight` (rate from a weight-bracket table), and engines contributed by extensions.",
+		example = "AB-34098-789-N"
+	)
 	public String getEngineKey() {
 		if (_engineKeySupplier != null) {
 			engineKey = _engineKeySupplier.get();
@@ -171,7 +189,9 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Key of the shipping-engine backing this method, registered server-side. The default deployment registers `fixed` (flat-rate per option), `by-weight` (rate from a weight-bracket table), and engines contributed by extensions."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String engineKey;
 
@@ -179,7 +199,10 @@ public class ShippingMethod implements Serializable {
 	private Supplier<String> _engineKeySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal long ID of the ShippingMethod record; read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -211,14 +234,17 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Internal long ID of the ShippingMethod record; read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated strings.",
 		example = "{en_US=Professional hand stainless steel saw for wood. Made to last and saw forever. Made of best steel, hr_HR=Product Description HR, hu_HU=Product Description HU}"
 	)
 	@Valid
@@ -255,14 +281,19 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> name;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _nameSupplier;
 
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Sort order applied when listing shipping methods at checkout; lower values come first.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -296,14 +327,18 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Sort order applied when listing shipping methods at checkout; lower values come first."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
 	@JsonIgnore
 	private Supplier<Double> _prioritySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Embedded list of shipping options exposed by this method; read-only."
+	)
 	@Valid
 	public ShippingOption[] getShippingOptions() {
 		if (_shippingOptionsSupplier != null) {
@@ -339,8 +374,10 @@ public class ShippingMethod implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Embedded list of shipping options exposed by this method; read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected ShippingOption[] shippingOptions;
 
 	@JsonIgnore
@@ -476,8 +513,8 @@ public class ShippingMethod implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.channel.dto.v1_0.ShippingMethod",
 		name = "x-class-name"
 	)
@@ -564,6 +601,27 @@ public class ShippingMethod implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -572,3 +630,4 @@ public class ShippingMethod implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:504107210

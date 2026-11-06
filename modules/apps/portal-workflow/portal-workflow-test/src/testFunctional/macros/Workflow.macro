@@ -26,6 +26,17 @@ definition {
 	}
 
 	@summary = "Default summary"
+	macro _showAssetTypeRow(workflowResourceValue = null) {
+		var key_workflowResourceValue = ${workflowResourceValue};
+
+		WaitForElementPresent(locator1 = "WorkflowConfiguration#ASSET_TYPE_CELL");
+
+		if (IsElementNotPresent(locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW")) {
+			Pagination.changePagination(itemsPerPage = 60);
+		}
+	}
+
+	@summary = "Default summary"
 	macro _tearDownWorkflow() {
 		var noWorkflow = "No Workflow";
 
@@ -42,21 +53,22 @@ definition {
 			Button.clickSave();
 		}
 
-		for (var workflowResourceValue : list "Blogs Entry,Calendar Event,Comment,Content Page,Knowledge Base Article,Message Boards Message,Page Revision,Web Content Article,Wiki Page") {
-			if (IsElementNotPresent(assetType = ${workflowResourceValue}, locator1 = "WorkflowConfiguration#ASSET_TYPE_WORKFLOW_ASSIGNED", workflowAssigned = "No Workflow")) {
-				AssertClick.pauseAssertTextClickAt(
-					key_rowEntry = ${workflowResourceValue},
-					locator1 = "Button#EDIT_ROW",
-					value1 = "Edit");
+		for (var workflowResourceValue : list "Blogs Entry,Calendar Event,Comment,Content Page,Knowledge Base Article,Message Boards Message,Page Revision,Web Content Article") {
+			Workflow._showAssetTypeRow(workflowResourceValue = ${workflowResourceValue});
 
+			if (IsElementNotPresent(assetType = ${workflowResourceValue}, locator1 = "WorkflowConfiguration#ASSET_TYPE_WORKFLOW_ASSIGNED", workflowAssigned = "No Workflow")) {
 				var key_workflowResourceValue = ${workflowResourceValue};
 
+				AssertClick.pauseAssertTextClickAt(
+					locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_EDIT",
+					value1 = "Edit");
+
 				Select(
-					locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SELECT",
+					locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SELECT",
 					value1 = ${noWorkflow});
 
 				AssertClick(
-					locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SAVE",
+					locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SAVE",
 					value1 = "Save");
 			}
 		}
@@ -162,7 +174,7 @@ definition {
 			workflowAssignedTo = ${workflowAssignedTo},
 			workflowTask = ${workflowTask});
 
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Approve");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Approve");
 
 		Workflow.confirmWorkflowAction();
 
@@ -250,7 +262,7 @@ definition {
 
 	@summary = "Default summary"
 	macro assignByDetails(comment = null, user = null) {
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Assign to...");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Assign to...");
 
 		AssertTextEquals(
 			locator1 = "WCPreview#PREVIEW_TITLE",
@@ -271,8 +283,6 @@ definition {
 		Button.clickDone();
 
 		Alert.viewSuccessMessage();
-
-		WaitForLiferayEvent.initializeLiferayEventLog();
 	}
 
 	@summary = "Default summary"
@@ -316,6 +326,10 @@ definition {
 
 		Workflow.confirmWorkflowAction();
 
+		if (IsElementNotPresent(key_tab = "Assigned to Me", locator1 = "NavTab#TAB_LINK")) {
+			Refresh();
+		}
+
 		Workflow.viewTaskAssignedToMe(
 			ddlDataDefinitionName = ${ddlDataDefinitionName},
 			multipleTasks = ${multipleTasks},
@@ -343,7 +357,7 @@ definition {
 			workflowAssetTitle = ${workflowAssetTitle},
 			workflowTask = ${workflowTask});
 
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Assign to Me");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Assign to Me");
 
 		Workflow.confirmWorkflowAction();
 
@@ -420,32 +434,30 @@ definition {
 	macro configureWorkflow(workflowDefinition = null, workflowResourceValue = null) {
 		var key_workflowResourceValue = ${workflowResourceValue};
 
-		if (!(IsElementPresent(locator1 = "Pagination#ICON_DISABLED", type = "angle-right")) && (IsElementPresent(locator1 = "Pagination#FIRST_LINK"))) {
-			Pagination.changePagination(itemsPerPage = 40);
-		}
+		Workflow._showAssetTypeRow(workflowResourceValue = ${workflowResourceValue});
 
 		AssertClick.pauseAssertTextClickAt(
-			key_rowEntry = ${workflowResourceValue},
-			locator1 = "Button#EDIT_ROW",
+			locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_EDIT",
 			value1 = "Edit");
 
-		if (IsNotVisible(locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SELECT")) {
+		if (IsNotVisible(locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SELECT")) {
 			Refresh();
 
 			WaitForSPARefresh();
 
+			Workflow._showAssetTypeRow(workflowResourceValue = ${workflowResourceValue});
+
 			AssertClick.pauseAssertTextClickAt(
-				key_rowEntry = ${workflowResourceValue},
-				locator1 = "Button#EDIT_ROW",
+				locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_EDIT",
 				value1 = "Edit");
 		}
 
 		Select(
-			locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SELECT",
+			locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SELECT",
 			value1 = ${workflowDefinition});
 
 		AssertClick(
-			locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SAVE",
+			locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SAVE",
 			value1 = "Save");
 
 		Alert.viewSuccessMessage();
@@ -455,28 +467,30 @@ definition {
 	macro configureWorkflowCancel(workflowDefinition = null, workflowResourceValue = null, workflowDefinitionEnd = null) {
 		var key_workflowResourceValue = ${workflowResourceValue};
 
+		Workflow._showAssetTypeRow(workflowResourceValue = ${workflowResourceValue});
+
 		AssertClick.pauseAssertTextClickAt(
-			key_rowEntry = ${workflowResourceValue},
-			locator1 = "Button#EDIT_ROW",
+			locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_EDIT",
 			value1 = "Edit");
 
-		if (IsNotVisible(locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SELECT")) {
+		if (IsNotVisible(locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SELECT")) {
 			Refresh();
 
 			WaitForSPARefresh();
 
+			Workflow._showAssetTypeRow(workflowResourceValue = ${workflowResourceValue});
+
 			AssertClick.pauseAssertTextClickAt(
-				key_rowEntry = ${workflowResourceValue},
-				locator1 = "Button#EDIT_ROW",
+				locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_EDIT",
 				value1 = "Edit");
 		}
 
 		Select(
-			locator1 = "WorkflowConfiguration#RESOURCE_TABLE_SELECT",
+			locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_SELECT",
 			value1 = ${workflowDefinition});
 
 		AssertClick(
-			locator1 = "WorkflowConfiguration#RESOURCE_TABLE_CANCEL",
+			locator1 = "WorkflowConfiguration#ASSET_TYPE_ROW_CANCEL",
 			value1 = "Cancel");
 
 		Workflow.viewConfigurationSelected(
@@ -828,7 +842,7 @@ definition {
 			workflowAssignedTo = ${workflowAssignedTo},
 			workflowTask = ${workflowTask});
 
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Reject");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Reject");
 
 		Workflow.confirmWorkflowAction();
 
@@ -880,7 +894,7 @@ definition {
 			workflowAssignedTo = ${workflowAssignedTo},
 			workflowTask = ${workflowTask});
 
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Resubmit");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Resubmit");
 
 		Button.clickDone();
 
@@ -936,8 +950,6 @@ definition {
 
 		Navigator.gotoNavItem(navItem = "Configuration");
 
-		Pagination.changePagination(itemsPerPage = 40);
-
 		Workflow._tearDownWorkflow();
 	}
 
@@ -959,7 +971,7 @@ definition {
 			panel = "Site Administration",
 			portlet = "Web Content");
 
-		Workflow.configureWCWorkflowViaFolderInfo(workflowDefinition = "No Workflow");
+		DMDocument.expandInfo();
 	}
 
 	@summary = "Default summary"

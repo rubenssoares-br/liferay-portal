@@ -23,7 +23,7 @@ import com.liferay.portal.kernel.test.util.HTTPTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
+import com.liferay.portal.test.rule.FeatureFlag;
 
 import java.util.Collections;
 
@@ -36,7 +36,7 @@ import org.skyscreamer.jsonassert.JSONCompareMode;
 /**
  * @author Sergio Jiménez del Coso
  */
-@FeatureFlags("LPS-178642")
+@FeatureFlag("LPS-178642")
 public class APIEndpointRelevantObjectEntryModelListenerTest
 	extends BaseTestCase {
 
@@ -238,6 +238,37 @@ public class APIEndpointRelevantObjectEntryModelListenerTest
 					StringBundler.concat(
 						StringUtil.toLowerCase(RandomTestUtil.randomString()),
 						StringPool.FORWARD_SLASH, StringPool.COMMA)
+				).put(
+					"r_apiApplicationToAPIEndpoints_l_apiApplicationId",
+					apiApplicationJSONObject1.getLong("id")
+				).put(
+					"retrieveType",
+					APIApplication.Endpoint.RetrieveType.COLLECTION.getValue()
+				).put(
+					"scope", APIApplication.Endpoint.Scope.COMPANY.getValue()
+				).toString(),
+				"headless-builder/endpoints", Http.Method.POST
+			).toString(),
+			JSONCompareMode.STRICT);
+		JSONAssert.assertEquals(
+			JSONUtil.put(
+				"status", "BAD_REQUEST"
+			).put(
+				"title",
+				"Object entry value exceeds the maximum length of 280 " +
+					"characters for object field \"description\""
+			).toString(),
+			HTTPTestUtil.invokeToJSONObject(
+				JSONUtil.put(
+					"description", RandomTestUtil.randomString(281)
+				).put(
+					"httpMethod", "get"
+				).put(
+					"name", RandomTestUtil.randomString()
+				).put(
+					"path",
+					StringPool.FORWARD_SLASH +
+						StringUtil.toLowerCase(RandomTestUtil.randomString())
 				).put(
 					"r_apiApplicationToAPIEndpoints_l_apiApplicationId",
 					apiApplicationJSONObject1.getLong("id")

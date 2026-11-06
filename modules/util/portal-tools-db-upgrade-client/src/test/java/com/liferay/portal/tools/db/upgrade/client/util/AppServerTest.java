@@ -10,6 +10,8 @@ import com.liferay.portal.tools.db.upgrade.client.AppServer;
 
 import java.io.File;
 
+import java.util.List;
+
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -35,8 +37,8 @@ public class AppServerTest {
 			new File(rootDir.getCanonicalPath()), "tomcat");
 
 		_assertAppServer(
-			appServer, tomcatDir, "bin", "lib",
-			"webapps" + File.separator + "ROOT", "tomcat");
+			appServer, tomcatDir, "./bin", "./lib",
+			"./webapps" + File.separator + "ROOT", "tomcat");
 
 		tomcatDir.delete();
 
@@ -48,8 +50,8 @@ public class AppServerTest {
 			new File(rootDir.getCanonicalPath()), "tomcat");
 
 		_assertAppServer(
-			appServer, tomcatDir, "bin", "lib",
-			"webapps" + File.separator + "ROOT", "tomcat");
+			appServer, tomcatDir, "./bin", "./lib",
+			"./webapps" + File.separator + "ROOT", "tomcat");
 	}
 
 	@Test
@@ -99,13 +101,9 @@ public class AppServerTest {
 		Assert.assertEquals(appServerDir, appServer.getDir());
 
 		File extraLibDir = new File(appServerDir, extraDirLibName);
+		List<File> extraLibDirs = appServer.getExtraLibDirs();
 
-		Assert.assertEquals(
-			extraLibDir,
-			appServer.getExtraLibDirs(
-			).get(
-				0
-			));
+		Assert.assertEquals(extraLibDir, extraLibDirs.get(0));
 
 		File globalLibDir = new File(appServerDir, globalDirLibName);
 
@@ -116,17 +114,17 @@ public class AppServerTest {
 		Assert.assertEquals(portalDir, appServer.getPortalDir());
 
 		File portalClassesDir = new File(
-			portalDir, "WEB-INF" + File.separator + "classes");
+			portalDir, "./WEB-INF" + File.separator + "classes");
 
 		Assert.assertEquals(portalClassesDir, appServer.getPortalClassesDir());
 
 		File portalLibDir = new File(
-			portalDir, "WEB-INF" + File.separator + "lib");
+			portalDir, "./WEB-INF" + File.separator + "lib");
 
 		Assert.assertEquals(portalLibDir, appServer.getPortalLibDir());
 
 		File portalShieldContainerLibDir = new File(
-			portalDir, "WEB-INF" + File.separator + "shielded-container-lib");
+			portalDir, "./WEB-INF" + File.separator + "shielded-container-lib");
 
 		Assert.assertEquals(
 			portalShieldContainerLibDir,

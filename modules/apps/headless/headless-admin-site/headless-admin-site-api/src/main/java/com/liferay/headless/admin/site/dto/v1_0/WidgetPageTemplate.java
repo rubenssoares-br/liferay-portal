@@ -9,35 +9,34 @@ import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.liferay.headless.admin.taxonomy.dto.v1_0.Keyword;
-import com.liferay.headless.admin.taxonomy.dto.v1_0.TaxonomyCategory;
 import com.liferay.headless.admin.user.dto.v1_0.Creator;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -46,6 +45,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "A widget page template.", value = "WidgetPageTemplate"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A widget page template."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "WidgetPageTemplate")
@@ -59,7 +61,7 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(WidgetPageTemplate.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether the widget page template is active."
 	)
 	public Boolean getActive() {
@@ -104,7 +106,7 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The localized descriptions of the widget page template."
 	)
 	@Valid
@@ -151,7 +153,7 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _description_i18nSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The localized relative URLs to the page's rendered content."
 	)
 	@Valid
@@ -200,7 +202,7 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _friendlyUrlPath_i18nSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether the page created based on this page template is hidden from navigation."
 	)
 	public Boolean getHiddenFromNavigation() {
@@ -245,7 +247,9 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _hiddenFromNavigationSupplier;
 
-	@Schema(description = "The localized names of the widget page template.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized names of the widget page template."
+	)
 	@Valid
 	public Map<String, String> getName_i18n() {
 		if (_name_i18nSupplier != null) {
@@ -392,22 +396,6 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 			sb.append(creator);
 		}
 
-		String creatorExternalReferenceCode = getCreatorExternalReferenceCode();
-
-		if (creatorExternalReferenceCode != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(creatorExternalReferenceCode));
-
-			sb.append("\"");
-		}
-
 		Date dateCreated = getDateCreated();
 
 		if (dateCreated != null) {
@@ -488,30 +476,7 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 			sb.append("\"");
 		}
 
-		ItemExternalReference[] keywordItemExternalReferences =
-			getKeywordItemExternalReferences();
-
-		if (keywordItemExternalReferences != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"keywordItemExternalReferences\": ");
-
-			sb.append("[");
-
-			for (int i = 0; i < keywordItemExternalReferences.length; i++) {
-				sb.append(String.valueOf(keywordItemExternalReferences[i]));
-
-				if ((i + 1) < keywordItemExternalReferences.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
-		}
-
-		Keyword[] keywords = getKeywords();
+		String[] keywords = getKeywords();
 
 		if (keywords != null) {
 			if (sb.length() > 1) {
@@ -523,7 +488,11 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < keywords.length; i++) {
-				sb.append(keywords[i]);
+				sb.append("\"");
+
+				sb.append(_escape(keywords[i]));
+
+				sb.append("\"");
 
 				if ((i + 1) < keywords.length) {
 					sb.append(", ");
@@ -595,21 +564,22 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 			sb.append(String.valueOf(pageTemplateSettings));
 		}
 
-		TaxonomyCategory[] taxonomyCategories = getTaxonomyCategories();
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
 
-		if (taxonomyCategories != null) {
+		if (permissions != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategories\": ");
+			sb.append("\"permissions\": ");
 
 			sb.append("[");
 
-			for (int i = 0; i < taxonomyCategories.length; i++) {
-				sb.append(taxonomyCategories[i]);
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
 
-				if ((i + 1) < taxonomyCategories.length) {
+				if ((i + 1) < permissions.length) {
 					sb.append(", ");
 				}
 			}
@@ -617,30 +587,40 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 			sb.append("]");
 		}
 
-		ItemExternalReference[] taxonomyCategoryItemExternalReferences =
-			getTaxonomyCategoryItemExternalReferences();
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs =
+			getTaxonomyCategoryBriefs();
 
-		if (taxonomyCategoryItemExternalReferences != null) {
+		if (taxonomyCategoryBriefs != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategoryItemExternalReferences\": ");
+			sb.append("\"taxonomyCategoryBriefs\": ");
 
 			sb.append("[");
 
-			for (int i = 0; i < taxonomyCategoryItemExternalReferences.length;
-				 i++) {
+			for (int i = 0; i < taxonomyCategoryBriefs.length; i++) {
+				sb.append(String.valueOf(taxonomyCategoryBriefs[i]));
 
-				sb.append(
-					String.valueOf(taxonomyCategoryItemExternalReferences[i]));
-
-				if ((i + 1) < taxonomyCategoryItemExternalReferences.length) {
+				if ((i + 1) < taxonomyCategoryBriefs.length) {
 					sb.append(", ");
 				}
 			}
 
 			sb.append("]");
+		}
+
+		ThumbnailURLReference thumbnailURLReference =
+			getThumbnailURLReference();
+
+		if (thumbnailURLReference != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"thumbnailURLReference\": ");
+
+			sb.append(String.valueOf(thumbnailURLReference));
 		}
 
 		Type type = getType();
@@ -653,9 +633,7 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -680,8 +658,8 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.WidgetPageTemplate",
 		name = "x-class-name"
 	)
@@ -768,6 +746,27 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -776,3 +775,4 @@ public class WidgetPageTemplate extends PageTemplate implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2060339878

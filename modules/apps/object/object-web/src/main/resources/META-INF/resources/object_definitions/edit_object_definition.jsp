@@ -22,15 +22,14 @@ String screenNavigationCategoryKey = ParamUtil.getString(request, "screenNavigat
 		</c:otherwise>
 </c:choose>
 	<c:choose>
-		<c:when test='<%= Objects.equals(screenNavigationCategoryKey, "details") || Validator.isNull(screenNavigationCategoryKey) %>'>
-			<div class="details-margin" style="margin-bottom: 4rem;"></div>
-		</c:when>
-		<c:otherwise>
-			<div>
+		<c:when test='<%= !Objects.equals(screenNavigationCategoryKey, "details") && Validator.isNotNull(screenNavigationCategoryKey) %>'>
+			<div class="lfr-objects__object-definition-details-management-toolbar">
 				<react:component
 					module="{ObjectManagementToolbar} from object-web"
 					props='<%=
 						HashMapBuilder.<String, Object>put(
+							"allowStandaloneObjectEntry", objectDefinition.isAllowStandaloneObjectEntry()
+						).put(
 							"backURL", ParamUtil.getString(request, "backURL", String.valueOf(renderResponse.createRenderURL()))
 						).put(
 							"hasPublishObjectPermission", objectDefinitionsDetailsDisplayContext.hasPublishObjectPermission()
@@ -58,12 +57,13 @@ String screenNavigationCategoryKey = ParamUtil.getString(request, "screenNavigat
 					%>'
 				/>
 			</div>
-		</c:otherwise>
+		</c:when>
 	</c:choose>
 
 	<liferay-frontend:screen-navigation
 		context="<%= objectDefinition %>"
 		key="<%= ObjectDefinitionsScreenNavigationEntryConstants.SCREEN_NAVIGATION_KEY_OBJECT_DEFINITION %>"
+		navCssClass="container-fluid-max-xxxl"
 		portletURL='<%=
 			PortletURLBuilder.createRenderURL(
 				renderResponse

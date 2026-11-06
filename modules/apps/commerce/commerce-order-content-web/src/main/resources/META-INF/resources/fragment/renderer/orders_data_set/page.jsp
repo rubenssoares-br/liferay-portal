@@ -26,11 +26,9 @@
 			context='<%=
 				HashMapBuilder.<String, Object>put(
 					"additionalProps", additionalProps
-				).put(
-					"orderTypes", orderTypesJSONArray
 				).build()
 			%>'
-			module="{createCommerceCart} from commerce-order-content-web"
+			module="{createCommerceCart} from commerce-frontend-js"
 		/>
 	</c:when>
 	<c:otherwise>
@@ -44,7 +42,7 @@
 			style="<%= displayStyle %>"
 		/>
 
-		<c:if test='<%= FeatureFlagManagerUtil.isEnabled("LPD-10562") %>'>
+		<c:if test='<%= FeatureFlagManagerUtil.isEnabled(company.getCompanyId(), "LPD-10562") %>'>
 			<liferay-frontend:component
 				context='<%=
 					HashMapBuilder.<String, Object>put(

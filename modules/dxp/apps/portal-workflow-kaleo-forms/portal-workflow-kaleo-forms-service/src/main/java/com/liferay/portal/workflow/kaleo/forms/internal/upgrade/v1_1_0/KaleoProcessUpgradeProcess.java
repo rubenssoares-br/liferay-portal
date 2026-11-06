@@ -117,7 +117,7 @@ public class KaleoProcessUpgradeProcess extends UpgradeProcess {
 		serviceContext.setModelPermissions(oldDDMStructureModelPermissions);
 
 		DDMStructure newDDMStructure = _ddmStructureLocalService.addStructure(
-			oldDDMStructure.getUserId(), oldDDMStructure.getGroupId(),
+			null, oldDDMStructure.getUserId(), oldDDMStructure.getGroupId(),
 			oldDDMStructure.getParentStructureId(),
 			PortalUtil.getClassNameId(KaleoProcess.class),
 			oldDDMStructure.getStructureKey(), oldDDMStructure.getNameMap(),
@@ -234,6 +234,7 @@ public class KaleoProcessUpgradeProcess extends UpgradeProcess {
 
 	private void _updateKaleoProcess() throws Exception {
 		try (LoggingTimer loggingTimer = new LoggingTimer();
+
 			PreparedStatement preparedStatement1 = connection.prepareStatement(
 				StringBundler.concat(
 					"select KaleoProcess.kaleoProcessId, ",
@@ -244,7 +245,9 @@ public class KaleoProcessUpgradeProcess extends UpgradeProcess {
 					"DDMStructure.structureId = DDLRecordSet.DDMStructureId ",
 					"where DDMStructure.classNameId <> ",
 					PortalUtil.getClassNameId(KaleoProcess.class)));
+
 			ResultSet resultSet = preparedStatement1.executeQuery();
+
 			PreparedStatement preparedStatement2 =
 				AutoBatchPreparedStatementUtil.concurrentAutoBatch(
 					connection,
@@ -274,6 +277,7 @@ public class KaleoProcessUpgradeProcess extends UpgradeProcess {
 
 	private void _updateKaleoProcessLink() throws Exception {
 		try (LoggingTimer loggingTimer = new LoggingTimer();
+
 			PreparedStatement preparedStatement1 = connection.prepareStatement(
 				StringBundler.concat(
 					"select KaleoProcessLink.kaleoProcessLinkId, ",
@@ -282,7 +286,9 @@ public class KaleoProcessUpgradeProcess extends UpgradeProcess {
 					"KaleoProcessLink.DDMTemplateId where ",
 					"DDMTemplate.resourceClassNameId <> ",
 					PortalUtil.getClassNameId(KaleoProcess.class)));
+
 			ResultSet resultSet = preparedStatement1.executeQuery();
+
 			PreparedStatement preparedStatement2 =
 				AutoBatchPreparedStatementUtil.concurrentAutoBatch(
 					connection,

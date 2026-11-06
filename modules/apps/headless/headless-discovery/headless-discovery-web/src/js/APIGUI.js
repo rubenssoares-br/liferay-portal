@@ -8,14 +8,13 @@ import ClayButton from '@clayui/button';
 import ClayDropDown from '@clayui/drop-down';
 import ClayLayout from '@clayui/layout';
 import ClayModal, {useModal} from '@clayui/modal';
-import GraphiQL from 'graphiql';
+import {GraphiQL} from 'graphiql';
 import React, {useCallback, useEffect, useState} from 'react';
 import SwaggerUI from 'swagger-ui-react';
 
 import Icon from './Icon';
+import helpInputSwaggerUIPlugin from './swagger-ui/plugins/helpInput';
 import apiFetch from './util/apiFetch';
-
-import 'graphiql/graphiql.css';
 
 const APIGUI = () => {
 	const contextPath = window.location.pathname.substring(
@@ -44,12 +43,7 @@ const APIGUI = () => {
 
 	useEffect(() => {
 		apiFetch(contextPath + '/o/openapi', 'get', {}).then((response) => {
-			setOrigin(
-				Object.values(response)[0][0].substring(
-					0,
-					Object.values(response)[0][0].indexOf('/o/')
-				)
-			);
+			setOrigin(new URL(Object.values(response)[0][0]).origin);
 			setEndpoints(
 				Object.keys(response)
 					.flatMap((key) => response[key])
@@ -70,10 +64,27 @@ const APIGUI = () => {
 		[contextPath, headers]
 	);
 
+	const LoadingSpinner = () => (
+		<div className="swagger-ui">
+			<div className="loading-container">
+				<div className="info">
+					<div className="loading"></div>
+				</div>
+			</div>
+		</div>
+	);
+
 	const requestInterceptor = (req) => {
-		req.headers['x-csrf-token'] = document.querySelector(
-			'meta[name="csrf-token"]'
-		).content;
+		const requestOrigin = new URL(req.url, window.location.href).origin;
+
+		if (
+			requestOrigin === origin ||
+			requestOrigin === window.location.origin
+		) {
+			req.headers['x-csrf-token'] = document.querySelector(
+				'meta[name="csrf-token"]'
+			).content;
+		}
 
 		for (let i = 0; i < headers.length; i++) {
 			const header = headers[i];
@@ -222,7 +233,11 @@ const APIGUI = () => {
 			<ClayLayout.ContainerFluid>
 				{showHeaders && (
 					<ClayModal observer={observer} size="lg" status="info">
-						<ClayModal.Header>Headers</ClayModal.Header>
+						<ClayModal.Header
+							closeButtonAriaLabel={Liferay.Language.get('close')}
+						>
+							Headers
+						</ClayModal.Header>
 
 						<ClayModal.Body>
 							<h1>
@@ -301,17 +316,20 @@ const APIGUI = () => {
 					</ClayModal>
 				)}
 
-				{showGraphQL ? (
+				{!endpoints.length ? (
+					<LoadingSpinner />
+				) : showGraphQL ? (
 					<ClayLayout.Row className="vh-100">
 						<GraphiQL fetcher={graphQLFetcher} />
 					</ClayLayout.Row>
-				) : endpoint && !endpoint.startsWith(origin) ? (
+				) : endpoint && !endpoint.startsWith(origin + '/') ? (
 					<ClayAlert className="mt-4" displayType="danger">
 						Forbidden access.
 					</ClayAlert>
 				) : (
 					<SwaggerUI
 						displayOperationId={true}
+						plugins={[helpInputSwaggerUIPlugin(contextPath)]}
 						requestInterceptor={requestInterceptor}
 						supportedSubmitMethods={[
 							'get',

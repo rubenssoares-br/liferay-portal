@@ -1,4 +1,6 @@
-import {FrameLocator, Page} from '@playwright/test';
+import {FrameLocator, Page, expect} from '@playwright/test';
+
+import {clickAndExpectToBeHidden} from './clickAndExpectToBeHidden';
 
 /**
  * SPDX-FileCopyrightText: (c) 2000 Liferay, Inc. https://liferay.com
@@ -7,6 +9,10 @@ import {FrameLocator, Page} from '@playwright/test';
 
 type Options = {
 	autoClose?: boolean;
+	closeText?: string;
+	exact?: boolean;
+	first?: boolean;
+	timeout?: number;
 	type?: 'success' | 'info' | 'warning' | 'danger';
 };
 
@@ -20,20 +26,42 @@ const CSS_CLASSES = {
 export async function waitForAlert(
 	parent: Page | FrameLocator,
 	text = 'Success:Your request completed successfully.',
-	{autoClose = true, type = 'success'}: Options = {
+	{
+		autoClose = true,
+		closeText = 'Close',
+		exact = false,
+		first = false,
+		timeout,
+		type = 'success',
+	}: Options = {
 		autoClose: true,
+		closeText: 'Close',
+		exact: false,
+		first: false,
 		type: 'success',
 	}
 ) {
-	const alert = parent.locator(CSS_CLASSES[type], {
+	const matchingAlerts = parent.locator(CSS_CLASSES[type], {
 		hasText: text,
 	});
 
-	await alert.waitFor();
+	const alert = first ? matchingAlerts.first() : matchingAlerts;
+
+	if (timeout) {
+		await alert.waitFor({timeout});
+	}
+	else {
+		await alert.waitFor();
+	}
+
+	if (exact) {
+		await expect(alert).toHaveText(text);
+	}
 
 	if (autoClose) {
-		await alert.getByLabel('Close').click();
-
-		await alert.waitFor({state: 'hidden'});
+		await clickAndExpectToBeHidden({
+			target: alert,
+			trigger: alert.getByLabel(closeText),
+		});
 	}
 }

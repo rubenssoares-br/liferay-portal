@@ -8,12 +8,12 @@ package com.liferay.portal.search.internal;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTask;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskManager;
+import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskConstants;
 import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskContextMapConstants;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
-import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.IndexWriter;
 import com.liferay.portal.kernel.search.IndexWriterHelper;
@@ -61,8 +61,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 			long companyId, Document document, boolean commitImmediately)
 		throws SearchException {
 
-		_enforceStandardUID(document);
-
 		if (_indexStatusManager.isIndexReadOnly() || (document == null)) {
 			return;
 		}
@@ -91,8 +89,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 			long companyId, Collection<Document> documents,
 			boolean commitImmediately)
 		throws SearchException {
-
-		_enforceStandardUID(documents);
 
 		if (_indexStatusManager.isIndexReadOnly() || (documents == null) ||
 			documents.isEmpty()) {
@@ -127,8 +123,16 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 			return;
 		}
 
+		SearchEngine searchEngine = _searchEngineHelper.getSearchEngine();
+
+		IndexWriter indexWriter = searchEngine.getIndexWriter();
+
+		SearchContext searchContext = new SearchContext();
+
 		for (Company company : _companyLocalService.getCompanies()) {
-			commit(company.getCompanyId());
+			searchContext.setCompanyId(company.getCompanyId());
+
+			indexWriter.commit(searchContext);
 		}
 	}
 
@@ -315,6 +319,11 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 		indexWriter.indexSpellCheckerDictionary(searchContext);
 	}
 
+	@Override
+	public boolean isIndexCommitImmediately() {
+		return _commitImmediately;
+	}
+
 	/**
 	 * @deprecated As of Wilberforce (7.0.x), replaced by {@link
 	 *             IndexStatusManager#isIndexReadWrite()}
@@ -339,8 +348,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 	public void partiallyUpdateDocument(
 			long companyId, Document document, boolean commitImmediately)
 		throws SearchException {
-
-		_enforceStandardUID(document);
 
 		if (_indexStatusManager.isIndexReadOnly() || (document == null)) {
 			return;
@@ -370,8 +377,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 			long companyId, Collection<Document> documents,
 			boolean commitImmediately)
 		throws SearchException {
-
-		_enforceStandardUID(documents);
 
 		if (_indexStatusManager.isIndexReadOnly() || (documents == null) ||
 			documents.isEmpty()) {
@@ -417,7 +422,7 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 
 		try {
 			return _backgroundTaskManager.addBackgroundTask(
-				userId, CompanyConstants.SYSTEM, jobName,
+				userId, BackgroundTaskConstants.GROUP_ID_DEFAULT, jobName,
 				ReindexPortalBackgroundTaskExecutor.class.getName(),
 				taskContextMap, new ServiceContext());
 		}
@@ -450,7 +455,7 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 
 		try {
 			return _backgroundTaskManager.addBackgroundTask(
-				userId, CompanyConstants.SYSTEM, jobName,
+				userId, BackgroundTaskConstants.GROUP_ID_DEFAULT, jobName,
 				ReindexSingleIndexerBackgroundTaskExecutor.class.getName(),
 				taskContextMap, new ServiceContext());
 		}
@@ -484,8 +489,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 	public void updateDocument(long companyId, Document document)
 		throws SearchException {
 
-		_enforceStandardUID(document);
-
 		if (_indexStatusManager.isIndexReadOnly() || (document == null)) {
 			return;
 		}
@@ -514,8 +517,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 			long companyId, Collection<Document> documents,
 			boolean commitImmediately)
 		throws SearchException {
-
-		_enforceStandardUID(documents);
 
 		if (_indexStatusManager.isIndexReadOnly() || (documents == null) ||
 			documents.isEmpty()) {
@@ -571,14 +572,6 @@ public class IndexWriterHelperImpl implements IndexWriterHelper {
 
 	@Reference
 	protected UIDFactory uidFactory;
-
-	private void _enforceStandardUID(Collection<Document> documents) {
-		documents.forEach(this::_enforceStandardUID);
-	}
-
-	private void _enforceStandardUID(Document document) {
-		uidFactory.getUID(document);
-	}
 
 	private String _getIndexerModelName(String name) {
 		String[] names = StringUtil.split(

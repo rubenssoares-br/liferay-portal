@@ -5,13 +5,11 @@
 
 import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
 import ClayDropDown from '@clayui/drop-down';
-import {useModal} from '@clayui/modal';
-import React, {useRef, useState} from 'react';
+import React, {useRef} from 'react';
 
 import ServiceProvider from '../../../ServiceProvider/index';
 import Sticker from '../Sticker';
 import {VIEWS} from '../util/constants';
-import AccountCreationModal from './AccountCreationModal';
 import EmptyListView from './EmptyListView';
 import ListView from './ListView';
 
@@ -25,14 +23,10 @@ export default function AccountsListView({
 	currentAccount,
 	currentUser,
 	disabled,
+	openAccountCreationModal,
+	orderSelectionDisabled,
 	setCurrentView,
 }) {
-	const [modalVisible, setModalVisible] = useState(false);
-
-	const {observer, onClose} = useModal({
-		onClose: () => setModalVisible(false),
-	});
-
 	const accountsListRef = useRef();
 
 	const apiUrl = new URL(
@@ -61,8 +55,9 @@ export default function AccountsListView({
 					</span>
 				</span>
 
-				{currentAccount && (
+				{!!currentAccount.id && !orderSelectionDisabled && (
 					<ClayButtonWithIcon
+						aria-label={Liferay.Language.get('back-to-orders')}
 						displayType="unstyled"
 						onClick={() => setCurrentView(VIEWS.ORDERS_LIST)}
 						symbol="angle-right-small"
@@ -130,20 +125,10 @@ export default function AccountsListView({
 
 			{!!currentUser.actions?.create && (
 				<ClayDropDown.Section>
-					<ClayButton onClick={() => setModalVisible(true)}>
+					<ClayButton onClick={openAccountCreationModal}>
 						{Liferay.Language.get('create-new-account')}
 					</ClayButton>
 				</ClayDropDown.Section>
-			)}
-
-			{modalVisible && (
-				<AccountCreationModal
-					accountTypes={accountEntryAllowedTypes}
-					closeModal={onClose}
-					commerceChannelId={commerceChannelId}
-					handleAccountChange={changeAccount}
-					observer={observer}
-				/>
 			)}
 		</ClayDropDown.ItemList>
 	);

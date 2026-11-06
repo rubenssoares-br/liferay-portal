@@ -67,7 +67,7 @@ public class RoleCacheModel
 
 	@Override
 	public String toString() {
-		StringBundler sb = new StringBundler(35);
+		StringBundler sb = new StringBundler(37);
 
 		sb.append("{mvccVersion=");
 		sb.append(mvccVersion);
@@ -103,6 +103,8 @@ public class RoleCacheModel
 		sb.append(type);
 		sb.append(", subtype=");
 		sb.append(subtype);
+		sb.append(", status=");
+		sb.append(status);
 		sb.append("}");
 
 		return sb.toString();
@@ -187,6 +189,8 @@ public class RoleCacheModel
 			roleImpl.setSubtype(subtype);
 		}
 
+		roleImpl.setStatus(status);
+
 		roleImpl.resetOriginalValues();
 
 		return roleImpl;
@@ -215,11 +219,13 @@ public class RoleCacheModel
 
 		classPK = objectInput.readLong();
 		name = objectInput.readUTF();
-		title = objectInput.readUTF();
+		title = (String)objectInput.readObject();
 		description = (String)objectInput.readObject();
 
 		type = objectInput.readInt();
 		subtype = objectInput.readUTF();
+
+		status = objectInput.readInt();
 	}
 
 	@Override
@@ -270,10 +276,10 @@ public class RoleCacheModel
 		}
 
 		if (title == null) {
-			objectOutput.writeUTF("");
+			objectOutput.writeObject("");
 		}
 		else {
-			objectOutput.writeUTF(title);
+			objectOutput.writeObject(title);
 		}
 
 		if (description == null) {
@@ -291,6 +297,8 @@ public class RoleCacheModel
 		else {
 			objectOutput.writeUTF(subtype);
 		}
+
+		objectOutput.writeInt(status);
 	}
 
 	public long mvccVersion;
@@ -310,5 +318,7 @@ public class RoleCacheModel
 	public String description;
 	public int type;
 	public String subtype;
+	public int status;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1042202261

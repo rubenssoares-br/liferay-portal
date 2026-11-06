@@ -59,8 +59,7 @@ public class AssetListEntryUsageUpgradeProcess extends UpgradeProcess {
 		try (PreparedStatement selectPreparedStatement =
 				connection.prepareStatement(
 					"select distinct containerKey from AssetListEntryUsage " +
-						"where containerType  = " +
-							layoutPageTemplateStructureClassNameId);
+						"where containerType = ?");
 			PreparedStatement insertPreparedStatement =
 				AutoBatchPreparedStatementUtil.concurrentAutoBatch(
 					connection,
@@ -72,6 +71,9 @@ public class AssetListEntryUsageUpgradeProcess extends UpgradeProcess {
 						"containerKey, containerType, key_, plid, type_) ",
 						"values(?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, ?, ?, ?, ",
 						"?)"))) {
+
+			selectPreparedStatement.setLong(
+				1, layoutPageTemplateStructureClassNameId);
 
 			try (ResultSet resultSet = selectPreparedStatement.executeQuery()) {
 				while (resultSet.next()) {
@@ -127,14 +129,16 @@ public class AssetListEntryUsageUpgradeProcess extends UpgradeProcess {
 								insertPreparedStatement, type);
 						}
 
-						if (collectionJSONObject.has("key")) {
-							_addBatch(
-								_portal.getClassNameId(
-									InfoCollectionProvider.class),
-								itemId, collectionJSONObject.getString("key"),
-								layoutPageTemplateStructure,
-								insertPreparedStatement, type);
+						if (!collectionJSONObject.has("key")) {
+							continue;
 						}
+
+						_addBatch(
+							_portal.getClassNameId(
+								InfoCollectionProvider.class),
+							itemId, collectionJSONObject.getString("key"),
+							layoutPageTemplateStructure,
+							insertPreparedStatement, type);
 					}
 				}
 
@@ -220,11 +224,7 @@ public class AssetListEntryUsageUpgradeProcess extends UpgradeProcess {
 			return false;
 		}
 
-		if (layoutStructure.isItemMarkedForDeletion(itemId)) {
-			return false;
-		}
-
-		return true;
+		return !layoutStructure.isItemMarkedForDeletion(itemId);
 	}
 
 	private final LayoutLocalService _layoutLocalService;

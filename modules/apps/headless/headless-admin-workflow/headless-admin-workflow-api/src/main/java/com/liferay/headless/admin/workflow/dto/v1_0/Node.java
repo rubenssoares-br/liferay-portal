@@ -14,26 +14,27 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -41,6 +42,9 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName(description = "Represents a node in a workflow.", value = "Node")
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a node in a workflow."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Node")
 public class Node implements Serializable {
@@ -53,7 +57,7 @@ public class Node implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Node.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getLabel() {
 		if (_labelSupplier != null) {
 			label = _labelSupplier.get();
@@ -94,7 +98,7 @@ public class Node implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _labelSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -133,8 +137,10 @@ public class Node implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The workflow's node types."
+	)
 	@JsonGetter("type")
-	@Schema(description = "The workflow's node types.")
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -254,9 +260,7 @@ public class Node implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -265,8 +269,8 @@ public class Node implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.workflow.dto.v1_0.Node",
 		name = "x-class-name"
 	)
@@ -275,8 +279,10 @@ public class Node implements Serializable {
 	@GraphQLName("Type")
 	public static enum Type {
 
-		CONDITION("CONDITION"), FORK("FORK"), INITIAL_STATE("INITIAL_STATE"),
-		JOIN("JOIN"), JOIN_XOR("JOIN_XOR"), STATE("STATE"), TASK("TASK"),
+		AI_DECISION("AI_DECISION"), AI_HUB_AGENT("AI_HUB_AGENT"),
+		CONDITION("CONDITION"), FORK("FORK"), HTTP_REQUEST("HTTP_REQUEST"),
+		INITIAL_STATE("INITIAL_STATE"), JOIN("JOIN"), JOIN_XOR("JOIN_XOR"),
+		LLM("LLM"), SERVICE("SERVICE"), STATE("STATE"), TASK("TASK"),
 		TERMINAL_STATE("TERMINAL_STATE");
 
 		@JsonCreator
@@ -393,6 +399,27 @@ public class Node implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -401,3 +428,4 @@ public class Node implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-392428663

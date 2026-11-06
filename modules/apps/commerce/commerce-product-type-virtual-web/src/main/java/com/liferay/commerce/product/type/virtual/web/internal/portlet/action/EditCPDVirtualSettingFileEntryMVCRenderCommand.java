@@ -7,6 +7,7 @@ package com.liferay.commerce.product.type.virtual.web.internal.portlet.action;
 
 import com.liferay.commerce.product.constants.CPPortletKeys;
 import com.liferay.commerce.product.portlet.action.ActionHelper;
+import com.liferay.commerce.product.service.CPDefinitionLocalService;
 import com.liferay.commerce.product.type.virtual.web.internal.display.context.CPDefinitionVirtualSettingDisplayContext;
 import com.liferay.commerce.product.type.virtual.web.internal.portlet.action.helper.CPDefinitionVirtualSettingActionHelper;
 import com.liferay.document.library.kernel.service.DLAppService;
@@ -19,14 +20,14 @@ import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -36,7 +37,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CPPortletKeys.CP_DEFINITIONS,
+		"jakarta.portlet.name=" + CPPortletKeys.CP_DEFINITIONS,
 		"mvc.command.name=/cp_definitions/edit_cpd_virtual_setting_file_entry"
 	},
 	service = MVCRenderCommand.class
@@ -49,11 +50,11 @@ public class EditCPDVirtualSettingFileEntryMVCRenderCommand
 			RenderRequest renderRequest, RenderResponse renderResponse)
 		throws PortletException {
 
-		RequestDispatcher requestDispatcher =
-			_servletContext.getRequestDispatcher(
-				"/edit_cpd_virtual_setting_file_entry.jsp");
-
 		try {
+			RequestDispatcher requestDispatcher =
+				_servletContext.getRequestDispatcher(
+					"/edit_cpd_virtual_setting_file_entry.jsp");
+
 			HttpServletRequest httpServletRequest =
 				_portal.getHttpServletRequest(renderRequest);
 			HttpServletResponse httpServletResponse =
@@ -63,7 +64,7 @@ public class EditCPDVirtualSettingFileEntryMVCRenderCommand
 				cpDefinitionVirtualSettingDisplayContext =
 					new CPDefinitionVirtualSettingDisplayContext(
 						_actionHelper, httpServletRequest, _dlAppService,
-						_journalArticleService,
+						_journalArticleService, _cpDefinitionLocalService,
 						_cpDefinitionVirtualSettingActionHelper, _itemSelector);
 
 			renderRequest.setAttribute(
@@ -87,6 +88,9 @@ public class EditCPDVirtualSettingFileEntryMVCRenderCommand
 
 	@Reference
 	private ActionHelper _actionHelper;
+
+	@Reference
+	private CPDefinitionLocalService _cpDefinitionLocalService;
 
 	@Reference
 	private CPDefinitionVirtualSettingActionHelper

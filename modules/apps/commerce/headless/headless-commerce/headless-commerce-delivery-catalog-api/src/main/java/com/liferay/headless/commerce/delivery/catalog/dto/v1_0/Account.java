@@ -14,18 +14,27 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -33,22 +42,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Account")
+@GraphQLName(
+	description = "Buyer account (business, person, guest, or supplier) used to scope catalog access, orders, and pricing within a commerce channel.",
+	value = "Account"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Buyer account (business, person, guest, or supplier) used to scope catalog access, orders, and pricing within a commerce channel.",
+	requiredProperties = {"name"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"name"})
 @XmlRootElement(name = "Account")
 public class Account implements Serializable {
 
@@ -60,7 +67,9 @@ public class Account implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Account.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -96,16 +105,22 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Caller-defined extension attributes attached to the account through the platform's expando mechanism. Read-only on this API."
+	)
 	@Valid
-	public CustomField[] getCustomFields() {
+	public com.liferay.portal.vulcan.custom.field.CustomField[]
+		getCustomFields() {
+
 		if (_customFieldsSupplier != null) {
 			customFields = _customFieldsSupplier.get();
 
@@ -115,7 +130,9 @@ public class Account implements Serializable {
 		return customFields;
 	}
 
-	public void setCustomFields(CustomField[] customFields) {
+	public void setCustomFields(
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields) {
+
 		this.customFields = customFields;
 
 		_customFieldsSupplier = null;
@@ -123,7 +140,9 @@ public class Account implements Serializable {
 
 	@JsonIgnore
 	public void setCustomFields(
-		UnsafeSupplier<CustomField[], Exception> customFieldsUnsafeSupplier) {
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.custom.field.CustomField[], Exception>
+				customFieldsUnsafeSupplier) {
 
 		_customFieldsSupplier = () -> {
 			try {
@@ -138,14 +157,20 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Caller-defined extension attributes attached to the account through the platform's expando mechanism. Read-only on this API."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
-	protected CustomField[] customFields;
+	protected com.liferay.portal.vulcan.custom.field.CustomField[] customFields;
 
 	@JsonIgnore
-	private Supplier<CustomField[]> _customFieldsSupplier;
+	private Supplier<com.liferay.portal.vulcan.custom.field.CustomField[]>
+		_customFieldsSupplier;
 
-	@Schema(description = "The account's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Creation timestamp in ISO 8601 (UTC). Filterable and sortable via the OData query parameters. Read-only; set when the account is first persisted.",
+		example = "2017-07-21"
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -179,14 +204,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The account's creation date.")
+	@GraphQLField(
+		description = "Creation timestamp in ISO 8601 (UTC). Filterable and sortable via the OData query parameters. Read-only; set when the account is first persisted."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Date dateCreated;
 
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The account's most recent modification date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Last modification timestamp in ISO 8601 (UTC). Filterable and sortable via the OData query parameters. Read-only; updated on every save.",
+		example = "2017-08-21"
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -220,7 +250,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The account's most recent modification date.")
+	@GraphQLField(
+		description = "Last modification timestamp in ISO 8601 (UTC). Filterable and sortable via the OData query parameters. Read-only; updated on every save."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Date dateModified;
 
@@ -228,7 +260,10 @@ public class Account implements Serializable {
 	private Supplier<Date> _dateModifiedSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "10130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the address selected as the account's default billing destination (FK identifier). Must resolve to an existing address; zero or absent when no default is set.",
+		example = "10130"
+	)
 	public Long getDefaultBillingAddressId() {
 		if (_defaultBillingAddressIdSupplier != null) {
 			defaultBillingAddressId = _defaultBillingAddressIdSupplier.get();
@@ -262,7 +297,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the address selected as the account's default billing destination (FK identifier). Must resolve to an existing address; zero or absent when no default is set."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long defaultBillingAddressId;
 
@@ -270,7 +307,10 @@ public class Account implements Serializable {
 	private Supplier<Long> _defaultBillingAddressIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "10131")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the address selected as the account's default shipping destination (FK identifier). Must resolve to an existing address; zero or absent when no default is set.",
+		example = "10131"
+	)
 	public Long getDefaultShippingAddressId() {
 		if (_defaultShippingAddressIdSupplier != null) {
 			defaultShippingAddressId = _defaultShippingAddressIdSupplier.get();
@@ -305,14 +345,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the address selected as the account's default shipping destination (FK identifier). Must resolve to an existing address; zero or absent when no default is set."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long defaultShippingAddressId;
 
 	@JsonIgnore
 	private Supplier<Long> _defaultShippingAddressIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form description of the account. Optional.",
+		example = "Default buyer account."
+	)
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -346,14 +391,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form description of the account. Optional."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String description;
 
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Email-domain allow-list used to auto-associate self-registering users with this account when their email matches one of these domains. Stored as a comma-separated list on the underlying record; surfaced here as an array of domain strings.",
+		example = "[example.com, example.org]"
+	)
 	public String[] getDomains() {
 		if (_domainsSupplier != null) {
 			domains = _domainsSupplier.get();
@@ -387,14 +437,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Email-domain allow-list used to auto-associate self-registering users with this account when their email matches one of these domains. Stored as a comma-separated list on the underlying record; surfaced here as an array of domain strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String[] domains;
 
 	@JsonIgnore
 	private Supplier<String[]> _domainsSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per account within the company. When omitted on create the server generates one.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -428,7 +483,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per account within the company. When omitted on create the server generates one."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -436,7 +493,10 @@ public class Account implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Primary identifier of the account (FK identifier). Read-only; assigned on create.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -468,7 +528,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Primary identifier of the account (FK identifier). Read-only; assigned on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -476,7 +538,10 @@ public class Account implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "20078")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the file entry that stores the account's logo image (FK identifier). Must resolve to an existing file entry; zero or absent when no logo is set. Updating this field triggers a reindex.",
+		example = "20078"
+	)
 	public Long getLogoId() {
 		if (_logoIdSupplier != null) {
 			logoId = _logoIdSupplier.get();
@@ -510,14 +575,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the file entry that stores the account's logo image (FK identifier). Must resolve to an existing file entry; zero or absent when no logo is set. Updating this field triggers a reindex."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long logoId;
 
 	@JsonIgnore
 	private Supplier<Long> _logoIdSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Resolved URL where the account's logo image can be fetched. Read-only; computed from logoId at response time.",
+		example = "https://example.com/logo.png"
+	)
 	public String getLogoURL() {
 		if (_logoURLSupplier != null) {
 			logoURL = _logoURLSupplier.get();
@@ -551,14 +621,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Resolved URL where the account's logo image can be fetched. Read-only; computed from logoId at response time."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String logoURL;
 
 	@JsonIgnore
 	private Supplier<String> _logoURLSupplier;
 
-	@Schema(example = "Account Name")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the account. Required on create. Updating this field triggers a reindex; filterable, sortable, and matched by the search query parameter.",
+		example = "Account Name"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -590,7 +665,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the account. Required on create. Updating this field triggers a reindex; filterable, sortable, and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String name;
@@ -598,7 +675,10 @@ public class Account implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "References to the organizations the account is associated with (FK identifiers). Synchronizing this list adds or removes the corresponding account-to-organization links.",
+		example = "[10130, 10131]"
+	)
 	public Long[] getOrganizationIds() {
 		if (_organizationIdsSupplier != null) {
 			organizationIds = _organizationIdsSupplier.get();
@@ -632,14 +712,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "References to the organizations the account is associated with (FK identifiers). Synchronizing this list adds or removes the corresponding account-to-organization links."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long[] organizationIds;
 
 	@JsonIgnore
 	private Supplier<Long[]> _organizationIdsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Integer workflow status. 0=Approved, 1=Pending, 2=Draft, 3=Expired, 4=Denied, 5=Inactive, 7=Scheduled. Read-only; controlled by the workflow engine.",
+		example = "0"
+	)
 	public Integer getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -673,14 +758,19 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Integer workflow status. 0=Approved, 1=Pending, 2=Draft, 3=Expired, 4=Denied, 5=Inactive, 7=Scheduled. Read-only; controlled by the workflow engine."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer status;
 
 	@JsonIgnore
 	private Supplier<Integer> _statusSupplier;
 
-	@Schema(example = "Abcd1234")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Tax registration identifier associated with the account. Optional.",
+		example = "Abcd1234"
+	)
 	public String getTaxId() {
 		if (_taxIdSupplier != null) {
 			taxId = _taxIdSupplier.get();
@@ -714,15 +804,20 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Tax registration identifier associated with the account. Optional."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String taxId;
 
 	@JsonIgnore
 	private Supplier<String> _taxIdSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Account category. One of business, guest, person, or supplier. Required on create. Filterable via the OData query parameter; updating this field triggers a reindex.",
+		example = "business"
+	)
 	@JsonGetter("type")
-	@Schema
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -766,7 +861,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Account category. One of business, guest, person, or supplier. Required on create. Filterable via the OData query parameter; updating this field triggers a reindex."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Type type;
 
@@ -815,7 +912,8 @@ public class Account implements Serializable {
 			sb.append(_toJSON(actions));
 		}
 
-		CustomField[] customFields = getCustomFields();
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields =
+			getCustomFields();
 
 		if (customFields != null) {
 			if (sb.length() > 1) {
@@ -827,7 +925,7 @@ public class Account implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < customFields.length; i++) {
-				sb.append(String.valueOf(customFields[i]));
+				sb.append(customFields[i]);
 
 				if ((i + 1) < customFields.length) {
 					sb.append(", ");
@@ -1067,9 +1165,7 @@ public class Account implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -1078,8 +1174,8 @@ public class Account implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.Account",
 		name = "x-class-name"
 	)
@@ -1205,6 +1301,27 @@ public class Account implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1213,3 +1330,4 @@ public class Account implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1123413892

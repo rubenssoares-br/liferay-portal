@@ -307,10 +307,6 @@ public class PhoneLocalServiceUtil {
 		return getService().getPhoneByUuidAndCompanyId(uuid, companyId);
 	}
 
-	public static List<Phone> getPhones() {
-		return getService().getPhones();
-	}
-
 	/**
 	 * Returns a range of all the phones.
 	 *
@@ -376,3 +372,4 @@ public class PhoneLocalServiceUtil {
 	private static volatile PhoneLocalService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-209374916

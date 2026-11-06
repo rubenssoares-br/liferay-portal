@@ -8,13 +8,14 @@ package com.liferay.headless.admin.user.client.serdes.v1_0;
 import com.liferay.headless.admin.user.client.dto.v1_0.WebUrl;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -273,6 +274,16 @@ public class WebUrlSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -305,3 +316,4 @@ public class WebUrlSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-872396711

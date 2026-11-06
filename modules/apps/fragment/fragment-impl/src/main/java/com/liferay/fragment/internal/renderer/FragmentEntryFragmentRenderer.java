@@ -5,10 +5,10 @@
 
 package com.liferay.fragment.internal.renderer;
 
-import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.fragment.cache.FragmentEntryLinkCache;
 import com.liferay.fragment.configuration.FragmentJavaScriptConfiguration;
 import com.liferay.fragment.contributor.FragmentCollectionContributorRegistry;
+import com.liferay.fragment.helper.FragmentEntryLinkHelper;
 import com.liferay.fragment.input.template.parser.FragmentEntryInputTemplateNodeContextHelper;
 import com.liferay.fragment.input.template.parser.InputTemplateNode;
 import com.liferay.fragment.model.FragmentEntry;
@@ -19,23 +19,21 @@ import com.liferay.fragment.processor.PortletRegistry;
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.fragment.renderer.FragmentRendererContext;
 import com.liferay.fragment.renderer.constants.FragmentRendererConstants;
-import com.liferay.fragment.service.FragmentEntryLocalService;
 import com.liferay.fragment.util.configuration.FragmentEntryConfigurationParser;
-import com.liferay.info.form.InfoForm;
-import com.liferay.info.item.InfoItemServiceRegistry;
-import com.liferay.info.search.InfoSearchClassMapperRegistry;
-import com.liferay.item.selector.ItemSelector;
 import com.liferay.petra.io.unsync.UnsyncStringWriter;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.petra.string.StringUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
+import com.liferay.portal.kernel.cache.PortalCache;
+import com.liferay.portal.kernel.cache.PortalCacheHelperUtil;
+import com.liferay.portal.kernel.cache.PortalCacheManagerNames;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.json.JSONFactory;
+import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.launch.LaunchPreviewThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Layout;
@@ -46,23 +44,28 @@ import com.liferay.portal.kernel.servlet.taglib.util.OutputData;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.HtmlUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.ScopeUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import java.util.Locale;
+import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -78,18 +81,18 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 	}
 
 	@Override
-	public String getConfiguration(
+	public JSONObject getConfigurationJSONObject(
 		FragmentRendererContext fragmentRendererContext) {
 
 		FragmentEntryLink fragmentEntryLink =
 			fragmentRendererContext.getFragmentEntryLink();
 
-		return fragmentEntryLink.getConfiguration();
+		return fragmentEntryLink.getConfigurationJSONObject(true);
 	}
 
 	@Override
 	public String getKey() {
-		return FragmentRendererConstants.FRAGMENT_ENTRY_FRAGMENT_RENDERER_KEY;
+		return FragmentRendererConstants.FRAGMENT_RENDERER_KEY_FRAGMENT_ENTRY;
 	}
 
 	@Override
@@ -117,14 +120,18 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 		}
 	}
 
-	private FragmentEntry _getContributedFragmentEntry(
-		FragmentEntryLink fragmentEntryLink) {
+	@Activate
+	protected void activate() {
+		_configurationPortalCache = PortalCacheHelperUtil.getPortalCache(
+			PortalCacheManagerNames.SINGLE_VM,
+			FragmentEntryFragmentRenderer.class.getName());
+	}
 
-		Map<String, FragmentEntry> fragmentCollectionContributorEntries =
-			_fragmentCollectionContributorRegistry.getFragmentEntries();
-
-		return fragmentCollectionContributorEntries.get(
-			fragmentEntryLink.getRendererKey());
+	@Deactivate
+	protected void deactivate() {
+		PortalCacheHelperUtil.removePortalCache(
+			PortalCacheManagerNames.SINGLE_VM,
+			FragmentEntryFragmentRenderer.class.getName());
 	}
 
 	private FragmentEntryLink _getFragmentEntryLink(
@@ -133,60 +140,27 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 		FragmentEntryLink fragmentEntryLink =
 			fragmentRendererContext.getFragmentEntryLink();
 
-		FragmentEntry fragmentEntry = _getContributedFragmentEntry(
-			fragmentEntryLink);
+		FragmentEntry fragmentEntry =
+			_fragmentCollectionContributorRegistry.getFragmentEntry(
+				fragmentEntryLink.getRendererKey());
 
 		if (fragmentEntry != null) {
 			fragmentEntryLink.setCss(fragmentEntry.getCss());
 			fragmentEntryLink.setHtml(fragmentEntry.getHtml());
 			fragmentEntryLink.setJs(fragmentEntry.getJs());
-			fragmentEntryLink.setConfiguration(
-				fragmentEntry.getConfiguration());
+
+			if (!Objects.equals(
+					fragmentEntryLink.getConfiguration(),
+					fragmentEntry.getConfiguration())) {
+
+				fragmentEntryLink.setConfiguration(
+					fragmentEntry.getConfiguration());
+			}
+
 			fragmentEntryLink.setType(fragmentEntry.getType());
 		}
 
 		return fragmentEntryLink;
-	}
-
-	private String _getFragmentEntryName(FragmentEntryLink fragmentEntryLink) {
-		FragmentEntry fragmentEntry = null;
-
-		if (Validator.isNotNull(fragmentEntryLink.getRendererKey())) {
-			fragmentEntry =
-				_fragmentCollectionContributorRegistry.getFragmentEntry(
-					fragmentEntryLink.getRendererKey());
-		}
-
-		if (fragmentEntry == null) {
-			fragmentEntry = _fragmentEntryLocalService.fetchFragmentEntry(
-				fragmentEntryLink.getFragmentEntryId());
-		}
-
-		if (fragmentEntry == null) {
-			return StringPool.BLANK;
-		}
-
-		return fragmentEntry.getName();
-	}
-
-	private JSONObject _getInputJSONObject(
-		FragmentEntryLink fragmentEntryLink,
-		HttpServletRequest httpServletRequest, InfoForm infoForm,
-		Locale locale) {
-
-		FragmentEntryInputTemplateNodeContextHelper
-			fragmentEntryInputTemplateNodeContextHelper =
-				new FragmentEntryInputTemplateNodeContextHelper(
-					_getFragmentEntryName(fragmentEntryLink),
-					_dlAppLocalService, _fragmentEntryConfigurationParser,
-					_infoItemServiceRegistry, _infoSearchClassMapperRegistry,
-					_itemSelector);
-
-		InputTemplateNode inputTemplateNode =
-			fragmentEntryInputTemplateNodeContextHelper.toInputTemplateNode(
-				fragmentEntryLink, httpServletRequest, infoForm, locale);
-
-		return inputTemplateNode.toJSONObject();
 	}
 
 	private boolean _isCacheable(
@@ -197,7 +171,8 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 			fragmentEntryLink.isTypeInput() ||
 			!fragmentRendererContext.isViewMode() ||
 			(fragmentRendererContext.getPreviewClassPK() > 0) ||
-			!fragmentRendererContext.isUseCachedContent()) {
+			!fragmentRendererContext.isUseCachedContent() ||
+			(LaunchPreviewThreadLocal.getLaunchSetId() > 0)) {
 
 			return false;
 		}
@@ -211,10 +186,8 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 			}
 		}
 
-		FragmentEntry fragmentEntry = null;
-
 		if (Validator.isNotNull(fragmentEntryLink.getRendererKey())) {
-			fragmentEntry =
+			FragmentEntry fragmentEntry =
 				_fragmentCollectionContributorRegistry.getFragmentEntry(
 					fragmentEntryLink.getRendererKey());
 
@@ -223,10 +196,7 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 			}
 		}
 
-		if (fragmentEntry == null) {
-			fragmentEntry = _fragmentEntryLocalService.fetchFragmentEntry(
-				fragmentEntryLink.getFragmentEntryId());
-		}
+		FragmentEntry fragmentEntry = fragmentEntryLink.fetchFragmentEntry();
 
 		if (fragmentEntry == null) {
 			return fragmentEntryLink.isCacheable();
@@ -260,9 +230,10 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 	private String _renderFragmentEntry(
 		String configuration, String css,
 		FragmentRendererContext fragmentRendererContext, String html,
-		HttpServletRequest httpServletRequest, String nonce) {
+		HttpServletRequest httpServletRequest,
+		InputTemplateNode inputTemplateNode, String nonce) {
 
-		StringBundler sb = new StringBundler(29);
+		StringBundler sb = new StringBundler(41);
 
 		sb.append("<div id=\"");
 
@@ -286,8 +257,14 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 				sb.append("</style>");
 			}
 			else {
-				String outputKey =
-					fragmentEntryLink.getFragmentEntryId() + "_CSS";
+				Long groupId = ScopeUtil.getItemGroupId(
+					fragmentEntryLink.getCompanyId(),
+					fragmentEntryLink.getFragmentEntryScopeERC(),
+					fragmentEntryLink.getGroupId());
+
+				String outputKey = StringBundler.concat(
+					fragmentEntryLink.getFragmentEntryERC(), "_", groupId,
+					"_CSS");
 
 				OutputData outputData =
 					(OutputData)httpServletRequest.getAttribute(
@@ -329,54 +306,63 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 			}
 		}
 
-		if (Validator.isNotNull(fragmentEntryLink.getJs())) {
-			boolean javaScriptModuleEnabled = _isJavaScriptModuleEnabled(
-				httpServletRequest);
+		if (Validator.isNull(fragmentEntryLink.getJs())) {
+			return sb.toString();
+		}
 
-			if (javaScriptModuleEnabled) {
-				sb.append("<script type=\"module\" ");
-				sb.append(nonce);
-				sb.append(StringPool.GREATER_THAN);
-			}
-			else {
-				sb.append("<script>(function() {");
-			}
+		boolean javaScriptModuleEnabled = _isJavaScriptModuleEnabled(
+			httpServletRequest);
 
-			sb.append("const configuration = ");
-			sb.append(configuration);
-			sb.append("; const fragmentElement = document.querySelector('#");
-			sb.append(fragmentRendererContext.getFragmentElementId());
-			sb.append("'); const fragmentEntryLinkNamespace = '");
-			sb.append(fragmentEntryLink.getNamespace());
-			sb.append("'; const fragmentNamespace = '");
-			sb.append(fragmentEntryLink.getNamespace());
-			sb.append("'");
+		if (javaScriptModuleEnabled) {
+			sb.append("<script type=\"module\" ");
+			sb.append(nonce);
+			sb.append(StringPool.GREATER_THAN);
+		}
+		else {
+			sb.append("<script>(function() {");
+		}
 
-			if (fragmentEntryLink.isTypeInput()) {
-				sb.append("; const input = ");
-				sb.append(
-					JSONUtil.toString(
-						_getInputJSONObject(
-							fragmentEntryLink, httpServletRequest,
-							fragmentRendererContext.getInfoForm(),
-							fragmentRendererContext.getLocale())));
-			}
+		sb.append("const configuration = ");
+		sb.append(configuration);
+		sb.append("; const fragmentElement = document.querySelector('#");
+		sb.append(fragmentRendererContext.getFragmentElementId());
+		sb.append("'); const fragmentElementId = '");
+		sb.append(fragmentRendererContext.getFragmentElementId());
+		sb.append("'; const fragmentEntryLinkNamespace = '");
+		sb.append(fragmentEntryLink.getNamespace());
+		sb.append("'; const fragmentNamespace = '");
+		sb.append(fragmentEntryLink.getNamespace());
+		sb.append("'");
 
-			sb.append("; const layoutMode = '");
-			sb.append(
-				HtmlUtil.escapeJS(
-					ParamUtil.getString(
-						_portal.getOriginalServletRequest(httpServletRequest),
-						"p_l_mode", Constants.VIEW)));
-			sb.append("';");
-			sb.append(fragmentEntryLink.getJs());
+		if (fragmentEntryLink.isTypeInput()) {
+			sb.append("; const input = ");
+			sb.append(JSONUtil.toString(inputTemplateNode.toJSONObject()));
+			sb.append("; input.value = Liferay.Util.unescapeHTML(input.value ");
+			sb.append("?? ''); Object.keys(input.valueI18n).forEach(");
+			sb.append("function(key){ input.valueI18n[key] = Liferay.Util.");
+			sb.append("unescapeHTML(input.valueI18n[key] ?? '');}); if ");
+			sb.append("(input.attributes.selectedOptionLabel) {");
+			sb.append("input.attributes.selectedOptionLabel = Liferay.Util.");
+			sb.append("unescapeHTML(input.attributes.selectedOptionLabel);} ");
+			sb.append("(input.attributes.options || []).forEach(");
+			sb.append("function(option){ option.label = Liferay.Util.");
+			sb.append("unescapeHTML(option.label ?? '');})");
+		}
 
-			if (javaScriptModuleEnabled) {
-				sb.append(";</script>");
-			}
-			else {
-				sb.append(";}());</script>");
-			}
+		sb.append("; const layoutMode = '");
+		sb.append(
+			HtmlUtil.escapeJS(
+				ParamUtil.getString(
+					_portal.getOriginalServletRequest(httpServletRequest),
+					"p_l_mode", Constants.VIEW)));
+		sb.append("';");
+		sb.append(fragmentEntryLink.getJs());
+
+		if (javaScriptModuleEnabled) {
+			sb.append(";</script>");
+		}
+		else {
+			sb.append(";}());</script>");
 		}
 
 		return sb.toString();
@@ -416,12 +402,19 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 		DefaultFragmentEntryProcessorContext
 			defaultFragmentEntryProcessorContext =
 				new DefaultFragmentEntryProcessorContext(
-					httpServletRequest, httpServletResponse,
+					fragmentEntryLink.getCompanyId(), httpServletRequest,
+					httpServletResponse, fragmentRendererContext.getLocale(),
 					fragmentRendererContext.getMode(),
-					fragmentRendererContext.getLocale());
+					fragmentEntryLink.getGroupId());
 
+		defaultFragmentEntryProcessorContext.setAttributes(
+			fragmentRendererContext.getAttributes());
+		defaultFragmentEntryProcessorContext.setContextInfoItem(
+			fragmentRendererContext.getContextInfoItem());
 		defaultFragmentEntryProcessorContext.setContextInfoItemReference(
 			fragmentRendererContext.getContextInfoItemReference());
+		defaultFragmentEntryProcessorContext.setDisablePortletRender(
+			fragmentRendererContext.isDisablePortletRender());
 		defaultFragmentEntryProcessorContext.setFragmentElementId(
 			fragmentRendererContext.getFragmentElementId());
 		defaultFragmentEntryProcessorContext.setInfoForm(
@@ -437,6 +430,24 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 		defaultFragmentEntryProcessorContext.setSegmentsEntryIds(
 			fragmentRendererContext.getSegmentsEntryIds());
 
+		InputTemplateNode inputTemplateNode = null;
+
+		if (fragmentEntryLink.isTypeInput()) {
+			inputTemplateNode =
+				_fragmentEntryInputTemplateNodeContextHelper.
+					toInputTemplateNode(
+						fragmentRendererContext.getAttributes(),
+						_fragmentEntryLinkHelper.getFragmentEntryName(
+							fragmentEntryLink,
+							fragmentRendererContext.getLocale()),
+						fragmentEntryLink, httpServletRequest,
+						fragmentRendererContext.getInfoForm(),
+						fragmentRendererContext.getLocale());
+
+			defaultFragmentEntryProcessorContext.setInputTemplateNode(
+				inputTemplateNode);
+		}
+
 		String css = StringPool.BLANK;
 
 		if (Validator.isNotNull(fragmentEntryLink.getCss())) {
@@ -449,8 +460,22 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 		if (Validator.isNotNull(fragmentEntryLink.getHtml()) ||
 			Validator.isNotNull(fragmentEntryLink.getEditableValues())) {
 
-			html = _fragmentEntryProcessorRegistry.processFragmentEntryLinkHTML(
-				fragmentEntryLink, defaultFragmentEntryProcessorContext);
+			if (fragmentRendererContext.isEditMode()) {
+				html =
+					_fragmentEntryProcessorRegistry.
+						processFragmentEntryLinkHTML(
+							fragmentRendererContext.
+								getModifiableEditableValuesJSONObject(),
+							fragmentEntryLink,
+							defaultFragmentEntryProcessorContext);
+			}
+			else {
+				html =
+					_fragmentEntryProcessorRegistry.
+						processFragmentEntryLinkHTML(
+							fragmentEntryLink,
+							defaultFragmentEntryProcessorContext);
+			}
 		}
 
 		if (defaultFragmentEntryProcessorContext.isEditMode()) {
@@ -459,32 +484,63 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 				httpServletResponse);
 		}
 
-		JSONObject configurationJSONObject = _jsonFactory.createJSONObject();
+		content = _renderFragmentEntry(
+			_toConfiguration(fragmentEntryLink, fragmentRendererContext), css,
+			fragmentRendererContext, html, httpServletRequest,
+			inputTemplateNode, nonce);
 
-		if (Validator.isNotNull(fragmentEntryLink.getConfiguration())) {
-			configurationJSONObject =
-				_fragmentEntryConfigurationParser.getConfigurationJSONObject(
-					fragmentEntryLink.getConfiguration(),
-					fragmentEntryLink.getEditableValues(),
-					fragmentRendererContext.getLocale());
+		if (!cacheable) {
+			return content;
 		}
 
-		content = _renderFragmentEntry(
-			configurationJSONObject.toString(), css, fragmentRendererContext,
-			html, httpServletRequest, nonce);
+		_fragmentEntryLinkCache.putFragmentEntryLinkContent(
+			content, fragmentEntryLink, fragmentRendererContext.getLocale());
 
-		if (cacheable) {
-			_fragmentEntryLinkCache.putFragmentEntryLinkContent(
-				content, fragmentEntryLink,
+		return StringUtil.replace(
+			content, _NONCE,
+			ContentSecurityPolicyNonceProviderUtil.getNonceAttribute(
+				httpServletRequest));
+	}
+
+	private String _toConfiguration(
+			FragmentEntryLink fragmentEntryLink,
+			FragmentRendererContext fragmentRendererContext)
+		throws JSONException {
+
+		String configuration = fragmentEntryLink.getConfiguration();
+
+		if (Validator.isNull(configuration)) {
+			return "{}";
+		}
+
+		String key = String.valueOf(fragmentEntryLink.getFragmentEntryLinkId());
+
+		if (configuration.contains("localizable")) {
+			key = key.concat(StringPool.POUND);
+			key = key.concat(
+				LocaleUtil.toLanguageId(fragmentRendererContext.getLocale()));
+		}
+
+		Map.Entry<Long, String> entry = _configurationPortalCache.get(key);
+
+		if ((entry != null) &&
+			(entry.getKey() == fragmentEntryLink.getMvccVersion())) {
+
+			return entry.getValue();
+		}
+
+		JSONObject jsonObject =
+			_fragmentEntryConfigurationParser.getConfigurationJSONObject(
+				fragmentEntryLink.getConfigurationJSONObject(),
+				fragmentEntryLink.getEditableValuesJSONObject(),
 				fragmentRendererContext.getLocale());
 
-			content = StringUtil.replace(
-				content, _NONCE,
-				ContentSecurityPolicyNonceProviderUtil.getNonceAttribute(
-					httpServletRequest));
-		}
+		entry = new AbstractMap.SimpleImmutableEntry<>(
+			fragmentEntryLink.getMvccVersion(), jsonObject.toString());
 
-		return content;
+		_configurationPortalCache.put(key, entry);
+
+		return entry.getValue();
 	}
 
 	private String _writePortletPaths(
@@ -509,11 +565,11 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 	private static final Log _log = LogFactoryUtil.getLog(
 		FragmentEntryFragmentRenderer.class);
 
-	@Reference
-	private ConfigurationProvider _configurationProvider;
+	private PortalCache<String, Map.Entry<Long, String>>
+		_configurationPortalCache;
 
 	@Reference
-	private DLAppLocalService _dlAppLocalService;
+	private ConfigurationProvider _configurationProvider;
 
 	@Reference
 	private FragmentCollectionContributorRegistry
@@ -523,25 +579,17 @@ public class FragmentEntryFragmentRenderer implements FragmentRenderer {
 	private FragmentEntryConfigurationParser _fragmentEntryConfigurationParser;
 
 	@Reference
+	private FragmentEntryInputTemplateNodeContextHelper
+		_fragmentEntryInputTemplateNodeContextHelper;
+
+	@Reference
 	private FragmentEntryLinkCache _fragmentEntryLinkCache;
 
 	@Reference
-	private FragmentEntryLocalService _fragmentEntryLocalService;
+	private FragmentEntryLinkHelper _fragmentEntryLinkHelper;
 
 	@Reference
 	private FragmentEntryProcessorRegistry _fragmentEntryProcessorRegistry;
-
-	@Reference
-	private InfoItemServiceRegistry _infoItemServiceRegistry;
-
-	@Reference
-	private InfoSearchClassMapperRegistry _infoSearchClassMapperRegistry;
-
-	@Reference
-	private ItemSelector _itemSelector;
-
-	@Reference
-	private JSONFactory _jsonFactory;
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;

@@ -301,6 +301,20 @@ public interface DepotEntryGroupRelModel
 	public void setToGroupId(long toGroupId);
 
 	/**
+	 * Returns the type of this depot entry group rel.
+	 *
+	 * @return the type of this depot entry group rel
+	 */
+	public int getType();
+
+	/**
+	 * Sets the type of this depot entry group rel.
+	 *
+	 * @param type the type of this depot entry group rel
+	 */
+	public void setType(int type);
+
+	/**
 	 * Returns the last publish date of this depot entry group rel.
 	 *
 	 * @return the last publish date of this depot entry group rel
@@ -324,3 +338,4 @@ public interface DepotEntryGroupRelModel
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-113519235

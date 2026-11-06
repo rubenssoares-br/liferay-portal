@@ -131,12 +131,6 @@ public class AccountRoleLocalServiceUtil {
 		return getService().deleteAccountRole(accountRoleId);
 	}
 
-	public static void deleteAccountRolesByCompanyId(long companyId)
-		throws PortalException {
-
-		getService().deleteAccountRolesByCompanyId(companyId);
-	}
-
 	/**
 	 * @throws PortalException
 	 */
@@ -331,6 +325,15 @@ public class AccountRoleLocalServiceUtil {
 		return getService().getIndexableActionableDynamicQuery();
 	}
 
+	public static AccountRole getOrAddEmptyAccountRole(
+			String externalReferenceCode, long companyId, long userId,
+			long accountEntryId, String name)
+		throws PortalException {
+
+		return getService().getOrAddEmptyAccountRole(
+			externalReferenceCode, companyId, userId, accountEntryId, name);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -406,3 +409,4 @@ public class AccountRoleLocalServiceUtil {
 			AccountRoleLocalServiceUtil.class, AccountRoleLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:607334737

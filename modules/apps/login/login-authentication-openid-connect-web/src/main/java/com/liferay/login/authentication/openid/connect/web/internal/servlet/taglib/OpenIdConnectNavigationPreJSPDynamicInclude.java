@@ -9,8 +9,6 @@ import com.liferay.oauth.client.persistence.model.OAuthClientEntry;
 import com.liferay.oauth.client.persistence.service.OAuthClientEntryLocalService;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.model.Layout;
-import com.liferay.portal.kernel.model.LayoutConstants;
 import com.liferay.portal.kernel.servlet.taglib.BaseJSPDynamicInclude;
 import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -20,13 +18,13 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.security.sso.openid.connect.OpenIdConnect;
 import com.liferay.portal.security.sso.openid.connect.constants.OpenIdConnectWebKeys;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.List;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -38,7 +36,10 @@ import org.osgi.service.component.annotations.Reference;
  *
  * @author Michael C. Han
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=com.liferay.login.web#/navigation.jsp#pre",
+	service = DynamicInclude.class
+)
 public class OpenIdConnectNavigationPreJSPDynamicInclude
 	extends BaseJSPDynamicInclude {
 
@@ -70,25 +71,14 @@ public class OpenIdConnectNavigationPreJSPDynamicInclude
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
 
-		Layout layout = themeDisplay.getLayout();
-
 		if (mvcRenderCommandName.equals(
 				OpenIdConnectWebKeys.OPEN_ID_CONNECT_REQUEST_ACTION_NAME) ||
-			!_openIdConnect.isEnabled(themeDisplay.getCompanyId()) ||
-			LayoutConstants.TYPE_UTILITY.equals(layout.getType())) {
+			!_openIdConnect.isEnabled(themeDisplay.getCompanyId())) {
 
 			return;
 		}
 
 		super.include(httpServletRequest, httpServletResponse, key);
-	}
-
-	@Override
-	public void register(
-		DynamicInclude.DynamicIncludeRegistry dynamicIncludeRegistry) {
-
-		dynamicIncludeRegistry.register(
-			"com.liferay.login.web#/navigation.jsp#pre");
 	}
 
 	@Override

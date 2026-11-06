@@ -10,9 +10,18 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.tools.GitUtil;
+import com.liferay.source.formatter.SourceFormatterArgs;
 import com.liferay.source.formatter.check.util.SourceUtil;
+import com.liferay.source.formatter.processor.SourceProcessor;
 
 import java.io.IOException;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Alan Huang
@@ -104,6 +113,29 @@ public abstract class BaseBreakingChangesCheck extends BaseFileCheck {
 		}
 	}
 
+	protected void checkMajorVersionBump(
+			String fileName, String absolutePath, String content,
+			String additionalMessage)
+		throws Exception {
+
+		String oldVersion = _getMajorVersion(
+			getPortalContent(fileName, absolutePath, true));
+
+		if (Validator.isBlank(oldVersion)) {
+			return;
+		}
+
+		String version = _getMajorVersion(content);
+
+		if (Validator.isBlank(version)) {
+			return;
+		}
+
+		if (Integer.valueOf(version) > Integer.valueOf(oldVersion)) {
+			_checkCommitMessages(fileName, absolutePath, additionalMessage);
+		}
+	}
+
 	protected void checkMissingEmptyLinesAroundHeaders(
 		String fileName, String breakingChanges, String message) {
 
@@ -140,17 +172,85 @@ public abstract class BaseBreakingChangesCheck extends BaseFileCheck {
 			String previousLine = SourceUtil.getLine(
 				breakingChanges, lineNumber - 1);
 
-			if (Validator.isNotNull(nextLine) ||
-				Validator.isNotNull(previousLine)) {
-
-				addMessage(
-					fileName,
-					StringBundler.concat(
-						message,
-						"There should be an empty line after/before \"----\", ",
-						"\"# breaking\", \"## What\", \"## Why\" and \"## ",
-						"Alternatives\""));
+			if (Validator.isNull(nextLine) && Validator.isNull(previousLine)) {
+				continue;
 			}
+
+			addMessage(
+				fileName,
+				StringBundler.concat(
+					message,
+					"There should be an empty line after/before \"----\", \"# ",
+					"breaking\", \"## What\", \"## Why\" and \"## ",
+					"Alternatives\""));
+		}
+	}
+
+	protected List<String> getCurrentBranchCommitMessages() throws Exception {
+
+		// The cache is static, so it is shared by every check that reads it and
+		// the lock has to be too. Hand back an unmodifiable view, since a
+		// caller that filters the cache in place corrupts it for everyone else.
+
+		synchronized (BaseBreakingChangesCheck.class) {
+			if (_currentBranchCommitMessages != null) {
+				return _currentBranchCommitMessages;
+			}
+
+			SourceProcessor sourceProcessor = getSourceProcessor();
+
+			SourceFormatterArgs sourceFormatterArgs =
+				sourceProcessor.getSourceFormatterArgs();
+
+			_currentBranchCommitMessages = Collections.unmodifiableList(
+				GitUtil.getCurrentBranchCommitMessages(
+					sourceFormatterArgs.getBaseDirName(),
+					sourceFormatterArgs.getGitWorkingBranchName()));
+
+			return _currentBranchCommitMessages;
+		}
+	}
+
+	protected Pattern getVersionPattern() {
+		return null;
+	}
+
+	private void _checkCommitMessages(
+			String fileName, String absolutePath, String additionalMessage)
+		throws Exception {
+
+		List<String> breakingChangeCommitMessages = new ArrayList<>();
+
+		for (String commitMessage : getCurrentBranchCommitMessages()) {
+			String[] parts = commitMessage.split(":", 2);
+
+			if (!parts[1].contains("# breaking")) {
+				continue;
+			}
+
+			breakingChangeCommitMessages.add(commitMessage);
+		}
+
+		if (breakingChangeCommitMessages.isEmpty()) {
+			addMessage(
+				fileName,
+				"Incorrect commit message: Missing breaking change in commit " +
+					"messages when " + additionalMessage);
+
+			return;
+		}
+
+		for (String commitMessage : breakingChangeCommitMessages) {
+			String[] parts = commitMessage.split(":", 2);
+
+			String message =
+				"Incorrect commit message in SHA " + parts[0] + ": ";
+
+			checkMissingEmptyLinesAroundHeaders(fileName, parts[1], message);
+
+			checkBreakingChanges(
+				fileName, absolutePath, parts[1].split("\n----"), message,
+				true);
 		}
 	}
 
@@ -169,19 +269,44 @@ public abstract class BaseBreakingChangesCheck extends BaseFileCheck {
 			String explanationLine = SourceUtil.getLine(
 				breakingChange, lineNumber + 2);
 
-			if (Validator.isNull(explanationLine) ||
-				ArrayUtil.contains(
+			if (Validator.isNotNull(explanationLine) &&
+				!ArrayUtil.contains(
 					_BREAKING_CHANGE_HEADER_NAMES, explanationLine)) {
 
-				addMessage(
-					fileName,
-					StringBundler.concat(
-						message,
-						"There should be at least a line containing an ",
-						"explanation after \"## What\", \"## Why\" and \"## ",
-						"Alternatives\""));
+				continue;
 			}
+
+			addMessage(
+				fileName,
+				StringBundler.concat(
+					message, "There should be at least a line containing an ",
+					"explanation after \"## What\", \"## Why\" and \"## ",
+					"Alternatives\""));
 		}
+	}
+
+	private String _getMajorVersion(String content) {
+		if (Validator.isBlank(content)) {
+			return null;
+		}
+
+		Pattern versionPattern = getVersionPattern();
+
+		Matcher matcher = versionPattern.matcher(content);
+
+		if (!matcher.find()) {
+			return null;
+		}
+
+		String version = matcher.group(1);
+
+		int index = version.indexOf(".");
+
+		if (index == -1) {
+			return version;
+		}
+
+		return version.substring(0, index);
 	}
 
 	private static final String[] _BREAKING_CHANGE_HEADER_NAMES = {
@@ -190,5 +315,7 @@ public abstract class BaseBreakingChangesCheck extends BaseFileCheck {
 
 	private static final String _LIFERAY_PORTAL_MASTER_URL =
 		"https://github.com/liferay/liferay-portal/blob/master/";
+
+	private static List<String> _currentBranchCommitMessages;
 
 }

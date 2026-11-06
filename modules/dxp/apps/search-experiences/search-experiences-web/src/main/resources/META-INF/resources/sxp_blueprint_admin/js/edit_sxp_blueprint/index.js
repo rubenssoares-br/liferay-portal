@@ -17,11 +17,13 @@ import EditSXPBlueprintForm from './EditSXPBlueprintForm';
 
 export default function ({
 	defaultLocale,
+	getAssetSubtypesURL,
 	isCompanyAdmin,
 	learnMessages,
 	locale,
 	namespace,
 	redirectURL,
+	selectScopeURL,
 	selectSitesURL,
 	sxpBlueprintId,
 }) {
@@ -49,11 +51,13 @@ export default function ({
 			value={{
 				availableLanguages: Liferay.Language.available,
 				defaultLocale,
+				getAssetSubtypesURL,
 				isCompanyAdmin,
 				learnMessages,
 				locale,
 				namespace,
 				redirectURL,
+				selectScopeURL,
 				selectSitesURL,
 				sxpType: 'sxpBlueprint',
 			}}

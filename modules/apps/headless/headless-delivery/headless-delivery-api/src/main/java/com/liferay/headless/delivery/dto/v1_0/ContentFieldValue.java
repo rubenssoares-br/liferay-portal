@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents the value of a content field. Can contain different information types (e.g., geolocation, documents, etc.).",
 	value = "ContentFieldValue"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents the value of a content field. Can contain different information types (e.g., geolocation, documents, etc.)."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ContentFieldValue")
@@ -53,7 +57,9 @@ public class ContentFieldValue implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ContentFieldValue.class, json);
 	}
 
-	@Schema(description = "The field's content for simple types.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The field's content for simple types."
+	)
 	public String getData() {
 		if (_dataSupplier != null) {
 			data = _dataSupplier.get();
@@ -92,7 +98,9 @@ public class ContentFieldValue implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _dataSupplier;
 
-	@Schema(description = "A content document element.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A content document element."
+	)
 	@Valid
 	public ContentDocument getDocument() {
 		if (_documentSupplier != null) {
@@ -134,7 +142,9 @@ public class ContentFieldValue implements Serializable {
 	@JsonIgnore
 	private Supplier<ContentDocument> _documentSupplier;
 
-	@Schema(description = "A point determined by latitude and longitude.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A point determined by latitude and longitude."
+	)
 	@Valid
 	public Geo getGeo() {
 		if (_geoSupplier != null) {
@@ -174,7 +184,7 @@ public class ContentFieldValue implements Serializable {
 	@JsonIgnore
 	private Supplier<Geo> _geoSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A content document element that stores an image file."
 	)
 	@Valid
@@ -220,7 +230,9 @@ public class ContentFieldValue implements Serializable {
 	@JsonIgnore
 	private Supplier<ContentDocument> _imageSupplier;
 
-	@Schema(description = "A link to a page on the server.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A link to a page on the server."
+	)
 	public String getLink() {
 		if (_linkSupplier != null) {
 			link = _linkSupplier.get();
@@ -259,7 +271,9 @@ public class ContentFieldValue implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _linkSupplier;
 
-	@Schema(description = "A link to structured content on the server.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A link to structured content on the server."
+	)
 	@Valid
 	public StructuredContentLink getStructuredContentLink() {
 		if (_structuredContentLinkSupplier != null) {
@@ -304,7 +318,9 @@ public class ContentFieldValue implements Serializable {
 	@JsonIgnore
 	private Supplier<StructuredContentLink> _structuredContentLinkSupplier;
 
-	@Schema(description = "The field's visible value")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The field's visible value"
+	)
 	public String getValue() {
 		if (_valueSupplier != null) {
 			value = _valueSupplier.get();
@@ -474,8 +490,8 @@ public class ContentFieldValue implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.ContentFieldValue",
 		name = "x-class-name"
 	)
@@ -562,6 +578,27 @@ public class ContentFieldValue implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -570,3 +607,4 @@ public class ContentFieldValue implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1315848353

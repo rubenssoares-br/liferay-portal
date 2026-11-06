@@ -30,8 +30,8 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portlet.test.MockLiferayPortletContext;
 
-import javax.portlet.Portlet;
-import javax.portlet.RenderRequest;
+import jakarta.portlet.Portlet;
+import jakarta.portlet.RenderRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -119,7 +119,8 @@ public class JournalEditDDMTemplateDisplayContextTest {
 		mockLiferayPortletRenderRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, themeDisplay);
 
-		mockLiferayPortletRenderRequest.setParameter("mvcPath", path);
+		mockLiferayPortletRenderRequest.setParameter(
+			"mvcRenderCommandName", "/journal/edit_ddm_template");
 
 		return mockLiferayPortletRenderRequest;
 	}

@@ -8,13 +8,13 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.SitePageSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -68,52 +68,6 @@ public class SitePage implements Cloneable, Serializable {
 	}
 
 	protected Creator creator;
-
-	public String getCreatorExternalReferenceCode() {
-		return creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		String creatorExternalReferenceCode) {
-
-		this.creatorExternalReferenceCode = creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			creatorExternalReferenceCodeUnsafeSupplier) {
-
-		try {
-			creatorExternalReferenceCode =
-				creatorExternalReferenceCodeUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected String creatorExternalReferenceCode;
-
-	public CustomField[] getCustomFields() {
-		return customFields;
-	}
-
-	public void setCustomFields(CustomField[] customFields) {
-		this.customFields = customFields;
-	}
-
-	public void setCustomFields(
-		UnsafeSupplier<CustomField[], Exception> customFieldsUnsafeSupplier) {
-
-		try {
-			customFields = customFieldsUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected CustomField[] customFields;
 
 	public Date getDateCreated() {
 		return dateCreated;
@@ -245,41 +199,16 @@ public class SitePage implements Cloneable, Serializable {
 
 	protected Map<String, String> friendlyUrlPath_i18n;
 
-	public ItemExternalReference[] getKeywordItemExternalReferences() {
-		return keywordItemExternalReferences;
-	}
-
-	public void setKeywordItemExternalReferences(
-		ItemExternalReference[] keywordItemExternalReferences) {
-
-		this.keywordItemExternalReferences = keywordItemExternalReferences;
-	}
-
-	public void setKeywordItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			keywordItemExternalReferencesUnsafeSupplier) {
-
-		try {
-			keywordItemExternalReferences =
-				keywordItemExternalReferencesUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected ItemExternalReference[] keywordItemExternalReferences;
-
-	public Keyword[] getKeywords() {
+	public String[] getKeywords() {
 		return keywords;
 	}
 
-	public void setKeywords(Keyword[] keywords) {
+	public void setKeywords(String[] keywords) {
 		this.keywords = keywords;
 	}
 
 	public void setKeywords(
-		UnsafeSupplier<Keyword[], Exception> keywordsUnsafeSupplier) {
+		UnsafeSupplier<String[], Exception> keywordsUnsafeSupplier) {
 
 		try {
 			keywords = keywordsUnsafeSupplier.get();
@@ -289,7 +218,7 @@ public class SitePage implements Cloneable, Serializable {
 		}
 	}
 
-	protected Keyword[] keywords;
+	protected String[] keywords;
 
 	public Map<String, String> getName_i18n() {
 		return name_i18n;
@@ -333,6 +262,31 @@ public class SitePage implements Cloneable, Serializable {
 	}
 
 	protected PageSettings pageSettings;
+
+	public PageSpecificationVersion[] getPageSpecificationVersions() {
+		return pageSpecificationVersions;
+	}
+
+	public void setPageSpecificationVersions(
+		PageSpecificationVersion[] pageSpecificationVersions) {
+
+		this.pageSpecificationVersions = pageSpecificationVersions;
+	}
+
+	public void setPageSpecificationVersions(
+		UnsafeSupplier<PageSpecificationVersion[], Exception>
+			pageSpecificationVersionsUnsafeSupplier) {
+
+		try {
+			pageSpecificationVersions =
+				pageSpecificationVersionsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected PageSpecificationVersion[] pageSpecificationVersions;
 
 	public PageSpecification[] getPageSpecifications() {
 		return pageSpecifications;
@@ -382,76 +336,58 @@ public class SitePage implements Cloneable, Serializable {
 
 	protected String parentSitePageExternalReferenceCode;
 
-	public String getSiteExternalReferenceCode() {
-		return siteExternalReferenceCode;
+	public com.liferay.headless.admin.site.client.permission.Permission[]
+		getPermissions() {
+
+		return permissions;
 	}
 
-	public void setSiteExternalReferenceCode(String siteExternalReferenceCode) {
-		this.siteExternalReferenceCode = siteExternalReferenceCode;
+	public void setPermissions(
+		com.liferay.headless.admin.site.client.permission.Permission[]
+			permissions) {
+
+		this.permissions = permissions;
 	}
 
-	public void setSiteExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			siteExternalReferenceCodeUnsafeSupplier) {
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.headless.admin.site.client.permission.Permission[],
+			 Exception> permissionsUnsafeSupplier) {
 
 		try {
-			siteExternalReferenceCode =
-				siteExternalReferenceCodeUnsafeSupplier.get();
+			permissions = permissionsUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected String siteExternalReferenceCode;
+	protected com.liferay.headless.admin.site.client.permission.Permission[]
+		permissions;
 
-	public TaxonomyCategory[] getTaxonomyCategories() {
-		return taxonomyCategories;
+	public TaxonomyCategoryBrief[] getTaxonomyCategoryBriefs() {
+		return taxonomyCategoryBriefs;
 	}
 
-	public void setTaxonomyCategories(TaxonomyCategory[] taxonomyCategories) {
-		this.taxonomyCategories = taxonomyCategories;
+	public void setTaxonomyCategoryBriefs(
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs) {
+
+		this.taxonomyCategoryBriefs = taxonomyCategoryBriefs;
 	}
 
-	public void setTaxonomyCategories(
-		UnsafeSupplier<TaxonomyCategory[], Exception>
-			taxonomyCategoriesUnsafeSupplier) {
+	public void setTaxonomyCategoryBriefs(
+		UnsafeSupplier<TaxonomyCategoryBrief[], Exception>
+			taxonomyCategoryBriefsUnsafeSupplier) {
 
 		try {
-			taxonomyCategories = taxonomyCategoriesUnsafeSupplier.get();
+			taxonomyCategoryBriefs = taxonomyCategoryBriefsUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected TaxonomyCategory[] taxonomyCategories;
-
-	public ItemExternalReference[] getTaxonomyCategoryItemExternalReferences() {
-		return taxonomyCategoryItemExternalReferences;
-	}
-
-	public void setTaxonomyCategoryItemExternalReferences(
-		ItemExternalReference[] taxonomyCategoryItemExternalReferences) {
-
-		this.taxonomyCategoryItemExternalReferences =
-			taxonomyCategoryItemExternalReferences;
-	}
-
-	public void setTaxonomyCategoryItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			taxonomyCategoryItemExternalReferencesUnsafeSupplier) {
-
-		try {
-			taxonomyCategoryItemExternalReferences =
-				taxonomyCategoryItemExternalReferencesUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected ItemExternalReference[] taxonomyCategoryItemExternalReferences;
+	protected TaxonomyCategoryBrief[] taxonomyCategoryBriefs;
 
 	public Type getType() {
 		return type;
@@ -561,8 +497,9 @@ public class SitePage implements Cloneable, Serializable {
 
 	public static enum Type {
 
-		COLLECTION_PAGE("CollectionPage"), CONTENT_PAGE("ContentPage"),
-		WIDGET_PAGE("WidgetPage");
+		CONTENT_PAGE("ContentPage"), EMBEDDED_PAGE("EmbeddedPage"),
+		LINK_TO_PAGE_PAGE("LinkToPagePage"), LINK_TO_URL_PAGE("LinkToURLPage"),
+		PAGE_SET_PAGE("PageSetPage"), WIDGET_PAGE("WidgetPage");
 
 		public static Type create(String value) {
 			for (Type type : values()) {
@@ -627,3 +564,4 @@ public class SitePage implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1299706233

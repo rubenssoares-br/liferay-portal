@@ -19,6 +19,7 @@ import com.liferay.headless.commerce.delivery.order.client.pagination.Page;
 import com.liferay.headless.commerce.delivery.order.client.pagination.Pagination;
 import com.liferay.headless.commerce.delivery.order.client.resource.v1_0.AttachmentResource;
 import com.liferay.headless.commerce.delivery.order.client.serdes.v1_0.AttachmentSerDes;
+import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
@@ -28,23 +29,31 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
+import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -83,8 +88,10 @@ public abstract class BaseAttachmentResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -97,16 +104,16 @@ public abstract class BaseAttachmentResourceTestCase {
 
 		_attachmentResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		AttachmentResource.Builder builder = AttachmentResource.builder();
-
-		attachmentResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		attachmentResource = AttachmentResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -168,8 +175,11 @@ public abstract class BaseAttachmentResourceTestCase {
 
 		Attachment attachment = randomAttachment();
 
+		attachment.setExtension(regex);
 		attachment.setExternalReferenceCode(regex);
 		attachment.setTitle(regex);
+		attachment.setType(regex);
+		attachment.setTypeLabel(regex);
 		attachment.setUrl(regex);
 
 		String json = AttachmentSerDes.toJSON(attachment);
@@ -178,9 +188,646 @@ public abstract class BaseAttachmentResourceTestCase {
 
 		attachment = AttachmentSerDes.toDTO(json);
 
+		Assert.assertEquals(regex, attachment.getExtension());
 		Assert.assertEquals(regex, attachment.getExternalReferenceCode());
 		Assert.assertEquals(regex, attachment.getTitle());
+		Assert.assertEquals(regex, attachment.getType());
+		Assert.assertEquals(regex, attachment.getTypeLabel());
 		Assert.assertEquals(regex, attachment.getUrl());
+	}
+
+	@Test
+	public void testDeletePlacedOrderAttachment() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment = testDeletePlacedOrderAttachment_addAttachment();
+
+		assertHttpResponseStatusCode(
+			204,
+			attachmentResource.deletePlacedOrderAttachmentHttpResponse(
+				attachment.getId(),
+				testDeletePlacedOrderAttachment_getPlacedOrderId()));
+	}
+
+	protected Attachment testDeletePlacedOrderAttachment_addAttachment()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long testDeletePlacedOrderAttachment_getPlacedOrderId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeletePlacedOrderAttachment() throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment1 =
+			testGraphQLDeletePlacedOrderAttachment_addAttachment();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deletePlacedOrderAttachment",
+						new HashMap<String, Object>() {
+							{
+								put("attachmentId", attachment1.getId());
+
+								put(
+									"placedOrderId",
+									testGraphQLDeletePlacedOrderAttachment_getPlacedOrderId());
+							}
+						})),
+				"JSONObject/data", "Object/deletePlacedOrderAttachment"));
+
+		// Using the namespace headlessCommerceDeliveryOrder_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment2 =
+			testGraphQLDeletePlacedOrderAttachment_addAttachment();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceDeliveryOrder_v1_0",
+						new GraphQLField(
+							"deletePlacedOrderAttachment",
+							new HashMap<String, Object>() {
+								{
+									put("attachmentId", attachment2.getId());
+
+									put(
+										"placedOrderId",
+										testGraphQLDeletePlacedOrderAttachment_getPlacedOrderId());
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceDeliveryOrder_v1_0",
+				"Object/deletePlacedOrderAttachment"));
+	}
+
+	protected Long testGraphQLDeletePlacedOrderAttachment_getPlacedOrderId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Attachment testGraphQLDeletePlacedOrderAttachment_addAttachment()
+		throws Exception {
+
+		return testGraphQLAttachment_addAttachment();
+	}
+
+	@Test
+	public void testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode()
+		throws Exception {
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment =
+			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment();
+
+		assertHttpResponseStatusCode(
+			204,
+			attachmentResource.
+				deletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCodeHttpResponse(
+					attachment.getExternalReferenceCode(),
+					testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
+						attachment)));
+	}
+
+	protected Attachment
+			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
+				Attachment attachment)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode()
+		throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment1 =
+			testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"attachmentExternalReferenceCode",
+									"\"" +
+										attachment1.getExternalReferenceCode() +
+											"\"");
+
+								put(
+									"externalReferenceCode",
+									"\"" +
+										testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
+											attachment1) + "\"");
+							}
+						})),
+				"JSONObject/data",
+				"Object/deletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode"));
+
+		// Using the namespace headlessCommerceDeliveryOrder_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment2 =
+			testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceDeliveryOrder_v1_0",
+						new GraphQLField(
+							"deletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"attachmentExternalReferenceCode",
+										"\"" +
+											attachment2.
+												getExternalReferenceCode() +
+													"\"");
+
+									put(
+										"externalReferenceCode",
+										"\"" +
+											testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
+												attachment2) + "\"");
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceDeliveryOrder_v1_0",
+				"Object/deletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode"));
+	}
+
+	protected String
+			testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
+				Attachment attachment)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Attachment
+			testGraphQLDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment()
+		throws Exception {
+
+		return testGraphQLAttachment_addAttachment();
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPage() throws Exception {
+		Long placedOrderId =
+			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
+		Long irrelevantPlacedOrderId =
+			testGetPlacedOrderAttachmentsPage_getIrrelevantPlacedOrderId();
+
+		Page<Attachment> page =
+			attachmentResource.getPlacedOrderAttachmentsPage(
+				placedOrderId, null, null, Pagination.of(1, 10), null);
+
+		long totalCount = page.getTotalCount();
+
+		if (irrelevantPlacedOrderId != null) {
+			Attachment irrelevantAttachment =
+				testGetPlacedOrderAttachmentsPage_addAttachment(
+					irrelevantPlacedOrderId, randomIrrelevantAttachment());
+
+			page = attachmentResource.getPlacedOrderAttachmentsPage(
+				irrelevantPlacedOrderId, null, null,
+				Pagination.of(1, (int)totalCount + 1), null);
+
+			Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+			assertContains(
+				irrelevantAttachment, (List<Attachment>)page.getItems());
+			assertValid(
+				page,
+				testGetPlacedOrderAttachmentsPage_getExpectedActions(
+					irrelevantPlacedOrderId));
+		}
+
+		Attachment attachment1 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		Attachment attachment2 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		page = attachmentResource.getPlacedOrderAttachmentsPage(
+			placedOrderId, null, null, Pagination.of(1, (int)totalCount + 2),
+			null);
+
+		Assert.assertEquals(totalCount + 2, page.getTotalCount());
+
+		assertContains(attachment1, (List<Attachment>)page.getItems());
+		assertContains(attachment2, (List<Attachment>)page.getItems());
+		assertValid(
+			page,
+			testGetPlacedOrderAttachmentsPage_getExpectedActions(
+				placedOrderId));
+	}
+
+	protected Map<String, Map<String, String>>
+			testGetPlacedOrderAttachmentsPage_getExpectedActions(
+				Long placedOrderId)
+		throws Exception {
+
+		Map<String, Map<String, String>> expectedActions = new HashMap<>();
+
+		return expectedActions;
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithFilterDateTimeEquals()
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(
+			EntityField.Type.DATE_TIME);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		Long placedOrderId =
+			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
+
+		Attachment attachment1 = randomAttachment();
+
+		attachment1 = testGetPlacedOrderAttachmentsPage_addAttachment(
+			placedOrderId, attachment1);
+
+		for (EntityField entityField : entityFields) {
+			Page<Attachment> page =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null,
+					getFilterString(entityField, "between", attachment1),
+					Pagination.of(1, 2), null);
+
+			assertEquals(
+				Collections.singletonList(attachment1),
+				(List<Attachment>)page.getItems());
+		}
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithFilterDoubleEquals()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithFilter(
+			"eq", EntityField.Type.DOUBLE);
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithFilterStringContains()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithFilter(
+			"contains", EntityField.Type.STRING);
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithFilterStringEquals()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithFilter(
+			"eq", EntityField.Type.STRING);
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithFilterStringStartsWith()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithFilter(
+			"startswith", EntityField.Type.STRING);
+	}
+
+	protected void testGetPlacedOrderAttachmentsPageWithFilter(
+			String operator, EntityField.Type type)
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(type);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		Long placedOrderId =
+			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
+
+		Attachment attachment1 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment2 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		for (EntityField entityField : entityFields) {
+			Page<Attachment> page =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null,
+					getFilterString(entityField, operator, attachment1),
+					Pagination.of(1, 2), null);
+
+			assertEquals(
+				Collections.singletonList(attachment1),
+				(List<Attachment>)page.getItems());
+		}
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithPagination()
+		throws Exception {
+
+		Long placedOrderId =
+			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
+
+		Page<Attachment> attachmentsPage =
+			attachmentResource.getPlacedOrderAttachmentsPage(
+				placedOrderId, null, null, null, null);
+
+		int totalCount = GetterUtil.getInteger(attachmentsPage.getTotalCount());
+
+		Attachment attachment1 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		Attachment attachment2 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		Attachment attachment3 =
+			testGetPlacedOrderAttachmentsPage_addAttachment(
+				placedOrderId, randomAttachment());
+
+		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
+
+		int pageSizeLimit = 500;
+
+		if (totalCount >= (pageSizeLimit - 2)) {
+			Page<Attachment> page1 =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+						pageSizeLimit),
+					null);
+
+			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
+
+			assertContains(attachment1, (List<Attachment>)page1.getItems());
+
+			Page<Attachment> page2 =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+						pageSizeLimit),
+					null);
+
+			assertContains(attachment2, (List<Attachment>)page2.getItems());
+
+			Page<Attachment> page3 =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+						pageSizeLimit),
+					null);
+
+			assertContains(attachment3, (List<Attachment>)page3.getItems());
+		}
+		else {
+			Page<Attachment> page1 =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null, Pagination.of(1, totalCount + 2),
+					null);
+
+			List<Attachment> attachments1 = (List<Attachment>)page1.getItems();
+
+			Assert.assertEquals(
+				attachments1.toString(), totalCount + 2, attachments1.size());
+
+			Page<Attachment> page2 =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null, Pagination.of(2, totalCount + 2),
+					null);
+
+			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
+
+			List<Attachment> attachments2 = (List<Attachment>)page2.getItems();
+
+			Assert.assertEquals(
+				attachments2.toString(), 1, attachments2.size());
+
+			Page<Attachment> page3 =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null,
+					Pagination.of(1, (int)totalCount + 3), null);
+
+			assertContains(attachment1, (List<Attachment>)page3.getItems());
+			assertContains(attachment2, (List<Attachment>)page3.getItems());
+			assertContains(attachment3, (List<Attachment>)page3.getItems());
+		}
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithSortDateTime()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithSort(
+			EntityField.Type.DATE_TIME,
+			(entityField, attachment1, attachment2) -> {
+				BeanTestUtil.setProperty(
+					attachment1, entityField.getName(),
+					new Date(System.currentTimeMillis() - (2 * Time.MINUTE)));
+			});
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithSortDouble()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithSort(
+			EntityField.Type.DOUBLE,
+			(entityField, attachment1, attachment2) -> {
+				BeanTestUtil.setProperty(
+					attachment1, entityField.getName(), 0.1);
+				BeanTestUtil.setProperty(
+					attachment2, entityField.getName(), 0.5);
+			});
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithSortInteger()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithSort(
+			EntityField.Type.INTEGER,
+			(entityField, attachment1, attachment2) -> {
+				BeanTestUtil.setProperty(attachment1, entityField.getName(), 0);
+				BeanTestUtil.setProperty(attachment2, entityField.getName(), 1);
+			});
+	}
+
+	@Test
+	public void testGetPlacedOrderAttachmentsPageWithSortString()
+		throws Exception {
+
+		testGetPlacedOrderAttachmentsPageWithSort(
+			EntityField.Type.STRING,
+			(entityField, attachment1, attachment2) -> {
+				Class<?> clazz = attachment1.getClass();
+
+				String entityFieldName = entityField.getName();
+
+				Method method = clazz.getMethod(
+					"get" + StringUtil.upperCaseFirstLetter(entityFieldName));
+
+				Class<?> returnType = method.getReturnType();
+
+				if (returnType.isAssignableFrom(Map.class)) {
+					BeanTestUtil.setProperty(
+						attachment1, entityFieldName,
+						Collections.singletonMap("Aaa", "Aaa"));
+					BeanTestUtil.setProperty(
+						attachment2, entityFieldName,
+						Collections.singletonMap("Bbb", "Bbb"));
+				}
+				else if (entityFieldName.contains("email")) {
+					BeanTestUtil.setProperty(
+						attachment1, entityFieldName,
+						"aaa" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()) +
+									"@liferay.com");
+					BeanTestUtil.setProperty(
+						attachment2, entityFieldName,
+						"bbb" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()) +
+									"@liferay.com");
+				}
+				else {
+					BeanTestUtil.setProperty(
+						attachment1, entityFieldName,
+						"aaa" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()));
+					BeanTestUtil.setProperty(
+						attachment2, entityFieldName,
+						"bbb" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()));
+				}
+			});
+	}
+
+	protected void testGetPlacedOrderAttachmentsPageWithSort(
+			EntityField.Type type,
+			UnsafeTriConsumer<EntityField, Attachment, Attachment, Exception>
+				unsafeTriConsumer)
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(type);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		Long placedOrderId =
+			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
+
+		Attachment attachment1 = randomAttachment();
+		Attachment attachment2 = randomAttachment();
+
+		for (EntityField entityField : entityFields) {
+			unsafeTriConsumer.accept(entityField, attachment1, attachment2);
+		}
+
+		attachment1 = testGetPlacedOrderAttachmentsPage_addAttachment(
+			placedOrderId, attachment1);
+
+		attachment2 = testGetPlacedOrderAttachmentsPage_addAttachment(
+			placedOrderId, attachment2);
+
+		Page<Attachment> page =
+			attachmentResource.getPlacedOrderAttachmentsPage(
+				placedOrderId, null, null, null, null);
+
+		for (EntityField entityField : entityFields) {
+			Page<Attachment> ascPage =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null,
+					Pagination.of(1, (int)page.getTotalCount() + 1),
+					entityField.getName() + ":asc");
+
+			assertContains(attachment1, (List<Attachment>)ascPage.getItems());
+			assertContains(attachment2, (List<Attachment>)ascPage.getItems());
+
+			Page<Attachment> descPage =
+				attachmentResource.getPlacedOrderAttachmentsPage(
+					placedOrderId, null, null,
+					Pagination.of(1, (int)page.getTotalCount() + 1),
+					entityField.getName() + ":desc");
+
+			assertContains(attachment2, (List<Attachment>)descPage.getItems());
+			assertContains(attachment1, (List<Attachment>)descPage.getItems());
+		}
+	}
+
+	protected Attachment testGetPlacedOrderAttachmentsPage_addAttachment(
+			Long placedOrderId, Attachment attachment)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long testGetPlacedOrderAttachmentsPage_getPlacedOrderId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long
+			testGetPlacedOrderAttachmentsPage_getIrrelevantPlacedOrderId()
+		throws Exception {
+
+		return null;
 	}
 
 	@Test
@@ -195,7 +842,8 @@ public abstract class BaseAttachmentResourceTestCase {
 		Page<Attachment> page =
 			attachmentResource.
 				getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode, null, null, Pagination.of(1, 10),
+					null);
 
 		long totalCount = page.getTotalCount();
 
@@ -208,8 +856,8 @@ public abstract class BaseAttachmentResourceTestCase {
 			page =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						irrelevantExternalReferenceCode,
-						Pagination.of(1, (int)totalCount + 1));
+						irrelevantExternalReferenceCode, null, null,
+						Pagination.of(1, (int)totalCount + 1), null);
 
 			Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
@@ -232,7 +880,8 @@ public abstract class BaseAttachmentResourceTestCase {
 		page =
 			attachmentResource.
 				getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode, null, null,
+					Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -255,18 +904,121 @@ public abstract class BaseAttachmentResourceTestCase {
 	}
 
 	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilterDateTimeEquals()
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(
+			EntityField.Type.DATE_TIME);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		String externalReferenceCode =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_getExternalReferenceCode();
+
+		Attachment attachment1 = randomAttachment();
+
+		attachment1 =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_addAttachment(
+				externalReferenceCode, attachment1);
+
+		for (EntityField entityField : entityFields) {
+			Page<Attachment> page =
+				attachmentResource.
+					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
+						externalReferenceCode, null,
+						getFilterString(entityField, "between", attachment1),
+						Pagination.of(1, 2), null);
+
+			assertEquals(
+				Collections.singletonList(attachment1),
+				(List<Attachment>)page.getItems());
+		}
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilterDoubleEquals()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilter(
+			"eq", EntityField.Type.DOUBLE);
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilterStringContains()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilter(
+			"contains", EntityField.Type.STRING);
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilterStringEquals()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilter(
+			"eq", EntityField.Type.STRING);
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilterStringStartsWith()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilter(
+			"startswith", EntityField.Type.STRING);
+	}
+
+	protected void
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithFilter(
+				String operator, EntityField.Type type)
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(type);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		String externalReferenceCode =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_getExternalReferenceCode();
+
+		Attachment attachment1 =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_addAttachment(
+				externalReferenceCode, randomAttachment());
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Attachment attachment2 =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_addAttachment(
+				externalReferenceCode, randomAttachment());
+
+		for (EntityField entityField : entityFields) {
+			Page<Attachment> page =
+				attachmentResource.
+					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
+						externalReferenceCode, null,
+						getFilterString(entityField, operator, attachment1),
+						Pagination.of(1, 2), null);
+
+			assertEquals(
+				Collections.singletonList(attachment1),
+				(List<Attachment>)page.getItems());
+		}
+	}
+
+	@Test
 	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithPagination()
 		throws Exception {
 
 		String externalReferenceCode =
 			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_getExternalReferenceCode();
 
-		Page<Attachment> attachmentPage =
+		Page<Attachment> attachmentsPage =
 			attachmentResource.
 				getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-					externalReferenceCode, null);
+					externalReferenceCode, null, null, null, null);
 
-		int totalCount = GetterUtil.getInteger(attachmentPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(attachmentsPage.getTotalCount());
 
 		Attachment attachment1 =
 			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_addAttachment(
@@ -288,10 +1040,11 @@ public abstract class BaseAttachmentResourceTestCase {
 			Page<Attachment> page1 =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						externalReferenceCode,
+						externalReferenceCode, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
-							pageSizeLimit));
+							pageSizeLimit),
+						null);
 
 			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
 
@@ -300,20 +1053,22 @@ public abstract class BaseAttachmentResourceTestCase {
 			Page<Attachment> page2 =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						externalReferenceCode,
+						externalReferenceCode, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
-							pageSizeLimit));
+							pageSizeLimit),
+						null);
 
 			assertContains(attachment2, (List<Attachment>)page2.getItems());
 
 			Page<Attachment> page3 =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						externalReferenceCode,
+						externalReferenceCode, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
-							pageSizeLimit));
+							pageSizeLimit),
+						null);
 
 			assertContains(attachment3, (List<Attachment>)page3.getItems());
 		}
@@ -321,8 +1076,8 @@ public abstract class BaseAttachmentResourceTestCase {
 			Page<Attachment> page1 =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						externalReferenceCode,
-						Pagination.of(1, totalCount + 2));
+						externalReferenceCode, null, null,
+						Pagination.of(1, totalCount + 2), null);
 
 			List<Attachment> attachments1 = (List<Attachment>)page1.getItems();
 
@@ -332,8 +1087,8 @@ public abstract class BaseAttachmentResourceTestCase {
 			Page<Attachment> page2 =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						externalReferenceCode,
-						Pagination.of(2, totalCount + 2));
+						externalReferenceCode, null, null,
+						Pagination.of(2, totalCount + 2), null);
 
 			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
 
@@ -345,12 +1100,164 @@ public abstract class BaseAttachmentResourceTestCase {
 			Page<Attachment> page3 =
 				attachmentResource.
 					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
-						externalReferenceCode,
-						Pagination.of(1, (int)totalCount + 3));
+						externalReferenceCode, null, null,
+						Pagination.of(1, (int)totalCount + 3), null);
 
 			assertContains(attachment1, (List<Attachment>)page3.getItems());
 			assertContains(attachment2, (List<Attachment>)page3.getItems());
 			assertContains(attachment3, (List<Attachment>)page3.getItems());
+		}
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSortDateTime()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSort(
+			EntityField.Type.DATE_TIME,
+			(entityField, attachment1, attachment2) -> {
+				BeanTestUtil.setProperty(
+					attachment1, entityField.getName(),
+					new Date(System.currentTimeMillis() - (2 * Time.MINUTE)));
+			});
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSortDouble()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSort(
+			EntityField.Type.DOUBLE,
+			(entityField, attachment1, attachment2) -> {
+				BeanTestUtil.setProperty(
+					attachment1, entityField.getName(), 0.1);
+				BeanTestUtil.setProperty(
+					attachment2, entityField.getName(), 0.5);
+			});
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSortInteger()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSort(
+			EntityField.Type.INTEGER,
+			(entityField, attachment1, attachment2) -> {
+				BeanTestUtil.setProperty(attachment1, entityField.getName(), 0);
+				BeanTestUtil.setProperty(attachment2, entityField.getName(), 1);
+			});
+	}
+
+	@Test
+	public void testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSortString()
+		throws Exception {
+
+		testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSort(
+			EntityField.Type.STRING,
+			(entityField, attachment1, attachment2) -> {
+				Class<?> clazz = attachment1.getClass();
+
+				String entityFieldName = entityField.getName();
+
+				Method method = clazz.getMethod(
+					"get" + StringUtil.upperCaseFirstLetter(entityFieldName));
+
+				Class<?> returnType = method.getReturnType();
+
+				if (returnType.isAssignableFrom(Map.class)) {
+					BeanTestUtil.setProperty(
+						attachment1, entityFieldName,
+						Collections.singletonMap("Aaa", "Aaa"));
+					BeanTestUtil.setProperty(
+						attachment2, entityFieldName,
+						Collections.singletonMap("Bbb", "Bbb"));
+				}
+				else if (entityFieldName.contains("email")) {
+					BeanTestUtil.setProperty(
+						attachment1, entityFieldName,
+						"aaa" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()) +
+									"@liferay.com");
+					BeanTestUtil.setProperty(
+						attachment2, entityFieldName,
+						"bbb" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()) +
+									"@liferay.com");
+				}
+				else {
+					BeanTestUtil.setProperty(
+						attachment1, entityFieldName,
+						"aaa" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()));
+					BeanTestUtil.setProperty(
+						attachment2, entityFieldName,
+						"bbb" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()));
+				}
+			});
+	}
+
+	protected void
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPageWithSort(
+				EntityField.Type type,
+				UnsafeTriConsumer
+					<EntityField, Attachment, Attachment, Exception>
+						unsafeTriConsumer)
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(type);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		String externalReferenceCode =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_getExternalReferenceCode();
+
+		Attachment attachment1 = randomAttachment();
+		Attachment attachment2 = randomAttachment();
+
+		for (EntityField entityField : entityFields) {
+			unsafeTriConsumer.accept(entityField, attachment1, attachment2);
+		}
+
+		attachment1 =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_addAttachment(
+				externalReferenceCode, attachment1);
+
+		attachment2 =
+			testGetPlacedOrderByExternalReferenceCodeAttachmentsPage_addAttachment(
+				externalReferenceCode, attachment2);
+
+		Page<Attachment> page =
+			attachmentResource.
+				getPlacedOrderByExternalReferenceCodeAttachmentsPage(
+					externalReferenceCode, null, null, null, null);
+
+		for (EntityField entityField : entityFields) {
+			Page<Attachment> ascPage =
+				attachmentResource.
+					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
+						externalReferenceCode, null, null,
+						Pagination.of(1, (int)page.getTotalCount() + 1),
+						entityField.getName() + ":asc");
+
+			assertContains(attachment1, (List<Attachment>)ascPage.getItems());
+			assertContains(attachment2, (List<Attachment>)ascPage.getItems());
+
+			Page<Attachment> descPage =
+				attachmentResource.
+					getPlacedOrderByExternalReferenceCodeAttachmentsPage(
+						externalReferenceCode, null, null,
+						Pagination.of(1, (int)page.getTotalCount() + 1),
+						entityField.getName() + ":desc");
+
+			assertContains(attachment2, (List<Attachment>)descPage.getItems());
+			assertContains(attachment1, (List<Attachment>)descPage.getItems());
 		}
 	}
 
@@ -379,6 +1286,26 @@ public abstract class BaseAttachmentResourceTestCase {
 	}
 
 	@Test
+	public void testPostPlacedOrderAttachmentByBase64() throws Exception {
+		Attachment randomAttachment = randomAttachment();
+
+		Attachment postAttachment =
+			testPostPlacedOrderAttachmentByBase64_addAttachment(
+				randomAttachment);
+
+		assertEquals(randomAttachment, postAttachment);
+		assertValid(postAttachment);
+	}
+
+	protected Attachment testPostPlacedOrderAttachmentByBase64_addAttachment(
+			Attachment attachment)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostPlacedOrderByExternalReferenceCodeAttachmentByBase64()
 		throws Exception {
 
@@ -402,265 +1329,12 @@ public abstract class BaseAttachmentResourceTestCase {
 	}
 
 	@Test
-	public void testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode()
-		throws Exception {
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		Attachment attachment =
-			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment();
-
-		assertHttpResponseStatusCode(
-			204,
-			attachmentResource.
-				deletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCodeHttpResponse(
-					testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getAttachmentExternalReferenceCode(),
-					testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
-						attachment)));
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Assert.assertTrue(true);
 	}
 
-	protected String
-			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getAttachmentExternalReferenceCode()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected String
-			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
-				Attachment attachment)
-		throws Exception {
-
-		return attachment.getExternalReferenceCode();
-	}
-
-	protected Attachment
-			testDeletePlacedOrderByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_addAttachment()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGetPlacedOrderAttachmentsPage() throws Exception {
-		Long placedOrderId =
-			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
-		Long irrelevantPlacedOrderId =
-			testGetPlacedOrderAttachmentsPage_getIrrelevantPlacedOrderId();
-
-		Page<Attachment> page =
-			attachmentResource.getPlacedOrderAttachmentsPage(
-				placedOrderId, Pagination.of(1, 10));
-
-		long totalCount = page.getTotalCount();
-
-		if (irrelevantPlacedOrderId != null) {
-			Attachment irrelevantAttachment =
-				testGetPlacedOrderAttachmentsPage_addAttachment(
-					irrelevantPlacedOrderId, randomIrrelevantAttachment());
-
-			page = attachmentResource.getPlacedOrderAttachmentsPage(
-				irrelevantPlacedOrderId, Pagination.of(1, (int)totalCount + 1));
-
-			Assert.assertEquals(totalCount + 1, page.getTotalCount());
-
-			assertContains(
-				irrelevantAttachment, (List<Attachment>)page.getItems());
-			assertValid(
-				page,
-				testGetPlacedOrderAttachmentsPage_getExpectedActions(
-					irrelevantPlacedOrderId));
-		}
-
-		Attachment attachment1 =
-			testGetPlacedOrderAttachmentsPage_addAttachment(
-				placedOrderId, randomAttachment());
-
-		Attachment attachment2 =
-			testGetPlacedOrderAttachmentsPage_addAttachment(
-				placedOrderId, randomAttachment());
-
-		page = attachmentResource.getPlacedOrderAttachmentsPage(
-			placedOrderId, Pagination.of(1, 10));
-
-		Assert.assertEquals(totalCount + 2, page.getTotalCount());
-
-		assertContains(attachment1, (List<Attachment>)page.getItems());
-		assertContains(attachment2, (List<Attachment>)page.getItems());
-		assertValid(
-			page,
-			testGetPlacedOrderAttachmentsPage_getExpectedActions(
-				placedOrderId));
-	}
-
-	protected Map<String, Map<String, String>>
-			testGetPlacedOrderAttachmentsPage_getExpectedActions(
-				Long placedOrderId)
-		throws Exception {
-
-		Map<String, Map<String, String>> expectedActions = new HashMap<>();
-
-		return expectedActions;
-	}
-
-	@Test
-	public void testGetPlacedOrderAttachmentsPageWithPagination()
-		throws Exception {
-
-		Long placedOrderId =
-			testGetPlacedOrderAttachmentsPage_getPlacedOrderId();
-
-		Page<Attachment> attachmentPage =
-			attachmentResource.getPlacedOrderAttachmentsPage(
-				placedOrderId, null);
-
-		int totalCount = GetterUtil.getInteger(attachmentPage.getTotalCount());
-
-		Attachment attachment1 =
-			testGetPlacedOrderAttachmentsPage_addAttachment(
-				placedOrderId, randomAttachment());
-
-		Attachment attachment2 =
-			testGetPlacedOrderAttachmentsPage_addAttachment(
-				placedOrderId, randomAttachment());
-
-		Attachment attachment3 =
-			testGetPlacedOrderAttachmentsPage_addAttachment(
-				placedOrderId, randomAttachment());
-
-		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
-
-		int pageSizeLimit = 500;
-
-		if (totalCount >= (pageSizeLimit - 2)) {
-			Page<Attachment> page1 =
-				attachmentResource.getPlacedOrderAttachmentsPage(
-					placedOrderId,
-					Pagination.of(
-						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
-						pageSizeLimit));
-
-			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
-
-			assertContains(attachment1, (List<Attachment>)page1.getItems());
-
-			Page<Attachment> page2 =
-				attachmentResource.getPlacedOrderAttachmentsPage(
-					placedOrderId,
-					Pagination.of(
-						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
-						pageSizeLimit));
-
-			assertContains(attachment2, (List<Attachment>)page2.getItems());
-
-			Page<Attachment> page3 =
-				attachmentResource.getPlacedOrderAttachmentsPage(
-					placedOrderId,
-					Pagination.of(
-						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
-						pageSizeLimit));
-
-			assertContains(attachment3, (List<Attachment>)page3.getItems());
-		}
-		else {
-			Page<Attachment> page1 =
-				attachmentResource.getPlacedOrderAttachmentsPage(
-					placedOrderId, Pagination.of(1, totalCount + 2));
-
-			List<Attachment> attachments1 = (List<Attachment>)page1.getItems();
-
-			Assert.assertEquals(
-				attachments1.toString(), totalCount + 2, attachments1.size());
-
-			Page<Attachment> page2 =
-				attachmentResource.getPlacedOrderAttachmentsPage(
-					placedOrderId, Pagination.of(2, totalCount + 2));
-
-			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
-
-			List<Attachment> attachments2 = (List<Attachment>)page2.getItems();
-
-			Assert.assertEquals(
-				attachments2.toString(), 1, attachments2.size());
-
-			Page<Attachment> page3 =
-				attachmentResource.getPlacedOrderAttachmentsPage(
-					placedOrderId, Pagination.of(1, (int)totalCount + 3));
-
-			assertContains(attachment1, (List<Attachment>)page3.getItems());
-			assertContains(attachment2, (List<Attachment>)page3.getItems());
-			assertContains(attachment3, (List<Attachment>)page3.getItems());
-		}
-	}
-
-	protected Attachment testGetPlacedOrderAttachmentsPage_addAttachment(
-			Long placedOrderId, Attachment attachment)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Long testGetPlacedOrderAttachmentsPage_getPlacedOrderId()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Long
-			testGetPlacedOrderAttachmentsPage_getIrrelevantPlacedOrderId()
-		throws Exception {
-
-		return null;
-	}
-
-	@Test
-	public void testPostPlacedOrderAttachmentByBase64() throws Exception {
-		Attachment randomAttachment = randomAttachment();
-
-		Attachment postAttachment =
-			testPostPlacedOrderAttachmentByBase64_addAttachment(
-				randomAttachment);
-
-		assertEquals(randomAttachment, postAttachment);
-		assertValid(postAttachment);
-	}
-
-	protected Attachment testPostPlacedOrderAttachmentByBase64_addAttachment(
-			Attachment attachment)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testDeletePlacedOrderAttachment() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		Attachment attachment = testDeletePlacedOrderAttachment_addAttachment();
-
-		assertHttpResponseStatusCode(
-			204,
-			attachmentResource.deletePlacedOrderAttachmentHttpResponse(
-				attachment.getId(),
-				testDeletePlacedOrderAttachment_getPlacedOrderId()));
-	}
-
-	protected Long testDeletePlacedOrderAttachment_getPlacedOrderId()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected Attachment testDeletePlacedOrderAttachment_addAttachment()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
+	@Rule
+	public SearchTestRule searchTestRule = new SearchTestRule();
 
 	protected Attachment testGraphQLAttachment_addAttachment()
 		throws Exception {
@@ -739,6 +1413,10 @@ public abstract class BaseAttachmentResourceTestCase {
 	protected void assertValid(Attachment attachment) throws Exception {
 		boolean valid = true;
 
+		if (attachment.getDateModified() == null) {
+			valid = false;
+		}
+
 		if (attachment.getId() == null) {
 			valid = false;
 		}
@@ -746,10 +1424,50 @@ public abstract class BaseAttachmentResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
+			if (Objects.equals("actions", additionalAssertFieldName)) {
+				if (attachment.getActions() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("extension", additionalAssertFieldName)) {
+				if (attachment.getExtension() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals(
 					"externalReferenceCode", additionalAssertFieldName)) {
 
 				if (attachment.getExternalReferenceCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("fileEntryId", additionalAssertFieldName)) {
+				if (attachment.getFileEntryId() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("priority", additionalAssertFieldName)) {
+				if (attachment.getPriority() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("restricted", additionalAssertFieldName)) {
+				if (attachment.getRestricted() == null) {
 					valid = false;
 				}
 
@@ -766,6 +1484,14 @@ public abstract class BaseAttachmentResourceTestCase {
 
 			if (Objects.equals("type", additionalAssertFieldName)) {
 				if (attachment.getType() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("typeLabel", additionalAssertFieldName)) {
+				if (attachment.getTypeLabel() == null) {
 					valid = false;
 				}
 
@@ -838,6 +1564,10 @@ public abstract class BaseAttachmentResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.commerce.delivery.order.dto.v1_0.
@@ -897,6 +1627,39 @@ public abstract class BaseAttachmentResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
+			if (Objects.equals("actions", additionalAssertFieldName)) {
+				if (!equals(
+						(Map)attachment1.getActions(),
+						(Map)attachment2.getActions())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("dateModified", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						attachment1.getDateModified(),
+						attachment2.getDateModified())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("extension", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						attachment1.getExtension(),
+						attachment2.getExtension())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals(
 					"externalReferenceCode", additionalAssertFieldName)) {
 
@@ -910,9 +1673,41 @@ public abstract class BaseAttachmentResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("fileEntryId", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						attachment1.getFileEntryId(),
+						attachment2.getFileEntryId())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("id", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						attachment1.getId(), attachment2.getId())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("priority", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						attachment1.getPriority(), attachment2.getPriority())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("restricted", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						attachment1.getRestricted(),
+						attachment2.getRestricted())) {
 
 					return false;
 				}
@@ -933,6 +1728,17 @@ public abstract class BaseAttachmentResourceTestCase {
 			if (Objects.equals("type", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						attachment1.getType(), attachment2.getType())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("typeLabel", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						attachment1.getTypeLabel(),
+						attachment2.getTypeLabel())) {
 
 					return false;
 				}
@@ -1057,6 +1863,86 @@ public abstract class BaseAttachmentResourceTestCase {
 		sb.append(operator);
 		sb.append(" ");
 
+		if (entityFieldName.equals("actions")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("dateModified")) {
+			if (operator.equals("between")) {
+				Date date = attachment.getDateModified();
+
+				sb = new StringBundler();
+
+				sb.append("(");
+				sb.append(entityFieldName);
+				sb.append(" gt ");
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(" and ");
+				sb.append(entityFieldName);
+				sb.append(" lt ");
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(")");
+			}
+			else {
+				sb.append(entityFieldName);
+
+				sb.append(" ");
+				sb.append(operator);
+				sb.append(" ");
+
+				sb.append(_format.format(attachment.getDateModified()));
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("extension")) {
+			Object object = attachment.getExtension();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("externalReferenceCode")) {
 			Object object = attachment.getExternalReferenceCode();
 
@@ -1103,7 +1989,23 @@ public abstract class BaseAttachmentResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("fileEntryId")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals("id")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("priority")) {
+			sb.append(String.valueOf(attachment.getPriority()));
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("restricted")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
 		}
@@ -1155,7 +2057,93 @@ public abstract class BaseAttachmentResourceTestCase {
 		}
 
 		if (entityFieldName.equals("type")) {
-			sb.append(String.valueOf(attachment.getType()));
+			Object object = attachment.getType();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("typeLabel")) {
+			Object object = attachment.getTypeLabel();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
 
 			return sb.toString();
 		}
@@ -1219,7 +2207,9 @@ public abstract class BaseAttachmentResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1251,11 +2241,19 @@ public abstract class BaseAttachmentResourceTestCase {
 	protected Attachment randomAttachment() throws Exception {
 		return new Attachment() {
 			{
+				dateModified = RandomTestUtil.nextDate();
+				extension = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
+				fileEntryId = RandomTestUtil.randomLong();
 				id = RandomTestUtil.randomLong();
+				priority = RandomTestUtil.randomDouble();
+				restricted = RandomTestUtil.randomBoolean();
 				title = StringUtil.toLowerCase(RandomTestUtil.randomString());
-				type = RandomTestUtil.randomInt();
+				type = StringUtil.toLowerCase(RandomTestUtil.randomString());
+				typeLabel = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				url = StringUtil.toLowerCase(RandomTestUtil.randomString());
 			}
 		};
@@ -1472,10 +2470,13 @@ public abstract class BaseAttachmentResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseAttachmentResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.delivery.order.resource.v1_0.
 		AttachmentResource _attachmentResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:395291175

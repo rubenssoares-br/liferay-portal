@@ -144,7 +144,7 @@ public class BaseHttpHandlerImpl implements HttpHandler {
 		return sb.toString();
 	}
 
-	protected String getAsPlainText(List<NameValuePair> parameters) {
+	protected String getAsPlaintext(List<NameValuePair> parameters) {
 		StringBuffer sb = new StringBuffer();
 
 		for (NameValuePair nameValuePair : parameters) {
@@ -214,7 +214,7 @@ public class BaseHttpHandlerImpl implements HttpHandler {
 			return getAsJSON(parameters);
 		}
 
-		return getAsPlainText(parameters);
+		return getAsPlaintext(parameters);
 	}
 
 	protected boolean hasHeaderValue(
@@ -247,9 +247,11 @@ public class BaseHttpHandlerImpl implements HttpHandler {
 		int actual = 0;
 
 		for (NameValuePair nameValuePair : parameters) {
-			if (name.equals(nameValuePair.getName())) {
-				actual++;
+			if (!name.equals(nameValuePair.getName())) {
+				continue;
 			}
+
+			actual++;
 		}
 
 		if (expected == actual) {

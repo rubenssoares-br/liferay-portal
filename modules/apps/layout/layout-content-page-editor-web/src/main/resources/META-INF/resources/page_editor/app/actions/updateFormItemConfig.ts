@@ -9,8 +9,8 @@ import type {LayoutData} from '../../types/layout_data/LayoutData';
 import type {FragmentEntryLinkMap} from './addFragmentEntryLinks';
 
 export default function updateFormItemConfig({
-	addedFragmentEntryLinks = null,
 	addedItemIds = [],
+	fragmentEntryLinks,
 	isMapping,
 	itemIds,
 	layoutData,
@@ -20,8 +20,8 @@ export default function updateFormItemConfig({
 	restoredFragmentEntryLinkIds = [],
 	triggerItemId,
 }: {
-	addedFragmentEntryLinks?: FragmentEntryLinkMap | null;
 	addedItemIds: string[];
+	fragmentEntryLinks?: FragmentEntryLinkMap;
 	isMapping: boolean;
 	itemIds: string[];
 	layoutData: LayoutData;
@@ -32,8 +32,8 @@ export default function updateFormItemConfig({
 	triggerItemId?: string;
 }) {
 	return {
-		addedFragmentEntryLinks,
 		addedItemIds,
+		fragmentEntryLinks,
 		isMapping,
 		itemIds,
 		layoutData,

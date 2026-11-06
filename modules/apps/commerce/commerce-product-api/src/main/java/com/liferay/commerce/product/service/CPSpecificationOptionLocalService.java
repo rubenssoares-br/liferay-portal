@@ -85,13 +85,10 @@ public interface CPSpecificationOptionLocalService
 	@Indexable(type = IndexableType.REINDEX)
 	public CPSpecificationOption addCPSpecificationOption(
 			String externalReferenceCode, long userId, long cpOptionCategoryId,
-			long listTypeDefinitionId, Map<Locale, String> titleMap,
+			long[] listTypeDefinitionIds, Map<Locale, String> titleMap,
 			Map<Locale, String> descriptionMap, boolean facetable, String key,
-			double priority, ServiceContext serviceContext)
+			double priority, boolean visible, ServiceContext serviceContext)
 		throws PortalException;
-
-	public int countCPSpecificationOptionByListTypeDefinitionId(
-		long listTypeDefinitionId);
 
 	/**
 	 * Creates a new cp specification option with the primary key. Does not add the cp specification option to the database.
@@ -317,6 +314,11 @@ public interface CPSpecificationOptionLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public CPSpecificationOption getOrAddEmptyCPSpecificationOption(
+			String externalReferenceCode, long companyId, long userId)
+		throws PortalException;
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -335,8 +337,8 @@ public interface CPSpecificationOptionLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public BaseModelSearchResult<CPSpecificationOption>
 			searchCPSpecificationOptions(
-				long companyId, Boolean facetable, String keywords, int start,
-				int end, Sort sort)
+				long companyId, Boolean facetable, Boolean visible,
+				String keywords, int start, int end, Sort sort)
 		throws PortalException;
 
 	public CPSpecificationOption updateCPOptionCategoryId(
@@ -360,9 +362,9 @@ public interface CPSpecificationOptionLocalService
 	@Indexable(type = IndexableType.REINDEX)
 	public CPSpecificationOption updateCPSpecificationOption(
 			String externalReferenceCode, long cpSpecificationOptionId,
-			long cpOptionCategoryId, long listTypeDefinitionId,
+			long cpOptionCategoryId, long[] listTypeDefinitionIds,
 			Map<Locale, String> titleMap, Map<Locale, String> descriptionMap,
-			boolean facetable, String key, double priority,
+			boolean facetable, String key, double priority, boolean visible,
 			ServiceContext serviceContext)
 		throws PortalException;
 
@@ -382,3 +384,4 @@ public interface CPSpecificationOptionLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:432405917

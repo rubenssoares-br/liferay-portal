@@ -439,10 +439,6 @@ public interface ResourcePermissionLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
 
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public Map<String, List<ResourcePermission>>
-		getIndividualPortletResourcePermissions(long companyId);
-
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -503,6 +499,10 @@ public interface ResourcePermissionLocalService
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<ResourcePermission> getResourcePermissions(
+		long companyId, String name, int scope);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<ResourcePermission> getResourcePermissions(
 		long companyId, String name, int scope, long roleId,
 		boolean viewActionId);
 
@@ -544,20 +544,6 @@ public interface ResourcePermissionLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getResourcePermissionsCount(
 		long companyId, String name, int scope, String primKey);
-
-	/**
-	 * Returns the resource permissions that apply to the resource.
-	 *
-	 * @param companyId the primary key of the resource's company
-	 * @param groupId the primary key of the resource's group
-	 * @param name the resource's name, which can be either a class name or a
-	 portlet ID
-	 * @param primKey the primary key of the resource
-	 * @return the resource permissions associated with the resource
-	 */
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<ResourcePermission> getResourceResourcePermissions(
-		long companyId, long groupId, String name, String primKey);
 
 	/**
 	 * Returns all the resource permissions for the role.
@@ -991,3 +977,4 @@ public interface ResourcePermissionLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1920514629

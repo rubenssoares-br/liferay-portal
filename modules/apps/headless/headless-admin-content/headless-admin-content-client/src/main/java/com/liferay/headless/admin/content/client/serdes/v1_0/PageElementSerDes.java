@@ -8,13 +8,14 @@ package com.liferay.headless.admin.content.client.serdes.v1_0;
 import com.liferay.headless.admin.content.client.dto.v1_0.PageElement;
 import com.liferay.headless.admin.content.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -53,14 +54,7 @@ public class PageElementSerDes {
 
 			sb.append("\"definition\": ");
 
-			if (pageElement.getDefinition() instanceof String) {
-				sb.append("\"");
-				sb.append((String)pageElement.getDefinition());
-				sb.append("\"");
-			}
-			else {
-				sb.append(pageElement.getDefinition());
-			}
+			sb.append(_toJSON(pageElement.getDefinition()));
 		}
 
 		if (pageElement.getId() != null) {
@@ -87,7 +81,7 @@ public class PageElementSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < pageElement.getPageElements().length; i++) {
-				sb.append(pageElement.getPageElements()[i]);
+				sb.append(String.valueOf(pageElement.getPageElements()[i]));
 
 				if ((i + 1) < pageElement.getPageElements().length) {
 					sb.append(", ");
@@ -105,9 +99,7 @@ public class PageElementSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(pageElement.getType());
-
 			sb.append("\"");
 		}
 
@@ -275,6 +267,16 @@ public class PageElementSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -307,3 +309,4 @@ public class PageElementSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:345455207

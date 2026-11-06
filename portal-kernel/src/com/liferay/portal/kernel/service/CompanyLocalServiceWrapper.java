@@ -80,20 +80,12 @@ public class CompanyLocalServiceWrapper
 			companyId, name, virtualHostname, webId);
 	}
 
-	/**
-	 * Returns the company with the web domain.
-	 *
-	 * The method sets mail domain to the web domain to the default name set in
-	 * portal.properties
-	 *
-	 * @param webId the company's web domain
-	 * @return the company with the web domain
-	 */
 	@Override
-	public com.liferay.portal.kernel.model.Company checkCompany(String webId)
+	public com.liferay.portal.kernel.model.Company checkCompany(
+			com.liferay.portal.kernel.model.Company company, boolean newCompany)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		return _companyLocalService.checkCompany(webId);
+		return _companyLocalService.checkCompany(company, newCompany);
 	}
 
 	/**
@@ -306,11 +298,10 @@ public class CompanyLocalServiceWrapper
 	}
 
 	@Override
-	public com.liferay.portal.kernel.model.Company extractDBPartitionCompany(
-			long companyId)
+	public com.liferay.portal.kernel.model.Company exportCompany(long companyId)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		return _companyLocalService.extractDBPartitionCompany(companyId);
+		return _companyLocalService.exportCompany(companyId);
 	}
 
 	@Override
@@ -332,20 +323,6 @@ public class CompanyLocalServiceWrapper
 		long companyId) {
 
 		return _companyLocalService.fetchCompanyById(companyId);
-	}
-
-	/**
-	 * Returns the company with the virtual host name.
-	 *
-	 * @param virtualHostname the virtual host name
-	 * @return the company with the virtual host name, <code>null</code> if a
-	 company with the virtual host could not be found
-	 */
-	@Override
-	public com.liferay.portal.kernel.model.Company fetchCompanyByVirtualHost(
-		String virtualHostname) {
-
-		return _companyLocalService.fetchCompanyByVirtualHost(virtualHostname);
 	}
 
 	@Override
@@ -457,47 +434,6 @@ public class CompanyLocalServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _companyLocalService.getCompanyById(companyId);
-	}
-
-	/**
-	 * Returns the company with the logo.
-	 *
-	 * @param logoId the ID of the company's logo
-	 * @return the company with the logo
-	 */
-	@Override
-	public com.liferay.portal.kernel.model.Company getCompanyByLogoId(
-			long logoId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _companyLocalService.getCompanyByLogoId(logoId);
-	}
-
-	/**
-	 * Returns the company with the mail domain.
-	 *
-	 * @param mx the company's mail domain
-	 * @return the company with the mail domain
-	 */
-	@Override
-	public com.liferay.portal.kernel.model.Company getCompanyByMx(String mx)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _companyLocalService.getCompanyByMx(mx);
-	}
-
-	/**
-	 * Returns the company with the virtual host name.
-	 *
-	 * @param virtualHostname the company's virtual host name
-	 * @return the company with the virtual host name
-	 */
-	@Override
-	public com.liferay.portal.kernel.model.Company getCompanyByVirtualHost(
-			String virtualHostname)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _companyLocalService.getCompanyByVirtualHost(virtualHostname);
 	}
 
 	/**
@@ -833,6 +769,15 @@ public class CompanyLocalServiceWrapper
 	}
 
 	@Override
+	public void validateCompany(
+			String webId, String virtualHostname, String mx, int maxUsers)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		_companyLocalService.validateCompany(
+			webId, virtualHostname, mx, maxUsers);
+	}
+
+	@Override
 	public BasePersistence<?> getBasePersistence() {
 		return _companyLocalService.getBasePersistence();
 	}
@@ -850,3 +795,4 @@ public class CompanyLocalServiceWrapper
 	private CompanyLocalService _companyLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2051222514

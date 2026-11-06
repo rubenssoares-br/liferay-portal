@@ -5,12 +5,12 @@
 
 package com.liferay.change.tracking.web.internal.servlet.taglib;
 
+import com.liferay.change.tracking.configuration.helper.CTSettingsConfigurationHelper;
 import com.liferay.change.tracking.constants.CTPortletKeys;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.model.CTPreferences;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.change.tracking.service.CTPreferencesLocalService;
-import com.liferay.change.tracking.web.internal.configuration.helper.CTSettingsConfigurationHelper;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.change.tracking.CTCollectionPreviewThreadLocal;
@@ -35,15 +35,15 @@ import com.liferay.portal.template.react.renderer.ComponentDescriptor;
 import com.liferay.portal.template.react.renderer.ReactRenderer;
 import com.liferay.taglib.util.HtmlTopTag;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.jsp.JspException;
+
 import java.io.IOException;
 import java.io.Writer;
 
 import java.util.Map;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.JspException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -51,7 +51,10 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author David Truong
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/body_top.jsp#post",
+	service = DynamicInclude.class
+)
 public class CTPreviewIndicatorDynamicInclude extends BaseDynamicInclude {
 
 	@Override
@@ -118,10 +121,10 @@ public class CTPreviewIndicatorDynamicInclude extends BaseDynamicInclude {
 				StringBundler.concat(
 					"<nav aria-label=\"",
 					_language.get(httpServletRequest, "control-menu"),
-					"\" class=\"cadmin control-menu-container\"><div ",
-					"class=\"change-tracking-indicator\"><div>",
-					"<button class=\"change-tracking-indicator-button\">",
-					"<span className=\"change-tracking-indicator-title\">"));
+					"\" class=\"cadmin control-menu-container\"><div class=\"",
+					"change-tracking-indicator\"><div><button class=\"",
+					"change-tracking-indicator-button\"><span className=\"",
+					"change-tracking-indicator-title\">"));
 
 			CTCollection previewCTCollection =
 				_ctCollectionLocalService.fetchCTCollection(
@@ -156,12 +159,6 @@ public class CTPreviewIndicatorDynamicInclude extends BaseDynamicInclude {
 		catch (JspException | PortalException exception) {
 			ReflectionUtil.throwException(exception);
 		}
-	}
-
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/body_top.jsp#post");
 	}
 
 	private Map<String, Object> _getReactData(

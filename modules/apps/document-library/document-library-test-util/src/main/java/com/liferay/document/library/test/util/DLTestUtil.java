@@ -18,12 +18,19 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.constants.TestDataConstants;
+import com.liferay.portal.kernel.test.randomizerbumpers.TikaRandomizerBumper;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.ContentTypes;
 
+import java.awt.image.BufferedImage;
+
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 /**
  * @author Adolfo Pérez
@@ -94,6 +101,29 @@ public class DLTestUtil {
 		throws PortalException {
 
 		return addDLFolder(groupId, true, serviceContext);
+	}
+
+	public static byte[] getImageBytes(String suffix) throws IOException {
+		BufferedImage bufferedImage = new BufferedImage(
+			1, 1, BufferedImage.TYPE_INT_RGB);
+
+		ByteArrayOutputStream byteArrayOutputStream =
+			new ByteArrayOutputStream();
+
+		ImageIO.write(bufferedImage, suffix, byteArrayOutputStream);
+
+		return byteArrayOutputStream.toByteArray();
+	}
+
+	public static byte[] randomTextFileBytes() {
+		return randomTextFileBytes(8);
+	}
+
+	public static byte[] randomTextFileBytes(int length) {
+		String string = RandomTestUtil.randomString(
+			length, TikaRandomizerBumper.INSTANCE);
+
+		return string.getBytes();
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(DLTestUtil.class);

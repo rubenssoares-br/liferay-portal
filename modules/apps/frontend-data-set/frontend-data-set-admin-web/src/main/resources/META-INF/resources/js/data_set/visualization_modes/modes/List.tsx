@@ -8,16 +8,17 @@ import {ClayInput} from '@clayui/form';
 import ClayLayout from '@clayui/layout';
 import ClayTable from '@clayui/table';
 import classNames from 'classnames';
-import {fetch, openModal} from 'frontend-js-web';
+import {openModal} from 'frontend-js-components-web';
+import {fetch} from 'frontend-js-web';
 import React, {useEffect, useState} from 'react';
 
 import '../../../../css/ListVisualizationMode.scss';
 import FieldSelectModalContent from '../../../components/AddDataSourceFieldsModalContent';
 import {
-	API_URL,
 	DEFAULT_FETCH_HEADERS,
 	OBJECT_RELATIONSHIP,
 } from '../../../utils/constants';
+import getDataSetResourceURL from '../../../utils/getDataSetResourceURL';
 import openDefaultFailureToast from '../../../utils/openDefaultFailureToast';
 import openDefaultSuccessToast from '../../../utils/openDefaultSuccessToast';
 import {IField, IFieldTreeItem} from '../../../utils/types';
@@ -28,6 +29,7 @@ import FieldAssignmentControls from '../components/FieldAssignmentControls';
 interface IFDSListSection {
 	externalReferenceCode: string;
 	fieldName: string;
+	id: string;
 	name: string;
 	rendererName?: string;
 }
@@ -35,6 +37,7 @@ interface IListSection {
 	externalReferenceCode?: IFDSListSection['externalReferenceCode'];
 	field?: IField;
 	fieldTreeItems: Array<IFieldTreeItem>;
+	id?: IFDSListSection['id'];
 	label: string;
 	name: IFDSListSection['name'];
 }
@@ -55,12 +58,14 @@ export default function List(props: IDataSetSectionProps) {
 	const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
 
 	const getFDSListSections = async () => {
-		const response = await fetch(
-			`${API_URL.LIST_SECTIONS}?filter=(${OBJECT_RELATIONSHIP.DATA_SET_LIST_SECTIONS_ERC} eq '${dataSet.externalReferenceCode}')`,
-			{
-				headers: DEFAULT_FETCH_HEADERS,
-			}
-		);
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+			relationship: OBJECT_RELATIONSHIP.DATA_SET_LIST_SECTIONS,
+		});
+
+		const response = await fetch(url, {
+			headers: DEFAULT_FETCH_HEADERS,
+		});
 
 		if (!response.ok) {
 			openDefaultFailureToast();
@@ -121,10 +126,13 @@ export default function List(props: IDataSetSectionProps) {
 
 		setSaveButtonDisabled(true);
 
-		const response = await fetch(
-			`${API_URL.LIST_SECTIONS}/by-external-reference-code/${listSection.externalReferenceCode}`,
-			{method: 'DELETE'}
-		);
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+			relatedResourceERC: String(listSection.externalReferenceCode),
+			relationship: OBJECT_RELATIONSHIP.DATA_SET_LIST_SECTIONS,
+		});
+
+		const response = await fetch(url, {method: 'DELETE'});
 
 		setSaveButtonDisabled(false);
 
@@ -167,18 +175,29 @@ export default function List(props: IDataSetSectionProps) {
 	}) => {
 		setSaveButtonDisabled(true);
 
-		let method = 'POST';
-		let url = API_URL.LIST_SECTIONS;
+		let method;
+		let url;
 
 		if (listSection.externalReferenceCode) {
 			method = 'PATCH';
-			url = `${API_URL.LIST_SECTIONS}/by-external-reference-code/${listSection.externalReferenceCode}`;
+
+			url = getDataSetResourceURL({
+				dataSetERC: dataSet.externalReferenceCode,
+				relatedResourceERC: listSection.externalReferenceCode,
+				relationship: OBJECT_RELATIONSHIP.DATA_SET_LIST_SECTIONS,
+			});
+		}
+		else {
+			method = 'POST';
+
+			url = getDataSetResourceURL({
+				dataSetERC: dataSet.externalReferenceCode,
+				relationship: OBJECT_RELATIONSHIP.DATA_SET_LIST_SECTIONS,
+			});
 		}
 
 		const response = await fetch(url, {
 			body: JSON.stringify({
-				[OBJECT_RELATIONSHIP.DATA_SET_LIST_SECTIONS_ERC]:
-					dataSet.externalReferenceCode,
 				fieldName: field.name,
 				name: listSection.name,
 			}),
@@ -210,6 +229,7 @@ export default function List(props: IDataSetSectionProps) {
 					field: {
 						name: fdsListSection.fieldName,
 					},
+					id: fdsListSection.id,
 				};
 			})
 		);
@@ -220,20 +240,23 @@ export default function List(props: IDataSetSectionProps) {
 	useEffect(() => {
 		getFDSListSections();
 
+		// eslint-disable-next-line react-compiler/react-compiler
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	return (
 		<ClayLayout.ContentCol className="c-gap-4 list-visualization-mode">
-			<ClayAlert
-				displayType="info"
-				title={`${Liferay.Language.get('info')}:`}
-				variant="stripe"
-			>
-				{Liferay.Language.get(
-					'this-visualization-mode-will-not-be-shown-until-you-assign-at-least-one-field-to-a-list-element'
-				)}
-			</ClayAlert>
+			{!listSections.some((listSection) => listSection.field) && (
+				<ClayAlert
+					displayType="info"
+					title={`${Liferay.Language.get('info')}:`}
+					variant="stripe"
+				>
+					{Liferay.Language.get(
+						'this-visualization-mode-will-not-be-shown-until-you-assign-at-least-one-field-to-a-list-element'
+					)}
+				</ClayAlert>
+			)}
 
 			<ClayTable className="mb-0">
 				<ClayTable.Head>

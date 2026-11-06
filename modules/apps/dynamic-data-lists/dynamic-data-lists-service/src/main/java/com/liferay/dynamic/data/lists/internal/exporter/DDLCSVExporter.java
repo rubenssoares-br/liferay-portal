@@ -81,10 +81,10 @@ public class DDLCSVExporter extends BaseDDLExporter {
 		sb.append(_language.get(locale, "author"));
 		sb.append(StringPool.NEW_LINE);
 
-		List<DDLRecord> records = _ddlRecordLocalService.getRecords(
+		List<DDLRecord> ddlRecords = _ddlRecordLocalService.getRecords(
 			recordSetId, status, start, end, orderByComparator);
 
-		Iterator<DDLRecord> iterator = records.iterator();
+		Iterator<DDLRecord> iterator = ddlRecords.iterator();
 
 		DateTimeFormatter dateTimeFormatter = getDateTimeFormatter();
 
@@ -111,10 +111,10 @@ public class DDLCSVExporter extends BaseDDLExporter {
 			for (Map.Entry<String, DDMFormField> entry :
 					ddmFormFields.entrySet()) {
 
-				if (values.containsKey(entry.getKey())) {
-					DDMFormFieldRenderedValue ddmFormFieldRenderedValue =
-						values.get(entry.getKey());
+				DDMFormFieldRenderedValue ddmFormFieldRenderedValue =
+					values.get(entry.getKey());
 
+				if (ddmFormFieldRenderedValue != null) {
 					sb.append(
 						CSVUtil.encode(ddmFormFieldRenderedValue.getValue()));
 				}
@@ -136,9 +136,11 @@ public class DDLCSVExporter extends BaseDDLExporter {
 
 			sb.append(CSVUtil.encode(recordVersion.getUserName()));
 
-			if (iterator.hasNext()) {
-				sb.append(StringPool.NEW_LINE);
+			if (!iterator.hasNext()) {
+				continue;
 			}
+
+			sb.append(StringPool.NEW_LINE);
 		}
 
 		String csv = sb.toString();

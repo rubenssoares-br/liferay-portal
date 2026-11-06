@@ -8,18 +8,19 @@ package com.liferay.headless.commerce.delivery.cart.client.serdes.v1_0;
 import com.liferay.headless.commerce.delivery.cart.client.dto.v1_0.CartItem;
 import com.liferay.headless.commerce.delivery.cart.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.math.BigDecimal;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Andrea Sbarra
@@ -1049,6 +1050,16 @@ public class CartItemSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -1081,3 +1092,4 @@ public class CartItemSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1974232085

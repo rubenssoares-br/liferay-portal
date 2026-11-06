@@ -343,6 +343,10 @@ public class CommerceCatalogLocalServiceUtil {
 		return getService().getCommerceCatalogs(start, end);
 	}
 
+	public static List<CommerceCatalog> getCommerceCatalogs(long companyId) {
+		return getService().getCommerceCatalogs(companyId);
+	}
+
 	public static List<CommerceCatalog> getCommerceCatalogs(
 		long companyId, boolean system) {
 
@@ -377,6 +381,16 @@ public class CommerceCatalogLocalServiceUtil {
 			getIndexableActionableDynamicQuery() {
 
 		return getService().getIndexableActionableDynamicQuery();
+	}
+
+	public static CommerceCatalog getOrAddEmptyCommerceCatalog(
+			String externalReferenceCode, long companyId, long userId,
+			String name, String commerceCurrencyCode)
+		throws PortalException {
+
+		return getService().getOrAddEmptyCommerceCatalog(
+			externalReferenceCode, companyId, userId, name,
+			commerceCurrencyCode);
 	}
 
 	/**
@@ -462,3 +476,4 @@ public class CommerceCatalogLocalServiceUtil {
 			CommerceCatalogLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1572039881

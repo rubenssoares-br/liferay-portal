@@ -4,7 +4,7 @@ definition {
 	macro addFragment(fragmentName = null, index = null, collectionName = null) {
 		PageEditor.assertFragmentSidebarLoaded();
 
-		PageEditor.gotoTab(tabName = "Fragments and Widgets");
+		PageEditor.gotoTab(tabName = "Components");
 
 		if (!(isSet(displayStyle))) {
 			var displayStyle = "list";
@@ -82,37 +82,6 @@ definition {
 				locator1 = "CommerceFrontStore#COLLECTION_DISPLAY_PRODUCT_SPECIFICATION_ENTRY");
 
 			echo("The Specification ${specification} with the value ${value} is present");
-		}
-	}
-
-	@summary = "Default summary"
-	macro configureProductCardFragment(fragmentName = null, checkList = null, uncheckList = null) {
-		if (!(isSet(index))) {
-			var index = 1;
-		}
-
-		PageEditor.clickConfigurableField(
-			fragmentName = ${fragmentName},
-			index = ${index});
-
-		PageEditor.gotoTab(tabName = "Browser");
-
-		Navigator.gotoNavTab(navTab = "General");
-
-		if (isSet(checkList)) {
-			for (var element : list ${checkList}) {
-				Check.checkToggleSwitch(
-					key_toggleSwitchLabel = "Show ${element}",
-					locator1 = "ToggleSwitch#ANY_TOGGLE_SWITCH");
-			}
-		}
-
-		if (isSet(uncheckList)) {
-			for (var element : list ${uncheckList}) {
-				Uncheck.uncheckToggleSwitch(
-					key_toggleSwitchLabel = "Show ${element}",
-					locator1 = "ToggleSwitch#ANY_TOGGLE_SWITCH");
-			}
 		}
 	}
 
@@ -255,49 +224,6 @@ definition {
 					locator1 = "Select#GENERIC_SELECT_FIELD",
 					value1 = ${listItemStyle});
 			}
-		}
-	}
-
-	@summary = "Default summary"
-	macro editDynamicField(field = null, fragmentName = null, valueElementType = null, label = null, labelElementType = null) {
-		if (!(isSet(index))) {
-			var index = 1;
-		}
-
-		PageEditor.clickConfigurableField(
-			fragmentName = ${fragmentName},
-			index = ${index});
-
-		PageEditor.gotoTab(tabName = "Browser");
-
-		Navigator.gotoNavTab(navTab = "General");
-
-		if (isSet(field)) {
-			Select(
-				key_fieldLabel = "Field",
-				locator1 = "Select#GENERIC_SELECT_FIELD",
-				value1 = ${field});
-		}
-
-		if (isSet(labelElementType)) {
-			Select(
-				key_fieldLabel = "Label Element Type",
-				locator1 = "Select#GENERIC_SELECT_FIELD",
-				value1 = ${labelElementType});
-		}
-
-		if (isSet(valueElementType)) {
-			Select(
-				key_fieldLabel = "Value Element Type",
-				locator1 = "Select#GENERIC_SELECT_FIELD",
-				value1 = ${valueElementType});
-		}
-
-		if (isSet(label)) {
-			Type(
-				key_text = "Label",
-				locator1 = "TextInput#ANY",
-				value1 = ${label});
 		}
 	}
 

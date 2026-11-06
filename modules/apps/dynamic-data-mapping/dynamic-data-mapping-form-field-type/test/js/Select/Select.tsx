@@ -8,25 +8,31 @@ import userEvent from '@testing-library/user-event';
 import {FormProvider, PageProvider} from 'data-engine-js-components-web';
 import React from 'react';
 
-import Select from '../../../src/main/resources/META-INF/resources/Select/Select';
+import Select from '../../../src/main/resources/META-INF/resources/js/Select/Select';
 
 interface Props {
 	multiple: boolean;
 	name: string;
 	options: Option[];
+	required?: boolean;
 }
 
 const SelectWithProvider = (props: Props) => (
 	<FormProvider initialState={{viewMode: true}}>
 		<PageProvider value={{editingLanguageId: 'en_US'}}>
-			<Select
-				label=""
-				onChange={null}
-				readOnly={false}
-				selectedKey=""
-				showEmptyOption={false}
-				{...props}
-			/>
+			{
+
+				// @ts-ignore
+
+				<Select
+					label=""
+					onChange={null}
+					readOnly={false}
+					selectedKey=""
+					showEmptyOption={false}
+					{...props}
+				/>
+			}
 		</PageProvider>
 	</FormProvider>
 );
@@ -54,6 +60,85 @@ describe('Select', () => {
 			value: 'value2',
 		},
 	];
+
+	it('does not have aria-invalid attribute on first render when it is required', () => {
+		const props = {
+			multiple: false,
+			name: 'selectName',
+			options,
+			required: true,
+		};
+
+		const {container} = render(<SelectWithProvider {...props} />);
+
+		const button = container.querySelector('button[aria-required="true"]');
+
+		expect(button?.hasAttribute('aria-invalid')).toBe(false);
+	});
+
+	it('does not have aria-invalid attribute when it is required and has a value', () => {
+		const props = {
+			multiple: false,
+			name: 'selectName',
+			options,
+			required: true,
+			value: 'value',
+		};
+
+		const {container} = render(<SelectWithProvider {...props} />);
+
+		const button = container.querySelector('button[aria-required="true"]');
+
+		expect(button?.hasAttribute('aria-invalid')).toBe(false);
+	});
+
+	it('filters the dropdown options by the typed query when allowing multiple selections', () => {
+		const props = {
+			multiple: true,
+			name: 'selectName',
+			options: [
+				{
+					label: 'Apple',
+					reference: 'Apple',
+					value: 'apple',
+				},
+				{
+					label: 'Avocado',
+					reference: 'Avocado',
+					value: 'avocado',
+				},
+				{
+					label: 'Banana',
+					reference: 'Banana',
+					value: 'banana',
+				},
+			],
+		};
+
+		const {getByRole, queryByLabelText} = render(
+			<SelectWithProvider {...props} />
+		);
+
+		const combobox = getByRole('combobox');
+
+		userEvent.click(combobox);
+
+		expect(queryByLabelText('Apple')).toBeInTheDocument();
+		expect(queryByLabelText('Avocado')).toBeInTheDocument();
+		expect(queryByLabelText('Banana')).toBeInTheDocument();
+
+		userEvent.type(combobox, 'ap');
+
+		expect(queryByLabelText('Apple')).toBeInTheDocument();
+		expect(queryByLabelText('Avocado')).toBeNull();
+		expect(queryByLabelText('Banana')).toBeNull();
+
+		userEvent.type(combobox, 'b');
+
+		expect(queryByLabelText('Apple')).toBeNull();
+		expect(queryByLabelText('Avocado')).toBeNull();
+		expect(queryByLabelText('Banana')).toBeInTheDocument();
+	});
 
 	it('renders data-option-reference in option elements', () => {
 		const props = {

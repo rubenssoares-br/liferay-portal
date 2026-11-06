@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -54,7 +55,7 @@ public class SXPBlueprint implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(SXPBlueprint.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -97,7 +98,97 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
+	public String getCollectionProviderSubtypeName() {
+		if (_collectionProviderSubtypeNameSupplier != null) {
+			collectionProviderSubtypeName =
+				_collectionProviderSubtypeNameSupplier.get();
+
+			_collectionProviderSubtypeNameSupplier = null;
+		}
+
+		return collectionProviderSubtypeName;
+	}
+
+	public void setCollectionProviderSubtypeName(
+		String collectionProviderSubtypeName) {
+
+		this.collectionProviderSubtypeName = collectionProviderSubtypeName;
+
+		_collectionProviderSubtypeNameSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCollectionProviderSubtypeName(
+		UnsafeSupplier<String, Exception>
+			collectionProviderSubtypeNameUnsafeSupplier) {
+
+		_collectionProviderSubtypeNameSupplier = () -> {
+			try {
+				return collectionProviderSubtypeNameUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String collectionProviderSubtypeName;
+
+	@JsonIgnore
+	private Supplier<String> _collectionProviderSubtypeNameSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	public String getCollectionProviderTypeName() {
+		if (_collectionProviderTypeNameSupplier != null) {
+			collectionProviderTypeName =
+				_collectionProviderTypeNameSupplier.get();
+
+			_collectionProviderTypeNameSupplier = null;
+		}
+
+		return collectionProviderTypeName;
+	}
+
+	public void setCollectionProviderTypeName(
+		String collectionProviderTypeName) {
+
+		this.collectionProviderTypeName = collectionProviderTypeName;
+
+		_collectionProviderTypeNameSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCollectionProviderTypeName(
+		UnsafeSupplier<String, Exception>
+			collectionProviderTypeNameUnsafeSupplier) {
+
+		_collectionProviderTypeNameSupplier = () -> {
+			try {
+				return collectionProviderTypeNameUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String collectionProviderTypeName;
+
+	@JsonIgnore
+	private Supplier<String> _collectionProviderTypeNameSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Configuration getConfiguration() {
 		if (_configurationSupplier != null) {
@@ -139,7 +230,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Configuration> _configurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getCreateDate() {
 		if (_createDateSupplier != null) {
 			createDate = _createDateSupplier.get();
@@ -180,7 +271,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _createDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -221,7 +312,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getDescription_i18n() {
 		if (_description_i18nSupplier != null) {
@@ -264,7 +355,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _description_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ElementInstance[] getElementInstances() {
 		if (_elementInstancesSupplier != null) {
@@ -307,7 +398,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<ElementInstance[]> _elementInstancesSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(example = "AB-34098-789-N")
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -348,7 +439,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -387,7 +478,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getModifiedDate() {
 		if (_modifiedDateSupplier != null) {
 			modifiedDate = _modifiedDateSupplier.get();
@@ -428,7 +519,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _modifiedDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getSchemaVersion() {
 		if (_schemaVersionSupplier != null) {
 			schemaVersion = _schemaVersionSupplier.get();
@@ -469,7 +560,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _schemaVersionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTitle() {
 		if (_titleSupplier != null) {
 			title = _titleSupplier.get();
@@ -510,7 +601,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getTitle_i18n() {
 		if (_title_i18nSupplier != null) {
@@ -553,7 +644,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _title_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getUserName() {
 		if (_userNameSupplier != null) {
 			userName = _userNameSupplier.get();
@@ -594,7 +685,7 @@ public class SXPBlueprint implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _userNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getVersion() {
 		if (_versionSupplier != null) {
 			version = _versionSupplier.get();
@@ -675,6 +766,39 @@ public class SXPBlueprint implements Serializable {
 			sb.append("\"actions\": ");
 
 			sb.append(_toJSON(actions));
+		}
+
+		String collectionProviderSubtypeName =
+			getCollectionProviderSubtypeName();
+
+		if (collectionProviderSubtypeName != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"collectionProviderSubtypeName\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(collectionProviderSubtypeName));
+
+			sb.append("\"");
+		}
+
+		String collectionProviderTypeName = getCollectionProviderTypeName();
+
+		if (collectionProviderTypeName != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"collectionProviderTypeName\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(collectionProviderTypeName));
+
+			sb.append("\"");
 		}
 
 		Configuration configuration = getConfiguration();
@@ -880,8 +1004,8 @@ public class SXPBlueprint implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.SXPBlueprint",
 		name = "x-class-name"
 	)
@@ -968,6 +1092,27 @@ public class SXPBlueprint implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -976,3 +1121,4 @@ public class SXPBlueprint implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:488999022

@@ -4,8 +4,10 @@
  */
 
 import ClayButton from '@clayui/button';
+import {ClayToggle} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import ClayModal, {ClayModalProvider, useModal} from '@clayui/modal';
+import {ClayTooltipProvider} from '@clayui/tooltip';
 import {useIsMounted} from '@liferay/frontend-js-react-web';
 import getCN from 'classnames';
 import {fetch, navigate} from 'frontend-js-web';
@@ -37,6 +39,8 @@ const AddModal = ({
 
 	const [descriptionInputValue, setDescriptionInputValue] = useState('');
 	const [titleInputValue, setTitleInputValue] = useState('');
+	const [collectionProviderToggleValue, setCollectionProviderToggleValue] =
+		useState(false);
 
 	const _handleFormError = (responseContent) => {
 		setErrorMessage(responseContent.error || DEFAULT_ERROR);
@@ -55,6 +59,7 @@ const AddModal = ({
 					generalConfiguration: {
 						clauseContributorsExcludes: [],
 						clauseContributorsIncludes: ['*'],
+						collectionProvider: collectionProviderToggleValue,
 						searchableAssetTypes: [],
 					},
 					highlightConfiguration: DEFAULT_HIGHLIGHT_CONFIGURATION,
@@ -129,7 +134,9 @@ const AddModal = ({
 			observer={observer}
 			size="md"
 		>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{Liferay.Language.get('new-search-blueprint')}
 			</ClayModal.Header>
 
@@ -208,6 +215,40 @@ const AddModal = ({
 							name={`${portletNamespace}description_${defaultLocale}`}
 							type="hidden"
 							value={descriptionInputValue}
+						/>
+					</div>
+
+					<div className="form-group">
+						<ClayToggle
+							aria-label={Liferay.Language.get(
+								'enable-as-a-collection-provider'
+							)}
+							checked={collectionProviderToggleValue}
+							label={
+								<>
+									{Liferay.Language.get(
+										'enable-as-a-collection-provider'
+									)}
+
+									<ClayTooltipProvider>
+										<span
+											title={Liferay.Language.get(
+												'enable-as-a-collection-provider-help'
+											)}
+										>
+											<ClayIcon
+												className="c-ml-2 text-3 text-secondary"
+												symbol="question-circle-full"
+											/>
+										</span>
+									</ClayTooltipProvider>
+								</>
+							}
+							onChange={() =>
+								setCollectionProviderToggleValue(
+									!collectionProviderToggleValue
+								)
+							}
 						/>
 					</div>
 				</ClayModal.Body>

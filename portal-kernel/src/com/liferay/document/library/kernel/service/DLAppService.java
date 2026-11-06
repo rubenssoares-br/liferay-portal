@@ -593,6 +593,27 @@ public interface DLAppService extends BaseService {
 			long groupId, long folderId, String folderName, String fileName)
 		throws PortalException;
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public FileEntry fetchFileEntry(long fileEntryId) throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public FileEntry fetchFileEntry(long groupId, long folderId, String title)
+		throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public FileEntry fetchFileEntryByExternalReferenceCode(
+			String externalReferenceCode, long groupId)
+		throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public FileEntry fetchFileEntryByFileName(
+			long groupId, long folderId, String fileName)
+		throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public FileEntry fetchFileEntryByUuidAndGroupId(String uuid, long groupId)
+		throws PortalException;
+
 	/**
 	 * Returns all the file entries in the folder.
 	 *
@@ -1719,6 +1740,9 @@ public interface DLAppService extends BaseService {
 			long repositoryId, SearchContext searchContext, Query query)
 		throws SearchException;
 
+	public void subscribeFileEntry(long groupId, long fileEntryId)
+		throws PortalException;
+
 	/**
 	 * Subscribe the user to changes in documents of the file entry type. This
 	 * method is only supported by the Liferay repository.
@@ -1764,6 +1788,9 @@ public interface DLAppService extends BaseService {
 	public void unlockFolder(
 			long repositoryId, long parentFolderId, String name,
 			String lockUuid)
+		throws PortalException;
+
+	public void unsubscribeFileEntry(long groupId, long fileEntryId)
 		throws PortalException;
 
 	/**
@@ -2028,3 +2055,4 @@ public interface DLAppService extends BaseService {
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1636243556

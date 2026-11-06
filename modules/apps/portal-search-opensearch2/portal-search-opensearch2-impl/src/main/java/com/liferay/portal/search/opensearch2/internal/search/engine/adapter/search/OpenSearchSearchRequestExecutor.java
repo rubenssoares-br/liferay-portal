@@ -20,18 +20,31 @@ import com.liferay.portal.search.engine.adapter.search.SearchSearchRequest;
 import com.liferay.portal.search.engine.adapter.search.SearchSearchResponse;
 import com.liferay.portal.search.engine.adapter.search.SuggestSearchRequest;
 import com.liferay.portal.search.engine.adapter.search.SuggestSearchResponse;
-
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
+import com.liferay.portal.search.opensearch2.internal.connection.OpenSearchConnectionManager;
 
 /**
  * @author Michael C. Han
  */
-@Component(
-	property = "search.engine.impl=OpenSearch",
-	service = SearchRequestExecutor.class
-)
 public class OpenSearchSearchRequestExecutor implements SearchRequestExecutor {
+
+	public OpenSearchSearchRequestExecutor(
+		OpenSearchConnectionManager openSearchConnectionManager) {
+
+		_clearScrollRequestExecutor = new ClearScrollRequestExecutor(
+			openSearchConnectionManager);
+		_closePointInTimeRequestExecutor = new ClosePointInTimeRequestExecutor(
+			openSearchConnectionManager);
+		_countSearchRequestExecutor = new CountSearchRequestExecutor(
+			openSearchConnectionManager);
+		_multisearchSearchRequestExecutor =
+			new MultisearchSearchRequestExecutor(openSearchConnectionManager);
+		_openPointInTimeRequestExecutor = new OpenPointInTimeRequestExecutor(
+			openSearchConnectionManager);
+		_searchSearchRequestExecutor = new SearchSearchRequestExecutor(
+			openSearchConnectionManager);
+		_suggestSearchRequestExecutor = new SuggestSearchRequestExecutor(
+			openSearchConnectionManager);
+	}
 
 	@Override
 	public ClearScrollResponse executeSearchRequest(
@@ -84,25 +97,15 @@ public class OpenSearchSearchRequestExecutor implements SearchRequestExecutor {
 		return _suggestSearchRequestExecutor.execute(suggestSearchRequest);
 	}
 
-	@Reference
-	private ClearScrollRequestExecutor _clearScrollRequestExecutor;
-
-	@Reference
-	private ClosePointInTimeRequestExecutor _closePointInTimeRequestExecutor;
-
-	@Reference
-	private CountSearchRequestExecutor _countSearchRequestExecutor;
-
-	@Reference
-	private MultisearchSearchRequestExecutor _multisearchSearchRequestExecutor;
-
-	@Reference
-	private OpenPointInTimeRequestExecutor _openPointInTimeRequestExecutor;
-
-	@Reference
-	private SearchSearchRequestExecutor _searchSearchRequestExecutor;
-
-	@Reference
-	private SuggestSearchRequestExecutor _suggestSearchRequestExecutor;
+	private final ClearScrollRequestExecutor _clearScrollRequestExecutor;
+	private final ClosePointInTimeRequestExecutor
+		_closePointInTimeRequestExecutor;
+	private final CountSearchRequestExecutor _countSearchRequestExecutor;
+	private final MultisearchSearchRequestExecutor
+		_multisearchSearchRequestExecutor;
+	private final OpenPointInTimeRequestExecutor
+		_openPointInTimeRequestExecutor;
+	private final SearchSearchRequestExecutor _searchSearchRequestExecutor;
+	private final SuggestSearchRequestExecutor _suggestSearchRequestExecutor;
 
 }

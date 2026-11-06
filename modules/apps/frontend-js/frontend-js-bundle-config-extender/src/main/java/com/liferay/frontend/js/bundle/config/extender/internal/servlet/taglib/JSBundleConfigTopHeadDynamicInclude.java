@@ -23,6 +23,10 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.URLUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -31,10 +35,6 @@ import java.net.URL;
 
 import java.util.Collection;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -42,7 +42,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Chema Balsas
  */
 @Component(
-	property = "service.ranking:Integer=" + Integer.MIN_VALUE,
+	property = {
+		"dynamic.include.key=/html/common/themes/top_js.jspf#resources",
+		"service.ranking:Integer=" + Integer.MIN_VALUE
+	},
 	service = DynamicInclude.class
 )
 public class JSBundleConfigTopHeadDynamicInclude extends BaseDynamicInclude {
@@ -74,12 +77,6 @@ public class JSBundleConfigTopHeadDynamicInclude extends BaseDynamicInclude {
 			JSBundleConfigRegistryUtil.getLastModified(), bundleConfig);
 
 		_writeResponse(httpServletResponse, bundleConfig);
-	}
-
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_js.jspf#resources");
 	}
 
 	private String _getBundleConfig(String nonce) {

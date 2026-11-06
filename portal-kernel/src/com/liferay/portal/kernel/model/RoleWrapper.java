@@ -51,6 +51,7 @@ public class RoleWrapper
 		attributes.put("description", getDescription());
 		attributes.put("type", getType());
 		attributes.put("subtype", getSubtype());
+		attributes.put("status", getStatus());
 
 		return attributes;
 	}
@@ -158,6 +159,12 @@ public class RoleWrapper
 
 		if (subtype != null) {
 			setSubtype(subtype);
+		}
+
+		Integer status = (Integer)attributes.get("status");
+
+		if (status != null) {
+			setStatus(status);
 		}
 	}
 
@@ -382,6 +389,16 @@ public class RoleWrapper
 	@Override
 	public long getRoleId() {
 		return model.getRoleId();
+	}
+
+	/**
+	 * Returns the status of this role.
+	 *
+	 * @return the status of this role
+	 */
+	@Override
+	public int getStatus() {
+		return model.getStatus();
 	}
 
 	/**
@@ -738,6 +755,16 @@ public class RoleWrapper
 	}
 
 	/**
+	 * Sets the status of this role.
+	 *
+	 * @param status the status of this role
+	 */
+	@Override
+	public void setStatus(int status) {
+		model.setStatus(status);
+	}
+
+	/**
 	 * Sets the subtype of this role.
 	 *
 	 * @param subtype the subtype of this role
@@ -889,3 +916,4 @@ public class RoleWrapper
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1371612081

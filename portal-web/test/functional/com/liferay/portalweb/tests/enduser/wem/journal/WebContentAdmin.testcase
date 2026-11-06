@@ -1,10 +1,11 @@
 @component-name = "portal-content-management"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property ci.retries.disabled = "true";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.main.component.name = "Web Content Administration";
+	property testray.main.component.name = "Web Content";
 
 	setUp {
 		TestCase.setUpPortalInstance();
@@ -12,130 +13,6 @@ definition {
 		User.firstLoginPG();
 
 		HeadlessSite.addSite(siteName = "Test Site Name");
-	}
-
-	@description = "Test that the UI for adding a WC folder works."
-	@priority = 5
-	test AddFolder {
-		property portal.acceptance = "true";
-		property testray.component.names = "Training,Web Content Administration";
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentFolder.addCP(
-			folderDescription = "WC Folder Description",
-			folderName = "WC Folder Name");
-	}
-
-	@description = "Test that the UI for adding a WC works."
-	@priority = 4
-	test AddWebContent {
-		property testray.component.names = "Web Content Administration";
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentNavigator.gotoAddCP();
-
-		WebContent.addCP(
-			webContentContent = "WC WebContent Content",
-			webContentTitle = "WC WebContent Title");
-
-		PortletEntry.publish();
-
-		WebContent.viewTitle(webContentTitle = "WC WebContent Title");
-
-		WebContentNavigator.gotoEditCP(webContentTitle = "WC WebContent Title");
-
-		WebContent.viewCP(
-			webContentContent = "WC WebContent Content",
-			webContentTitle = "WC WebContent Title");
-	}
-
-	@description = "Test that the UI for saving a WC as a draft works."
-	@priority = 4
-	test AddWebContentDraft {
-		property testray.component.names = "Web Content Administration";
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentNavigator.gotoAddCP();
-
-		WebContent.addDraft(
-			webContentContent = "WC WebContent Content",
-			webContentTitle = "WC WebContent Title");
-
-		VerifyElementPresent(locator1 = "Message#SUCCESS");
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentNavigator.gotoViewStatus(
-			webContentStatus = "DRAFT",
-			webContentTitle = "WC WebContent Title");
-
-		WebContent.viewStatus(
-			webContentContent = "WC WebContent Content",
-			webContentStatus = "Draft",
-			webContentTitle = "WC WebContent Title");
-	}
-
-	@description = "Test that the UI for adding multiple WC works."
-	@priority = 3
-	test AddWebContentMultiple {
-		property testray.component.names = "Web Content Administration";
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentNavigator.gotoAddCP();
-
-		WebContent.addCP(
-			webContentContent = "WC WebContent Content 1",
-			webContentTitle = "WC WebContent Title 1");
-
-		PortletEntry.publish();
-
-		WebContent.viewTitle(webContentTitle = "WC WebContent Title 1");
-
-		WebContentNavigator.gotoAddCP();
-
-		WebContent.addCP(
-			webContentContent = "WC WebContent Content 2",
-			webContentTitle = "WC WebContent Title 2");
-
-		PortletEntry.publish();
-
-		WebContent.viewTitle(webContentTitle = "WC WebContent Title 2");
-
-		WebContentNavigator.gotoAddCP();
-
-		WebContent.addCP(
-			webContentContent = "WC WebContent Content 3",
-			webContentTitle = "WC WebContent Title 3");
-
-		PortletEntry.publish();
-
-		WebContent.viewTitle(webContentTitle = "WC WebContent Title 3");
-
-		WebContentNavigator.gotoEditCP(webContentTitle = "WC WebContent Title 1");
-
-		WebContent.viewCP(
-			webContentContent = "WC WebContent Content 1",
-			webContentTitle = "WC WebContent Title 1");
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentNavigator.gotoEditCP(webContentTitle = "WC WebContent Title 2");
-
-		WebContent.viewCP(
-			webContentContent = "WC WebContent Content 2",
-			webContentTitle = "WC WebContent Title 2");
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContentNavigator.gotoEditCP(webContentTitle = "WC WebContent Title 3");
-
-		WebContent.viewCP(
-			webContentContent = "WC WebContent Content 3",
-			webContentTitle = "WC WebContent Title 3");
 	}
 
 	@description = "This is a test for LPS-202596. The content creator could filter web contents by Status type."
@@ -391,8 +268,7 @@ definition {
 	@priority = 3
 	test CanNotFilterAssetByTypeWhenDisableIndexAllArticleVersionsEnabled {
 		task ("Given a site administrator disable Index All Article Versions Enabled") {
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "Instance Settings");
 
@@ -452,34 +328,6 @@ definition {
 			}
 
 			WebContent.viewNotPresentCP(webContentTitle = "Web Content Title Version ");
-		}
-	}
-
-	@description = "This is a test for LPS-196842. When the “Recent” filter is applied, the possibility of changing the order must be disabled"
-	@priority = 4
-	test CannotReverseSortDirectionWhenFilterByRecent {
-		task ("Given two web contents with different names") {
-			JSONWebcontent.addWebContent(
-				content = "EMEA Guild",
-				groupName = "Test Site Name",
-				title = "EMEA Guild");
-
-			JSONWebcontent.addWebContent(
-				content = "APAC Guild",
-				groupName = "Test Site Name",
-				title = "APAC Guild");
-		}
-
-		task ("When filter by Recent") {
-			WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-			Search.searchCP(searchTerm = "Guild");
-
-			ManagementBar.setFilterAndOrder(filterBy = "Recent");
-		}
-
-		task ("Then the possibility of changing the order must be disabled") {
-			AssertElementNotPresent(locator1 = "ManagementBar#ORDER");
 		}
 	}
 
@@ -661,45 +509,6 @@ definition {
 		}
 	}
 
-	@description = "Test that the UI for editing WC localization works."
-	@priority = 4
-	test EditWCAddLocalization {
-		property testray.component.names = "Localization,Web Content Administration";
-
-		JSONWebcontent.addWebContent(
-			content = "WC WebContent Content",
-			groupName = "Test Site Name",
-			title = "WC WebContent Title");
-
-		WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-		WebContent.viewTitle(webContentTitle = "WC WebContent Title");
-
-		WebContentNavigator.gotoEditCP(webContentTitle = "WC WebContent Title");
-
-		PortletEntry.changeLocale(locale = "es-ES");
-
-		WebContent.addCP(
-			webContentContent = "WC Contenido de la web Contenido",
-			webContentTitle = "WC Contenido de la web Titulo");
-
-		PortletEntry.publish();
-
-		WebContentNavigator.gotoEditCP(webContentTitle = "WC WebContent Title");
-
-		WebContent.viewCP(
-			webContentContent = "WC WebContent Content",
-			webContentTitle = "WC WebContent Title");
-
-		PortletEntry.changeLocale(
-			locale = "es-ES",
-			translated = "true");
-
-		WebContent.viewCP(
-			webContentContent = "WC Contenido de la web Contenido",
-			webContentTitle = "WC Contenido de la web Titulo");
-	}
-
 	@description = "This is a test for LPS-197159. Assert could filter categories and tags filter for Web Content."
 	@priority = 4
 	test FilterWebContentsByCategoriesAndTags {
@@ -833,7 +642,7 @@ definition {
 				webContentText = "LXC",
 				webContentTitle = "LXC");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("When the site administrator navigates to the configuration page") {
@@ -921,7 +730,7 @@ definition {
 				webContentText = "LXC",
 				webContentTitle = "LXC");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("When the site administrator navigates to the configuration page") {
@@ -1065,58 +874,6 @@ definition {
 		}
 	}
 
-	@description = "This is a test for LPS-196842. When varying filters or searching if order by is applied, the order by must be applied to the new search + filters."
-	@priority = 4
-	test OrderWebContentsInSearchResults {
-		task ("Given two web contents with different names") {
-			JSONWebcontent.addWebContent(
-				content = "EMEA Guild",
-				groupName = "Test Site Name",
-				title = "EMEA Guild");
-
-			JSONWebcontent.addWebContent(
-				content = "APAC Guild",
-				groupName = "Test Site Name",
-				title = "APAC Guild");
-		}
-
-		task ("When order web contents by Title in search results") {
-			WebContentNavigator.openWebContentAdmin(siteURLKey = "test-site-name");
-
-			Search.searchCP(searchTerm = "Guild");
-
-			ManagementBar.setFilterAndOrder(orderBy = "Title");
-		}
-
-		task ("Then web contents are ordered by Title") {
-			AssertTextEquals.assertPartialText(
-				key_position = 1,
-				locator1 = "LexiconList#LIST_ENTRY_X",
-				value1 = "APAC Guild");
-
-			AssertTextEquals.assertPartialText(
-				key_position = 2,
-				locator1 = "LexiconList#LIST_ENTRY_X",
-				value1 = "EMEA Guild");
-		}
-
-		task ("When order web contents by Display Date in search results") {
-			ManagementBar.setFilterAndOrder(orderBy = "Display Date");
-		}
-
-		task ("Then web contents are ordered by Display Date") {
-			AssertTextEquals.assertPartialText(
-				key_position = 1,
-				locator1 = "LexiconList#LIST_ENTRY_X",
-				value1 = "EMEA Guild");
-
-			AssertTextEquals.assertPartialText(
-				key_position = 2,
-				locator1 = "LexiconList#LIST_ENTRY_X",
-				value1 = "APAC Guild");
-		}
-	}
-
 	@description = "This is a test for LPS-191927. The site administrator could preview or expire a specific version on the info panel."
 	@priority = 3
 	test PreviewOrExpireSpecificVersionOfWebContentOnInfoPanel {
@@ -1169,6 +926,8 @@ definition {
 				locator1 = "Sidebar#LIST_ENTRY_ELLIPSIS");
 
 			MenuItem.click(menuItem = "Expire");
+
+			Alert.viewSuccessMessage();
 
 			LexiconList.checkListCheckbox(listEntry = "Web Content Title Version 3");
 
@@ -1272,7 +1031,7 @@ definition {
 				webContentText = "Liferay Commerce",
 				webContentTitle = "Liferay Commerce");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("When the site administrator navigates to the Content Library sheet") {
@@ -1327,7 +1086,7 @@ definition {
 				webContentText = "Liferay Commerce",
 				webContentTitle = "Liferay Commerce");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("When the site administrator navigates to the highlighted structure sheet") {
@@ -1405,7 +1164,7 @@ definition {
 			LexiconTable.viewTableEntryInfo(
 				columnName = "scope",
 				tableEntry = "WC Structure Name",
-				tableEntryInfo = "Asset Library");
+				tableEntryInfo = "Asset Library or Space");
 		}
 	}
 
@@ -1731,7 +1490,7 @@ definition {
 				webContentText = "LXC",
 				webContentTitle = "LXC");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("When the site administrator navigates to the highlighted structure sheet") {
@@ -1802,8 +1561,6 @@ definition {
 	@description = "This is a test for LPS-153323 and LPS-155805. View kebab icon of web content visible and retainable."
 	@priority = 4
 	test ViewKebabIconOfWebContentVisible {
-		property testray.component.names = "Web Content Administration";
-
 		task ("Add a published web content based on Basic Web Content") {
 			JSONWebcontent.addWebContent(
 				content = "Web Content Content",
@@ -2080,7 +1837,7 @@ definition {
 				webContentText = "LXC",
 				webContentTitle = "LXC");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 
 			WebContentNavigator.gotoAddWithStructureCP(structureName = "WC Structure Name");
 
@@ -2088,7 +1845,7 @@ definition {
 				webContentText = "Commerce",
 				webContentTitle = "Commerce");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 
 			WebContent.moveToFolderCP(
 				folderName = "WC Folder Name",

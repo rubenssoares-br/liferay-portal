@@ -3,8 +3,13 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Input, SidebarCategory} from '@liferay/object-js-components-web';
+import {
+	CountryInfo,
+	Input,
+	SidebarCategory,
+} from '@liferay/object-js-components-web';
 import classNames from 'classnames';
+import {ILearnResourceContext} from 'frontend-js-components-web';
 import React, {ElementType, useState} from 'react';
 
 import {AutoIncrementFormBase} from '../../AutoIncrementFormBase';
@@ -20,7 +25,7 @@ export interface AggregationFilters {
 	fieldLabel?: string;
 	filterBy?: string;
 	filterType?: string;
-	label: LocalizedValue<string>;
+	label?: LocalizedValue<string>;
 	objectFieldBusinessType?: string;
 	objectFieldName: string;
 	priority?: number;
@@ -33,13 +38,16 @@ export interface AggregationFilters {
 interface BasicInfoTabProps {
 	baseResourceURL: string;
 	containerWrapper: ElementType;
+	countries: CountryInfo[];
 	dbObjectFieldRequired?: boolean;
 	errors: ObjectFieldErrors;
 	filterOperators: TFilterOperators;
 	handleChange: React.ChangeEventHandler<HTMLInputElement>;
-	isDefaultStorageType: boolean;
+	hasDepotEntry?: boolean;
+	learnResources: ILearnResourceContext;
+	metadataObjectFieldNames?: string[];
 	modelBuilder?: boolean;
-	objectDefinition?: ObjectDefinition;
+	objectDefinition?: ObjectDefinition | ObjectDefinitionNodeData;
 	objectFieldBusinessTypes: ObjectFieldBusinessType[];
 	objectRelationshipId: number;
 	onSubmit?: (editedObjectField?: Partial<ObjectField>) => void;
@@ -54,11 +62,14 @@ interface BasicInfoTabProps {
 export function BasicInfoTab({
 	baseResourceURL,
 	containerWrapper: ContainerWrapper,
+	countries,
 	dbObjectFieldRequired,
 	errors,
 	filterOperators,
 	handleChange,
-	isDefaultStorageType,
+	hasDepotEntry,
+	learnResources,
+	metadataObjectFieldNames,
 	modelBuilder = false,
 	objectDefinition,
 	objectFieldBusinessTypes,
@@ -96,10 +107,14 @@ export function BasicInfoTab({
 			>
 				<BasicInfoContainer
 					baseResourceURL={baseResourceURL}
+					countries={countries}
 					creationLanguageId2={creationLanguageId2}
 					dbObjectFieldRequired={dbObjectFieldRequired}
 					errors={errors}
 					handleChange={handleChange}
+					hasDepotEntry={hasDepotEntry}
+					learnResources={learnResources}
+					metadataObjectFieldNames={metadataObjectFieldNames}
 					modelBuilder={modelBuilder}
 					objectDefinition={objectDefinition}
 					objectFieldBusinessTypes={objectFieldBusinessTypes}
@@ -207,6 +222,7 @@ export function BasicInfoTab({
 				title={Liferay.Language.get('translation-options')}
 			>
 				<TranslationOptionsContainer
+					learnResources={learnResources}
 					modelBuilder={modelBuilder}
 					objectDefinition={objectDefinition}
 					onSubmit={onSubmit}
@@ -216,33 +232,32 @@ export function BasicInfoTab({
 				/>
 			</ContainerWrapper>
 
-			{Liferay.FeatureFlags['LPS-135430'] && !isDefaultStorageType && (
-				<ContainerWrapper
-					collapsable
-					defaultExpanded
-					displayTitle={Liferay.Language.get('external-data-source')}
-					displayType="unstyled"
-					title={Liferay.Language.get('external-data-source')}
-				>
-					<Input
-						className={classNames({
-							'lfr-objects__edit-object-field-model-builder-panel':
-								modelBuilder,
-						})}
-						label={Liferay.Language.get('external-reference-code')}
-						name="externalReferenceCode"
-						onBlur={(event) => {
-							event.stopPropagation();
+			<ContainerWrapper
+				collapsable
+				defaultExpanded
+				displayTitle={Liferay.Language.get('external-data-source')}
+				displayType="unstyled"
+				title={Liferay.Language.get('external-data-source')}
+			>
+				<Input
+					className={classNames({
+						'lfr-objects__edit-object-field-model-builder-panel':
+							modelBuilder,
+					})}
+					disabled={values.system}
+					label={Liferay.Language.get('external-reference-code')}
+					name="externalReferenceCode"
+					onBlur={(event) => {
+						event.stopPropagation();
 
-							if (onSubmit) {
-								onSubmit();
-							}
-						}}
-						onChange={handleChange}
-						value={values.externalReferenceCode}
-					/>
-				</ContainerWrapper>
-			)}
+						if (onSubmit) {
+							onSubmit();
+						}
+					}}
+					onChange={handleChange}
+					value={values.externalReferenceCode}
+				/>
+			</ContainerWrapper>
 		</>
 	);
 }

@@ -32,28 +32,49 @@ public class LayoutPageTemplateEntryServiceWrapper
 	@Override
 	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
 			String externalReferenceCode, long groupId,
-			long layoutPageTemplateCollectionId, long classNameId,
-			long classTypeId, String name, long masterLayoutPlid, int status,
-			com.liferay.portal.kernel.service.ServiceContext serviceContext)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-			externalReferenceCode, groupId, layoutPageTemplateCollectionId,
-			classNameId, classTypeId, name, masterLayoutPlid, status,
-			serviceContext);
-	}
-
-	@Override
-	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
-			String externalReferenceCode, long groupId,
-			long layoutPageTemplateCollectionId, String name, int type,
+			long layoutPageTemplateCollectionId,
+			String layoutPageTemplateEntryKey, long classNameId,
+			String classTypeKey, String name, int type, long previewFileEntryId,
+			boolean defaultTemplate, long layoutPrototypeId, long plid,
 			long masterLayoutPlid, int status,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
 			externalReferenceCode, groupId, layoutPageTemplateCollectionId,
-			name, type, masterLayoutPlid, status, serviceContext);
+			layoutPageTemplateEntryKey, classNameId, classTypeKey, name, type,
+			previewFileEntryId, defaultTemplate, layoutPrototypeId, plid,
+			masterLayoutPlid, status, serviceContext);
+	}
+
+	@Override
+	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
+			String externalReferenceCode, long groupId,
+			long layoutPageTemplateCollectionId,
+			String layoutPageTemplateEntryKey, long classNameId,
+			String classTypeKey, String name, long masterLayoutPlid, int status,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
+			externalReferenceCode, groupId, layoutPageTemplateCollectionId,
+			layoutPageTemplateEntryKey, classNameId, classTypeKey, name,
+			masterLayoutPlid, status, serviceContext);
+	}
+
+	@Override
+	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
+			String externalReferenceCode, long groupId,
+			long layoutPageTemplateCollectionId,
+			String layoutPageTemplateEntryKey, String name, int type,
+			long masterLayoutPlid, int status,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
+			externalReferenceCode, groupId, layoutPageTemplateCollectionId,
+			layoutPageTemplateEntryKey, name, type, masterLayoutPlid, status,
+			serviceContext);
 	}
 
 	@Override
@@ -154,6 +175,14 @@ public class LayoutPageTemplateEntryServiceWrapper
 		return _layoutPageTemplateEntryService.
 			fetchLayoutPageTemplateEntryByExternalReferenceCode(
 				externalReferenceCode, groupId);
+	}
+
+	@Override
+	public LayoutPageTemplateEntry fetchLayoutPageTemplateEntryByPlid(long plid)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _layoutPageTemplateEntryService.
+			fetchLayoutPageTemplateEntryByPlid(plid);
 	}
 
 	@Override
@@ -447,6 +476,39 @@ public class LayoutPageTemplateEntryServiceWrapper
 	}
 
 	@Override
+	public java.util.List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
+		long[] groupIds, long classNameId, String classTypeKey, int type,
+		int status) {
+
+		return _layoutPageTemplateEntryService.getLayoutPageTemplateEntries(
+			groupIds, classNameId, classTypeKey, type, status);
+	}
+
+	@Override
+	public java.util.List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
+		long[] groupIds, long classNameId, String classTypeKey, int type,
+		int status, int start, int end,
+		com.liferay.portal.kernel.util.OrderByComparator
+			<LayoutPageTemplateEntry> orderByComparator) {
+
+		return _layoutPageTemplateEntryService.getLayoutPageTemplateEntries(
+			groupIds, classNameId, classTypeKey, type, status, start, end,
+			orderByComparator);
+	}
+
+	@Override
+	public java.util.List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
+		long[] groupIds, long classNameId, String classTypeKey, String name,
+		int type, int status, int start, int end,
+		com.liferay.portal.kernel.util.OrderByComparator
+			<LayoutPageTemplateEntry> orderByComparator) {
+
+		return _layoutPageTemplateEntryService.getLayoutPageTemplateEntries(
+			groupIds, classNameId, classTypeKey, name, type, status, start, end,
+			orderByComparator);
+	}
+
+	@Override
 	public java.util.List<LayoutPageTemplateEntry>
 		getLayoutPageTemplateEntriesByType(
 			long groupId, long layoutPageTemplateCollectionId, int type,
@@ -597,6 +659,26 @@ public class LayoutPageTemplateEntryServiceWrapper
 	}
 
 	@Override
+	public int getLayoutPageTemplateEntriesCount(
+		long[] groupIds, long classNameId, String classTypeKey, int type,
+		int status) {
+
+		return _layoutPageTemplateEntryService.
+			getLayoutPageTemplateEntriesCount(
+				groupIds, classNameId, classTypeKey, type, status);
+	}
+
+	@Override
+	public int getLayoutPageTemplateEntriesCount(
+		long[] groupIds, long classNameId, String classTypeKey, String name,
+		int type, int status) {
+
+		return _layoutPageTemplateEntryService.
+			getLayoutPageTemplateEntriesCount(
+				groupIds, classNameId, classTypeKey, name, type, status);
+	}
+
+	@Override
 	public int getLayoutPageTemplateEntriesCountByType(
 		long groupId, long layoutPageTemplateCollectionId, int type) {
 
@@ -674,11 +756,12 @@ public class LayoutPageTemplateEntryServiceWrapper
 
 	@Override
 	public LayoutPageTemplateEntry updateLayoutPageTemplateEntry(
-			long layoutPageTemplateEntryId, long classNameId, long classTypeId)
+			long layoutPageTemplateEntryId, long classNameId,
+			String classTypeKey)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _layoutPageTemplateEntryService.updateLayoutPageTemplateEntry(
-			layoutPageTemplateEntryId, classNameId, classTypeId);
+			layoutPageTemplateEntryId, classNameId, classTypeKey);
 	}
 
 	@Override
@@ -714,3 +797,4 @@ public class LayoutPageTemplateEntryServiceWrapper
 	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1836737670

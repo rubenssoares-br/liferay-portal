@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.pricing.client.dto.v2_0.DiscountSku;
 import com.liferay.headless.commerce.admin.pricing.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.pricing.client.pagination.Page;
@@ -29,12 +32,15 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -42,12 +48,15 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +68,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,8 +91,10 @@ public abstract class BaseDiscountSkuResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,16 +107,27 @@ public abstract class BaseDiscountSkuResourceTestCase {
 
 		_discountSkuResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		DiscountSkuResource.Builder builder = DiscountSkuResource.builder();
-
-		discountSkuResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		discountSkuResource = DiscountSkuResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -171,7 +189,12 @@ public abstract class BaseDiscountSkuResourceTestCase {
 
 		DiscountSku discountSku = randomDiscountSku();
 
+		discountSku.setCatalogCurrencyCode(regex);
+		discountSku.setCatalogCurrencyExternalReferenceCode(regex);
+		discountSku.setCatalogExternalReferenceCode(regex);
 		discountSku.setDiscountExternalReferenceCode(regex);
+		discountSku.setProductExternalReferenceCode(regex);
+		discountSku.setProductType(regex);
 		discountSku.setSkuExternalReferenceCode(regex);
 		discountSku.setUnitOfMeasureKey(regex);
 
@@ -181,20 +204,125 @@ public abstract class BaseDiscountSkuResourceTestCase {
 
 		discountSku = DiscountSkuSerDes.toDTO(json);
 
+		Assert.assertEquals(regex, discountSku.getCatalogCurrencyCode());
+		Assert.assertEquals(
+			regex, discountSku.getCatalogCurrencyExternalReferenceCode());
+		Assert.assertEquals(
+			regex, discountSku.getCatalogExternalReferenceCode());
 		Assert.assertEquals(
 			regex, discountSku.getDiscountExternalReferenceCode());
+		Assert.assertEquals(
+			regex, discountSku.getProductExternalReferenceCode());
+		Assert.assertEquals(regex, discountSku.getProductType());
 		Assert.assertEquals(regex, discountSku.getSkuExternalReferenceCode());
 		Assert.assertEquals(regex, discountSku.getUnitOfMeasureKey());
 	}
 
 	@Test
 	public void testDeleteDiscountSku() throws Exception {
-		Assert.assertTrue(false);
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DiscountSku discountSku = testDeleteDiscountSku_addDiscountSku();
+
+		assertHttpResponseStatusCode(
+			204,
+			discountSkuResource.deleteDiscountSkuHttpResponse(
+				discountSku.getDiscountSkuId()));
+	}
+
+	protected DiscountSku testDeleteDiscountSku_addDiscountSku()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
 	public void testGraphQLDeleteDiscountSku() throws Exception {
-		Assert.assertTrue(false);
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DiscountSku discountSku1 =
+			testGraphQLDeleteDiscountSku_addDiscountSku();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteDiscountSku",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"discountSkuId",
+									discountSku1.getDiscountSkuId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteDiscountSku"));
+
+		// Using the namespace headlessCommerceAdminPricing_v2_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DiscountSku discountSku2 =
+			testGraphQLDeleteDiscountSku_addDiscountSku();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminPricing_v2_0",
+						new GraphQLField(
+							"deleteDiscountSku",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"discountSkuId",
+										discountSku2.getDiscountSkuId());
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminPricing_v2_0",
+				"Object/deleteDiscountSku"));
+	}
+
+	protected DiscountSku testGraphQLDeleteDiscountSku_addDiscountSku()
+		throws Exception {
+
+		return testGraphQLDiscountSku_addDiscountSku();
+	}
+
+	@Test
+	public void testDeleteDiscountSkuBatch() throws Exception {
+		DiscountSku discountSku1 = testDeleteDiscountSkuBatch_addDiscountSku();
+
+		testDeleteDiscountSkuBatch_deleteDiscountSku(
+			202, null, discountSku1.getDiscountSkuId());
+	}
+
+	protected DiscountSku testDeleteDiscountSkuBatch_addDiscountSku()
+		throws Exception {
+
+		return testDeleteDiscountSku_addDiscountSku();
+	}
+
+	protected void testDeleteDiscountSkuBatch_deleteDiscountSku(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			discountSkuResource.deleteDiscountSkuBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"discountSkuId", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
 	}
 
 	@Test
@@ -246,7 +374,8 @@ public abstract class BaseDiscountSkuResourceTestCase {
 		page =
 			discountSkuResource.
 				getDiscountByExternalReferenceCodeDiscountSkusPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -256,6 +385,10 @@ public abstract class BaseDiscountSkuResourceTestCase {
 			page,
 			testGetDiscountByExternalReferenceCodeDiscountSkusPage_getExpectedActions(
 				externalReferenceCode));
+
+		discountSkuResource.deleteDiscountSku(discountSku1.getDiscountSkuId());
+
+		discountSkuResource.deleteDiscountSku(discountSku2.getDiscountSkuId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -275,12 +408,13 @@ public abstract class BaseDiscountSkuResourceTestCase {
 		String externalReferenceCode =
 			testGetDiscountByExternalReferenceCodeDiscountSkusPage_getExternalReferenceCode();
 
-		Page<DiscountSku> discountSkuPage =
+		Page<DiscountSku> discountSkusPage =
 			discountSkuResource.
 				getDiscountByExternalReferenceCodeDiscountSkusPage(
 					externalReferenceCode, null);
 
-		int totalCount = GetterUtil.getInteger(discountSkuPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(
+			discountSkusPage.getTotalCount());
 
 		DiscountSku discountSku1 =
 			testGetDiscountByExternalReferenceCodeDiscountSkusPage_addDiscountSku(
@@ -395,29 +529,6 @@ public abstract class BaseDiscountSkuResourceTestCase {
 	}
 
 	@Test
-	public void testPostDiscountByExternalReferenceCodeDiscountSku()
-		throws Exception {
-
-		DiscountSku randomDiscountSku = randomDiscountSku();
-
-		DiscountSku postDiscountSku =
-			testPostDiscountByExternalReferenceCodeDiscountSku_addDiscountSku(
-				randomDiscountSku);
-
-		assertEquals(randomDiscountSku, postDiscountSku);
-		assertValid(postDiscountSku);
-	}
-
-	protected DiscountSku
-			testPostDiscountByExternalReferenceCodeDiscountSku_addDiscountSku(
-				DiscountSku discountSku)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetDiscountIdDiscountSkusPage() throws Exception {
 		Long id = testGetDiscountIdDiscountSkusPage_getId();
 		Long irrelevantId = testGetDiscountIdDiscountSkusPage_getIrrelevantId();
@@ -456,7 +567,7 @@ public abstract class BaseDiscountSkuResourceTestCase {
 				id, randomDiscountSku());
 
 		page = discountSkuResource.getDiscountIdDiscountSkusPage(
-			id, null, null, Pagination.of(1, 10), null);
+			id, null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -464,6 +575,10 @@ public abstract class BaseDiscountSkuResourceTestCase {
 		assertContains(discountSku2, (List<DiscountSku>)page.getItems());
 		assertValid(
 			page, testGetDiscountIdDiscountSkusPage_getExpectedActions(id));
+
+		discountSkuResource.deleteDiscountSku(discountSku1.getDiscountSkuId());
+
+		discountSkuResource.deleteDiscountSku(discountSku2.getDiscountSkuId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -578,11 +693,12 @@ public abstract class BaseDiscountSkuResourceTestCase {
 
 		Long id = testGetDiscountIdDiscountSkusPage_getId();
 
-		Page<DiscountSku> discountSkuPage =
+		Page<DiscountSku> discountSkusPage =
 			discountSkuResource.getDiscountIdDiscountSkusPage(
 				id, null, null, null, null);
 
-		int totalCount = GetterUtil.getInteger(discountSkuPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(
+			discountSkusPage.getTotalCount());
 
 		DiscountSku discountSku1 =
 			testGetDiscountIdDiscountSkusPage_addDiscountSku(
@@ -835,6 +951,29 @@ public abstract class BaseDiscountSkuResourceTestCase {
 	}
 
 	@Test
+	public void testPostDiscountByExternalReferenceCodeDiscountSku()
+		throws Exception {
+
+		DiscountSku randomDiscountSku = randomDiscountSku();
+
+		DiscountSku postDiscountSku =
+			testPostDiscountByExternalReferenceCodeDiscountSku_addDiscountSku(
+				randomDiscountSku);
+
+		assertEquals(randomDiscountSku, postDiscountSku);
+		assertValid(postDiscountSku);
+	}
+
+	protected DiscountSku
+			testPostDiscountByExternalReferenceCodeDiscountSku_addDiscountSku(
+				DiscountSku discountSku)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostDiscountIdDiscountSku() throws Exception {
 		DiscountSku randomDiscountSku = randomDiscountSku();
 
@@ -853,8 +992,66 @@ public abstract class BaseDiscountSkuResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		DiscountSku discountSku1 =
+			testBatchEngineDeleteImportTask_addDiscountSku();
+
+		testBatchEngineDeleteImportTask_deleteDiscountSku(
+			200, null, discountSku1.getDiscountSkuId());
+	}
+
+	protected DiscountSku testBatchEngineDeleteImportTask_addDiscountSku()
+		throws Exception {
+
+		return testDeleteDiscountSku_addDiscountSku();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteDiscountSku(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.pricing.dto.v2_0.DiscountSku",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"discountSkuId", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
+
+	protected DiscountSku testGraphQLDiscountSku_addDiscountSku()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
 
 	protected void assertContains(
 		DiscountSku discountSku, List<DiscountSku> discountSkus) {
@@ -926,11 +1123,49 @@ public abstract class BaseDiscountSkuResourceTestCase {
 	protected void assertValid(DiscountSku discountSku) throws Exception {
 		boolean valid = true;
 
+		if (discountSku.getDiscountSkuId() == null) {
+			valid = false;
+		}
+
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
 			if (Objects.equals("actions", additionalAssertFieldName)) {
 				if (discountSku.getActions() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyCode", additionalAssertFieldName)) {
+
+				if (discountSku.getCatalogCurrencyCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (discountSku.getCatalogCurrencyExternalReferenceCode() ==
+						null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (discountSku.getCatalogExternalReferenceCode() == null) {
 					valid = false;
 				}
 
@@ -964,6 +1199,17 @@ public abstract class BaseDiscountSkuResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"productExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (discountSku.getProductExternalReferenceCode() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("productId", additionalAssertFieldName)) {
 				if (discountSku.getProductId() == null) {
 					valid = false;
@@ -974,6 +1220,14 @@ public abstract class BaseDiscountSkuResourceTestCase {
 
 			if (Objects.equals("productName", additionalAssertFieldName)) {
 				if (discountSku.getProductName() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("productType", additionalAssertFieldName)) {
+				if (discountSku.getProductType() == null) {
 					valid = false;
 				}
 
@@ -1072,6 +1326,8 @@ public abstract class BaseDiscountSkuResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("discountSkuId"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.commerce.admin.pricing.dto.v2_0.
@@ -1145,6 +1401,48 @@ public abstract class BaseDiscountSkuResourceTestCase {
 			}
 
 			if (Objects.equals(
+					"catalogCurrencyCode", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						discountSku1.getCatalogCurrencyCode(),
+						discountSku2.getCatalogCurrencyCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogCurrencyExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						discountSku1.getCatalogCurrencyExternalReferenceCode(),
+						discountSku2.
+							getCatalogCurrencyExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"catalogExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						discountSku1.getCatalogExternalReferenceCode(),
+						discountSku2.getCatalogExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
 					"discountExternalReferenceCode",
 					additionalAssertFieldName)) {
 
@@ -1180,6 +1478,20 @@ public abstract class BaseDiscountSkuResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"productExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						discountSku1.getProductExternalReferenceCode(),
+						discountSku2.getProductExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("productId", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						discountSku1.getProductId(),
@@ -1195,6 +1507,17 @@ public abstract class BaseDiscountSkuResourceTestCase {
 				if (!equals(
 						(Map)discountSku1.getProductName(),
 						(Map)discountSku2.getProductName())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("productType", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						discountSku1.getProductType(),
+						discountSku2.getProductType())) {
 
 					return false;
 				}
@@ -1358,6 +1681,145 @@ public abstract class BaseDiscountSkuResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("catalogCurrencyCode")) {
+			Object object = discountSku.getCatalogCurrencyCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("catalogCurrencyExternalReferenceCode")) {
+			Object object =
+				discountSku.getCatalogCurrencyExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("catalogExternalReferenceCode")) {
+			Object object = discountSku.getCatalogExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("discountExternalReferenceCode")) {
 			Object object = discountSku.getDiscountExternalReferenceCode();
 
@@ -1414,6 +1876,52 @@ public abstract class BaseDiscountSkuResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("productExternalReferenceCode")) {
+			Object object = discountSku.getProductExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("productId")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -1422,6 +1930,52 @@ public abstract class BaseDiscountSkuResourceTestCase {
 		if (entityFieldName.equals("productName")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("productType")) {
+			Object object = discountSku.getProductType();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
 		}
 
 		if (entityFieldName.equals("sku")) {
@@ -1539,7 +2093,9 @@ public abstract class BaseDiscountSkuResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1571,11 +2127,21 @@ public abstract class BaseDiscountSkuResourceTestCase {
 	protected DiscountSku randomDiscountSku() throws Exception {
 		return new DiscountSku() {
 			{
+				catalogCurrencyCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				catalogCurrencyExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				catalogExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				discountExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				discountId = RandomTestUtil.randomLong();
 				discountSkuId = RandomTestUtil.randomLong();
+				productExternalReferenceCode = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				productId = RandomTestUtil.randomLong();
+				productType = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
 				skuExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				skuId = RandomTestUtil.randomLong();
@@ -1595,7 +2161,30 @@ public abstract class BaseDiscountSkuResourceTestCase {
 		return randomDiscountSku();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected DiscountSkuResource discountSkuResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1796,10 +2385,13 @@ public abstract class BaseDiscountSkuResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseDiscountSkuResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.pricing.resource.v2_0.
 		DiscountSkuResource _discountSkuResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1198119102

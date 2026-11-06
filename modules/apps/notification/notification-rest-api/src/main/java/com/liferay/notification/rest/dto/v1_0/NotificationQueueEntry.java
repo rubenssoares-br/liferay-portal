@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Gabriel Albuquerque
@@ -55,7 +56,7 @@ public class NotificationQueueEntry implements Serializable {
 			NotificationQueueEntry.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -98,7 +99,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getBody() {
 		if (_bodySupplier != null) {
 			body = _bodySupplier.get();
@@ -137,7 +138,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _bodySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFromName() {
 		if (_fromNameSupplier != null) {
 			fromName = _fromNameSupplier.get();
@@ -178,7 +179,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _fromNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -217,7 +218,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object[] getRecipients() {
 		if (_recipientsSupplier != null) {
@@ -259,7 +260,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Object[]> _recipientsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getRecipientsSummary() {
 		if (_recipientsSummarySupplier != null) {
 			recipientsSummary = _recipientsSummarySupplier.get();
@@ -300,7 +301,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _recipientsSummarySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getSentDate() {
 		if (_sentDateSupplier != null) {
 			sentDate = _sentDateSupplier.get();
@@ -341,7 +342,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _sentDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -382,7 +383,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _statusSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getSubject() {
 		if (_subjectSupplier != null) {
 			subject = _subjectSupplier.get();
@@ -423,7 +424,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _subjectSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTriggerBy() {
 		if (_triggerBySupplier != null) {
 			triggerBy = _triggerBySupplier.get();
@@ -464,7 +465,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _triggerBySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -503,7 +504,7 @@ public class NotificationQueueEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTypeLabel() {
 		if (_typeLabelSupplier != null) {
 			typeLabel = _typeLabelSupplier.get();
@@ -643,11 +644,7 @@ public class NotificationQueueEntry implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < recipients.length; i++) {
-				sb.append("\"");
-
-				sb.append(_escape(recipients[i]));
-
-				sb.append("\"");
+				sb.append(_toJSON(recipients[i]));
 
 				if ((i + 1) < recipients.length) {
 					sb.append(", ");
@@ -770,8 +767,8 @@ public class NotificationQueueEntry implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.notification.rest.dto.v1_0.NotificationQueueEntry",
 		name = "x-class-name"
 	)
@@ -858,6 +855,27 @@ public class NotificationQueueEntry implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -866,3 +884,4 @@ public class NotificationQueueEntry implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1803360936

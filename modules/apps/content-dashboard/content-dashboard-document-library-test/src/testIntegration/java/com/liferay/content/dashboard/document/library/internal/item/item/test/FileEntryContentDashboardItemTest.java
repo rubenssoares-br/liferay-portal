@@ -18,22 +18,29 @@ import com.liferay.content.dashboard.item.VersionableContentDashboardItem;
 import com.liferay.content.dashboard.item.action.ContentDashboardItemAction;
 import com.liferay.content.dashboard.item.type.ContentDashboardItemSubtype;
 import com.liferay.document.library.kernel.model.DLFileEntry;
+import com.liferay.document.library.kernel.model.DLFileEntryType;
 import com.liferay.document.library.kernel.model.DLFileEntryTypeConstants;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.model.DLVersionNumberIncrease;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.document.library.kernel.service.DLFileEntryLocalService;
-import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
-import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.document.library.kernel.service.DLFileEntryTypeLocalService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.repository.model.FileVersion;
+import com.liferay.portal.kernel.repository.model.Folder;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
+import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionResponse;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletRenderRequest;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -42,8 +49,10 @@ import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
@@ -52,9 +61,17 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.kernel.workflow.WorkflowHandler;
+import com.liferay.portal.kernel.workflow.WorkflowHandlerRegistryUtil;
+import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.io.Serializable;
 
 import java.net.URL;
 import java.net.URLEncoder;
@@ -62,8 +79,6 @@ import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -182,13 +197,13 @@ public class FileEntryContentDashboardItemTest {
 			versionableContentDashboardItem =
 				_getVersionableContentDashboardItem(2);
 
-		List<AssetCategory> assetCategoryList =
+		List<AssetCategory> assetCategories =
 			versionableContentDashboardItem.getAssetCategories();
 
 		Assert.assertEquals(
-			assetCategoryList.toString(), 1, assetCategoryList.size());
+			assetCategories.toString(), 1, assetCategories.size());
 
-		AssetCategory assetCategory2 = assetCategoryList.get(0);
+		AssetCategory assetCategory2 = assetCategories.get(0);
 
 		Assert.assertEquals(
 			assetCategory1.getTitle(), assetCategory2.getTitle());
@@ -253,12 +268,12 @@ public class FileEntryContentDashboardItemTest {
 					_contentDashboardItemFactory.create(
 						fileEntry.getFileEntryId());
 
-		List<AssetTag> assetTagList =
+		List<AssetTag> assetTags =
 			versionableContentDashboardItem.getAssetTags();
 
-		Assert.assertEquals(assetTagList.toString(), 3, assetTagList.size());
+		Assert.assertEquals(assetTags.toString(), 3, assetTags.size());
 
-		AssetTag assetTag = assetTagList.get(0);
+		AssetTag assetTag = assetTags.get(0);
 
 		Assert.assertEquals("tag1", assetTag.getName());
 	}
@@ -316,6 +331,44 @@ public class FileEntryContentDashboardItemTest {
 		Assert.assertEquals(
 			ContentDashboardItemAction.Type.VIEW,
 			contentDashboardItemAction.getType());
+	}
+
+	@Test
+	public void testGetDefaultContentDashboardItemActionWithFileEntryWithoutPermissions()
+		throws Exception {
+
+		_serviceContext.setAddGroupPermissions(false);
+		_serviceContext.setAddGuestPermissions(false);
+
+		VersionableContentDashboardItem<FileEntry>
+			versionableContentDashboardItem =
+				_getVersionableContentDashboardItem(1);
+
+		User user = UserTestUtil.addUser(
+			_companyLocalService.fetchCompany(TestPropsValues.getCompanyId()));
+
+		MockHttpServletRequest mockHttpServletRequest =
+			_getMockHttpServletRequest(user);
+
+		_serviceContext.setRequest(_getMockHttpServletRequest(user));
+
+		PermissionThreadLocal.setPermissionChecker(
+			PermissionCheckerFactoryUtil.create(user));
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.content.dashboard.document.library.internal." +
+					"item.FileEntryContentDashboardItem",
+				LoggerTestUtil.ERROR)) {
+
+			ContentDashboardItemAction contentDashboardItemAction =
+				versionableContentDashboardItem.
+					getDefaultContentDashboardItemAction(
+						mockHttpServletRequest);
+
+			Assert.assertEquals(
+				ContentDashboardItemAction.Type.VIEW,
+				contentDashboardItemAction.getType());
+		}
 	}
 
 	@Test
@@ -512,6 +565,46 @@ public class FileEntryContentDashboardItemTest {
 	}
 
 	@Test
+	public void testGetUserIdWithLatestApprovedFileVersion() throws Exception {
+		User user = UserTestUtil.addUser(
+			_companyLocalService.fetchCompany(TestPropsValues.getCompanyId()));
+
+		FileEntry fileEntry = _getFileEntry(2, user.getUserId());
+
+		VersionableContentDashboardItem<FileEntry>
+			versionableContentDashboardItem =
+				(VersionableContentDashboardItem<FileEntry>)
+					_contentDashboardItemFactory.create(
+						fileEntry.getFileEntryId());
+
+		Assert.assertEquals(
+			user.getUserId(), versionableContentDashboardItem.getUserId());
+
+		_userLocalService.deleteUser(user);
+	}
+
+	@Test
+	public void testGetUserIdWithPendingFileVersion() throws Exception {
+		User user = UserTestUtil.addUser(
+			_companyLocalService.fetchCompany(TestPropsValues.getCompanyId()));
+
+		FileEntry fileEntry = _getFileEntryWithPendingFileVersion(
+			user.getUserId());
+
+		VersionableContentDashboardItem<FileEntry>
+			versionableContentDashboardItem =
+				(VersionableContentDashboardItem<FileEntry>)
+					_contentDashboardItemFactory.create(
+						fileEntry.getFileEntryId());
+
+		Assert.assertEquals(
+			TestPropsValues.getUserId(),
+			versionableContentDashboardItem.getUserId());
+
+		_userLocalService.deleteUser(user);
+	}
+
+	@Test
 	public void testGetUserName() throws Exception {
 		VersionableContentDashboardItem<FileEntry>
 			versionableContentDashboardItem =
@@ -519,6 +612,50 @@ public class FileEntryContentDashboardItemTest {
 
 		Assert.assertEquals(
 			"Test Test", versionableContentDashboardItem.getUserName());
+	}
+
+	@Test
+	public void testGetUserNameWithLatestApprovedFileVersion()
+		throws Exception {
+
+		User user = UserTestUtil.addUser(
+			_companyLocalService.fetchCompany(TestPropsValues.getCompanyId()));
+
+		FileEntry fileEntry = _getFileEntry(2, user.getUserId());
+
+		VersionableContentDashboardItem<FileEntry>
+			versionableContentDashboardItem =
+				(VersionableContentDashboardItem<FileEntry>)
+					_contentDashboardItemFactory.create(
+						fileEntry.getFileEntryId());
+
+		Assert.assertEquals(
+			user.getFullName(), versionableContentDashboardItem.getUserName());
+
+		_userLocalService.deleteUser(user);
+	}
+
+	@Test
+	public void testGetUserNameWithPendingFileVersion() throws Exception {
+		User user = UserTestUtil.addUser(
+			_companyLocalService.fetchCompany(TestPropsValues.getCompanyId()));
+
+		FileEntry fileEntry = _getFileEntryWithPendingFileVersion(
+			user.getUserId());
+
+		VersionableContentDashboardItem<FileEntry>
+			versionableContentDashboardItem =
+				(VersionableContentDashboardItem<FileEntry>)
+					_contentDashboardItemFactory.create(
+						fileEntry.getFileEntryId());
+
+		User originalUser = TestPropsValues.getUser();
+
+		Assert.assertEquals(
+			originalUser.getFullName(),
+			versionableContentDashboardItem.getUserName());
+
+		_userLocalService.deleteUser(user);
 	}
 
 	@Test
@@ -602,40 +739,39 @@ public class FileEntryContentDashboardItemTest {
 		VersionableContentDashboardItem<FileEntry>
 			versionableContentDashboardItem) {
 
-		List<ContentDashboardItem.SpecificInformation<?>>
-			specificInformationList =
-				versionableContentDashboardItem.getSpecificInformationList(
-					LocaleUtil.getDefault());
+		List<ContentDashboardItem.SpecificInformation<?>> specificInformations =
+			versionableContentDashboardItem.getSpecificInformationList(
+				LocaleUtil.getDefault());
 
 		ContentDashboardItem.SpecificInformation<?>
 			aspectRatioSpecificInformation = _getSpecificInformation(
-				"content-dashboard-aspect-ratio", specificInformationList);
+				"content-dashboard-aspect-ratio", specificInformations);
 
 		Assert.assertEquals(
 			expectedAspectRatio, aspectRatioSpecificInformation.getValue());
 
 		ContentDashboardItem.SpecificInformation<?>
 			extensionSpecificInformation = _getSpecificInformation(
-				"extension", specificInformationList);
+				"extension", specificInformations);
 
 		Assert.assertEquals(
 			expectedExtension, extensionSpecificInformation.getValue());
 
 		ContentDashboardItem.SpecificInformation<?>
 			resolutionSpecificInformation = _getSpecificInformation(
-				"resolution", specificInformationList);
+				"resolution", specificInformations);
 
 		Assert.assertEquals(
 			expectedResolution, resolutionSpecificInformation.getValue());
 
 		ContentDashboardItem.SpecificInformation<?> sizeSpecificInformation =
-			_getSpecificInformation("size", specificInformationList);
+			_getSpecificInformation("size", specificInformations);
 
 		Assert.assertEquals(expectedSize, sizeSpecificInformation.getValue());
 
 		Assert.assertTrue(
 			ListUtil.exists(
-				specificInformationList,
+				specificInformations,
 				specificInformation -> Objects.equals(
 					specificInformation.getKey(), "file-name")));
 
@@ -643,7 +779,7 @@ public class FileEntryContentDashboardItemTest {
 			webDAVSpecificInformation =
 				(ContentDashboardItem.SpecificInformation<URL>)
 					_getSpecificInformation(
-						"web-dav-url", specificInformationList);
+						"web-dav-url", specificInformations);
 
 		String url = String.valueOf(webDAVSpecificInformation.getValue());
 
@@ -654,7 +790,7 @@ public class FileEntryContentDashboardItemTest {
 	}
 
 	private FileEntry _getFileEntry(
-			byte[] bytes, String fileName, int numVersions)
+			byte[] bytes, String fileName, int numVersions, long userId)
 		throws Exception {
 
 		FileEntry fileEntry = _dlAppLocalService.addFileEntry(
@@ -664,21 +800,23 @@ public class FileEntryContentDashboardItemTest {
 			StringPool.BLANK, "description", StringPool.BLANK, bytes, null,
 			null, null, _serviceContext);
 
-		_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
+		DLFileEntryType basicDocumentDLFileEntryType =
+			_dlFileEntryTypeLocalService.getDLFileEntryType(
+				DLFileEntryTypeConstants.FILE_ENTRY_TYPE_ID_BASIC_DOCUMENT);
+
+		DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+			_group.getGroupId(),
 			_portal.getClassNameId(FileEntry.class.getName()),
-			DLFileEntryTypeConstants.FILE_ENTRY_TYPE_ID_BASIC_DOCUMENT,
-			RandomTestUtil.randomString(),
-			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0, 0, 0,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+			basicDocumentDLFileEntryType.getFileEntryTypeKey(), true,
+			WorkflowConstants.STATUS_APPROVED);
 
 		if (numVersions > 1) {
 			for (int i = 1; i < numVersions; i++) {
 				fileEntry = _dlAppLocalService.updateFileEntry(
-					fileEntry.getUserId(), fileEntry.getFileEntryId(),
-					fileEntry.getFileName(), fileEntry.getMimeType(),
-					fileEntry.getTitle(), StringUtil.randomString(),
-					fileEntry.getDescription(), RandomTestUtil.randomString(),
+					userId, fileEntry.getFileEntryId(), fileEntry.getFileName(),
+					fileEntry.getMimeType(), fileEntry.getTitle(),
+					StringUtil.randomString(), fileEntry.getDescription(),
+					RandomTestUtil.randomString(),
 					DLVersionNumberIncrease.MINOR, fileEntry.getContentStream(),
 					fileEntry.getSize(), fileEntry.getDisplayDate(),
 					fileEntry.getExpirationDate(), fileEntry.getReviewDate(),
@@ -690,17 +828,64 @@ public class FileEntryContentDashboardItemTest {
 	}
 
 	private FileEntry _getFileEntry(int numVersions) throws Exception {
-		return _getFileEntry(new byte[0], "example.jpg", numVersions);
+		return _getFileEntry(
+			new byte[0], "example.jpg", numVersions,
+			TestPropsValues.getUserId());
+	}
+
+	private FileEntry _getFileEntry(int numVersions, long userId)
+		throws Exception {
+
+		return _getFileEntry(new byte[0], "example.jpg", numVersions, userId);
 	}
 
 	private FileEntry _getFileEntry(String fileName, int numVersions)
 		throws Exception {
 
 		return _getFileEntry(
-			FileUtil.getBytes(getClass(), fileName), fileName, numVersions);
+			FileUtil.getBytes(getClass(), fileName), fileName, numVersions,
+			TestPropsValues.getUserId());
+	}
+
+	private FileEntry _getFileEntryWithPendingFileVersion(long userId)
+		throws Exception {
+
+		Folder folder = _getSingleApproverFolder();
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
+
+		serviceContext.setRequest(_getMockHttpServletRequest());
+		serviceContext.setWorkflowAction(WorkflowConstants.ACTION_PUBLISH);
+
+		FileEntry fileEntry = _dlAppLocalService.addFileEntry(
+			RandomTestUtil.randomString(), TestPropsValues.getUserId(),
+			_group.getGroupId(), folder.getFolderId(),
+			RandomTestUtil.randomString() + ".jpg",
+			MimeTypesUtil.getExtensionContentType("jpg"), new byte[0], null,
+			null, null, serviceContext);
+
+		_updateStatus(
+			fileEntry.getFileVersion(), WorkflowConstants.STATUS_APPROVED,
+			serviceContext);
+
+		return _dlAppLocalService.updateFileEntry(
+			userId, fileEntry.getFileEntryId(), fileEntry.getFileName(),
+			fileEntry.getMimeType(), fileEntry.getTitle(),
+			StringUtil.randomString(), fileEntry.getDescription(),
+			RandomTestUtil.randomString(), DLVersionNumberIncrease.MINOR,
+			fileEntry.getContentStream(), fileEntry.getSize(),
+			fileEntry.getDisplayDate(), fileEntry.getExpirationDate(),
+			fileEntry.getReviewDate(), serviceContext);
 	}
 
 	private MockHttpServletRequest _getMockHttpServletRequest()
+		throws Exception {
+
+		return _getMockHttpServletRequest(TestPropsValues.getUser());
+	}
+
+	private MockHttpServletRequest _getMockHttpServletRequest(User user)
 		throws Exception {
 
 		MockHttpServletRequest mockHttpServletRequest =
@@ -709,17 +894,18 @@ public class FileEntryContentDashboardItemTest {
 		MockLiferayPortletRenderRequest mockLiferayPortletRenderRequest =
 			new MockLiferayPortletRenderRequest();
 
-		ThemeDisplay themeDisplay = _getThemeDisplay(mockHttpServletRequest);
+		ThemeDisplay themeDisplay = _getThemeDisplay(
+			mockHttpServletRequest, user);
 
 		mockLiferayPortletRenderRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, themeDisplay);
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_REQUEST,
+			JavaConstants.JAKARTA_PORTLET_REQUEST,
 			mockLiferayPortletRenderRequest);
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletActionResponse());
 		mockHttpServletRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, themeDisplay);
@@ -727,13 +913,34 @@ public class FileEntryContentDashboardItemTest {
 		return mockHttpServletRequest;
 	}
 
+	private Folder _getSingleApproverFolder() throws Exception {
+		Folder folder = _dlAppLocalService.addFolder(
+			null, TestPropsValues.getUserId(), _group.getGroupId(),
+			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID,
+			RandomTestUtil.randomString(), StringPool.BLANK, _serviceContext);
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
+
+		serviceContext.setAttribute(
+			"restrictionType", DLFolderConstants.RESTRICTION_TYPE_WORKFLOW);
+		serviceContext.setAttribute(
+			"workflowDefinition" +
+				DLFileEntryTypeConstants.FILE_ENTRY_TYPE_ID_ALL,
+			"Single Approver@1");
+
+		return _dlAppLocalService.updateFolder(
+			folder.getFolderId(), folder.getParentFolderId(), folder.getName(),
+			folder.getDescription(), serviceContext);
+	}
+
 	private ContentDashboardItem.SpecificInformation<?> _getSpecificInformation(
 		String key,
 		List<ContentDashboardItem.SpecificInformation<?>>
-			specificInformationList) {
+			specificInformations) {
 
 		for (ContentDashboardItem.SpecificInformation<?> specificInformation :
-				specificInformationList) {
+				specificInformations) {
 
 			if (Objects.equals(specificInformation.getKey(), key)) {
 				return specificInformation;
@@ -743,7 +950,8 @@ public class FileEntryContentDashboardItemTest {
 		return null;
 	}
 
-	private ThemeDisplay _getThemeDisplay(HttpServletRequest httpServletRequest)
+	private ThemeDisplay _getThemeDisplay(
+			HttpServletRequest httpServletRequest, User user)
 		throws Exception {
 
 		ThemeDisplay themeDisplay = new ThemeDisplay();
@@ -752,11 +960,11 @@ public class FileEntryContentDashboardItemTest {
 			CompanyLocalServiceUtil.fetchCompany(_group.getCompanyId()));
 		themeDisplay.setLocale(LocaleUtil.getDefault());
 		themeDisplay.setPermissionChecker(
-			PermissionCheckerFactoryUtil.create(TestPropsValues.getUser()));
+			PermissionCheckerFactoryUtil.create(user));
 		themeDisplay.setRequest(httpServletRequest);
 		themeDisplay.setScopeGroupId(_group.getGroupId());
 		themeDisplay.setSiteGroupId(_group.getGroupId());
-		themeDisplay.setUser(TestPropsValues.getUser());
+		themeDisplay.setUser(user);
 
 		return themeDisplay;
 	}
@@ -782,6 +990,27 @@ public class FileEntryContentDashboardItemTest {
 			_contentDashboardItemFactory.create(fileEntry.getFileEntryId());
 	}
 
+	private void _updateStatus(
+			FileVersion fileVersion, int status, ServiceContext serviceContext)
+		throws Exception {
+
+		WorkflowHandler<DLFileEntry> workflowHandler =
+			WorkflowHandlerRegistryUtil.getWorkflowHandler(
+				DLFileEntry.class.getName());
+
+		workflowHandler.updateStatus(
+			status,
+			HashMapBuilder.<String, Serializable>put(
+				WorkflowConstants.CONTEXT_ENTRY_CLASS_PK,
+				String.valueOf(fileVersion.getFileVersionId())
+			).put(
+				WorkflowConstants.CONTEXT_USER_ID,
+				String.valueOf(TestPropsValues.getUserId())
+			).put(
+				"serviceContext", serviceContext
+			).build());
+	}
+
 	private static String _originalName;
 
 	@Inject
@@ -789,6 +1018,9 @@ public class FileEntryContentDashboardItemTest {
 
 	@Inject
 	private AssetVocabularyLocalService _assetVocabularyLocalService;
+
+	@Inject
+	private CompanyLocalService _companyLocalService;
 
 	@Inject(
 		filter = "component.name=com.liferay.content.dashboard.document.library.internal.item.FileEntryContentDashboardItemFactory"
@@ -801,6 +1033,9 @@ public class FileEntryContentDashboardItemTest {
 	@Inject
 	private DLFileEntryLocalService _dlFileEntryLocalService;
 
+	@Inject
+	private DLFileEntryTypeLocalService _dlFileEntryTypeLocalService;
+
 	@DeleteAfterTestRun
 	private Group _group;
 
@@ -808,12 +1043,11 @@ public class FileEntryContentDashboardItemTest {
 	private Language _language;
 
 	@Inject
-	private LayoutPageTemplateEntryLocalService
-		_layoutPageTemplateEntryLocalService;
-
-	@Inject
 	private Portal _portal;
 
 	private ServiceContext _serviceContext;
+
+	@Inject
+	private UserLocalService _userLocalService;
 
 }

@@ -303,10 +303,6 @@ public interface CommercePriceListChannelRelLocalService
 	public int getCommercePriceListChannelRelsCount(long commercePriceListId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getCommercePriceListChannelRelsCount(
-		long commercePriceListId, String name);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public ExportActionableDynamicQuery getExportActionableDynamicQuery(
 		PortletDataContext portletDataContext);
 
@@ -358,3 +354,4 @@ public interface CommercePriceListChannelRelLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:64958425

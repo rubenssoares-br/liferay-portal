@@ -18,9 +18,8 @@ import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
 import com.liferay.blogs.constants.BlogsPortletKeys;
 import com.liferay.blogs.model.BlogsEntry;
 import com.liferay.blogs.service.BlogsEntryService;
-import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
-import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
@@ -44,19 +43,19 @@ import com.liferay.portal.kernel.theme.PortletDisplay;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portlet.test.MockLiferayPortletContext;
 
-import javax.portlet.Portlet;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import jakarta.portlet.Portlet;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -104,7 +103,6 @@ public class BlogsViewEntryContentDisplayContextTest {
 			viewEntryURL.endsWith(_ENTRY_ASSET_DISPLAY_PAGE_FRIENDLY_URL));
 	}
 
-	@FeatureFlags("LPD-11147")
 	@Test
 	public void testGetViewEntryURLWithAssetDisplayPageAndURLAssetCategory()
 		throws Exception {
@@ -136,7 +134,6 @@ public class BlogsViewEntryContentDisplayContextTest {
 			_getViewEntryURL(entry));
 	}
 
-	@FeatureFlags("LPD-11147")
 	@Test
 	public void testGetViewEntryURLWithoutAssetDisplayPageAndWithURLAssetCategory()
 		throws Exception {
@@ -158,11 +155,10 @@ public class BlogsViewEntryContentDisplayContextTest {
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, serviceContext.getUserId(),
-				serviceContext.getScopeGroupId(), 0, "Blogs",
-				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0,
-				WorkflowConstants.STATUS_APPROVED, serviceContext);
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(),
+				_portal.getClassNameId(BlogsEntry.class.getName()), null, false,
+				WorkflowConstants.STATUS_APPROVED);
 
 		serviceContext.setAttribute(
 			"assetDisplayPageId",
@@ -268,7 +264,7 @@ public class BlogsViewEntryContentDisplayContextTest {
 			HashMapBuilder.put(
 				LocaleUtil.US, "cat1"
 			).build(),
-			null, assetVocabulary.getVocabularyId(), null,
+			null, assetVocabulary.getVocabularyId(), false, null,
 			new ServiceContext());
 
 		serviceContext.setAssetCategoryIds(
@@ -315,8 +311,7 @@ public class BlogsViewEntryContentDisplayContextTest {
 	private Layout _layout;
 
 	@Inject
-	private LayoutPageTemplateEntryLocalService
-		_layoutPageTemplateEntryLocalService;
+	private Portal _portal;
 
 	@Inject(
 		filter = "component.name=com.liferay.blogs.web.internal.portlet.BlogsPortlet"

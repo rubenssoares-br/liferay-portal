@@ -18,6 +18,8 @@ CommerceOrder commerceOrder = commerceOrderEditDisplayContext.getCommerceOrder()
 <div class="container-fluid container-fluid-max-xl p-4">
 	<aui:form action="<%= editCommerceOrderShippingAddressActionURL %>" method="post" name="fm">
 		<aui:input name="<%= Constants.CMD %>" type="hidden" value="selectShippingAddress" />
+		<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
+		<aui:input name="requestProcessed" type="hidden" value='<%= SessionMessages.contains(renderRequest, "requestProcessed") %>' />
 		<aui:input name="commerceOrderId" type="hidden" value="<%= commerceOrder.getCommerceOrderId() %>" />
 
 		<frontend-data-set:classic-display
@@ -28,10 +30,9 @@ CommerceOrder commerceOrder = commerceOrderEditDisplayContext.getCommerceOrder()
 			%>'
 			creationMenu='<%= commerceOrderEditDisplayContext.getCommerceAddressCreationMenu("/commerce_order/edit_commerce_order_shipping_address") %>'
 			dataProviderKey="<%= CommerceOrderFDSNames.SHIPPING_ADDRESSES %>"
+			defaultSelectedItems="<%= Collections.singletonList(Math.toIntExact(commerceOrder.getShippingAddressId())) %>"
 			formName="fm"
 			id="<%= CommerceOrderFDSNames.SHIPPING_ADDRESSES %>"
-			itemsPerPage="<%= 10 %>"
-			selectedItems="<%= Collections.singletonList(Math.toIntExact(commerceOrder.getShippingAddressId())) %>"
 			selectedItemsKey="addressId"
 			selectionType="single"
 		/>

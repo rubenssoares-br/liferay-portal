@@ -4,14 +4,16 @@
  */
 
 import {FormLayoutDataItem} from '../../types/layout_data/FormLayoutDataItem';
-import {LayoutData, LayoutDataItem} from '../../types/layout_data/LayoutData';
+import {FragmentLayoutDataItem} from '../../types/layout_data/FragmentLayoutDataItem';
+import {LayoutData} from '../../types/layout_data/LayoutData';
 import {FragmentEntryLinkMap} from '../actions/addFragmentEntryLinks';
+import isStepper from './isStepper';
 
 export function getStepperChild(
 	form: FormLayoutDataItem,
 	layoutData: LayoutData | null,
 	fragmentEntryLinks: FragmentEntryLinkMap | null
-): LayoutDataItem | null {
+): FragmentLayoutDataItem | null {
 	if (!layoutData || !fragmentEntryLinks) {
 		return null;
 	}
@@ -26,8 +28,8 @@ export function getStepperChild(
 		const fragment =
 			fragmentEntryLinks?.[child.config.fragmentEntryLinkId!];
 
-		if (fragment.fieldTypes?.includes('stepper')) {
-			return child;
+		if (isStepper(fragment)) {
+			return child as FragmentLayoutDataItem;
 		}
 	}
 

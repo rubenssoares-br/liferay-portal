@@ -19,6 +19,10 @@ import com.liferay.headless.admin.workflow.client.pagination.Page;
 import com.liferay.headless.admin.workflow.client.pagination.Pagination;
 import com.liferay.headless.admin.workflow.client.resource.v1_0.WorkflowInstanceResource;
 import com.liferay.headless.admin.workflow.client.serdes.v1_0.WorkflowInstanceSerDes;
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
@@ -28,25 +32,49 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,13 +83,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -70,6 +95,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Javier Gamarra
@@ -80,13 +108,17 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -99,17 +131,27 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 
 		_workflowInstanceResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		WorkflowInstanceResource.Builder builder =
-			WorkflowInstanceResource.builder();
-
-		workflowInstanceResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		workflowInstanceResource = WorkflowInstanceResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -187,248 +229,6 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 	}
 
 	@Test
-	public void testGetWorkflowInstancesPage() throws Exception {
-		Page<WorkflowInstance> page =
-			workflowInstanceResource.getWorkflowInstancesPage(
-				RandomTestUtil.randomString(), null, null,
-				Pagination.of(1, 10));
-
-		long totalCount = page.getTotalCount();
-
-		WorkflowInstance workflowInstance1 =
-			testGetWorkflowInstancesPage_addWorkflowInstance(
-				randomWorkflowInstance());
-
-		WorkflowInstance workflowInstance2 =
-			testGetWorkflowInstancesPage_addWorkflowInstance(
-				randomWorkflowInstance());
-
-		page = workflowInstanceResource.getWorkflowInstancesPage(
-			null, null, null, Pagination.of(1, 10));
-
-		Assert.assertEquals(totalCount + 2, page.getTotalCount());
-
-		assertContains(
-			workflowInstance1, (List<WorkflowInstance>)page.getItems());
-		assertContains(
-			workflowInstance2, (List<WorkflowInstance>)page.getItems());
-		assertValid(page, testGetWorkflowInstancesPage_getExpectedActions());
-
-		workflowInstanceResource.deleteWorkflowInstance(
-			workflowInstance1.getId());
-
-		workflowInstanceResource.deleteWorkflowInstance(
-			workflowInstance2.getId());
-	}
-
-	protected Map<String, Map<String, String>>
-			testGetWorkflowInstancesPage_getExpectedActions()
-		throws Exception {
-
-		Map<String, Map<String, String>> expectedActions = new HashMap<>();
-
-		return expectedActions;
-	}
-
-	@Test
-	public void testGetWorkflowInstancesPageWithPagination() throws Exception {
-		Page<WorkflowInstance> workflowInstancePage =
-			workflowInstanceResource.getWorkflowInstancesPage(
-				null, null, null, null);
-
-		int totalCount = GetterUtil.getInteger(
-			workflowInstancePage.getTotalCount());
-
-		WorkflowInstance workflowInstance1 =
-			testGetWorkflowInstancesPage_addWorkflowInstance(
-				randomWorkflowInstance());
-
-		WorkflowInstance workflowInstance2 =
-			testGetWorkflowInstancesPage_addWorkflowInstance(
-				randomWorkflowInstance());
-
-		WorkflowInstance workflowInstance3 =
-			testGetWorkflowInstancesPage_addWorkflowInstance(
-				randomWorkflowInstance());
-
-		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
-
-		int pageSizeLimit = 500;
-
-		if (totalCount >= (pageSizeLimit - 2)) {
-			Page<WorkflowInstance> page1 =
-				workflowInstanceResource.getWorkflowInstancesPage(
-					null, null, null,
-					Pagination.of(
-						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
-						pageSizeLimit));
-
-			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
-
-			assertContains(
-				workflowInstance1, (List<WorkflowInstance>)page1.getItems());
-
-			Page<WorkflowInstance> page2 =
-				workflowInstanceResource.getWorkflowInstancesPage(
-					null, null, null,
-					Pagination.of(
-						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
-						pageSizeLimit));
-
-			assertContains(
-				workflowInstance2, (List<WorkflowInstance>)page2.getItems());
-
-			Page<WorkflowInstance> page3 =
-				workflowInstanceResource.getWorkflowInstancesPage(
-					null, null, null,
-					Pagination.of(
-						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
-						pageSizeLimit));
-
-			assertContains(
-				workflowInstance3, (List<WorkflowInstance>)page3.getItems());
-		}
-		else {
-			Page<WorkflowInstance> page1 =
-				workflowInstanceResource.getWorkflowInstancesPage(
-					null, null, null, Pagination.of(1, totalCount + 2));
-
-			List<WorkflowInstance> workflowInstances1 =
-				(List<WorkflowInstance>)page1.getItems();
-
-			Assert.assertEquals(
-				workflowInstances1.toString(), totalCount + 2,
-				workflowInstances1.size());
-
-			Page<WorkflowInstance> page2 =
-				workflowInstanceResource.getWorkflowInstancesPage(
-					null, null, null, Pagination.of(2, totalCount + 2));
-
-			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
-
-			List<WorkflowInstance> workflowInstances2 =
-				(List<WorkflowInstance>)page2.getItems();
-
-			Assert.assertEquals(
-				workflowInstances2.toString(), 1, workflowInstances2.size());
-
-			Page<WorkflowInstance> page3 =
-				workflowInstanceResource.getWorkflowInstancesPage(
-					null, null, null, Pagination.of(1, (int)totalCount + 3));
-
-			assertContains(
-				workflowInstance1, (List<WorkflowInstance>)page3.getItems());
-			assertContains(
-				workflowInstance2, (List<WorkflowInstance>)page3.getItems());
-			assertContains(
-				workflowInstance3, (List<WorkflowInstance>)page3.getItems());
-		}
-	}
-
-	protected WorkflowInstance testGetWorkflowInstancesPage_addWorkflowInstance(
-			WorkflowInstance workflowInstance)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetWorkflowInstancesPage() throws Exception {
-		GraphQLField graphQLField = new GraphQLField(
-			"workflowInstances",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
-
-		// No namespace
-
-		JSONObject workflowInstancesJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(graphQLField), "JSONObject/data",
-			"JSONObject/workflowInstances");
-
-		long totalCount = workflowInstancesJSONObject.getLong("totalCount");
-
-		WorkflowInstance workflowInstance1 =
-			testGraphQLGetWorkflowInstancesPage_addWorkflowInstance();
-		WorkflowInstance workflowInstance2 =
-			testGraphQLGetWorkflowInstancesPage_addWorkflowInstance();
-
-		workflowInstancesJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(graphQLField), "JSONObject/data",
-			"JSONObject/workflowInstances");
-
-		Assert.assertEquals(
-			totalCount + 2, workflowInstancesJSONObject.getLong("totalCount"));
-
-		assertContains(
-			workflowInstance1,
-			Arrays.asList(
-				WorkflowInstanceSerDes.toDTOs(
-					workflowInstancesJSONObject.getString("items"))));
-		assertContains(
-			workflowInstance2,
-			Arrays.asList(
-				WorkflowInstanceSerDes.toDTOs(
-					workflowInstancesJSONObject.getString("items"))));
-
-		// Using the namespace headlessAdminWorkflow_v1_0
-
-		workflowInstancesJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(
-				new GraphQLField("headlessAdminWorkflow_v1_0", graphQLField)),
-			"JSONObject/data", "JSONObject/headlessAdminWorkflow_v1_0",
-			"JSONObject/workflowInstances");
-
-		Assert.assertEquals(
-			totalCount + 2, workflowInstancesJSONObject.getLong("totalCount"));
-
-		assertContains(
-			workflowInstance1,
-			Arrays.asList(
-				WorkflowInstanceSerDes.toDTOs(
-					workflowInstancesJSONObject.getString("items"))));
-		assertContains(
-			workflowInstance2,
-			Arrays.asList(
-				WorkflowInstanceSerDes.toDTOs(
-					workflowInstancesJSONObject.getString("items"))));
-	}
-
-	protected WorkflowInstance
-			testGraphQLGetWorkflowInstancesPage_addWorkflowInstance()
-		throws Exception {
-
-		return testGraphQLWorkflowInstance_addWorkflowInstance();
-	}
-
-	@Test
-	public void testPostWorkflowInstanceSubmit() throws Exception {
-		WorkflowInstance randomWorkflowInstance = randomWorkflowInstance();
-
-		WorkflowInstance postWorkflowInstance =
-			testPostWorkflowInstanceSubmit_addWorkflowInstance(
-				randomWorkflowInstance);
-
-		assertEquals(randomWorkflowInstance, postWorkflowInstance);
-		assertValid(postWorkflowInstance);
-	}
-
-	protected WorkflowInstance
-			testPostWorkflowInstanceSubmit_addWorkflowInstance(
-				WorkflowInstance workflowInstance)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testDeleteWorkflowInstance() throws Exception {
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		WorkflowInstance workflowInstance =
@@ -443,7 +243,6 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 			404,
 			workflowInstanceResource.getWorkflowInstanceHttpResponse(
 				workflowInstance.getId()));
-
 		assertHttpResponseStatusCode(
 			404, workflowInstanceResource.getWorkflowInstanceHttpResponse(0L));
 	}
@@ -460,6 +259,7 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		WorkflowInstance workflowInstance1 =
 			testGraphQLDeleteWorkflowInstance_addWorkflowInstance();
 
@@ -488,13 +288,14 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 								workflowInstance1.getId());
 						}
 					},
-					new GraphQLField("id"))),
+					getGraphQLFields())),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray1.length() > 0);
 
 		// Using the namespace headlessAdminWorkflow_v1_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		WorkflowInstance workflowInstance2 =
 			testGraphQLDeleteWorkflowInstance_addWorkflowInstance();
 
@@ -528,7 +329,7 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 									workflowInstance2.getId());
 							}
 						},
-						new GraphQLField("id")))),
+						getGraphQLFields()))),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray2.length() > 0);
@@ -542,6 +343,48 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 	}
 
 	@Test
+	public void testDeleteWorkflowInstanceBatch() throws Exception {
+		WorkflowInstance workflowInstance1 =
+			testDeleteWorkflowInstanceBatch_addWorkflowInstance();
+
+		testDeleteWorkflowInstanceBatch_deleteWorkflowInstance(
+			202, null, workflowInstance1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			workflowInstanceResource.getWorkflowInstanceHttpResponse(
+				workflowInstance1.getId()));
+	}
+
+	protected WorkflowInstance
+			testDeleteWorkflowInstanceBatch_addWorkflowInstance()
+		throws Exception {
+
+		return testDeleteWorkflowInstance_addWorkflowInstance();
+	}
+
+	protected void testDeleteWorkflowInstanceBatch_deleteWorkflowInstance(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			workflowInstanceResource.deleteWorkflowInstanceBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
 	public void testGetWorkflowInstance() throws Exception {
 		WorkflowInstance postWorkflowInstance =
 			testGetWorkflowInstance_addWorkflowInstance();
@@ -552,6 +395,205 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 
 		assertEquals(postWorkflowInstance, getWorkflowInstance);
 		assertValid(getWorkflowInstance);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		WorkflowInstance postWorkflowInstance =
+			testGetWorkflowInstance_addWorkflowInstance();
+
+		WorkflowInstance getWorkflowInstance =
+			workflowInstanceResource.getWorkflowInstance(
+				postWorkflowInstance.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.admin.workflow.dto.v1_0.WorkflowInstance"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(
+			postWorkflowInstance.getId());
+
+		assertEquals(
+			getWorkflowInstance, WorkflowInstanceSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
 	}
 
 	protected WorkflowInstance testGetWorkflowInstance_addWorkflowInstance()
@@ -664,6 +706,187 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 	}
 
 	@Test
+	public void testGetWorkflowInstancesPage() throws Exception {
+		Page<WorkflowInstance> page =
+			workflowInstanceResource.getWorkflowInstancesPage(
+				RandomTestUtil.randomString(), null, null,
+				Pagination.of(1, 10));
+
+		long totalCount = page.getTotalCount();
+
+		WorkflowInstance workflowInstance1 =
+			testGetWorkflowInstancesPage_addWorkflowInstance(
+				randomWorkflowInstance());
+
+		WorkflowInstance workflowInstance2 =
+			testGetWorkflowInstancesPage_addWorkflowInstance(
+				randomWorkflowInstance());
+
+		page = workflowInstanceResource.getWorkflowInstancesPage(
+			null, null, null, Pagination.of(1, (int)totalCount + 2));
+
+		Assert.assertEquals(totalCount + 2, page.getTotalCount());
+
+		assertContains(
+			workflowInstance1, (List<WorkflowInstance>)page.getItems());
+		assertContains(
+			workflowInstance2, (List<WorkflowInstance>)page.getItems());
+		assertValid(page, testGetWorkflowInstancesPage_getExpectedActions());
+
+		workflowInstanceResource.deleteWorkflowInstance(
+			workflowInstance1.getId());
+
+		workflowInstanceResource.deleteWorkflowInstance(
+			workflowInstance2.getId());
+	}
+
+	protected Map<String, Map<String, String>>
+			testGetWorkflowInstancesPage_getExpectedActions()
+		throws Exception {
+
+		Map<String, Map<String, String>> expectedActions = new HashMap<>();
+
+		return expectedActions;
+	}
+
+	@Test
+	public void testGetWorkflowInstancesPageWithPagination() throws Exception {
+		Page<WorkflowInstance> workflowInstancesPage =
+			workflowInstanceResource.getWorkflowInstancesPage(
+				null, null, null, null);
+
+		int totalCount = GetterUtil.getInteger(
+			workflowInstancesPage.getTotalCount());
+
+		WorkflowInstance workflowInstance1 =
+			testGetWorkflowInstancesPage_addWorkflowInstance(
+				randomWorkflowInstance());
+
+		WorkflowInstance workflowInstance2 =
+			testGetWorkflowInstancesPage_addWorkflowInstance(
+				randomWorkflowInstance());
+
+		WorkflowInstance workflowInstance3 =
+			testGetWorkflowInstancesPage_addWorkflowInstance(
+				randomWorkflowInstance());
+
+		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
+
+		int pageSizeLimit = 500;
+
+		if (totalCount >= (pageSizeLimit - 2)) {
+			Page<WorkflowInstance> page1 =
+				workflowInstanceResource.getWorkflowInstancesPage(
+					null, null, null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+						pageSizeLimit));
+
+			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
+
+			assertContains(
+				workflowInstance1, (List<WorkflowInstance>)page1.getItems());
+
+			Page<WorkflowInstance> page2 =
+				workflowInstanceResource.getWorkflowInstancesPage(
+					null, null, null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+						pageSizeLimit));
+
+			assertContains(
+				workflowInstance2, (List<WorkflowInstance>)page2.getItems());
+
+			Page<WorkflowInstance> page3 =
+				workflowInstanceResource.getWorkflowInstancesPage(
+					null, null, null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+						pageSizeLimit));
+
+			assertContains(
+				workflowInstance3, (List<WorkflowInstance>)page3.getItems());
+		}
+		else {
+			Page<WorkflowInstance> page1 =
+				workflowInstanceResource.getWorkflowInstancesPage(
+					null, null, null, Pagination.of(1, totalCount + 2));
+
+			List<WorkflowInstance> workflowInstances1 =
+				(List<WorkflowInstance>)page1.getItems();
+
+			Assert.assertEquals(
+				workflowInstances1.toString(), totalCount + 2,
+				workflowInstances1.size());
+
+			Page<WorkflowInstance> page2 =
+				workflowInstanceResource.getWorkflowInstancesPage(
+					null, null, null, Pagination.of(2, totalCount + 2));
+
+			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
+
+			List<WorkflowInstance> workflowInstances2 =
+				(List<WorkflowInstance>)page2.getItems();
+
+			Assert.assertEquals(
+				workflowInstances2.toString(), 1, workflowInstances2.size());
+
+			Page<WorkflowInstance> page3 =
+				workflowInstanceResource.getWorkflowInstancesPage(
+					null, null, null, Pagination.of(1, (int)totalCount + 3));
+
+			assertContains(
+				workflowInstance1, (List<WorkflowInstance>)page3.getItems());
+			assertContains(
+				workflowInstance2, (List<WorkflowInstance>)page3.getItems());
+			assertContains(
+				workflowInstance3, (List<WorkflowInstance>)page3.getItems());
+		}
+	}
+
+	protected WorkflowInstance testGetWorkflowInstancesPage_addWorkflowInstance(
+			WorkflowInstance workflowInstance)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPatchWorkflowInstance() throws Exception {
+		WorkflowInstance postWorkflowInstance =
+			testPatchWorkflowInstance_addWorkflowInstance();
+
+		WorkflowInstance randomPatchWorkflowInstance =
+			randomPatchWorkflowInstance();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WorkflowInstance patchWorkflowInstance =
+			workflowInstanceResource.patchWorkflowInstance(
+				postWorkflowInstance.getId(), randomPatchWorkflowInstance);
+
+		WorkflowInstance expectedPatchWorkflowInstance =
+			postWorkflowInstance.clone();
+
+		BeanTestUtil.copyProperties(
+			randomPatchWorkflowInstance, expectedPatchWorkflowInstance);
+
+		WorkflowInstance getWorkflowInstance =
+			workflowInstanceResource.getWorkflowInstance(
+				patchWorkflowInstance.getId());
+
+		assertEquals(expectedPatchWorkflowInstance, getWorkflowInstance);
+		assertValid(getWorkflowInstance);
+	}
+
+	protected WorkflowInstance testPatchWorkflowInstance_addWorkflowInstance()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostWorkflowInstanceChangeTransition() throws Exception {
 		WorkflowInstance randomWorkflowInstance = randomWorkflowInstance();
 
@@ -682,6 +905,84 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostWorkflowInstanceSubmit() throws Exception {
+		WorkflowInstance randomWorkflowInstance = randomWorkflowInstance();
+
+		WorkflowInstance postWorkflowInstance =
+			testPostWorkflowInstanceSubmit_addWorkflowInstance(
+				randomWorkflowInstance);
+
+		assertEquals(randomWorkflowInstance, postWorkflowInstance);
+		assertValid(postWorkflowInstance);
+	}
+
+	protected WorkflowInstance
+			testPostWorkflowInstanceSubmit_addWorkflowInstance(
+				WorkflowInstance workflowInstance)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		WorkflowInstance workflowInstance1 =
+			testBatchEngineDeleteImportTask_addWorkflowInstance();
+
+		testBatchEngineDeleteImportTask_deleteWorkflowInstance(
+			200, null, workflowInstance1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			workflowInstanceResource.getWorkflowInstanceHttpResponse(
+				workflowInstance1.getId()));
+	}
+
+	protected WorkflowInstance
+			testBatchEngineDeleteImportTask_addWorkflowInstance()
+		throws Exception {
+
+		return testDeleteWorkflowInstance_addWorkflowInstance();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteWorkflowInstance(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.admin.workflow.dto.v1_0.WorkflowInstance",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	protected WorkflowInstance testGraphQLWorkflowInstance_addWorkflowInstance()
@@ -798,6 +1099,14 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("context", additionalAssertFieldName)) {
+				if (workflowInstance.getContext() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("currentNodeNames", additionalAssertFieldName)) {
 				if (workflowInstance.getCurrentNodeNames() == null) {
 					valid = false;
@@ -901,6 +1210,8 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.admin.workflow.dto.v1_0.
@@ -978,6 +1289,17 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				if (!Objects.deepEquals(
 						workflowInstance1.getCompleted(),
 						workflowInstance2.getCompleted())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("context", additionalAssertFieldName)) {
+				if (!equals(
+						(Map)workflowInstance1.getContext(),
+						(Map)workflowInstance2.getContext())) {
 
 					return false;
 				}
@@ -1183,6 +1505,11 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("context")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals("currentNodeNames")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -1197,13 +1524,11 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1213,8 +1538,7 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(workflowInstance.getDateCompletion()));
+				sb.append(_format.format(workflowInstance.getDateCompletion()));
 			}
 
 			return sb.toString();
@@ -1229,13 +1553,11 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1245,8 +1567,7 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(workflowInstance.getDateCreated()));
+				sb.append(_format.format(workflowInstance.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -1367,7 +1688,9 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1424,7 +1747,30 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 		return randomWorkflowInstance();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected WorkflowInstanceResource workflowInstanceResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1625,11 +1971,36 @@ public abstract class BaseWorkflowInstanceResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseWorkflowInstanceResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
 		com.liferay.headless.admin.workflow.resource.v1_0.
 			WorkflowInstanceResource _workflowInstanceResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:1449713701

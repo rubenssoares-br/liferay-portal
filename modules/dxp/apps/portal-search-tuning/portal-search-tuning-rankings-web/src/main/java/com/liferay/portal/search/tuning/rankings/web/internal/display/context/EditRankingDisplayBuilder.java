@@ -23,12 +23,12 @@ import com.liferay.portal.search.tuning.rankings.index.RankingIndexReader;
 import com.liferay.portal.search.tuning.rankings.index.name.RankingIndexName;
 import com.liferay.portal.search.tuning.rankings.index.name.RankingIndexNameBuilder;
 
+import jakarta.portlet.RenderResponse;
+import jakarta.portlet.ResourceURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Map;
-
-import javax.portlet.RenderResponse;
-import javax.portlet.ResourceURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Kevin Tan
@@ -202,6 +202,14 @@ public class EditRankingDisplayBuilder {
 		return ParamUtil.getString(_httpServletRequest, "resultsRankingUid");
 	}
 
+	private String _getSXPBlueprintExternalReferenceCode() {
+		if (_ranking != null) {
+			return _ranking.getSXPBlueprintExternalReferenceCode();
+		}
+
+		return null;
+	}
+
 	private String _getSearchResultRankingsResourceURL() {
 		ResourceURL resourceURL = _renderResponse.createResourceURL();
 
@@ -219,14 +227,6 @@ public class EditRankingDisplayBuilder {
 		}
 
 		return ResultRankingsConstants.STATUS_ACTIVE;
-	}
-
-	private String _getSXPBlueprintExternalReferenceCode() {
-		if (_ranking != null) {
-			return _ranking.getSXPBlueprintExternalReferenceCode();
-		}
-
-		return null;
 	}
 
 	private String _getValidateResultRankingsResourceURL() {

@@ -129,6 +129,8 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 				pluginPackageProperties.put(
 					"Liferay-Client-Extension-Batch", "batch/");
 
+				_setLiferayVirtualInstanceId(pluginPackageProperties);
+
 				batchType = "batch";
 			}
 			else if (Objects.equals(type, "globalJS")) {
@@ -140,9 +142,16 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 					"Liferay-Client-Extension-Site-Initializer",
 					"site-initializer/");
 
+				_setLiferayVirtualInstanceId(pluginPackageProperties);
+
 				batchType = StringUtil.getDockerSafeName(type);
 
 				_createSiteInitializerJsonFile(clientExtension);
+
+				if (_virtualInstanceId != null) {
+					pluginPackageProperties.put(
+						"Liferay-Virtual-Instance-Id", _virtualInstanceId);
+				}
 			}
 			else if (Objects.equals(type, "themeCSS")) {
 				_inlineFrontendTokenDefinitionJSON(clientExtension);
@@ -196,9 +205,7 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 			StringUtil.suffixIfNotBlank(
 				_project.getName(), _virtualInstanceId));
 
-		if (!pluginPackageProperties.containsKey("module-group-id")) {
-			pluginPackageProperties.put("module-group-id", "liferay");
-		}
+		pluginPackageProperties.putIfAbsent("module-group-id", "liferay");
 
 		_writeToOutputFile(
 			ResourceUtil.readString(
@@ -364,9 +371,11 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 					_typeSettingsToSiteInitializerJsonKeyMap.get(
 						entry.getKey());
 
-				if (jsonMapKey != null) {
-					jsonMap.put(jsonMapKey, entry.getValue());
+				if (jsonMapKey == null) {
+					continue;
 				}
+
+				jsonMap.put(jsonMapKey, entry.getValue());
 			}
 
 			ObjectMapper objectMapper = new ObjectMapper();
@@ -414,20 +423,22 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 				}
 			}
 
-			if (currentValue instanceof List) {
-				List<String> values = new ArrayList<>();
-
-				for (String value : (List<String>)currentValue) {
-					if (key.contains("url") && _isWildcardValue(value)) {
-						values.addAll(_getMatchingPaths(staticDirPath, value));
-					}
-					else {
-						values.add(value);
-					}
-				}
-
-				entry.setValue(values);
+			if (!(currentValue instanceof List)) {
+				continue;
 			}
+
+			List<String> values = new ArrayList<>();
+
+			for (String value : (List<String>)currentValue) {
+				if (key.contains("url") && _isWildcardValue(value)) {
+					values.addAll(_getMatchingPaths(staticDirPath, value));
+				}
+				else {
+					values.add(value);
+				}
+			}
+
+			entry.setValue(values);
 		}
 	}
 
@@ -674,6 +685,10 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 		JsonNode configurationJsonNode = rootJsonNode.findValue(
 			"configuration");
 
+		if (configurationJsonNode == null) {
+			return;
+		}
+
 		JsonNode classNameJsonNode = configurationJsonNode.findValue(
 			"className");
 
@@ -792,6 +807,15 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 				throw new GradleException(
 					String.format("Unable to read file %s", file));
 			}
+		}
+	}
+
+	private void _setLiferayVirtualInstanceId(
+		Properties pluginPackageProperties) {
+
+		if ((pluginPackageProperties != null) && (_virtualInstanceId != null)) {
+			pluginPackageProperties.put(
+				"Liferay-Virtual-Instance-Id", _virtualInstanceId);
 		}
 	}
 
@@ -925,6 +949,7 @@ public class CreateClientExtensionConfigTask extends DefaultTask {
 					put("parentSiteKey", "parentSiteKey");
 					put("siteExternalReferenceCode", "externalReferenceCode");
 					put("siteName", "name");
+					put("siteName_i18n", "name_i18n");
 				}
 			};
 

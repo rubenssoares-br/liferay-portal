@@ -182,7 +182,7 @@
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<name>assignerModalUrl</name>
+			<name>assignerModalURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -219,7 +219,7 @@
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<name>externalReferenceCodeEditUrl</name>
+			<name>externalReferenceCodeEditURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -236,12 +236,12 @@
 			<type>java.lang.Class</type>
 		</attribute>
 		<attribute>
-			<name>previewUrl</name>
+			<name>previewURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<name>thumbnailUrl</name>
+			<name>thumbnailURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -254,7 +254,7 @@
 			<name>transitionPortletURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
-			<type>javax.portlet.PortletURL</type>
+			<type>jakarta.portlet.PortletURL</type>
 		</attribute>
 		<attribute>
 			<name>version</name>
@@ -287,7 +287,7 @@
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<name>actionUrl</name>
+			<name>actionURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -333,6 +333,7 @@
 		</attribute>
 	</tag>
 	<tag>
+		<description>Deprecated as of Cavanaugh (7.4.x).</description>
 		<name>modal</name>
 		<tag-class>com.liferay.commerce.frontend.taglib.servlet.taglib.ModalTag</tag-class>
 		<body-content>empty</body-content>
@@ -410,6 +411,11 @@
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
+		<attribute>
+			<name>useNativeSubmit</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
 	</tag>
 	<tag>
 		<name>option-selector</name>
@@ -448,6 +454,11 @@
 		<tag-class>com.liferay.commerce.frontend.taglib.servlet.taglib.PanelTag</tag-class>
 		<body-content>JSP</body-content>
 		<attribute>
+			<name>actionContext</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
 			<name>actionIcon</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
@@ -463,7 +474,7 @@
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<name>actionUrl</name>
+			<name>actionURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -500,12 +511,37 @@
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
+			<name>secondaryActionContext</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<name>secondaryActionIcon</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<name>secondaryActionLabel</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<name>secondaryActionTargetId</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<name>secondaryActionURL</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
 			<name>showMoreId</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<name>showMoreUrl</name>
+			<name>showMoreURL</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -573,6 +609,17 @@
 		<body-content>empty</body-content>
 		<attribute>
 			<name>CPCatalogEntry</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<name>createCart</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<type>boolean</type>
+		</attribute>
+		<attribute>
+			<name>displayType</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>

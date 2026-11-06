@@ -7,26 +7,27 @@ package com.liferay.oauth2.provider.client.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.oauth2.provider.constants.GrantType;
-import com.liferay.oauth2.provider.constants.OAuth2ProviderConstants;
+import com.liferay.oauth2.provider.constants.OAuth2AuthorizationConstants;
 import com.liferay.oauth2.provider.internal.test.TestAnnotatedApplication;
 import com.liferay.oauth2.provider.internal.test.TestApplication;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.HashMapDictionary;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
-import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.Response;
+
 import java.util.Arrays;
 import java.util.Collections;
-
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -90,7 +91,52 @@ public class ScopeCheckerGuestAllowedTest extends BaseClientTestCase {
 		}
 	}
 
-	public static class ScopeCheckerGuestAllowedTestPreparatorBundleActivator
+	@Override
+	protected BundleActivator getBundleActivator() {
+		return new ScopeCheckerGuestAllowedTestPreparatorBundleActivator();
+	}
+
+	protected void testApplication(
+		String path, String expectedValidTokenResponse,
+		int expectedNoTokenStatus) {
+
+		WebTarget webTarget = getWebTarget(path);
+
+		Invocation.Builder invocationBuilder = webTarget.request();
+
+		Response response = invocationBuilder.get();
+
+		Assert.assertEquals(
+			"No token: ", expectedNoTokenStatus, response.getStatus());
+
+		for (String invalidToken : _INVALID_TOKENS) {
+			invocationBuilder = webTarget.request();
+
+			if (invalidToken != null) {
+				invocationBuilder = authorize(invocationBuilder, invalidToken);
+			}
+
+			response = invocationBuilder.get();
+
+			Assert.assertEquals(
+				"Token: " + invalidToken, 401, response.getStatus());
+		}
+
+		invocationBuilder = authorize(
+			webTarget.request(), getToken(_CLIENT_ID));
+
+		Assert.assertEquals(
+			expectedValidTokenResponse, invocationBuilder.get(String.class));
+	}
+
+	private static final String _CLIENT_ID = RandomTestUtil.randomString();
+
+	private static final String[] _INVALID_TOKENS = {
+		OAuth2AuthorizationConstants.ACCESS_TOKEN_CONTENT_EXPIRED_TOKEN,
+		StringPool.BLANK, StringPool.NULL, "Invalid Token"
+	};
+
+	private class ScopeCheckerGuestAllowedTestPreparatorBundleActivator
 		extends BaseTestPreparatorBundleActivator {
 
 		@Override
@@ -155,12 +201,12 @@ public class ScopeCheckerGuestAllowedTest extends BaseClientTestCase {
 					"oauth2.scope.checker.type", "http.method"
 				).build());
 
-			long defaultCompanyId = PortalUtil.getDefaultCompanyId();
+			long companyId = TestPropsValues.getCompanyId();
 
-			User user = UserTestUtil.getAdminUser(defaultCompanyId);
+			User user = UserTestUtil.getAdminUser(companyId);
 
 			createOAuth2Application(
-				defaultCompanyId, user, "oauthTestApplication",
+				companyId, user, _CLIENT_ID,
 				Collections.singletonList(GrantType.CLIENT_CREDENTIALS),
 				Arrays.asList("everything.read", "GET"));
 
@@ -169,48 +215,5 @@ public class ScopeCheckerGuestAllowedTest extends BaseClientTestCase {
 		}
 
 	}
-
-	@Override
-	protected BundleActivator getBundleActivator() {
-		return new ScopeCheckerGuestAllowedTestPreparatorBundleActivator();
-	}
-
-	protected void testApplication(
-		String path, String expectedValidTokenResponse,
-		int expectedNoTokenStatus) {
-
-		WebTarget webTarget = getWebTarget(path);
-
-		Invocation.Builder invocationBuilder = webTarget.request();
-
-		Response response = invocationBuilder.get();
-
-		Assert.assertEquals(
-			"No token: ", expectedNoTokenStatus, response.getStatus());
-
-		for (String invalidToken : _INVALID_TOKENS) {
-			invocationBuilder = webTarget.request();
-
-			if (invalidToken != null) {
-				invocationBuilder = authorize(invocationBuilder, invalidToken);
-			}
-
-			response = invocationBuilder.get();
-
-			Assert.assertEquals(
-				"Token: " + invalidToken, 401, response.getStatus());
-		}
-
-		invocationBuilder = authorize(
-			webTarget.request(), getToken("oauthTestApplication"));
-
-		Assert.assertEquals(
-			expectedValidTokenResponse, invocationBuilder.get(String.class));
-	}
-
-	private static final String[] _INVALID_TOKENS = {
-		OAuth2ProviderConstants.EXPIRED_TOKEN, StringPool.BLANK,
-		StringPool.NULL, "Invalid Token"
-	};
 
 }

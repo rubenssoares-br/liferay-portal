@@ -50,6 +50,7 @@ import com.liferay.portal.search.index.IndexNameBuilder;
 import com.liferay.portal.search.opensearch2.internal.configuration.OpenSearchConfigurationObserver;
 import com.liferay.portal.search.opensearch2.internal.configuration.OpenSearchConfigurationWrapper;
 import com.liferay.portal.search.opensearch2.internal.connection.OpenSearchConnectionManager;
+import com.liferay.portal.search.opensearch2.internal.index.CompanyIndexHelper;
 import com.liferay.portal.search.opensearch2.internal.index.IndexFactory;
 
 import jakarta.json.JsonObject;
@@ -76,6 +77,7 @@ import org.opensearch.client.opensearch.ingest.PutPipelineRequest;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -121,10 +123,10 @@ public class OpenSearchSearchEngine
 
 	@Override
 	public int compareTo(
-		OpenSearchConfigurationObserver elasticsearchConfigurationObserver) {
+		OpenSearchConfigurationObserver openSearchConfigurationObserver) {
 
 		return _openSearchConfigurationWrapper.compare(
-			this, elasticsearchConfigurationObserver);
+			this, openSearchConfigurationObserver);
 	}
 
 	public void createBackupRepository() {
@@ -320,6 +322,9 @@ public class OpenSearchSearchEngine
 
 	@Activate
 	protected void activate(Map<String, Object> properties) {
+		_indexFactory = new IndexFactory(
+			_companyIndexHelper, _companyLocalService,
+			_openSearchConfigurationWrapper, _openSearchConnectionManager);
 		_checkNodeVersions();
 
 		_openSearchConfigurationWrapper.register(this);
@@ -332,15 +337,20 @@ public class OpenSearchSearchEngine
 			setAutoCreateIndex(false);
 
 			if (StartupHelperUtil.isDBNew()) {
-				_companyLocalService.forEachCompanyId(
-					companyId -> removeCompany(companyId),
-					_getIndexedCompanyIds());
+				for (long companyId : _getIndexedCompanyIds()) {
+					removeCompany(companyId);
+				}
 			}
 
 			_putTimestampPipeline();
 
 			initialize(CompanyConstants.SYSTEM);
 		}
+	}
+
+	@Deactivate
+	protected void deactivate() {
+		_indexFactory.close();
 	}
 
 	private void _checkNodeVersions() {
@@ -367,17 +377,19 @@ public class OpenSearchSearchEngine
 				connectionInformation.getNodeInformationList();
 
 			for (NodeInformation nodeInformation : nodeInformationList) {
-				if (!meetsMinimumVersionRequirement(
+				if (meetsMinimumVersionRequirement(
 						minimumVersion, nodeInformation.getVersion())) {
 
-					_log.error(
-						StringBundler.concat(
-							"OpenSearch node ", nodeInformation.getName(),
-							" does not meet the minimum version requirement ",
-							"of ", minimumVersionString));
-
-					System.exit(1);
+					continue;
 				}
+
+				_log.error(
+					StringBundler.concat(
+						"OpenSearch node ", nodeInformation.getName(),
+						" does not meet the minimum version requirement of ",
+						minimumVersionString));
+
+				System.exit(1);
 			}
 		}
 	}
@@ -548,8 +560,8 @@ public class OpenSearchSearchEngine
 		try {
 			openSearchIngestClient.putPipeline(putPipelineRequest);
 		}
-		catch (IOException ioException) {
-			_log.error("Unable to put timestamp pipeline", ioException);
+		catch (Exception exception) {
+			_log.error("Unable to put timestamp pipeline", exception);
 		}
 	}
 
@@ -625,9 +637,11 @@ public class OpenSearchSearchEngine
 			null, true);
 
 	@Reference
-	private CompanyLocalService _companyLocalService;
+	private CompanyIndexHelper _companyIndexHelper;
 
 	@Reference
+	private CompanyLocalService _companyLocalService;
+
 	private IndexFactory _indexFactory;
 
 	@Reference

@@ -72,6 +72,16 @@ ViewAccountGroupsManagementToolbarDisplayContext viewAccountGroupsManagementTool
 					value="<%= String.valueOf(accountGroupDisplay.getAccountEntriesCount()) %>"
 				/>
 
+				<liferay-ui:search-container-column-text
+					cssClass="table-cell-expand"
+					name="status"
+				>
+					<clay:label
+						displayType="<%= WorkflowConstants.getStatusStyle(accountGroupDisplay.getStatus()) %>"
+						label="<%= WorkflowConstants.getStatusLabel(accountGroupDisplay.getStatus()) %>"
+					/>
+				</liferay-ui:search-container-column-text>
+
 				<liferay-ui:search-container-column-jsp
 					path="/account_groups_admin/account_group_action.jsp"
 				/>

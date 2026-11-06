@@ -12,7 +12,6 @@ import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
-import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFolderLocalService;
 import com.liferay.object.web.internal.object.definitions.display.context.ObjectDefinitionsStateManagerDisplayContext;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -23,9 +22,9 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -35,7 +34,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ObjectPortletKeys.OBJECT_DEFINITIONS,
+		"jakarta.portlet.name=" + ObjectPortletKeys.OBJECT_DEFINITIONS,
 		"mvc.command.name=/object_definitions/edit_object_state"
 	},
 	service = MVCRenderCommand.class
@@ -63,7 +62,6 @@ public class EditObjectStateMVCRenderCommand implements MVCRenderCommand {
 					_portal.getHttpServletRequest(renderRequest),
 					_listTypeDefinitionService,
 					_objectDefinitionModelResourcePermission,
-					_objectFieldSettingLocalService,
 					_objectFolderLocalService));
 		}
 		catch (PortalException portalException) {
@@ -87,9 +85,6 @@ public class EditObjectStateMVCRenderCommand implements MVCRenderCommand {
 
 	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;
-
-	@Reference
-	private ObjectFieldSettingLocalService _objectFieldSettingLocalService;
 
 	@Reference
 	private ObjectFolderLocalService _objectFolderLocalService;

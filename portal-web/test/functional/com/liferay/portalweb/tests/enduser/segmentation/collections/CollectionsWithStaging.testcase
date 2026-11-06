@@ -1,13 +1,23 @@
 @component-name = "portal-search"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property ci.retries.disabled = "true";
+	property portal.acceptance = "true";
 	property portal.release = "true";
-	property portal.suite.search.engine = "elasticsearch7,opensearch2,solr";
+	property portal.suite.search.engine = "elasticsearch8,opensearch2";
 	property portal.upstream = "true";
+	property test.liferay.virtual.instance = "false";
+	property test.run.type = "single";
 	property testray.main.component.name = "Collections";
 
 	setUp {
+		task ("Enable DXP segments deprecation feature flag") {
+			SignIn.signInTestSetup();
+
+			Segmentation.enableDXPSegments();
+		}
+
 		TestCase.setUpPortalInstance();
 
 		User.firstLoginPG();
@@ -68,21 +78,16 @@ definition {
 
 			AssetListsAdmin.selectAsset(
 				assetName = "Content A",
-				assetType = "Basic Web Content",
 				itemSubtype = "Basic Web Content",
 				itemType = "Web Content Article");
 
 			AssetListsAdmin.addPersonalizedVariation(segmentName = "HOME");
 
-			AssetListsAdmin.selectAsset(
-				assetType = "Basic Web Content",
-				entryList = "Content B");
+			AssetListsAdmin.selectAsset(entryList = "Content B");
 
 			AssetListsAdmin.addPersonalizedVariation(segmentName = "ADMIN");
 
-			AssetListsAdmin.selectAsset(
-				assetType = "Basic Web Content",
-				entryList = "Content C");
+			AssetListsAdmin.selectAsset(entryList = "Content C");
 
 			AssetListsAdmin.deprioritizeVariation(variationTitle = "Anyone");
 

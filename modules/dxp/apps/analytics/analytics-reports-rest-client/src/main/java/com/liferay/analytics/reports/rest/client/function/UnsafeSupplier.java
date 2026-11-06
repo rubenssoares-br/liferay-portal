@@ -5,7 +5,7 @@
 
 package com.liferay.analytics.reports.rest.client.function;
 
-import javax.annotation.Generated;
+import jakarta.annotation.Generated;
 
 /**
  * @author Marcos Martins
@@ -18,3 +18,4 @@ public interface UnsafeSupplier<T, E extends Throwable> {
 	public T get() throws E;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-288258725

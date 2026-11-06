@@ -5,7 +5,7 @@
 
 package com.liferay.layout.content.page.editor.web.internal.portlet.action;
 
-import com.liferay.document.library.kernel.service.DLAppLocalService;
+import com.liferay.document.library.kernel.service.DLAppService;
 import com.liferay.fragment.constants.FragmentPortletKeys;
 import com.liferay.fragment.model.FragmentCollection;
 import com.liferay.fragment.model.FragmentComposition;
@@ -13,6 +13,8 @@ import com.liferay.fragment.service.FragmentCollectionService;
 import com.liferay.fragment.service.FragmentCompositionService;
 import com.liferay.layout.content.page.editor.constants.ContentPageEditorPortletKeys;
 import com.liferay.layout.content.page.editor.web.internal.constants.ContentPageEditorConstants;
+import com.liferay.layout.content.page.editor.web.internal.manager.FragmentCollectionManager;
+import com.liferay.layout.content.page.editor.web.internal.util.layout.structure.LayoutStructureUtil;
 import com.liferay.layout.page.template.serializer.LayoutStructureItemJSONSerializer;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
@@ -32,9 +34,9 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletRequest;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -44,7 +46,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
+		"jakarta.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 		"mvc.command.name=/layout_content_page_editor/add_fragment_composition"
 	},
 	service = MVCActionCommand.class
@@ -59,6 +61,29 @@ public class AddFragmentCompositionMVCActionCommand
 
 		ThemeDisplay themeDisplay = (ThemeDisplay)actionRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
+
+		String itemId = ParamUtil.getString(actionRequest, "itemId");
+		long segmentsExperienceId = ParamUtil.getLong(
+			actionRequest, "segmentsExperienceId");
+
+		if (LayoutStructureUtil.hasMissingFragmentEntryFragmentEntryLinks(
+				_fragmentCollectionManager.getGroupIds(
+					themeDisplay.getCompanyId(),
+					themeDisplay.getCompanyGroupId(),
+					themeDisplay.getScopeGroupId()),
+				itemId,
+				LayoutStructureUtil.getLayoutStructure(
+					themeDisplay.getScopeGroupId(), themeDisplay.getPlid(),
+					segmentsExperienceId))) {
+
+			return JSONUtil.put(
+				"fragmentComposition",
+				JSONUtil.put(
+					"type", ContentPageEditorConstants.TYPE_COMPOSITION)
+			).put(
+				"valid", false
+			);
+		}
 
 		long fragmentCollectionId = ParamUtil.getLong(
 			actionRequest, "fragmentCollectionId");
@@ -81,29 +106,21 @@ public class AddFragmentCompositionMVCActionCommand
 					serviceContext);
 		}
 
-		String name = ParamUtil.getString(actionRequest, "name");
-		String description = ParamUtil.getString(actionRequest, "description");
-
-		String itemId = ParamUtil.getString(actionRequest, "itemId");
-		boolean saveInlineContent = ParamUtil.getBoolean(
-			actionRequest, "saveInlineContent");
-		boolean saveMappingConfiguration = ParamUtil.getBoolean(
-			actionRequest, "saveMappingConfiguration");
-		long segmentsExperienceId = ParamUtil.getLong(
-			actionRequest, "segmentsExperienceId");
-
 		String layoutStructureItemJSON =
 			_layoutStructureItemJSONSerializer.toJSONString(
 				_layoutLocalService.getLayout(themeDisplay.getPlid()), itemId,
-				saveInlineContent, saveMappingConfiguration,
+				ParamUtil.getBoolean(actionRequest, "saveInlineContent"),
+				ParamUtil.getBoolean(actionRequest, "saveMappingConfiguration"),
 				segmentsExperienceId);
 
 		FragmentComposition fragmentComposition =
 			_fragmentCompositionService.addFragmentComposition(
 				null, themeDisplay.getScopeGroupId(),
-				fragmentCollection.getFragmentCollectionId(), null, name,
-				description, layoutStructureItemJSON, 0,
-				WorkflowConstants.STATUS_APPROVED, serviceContext);
+				fragmentCollection.getFragmentCollectionId(), null,
+				ParamUtil.getString(actionRequest, "name"),
+				ParamUtil.getString(actionRequest, "description"),
+				layoutStructureItemJSON, 0, WorkflowConstants.STATUS_APPROVED,
+				serviceContext);
 
 		long fileEntryId = ParamUtil.getLong(actionRequest, "fileEntryId");
 
@@ -152,6 +169,8 @@ public class AddFragmentCompositionMVCActionCommand
 			).setParameter(
 				"fragmentCollectionId", fragmentCollectionId
 			).buildString()
+		).put(
+			"valid", true
 		);
 	}
 
@@ -160,7 +179,7 @@ public class AddFragmentCompositionMVCActionCommand
 			ServiceContext serviceContext, ThemeDisplay themeDisplay)
 		throws Exception {
 
-		FileEntry fileEntry = _dlAppLocalService.getFileEntry(fileEntryId);
+		FileEntry fileEntry = _dlAppService.getFileEntry(fileEntryId);
 
 		Repository repository =
 			PortletFileRepositoryUtil.fetchPortletRepository(
@@ -185,7 +204,10 @@ public class AddFragmentCompositionMVCActionCommand
 	}
 
 	@Reference
-	private DLAppLocalService _dlAppLocalService;
+	private DLAppService _dlAppService;
+
+	@Reference
+	private FragmentCollectionManager _fragmentCollectionManager;
 
 	@Reference
 	private FragmentCollectionService _fragmentCollectionService;

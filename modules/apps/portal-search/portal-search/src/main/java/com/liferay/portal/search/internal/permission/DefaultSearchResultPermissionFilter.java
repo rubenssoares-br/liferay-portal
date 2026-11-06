@@ -5,6 +5,7 @@
 
 package com.liferay.portal.search.internal.permission;
 
+import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.NoSuchResourceActionException;
@@ -12,6 +13,7 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.ClassedModel;
 import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
@@ -32,23 +34,26 @@ import com.liferay.portal.kernel.search.facet.collector.FacetCollector;
 import com.liferay.portal.kernel.search.facet.collector.TermCollector;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalServiceUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.Tuple;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.search.configuration.DefaultSearchResultPermissionFilterConfiguration;
 import com.liferay.portal.search.facet.nested.NestedFacet;
+import com.liferay.portal.search.hits.SearchHit;
+import com.liferay.portal.search.hits.SearchHits;
+import com.liferay.portal.search.hits.SearchHitsBuilder;
 import com.liferay.portal.search.internal.facet.FacetImpl;
 import com.liferay.portal.search.internal.facet.NestedFacetImpl;
 import com.liferay.portal.search.internal.facet.SimpleFacetCollector;
-import com.liferay.portal.search.legacy.searcher.SearchRequestBuilderFactory;
-import com.liferay.portal.search.searcher.SearchRequestBuilder;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.search.internal.searcher.SearchResponseImpl;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -68,20 +73,22 @@ public class DefaultSearchResultPermissionFilter
 	implements SearchResultPermissionFilter {
 
 	public DefaultSearchResultPermissionFilter(
+		DefaultSearchResultPermissionFilterConfiguration
+			defaultSearchResultPermissionFilterConfiguration,
 		FacetPostProcessor facetPostProcessor, IndexerRegistry indexerRegistry,
 		PermissionChecker permissionChecker,
 		RelatedEntryIndexerRegistry relatedEntryIndexerRegistry,
 		Function<SearchContext, Hits> searchFunction,
-		SearchRequestBuilderFactory searchRequestBuilderFactory,
-		DefaultSearchResultPermissionFilterConfiguration
-			defaultSearchResultPermissionFilterConfiguration) {
+		ServiceTrackerMap
+			<String, ModelResourcePermission<? extends ClassedModel>>
+				serviceTrackerMap) {
 
 		_facetPostProcessor = facetPostProcessor;
 		_indexerRegistry = indexerRegistry;
 		_permissionChecker = permissionChecker;
 		_relatedEntryIndexerRegistry = relatedEntryIndexerRegistry;
 		_searchFunction = searchFunction;
-		_searchRequestBuilderFactory = searchRequestBuilderFactory;
+		_serviceTrackerMap = serviceTrackerMap;
 
 		_accurateCountThreshold =
 			defaultSearchResultPermissionFilterConfiguration.
@@ -111,13 +118,27 @@ public class DefaultSearchResultPermissionFilter
 
 			if (!_isGroupAdmin(searchContext)) {
 				_filterHits(null, hits, searchContext);
+
+				_updateSearchHits(hits, searchContext);
 			}
 
 			return hits;
 		}
 
-		if ((start < 0) || (start > end)) {
+		if (start == QueryUtil.ALL_POS) {
+			start = 0;
+		}
+
+		if ((start < 0) || (start > end) ||
+			(start >= PropsValues.INDEX_SEARCH_LIMIT)) {
+
 			return new HitsImpl();
+		}
+
+		if (end > PropsValues.INDEX_SEARCH_LIMIT) {
+			end = PropsValues.INDEX_SEARCH_LIMIT;
+
+			searchContext.setEnd(end);
 		}
 
 		if (_isGroupAdmin(searchContext)) {
@@ -285,12 +306,16 @@ public class DefaultSearchResultPermissionFilter
 
 		String entryClassName = document.get(Field.ENTRY_CLASS_NAME);
 
-		boolean hasCompanyScopeViewPermission =
-			companyScopeViewPermissions.computeIfAbsent(
-				entryClassName, this::_hasCompanyScopeViewPermission);
+		if (!_serviceTrackerMap.containsKey(entryClassName) ||
+			!PropsValues.PERMISSIONS_VIEW_DYNAMIC_INHERITANCE) {
 
-		if (hasCompanyScopeViewPermission) {
-			return true;
+			boolean hasCompanyScopeViewPermission =
+				companyScopeViewPermissions.computeIfAbsent(
+					entryClassName, this::_hasCompanyScopeViewPermission);
+
+			if (hasCompanyScopeViewPermission) {
+				return true;
+			}
 		}
 
 		Indexer<?> indexer = _indexerRegistry.getIndexer(entryClassName);
@@ -335,8 +360,51 @@ public class DefaultSearchResultPermissionFilter
 		return false;
 	}
 
+	private void _updateSearchHits(Hits hits, SearchContext searchContext) {
+		SearchResponseImpl searchResponseImpl =
+			(SearchResponseImpl)searchContext.getAttribute("search.response");
+
+		if (searchResponseImpl == null) {
+			return;
+		}
+
+		SearchHits searchHits = searchResponseImpl.getSearchHits();
+
+		List<SearchHit> searchHitsList = searchHits.getSearchHits();
+
+		if (searchHitsList.isEmpty()) {
+			return;
+		}
+
+		Document[] documents = hits.getDocs();
+
+		SearchHitsBuilder searchHitsBuilder = new SearchHitsBuilder();
+
+		if (documents.length == 0) {
+			searchResponseImpl.setSearchHits(searchHitsBuilder.build());
+
+			return;
+		}
+
+		List<String> ids = new ArrayList<>();
+
+		ArrayUtil.isNotEmptyForEach(
+			documents, document -> ids.add(document.get("uid")));
+
+		searchHitsList.removeIf(searchHit -> !ids.contains(searchHit.getId()));
+
+		searchHitsBuilder.addSearchHits(searchHitsList);
+		searchHitsBuilder.maxScore(searchHits.getMaxScore());
+		searchHitsBuilder.searchTime(searchHits.getSearchTime());
+		searchHitsBuilder.totalHits(hits.getLength());
+		searchHitsBuilder.totalHitsRelation(searchHits.getTotalHitsRelation());
+
+		searchResponseImpl.setSearchHits(searchHitsBuilder.build());
+	}
+
 	private static final String[] _PERMISSION_SELECTED_FIELD_NAMES = {
-		Field.COMPANY_ID, Field.ENTRY_CLASS_NAME, Field.ENTRY_CLASS_PK
+		Field.COMPANY_ID, Field.ENTRY_CLASS_NAME, Field.ENTRY_CLASS_PK,
+		Field.UID
 	};
 
 	private static final Log _log = LogFactoryUtil.getLog(
@@ -349,7 +417,9 @@ public class DefaultSearchResultPermissionFilter
 	private final RelatedEntryIndexerRegistry _relatedEntryIndexerRegistry;
 	private final Function<SearchContext, Hits> _searchFunction;
 	private final int _searchQueryResultWindowLimit;
-	private final SearchRequestBuilderFactory _searchRequestBuilderFactory;
+	private volatile ServiceTrackerMap
+		<String, ModelResourcePermission<? extends ClassedModel>>
+			_serviceTrackerMap;
 	private final long _timeLimit;
 
 	private class SlidingWindowSearcher {
@@ -385,8 +455,9 @@ public class DefaultSearchResultPermissionFilter
 				int remainingDocsNeededCount =
 					totalDocsNeededCount - docsCollectedCount;
 
-				int slidingWindowSize =
-					remainingDocsNeededCount * amplificationFactor;
+				int slidingWindowSize = (int)Math.min(
+					(long)remainingDocsNeededCount * amplificationFactor,
+					Integer.MAX_VALUE - slidingWindowStart);
 
 				int slidingWindowEnd = slidingWindowStart + slidingWindowSize;
 
@@ -437,8 +508,6 @@ public class DefaultSearchResultPermissionFilter
 
 				searchContext.setStart(slidingWindowStart);
 
-				_setSearchRequestFromAndSize(searchContext);
-
 				Hits hits = _getHits(searchContext);
 
 				if (searchesExecuted == 0) {
@@ -475,6 +544,12 @@ public class DefaultSearchResultPermissionFilter
 						hits, hitsStart, recalculatedHitsSize,
 						slidingWindowHelper, slidingWindowStopWatch,
 						totalDocsNeededCount);
+
+					hitFilteringStopWatch.resume();
+
+					_updateSearchHits(hits, searchContext);
+
+					hitFilteringStopWatch.suspend();
 
 					_mergeFacets(facetCountHelper, searchContext);
 
@@ -608,25 +683,18 @@ public class DefaultSearchResultPermissionFilter
 
 					int frequency = helperTermCollector.getFrequency();
 
-					if (frequency >= 0) {
-						newTermCollectors.add(
-							new DefaultTermCollector(term, frequency));
+					if (frequency < 0) {
+						continue;
 					}
+
+					newTermCollectors.add(
+						new DefaultTermCollector(term, frequency));
 				}
 
 				facet.setFacetCollector(
 					new SimpleFacetCollector(
 						facetCollector.getFieldName(), newTermCollectors));
 			}
-		}
-
-		private void _setSearchRequestFromAndSize(SearchContext searchContext) {
-			SearchRequestBuilder searchRequestBuilder =
-				_searchRequestBuilderFactory.builder(searchContext);
-
-			searchRequestBuilder.from(searchContext.getStart());
-			searchRequestBuilder.size(
-				searchContext.getEnd() - searchContext.getStart());
 		}
 
 		private boolean _stopSearching(
@@ -636,6 +704,7 @@ public class DefaultSearchResultPermissionFilter
 			int totalDocsNeededCount) {
 
 			if ((slidingWindowEnd >= originalHitsSize) ||
+				(slidingWindowSize <= 0) ||
 				(preFilteredDocs.length < slidingWindowSize)) {
 
 				return true;
@@ -764,10 +833,8 @@ public class DefaultSearchResultPermissionFilter
 				_start = start;
 				_end = end;
 
-				_delta = end - start;
-
-				_documents = new CircularFifoQueue<>(_delta);
-				_scores = new CircularFifoQueue<>(_delta);
+				_documents = new CircularFifoQueue<>(Math.max(1, end - start));
+				_scores = new CircularFifoQueue<>(Math.max(1, end - start));
 			}
 
 			public boolean add(Document document, Float score) {
@@ -809,7 +876,6 @@ public class DefaultSearchResultPermissionFilter
 				return _totalDocs;
 			}
 
-			private final int _delta;
 			private final CircularFifoQueue<Document> _documents;
 			private int _documentsDiscarded;
 			private final int _end;

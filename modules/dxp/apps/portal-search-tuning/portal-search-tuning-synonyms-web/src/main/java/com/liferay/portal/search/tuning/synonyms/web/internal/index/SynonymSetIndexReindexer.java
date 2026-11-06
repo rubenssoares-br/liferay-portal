@@ -15,7 +15,6 @@ import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.search.background.task.ReindexStatusMessageSenderUtil;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.search.capabilities.SearchCapabilities;
-import com.liferay.portal.search.document.DocumentBuilderFactory;
 import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.index.SyncReindexManager;
 import com.liferay.portal.search.spi.reindexer.IndexReindexer;
@@ -33,16 +32,16 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Bryan Engler
  */
-@Component(service = IndexReindexer.class)
+@Component(
+	property = "search.index.category=search-tuning",
+	service = IndexReindexer.class
+)
 public class SynonymSetIndexReindexer implements IndexReindexer {
 
 	@Override
-	public void reindex(long companyId) throws Exception {
-		reindex(companyId, null);
-	}
+	public void reindex(long companyId, ExecutionMode executionMode)
+		throws Exception {
 
-	@Override
-	public void reindex(long companyId, String executionMode) throws Exception {
 		if (!searchCapabilities.isSynonymsSupported() ||
 			(companyId == CompanyConstants.SYSTEM)) {
 
@@ -58,6 +57,21 @@ public class SynonymSetIndexReindexer implements IndexReindexer {
 			date = new Date();
 
 			Thread.sleep(1000);
+
+			try {
+				synchronized (synonymSetIndexNameBuilder) {
+					_synonymSetIndexCreator.createIfNotExists(
+						synonymSetIndexName);
+				}
+			}
+			catch (RuntimeException runtimeException) {
+				_log.error(
+					"Unable to create index " +
+						synonymSetIndexName.getIndexName(),
+					runtimeException);
+
+				return;
+			}
 		}
 		else {
 			if (_log.isInfoEnabled()) {
@@ -67,9 +81,11 @@ public class SynonymSetIndexReindexer implements IndexReindexer {
 			}
 
 			try {
-				_synonymSetIndexCreator.deleteIfExists(synonymSetIndexName);
+				synchronized (synonymSetIndexNameBuilder) {
+					_synonymSetIndexCreator.deleteIfExists(synonymSetIndexName);
 
-				_synonymSetIndexCreator.create(synonymSetIndexName);
+					_synonymSetIndexCreator.create(synonymSetIndexName);
+				}
 			}
 			catch (RuntimeException runtimeException) {
 				_log.error(
@@ -91,11 +107,13 @@ public class SynonymSetIndexReindexer implements IndexReindexer {
 			_synonymSetIndexWriter.create(
 				synonymSetIndexName, _buildSynonymSet(classPKs.get(i)));
 
-			if ((i % sendStatusInterval) == 0) {
-				ReindexStatusMessageSenderUtil.sendStatusMessage(
-					SynonymSetIndexReindexer.class.getName(), i + 1,
-					classPKs.size());
+			if ((i % sendStatusInterval) != 0) {
+				continue;
 			}
+
+			ReindexStatusMessageSenderUtil.sendStatusMessage(
+				SynonymSetIndexReindexer.class.getName(), i + 1,
+				classPKs.size());
 		}
 
 		if (_isExecuteSyncReindex(executionMode)) {
@@ -113,7 +131,7 @@ public class SynonymSetIndexReindexer implements IndexReindexer {
 		_synonymSetIndexCreator = new SynonymSetIndexCreator(
 			_searchEngineAdapter);
 		_synonymSetIndexWriter = new SynonymSetIndexWriter(
-			_documentBuilderFactory, _searchEngineAdapter);
+			_searchEngineAdapter);
 	}
 
 	@Reference
@@ -144,9 +162,10 @@ public class SynonymSetIndexReindexer implements IndexReindexer {
 		return synonymSetBuilder.build();
 	}
 
-	private boolean _isExecuteSyncReindex(String executionMode) {
+	private boolean _isExecuteSyncReindex(ExecutionMode executionMode) {
 		if ((_syncReindexManagerSnapshot.get() != null) &&
-			(executionMode != null) && executionMode.equals("sync")) {
+			(executionMode != null) &&
+			executionMode.equals(ExecutionMode.SYNC)) {
 
 			return true;
 		}
@@ -161,9 +180,6 @@ public class SynonymSetIndexReindexer implements IndexReindexer {
 		_syncReindexManagerSnapshot = new Snapshot<>(
 			SynonymSetIndexReindexer.class, SyncReindexManager.class, null,
 			true);
-
-	@Reference
-	private DocumentBuilderFactory _documentBuilderFactory;
 
 	@Reference
 	private SearchEngineAdapter _searchEngineAdapter;

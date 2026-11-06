@@ -23,7 +23,6 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
 import com.liferay.portal.kernel.bean.BeanParamUtil;
-import com.liferay.portal.kernel.bean.BeanPropertiesUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
@@ -43,19 +42,19 @@ import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.portlet.PortletConfig;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.text.Format;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletConfig;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Adolfo Pérez
@@ -108,7 +107,9 @@ public class EditKBArticleDisplayContext {
 	}
 
 	public String getCancelURL() {
-		if (!FeatureFlagManagerUtil.isEnabled("LPD-11003")) {
+		if (!FeatureFlagManagerUtil.isEnabled(
+				_themeDisplay.getCompanyId(), "LPD-11003")) {
+
 			return getRedirect();
 		}
 
@@ -134,7 +135,7 @@ public class EditKBArticleDisplayContext {
 	public String getContent() {
 		return BeanParamUtil.getString(
 			getKBArticle(), _liferayPortletRequest, "content",
-			BeanPropertiesUtil.getString(_getKBTemplate(), "content"));
+			_getKBTemplateContent());
 	}
 
 	public String getDatePickerFormattedDisplayDate() {
@@ -179,7 +180,7 @@ public class EditKBArticleDisplayContext {
 			return StringPool.BLANK;
 		}
 
-		return "class=\"container-fluid container-fluid-max-xl " +
+		return "class=\"container-fluid container-fluid-max-lg " +
 			"container-form-lg\"";
 	}
 
@@ -254,7 +255,7 @@ public class EditKBArticleDisplayContext {
 	public String getKBArticleTitle() {
 		return BeanParamUtil.getString(
 			getKBArticle(), _liferayPortletRequest, "title",
-			BeanPropertiesUtil.getString(_getKBTemplate(), "title"));
+			_getKBTemplateTitle());
 	}
 
 	public String getKBArticleURLTitle() {
@@ -326,30 +327,6 @@ public class EditKBArticleDisplayContext {
 		return "save";
 	}
 
-	public String getUpdateKBArticleURL() {
-		return PortletURLBuilder.createActionURL(
-			_liferayPortletResponse
-		).setActionName(
-			"/knowledge_base/update_kb_article"
-		).setMVCPath(
-			"/admin/common/edit_kb_article.jsp"
-		).setCMD(
-			() -> {
-				if (getKBArticle() == null) {
-					return Constants.ADD;
-				}
-
-				return Constants.UPDATE;
-			}
-		).setParameter(
-			"parentResourceClassNameId", getParentResourceClassNameId()
-		).setParameter(
-			"parentResourcePrimKey", getParentResourcePrimKey()
-		).setParameter(
-			"resourcePrimKey", getResourcePrimKey()
-		).buildString();
-	}
-
 	public String getURLTitlePrefix() throws PortalException {
 		StringBundler sb = new StringBundler(4);
 
@@ -372,6 +349,30 @@ public class EditKBArticleDisplayContext {
 		}
 
 		return StringUtil.shorten(sb.toString(), 40) + StringPool.SLASH;
+	}
+
+	public String getUpdateKBArticleURL() {
+		return PortletURLBuilder.createActionURL(
+			_liferayPortletResponse
+		).setActionName(
+			"/knowledge_base/update_kb_article"
+		).setMVCPath(
+			"/admin/common/edit_kb_article.jsp"
+		).setCMD(
+			() -> {
+				if (getKBArticle() == null) {
+					return Constants.ADD;
+				}
+
+				return Constants.UPDATE;
+			}
+		).setParameter(
+			"parentResourceClassNameId", getParentResourceClassNameId()
+		).setParameter(
+			"parentResourcePrimKey", getParentResourcePrimKey()
+		).setParameter(
+			"resourcePrimKey", getResourcePrimKey()
+		).buildString();
 	}
 
 	public String getUserFormattedDisplayDateString() {
@@ -428,21 +429,13 @@ public class EditKBArticleDisplayContext {
 	}
 
 	public boolean isHeaderVisible() {
-		if (isPortletTitleBasedNavigation()) {
-			return true;
-		}
-
-		return false;
+		return isPortletTitleBasedNavigation();
 	}
 
 	public boolean isKBArticleSectionSelected(String section)
 		throws ConfigurationException {
 
-		if (ArrayUtil.contains(_getKBArticleSections(), section)) {
-			return true;
-		}
-
-		return false;
+		return ArrayUtil.contains(_getKBArticleSections(), section);
 	}
 
 	public boolean isNavigationBarVisible() {
@@ -513,11 +506,7 @@ public class EditKBArticleDisplayContext {
 	}
 
 	public boolean isSchedulerEnabled() {
-		if (PropsValues.SCHEDULER_ENABLED) {
-			return true;
-		}
-
-		return false;
+		return PropsValues.SCHEDULER_ENABLED;
 	}
 
 	public boolean isSourceURLEnabled() {
@@ -551,12 +540,17 @@ public class EditKBArticleDisplayContext {
 			kbSectionPortletInstanceConfiguration =
 				_getKBSectionPortletInstanceConfiguration();
 
-		_sections = AdminUtil.unescapeSections(
-			BeanPropertiesUtil.getString(
-				getKBArticle(), "sections",
-				StringUtil.merge(
-					kbSectionPortletInstanceConfiguration.
-						adminKBArticleSectionsDefault())));
+		String sections = StringUtil.merge(
+			kbSectionPortletInstanceConfiguration.
+				adminKBArticleSectionsDefault());
+
+		KBArticle kbArticle = getKBArticle();
+
+		if (kbArticle != null) {
+			sections = kbArticle.getSections();
+		}
+
+		_sections = AdminUtil.unescapeSections(sections);
 
 		return _sections;
 	}
@@ -585,6 +579,26 @@ public class EditKBArticleDisplayContext {
 			KBWebKeys.KNOWLEDGE_BASE_KB_TEMPLATE);
 
 		return _kbTemplate;
+	}
+
+	private String _getKBTemplateContent() {
+		KBTemplate kbTemplate = _getKBTemplate();
+
+		if (kbTemplate == null) {
+			return StringPool.BLANK;
+		}
+
+		return kbTemplate.getContent();
+	}
+
+	private String _getKBTemplateTitle() {
+		KBTemplate kbTemplate = _getKBTemplate();
+
+		if (kbTemplate == null) {
+			return StringPool.BLANK;
+		}
+
+		return kbTemplate.getTitle();
 	}
 
 	private final HttpServletRequest _httpServletRequest;

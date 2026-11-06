@@ -5,11 +5,11 @@
 
 package com.liferay.source.formatter.checkstyle.util;
 
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.json.JSONArrayImpl;
 import com.liferay.portal.json.JSONObjectImpl;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -137,14 +137,16 @@ public class CheckstyleUtil {
 				for (String attributeName :
 						checkConfiguration.getAttributeNames()) {
 
-					if (!attributeName.equals("category") &&
-						!attributeName.equals("description") &&
-						!attributeName.equals("documentationLocation")) {
+					if (attributeName.equals("category") ||
+						attributeName.equals("description") ||
+						attributeName.equals("documentationLocation")) {
 
-						defaultConfiguration.addAttribute(
-							attributeName,
-							checkConfiguration.getAttribute(attributeName));
+						continue;
 					}
+
+					defaultConfiguration.addAttribute(
+						attributeName,
+						checkConfiguration.getAttribute(attributeName));
 				}
 			}
 

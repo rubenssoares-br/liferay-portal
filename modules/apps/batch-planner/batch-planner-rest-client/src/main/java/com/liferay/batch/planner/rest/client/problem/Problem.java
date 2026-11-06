@@ -7,9 +7,9 @@ package com.liferay.batch.planner.rest.client.problem;
 
 import com.liferay.batch.planner.rest.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Matija Petanjek
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2116473218

@@ -67,10 +67,6 @@ public interface RegionLocalService
 	 *
 	 * Never modify this interface directly. Add custom service methods to <code>com.liferay.portal.service.impl.RegionLocalServiceImpl</code> and rerun ServiceBuilder to automatically copy the method declarations to this interface. Consume the region local service via injection or a <code>org.osgi.util.tracker.ServiceTracker</code>. Use {@link RegionLocalServiceUtil} if injection and service tracking are not available.
 	 */
-	public Region addRegion(
-			long countryId, boolean active, String name, double position,
-			String regionCode, ServiceContext serviceContext)
-		throws PortalException;
 
 	/**
 	 * Adds the region to the database. Also notifies the appropriate model listeners.
@@ -84,6 +80,17 @@ public interface RegionLocalService
 	 */
 	@Indexable(type = IndexableType.REINDEX)
 	public Region addRegion(Region region);
+
+	@Indexable(type = IndexableType.REINDEX)
+	public Region addRegion(
+			String externalReferenceCode, long countryId, boolean active,
+			String name, double position, String regionCode,
+			ServiceContext serviceContext)
+		throws PortalException;
+
+	public RegionLocalization addRegionLocalization(
+			Region region, String languageId, String title)
+		throws PortalException;
 
 	/**
 	 * @throws PortalException
@@ -215,6 +222,10 @@ public interface RegionLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public Region fetchRegion(long countryId, String regionCode);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public Region fetchRegionByExternalReferenceCode(
+		String externalReferenceCode, long companyId);
+
 	/**
 	 * Returns the region with the matching UUID and company.
 	 *
@@ -268,6 +279,11 @@ public interface RegionLocalService
 	public Region getRegion(long countryId, String regionCode)
 		throws PortalException;
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public Region getRegionByExternalReferenceCode(
+			String externalReferenceCode, long companyId)
+		throws PortalException;
+
 	/**
 	 * Returns the region with the matching UUID and company.
 	 *
@@ -308,11 +324,6 @@ public interface RegionLocalService
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<Region> getRegions(
-		long countryId, boolean active, int start, int end,
-		OrderByComparator<Region> orderByComparator);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<Region> getRegions(
 		long countryId, int start, int end,
 		OrderByComparator<Region> orderByComparator);
 
@@ -329,24 +340,14 @@ public interface RegionLocalService
 	public int getRegionsCount();
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getRegionsCount(long countryId);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getRegionsCount(long countryId, boolean active);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public BaseModelSearchResult<Region> searchRegions(
 			long companyId, Boolean active, String keywords,
 			LinkedHashMap<String, Object> params, int start, int end,
 			OrderByComparator<Region> orderByComparator)
 		throws PortalException;
 
+	@Indexable(type = IndexableType.REINDEX)
 	public Region updateActive(long regionId, boolean active)
-		throws PortalException;
-
-	public Region updateRegion(
-			long regionId, boolean active, String name, double position,
-			String regionCode)
 		throws PortalException;
 
 	/**
@@ -361,6 +362,12 @@ public interface RegionLocalService
 	 */
 	@Indexable(type = IndexableType.REINDEX)
 	public Region updateRegion(Region region);
+
+	@Indexable(type = IndexableType.REINDEX)
+	public Region updateRegion(
+			String externalReferenceCode, long regionId, boolean active,
+			String name, double position, String regionCode)
+		throws PortalException;
 
 	public RegionLocalization updateRegionLocalization(
 			Region region, String languageId, String title)
@@ -385,3 +392,4 @@ public interface RegionLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:327344305

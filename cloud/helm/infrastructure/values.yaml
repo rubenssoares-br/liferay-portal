@@ -1,0 +1,53 @@
+backup:
+    restore:
+        sanitizationScripts: {}
+clusterSecretStoreName: ""
+cmk: {}
+commonTags: {}
+database: {}
+databaseAppPassword:
+    enabled: true
+enabled: true
+endpoints: {}
+environmentId: ""
+gateway:
+    accessControl:
+        allowedCIDRs: []
+        enabled: false
+    annotations: {}
+    className: ""
+    clientTrafficPolicySpec: {}
+    name: ""
+license:
+    externalSecretKey: ""
+    externalSecretProperty: license.xml
+    targetSecretName: ""
+overlayAccess: {}
+overlayBucket:
+    commonTags: {}
+    enabled: false
+    forceDestroy: false
+    orphanOnDelete: false
+persistence:
+    storageClassName: ""
+projectId: ""
+search:
+    elasticsearch:
+        env:
+            ES_JAVA_OPTS: -Xms4g -Xmx4g
+        nodeCount: 1
+        resources:
+            limits:
+                cpu: 1000m
+                memory: 8Gi
+            requests:
+                cpu: 500m
+                memory: 4Gi
+        version: 8.19.11
+        volumeSize: 10Gi
+    engine: ""
+    opensearch: {}
+    supportedEngines:
+        -   elasticsearch
+secretNames: []
+storage: {}

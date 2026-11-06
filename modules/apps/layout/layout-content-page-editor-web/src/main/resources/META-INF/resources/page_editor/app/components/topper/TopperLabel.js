@@ -4,6 +4,7 @@
  */
 
 import {ReactPortal} from '@liferay/frontend-js-react-web';
+import {useMediaQuery} from '@liferay/layout-js-components-web';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, {useEffect, useMemo, useState} from 'react';
@@ -30,6 +31,8 @@ export function TopperLabel({children, isDragging, isHovered, itemElement}) {
 	);
 
 	const [visible, setVisible] = useState(false);
+
+	const isSmallResolution = useMediaQuery('(max-width: 768px)');
 
 	useEffect(() => {
 		setTimeout(() => setVisible(true), 1);
@@ -81,7 +84,10 @@ export function TopperLabel({children, isDragging, isHovered, itemElement}) {
 			};
 
 			const handleScroll = () => {
-				scrollY = wrapper.scrollTop;
+				scrollY = isSmallResolution
+					? globalContext.window.scrollY
+					: wrapper.scrollTop;
+
 				updatePosition();
 			};
 
@@ -115,10 +121,12 @@ export function TopperLabel({children, isDragging, isHovered, itemElement}) {
 						wrapper.offsetLeft +
 						wrapper.scrollLeft);
 
+				const scrollTop = isSmallResolution
+					? globalContext.window.scrollY
+					: wrapper.scrollTop;
+
 				itemElementTop =
-					boundingClientRect.top -
-					wrapper.offsetTop +
-					wrapper.scrollTop;
+					boundingClientRect.top - wrapper.offsetTop + scrollTop;
 			};
 
 			const resizeObserver = globalContext.window.ResizeObserver
@@ -154,12 +162,16 @@ export function TopperLabel({children, isDragging, isHovered, itemElement}) {
 				}, 500);
 			}
 
-			wrapper.addEventListener('scroll', handleScroll);
+			const scrollElement = isSmallResolution
+				? globalContext.window
+				: wrapper;
+
+			scrollElement.addEventListener('scroll', handleScroll);
 			updateItemElementSize(itemElement);
 			updatePosition();
 
 			return () => {
-				wrapper.removeEventListener('scroll', handleScroll);
+				scrollElement.removeEventListener('scroll', handleScroll);
 
 				if (resizeObserver) {
 					resizeObserver.disconnect();
@@ -169,7 +181,14 @@ export function TopperLabel({children, isDragging, isHovered, itemElement}) {
 				}
 			};
 		}
-	}, [globalContext, itemElement, languageId, layoutData, wrapper]);
+	}, [
+		globalContext,
+		isSmallResolution,
+		itemElement,
+		languageId,
+		layoutData,
+		wrapper,
+	]);
 
 	return (
 		<ReactPortal container={wrapper} wrapper={false}>
@@ -184,6 +203,7 @@ export function TopperLabel({children, isDragging, isHovered, itemElement}) {
 							positionConfig.isInset,
 					}
 				)}
+				onClick={(event) => event.stopPropagation()}
 				onMouseOver={(event) => event.stopPropagation()}
 				style={{
 					...((isDragging || !visible) && {opacity: 0}),

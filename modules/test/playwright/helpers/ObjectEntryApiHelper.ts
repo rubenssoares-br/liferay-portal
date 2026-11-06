@@ -4,7 +4,7 @@
  */
 
 import {liferayConfig} from '../liferay.config';
-import {ApiHelpers} from './ApiHelpers';
+import {ApiHelpers, DataApiHelpers} from './ApiHelpers';
 
 export class ObjectEntryApiHelper {
 	readonly apiHelpers: ApiHelpers;
@@ -13,16 +13,42 @@ export class ObjectEntryApiHelper {
 		this.apiHelpers = apiHelpers;
 	}
 
-	async deleteObjectEntryByExternalReferenceCode(
-		applicationName: string,
-		externalReferenceCode: string
-	) {
+	async deleteObjectEntry(applicationName: string, objectEntryId: string) {
 		return this.apiHelpers.delete(
-			`${this.apiHelpers.baseUrl}${applicationName}/by-external-reference-code/${externalReferenceCode}`
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}`
 		);
 	}
 
-	async getObjectDefinitionObjectEntries(applicationName: string) {
+	async deleteObjectEntryByExternalReferenceCode(
+		applicationName: string,
+		scopeKey: string,
+		externalReferenceCode: string
+	) {
+		return this.apiHelpers.delete(
+			`${this.apiHelpers.baseUrl}${applicationName}/scopes/${scopeKey}/by-external-reference-code/${externalReferenceCode}`
+		);
+	}
+
+	async expireObjectEntryByExternalReferenceCode(
+		applicationName: string,
+		scopeKey: string,
+		externalReferenceCode: string
+	) {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${applicationName}/scopes/${scopeKey}/by-external-reference-code/${externalReferenceCode}/expire`
+		);
+	}
+
+	async getObjectDefinitionObjectEntries(
+		applicationName: string,
+		searchParams?: URLSearchParams
+	) {
+		if (searchParams) {
+			return this.apiHelpers.get(
+				`${this.apiHelpers.baseUrl}${applicationName}/?${searchParams.toString()}`
+			);
+		}
+
 		return this.apiHelpers.get(
 			`${this.apiHelpers.baseUrl}${applicationName}/`
 		);
@@ -30,20 +56,55 @@ export class ObjectEntryApiHelper {
 
 	async getObjectDefinitionObjectEntriesByScope(
 		applicationName: string,
-		scopeKey: string
+		scopeKey: string,
+		searchParams?: URLSearchParams
 	) {
-		return this.apiHelpers.get(
-			`${this.apiHelpers.baseUrl}/${applicationName}/scopes/${scopeKey}`
-		);
+		const url = `${this.apiHelpers.baseUrl}${applicationName}/scopes/${scopeKey}`;
+
+		if (searchParams) {
+			return this.apiHelpers.get(`${url}?${searchParams.toString()}`);
+		}
+
+		return this.apiHelpers.get(url);
 	}
 
-	async getObjectEntryByExternalReferenceCode(
-		applicationName: string,
-		externalReferenceCode: string
-	) {
+	async getObjectEntryByExternalReferenceCode({
+		applicationName,
+		externalReferenceCode,
+		nestedField,
+	}: {
+		applicationName: string;
+		externalReferenceCode: string;
+		nestedField?: string;
+	}) {
+		if (nestedField) {
+			return this.apiHelpers.get(
+				`${this.apiHelpers.baseUrl}${applicationName}/by-external-reference-code/${externalReferenceCode}?nestedFields=${nestedField}`
+			);
+		}
+
 		return this.apiHelpers.get(
 			`${this.apiHelpers.baseUrl}${applicationName}/by-external-reference-code/${externalReferenceCode}`
 		);
+	}
+
+	async getObjectEntryById(applicationName: string, id: string) {
+		return this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${applicationName}/${id}`
+		);
+	}
+
+	async getObjectEntryByName(
+		applicationName: string,
+		name: string
+	): Promise<ObjectEntry> {
+		const response = await this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${applicationName}?filter=${encodeURIComponent(
+				`name eq '${name}'`
+			)}&pageSize=1`
+		);
+
+		return response?.items?.[0];
 	}
 
 	async postObjectDefinitionRandomObjectEntries(
@@ -61,13 +122,134 @@ export class ObjectEntryApiHelper {
 		);
 	}
 
+	async patchObjectEntry(
+		data: DataObject,
+		applicationName: string,
+		objectEntryId: number,
+		scopeKey?: string
+	): Promise<ObjectEntry> {
+		if (scopeKey) {
+			return this.apiHelpers.patch(
+				`${this.apiHelpers.baseUrl}${applicationName}/scopes/${scopeKey}/${objectEntryId}`,
+				data
+			);
+		}
+
+		return this.apiHelpers.patch(
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}`,
+			data
+		);
+	}
+
+	async postObjectEntriesBatch(
+		applicationName: string,
+		data: DataObject[],
+		scopeKey?: string
+	): Promise<ObjectEntry[]> {
+		if (scopeKey) {
+			return this.apiHelpers.post(
+				`${this.apiHelpers.baseUrl}${applicationName}/scopes/${scopeKey}/batch`,
+				{data}
+			);
+		}
+
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${applicationName}/batch/`,
+			{data}
+		);
+	}
+
 	async postObjectEntry(
 		data: DataObject,
-		applicationName: string
+		applicationName: string,
+		scopeKey?: string
+	): Promise<ObjectEntry> {
+		const objectEntry = await this.apiHelpers.post(
+			scopeKey
+				? `${this.apiHelpers.baseUrl}${applicationName}/scopes/${scopeKey}`
+				: `${this.apiHelpers.baseUrl}${applicationName}`,
+			{data}
+		);
+
+		if (this.apiHelpers instanceof DataApiHelpers) {
+			this.apiHelpers.data.push({
+				applicationName,
+				id: objectEntry.id,
+				type: 'objectEntry',
+			});
+		}
+
+		return objectEntry;
+	}
+
+	async postObjectEntryCopy(
+		applicationName: string,
+		objectEntryId: number,
+		objectEntryFolderId: number
 	): Promise<ObjectEntry> {
 		return this.apiHelpers.post(
-			`${this.apiHelpers.baseUrl}${applicationName}/`,
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}/by-object-entry-folder-id/${objectEntryFolderId}/copy`,
+			{data: {}}
+		);
+	}
+
+	async getObjectEntryCollaboratorsPage(
+		applicationName: string,
+		objectEntryId: number
+	) {
+		const response = await this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}/collaborators`
+		);
+
+		return response?.items;
+	}
+
+	async postObjectEntryCollaborators(
+		data: DataObject[],
+		applicationName: string,
+		objectEntryId: number
+	) {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}/collaborators`,
 			{data}
+		);
+	}
+
+	async putByExternalReferenceCodeCurrentExternalReferenceCodeObjectRelationshipNameRelatedExternalReferenceCode({
+		applicationName,
+		currentExternalReferenceCode,
+		objectRelationshipName,
+		relatedExternalReferenceCode,
+	}: {
+		applicationName: string;
+		currentExternalReferenceCode: string;
+		objectRelationshipName: string;
+		relatedExternalReferenceCode: string;
+	}): Promise<ObjectEntry> {
+		return this.apiHelpers.put(
+			`${this.apiHelpers.baseUrl}${applicationName}/by-external-reference-code/${currentExternalReferenceCode}/${objectRelationshipName}/${relatedExternalReferenceCode}`
+		);
+	}
+
+	async putObjectEntry(
+		data: DataObject,
+		applicationName: string,
+		objectEntryId: number
+	): Promise<ObjectEntry> {
+		return this.apiHelpers.put(
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}`,
+			{data}
+		);
+	}
+
+	async putObjectEntryPermissions(
+		applicationName: string,
+		objectEntryId: number,
+		permissions: Array<{actionIds: string[]; roleName: string}>
+	) {
+		return this.apiHelpers.put(
+			`${this.apiHelpers.baseUrl}${applicationName}/${objectEntryId}/permissions`,
+			{data: permissions}
 		);
 	}
 }

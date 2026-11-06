@@ -106,7 +106,7 @@ public class FragmentEntryLinkUpgradeProcess extends UpgradeProcess {
 					}
 				}
 			},
-			"Unable to update class name ID for fragment entry links");
+			null);
 	}
 
 	private boolean _processBackgroundFragmentEntryProcessorJSONObject(
@@ -151,14 +151,16 @@ public class FragmentEntryLinkUpgradeProcess extends UpgradeProcess {
 				String classNameId = backgroundElementItemJSONObject.getString(
 					"classNameId");
 
-				if (Objects.equals(
+				if (!Objects.equals(
 						classNameId, String.valueOf(dlFileEntryClassNameId))) {
 
-					backgroundElementItemJSONObject.put(
-						"classNameId", String.valueOf(fileEntryClassNameId));
-
-					modified = true;
+					continue;
 				}
+
+				backgroundElementItemJSONObject.put(
+					"classNameId", String.valueOf(fileEntryClassNameId));
+
+				modified = true;
 			}
 		}
 
@@ -196,14 +198,16 @@ public class FragmentEntryLinkUpgradeProcess extends UpgradeProcess {
 
 			String classNameId = configJSONObject.getString("classNameId");
 
-			if (Objects.equals(
+			if (!Objects.equals(
 					classNameId, String.valueOf(dlFileEntryClassNameId))) {
 
-				configJSONObject.put(
-					"classNameId", String.valueOf(fileEntryClassNameId));
-
-				modified = true;
+				continue;
 			}
+
+			configJSONObject.put(
+				"classNameId", String.valueOf(fileEntryClassNameId));
+
+			modified = true;
 		}
 
 		return modified;

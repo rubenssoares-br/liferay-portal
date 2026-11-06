@@ -5,11 +5,11 @@
 
 package com.liferay.portal.xmlrpc;
 
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.string.StringUtil;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.HttpHeaders;
@@ -19,12 +19,12 @@ import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.Tuple;
 import com.liferay.portal.kernel.xml.StAXReaderUtil;
 import com.liferay.portal.kernel.xmlrpc.Response;
 import com.liferay.portal.kernel.xmlrpc.XmlRpcException;
-import com.liferay.portal.util.PropsValues;
 
 import java.io.IOException;
 
@@ -43,15 +43,12 @@ public class XmlRpcUtil {
 	public static String buildMethod(String methodName, Object[] arguments)
 		throws XmlRpcException {
 
-		StringBundler sb = new StringBundler((arguments.length * 3) + 8);
+		StringBundler sb = new StringBundler((arguments.length * 3) + 5);
 
-		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-
-		sb.append("<methodCall>");
+		sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><methodCall>");
 		sb.append("<methodName>");
 		sb.append(methodName);
-		sb.append("</methodName>");
-		sb.append("<params>");
+		sb.append("</methodName><params>");
 
 		for (Object argument : arguments) {
 			sb.append("<param>");
@@ -59,8 +56,7 @@ public class XmlRpcUtil {
 			sb.append("</param>");
 		}
 
-		sb.append("</params>");
-		sb.append("</methodCall>");
+		sb.append("</params></methodCall>");
 
 		return sb.toString();
 	}
@@ -89,9 +85,11 @@ public class XmlRpcUtil {
 					for (int i = 0; i < arguments.length; i++) {
 						sb.append(arguments[i]);
 
-						if (i < (arguments.length - 1)) {
-							sb.append(", ");
+						if (i >= (arguments.length - 1)) {
+							continue;
 						}
+
+						sb.append(", ");
 					}
 				}
 
@@ -114,6 +112,7 @@ public class XmlRpcUtil {
 			}
 
 			options.setBody(requestXML, ContentTypes.TEXT_XML, StringPool.UTF8);
+			options.setFollowRedirects(false);
 			options.setLocation(url);
 			options.setPost(true);
 

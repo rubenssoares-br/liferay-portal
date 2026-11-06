@@ -62,12 +62,12 @@ public class DepotEntryLocalServiceUtil {
 
 	public static DepotEntry addDepotEntry(
 			Map<java.util.Locale, String> nameMap,
-			Map<java.util.Locale, String> descriptionMap,
+			Map<java.util.Locale, String> descriptionMap, int type,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addDepotEntry(
-			nameMap, descriptionMap, serviceContext);
+			nameMap, descriptionMap, type, serviceContext);
 	}
 
 	/**
@@ -261,6 +261,10 @@ public class DepotEntryLocalServiceUtil {
 		return getService().getDepotEntries(start, end);
 	}
 
+	public static List<DepotEntry> getDepotEntries(long companyId, int type) {
+		return getService().getDepotEntries(companyId, type);
+	}
+
 	/**
 	 * Returns all the depot entries matching the UUID and company.
 	 *
@@ -301,6 +305,10 @@ public class DepotEntryLocalServiceUtil {
 		return getService().getDepotEntriesCount();
 	}
 
+	public static int getDepotEntriesCount(long companyId, int type) {
+		return getService().getDepotEntriesCount(companyId, type);
+	}
+
 	/**
 	 * Returns the depot entry with the primary key.
 	 *
@@ -329,15 +337,21 @@ public class DepotEntryLocalServiceUtil {
 		return getService().getDepotEntryByUuidAndGroupId(uuid, groupId);
 	}
 
-	/**
-	 * @deprecated As of Cavanaugh (7.4.x)
-	 */
-	@Deprecated
-	public static List<DepotEntry> getDepotEntryGroupRelsByUuidAndCompanyId(
-		String uuid, long companyId) {
+	public static List<Long> getDepotEntryGroupIds(long companyId, int type) {
+		return getService().getDepotEntryGroupIds(companyId, type);
+	}
 
-		return getService().getDepotEntryGroupRelsByUuidAndCompanyId(
-			uuid, companyId);
+	public static List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type) {
+
+		return getService().getDepotEntryGroupIds(companyId, userId, type);
+	}
+
+	public static List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type, boolean dynamicInheritanceOnly) {
+
+		return getService().getDepotEntryGroupIds(
+			companyId, userId, type, dynamicInheritanceOnly);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
@@ -357,14 +371,17 @@ public class DepotEntryLocalServiceUtil {
 	}
 
 	public static List<DepotEntry> getGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws PortalException {
 
-		return getService().getGroupConnectedDepotEntries(groupId, start, end);
+		return getService().getGroupConnectedDepotEntries(
+			groupId, type, start, end);
 	}
 
-	public static int getGroupConnectedDepotEntriesCount(long groupId) {
-		return getService().getGroupConnectedDepotEntriesCount(groupId);
+	public static int getGroupConnectedDepotEntriesCount(
+		long groupId, int type) {
+
+		return getService().getGroupConnectedDepotEntriesCount(groupId, type);
 	}
 
 	public static DepotEntry getGroupDepotEntry(long groupId)
@@ -415,7 +432,7 @@ public class DepotEntryLocalServiceUtil {
 	public static DepotEntry updateDepotEntry(
 			long depotEntryId, Map<java.util.Locale, String> nameMap,
 			Map<java.util.Locale, String> descriptionMap,
-			Map<String, Boolean> depotAppCustomizationMap,
+			Map<String, Boolean> depotAppCustomizationMap, String friendlyURL,
 			com.liferay.portal.kernel.util.UnicodeProperties
 				typeSettingsUnicodeProperties,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
@@ -423,7 +440,7 @@ public class DepotEntryLocalServiceUtil {
 
 		return getService().updateDepotEntry(
 			depotEntryId, nameMap, descriptionMap, depotAppCustomizationMap,
-			typeSettingsUnicodeProperties, serviceContext);
+			friendlyURL, typeSettingsUnicodeProperties, serviceContext);
 	}
 
 	public static DepotEntryLocalService getService() {
@@ -435,3 +452,4 @@ public class DepotEntryLocalServiceUtil {
 			DepotEntryLocalServiceUtil.class, DepotEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:28257391

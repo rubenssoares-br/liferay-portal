@@ -51,8 +51,13 @@ export default function BaseRole({
 		const makeFetch = async () => {
 			setLoading(true);
 
+			const params = new URLSearchParams({
+				fields: 'externalReferenceCode,id,name,roleType',
+				pageSize: '-1',
+			});
+
 			const response = await fetch(
-				`${userBaseURL}/roles?restrictFields=rolePermissions?pageSize=-1`,
+				`${userBaseURL}/roles?${params.toString()}`,
 				{
 					headers: HEADERS,
 				}

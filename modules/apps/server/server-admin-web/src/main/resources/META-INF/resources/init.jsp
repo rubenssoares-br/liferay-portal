@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://java.sun.com/portlet_2_0" prefix="portlet" %>
 
@@ -13,11 +13,15 @@
 taglib uri="http://liferay.com/tld/captcha" prefix="liferay-captcha" %><%@
 taglib uri="http://liferay.com/tld/clay" prefix="clay" %><%@
 taglib uri="http://liferay.com/tld/frontend" prefix="liferay-frontend" %><%@
+taglib uri="http://liferay.com/tld/portlet" prefix="liferay-portlet" %><%@
+taglib uri="http://liferay.com/tld/react" prefix="react" %><%@
 taglib uri="http://liferay.com/tld/theme" prefix="liferay-theme" %><%@
 taglib uri="http://liferay.com/tld/ui" prefix="liferay-ui" %><%@
 taglib uri="http://liferay.com/tld/util" prefix="liferay-util" %>
 
 <%@ page import="com.liferay.captcha.util.CaptchaUtil" %><%@
+page import="com.liferay.data.cleanup.DataCleanup" %><%@
+page import="com.liferay.data.cleanup.util.DataCleanupUtil" %><%@
 page import="com.liferay.document.library.kernel.document.conversion.DocumentConversionUtil" %><%@
 page import="com.liferay.document.library.kernel.model.DLFileEntry" %><%@
 page import="com.liferay.document.library.kernel.model.DLFileVersion" %><%@
@@ -26,7 +30,12 @@ page import="com.liferay.document.library.kernel.util.AudioConverter" %><%@
 page import="com.liferay.document.library.kernel.util.VideoConverter" %><%@
 page import="com.liferay.expando.kernel.model.ExpandoBridge" %><%@
 page import="com.liferay.expando.kernel.model.ExpandoColumnConstants" %><%@
+page import="com.liferay.friendly.url.checker.FriendlyURLPublicMappingConflict" %><%@
+page import="com.liferay.learn.LearnMessage" %><%@
+page import="com.liferay.learn.LearnMessageUtil" %><%@
+page import="com.liferay.petra.function.transform.TransformUtil" %><%@
 page import="com.liferay.petra.string.CharPool" %><%@
+page import="com.liferay.petra.string.StringBundler" %><%@
 page import="com.liferay.petra.string.StringPool" %><%@
 page import="com.liferay.portal.convert.ConvertProcess" %><%@
 page import="com.liferay.portal.convert.ConvertProcessUtil" %><%@
@@ -39,12 +48,15 @@ page import="com.liferay.portal.kernel.captcha.CaptchaException" %><%@
 page import="com.liferay.portal.kernel.captcha.CaptchaTextException" %><%@
 page import="com.liferay.portal.kernel.dao.search.SearchContainer" %><%@
 page import="com.liferay.portal.kernel.language.LanguageUtil" %><%@
+page import="com.liferay.portal.kernel.log4j.Log4JUtil" %><%@
 page import="com.liferay.portal.kernel.model.*" %><%@
 page import="com.liferay.portal.kernel.model.impl.*" %><%@
 page import="com.liferay.portal.kernel.patcher.PatcherValues" %><%@
 page import="com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder" %><%@
 page import="com.liferay.portal.kernel.scripting.ScriptingException" %><%@
+page import="com.liferay.portal.kernel.security.permission.ResourceActionsUtil" %><%@
 page import="com.liferay.portal.kernel.service.*" %><%@
+page import="com.liferay.portal.kernel.servlet.SessionErrors" %><%@
 page import="com.liferay.portal.kernel.servlet.SessionMessages" %><%@
 page import="com.liferay.portal.kernel.util.Constants" %><%@
 page import="com.liferay.portal.kernel.util.GetterUtil" %><%@
@@ -53,11 +65,8 @@ page import="com.liferay.portal.kernel.util.HtmlUtil" %><%@
 page import="com.liferay.portal.kernel.util.JavaConstants" %><%@
 page import="com.liferay.portal.kernel.util.ListUtil" %><%@
 page import="com.liferay.portal.kernel.util.ParamUtil" %><%@
-page import="com.liferay.portal.kernel.util.Portal" %><%@
 page import="com.liferay.portal.kernel.util.PortalUtil" %><%@
-page import="com.liferay.portal.kernel.util.PrefsPropsUtil" %><%@
 page import="com.liferay.portal.kernel.util.PropsKeys" %><%@
-page import="com.liferay.portal.kernel.util.PropsUtil" %><%@
 page import="com.liferay.portal.kernel.util.ReleaseInfo" %><%@
 page import="com.liferay.portal.kernel.util.StringUtil" %><%@
 page import="com.liferay.portal.kernel.util.TextFormatter" %><%@
@@ -65,11 +74,12 @@ page import="com.liferay.portal.kernel.util.Time" %><%@
 page import="com.liferay.portal.kernel.util.UnicodeProperties" %><%@
 page import="com.liferay.portal.kernel.util.Validator" %><%@
 page import="com.liferay.portal.kernel.workflow.WorkflowConstants" %><%@
-page import="com.liferay.portal.log4j.Log4JUtil" %><%@
 page import="com.liferay.portal.model.impl.*" %><%@
 page import="com.liferay.portal.util.ShutdownUtil" %><%@
+page import="com.liferay.portal.verify.VerifyException" %><%@
 page import="com.liferay.server.admin.web.internal.constants.ImageMagickResourceLimitConstants" %><%@
 page import="com.liferay.server.admin.web.internal.constants.ServerAdminNavigationEntryConstants" %><%@
+page import="com.liferay.server.admin.web.internal.constants.ServerAdminWebKeys" %><%@
 page import="com.liferay.server.admin.web.internal.display.context.LogLevelsManagementToolbarDisplayContext" %><%@
 page import="com.liferay.server.admin.web.internal.display.context.ServerDisplayContext" %><%@
 page import="com.liferay.server.admin.web.internal.display.context.ViewPortalPropertiesDisplayContext" %><%@
@@ -78,6 +88,9 @@ page import="com.liferay.server.admin.web.internal.display.context.ViewSystemPro
 page import="com.liferay.server.admin.web.internal.image.ImageMagickUtil" %><%@
 page import="com.liferay.server.admin.web.internal.scripting.util.ServerScriptingUtil" %><%@
 page import="com.liferay.taglib.servlet.PipingServletResponseFactory" %>
+
+<%@ page import="jakarta.portlet.PortletRequest" %><%@
+page import="jakarta.portlet.PortletURL" %>
 
 <%@ page import="java.text.NumberFormat" %>
 
@@ -88,12 +101,7 @@ page import="java.util.List" %><%@
 page import="java.util.Map" %><%@
 page import="java.util.Objects" %><%@
 page import="java.util.Properties" %><%@
-page import="java.util.TreeMap" %><%@
-page import="java.util.function.Function" %>
-
-<%@ page import="javax.portlet.PortletPreferences" %><%@
-page import="javax.portlet.PortletRequest" %><%@
-page import="javax.portlet.PortletURL" %>
+page import="java.util.TreeMap" %>
 
 <%@ page import="org.apache.logging.log4j.Level" %>
 
@@ -114,7 +122,7 @@ VideoConverter videoConverter = (VideoConverter)request.getAttribute(VideoConver
 <%@ include file="/init-ext.jsp" %>
 
 <%
-PortletRequest portletRequest = (PortletRequest)request.getAttribute(JavaConstants.JAVAX_PORTLET_REQUEST);
+PortletRequest portletRequest = (PortletRequest)request.getAttribute(JavaConstants.JAKARTA_PORTLET_REQUEST);
 
 if (portletRequest != null) {
 	CaptchaUtil.enforceCaptcha(portletRequest);

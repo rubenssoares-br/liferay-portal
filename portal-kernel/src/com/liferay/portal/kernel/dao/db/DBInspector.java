@@ -7,8 +7,11 @@ package com.liferay.portal.kernel.dao.db;
 
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.instance.PortalInstancePool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -17,13 +20,18 @@ import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,6 +40,17 @@ import java.util.regex.Pattern;
  * @author Adolfo Pérez
  */
 public class DBInspector {
+
+	public static void disableCache() {
+		_cacheEnabled = false;
+
+		_columnTypes.clear();
+		_tableNamesMap.clear();
+	}
+
+	public static void enableCache() {
+		_cacheEnabled = true;
+	}
 
 	public DBInspector(Connection connection) {
 		_connection = connection;
@@ -43,6 +62,22 @@ public class DBInspector {
 
 	public ResultSet getColumnsResultSet(String tableName) throws SQLException {
 		return _getColumnsResultSet(tableName, null);
+	}
+
+	public List<String> getControlTableNames(Collection<String> tableNames)
+		throws SQLException {
+
+		List<String> controlTableNames = new ArrayList<>();
+
+		for (String tableName : tableNames) {
+			if (!isControlTable(tableName)) {
+				continue;
+			}
+
+			controlTableNames.add(normalizeName(tableName));
+		}
+
+		return controlTableNames;
 	}
 
 	public String getSchema() {
@@ -61,33 +96,53 @@ public class DBInspector {
 	public List<String> getTableNames(String tableNamePattern)
 		throws SQLException {
 
-		List<String> tableNames = new ArrayList<>();
+		if (_cacheEnabled && (tableNamePattern == null)) {
+			String cacheKey = _getSchemaCacheKey();
 
-		DatabaseMetaData databaseMetaData = _connection.getMetaData();
+			Set<String> tableNames = _tableNamesMap.get(cacheKey);
 
-		try (ResultSet resultSet = databaseMetaData.getTables(
-				_connection.getCatalog(), _connection.getSchema(),
-				tableNamePattern, new String[] {"TABLE"})) {
-
-			while (resultSet.next()) {
-				tableNames.add(resultSet.getString("TABLE_NAME"));
+			if (tableNames != null) {
+				return new ArrayList<>(tableNames);
 			}
+
+			Set<String> schemaTableNames = new TreeSet<>(
+				String.CASE_INSENSITIVE_ORDER);
+
+			schemaTableNames.addAll(_getNames(null, "TABLE"));
+
+			_tableNamesMap.putIfAbsent(cacheKey, schemaTableNames);
+
+			return new ArrayList<>(schemaTableNames);
 		}
 
-		return tableNames;
+		return _getNames(tableNamePattern, "TABLE");
+	}
+
+	public List<String> getViewNames(String viewNamePattern)
+		throws SQLException {
+
+		return _getNames(viewNamePattern, "VIEW");
 	}
 
 	public boolean hasColumn(String tableName, String columnName)
 		throws Exception {
 
+		if ((columnName == null) || (tableName == null)) {
+			return false;
+		}
+
+		if (_cacheEnabled) {
+			if (_getColumnType(tableName, columnName) != _COLUMN_TYPE_NONE) {
+				return true;
+			}
+
+			return false;
+		}
+
 		try (ResultSet resultSet = _getColumnsResultSet(
 				tableName, columnName)) {
 
-			if (!resultSet.next()) {
-				return false;
-			}
-
-			return true;
+			return resultSet.next();
 		}
 		catch (Exception exception) {
 			_log.error(exception);
@@ -96,9 +151,89 @@ public class DBInspector {
 		return false;
 	}
 
+	public boolean hasColumnType(String columnType, ResultSet resultSet)
+		throws Exception {
+
+		int expectedColumnSize = _getColumnSize(columnType);
+
+		int actualColumnSize = resultSet.getInt("COLUMN_SIZE");
+
+		if ((expectedColumnSize != DB.SQL_SIZE_NONE) &&
+			(((expectedColumnSize != DB.SQL_VARCHAR_MAX_SIZE) &&
+			  (expectedColumnSize != actualColumnSize)) ||
+			 ((expectedColumnSize == DB.SQL_VARCHAR_MAX_SIZE) &&
+			  (actualColumnSize < DB.SQL_VARCHAR_MAX_SIZE_THRESHOLD)))) {
+
+			return false;
+		}
+
+		Integer expectedColumnDataType = _getByColumnType(
+			columnType, DB::getSQLType);
+
+		if (expectedColumnDataType == null) {
+			if (!_hasNumericColumnType(
+					actualColumnSize, columnType, resultSet)) {
+
+				return false;
+			}
+		}
+		else if (expectedColumnDataType != resultSet.getInt("DATA_TYPE")) {
+			return false;
+		}
+
+		Integer expectedColumnDecimalDigits = _getByColumnType(
+			columnType, DB::getSQLTypeDecimalDigits);
+
+		if ((expectedColumnDecimalDigits != null) &&
+			(expectedColumnDecimalDigits != DB.SQL_SIZE_NONE)) {
+
+			int actualColumnDecimalDigits = resultSet.getInt("DECIMAL_DIGITS");
+
+			if (expectedColumnDecimalDigits != actualColumnDecimalDigits) {
+				return false;
+			}
+		}
+
+		boolean expectedColumnNullable = _isColumnNullable(columnType);
+
+		int actualColumnNullable = resultSet.getInt("NULLABLE");
+
+		if ((expectedColumnNullable &&
+			 (actualColumnNullable != DatabaseMetaData.columnNullable)) ||
+			(!expectedColumnNullable &&
+			 (actualColumnNullable != DatabaseMetaData.columnNoNulls))) {
+
+			return false;
+		}
+
+		if (!expectedColumnNullable) {
+			String expectedColumnDefaultValue = _getColumnDefaultValue(
+				columnType);
+			String actualColumnDefaultValue = _getColumnDefaultValue(
+				resultSet.getString("COLUMN_DEF"), DB::getDefaultValue);
+
+			if (Validator.isNull(expectedColumnDefaultValue) &&
+				Validator.isNull(actualColumnDefaultValue)) {
+
+				return true;
+			}
+
+			return StringUtil.equals(
+				expectedColumnDefaultValue, actualColumnDefaultValue);
+		}
+
+		return true;
+	}
+
 	public boolean hasColumnType(
 			String tableName, String columnName, String columnType)
 		throws Exception {
+
+		if ((columnName == null) || (columnType == null) ||
+			(tableName == null)) {
+
+			return false;
+		}
 
 		try (ResultSet resultSet = _getColumnsResultSet(
 				tableName, columnName)) {
@@ -107,76 +242,16 @@ public class DBInspector {
 				return false;
 			}
 
-			int expectedColumnSize = _getColumnSize(columnType);
-
-			int actualColumnSize = resultSet.getInt("COLUMN_SIZE");
-
-			if ((expectedColumnSize != DB.SQL_SIZE_NONE) &&
-				(((expectedColumnSize != DB.SQL_VARCHAR_MAX_SIZE) &&
-				  (expectedColumnSize != actualColumnSize)) ||
-				 ((expectedColumnSize == DB.SQL_VARCHAR_MAX_SIZE) &&
-				  (actualColumnSize < DB.SQL_VARCHAR_MAX_SIZE_THRESHOLD)))) {
-
-				return false;
-			}
-
-			Integer expectedColumnDataType = _getByColumnType(
-				columnType, DB::getSQLType);
-
-			int actualColumnDataType = resultSet.getInt("DATA_TYPE");
-
-			if ((expectedColumnDataType == null) ||
-				(expectedColumnDataType != actualColumnDataType)) {
-
-				return false;
-			}
-
-			Integer expectedColumnDecimalDigits = _getByColumnType(
-				columnType, DB::getSQLTypeDecimalDigits);
-
-			if (expectedColumnDecimalDigits != DB.SQL_SIZE_NONE) {
-				int actualColumnDecimalDigits = resultSet.getInt(
-					"DECIMAL_DIGITS");
-
-				if (expectedColumnDecimalDigits != actualColumnDecimalDigits) {
-					return false;
-				}
-			}
-
-			boolean expectedColumnNullable = _isColumnNullable(columnType);
-
-			int actualColumnNullable = resultSet.getInt("NULLABLE");
-
-			if ((expectedColumnNullable &&
-				 (actualColumnNullable != DatabaseMetaData.columnNullable)) ||
-				(!expectedColumnNullable &&
-				 (actualColumnNullable != DatabaseMetaData.columnNoNulls))) {
-
-				return false;
-			}
-
-			if (!expectedColumnNullable) {
-				String expectedColumnDefaultValue = _getColumnDefaultValue(
-					columnType);
-				String actualColumnDefaultValue = _getColumnDefaultValue(
-					resultSet.getString("COLUMN_DEF"), DB::getDefaultValue);
-
-				if (Validator.isNull(expectedColumnDefaultValue) &&
-					Validator.isNull(actualColumnDefaultValue)) {
-
-					return true;
-				}
-
-				return StringUtil.equals(
-					expectedColumnDefaultValue, actualColumnDefaultValue);
-			}
-
-			return true;
+			return hasColumnType(columnType, resultSet);
 		}
 	}
 
 	public boolean hasIndex(String tableName, String indexName)
 		throws Exception {
+
+		if ((indexName == null) || (tableName == null)) {
+			return false;
+		}
 
 		DB db = DBManagerUtil.getDB();
 		DatabaseMetaData databaseMetaData = _connection.getMetaData();
@@ -186,9 +261,8 @@ public class DBInspector {
 				false)) {
 
 			while (resultSet.next()) {
-				if (Objects.equals(
-						normalizeName(indexName, databaseMetaData),
-						resultSet.getString("index_name"))) {
+				if (StringUtil.equalsIgnoreCase(
+						indexName, resultSet.getString("index_name"))) {
 
 					return true;
 				}
@@ -202,14 +276,17 @@ public class DBInspector {
 	}
 
 	public boolean hasRows(String tableName) {
+		if (tableName == null) {
+			return false;
+		}
+
 		try (PreparedStatement preparedStatement = _connection.prepareStatement(
-				"select count(*) from " + tableName);
+				"select count(*) as count from " + tableName);
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
-				int count = resultSet.getInt(1);
-
-				if (count > 0) {
+				if (resultSet.getLong("count") > 0) {
 					return true;
 				}
 			}
@@ -222,16 +299,21 @@ public class DBInspector {
 	}
 
 	public boolean hasTable(String tableName) throws Exception {
-		return _hasElement(tableName, "TABLE");
-	}
+		if (_cacheEnabled) {
+			String cacheKey = _getSchemaCacheKey();
 
-	/**
-	 * @deprecated As of Cavanaugh (7.4.x), replaced by {@link
-	 *             DBInspector#hasTable(String)}
-	 */
-	@Deprecated
-	public boolean hasTable(String tableName, boolean caseSensitive)
-		throws Exception {
+			Set<String> tableNames = _tableNamesMap.get(cacheKey);
+
+			if (tableNames == null) {
+				getTableNames(null);
+
+				tableNames = _tableNamesMap.get(cacheKey);
+			}
+
+			if (tableNames != null) {
+				return tableNames.contains(normalizeName(tableName));
+			}
+		}
 
 		return _hasElement(tableName, "TABLE");
 	}
@@ -257,6 +339,10 @@ public class DBInspector {
 	public boolean isNullable(String tableName, String columnName)
 		throws SQLException {
 
+		if ((columnName == null) || (tableName == null)) {
+			return false;
+		}
+
 		try (ResultSet resultSet = _getColumnsResultSet(
 				tableName, columnName)) {
 
@@ -277,7 +363,33 @@ public class DBInspector {
 		}
 	}
 
+	public boolean isNumeric(String tableName, String columnName)
+		throws Exception {
+
+		if ((columnName == null) || (tableName == null)) {
+			return false;
+		}
+
+		if (_cacheEnabled) {
+			return _isNumericType(_getColumnType(tableName, columnName));
+		}
+
+		try (ResultSet resultSet = _getColumnsResultSet(
+				tableName, columnName)) {
+
+			if (!resultSet.next()) {
+				return false;
+			}
+
+			return _isNumericType(resultSet.getInt("DATA_TYPE"));
+		}
+	}
+
 	public boolean isObjectTable(List<Long> companyIds, String tableName) {
+		if (tableName == null) {
+			return false;
+		}
+
 		String lowerCaseTableName = StringUtil.toLowerCase(tableName);
 
 		for (long companyId : companyIds) {
@@ -297,14 +409,24 @@ public class DBInspector {
 		return false;
 	}
 
-	public boolean isPartitionedControlTable(String tableName) {
-		if (_partitionedControlTableNames.contains(
-				StringUtil.toLowerCase(tableName))) {
+	public boolean isObjectTable(String tableName) {
+		return isObjectTable(
+			ListUtil.fromArray(PortalInstancePool.getCompanyIds()), tableName);
+	}
 
+	public boolean isPartitionedControlTable(String tableName) {
+		return _partitionedControlTableNames.contains(
+			StringUtil.toLowerCase(tableName));
+	}
+
+	public boolean isSupportedColumnType(String columnType) {
+		if (_getByColumnType(columnType, DB::getSQLType) != null) {
 			return true;
 		}
 
-		return false;
+		Matcher matcher = _numericColumnTypePattern.matcher(columnType);
+
+		return matcher.lookingAt();
 	}
 
 	public String normalizeName(String name) throws SQLException {
@@ -388,6 +510,40 @@ public class DBInspector {
 		return DB.SQL_SIZE_NONE;
 	}
 
+	private int _getColumnType(String tableName, String columnName)
+		throws Exception {
+
+		DatabaseMetaData databaseMetaData = _connection.getMetaData();
+
+		String normalizedColumnName = normalizeName(
+			columnName, databaseMetaData);
+		String normalizedTableName = normalizeName(tableName, databaseMetaData);
+
+		String cacheKey = StringBundler.concat(
+			_getSchemaCacheKey(), ".", normalizedTableName, ".",
+			normalizedColumnName);
+
+		Integer columnType = _columnTypes.get(cacheKey);
+
+		if (columnType != null) {
+			return columnType;
+		}
+
+		columnType = _COLUMN_TYPE_NONE;
+
+		try (ResultSet resultSet = _getColumnsResultSet(
+				normalizedTableName, normalizedColumnName)) {
+
+			if (resultSet.next()) {
+				columnType = resultSet.getInt("DATA_TYPE");
+			}
+		}
+
+		_columnTypes.put(cacheKey, columnType);
+
+		return columnType;
+	}
+
 	private ResultSet _getColumnsResultSet(String tableName, String columnName)
 		throws SQLException {
 
@@ -402,8 +558,36 @@ public class DBInspector {
 			normalizeName(tableName, databaseMetaData), columnName);
 	}
 
+	private List<String> _getNames(String namePattern, String elementType)
+		throws SQLException {
+
+		List<String> names = new ArrayList<>();
+
+		DatabaseMetaData databaseMetaData = _connection.getMetaData();
+
+		try (ResultSet resultSet = databaseMetaData.getTables(
+				_connection.getCatalog(), _connection.getSchema(), namePattern,
+				new String[] {elementType})) {
+
+			while (resultSet.next()) {
+				names.add(resultSet.getString("TABLE_NAME"));
+			}
+		}
+
+		return names;
+	}
+
+	private String _getSchemaCacheKey() throws SQLException {
+		return Objects.toString(getCatalog(), StringPool.BLANK) + "." +
+			Objects.toString(getSchema(), StringPool.BLANK);
+	}
+
 	private boolean _hasElement(String elementName, String elementType)
 		throws Exception {
+
+		if (elementName == null) {
+			return false;
+		}
 
 		DatabaseMetaData databaseMetaData = _connection.getMetaData();
 
@@ -421,31 +605,85 @@ public class DBInspector {
 		return false;
 	}
 
-	private boolean _isColumnNullable(String typeName) {
-		typeName = typeName.trim();
+	private boolean _hasNumericColumnType(
+			int actualColumnSize, String columnType, ResultSet resultSet)
+		throws Exception {
 
-		typeName = StringUtil.toLowerCase(typeName);
+		Matcher matcher = _numericColumnTypePattern.matcher(columnType);
 
-		if (typeName.endsWith("not null")) {
+		if (!matcher.lookingAt()) {
+			return false;
+		}
+
+		int actualColumnDataType = resultSet.getInt("DATA_TYPE");
+
+		if ((actualColumnDataType != Types.DECIMAL) &&
+			(actualColumnDataType != Types.NUMERIC)) {
+
+			return false;
+		}
+
+		int expectedColumnSize = GetterUtil.getInteger(matcher.group(1));
+
+		if (expectedColumnSize != actualColumnSize) {
+			return false;
+		}
+
+		int expectedColumnDecimalDigits = GetterUtil.getInteger(
+			matcher.group(2));
+
+		int actualColumnDecimalDigits = resultSet.getInt("DECIMAL_DIGITS");
+
+		if (expectedColumnDecimalDigits != actualColumnDecimalDigits) {
 			return false;
 		}
 
 		return true;
 	}
 
+	private boolean _isColumnNullable(String typeName) {
+		typeName = typeName.trim();
+
+		typeName = StringUtil.toLowerCase(typeName);
+
+		return !typeName.endsWith("not null");
+	}
+
+	private boolean _isNumericType(int columnType) {
+		if ((columnType == Types.BIGINT) || (columnType == Types.DECIMAL) ||
+			(columnType == Types.DOUBLE) || (columnType == Types.FLOAT) ||
+			(columnType == Types.INTEGER) || (columnType == Types.NUMERIC) ||
+			(columnType == Types.REAL) || (columnType == Types.SMALLINT) ||
+			(columnType == Types.TINYINT)) {
+
+			return true;
+		}
+
+		return false;
+	}
+
+	private static final int _COLUMN_TYPE_NONE = Integer.MIN_VALUE;
+
 	private static final Log _log = LogFactoryUtil.getLog(DBInspector.class);
 
+	private static volatile boolean _cacheEnabled;
 	private static final Pattern _columnDefaultClausePattern = Pattern.compile(
 		".*DEFAULT ((?:'[^']+')|(?:\\S+)) NOT NULL", Pattern.CASE_INSENSITIVE);
 	private static final Pattern _columnSizePattern = Pattern.compile(
 		"^\\w+(?:\\((\\d+)\\))?.*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern _columnTypePattern = Pattern.compile(
 		"(^\\w+)", Pattern.CASE_INSENSITIVE);
+	private static final Map<String, Integer> _columnTypes =
+		new ConcurrentHashMap<>();
 	private static final Set<String> _controlTableNames = new HashSet<>(
 		Arrays.asList(
 			"company", "release_", "servicecomponent", "virtualhost"));
+	private static final Pattern _numericColumnTypePattern = Pattern.compile(
+		"^NUMERIC\\((\\d+),\\s*(\\d+)\\)(?:\\s|$)", Pattern.CASE_INSENSITIVE);
 	private static final Set<String> _partitionedControlTableNames =
 		new HashSet<>(Arrays.asList("classname_", "counter", "resourceaction"));
+	private static final Map<String, Set<String>> _tableNamesMap =
+		new ConcurrentHashMap<>();
 
 	private final Connection _connection;
 

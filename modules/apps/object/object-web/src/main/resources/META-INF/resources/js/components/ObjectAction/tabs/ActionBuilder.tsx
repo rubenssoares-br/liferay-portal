@@ -23,8 +23,10 @@ import {ConditionContainer} from './ConditionContainer';
 import './ActionBuilder.scss';
 
 interface ActionBuilderProps {
+	companyAdmin: boolean;
 	disableGroovyAction: boolean;
 	errors: ActionError;
+	hasUserNotificationHandler: boolean;
 	isApproved: boolean;
 	objectActionCodeEditorElements: SidebarCategory[];
 	objectActionExecutors: ObjectActionTriggerExecutorItem[];
@@ -32,6 +34,7 @@ interface ActionBuilderProps {
 	objectDefinitionExternalReferenceCode: string;
 	objectDefinitionId: number;
 	objectDefinitionsRelationshipsURL: string;
+	objectFields: ObjectField[];
 	scriptManagementConfigurationPortletURL: string;
 	setValues: (values: Partial<ObjectAction>) => void;
 	systemObject: boolean;
@@ -50,13 +53,16 @@ const triggerKeys = [
 	'onAfterAdd',
 	'onAfterAttachmentDownload',
 	'onAfterDelete',
+	'onAfterLogin',
 	'onAfterRootUpdate',
 	'onAfterUpdate',
 ];
 
 export default function ActionBuilder({
+	companyAdmin,
 	disableGroovyAction,
 	errors,
+	hasUserNotificationHandler,
 	isApproved,
 	objectActionCodeEditorElements,
 	objectActionExecutors,
@@ -64,6 +70,7 @@ export default function ActionBuilder({
 	objectDefinitionExternalReferenceCode,
 	objectDefinitionId,
 	objectDefinitionsRelationshipsURL,
+	objectFields,
 	scriptManagementConfigurationPortletURL,
 	setValues,
 	systemObject,
@@ -129,6 +136,10 @@ export default function ActionBuilder({
 			[warning]: false,
 		}));
 	};
+
+	const hasLocalizedField = useMemo(() => {
+		return objectFields.some((field) => field.localized);
+	}, [objectFields]);
 
 	useEffect(() => {
 		const predefinedValues = values.parameters?.predefinedValues;
@@ -230,6 +241,21 @@ export default function ActionBuilder({
 				</ClayAlert>
 			)}
 
+			{hasLocalizedField && (
+				<ClayAlert
+					className="lfr-objects__side-panel-content-container"
+					displayType="info"
+					onClose={() => setInfoAlert(false)}
+					title={`${Liferay.Language.get('info')}:`}
+				>
+					{`${Liferay.Language.get(
+						'this-object-includes-translatable-fields'
+					)} ${Liferay.Language.get(
+						'actions-always-use-the-object-entrys-default-language'
+					)}`}
+				</ClayAlert>
+			)}
+
 			{errorAlert && (
 				<ClayAlert
 					className="lfr-objects__side-panel-content-container"
@@ -320,9 +346,11 @@ export default function ActionBuilder({
 				</ClayAlert>
 			)}
 			<ActionContainer
+				companyAdmin={companyAdmin}
 				currentObjectDefinitionFields={currentObjectDefinitionFields}
 				disableGroovyAction={disableGroovyAction}
 				errors={errors}
+				hasUserNotificationHandler={hasUserNotificationHandler}
 				newObjectActionExecutors={newObjectActionExecutors}
 				objectActionCodeEditorElements={objectActionCodeEditorElements}
 				objectActionExecutors={objectActionExecutors}

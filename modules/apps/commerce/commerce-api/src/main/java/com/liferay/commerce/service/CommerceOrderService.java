@@ -58,13 +58,13 @@ public interface CommerceOrderService extends BaseService {
 		throws PortalException;
 
 	public CommerceOrder addCommerceOrder(
-			long groupId, long commerceAccountId, long commerceCurrencyId,
+			long groupId, long commerceAccountId, String commerceCurrencyCode,
 			long commerceOrderTypeId)
 		throws PortalException;
 
 	public CommerceOrder addOrUpdateCommerceOrder(
 			String externalReferenceCode, long groupId, long billingAddressId,
-			long commerceAccountId, long commerceCurrencyId,
+			long commerceAccountId, String commerceCurrencyCode,
 			long commerceOrderTypeId, long commerceShippingMethodId,
 			long shippingAddressId, String advanceStatus,
 			String commercePaymentMethodKey, String name, int orderDateMonth,
@@ -80,7 +80,7 @@ public interface CommerceOrderService extends BaseService {
 
 	public CommerceOrder addOrUpdateCommerceOrder(
 			String externalReferenceCode, long groupId, long billingAddressId,
-			long commerceAccountId, long commerceCurrencyId,
+			long commerceAccountId, String commerceCurrencyCode,
 			long commerceOrderTypeId, long commerceShippingMethodId,
 			long shippingAddressId, String advanceStatus,
 			String commercePaymentMethodKey, String name, int orderStatus,
@@ -286,9 +286,9 @@ public interface CommerceOrderService extends BaseService {
 		throws PortalException;
 
 	public CommerceOrder updateBillingAddress(
-			long commerceOrderId, String name, String description,
-			String street1, String street2, String street3, String city,
-			String zip, long regionId, long countryId, String phoneNumber,
+			long commerceOrderId, long countryId, long regionId, String city,
+			String description, String name, String street1, String street2,
+			String street3, String subtype, String phoneNumber, String zip,
 			ServiceContext serviceContext)
 		throws PortalException;
 
@@ -430,9 +430,9 @@ public interface CommerceOrderService extends BaseService {
 		throws PortalException;
 
 	public CommerceOrder updateShippingAddress(
-			long commerceOrderId, String name, String description,
-			String street1, String street2, String street3, String city,
-			String zip, long regionId, long countryId, String phoneNumber,
+			long commerceOrderId, long countryId, long regionId, String city,
+			String description, String name, String phoneNumber, String street1,
+			String street2, String street3, String subtype, String zip,
 			ServiceContext serviceContext)
 		throws PortalException;
 
@@ -442,3 +442,4 @@ public interface CommerceOrderService extends BaseService {
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1299818158

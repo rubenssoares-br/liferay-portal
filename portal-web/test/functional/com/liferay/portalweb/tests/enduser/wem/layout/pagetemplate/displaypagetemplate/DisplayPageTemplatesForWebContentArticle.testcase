@@ -4,7 +4,7 @@ definition {
 	property ci.retries.disabled = "true";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.main.component.name = "Web Content Administration";
+	property testray.main.component.name = "Web Content";
 
 	setUp {
 		task ("Set up instance and sign in") {
@@ -70,7 +70,7 @@ definition {
 				pageName = "Display Page Name",
 				pageType = "Display Page Templates");
 
-			PortletEntry.publish();
+			WebContent.publishExistingWCArticleWithPermissions();
 		}
 
 		task ("Add a widget page") {
@@ -137,7 +137,12 @@ definition {
 				pageName = "Display Page Name",
 				pageType = "Display Page Templates");
 
-			PortletEntry.saveAsDraft();
+			WebContent.saveAsDraftWithPermissions();
+
+			AssertTextEquals(
+				key_status = "Draft",
+				locator1 = "WCEditWebContent#WORKFLOW_STATUS",
+				value1 = "Draft");
 		}
 
 		task ("Preview the draft web content") {
@@ -209,7 +214,7 @@ definition {
 				pageName = "Display Page Name",
 				pageType = "Display Page Templates");
 
-			PortletEntry.submitForWorkflow();
+			WebContent.submitForWorkflowWithPermission();
 		}
 
 		task ("Preview the pending web content") {
@@ -236,6 +241,8 @@ definition {
 	@priority = 3
 	test PreviewPredefinedValuesThroughTheDisplayPageOfSpecificSiteInAssetLibrary {
 		task ("Given a site designer has display page templates for web content") {
+			JSONDepot.addDepot(depotName = "Test Depot Name");
+
 			DisplayPageTemplatesAdmin.openDisplayPagesAdmin(siteURLKey = "test-site-name");
 
 			DisplayPageTemplatesAdmin.gotoDisplayPage(displayPageName = "Display Page Name");
@@ -267,8 +274,6 @@ definition {
 		}
 
 		task ("When the site designer creates a web content in an Asset Library") {
-			JSONDepot.addDepot(depotName = "Test Depot Name");
-
 			DepotNavigator.openDepotWebContentAdmin(depotName = "Test Depot Name");
 
 			WebContentNavigator.gotoAddCP();
@@ -276,6 +281,8 @@ definition {
 
 		task ("Then the site designer could preview the web content through display page") {
 			WebContent.addCP(webContentTitle = "Web Content Title");
+
+			WebContent.saveAsDraftWithPermissions();
 
 			Panel.expandPanel(panel = "Display Page Preview");
 
@@ -340,7 +347,7 @@ definition {
 				pageName = "Display Page Name",
 				pageType = "Display Page Templates");
 
-			PortletEntry.publish();
+			WebContent.publishExistingWCArticleWithPermissions();
 		}
 
 		task ("Preview the web content article") {
@@ -409,6 +416,8 @@ definition {
 			WebContent.addCP(
 				webContentContent = "Web Content Content",
 				webContentTitle = "Web Content Title");
+
+			WebContent.saveAsDraftWithPermissions();
 		}
 
 		task ("Then the site designer could preview the web content on the default display page") {
@@ -418,9 +427,9 @@ definition {
 				displayPageTemplateName = "Default Display Page Name",
 				displayPageTemplateType = "Default");
 
-			MouseOver(
+			MouseOver.javaScriptFocus(
 				key_text = "Preview",
-				locator1 = "Button#ANY");
+				locator1 = "Button#ANY_SECONDARY");
 
 			AssertVisible(
 				key_content = "A draft will be saved before displaying the preview.",
@@ -528,6 +537,8 @@ definition {
 			WebContent.addCP(
 				webContentContent = "Web Content Content",
 				webContentTitle = "Web Content Title");
+
+			WebContent.saveAsDraftWithPermissions();
 		}
 
 		task ("Then the site designer can see the Display Page Preview section") {
@@ -672,6 +683,8 @@ definition {
 			WebContent.addCP(
 				webContentContent = "Web Content Content",
 				webContentTitle = "Web Content Title");
+
+			WebContent.saveAsDraftWithPermissions();
 		}
 
 		task ("Then the site designer can see the Display Page Preview section") {
@@ -803,7 +816,7 @@ definition {
 				displayPageTemplateType = "None",
 				pageType = "Display Page Templates");
 
-			PortletEntry.publish();
+			WebContent.publishExistingWCArticleWithPermissions();
 		}
 
 		task ("Navigate to the display page template via friendly URL") {
@@ -886,7 +899,7 @@ definition {
 					pageName = "Display Page Name",
 					pageType = "Display Page Templates");
 
-				PortletEntry.publish();
+				WebContent.publishExistingWCArticleWithPermissions();
 			}
 		}
 
@@ -908,9 +921,7 @@ definition {
 
 			AssetPublisherPortlet.clickAssetTitle(assetTitle = "WC Title 1");
 
-			AssetPublisherPortlet.changePagination(
-				currentPageNumber = "2 of 2",
-				paginationItem = 2);
+			AssetPublisherPortlet.changePagination(pageNumber = 2);
 
 			AssetPublisherPortlet.viewAssetPG(
 				assetContent = "WC Content 1",

@@ -71,7 +71,7 @@ definition {
 				locator1 = "Breadcrumb#BREADCRUMB_ENTRY_ACTIVE_ENTRY",
 				value1 = ${depotName});
 
-			AssertElementNotPresent(locator1 = "ProductMenu#TOGGLE");
+			AssertElementNotPresent(locator1 = "//*[@data-qa-id='productMenu']");
 		}
 		else {
 			AssertTextEquals(
@@ -307,21 +307,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro openDepotExportImportAdmin(depotName = null) {
-		var depotId = JSONGroupAPI._getDepotIdByName(depotName = ${depotName});
-
-		if (isSet(exportAdmin)) {
-			var portletName = "ExportPortlet";
-		}
-
-		if (isSet(importAdmin)) {
-			var portletName = "ImportPortlet";
-		}
-
-		Navigator.openWithAppendToBaseURL(urlAppend = "group/asset-library-${depotId}/~/control_panel/manage?p_p_id=com_liferay_exportimport_web_portlet_${portletName}");
-	}
-
-	@summary = "Default summary"
 	macro openDepotLanguages(defaultLocale = null, depotName = null) {
 		var depotId = JSONGroupAPI._getDepotIdByName(
 			defaultLocale = ${defaultLocale},
@@ -358,13 +343,6 @@ definition {
 			depotName = ${depotName});
 
 		Navigator.openWithAppendToBaseURL(urlAppend = "group/asset-library-${depotId}/~/control_panel/manage?p_p_id=com_liferay_depot_web_portlet_DepotSettingsPortlet");
-	}
-
-	@summary = "Default summary"
-	macro openDepotSettingsStaging(depotName = null) {
-		var depotId = JSONGroupAPI._getDepotIdByName(depotName = ${depotName});
-
-		Navigator.openWithAppendToBaseURL(urlAppend = "group/asset-library-${depotId}-staging/~/control_panel/manage?p_p_id=com_liferay_depot_web_portlet_DepotSettingsPortlet&_com_liferay_depot_web_portlet_DepotSettingsPortlet_screenNavigationEntryKey=sites");
 	}
 
 	@summary = "Default summary"
@@ -419,13 +397,6 @@ definition {
 		var depotId = JSONGroupAPI._getDepotIdByName(depotName = ${depotName});
 
 		Navigator.openWithAppendToBaseURL(urlAppend = "group/asset-library-${depotId}/~/control_panel/manage?p_p_id=com_liferay_journal_web_portlet_JournalPortlet&_com_liferay_journal_web_portlet_JournalPortlet_mvcPath=%2Fview_ddm_templates.jsp");
-	}
-
-	@summary = "Default summary"
-	macro openDepotWorkflowAdmin(depotName = null) {
-		var depotId = JSONGroupAPI._getDepotIdByName(depotName = ${depotName});
-
-		Navigator.openWithAppendToBaseURL(urlAppend = "group/asset-library-${depotId}/~/control_panel/manage?p_p_id=com_liferay_portal_workflow_web_internal_portlet_SiteAdministrationWorkflowPortlet");
 	}
 
 	@summary = "Default summary"

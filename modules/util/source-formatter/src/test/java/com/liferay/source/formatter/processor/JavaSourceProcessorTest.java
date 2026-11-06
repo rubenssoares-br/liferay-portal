@@ -20,6 +20,11 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testAnonymousInnerClass() throws Exception {
+		test("AnonymousInnerClass.testjava");
+	}
+
+	@Test
 	public void testAssertUsage() throws Exception {
 		test(
 			"AssertUsage.testjava",
@@ -64,6 +69,18 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testBouncyCastleFIPS() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"BouncyCastleFIPS.testjava"
+			).addExpectedMessage(
+				"Do not use non-FIPS BouncyCastle, see LPD-90318", 9
+			).addExpectedMessage(
+				"Do not use non-FIPS BouncyCastle, see LPD-90318", 10
+			));
+	}
+
+	@Test
 	public void testBuilder() throws Exception {
 		test(
 			SourceProcessorTestParameters.create(
@@ -100,6 +117,11 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testCombineIfStatementAndReturn() throws Exception {
+		test("CombineIfStatementAndReturn.testjava");
+	}
+
+	@Test
 	public void testCombineLines() throws Exception {
 		test("CombineLines.testjava");
 	}
@@ -112,6 +134,26 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	@Test
 	public void testConstructorParameterOrder() throws Exception {
 		test("ConstructorParameterOrder.testjava");
+	}
+
+	@Test
+	public void testCredentialBuffer() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"CredentialBuffer.testjava"
+			).addExpectedMessage(
+				"Assign \"credential.toCharArray()\" to a local variable so " +
+					"that it can be cleared after use, see LPD-93280",
+				22
+			).addExpectedMessage(
+				"Assign \"credential.getBytes()\" to a local variable so " +
+					"that it can be cleared after use, see LPD-93280",
+				26
+			).addExpectedMessage(
+				"Assign \"credential.toCharArray()\" to a local variable so " +
+					"that it can be cleared after use, see LPD-93280",
+				33
+			));
 	}
 
 	@Test
@@ -141,6 +183,44 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	@Test
 	public void testDuplicateVariables() throws Exception {
 		test("DuplicateVariables.testjava", "Duplicate _STRING_2");
+	}
+
+	@Test
+	public void testEarlyLoopExit() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"EarlyLoopExit.testjava"
+			).addExpectedMessage(
+				"Invert the condition and use \"continue\" as early as " +
+					"possible instead of nesting the rest of the loop body " +
+						"in the if-statement",
+				25
+			).addExpectedMessage(
+				"Invert the condition and use \"continue\" as early as " +
+					"possible instead of nesting the rest of the loop body " +
+						"in the if-statement",
+				33
+			).addExpectedMessage(
+				"Invert the condition and use \"continue\" as early as " +
+					"possible instead of nesting the rest of the loop body " +
+						"in the if-statement",
+				43
+			).addExpectedMessage(
+				"Invert the condition and use \"break\" as early as possible " +
+					"instead of nesting the rest of the loop body in the " +
+						"if-statement",
+				54
+			).addExpectedMessage(
+				"Invert the condition and use \"return\" as early as " +
+					"possible instead of nesting the rest of the loop body " +
+						"in the if-statement",
+				143
+			).addExpectedMessage(
+				"Invert the condition and use \"throw\" as early as possible " +
+					"instead of nesting the rest of the loop body in the " +
+						"if-statement",
+				156
+			));
 	}
 
 	@Test
@@ -203,10 +283,98 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
-	public void testFeatureFlagsAnnotationTest() throws Exception {
+	public void testExecuteBatchWithoutAutoBatchPreparedStatementUtil()
+		throws Exception {
+
+		test(
+			"ExecuteBatchWithoutAutoBatchPreparedStatementUtil.testjava",
+			StringBundler.concat(
+				"Use \"AutoBatchPreparedStatementUtil.autoBatch\", \"",
+				"AutoBatchPreparedStatementUtil.autoBatchWithResults\", or \"",
+				"AutoBatchPreparedStatementUtil.concurrentAutoBatch\" to ",
+				"create a prepared statement when using \"preparedStatement.",
+				"executeBatch()\""),
+			20);
+	}
+
+	@Test
+	public void testFIPSTLSVerification() throws Exception {
 		test(
 			SourceProcessorTestParameters.create(
-				"FeatureFlagsAnnotationTest.testjava"
+				"FIPSTLSVerification1.testjava"
+			).addExpectedMessage(
+				"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+					"condition in the same method as \"ALLOW_ALL_HOSTNAME_" +
+						"VERIFIER\", see LPD-93649",
+				29
+			).addExpectedMessage(
+				"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+					"condition in the same method as \"AllowAllHostname" +
+						"Verifier\", see LPD-93649",
+				36
+			).addExpectedMessage(
+				"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+					"condition in the same method as \"new HostnameVerifier()" +
+						"\", see LPD-93649",
+				41
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Missing check \"PropsValues.FIPS_ENABLED\" in if-",
+					"statement condition in the same method as \"setEndpoint",
+					"IdentificationAlgorithm(\"\")\", see LPD-93649"),
+				54
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Missing check \"PropsValues.FIPS_ENABLED\" in if-",
+					"statement condition in the same method as \"setEndpoint",
+					"IdentificationAlgorithm(null)\", see LPD-93649"),
+				58
+			).addExpectedMessage(
+				"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+					"condition in the same method as \"setSSLHostnameVerifier" +
+						"\", see LPD-93649",
+				72
+			).addExpectedMessage(
+				"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+					"condition in the same method as \"NoopHostnameVerifier\"" +
+						", see LPD-93649",
+				76
+			).addExpectedMessage(
+				"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+					"condition in the same method as \"NoopHostnameVerifier\"" +
+						", see LPD-93649",
+				83
+			));
+		test(
+			"FIPSTLSVerification2.testjava",
+			"Missing check \"PropsValues.FIPS_ENABLED\" in if-statement " +
+				"condition in the same class as a trust manager, see LPD-93649",
+			17);
+	}
+
+	@Test
+	public void testFeatureFlagAnnotation() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"FeatureFlagAnnotation.testjava"
+			).addExpectedMessage(
+				"Declare the feature flag with \"x-feature-flag\" in " +
+					"\"rest-openapi.yaml\" instead of using the annotation " +
+						"\"@FeatureFlag\"",
+				13
+			).addExpectedMessage(
+				"Declare the feature flag with \"x-feature-flag\" in " +
+					"\"rest-openapi.yaml\" instead of using the annotation " +
+						"\"@FeatureFlag\"",
+				16
+			));
+	}
+
+	@Test
+	public void testFeatureFlagsAnnotationInTest() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"FeatureFlagsAnnotationInTest.testjava"
 			).addExpectedMessage(
 				"Use annotation \"@FeatureFlags\" instead of \"PropsUtil." +
 					"addProperties\" for feature flag",
@@ -220,6 +388,18 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 					"addProperties\" for feature flag",
 				42
 			));
+	}
+
+	@Test
+	public void testFetchContractCatch() throws Exception {
+		test(
+			"FetchContractCatch.testjava",
+			StringBundler.concat(
+				"Do not catch \"NoSuchUserNotificationEventException\" around ",
+				"the lookup \"userNotificationEventLocalService.getUser",
+				"NotificationEvent\" to signal a missing entity, call the ",
+				"null-tolerant fetch sibling and check for null instead"),
+			29);
 	}
 
 	@Test
@@ -290,17 +470,26 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testIncorrectExecuteUpdateCall() throws Exception {
+		test(
+			"IncorrectExecuteUpdateCall.testjava",
+			"Use \"addBatch()\" and \"executeBatch()\" instead of \"" +
+				"executeUpdate()\" inside loops",
+			28);
+	}
+
+	@Test
 	public void testIncorrectImports() throws Exception {
 		test("IncorrectImports1.testjava");
 		test(
 			SourceProcessorTestParameters.create(
 				"IncorrectImports2.testjava"
 			).addExpectedMessage(
-				"Illegal import: edu.emory.mathcs.backport.java"
+				"Illegal import: edu.emory.mathcs.backport.java", 8
 			).addExpectedMessage(
-				"Illegal import: jodd.util.StringPool"
+				"Use ProxyUtil instead of java.lang.reflect.Proxy", 10
 			).addExpectedMessage(
-				"Use ProxyUtil instead of java.lang.reflect.Proxy"
+				"Illegal import: jodd.util.StringPool", 12
 			));
 	}
 
@@ -327,6 +516,24 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 				"The \"activate\" method must call \"super.activate(" +
 					"bundleContext)\"",
 				22
+			));
+	}
+
+	@Test
+	public void testIncorrectMethodCallsInUpgradeSteps() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"IncorrectMethodCallsInUpgradeSteps.testjava"
+			).addExpectedMessage(
+				"Only \"Table.create*\" and \"UpgradeProcessFactory.*\" " +
+					"calls are allowed in \"getPostUpgradeSteps\" and \"" +
+						"getPreUpgradeSteps\", see LPD-44331",
+				35
+			).addExpectedMessage(
+				"Only \"Table.create*\" and \"UpgradeProcessFactory.*\" " +
+					"calls are allowed in \"getPostUpgradeSteps\" and \"" +
+						"getPreUpgradeSteps\", see LPD-44331",
+				38
 			));
 	}
 
@@ -462,6 +669,11 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testJavaLogVariableDefinition() throws Exception {
+		test("JavaLogVariableDefinition.testjava");
+	}
+
+	@Test
 	public void testJavaNewProblemInstantiationParameters() throws Exception {
 		test("JavaNewProblemInstantiationParameters.testjava");
 	}
@@ -494,6 +706,18 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testLocalVariableTypeInferences() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"LocalVariableTypeInferences.testjava"
+			).addExpectedMessage(
+				"Avoid using \"var\" to declare variable", 17
+			).addExpectedMessage(
+				"Avoid using \"var\" to declare variable", 25
+			));
+	}
+
+	@Test
 	public void testLogLevels() throws Exception {
 		test(
 			SourceProcessorTestParameters.create(
@@ -521,6 +745,29 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	@Test
 	public void testMapBuilderGenerics() throws Exception {
 		test("MapBuilderGenerics.testjava");
+	}
+
+	@Test
+	public void testMetaAnnotationMissingName() throws Exception {
+		test(
+			"MetaAnnotationMissingName.testjava",
+			"Missing attribute \"name\" in \"@Meta.AD\"", 20);
+	}
+
+	@Test
+	public void testMetaAnnotationMissingPasswordType() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"MetaAnnotationMissingPasswordType.testjava"
+			).addExpectedMessage(
+				"Use \"type = Meta.Type.Password\" in \"@Meta.AD\" for " +
+					"\"apiKey\", which appears to hold a secret",
+				23
+			).addExpectedMessage(
+				"Use \"type = Meta.Type.Password\" in \"@Meta.AD\" for " +
+					"\"clientSecret\", which appears to hold a secret",
+				26
+			));
 	}
 
 	@Test
@@ -621,6 +868,17 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testMissingEmptyLinesAfterReferencingVariable()
+		throws Exception {
+
+		test(
+			"MissingEmptyLinesAfterReferencingVariable.testjava",
+			"There should be an empty line before line \"47\", as we " +
+				"finished referencing variable \"group\"",
+			47);
+	}
+
+	@Test
 	public void testMissingEmptyLinesBeforeMethodCalls() throws Exception {
 		test(
 			"MissingEmptyLinesBeforeMethodCalls.testjava",
@@ -629,10 +887,35 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testMissingEmptyLinesBetweenAssigningAndUsingVariable()
+		throws Exception {
+
+		test(
+			"MissingEmptyLinesBetweenAssigningAndUsingVariable.testjava",
+			"There should be an empty line between assigning and using " +
+				"variable \"jsonBeginPos\"",
+			16);
+	}
+
+	@Test
 	public void testMissingEmptyLinesInInstanceInit() throws Exception {
 		test(
 			"MissingEmptyLinesInInstanceInit.testjava",
 			"There should be an empty line after line \"18\"", 18);
+	}
+
+	@Test
+	public void testMissingParameterizedSQLStatement() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"MissingParameterizedSQLStatement.testjava"
+			).addExpectedMessage(
+				"Use \"PreparedStatement.set*\" to parameterize \"ownerType\"",
+				23
+			).addExpectedMessage(
+				"Use \"PreparedStatement.set*\" to parameterize \"portletId\"",
+				23
+			));
 	}
 
 	@Test
@@ -655,6 +938,18 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 				"Move \"alterTableAddColumn\" call inside " +
 					"\"getPostUpgradeSteps\" method",
 				21
+			));
+	}
+
+	@Test
+	public void testNestedSwitchExpressions() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"NestedSwitchExpressions.testjava"
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 14
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 15
 			));
 	}
 
@@ -692,6 +987,30 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testPatternMatchingForSwitch() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"PatternMatchingForSwitch.testjava"
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 14
+			).addExpectedMessage(
+				"Do not use pattern matching for switch", 16
+			).addExpectedMessage(
+				"Do not use pattern matching for switch", 17
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 23
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 25
+			).addExpectedMessage(
+				"Do not use pattern matching for switch", 26
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 35
+			).addExpectedMessage(
+				"Do not use pattern matching for switch", 36
+			));
+	}
+
+	@Test
 	public void testProxyUsage() throws Exception {
 		test(
 			"ProxyUsage.testjava",
@@ -715,8 +1034,86 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testRecordClass() throws Exception {
+		test("RecordClass.testjava", "Do not declare record class", 11);
+	}
+
+	@Test
+	public void testRecordPattern() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"RecordPattern.testjava"
+			).addExpectedMessage(
+				"Do not use record patterns", 18
+			).addExpectedMessage(
+				"Use \"if/else\" statement instead of \"switch\"", 35
+			).addExpectedMessage(
+				"Do not use pattern matching for switch", 36
+			).addExpectedMessage(
+				"Do not use record patterns", 36
+			));
+	}
+
+	@Test
+	public void testRedundantBranchingStatement() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"RedundantBranchingStatement.testjava"
+			).addExpectedMessage(
+				"Redundant \"return\" statement", 19
+			).addExpectedMessage(
+				"Redundant \"return\" statement", 26
+			).addExpectedMessage(
+				"Redundant \"return\" statement", 36
+			).addExpectedMessage(
+				"Redundant \"return\" statement", 47
+			).addExpectedMessage(
+				"Redundant \"continue\" statement", 57
+			).addExpectedMessage(
+				"Redundant \"continue\" statement", 71
+			).addExpectedMessage(
+				"Redundant \"continue\" statement", 125
+			));
+	}
+
+	@Test
 	public void testRedundantCommas() throws Exception {
 		test("RedundantCommas.testjava");
+	}
+
+	@Test
+	public void testRedundantContainsCalls() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"RedundantContainsCalls.testjava"
+			).addExpectedMessage(
+				"Combine the \"containsKey\" check on \"map\" and the " +
+					"following \"put\" into a single \"putIfAbsent\" or \"" +
+						"computeIfAbsent\"",
+				20
+			).addExpectedMessage(
+				"Combine the \"containsKey\" check on \"map\" and the " +
+					"following \"get\" into a single \"get\" with a null check",
+				30
+			).addExpectedMessage(
+				"Combine the \"containsKey\" check on \"map\" and the " +
+					"following \"remove\" into a single \"remove\" with a " +
+						"null check",
+				38
+			).addExpectedMessage(
+				"Combine the \"contains\" check on \"set\" and the following " +
+					"\"add\" into the boolean result of a single \"add\"",
+				46
+			).addExpectedMessage(
+				"Combine the \"contains\" check on \"set\" and the following " +
+					"\"remove\" into the boolean result of a single \"remove\"",
+				52
+			).addExpectedMessage(
+				"Combine the \"contains\" check on \"list\" and the " +
+					"following \"remove\" into the boolean result of a " +
+						"single \"remove\"",
+				58
+			));
 	}
 
 	@Test
@@ -736,14 +1133,99 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
-	public void testResultCountSet() throws Exception {
+	public void testResultSetGetCall() throws Exception {
 		test(
-			"ResultSetCount.testjava", "Use resultSet.getInt(1) for count", 26);
+			SourceProcessorTestParameters.create(
+				"ResultSetGetCall.testjava"
+			).addExpectedMessage(
+				"Use the simple column name instead of \"TableName.ColumnName" +
+					"\" when calling method \"resultSet.get*\"",
+				43
+			).addExpectedMessage(
+				"Use the simple column name instead of column index when " +
+					"calling method \"resultSet.get*\"",
+				60
+			).addExpectedMessage(
+				"Use \"resultSet.getLong\" for count", 74
+			));
 	}
 
 	@Test
-	public void testRunSqlStyling() throws Exception {
-		test("RunSqlStyling.testjava");
+	public void testRunSQLStyling() throws Exception {
+		test("RunSQLStyling.testjava");
+	}
+
+	@Test
+	public void testSQLBooleanValues() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"SQLBooleanValues.testjava"
+			).addExpectedMessage(
+				"Use \"[$TRUE$]\" instead of \"true\" in SQL statements", 21
+			).addExpectedMessage(
+				"Use \"[$TRUE$]\" instead of \"true\" in SQL statements", 28
+			).addExpectedMessage(
+				"Use \"[$TRUE$]\" instead of \"true\" in SQL statements", 42
+			).addExpectedMessage(
+				"Use \"[$FALSE$]\" instead of \"false\" in SQL statements", 53
+			).addExpectedMessage(
+				"Use \"SQLTransformer.transform\" to wrap SQL statement if " +
+					"it contains \"[$FALSE$]\" or \"[$TRUE$]\"",
+				63
+			).addExpectedMessage(
+				"Use \"[$FALSE$]\" instead of \"false\" in SQL statements", 72
+			).addExpectedMessage(
+				"Use \"SQLTransformer.transform\" to wrap SQL statement if " +
+					"it contains \"[$FALSE$]\" or \"[$TRUE$]\"",
+				83
+			));
+	}
+
+	@Test
+	public void testSafeCloseableMissingClose() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"SafeCloseableMissingClose.testjava"
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Missing calling \"close\" to variable ",
+					"\"_safeCloseable1\", use \"_safeCloseable1.close\" or ",
+					"try-with-resources statement instead"),
+				28
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Missing calling \"close\" to variable ",
+					"\"_safeCloseable2\", use \"_safeCloseable2.close\" or ",
+					"try-with-resources statement instead"),
+				29
+			));
+	}
+
+	@Test
+	public void testSealedModifierUsage() throws Exception {
+		test(
+			"SealedModifierUsage.testjava",
+			"Do not use modifier \"sealed\" and \"non-sealed\"", 11);
+	}
+
+	@Test
+	public void testSecretComparison() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"SecretComparison.testjava"
+			).addExpectedMessage(
+				"Use \"MessageDigest.isEqual\" to compare secrets, see " +
+					"LPD-93281",
+				18
+			).addExpectedMessage(
+				"Use \"MessageDigest.isEqual\" to compare secrets, see " +
+					"LPD-93281",
+				26
+			).addExpectedMessage(
+				"Use \"MessageDigest.isEqual\" to compare secrets, see " +
+					"LPD-93281",
+				32
+			));
 	}
 
 	@Test
@@ -753,6 +1235,18 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 			"Use SecureRandomUtil or com.liferay.portal.kernel.security." +
 				"SecureRandom instead of java.security.SecureRandom, see " +
 					"LPS-39508");
+	}
+
+	@Test
+	public void testServiceImplGetFetch() throws Exception {
+		test(
+			"GetFetchServiceImpl.testjava",
+			StringBundler.concat(
+				"Method \"getDefaultPasswordPolicy\" returns a nullable fetch ",
+				"result, which its \"get\" name promises will never be null; ",
+				"return a throwing find (raising a NoSuch*Exception) or ",
+				"rename the method to \"fetch\""),
+			19);
 	}
 
 	@Test
@@ -773,7 +1267,7 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
-	public void testSizeIsZeroCheck() throws Exception {
+	public void testSizeIsZero() throws Exception {
 		test(
 			SourceProcessorTestParameters.create(
 				"SizeIsZero.testjava"
@@ -844,6 +1338,84 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testSwitchExpression() throws Exception {
+		test(
+			"SwitchExpression.testjava",
+			"Use \"if/else\" statement instead of \"switch\"", 14);
+	}
+
+	@Test
+	public void testTestClassStaticInitializer() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"TestClassStaticInitializer.testjava"
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Do not use class \"PortalUtil\" in a static initializer ",
+					"of an Arquillian test, since it needs the portal but ",
+					"static initializers also run in the client JVM. ",
+					"Initialize it in a @Before or @BeforeClass method or ",
+					"where it is used"),
+				82
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Do not use \"DLTestUtil.randomTextFileBytes\" in a ",
+					"static initializer of an Arquillian test, since it needs ",
+					"the portal but static initializers also run in the ",
+					"client JVM. Initialize it in a @Before or @BeforeClass ",
+					"method or where it is used"),
+				91
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Use \"RandomTestUtil.randomInt\" instead of ",
+					"\"RandomTestUtil.nextInt\" in a static initializer of an ",
+					"Arquillian test, since \"RandomTestUtil.nextInt\" needs ",
+					"the portal but static initializers also run in the ",
+					"client JVM"),
+				97
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Do not use \"RandomTestUtil.randomString\" with ",
+					"\"TikaRandomizerBumper\" in a static initializer of an ",
+					"Arquillian test, since it needs the portal but static ",
+					"initializers also run in the client JVM. Initialize it ",
+					"in a @Before or @BeforeClass method or where it is used"),
+				99
+			).addExpectedMessage(
+				StringBundler.concat(
+					"Do not use class \"TestPropsValues\" in a static ",
+					"initializer of an Arquillian test, since it needs the ",
+					"portal but static initializers also run in the client ",
+					"JVM. Initialize it in a @Before or @BeforeClass method ",
+					"or where it is used"),
+				109
+			));
+	}
+
+	@Test
+	public void testTextBlock() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"TextBlock.testjava"
+			).addExpectedMessage(
+				"Do not use text block", 14
+			).addExpectedMessage(
+				"Do not use text block", 23
+			).addExpectedMessage(
+				"Do not use text block", 29
+			).addExpectedMessage(
+				"Do not use text block", 42
+			));
+	}
+
+	@Test
+	public void testThreadVariableName() throws Exception {
+		test(
+			"ThreadVariableName.testjava",
+			"Rename thread to \"Lock Create Thread\"", 14);
+	}
+
+	@Test
 	public void testThrowsSystemException() throws Exception {
 		test("ThrowsSystemException.testjava");
 	}
@@ -865,8 +1437,61 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
+	public void testToSQLCall() throws Exception {
+		test(
+			"ToSQLCall.testjava",
+			"Use \"toSQL(string -> {}, astNodeListener)\" instead of " +
+				"\"toSQL(astNodeListener)\" when the SQL string is unused, " +
+					"see LPD-113238",
+			19);
+	}
+
+	@Test
 	public void testTruncateLongLines() throws Exception {
 		test("TruncateLongLines.testjava");
+	}
+
+	@Test
+	public void testTypedPropertyKey() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"TypedPropertyKey.testjava"
+			).addExpectedMessage(
+				"The typed key syntax \"service.ranking:Integer\" is only " +
+					"parsed in component property strings, use the plain key " +
+						"\"service.ranking\" with a typed value",
+				30
+			).addExpectedMessage(
+				"The typed key syntax \"service.ranking:Integer\" is only " +
+					"parsed in component property strings, use the plain key " +
+						"\"service.ranking\" with a typed value",
+				37
+			).addExpectedMessage(
+				"The typed key syntax \"order:Double\" is only parsed in " +
+					"component property strings, use the plain key \"order\" " +
+						"with a typed value",
+				44
+			).addExpectedMessage(
+				"The typed key syntax \"order:Double\" is only parsed in " +
+					"component property strings, use the plain key \"order\" " +
+						"in a filter",
+				46
+			).addExpectedMessage(
+				"The typed key syntax \"order:Double\" is only parsed in " +
+					"component property strings, use the plain key \"order\" " +
+						"in a filter",
+				47
+			).addExpectedMessage(
+				"The typed key syntax \"service.ranking:Integer\" is only " +
+					"parsed in component property strings, use the plain key " +
+						"\"service.ranking\" in a filter",
+				47
+			).addExpectedMessage(
+				"The typed key syntax \"service.ranking:Integer\" is only " +
+					"parsed in component property strings, use the plain key " +
+						"\"service.ranking\" in a filter",
+				50
+			));
 	}
 
 	@Test
@@ -919,6 +1544,42 @@ public class JavaSourceProcessorTest extends BaseSourceProcessorTestCase {
 				"Replace it by inline calls to the \"UpgradeProcessFactory\" " +
 					"class in the registrator class",
 			13);
+	}
+
+	@Test
+	public void testUnresolvedCredentialReads() throws Exception {
+		test(
+			SourceProcessorTestParameters.create(
+				"unresolvedcredentialreads/UnresolvedCredentialReads.testjava"
+			).addDependentFileName(
+				"unresolvedcredentialreads/portal-impl/src/com/liferay/portal" +
+					"/configuration/SecretResolverConfiguration.testjava"
+			).addExpectedMessage(
+				"Resolve \"password()\" through \"SecretResolver\" or " +
+					"\"SecretResolverUtil\" before using the value, see " +
+						"LPD-107260",
+				27
+			).addExpectedMessage(
+				"Resolve \"password()\" through \"SecretResolver\" or " +
+					"\"SecretResolverUtil\" before using the value, see " +
+						"LPD-107260",
+				49
+			).addExpectedMessage(
+				"Resolve \"password()\" through \"SecretResolver\" or " +
+					"\"SecretResolverUtil\" before using the value, see " +
+						"LPD-107260",
+				65
+			).addExpectedMessage(
+				"Resolve \"password()\" through \"SecretResolver\" or " +
+					"\"SecretResolverUtil\" before using the value, see " +
+						"LPD-107260",
+				69
+			).addExpectedMessage(
+				"Resolve \"password()\" through \"SecretResolver\" or " +
+					"\"SecretResolverUtil\" before using the value, see " +
+						"LPD-107260",
+				90
+			));
 	}
 
 	@Test

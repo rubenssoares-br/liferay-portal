@@ -54,6 +54,16 @@ public class AssetListEntryLocalServiceUtil {
 			assetListEntryId, assetEntryIds, segmentsEntryId, serviceContext);
 	}
 
+	public static void addAssetEntrySelections(
+			long assetListEntryId, long[] assetEntryIds,
+			String audienceEntryERC,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		getService().addAssetEntrySelections(
+			assetListEntryId, assetEntryIds, audienceEntryERC, serviceContext);
+	}
+
 	/**
 	 * Adds the asset list entry to the database. Also notifies the appropriate model listeners.
 	 *
@@ -140,6 +150,14 @@ public class AssetListEntryLocalServiceUtil {
 
 		getService().deleteAssetEntrySelection(
 			assetListEntryId, segmentsEntryId, position);
+	}
+
+	public static void deleteAssetEntrySelection(
+			long assetListEntryId, String audienceEntryERC, int position)
+		throws PortalException {
+
+		getService().deleteAssetEntrySelection(
+			assetListEntryId, audienceEntryERC, position);
 	}
 
 	/**
@@ -463,6 +481,15 @@ public class AssetListEntryLocalServiceUtil {
 			assetListEntryId, segmentsEntryId, position, newPosition);
 	}
 
+	public static void moveAssetEntrySelection(
+			long assetListEntryId, String audienceEntryERC, int position,
+			int newPosition)
+		throws PortalException {
+
+		getService().moveAssetEntrySelection(
+			assetListEntryId, audienceEntryERC, position, newPosition);
+	}
+
 	/**
 	 * Updates the asset list entry in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
 	 *
@@ -495,12 +522,36 @@ public class AssetListEntryLocalServiceUtil {
 		return getService().updateAssetListEntry(assetListEntryId, title);
 	}
 
+	public static AssetListEntry updateAssetListEntry(
+			long assetListEntryId, String title,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().updateAssetListEntry(
+			assetListEntryId, title, serviceContext);
+	}
+
+	public static void updateAssetListEntryTypeSettings(
+			long companyId, long classNameId)
+		throws PortalException {
+
+		getService().updateAssetListEntryTypeSettings(companyId, classNameId);
+	}
+
 	public static void updateAssetListEntryTypeSettings(
 			long assetListEntryId, long segmentsEntryId, String typeSettings)
 		throws PortalException {
 
 		getService().updateAssetListEntryTypeSettings(
 			assetListEntryId, segmentsEntryId, typeSettings);
+	}
+
+	public static void updateAssetListEntryTypeSettings(
+			long assetListEntryId, String audienceEntryERC, String typeSettings)
+		throws PortalException {
+
+		getService().updateAssetListEntryTypeSettings(
+			assetListEntryId, audienceEntryERC, typeSettings);
 	}
 
 	public static AssetListEntryLocalService getService() {
@@ -513,3 +564,4 @@ public class AssetListEntryLocalServiceUtil {
 			AssetListEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1935017074

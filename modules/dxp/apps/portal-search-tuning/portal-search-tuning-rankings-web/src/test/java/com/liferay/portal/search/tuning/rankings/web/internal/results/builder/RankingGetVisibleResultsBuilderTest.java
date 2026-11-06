@@ -38,7 +38,7 @@ public class RankingGetVisibleResultsBuilderTest
 			complexQueryPartBuilderFactory, dlAppLocalService,
 			fastDateFormatFactory, groupLocalService, rankingIndexName,
 			rankingIndexReader, _rankingSearchRequestHelper, resourceActions,
-			resourceRequest, resourceResponse, queries, searcher,
+			resourceRequest, resourceResponse, searcher,
 			searchRequestBuilderFactory);
 	}
 
@@ -48,8 +48,6 @@ public class RankingGetVisibleResultsBuilderTest
 		setUpDLAppLocalService();
 		setUpFastDateFormatFactory();
 		setUpPortalUtil();
-		setUpPropsUtil();
-		setUpQuery();
 
 		Ranking ranking = Mockito.mock(Ranking.class);
 
@@ -66,8 +64,8 @@ public class RankingGetVisibleResultsBuilderTest
 		setUpSearcher(setUpSearchResponse(setUpDocumentWithGetString()));
 
 		Assert.assertEquals(
-			mapper.readTree(_getExpectedDocumentsString()),
-			mapper.readTree(
+			objectMapper.readTree(_getExpectedDocumentsString()),
+			objectMapper.readTree(
 				_rankingGetVisibleResultsBuilder.build(
 				).toJSONString()));
 	}

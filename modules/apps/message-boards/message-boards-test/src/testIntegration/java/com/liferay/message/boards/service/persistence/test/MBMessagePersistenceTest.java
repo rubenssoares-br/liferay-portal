@@ -117,11 +117,7 @@ public class MBMessagePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		MBMessage newMBMessage = _persistence.create(pk);
-
-		newMBMessage.setMvccVersion(RandomTestUtil.nextLong());
+		MBMessage newMBMessage = addMBMessage();
 
 		newMBMessage.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -181,7 +177,9 @@ public class MBMessagePersistenceTest {
 
 		newMBMessage.setStatusDate(RandomTestUtil.nextDate());
 
-		_mbMessages.add(_persistence.update(newMBMessage));
+		newMBMessage = _persistence.update(newMBMessage);
+
+		_mbMessages.add(newMBMessage);
 
 		MBMessage existingMBMessage = _persistence.findByPrimaryKey(
 			newMBMessage.getPrimaryKey());
@@ -392,21 +390,6 @@ public class MBMessagePersistenceTest {
 	}
 
 	@Test
-	public void testCountByU_C() throws Exception {
-		_persistence.countByU_C(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByU_C(0L, 0L);
-	}
-
-	@Test
-	public void testCountByU_CArrayable() throws Exception {
-		_persistence.countByU_C(
-			RandomTestUtil.nextLong(),
-			new long[] {RandomTestUtil.nextLong(), 0L});
-	}
-
-	@Test
 	public void testCountByC_C() throws Exception {
 		_persistence.countByC_C(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
@@ -423,14 +406,6 @@ public class MBMessagePersistenceTest {
 	}
 
 	@Test
-	public void testCountByT_A() throws Exception {
-		_persistence.countByT_A(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
-
-		_persistence.countByT_A(0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
 	public void testCountByT_S() throws Exception {
 		_persistence.countByT_S(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
@@ -444,14 +419,6 @@ public class MBMessagePersistenceTest {
 			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
 
 		_persistence.countByT_NotS(0L, 0);
-	}
-
-	@Test
-	public void testCountByTR_S() throws Exception {
-		_persistence.countByTR_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByTR_S(0L, 0);
 	}
 
 	@Test
@@ -490,32 +457,6 @@ public class MBMessagePersistenceTest {
 	}
 
 	@Test
-	public void testCountByU_C_C() throws Exception {
-		_persistence.countByU_C_C(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong());
-
-		_persistence.countByU_C_C(0L, 0L, 0L);
-	}
-
-	@Test
-	public void testCountByU_C_S() throws Exception {
-		_persistence.countByU_C_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByU_C_S(0L, 0L, 0);
-	}
-
-	@Test
-	public void testCountByU_C_SArrayable() throws Exception {
-		_persistence.countByU_C_S(
-			RandomTestUtil.nextLong(),
-			new long[] {RandomTestUtil.nextLong(), 0L},
-			RandomTestUtil.nextInt());
-	}
-
-	@Test
 	public void testCountByC_C_S() throws Exception {
 		_persistence.countByC_C_S(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
@@ -540,15 +481,6 @@ public class MBMessagePersistenceTest {
 			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
 
 		_persistence.countByG_C_T_S(0L, 0L, 0L, 0);
-	}
-
-	@Test
-	public void testCountByU_C_C_S() throws Exception {
-		_persistence.countByU_C_C_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByU_C_C_S(0L, 0L, 0L, 0);
 	}
 
 	@Test
@@ -917,8 +849,6 @@ public class MBMessagePersistenceTest {
 
 		MBMessage mbMessage = _persistence.create(pk);
 
-		mbMessage.setMvccVersion(RandomTestUtil.nextLong());
-
 		mbMessage.setCtCollectionId(RandomTestUtil.nextLong());
 
 		mbMessage.setUuid(RandomTestUtil.randomString());
@@ -987,3 +917,4 @@ public class MBMessagePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1411069289

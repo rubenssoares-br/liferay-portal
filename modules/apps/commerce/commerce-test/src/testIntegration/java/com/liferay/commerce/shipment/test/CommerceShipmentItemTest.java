@@ -15,6 +15,7 @@ import com.liferay.commerce.currency.test.util.CommerceCurrencyTestUtil;
 import com.liferay.commerce.exception.CommerceShipmentStatusException;
 import com.liferay.commerce.exception.DuplicateCommerceShipmentItemExternalReferenceCodeException;
 import com.liferay.commerce.inventory.engine.CommerceInventoryEngine;
+import com.liferay.commerce.inventory.service.CommerceInventoryWarehouseItemLocalService;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceShipment;
 import com.liferay.commerce.model.CommerceShipmentItem;
@@ -132,12 +133,16 @@ public class CommerceShipmentItemTest {
 		Assert.assertEquals(
 			commerceShipmentItems.toString(), 1, commerceShipmentItems.size());
 
+		Assert.assertEquals(
+			commerceShipmentItems.toString(), 1,
+			_commerceShipmentItemLocalService.
+				getValidCommerceShipmentItemsCount(
+					_commerceShipment.getCommerceShipmentId()));
+
 		CommerceShipmentItem actualCommerceShipmentItem =
 			commerceShipmentItems.get(0);
 
 		Assert.assertEquals(commerceShipmentItem, actualCommerceShipmentItem);
-
-		_resetCommerceShipment();
 	}
 
 	@Test(expected = CommerceShipmentStatusException.class)
@@ -176,8 +181,6 @@ public class CommerceShipmentItemTest {
 		Assert.assertEquals(
 			_commerceShipment.getStatus(),
 			CommerceShipmentConstants.SHIPMENT_STATUS_SHIPPED);
-
-		_resetCommerceShipment();
 	}
 
 	@Test
@@ -227,8 +230,6 @@ public class CommerceShipmentItemTest {
 
 		Assert.assertFalse(
 			BigDecimalUtil.eq(BigDecimal.ONE, actualCPInstanceStockQuantity));
-
-		_resetCommerceShipment();
 	}
 
 	@Test
@@ -273,14 +274,56 @@ public class CommerceShipmentItemTest {
 
 		BigDecimal actualCPInstanceStockQuantity =
 			_commerceInventoryEngine.getStockQuantity(
-				_user.getCompanyId(), cpInstance.getGroupId(),
+				_user.getCompanyId(), 0, cpInstance.getGroupId(),
 				_commerceChannel.getGroupId(), cpInstance.getSku(),
 				StringPool.BLANK);
 
 		Assert.assertTrue(
 			BigDecimalUtil.eq(BigDecimal.ONE, actualCPInstanceStockQuantity));
+	}
 
-		_resetCommerceShipment();
+	@Test
+	public void testDeleteShipmentItemSuccessfullyIfItemHasNoInventory()
+		throws Exception {
+
+		frutillaRule.scenario(
+			"Delete a Shipment Item after a shipment is marked as shipped " +
+				"and restock the sku"
+		).given(
+			"A Group"
+		).and(
+			"A ShipmentItem created without inventory validation"
+		).and(
+			"A CPInstance with allowed back orders and no inventory"
+		).when(
+			"The ShipmentItem is deleted"
+		).then(
+			"The ShipmentItem is not restocked since there was no inventory " +
+				"and the ShipmentItem is deleted successfully"
+		);
+
+		CPInstance cpInstance = CPTestUtil.addCPInstanceWithRandomSku(
+			_group.getGroupId());
+
+		CommerceTestUtil.updateBackOrderCPDefinitionInventory(
+			cpInstance.getCPDefinition());
+
+		CommerceShipmentItem commerceShipmentItem =
+			CommerceShipmentTestUtil.addCommerceShipmentItem(
+				_commerceContext, cpInstance, _commerceChannel.getGroupId(),
+				_user.getUserId(), _commerceOrder.getCommerceOrderId(),
+				_commerceShipment.getCommerceShipmentId(), 1, 1);
+
+		_commerceInventoryWarehouseItemLocalService.
+			deleteCommerceInventoryWarehouseItems(
+				_group.getCompanyId(), cpInstance.getSku(), StringPool.BLANK);
+
+		_commerceShipmentItemLocalService.deleteCommerceShipmentItem(
+			commerceShipmentItem, true);
+
+		Assert.assertNull(
+			_commerceShipmentItemLocalService.fetchCommerceShipmentItem(
+				commerceShipmentItem.getCommerceShipmentItemId()));
 	}
 
 	@Test(
@@ -326,8 +369,6 @@ public class CommerceShipmentItemTest {
 
 		_commerceShipmentItemLocalService.deleteCommerceShipmentItem(
 			newCommerceShipmentItem.getCommerceShipmentItemId());
-
-		_resetCommerceShipment();
 	}
 
 	@Test(expected = CommerceShipmentStatusException.class)
@@ -374,21 +415,10 @@ public class CommerceShipmentItemTest {
 		Assert.assertEquals(
 			commerceShipmentItem.getQuantity(),
 			newCommerceShipmentItem.getQuantity());
-
-		_resetCommerceShipment();
 	}
 
 	@Rule
 	public FrutillaRule frutillaRule = new FrutillaRule();
-
-	private void _resetCommerceShipment() throws Exception {
-		_commerceShipmentLocalService.deleteCommerceShipment(
-			_commerceShipment, true);
-
-		_commerceShipmentLocalService.addCommerceShipment(_commerceShipment);
-	}
-
-	private static User _user;
 
 	@Inject
 	private AccountEntryLocalService _accountEntryLocalService;
@@ -407,6 +437,10 @@ public class CommerceShipmentItemTest {
 	@Inject
 	private CommerceInventoryEngine _commerceInventoryEngine;
 
+	@Inject
+	private CommerceInventoryWarehouseItemLocalService
+		_commerceInventoryWarehouseItemLocalService;
+
 	@DeleteAfterTestRun
 	private CommerceOrder _commerceOrder;
 
@@ -423,5 +457,6 @@ public class CommerceShipmentItemTest {
 	private CommerceShipmentLocalService _commerceShipmentLocalService;
 
 	private Group _group;
+	private User _user;
 
 }

@@ -3,18 +3,11 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {
-	getCheckedCheckboxes,
-	openConfirmModal,
-	postForm,
-} from 'frontend-js-web';
+import {openConfirmModal} from 'frontend-js-components-web';
+import {getCheckedCheckboxes, postForm} from 'frontend-js-web';
 
 export default function propsTransformer({
-	additionalProps: {
-		allSelectedLocalizedMessage,
-		ddmFormInstanceRecordIds,
-		deleteFormInstanceRecordURL,
-	},
+	additionalProps: {deleteFormInstanceRecordURL},
 	portletNamespace,
 	...otherProps
 }) {
@@ -32,42 +25,27 @@ export default function propsTransformer({
 								`${portletNamespace}searchContainerForm`
 							);
 
-							const searchContainer = document.getElementById(
+							const searchContainer = Liferay.SearchContainer.get(
 								`${portletNamespace}ddmFormInstanceRecord`
 							);
 
-							const managementBarSelection =
-								document.querySelector(
-									'.management-bar'
-								)?.textContent;
-
 							if (form && searchContainer) {
-								if (
-									managementBarSelection &&
-									managementBarSelection.includes(
-										allSelectedLocalizedMessage
-									)
-								) {
-									postForm(form, {
-										data: {
-											deleteFormInstanceRecordIds:
-												ddmFormInstanceRecordIds,
-										},
-										url: deleteFormInstanceRecordURL,
-									});
-								}
-								else {
-									postForm(form, {
-										data: {
-											deleteFormInstanceRecordIds:
-												getCheckedCheckboxes(
-													searchContainer,
-													`${portletNamespace}allRowIds`
-												),
-										},
-										url: deleteFormInstanceRecordURL,
-									});
-								}
+								postForm(form, {
+									data: {
+										deleteFormInstanceRecordIds:
+											getCheckedCheckboxes(
+												form,
+												`${portletNamespace}allRowIds`
+											),
+										selectAll:
+											Boolean(
+												searchContainer.select?.get(
+													'bulkSelection'
+												)
+											) && !otherProps.searchValue,
+									},
+									url: deleteFormInstanceRecordURL,
+								});
 							}
 						}
 					},

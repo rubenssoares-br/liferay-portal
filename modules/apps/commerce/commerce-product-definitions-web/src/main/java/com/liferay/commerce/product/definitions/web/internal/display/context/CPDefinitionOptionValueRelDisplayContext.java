@@ -32,12 +32,12 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.taglib.util.CustomAttributesUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
 import java.util.TimeZone;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Marco Leo
@@ -68,6 +68,48 @@ public class CPDefinitionOptionValueRelDisplayContext
 		}
 
 		return cpDefinitionOptionValueRel.fetchCPInstance();
+	}
+
+	public CPDefinitionOptionRel getCPDefinitionOptionRel()
+		throws PortalException {
+
+		if (_cpDefinitionOptionRel != null) {
+			return _cpDefinitionOptionRel;
+		}
+
+		_cpDefinitionOptionRel = actionHelper.getCPDefinitionOptionRel(
+			cpRequestHelper.getRenderRequest());
+
+		return _cpDefinitionOptionRel;
+	}
+
+	public long getCPDefinitionOptionRelId() throws PortalException {
+		CPDefinitionOptionRel cpDefinitionOptionRel =
+			getCPDefinitionOptionRel();
+
+		if (cpDefinitionOptionRel == null) {
+			return 0;
+		}
+
+		return cpDefinitionOptionRel.getCPDefinitionOptionRelId();
+	}
+
+	public CPDefinitionOptionValueRel getCPDefinitionOptionValueRel()
+		throws PortalException {
+
+		return actionHelper.getCPDefinitionOptionValueRel(
+			cpRequestHelper.getRenderRequest());
+	}
+
+	public long getCPDefinitionOptionValueRelId() throws PortalException {
+		CPDefinitionOptionValueRel cpDefinitionOptionValueRel =
+			getCPDefinitionOptionValueRel();
+
+		if (cpDefinitionOptionValueRel == null) {
+			return 0;
+		}
+
+		return cpDefinitionOptionValueRel.getCPDefinitionOptionValueRelId();
 	}
 
 	public Calendar getCalendar() throws PortalException {
@@ -126,48 +168,6 @@ public class CPDefinitionOptionValueRelDisplayContext
 		}
 
 		return String.valueOf(cpInstance.getCPInstanceId());
-	}
-
-	public CPDefinitionOptionRel getCPDefinitionOptionRel()
-		throws PortalException {
-
-		if (_cpDefinitionOptionRel != null) {
-			return _cpDefinitionOptionRel;
-		}
-
-		_cpDefinitionOptionRel = actionHelper.getCPDefinitionOptionRel(
-			cpRequestHelper.getRenderRequest());
-
-		return _cpDefinitionOptionRel;
-	}
-
-	public long getCPDefinitionOptionRelId() throws PortalException {
-		CPDefinitionOptionRel cpDefinitionOptionRel =
-			getCPDefinitionOptionRel();
-
-		if (cpDefinitionOptionRel == null) {
-			return 0;
-		}
-
-		return cpDefinitionOptionRel.getCPDefinitionOptionRelId();
-	}
-
-	public CPDefinitionOptionValueRel getCPDefinitionOptionValueRel()
-		throws PortalException {
-
-		return actionHelper.getCPDefinitionOptionValueRel(
-			cpRequestHelper.getRenderRequest());
-	}
-
-	public long getCPDefinitionOptionValueRelId() throws PortalException {
-		CPDefinitionOptionValueRel cpDefinitionOptionValueRel =
-			getCPDefinitionOptionValueRel();
-
-		if (cpDefinitionOptionValueRel == null) {
-			return 0;
-		}
-
-		return cpDefinitionOptionValueRel.getCPDefinitionOptionValueRelId();
 	}
 
 	public int getDuration() throws PortalException {
@@ -252,14 +252,9 @@ public class CPDefinitionOptionValueRelDisplayContext
 		CPDefinitionOptionRel cpDefinitionOptionRel =
 			getCPDefinitionOptionRel();
 
-		if (Objects.equals(
-				CPConstants.PRODUCT_OPTION_SELECT_DATE_KEY,
-				cpDefinitionOptionRel.getCommerceOptionTypeKey())) {
-
-			return true;
-		}
-
-		return false;
+		return Objects.equals(
+			CPConstants.PRODUCT_OPTION_SELECT_DATE_KEY,
+			cpDefinitionOptionRel.getCommerceOptionTypeKey());
 	}
 
 	private String _getTimeZone(String[] splits) {

@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://java.sun.com/portlet_2_0" prefix="portlet" %>
 
@@ -33,7 +33,6 @@ page import="com.liferay.portal.kernel.util.Constants" %><%@
 page import="com.liferay.portal.kernel.util.HashMapBuilder" %><%@
 page import="com.liferay.portal.kernel.util.HtmlUtil" %><%@
 page import="com.liferay.portal.kernel.util.KeyValuePair" %><%@
-page import="com.liferay.portal.kernel.util.ParamUtil" %><%@
 page import="com.liferay.portal.kernel.util.PortalUtil" %><%@
 page import="com.liferay.portal.kernel.util.WebKeys" %>
 

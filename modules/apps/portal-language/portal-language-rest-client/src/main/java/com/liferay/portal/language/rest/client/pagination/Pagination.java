@@ -5,7 +5,7 @@
 
 package com.liferay.portal.language.rest.client.pagination;
 
-import javax.annotation.Generated;
+import jakarta.annotation.Generated;
 
 /**
  * @author Thiago Buarque
@@ -63,3 +63,4 @@ public class Pagination {
 	private final int _pageSize;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1915079651

@@ -19,18 +19,14 @@ import com.liferay.portal.kernel.dao.orm.ProjectionFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
-import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
-import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.util.IntegerWrapper;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.OrderByComparatorFactoryUtil;
 import com.liferay.portal.kernel.util.Time;
-import com.liferay.portal.security.permission.SimplePermissionChecker;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PersistenceTestRule;
 import com.liferay.portal.test.rule.TransactionalTestRule;
@@ -115,11 +111,7 @@ public class DLFileEntryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		DLFileEntry newDLFileEntry = _persistence.create(pk);
-
-		newDLFileEntry.setMvccVersion(RandomTestUtil.nextLong());
+		DLFileEntry newDLFileEntry = addDLFileEntry();
 
 		newDLFileEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -187,7 +179,9 @@ public class DLFileEntryPersistenceTest {
 
 		newDLFileEntry.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_dlFileEntries.add(_persistence.update(newDLFileEntry));
+		newDLFileEntry = _persistence.update(newDLFileEntry);
+
+		_dlFileEntries.add(newDLFileEntry);
 
 		DLFileEntry existingDLFileEntry = _persistence.findByPrimaryKey(
 			newDLFileEntry.getPrimaryKey());
@@ -332,33 +326,10 @@ public class DLFileEntryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByGroupId() throws Exception {
-		_persistence.countByGroupId(RandomTestUtil.nextLong());
-
-		_persistence.countByGroupId(0L);
-	}
-
-	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
-	}
-
-	@Test
 	public void testCountByRepositoryId() throws Exception {
 		_persistence.countByRepositoryId(RandomTestUtil.nextLong());
 
 		_persistence.countByRepositoryId(0L);
-	}
-
-	@Test
-	public void testCountByMimeType() throws Exception {
-		_persistence.countByMimeType("");
-
-		_persistence.countByMimeType("null");
-
-		_persistence.countByMimeType((String)null);
 	}
 
 	@Test
@@ -417,14 +388,6 @@ public class DLFileEntryPersistenceTest {
 		_persistence.countByG_F(
 			RandomTestUtil.nextLong(),
 			new long[] {RandomTestUtil.nextLong(), 0L});
-	}
-
-	@Test
-	public void testCountByR_F() throws Exception {
-		_persistence.countByR_F(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByR_F(0L, 0L);
 	}
 
 	@Test
@@ -500,12 +463,12 @@ public class DLFileEntryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByS_L_C1_C2() throws Exception {
-		_persistence.countByS_L_C1_C2(
+	public void testCountByC_C_C() throws Exception {
+		_persistence.countByC_C_C(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
+			RandomTestUtil.nextLong());
 
-		_persistence.countByS_L_C1_C2(0L, 0L, 0L, 0L);
+		_persistence.countByC_C_C(0L, 0L, 0L);
 	}
 
 	@Test
@@ -538,30 +501,6 @@ public class DLFileEntryPersistenceTest {
 	public void testFindAll() throws Exception {
 		_persistence.findAll(
 			QueryUtil.ALL_POS, QueryUtil.ALL_POS, getOrderByComparator());
-	}
-
-	@Test
-	public void testFilterFindByGroupId() throws Exception {
-		PermissionThreadLocal.setPermissionChecker(
-			new SimplePermissionChecker() {
-				{
-					init(TestPropsValues.getUser());
-				}
-
-				@Override
-				public boolean isCompanyAdmin(long companyId) {
-					return false;
-				}
-
-			});
-
-		Assert.assertTrue(InlineSQLHelperUtil.isEnabled(0));
-
-		_persistence.filterFindByGroupId(
-			0, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
-
-		_persistence.filterFindByGroupId(
-			0, QueryUtil.ALL_POS, QueryUtil.ALL_POS, getOrderByComparator());
 	}
 
 	protected OrderByComparator<DLFileEntry> getOrderByComparator() {
@@ -918,8 +857,6 @@ public class DLFileEntryPersistenceTest {
 
 		DLFileEntry dlFileEntry = _persistence.create(pk);
 
-		dlFileEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		dlFileEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		dlFileEntry.setUuid(RandomTestUtil.randomString());
@@ -996,3 +933,4 @@ public class DLFileEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1257109433

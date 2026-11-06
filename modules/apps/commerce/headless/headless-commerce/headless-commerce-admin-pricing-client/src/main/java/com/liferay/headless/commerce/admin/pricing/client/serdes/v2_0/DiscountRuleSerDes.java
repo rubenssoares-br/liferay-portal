@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.pricing.client.serdes.v2_0;
 import com.liferay.headless.commerce.admin.pricing.client.dto.v2_0.DiscountRule;
 import com.liferay.headless.commerce.admin.pricing.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -64,6 +65,20 @@ public class DiscountRuleSerDes {
 			sb.append("\"discountId\": ");
 
 			sb.append(discountRule.getDiscountId());
+		}
+
+		if (discountRule.getExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(discountRule.getExternalReferenceCode()));
+
+			sb.append("\"");
 		}
 
 		if (discountRule.getId() != null) {
@@ -118,6 +133,20 @@ public class DiscountRuleSerDes {
 			sb.append("\"");
 		}
 
+		if (discountRule.getTypeSettingsValue() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"typeSettingsValue\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(discountRule.getTypeSettingsValue()));
+
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
@@ -151,6 +180,15 @@ public class DiscountRuleSerDes {
 			map.put("discountId", String.valueOf(discountRule.getDiscountId()));
 		}
 
+		if (discountRule.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(discountRule.getExternalReferenceCode()));
+		}
+
 		if (discountRule.getId() == null) {
 			map.put("id", null);
 		}
@@ -180,6 +218,15 @@ public class DiscountRuleSerDes {
 				"typeSettings", String.valueOf(discountRule.getTypeSettings()));
 		}
 
+		if (discountRule.getTypeSettingsValue() == null) {
+			map.put("typeSettingsValue", null);
+		}
+		else {
+			map.put(
+				"typeSettingsValue",
+				String.valueOf(discountRule.getTypeSettingsValue()));
+		}
+
 		return map;
 	}
 
@@ -204,6 +251,11 @@ public class DiscountRuleSerDes {
 			else if (Objects.equals(jsonParserFieldName, "discountId")) {
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
@@ -214,6 +266,9 @@ public class DiscountRuleSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "typeSettings")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "typeSettingsValue")) {
 				return false;
 			}
 
@@ -237,6 +292,14 @@ public class DiscountRuleSerDes {
 						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					discountRule.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				if (jsonParserFieldValue != null) {
 					discountRule.setId(
@@ -256,6 +319,12 @@ public class DiscountRuleSerDes {
 			else if (Objects.equals(jsonParserFieldName, "typeSettings")) {
 				if (jsonParserFieldValue != null) {
 					discountRule.setTypeSettings((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "typeSettingsValue")) {
+				if (jsonParserFieldValue != null) {
+					discountRule.setTypeSettingsValue(
+						(String)jsonParserFieldValue);
 				}
 			}
 		}
@@ -303,6 +372,16 @@ public class DiscountRuleSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -335,3 +414,4 @@ public class DiscountRuleSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1987458227

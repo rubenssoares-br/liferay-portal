@@ -68,16 +68,13 @@ public class CheckCTSchemaVersionPortalInstanceLifecycleListenerTest {
 		ctCollection = _ctCollectionLocalService.fetchCTCollection(
 			ctCollection.getCtCollectionId());
 
-		Assert.assertNotEquals(
+		Assert.assertEquals(
 			ctSchemaVersion.getSchemaVersionId(),
 			ctCollection.getSchemaVersionId());
 		Assert.assertEquals(
 			latestCTSchemaVersion.getSchemaVersionId(),
 			ctCollection.getSchemaVersionId());
 	}
-
-	@Inject
-	private static ReleaseLocalService _releaseLocalService;
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
@@ -92,5 +89,8 @@ public class CheckCTSchemaVersionPortalInstanceLifecycleListenerTest {
 		filter = "component.name=com.liferay.change.tracking.internal.instance.lifecycle.CheckCTSchemaVersionPortalInstanceLifecycleListener"
 	)
 	private PortalInstanceLifecycleListener _portalInstanceLifecycleListener;
+
+	@Inject
+	private ReleaseLocalService _releaseLocalService;
 
 }

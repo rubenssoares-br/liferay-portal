@@ -33,12 +33,12 @@ public class DepotEntryServiceUtil {
 	 */
 	public static DepotEntry addDepotEntry(
 			Map<java.util.Locale, String> nameMap,
-			Map<java.util.Locale, String> descriptionMap,
+			Map<java.util.Locale, String> descriptionMap, int type,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addDepotEntry(
-			nameMap, descriptionMap, serviceContext);
+			nameMap, descriptionMap, type, serviceContext);
 	}
 
 	public static DepotEntry deleteDepotEntry(long depotEntryId)
@@ -47,18 +47,30 @@ public class DepotEntryServiceUtil {
 		return getService().deleteDepotEntry(depotEntryId);
 	}
 
+	public static DepotEntry fetchGroupDepotEntry(long groupId)
+		throws PortalException {
+
+		return getService().fetchGroupDepotEntry(groupId);
+	}
+
 	public static List<DepotEntry> getCurrentAndGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws PortalException {
 
 		return getService().getCurrentAndGroupConnectedDepotEntries(
-			groupId, start, end);
+			groupId, type, start, end);
 	}
 
 	public static DepotEntry getDepotEntry(long depotEntryId)
 		throws PortalException {
 
 		return getService().getDepotEntry(depotEntryId);
+	}
+
+	public static List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type) {
+
+		return getService().getDepotEntryGroupIds(companyId, userId, type);
 	}
 
 	public static List<DepotEntry> getGroupConnectedDepotEntries(
@@ -70,16 +82,17 @@ public class DepotEntryServiceUtil {
 	}
 
 	public static List<DepotEntry> getGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws PortalException {
 
-		return getService().getGroupConnectedDepotEntries(groupId, start, end);
+		return getService().getGroupConnectedDepotEntries(
+			groupId, type, start, end);
 	}
 
-	public static int getGroupConnectedDepotEntriesCount(long groupId)
+	public static int getGroupConnectedDepotEntriesCount(long groupId, int type)
 		throws PortalException {
 
-		return getService().getGroupConnectedDepotEntriesCount(groupId);
+		return getService().getGroupConnectedDepotEntriesCount(groupId, type);
 	}
 
 	public static DepotEntry getGroupDepotEntry(long groupId)
@@ -100,7 +113,7 @@ public class DepotEntryServiceUtil {
 	public static DepotEntry updateDepotEntry(
 			long depotEntryId, Map<java.util.Locale, String> nameMap,
 			Map<java.util.Locale, String> descriptionMap,
-			Map<String, Boolean> depotAppCustomizationMap,
+			Map<String, Boolean> depotAppCustomizationMap, String friendlyURL,
 			com.liferay.portal.kernel.util.UnicodeProperties
 				typeSettingsUnicodeProperties,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
@@ -108,7 +121,7 @@ public class DepotEntryServiceUtil {
 
 		return getService().updateDepotEntry(
 			depotEntryId, nameMap, descriptionMap, depotAppCustomizationMap,
-			typeSettingsUnicodeProperties, serviceContext);
+			friendlyURL, typeSettingsUnicodeProperties, serviceContext);
 	}
 
 	public static DepotEntryService getService() {
@@ -119,3 +132,4 @@ public class DepotEntryServiceUtil {
 		new Snapshot<>(DepotEntryServiceUtil.class, DepotEntryService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1117226626

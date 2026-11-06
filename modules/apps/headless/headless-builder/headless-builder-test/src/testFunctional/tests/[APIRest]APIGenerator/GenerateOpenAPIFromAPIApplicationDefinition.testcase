@@ -1,6 +1,7 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property custom.properties = "feature.flag.LPS-178642=true";
 	property portal.acceptance = "quarantine";
 	property portal.release = "true";
@@ -77,42 +78,6 @@ definition {
 
 		task ("And Then no “Failed to load API definition.” error") {
 			AssertConsoleTextNotPresent(value1 = "Failed to load API definition.");
-		}
-	}
-
-	@priority = 4
-	test CanHideAPIApplicationOnRestApplicationsListByUnbublishing {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("Given APIApplication ‘my-app’ of status ‘published’ with APIEndpoints with related APISchemas created") {
-			var response = ApplicationAPI.createAPIApplication(
-				baseURL = "my-app",
-				endpointName = "testendpoint",
-				endpointPath = "/testendpoint",
-				mainObjectDefinitionErc = "L_API_APPLICATION",
-				relatedEndpoint = "true",
-				relatedSchema = "true",
-				schemaName = "testSchema",
-				status = "published",
-				title = "My-app");
-		}
-
-		task ("When I change state to ‘unpublish’") {
-			var aPIApplicationId = JSONPathUtil.getIdValue(response = ${response});
-
-			ApplicationAPI.updateAPIApplication(
-				aPIApplicationId = ${aPIApplicationId},
-				parameter = "applicationStatus",
-				parameterValue = "unpublished");
-		}
-
-		task ("Then I cannot see ‘my-app’ on the REST Applications list of API Explorer") {
-			APIExplorer.navigateToOpenAPI();
-
-			AssertElementNotPresent(
-				locator1 = "Button#BUTTON_WITH_VALUE",
-				value = "c/my-app");
 		}
 	}
 

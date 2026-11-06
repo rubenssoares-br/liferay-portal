@@ -7,6 +7,7 @@ import {ClayButtonWithIcon} from '@clayui/button';
 import ClayCard from '@clayui/card';
 import ClayIcon from '@clayui/icon';
 import classNames from 'classnames';
+import {FeatureIndicator} from 'frontend-js-components-web';
 import {sub} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useCallback, useState} from 'react';
@@ -14,10 +15,7 @@ import React, {useCallback, useState} from 'react';
 import {FRAGMENTS_DISPLAY_STYLES} from '../../../app/config/constants/fragmentsDisplayStyles';
 import {LAYOUT_DATA_ITEM_TYPES} from '../../../app/config/constants/layoutDataItemTypes';
 import {LIST_ITEM_TYPES} from '../../../app/config/constants/listItemTypes';
-import {
-	useSelectItem,
-	useSelectMultipleItems,
-} from '../../../app/contexts/ControlsContext';
+import {useSelectMultipleItems} from '../../../app/contexts/ControlsContext';
 import {
 	useDisableKeyboardMovement,
 	useSetMovementSources,
@@ -45,7 +43,6 @@ export default function TabItem({displayStyle, item, onRemoveHighlighted}) {
 	const dispatch = useDispatch();
 	const [disabled, setDisabled] = useState(item.disabled);
 	const setMovementSources = useSetMovementSources();
-	const selectItem = useSelectItem();
 	const selectMultipleItems = useSelectMultipleItems();
 
 	const onMovementSource = (event) => {
@@ -127,9 +124,7 @@ export default function TabItem({displayStyle, item, onRemoveHighlighted}) {
 					itemType: item.type,
 					parentItemId: parentId,
 					position,
-					selectItems: Liferay.FeatureFlags['LPD-18221']
-						? selectMultipleItems
-						: selectItem,
+					selectItems: selectMultipleItems,
 				})
 			)
 				.then(() => {
@@ -199,10 +194,23 @@ const ListItem = ({
 				className="align-items-center d-flex h-100 justify-content-between w-100"
 				ref={handlerRef}
 			>
-				<div className="align-items-center d-flex page-editor__fragments-widgets__tab-list-item-body">
-					<ClayIcon className="mr-3" symbol={item.icon} />
+				<ClayIcon
+					className="flex-shrink-0 mr-3 mt-0"
+					symbol={item.icon}
+				/>
 
-					<div className="title">{item.label}</div>
+				<div className="align-items-center d-flex flex-wrap page-editor__fragments-widgets__tab-list-item-body">
+					<div
+						className={classNames('title', {
+							'mr-2': item.deprecated,
+						})}
+					>
+						{item.label}
+					</div>
+
+					{item.deprecated ? (
+						<FeatureIndicator type="deprecated" />
+					) : null}
 				</div>
 
 				{!disabled && (
@@ -250,7 +258,7 @@ const CardItem = ({
 				'page-editor__fragments-widgets__tab-card-item',
 				{
 					disabled,
-					'page-editor__fragments-widgets__tab-list-item--active':
+					'page-editor__fragments-widgets__tab-card-item--active':
 						isActive,
 				}
 			)}

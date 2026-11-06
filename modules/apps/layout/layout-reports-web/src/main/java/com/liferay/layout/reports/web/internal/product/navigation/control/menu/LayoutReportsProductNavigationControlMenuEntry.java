@@ -12,7 +12,6 @@ import com.liferay.frontend.taglib.clay.servlet.taglib.IconTag;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.layout.reports.web.internal.configuration.provider.LayoutReportsGooglePageSpeedConfigurationProvider;
 import com.liferay.layout.reports.web.internal.constants.ProductNavigationControlMenuEntryConstants;
-import com.liferay.learn.LearnMessageUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
@@ -43,17 +42,17 @@ import com.liferay.product.navigation.control.menu.ProductNavigationControlMenuE
 import com.liferay.product.navigation.control.menu.constants.ProductNavigationControlMenuCategoryKeys;
 import com.liferay.taglib.util.BodyBottomTag;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspWriter;
+import jakarta.servlet.jsp.PageContext;
+
 import java.io.IOException;
 import java.io.Writer;
 
 import java.util.Locale;
 import java.util.ResourceBundle;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.JspWriter;
-import javax.servlet.jsp.PageContext;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -165,9 +164,9 @@ public class LayoutReportsProductNavigationControlMenuEntry
 
 		Layout layout = themeDisplay.getLayout();
 
-		if (!_layoutReportsGooglePageSpeedConfigurationProvider.isEnabled(
-				themeDisplay.getScopeGroup()) &&
-			!layout.isTypeContent() && !layout.isTypeAssetDisplay()) {
+		if (!layout.isTypeAssetDisplay() && !layout.isTypeContent() &&
+			!_layoutReportsGooglePageSpeedConfigurationProvider.isEnabled(
+				themeDisplay.getScopeGroup())) {
 
 			return false;
 		}
@@ -183,13 +182,8 @@ public class LayoutReportsProductNavigationControlMenuEntry
 			Layout layout, PermissionChecker permissionChecker)
 		throws PortalException {
 
-		if (!LayoutPermissionUtil.containsLayoutRestrictedUpdatePermission(
-				permissionChecker, layout)) {
-
-			return false;
-		}
-
-		return true;
+		return LayoutPermissionUtil.containsLayoutRestrictedUpdatePermission(
+			permissionChecker, layout);
 	}
 
 	private boolean _isShow(ThemeDisplay themeDisplay) {
@@ -240,18 +234,16 @@ public class LayoutReportsProductNavigationControlMenuEntry
 		String layoutMode = ParamUtil.getString(
 			httpServletRequest, "p_l_mode", Constants.VIEW);
 
-		if (layoutMode.equals(Constants.EDIT)) {
+		if (layoutMode.equals(Constants.EDIT) ||
+			layoutMode.equals(Constants.HISTORY)) {
+
 			return false;
 		}
 
 		boolean hidePanel = ParamUtil.getBoolean(
 			httpServletRequest, "hide-panel");
 
-		if (hidePanel) {
-			return false;
-		}
-
-		return true;
+		return !hidePanel;
 	}
 
 	private void _processBodyBottomTagBody(PageContext pageContext) {
@@ -353,10 +345,6 @@ public class LayoutReportsProductNavigationControlMenuEntry
 							layoutReportsDataURL, "segmentsExperienceId",
 							segmentsExperienceId);
 					}
-				).put(
-					"learnResources",
-					LearnMessageUtil.getReactDataJSONObject(
-						"frontend-js-components-web")
 				).build(),
 				httpServletRequest, jspWriter);
 

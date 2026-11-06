@@ -2,12 +2,13 @@
 definition {
 
 	property app.server.bundles.size = "1";
+	property browser.chrome.version = "139.0";
 	property custom.properties = "auth.verifier.TunnelAuthVerifier.hosts.allowed=${line.separator}tunneling.servlet.shared.secret=1234567890123456";
 	property databases.size = "1";
 	property minimum.slave.ram = "24";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.main.component.name = "Document Management";
+	property testray.main.component.name = "Documents and Media";
 
 	setUp {
 		TestCase.setUpPortalInstance();
@@ -421,7 +422,7 @@ definition {
 			webContentImage = "Document_2.jpg",
 			webContentTitle = "Web Content Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		Navigator.gotoSitePage(
 			pageName = "Staging DM Page",
@@ -1016,7 +1017,7 @@ definition {
 			webContentContent = "WC WebContent Content",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		JSONLayout.addWidgetToPublicLayout(
 			column = 2,
@@ -1100,13 +1101,15 @@ definition {
 			webContentContent = "Web Content Content",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		Navigator.gotoSitePage(
 			pageName = "Staging DM Page",
 			siteName = "Site Name");
 
 		WebContentDisplayPortlet.selectWebContent(webContentTitle = "WC WebContent Title");
+
+		IFrame.closeFrame();
 
 		Staging.gotoPublishToLive();
 
@@ -1304,8 +1307,7 @@ definition {
 
 		AssetListsAdmin.selectAsset(
 			assetListName = "Manual Collection",
-			assetName = "Document_1",
-			assetType = "Basic Document");
+			assetName = "Document_1");
 
 		JSONLayout.addWidgetToPublicLayout(
 			groupName = "Site Name",
@@ -1403,8 +1405,7 @@ definition {
 
 		AssetListsAdmin.selectAsset(
 			assetListName = "Depot Manual Asset List",
-			assetName = "DM Document Title",
-			assetType = "Basic Document");
+			assetName = "DM Document Title");
 
 		DepotNavigator.openDepotDocumentsAndMediaAdmin(depotName = "Test Depot Name");
 
@@ -1595,13 +1596,15 @@ definition {
 			webContentContent = "Web Content Content",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		Navigator.gotoSitePage(
 			pageName = "Staging DM Page",
 			siteName = "Site Name");
 
 		WebContentDisplayPortlet.selectWebContent(webContentTitle = "WC WebContent Title");
+
+		IFrame.closeFrame();
 
 		Staging.gotoPublishToLive();
 
@@ -1768,10 +1771,6 @@ definition {
 			dmDocumentFileName = "Document_3Edit.png",
 			remoteStaging = "true",
 			siteName = "remote-site");
-
-		DMDocument.viewDocumentMetadataCP(
-			metadataData = "image/png",
-			metadataLabel = "Content Type");
 	}
 
 	@description = "This ensures that the image can be deleted and republished in web content."
@@ -1823,7 +1822,7 @@ definition {
 			webContentImage = "Document_2.jpg",
 			webContentTitle = "Web Content Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		Navigator.gotoSitePage(
 			pageName = "Staging DM Page",

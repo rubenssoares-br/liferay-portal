@@ -33,6 +33,7 @@ import com.liferay.portal.kernel.model.Theme;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.service.PortletPreferenceValueLocalService;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -50,14 +51,14 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import jakarta.portlet.ReadOnlyException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.Callable;
-
-import javax.portlet.ReadOnlyException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -240,8 +241,9 @@ public class BulkLayoutConverterImpl implements BulkLayoutConverter {
 
 		_layoutPageTemplateStructureLocalService.
 			updateLayoutPageTemplateStructureData(
-				layout.getGroupId(), layout.getPlid(),
-				defaultSegmentsExperienceId, layoutDataJSONObject.toString());
+				serviceContext.getUserId(), layout.getGroupId(),
+				layout.getPlid(), defaultSegmentsExperienceId,
+				layoutDataJSONObject.toString());
 	}
 
 	private Layout _convertLayout(long plid) throws PortalException {
@@ -254,11 +256,11 @@ public class BulkLayoutConverterImpl implements BulkLayoutConverter {
 			Layout layout = _layoutLocalService.getLayout(
 				draftLayout.getClassPK());
 
-			_layoutLocalService.copyLayoutContent(draftLayout, layout);
+			_layoutService.copyLayoutContent(draftLayout, layout);
 
 			draftLayout = _layoutLocalService.getLayout(draftLayout.getPlid());
 
-			draftLayout.setLayoutPrototypeLinkEnabled(false);
+			draftLayout.setPortletLayoutPageTemplateEntryLinkEnabled(false);
 
 			UnicodeProperties typeSettingsUnicodeProperties =
 				draftLayout.getTypeSettingsProperties();
@@ -274,8 +276,9 @@ public class BulkLayoutConverterImpl implements BulkLayoutConverter {
 			layout = _layoutLocalService.getLayout(layout.getPlid());
 
 			layout.setType(draftLayout.getType());
-			layout.setLayoutPrototypeUuid(StringPool.BLANK);
-			layout.setLayoutPrototypeLinkEnabled(false);
+			layout.setPortletLayoutPageTemplateEntryERC(StringPool.BLANK);
+			layout.setPortletLayoutPageTemplateEntryScopeERC(StringPool.BLANK);
+			layout.setPortletLayoutPageTemplateEntryLinkEnabled(false);
 			layout.setStatus(WorkflowConstants.STATUS_APPROVED);
 
 			return _layoutLocalService.updateLayout(layout);
@@ -351,11 +354,11 @@ public class BulkLayoutConverterImpl implements BulkLayoutConverter {
 				layout.getDescriptionMap(), layout.getKeywordsMap(),
 				layout.getRobotsMap(), LayoutConstants.TYPE_CONTENT,
 				layout.getTypeSettings(), true, true, Collections.emptyMap(),
-				layout.getMasterLayoutPlid(), serviceContext);
+				layout.getMasterLayoutPageTemplateEntryERC(), serviceContext);
 		}
 
 		try {
-			return _layoutLocalService.copyLayoutContent(layout, draftLayout);
+			return _layoutService.copyLayoutContent(layout, draftLayout);
 		}
 		catch (Exception exception) {
 			throw new PortalException(exception);
@@ -372,7 +375,7 @@ public class BulkLayoutConverterImpl implements BulkLayoutConverter {
 				PortletKeys.PREFS_OWNER_TYPE_LAYOUT, layout.getPlid());
 
 		for (PortletPreferences portletPreferences : portletPreferencesList) {
-			javax.portlet.PortletPreferences jxPortletPreferences =
+			jakarta.portlet.PortletPreferences jxPortletPreferences =
 				_portletPreferenceValueLocalService.getPreferences(
 					portletPreferences);
 
@@ -421,11 +424,14 @@ public class BulkLayoutConverterImpl implements BulkLayoutConverter {
 		_layoutPageTemplateStructureLocalService;
 
 	@Reference
-	private PortletPreferencesLocalService _portletPreferencesLocalService;
+	private LayoutService _layoutService;
 
 	@Reference
 	private PortletPreferenceValueLocalService
 		_portletPreferenceValueLocalService;
+
+	@Reference
+	private PortletPreferencesLocalService _portletPreferencesLocalService;
 
 	@Reference
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;

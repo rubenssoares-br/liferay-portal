@@ -23,10 +23,10 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Collections;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Sergio González
@@ -59,7 +59,7 @@ public class EntriesChecker extends RowChecker {
 
 		return HashMapBuilder.create(
 			data
-		).put(
+		).<String, Object>put(
 			"modelClassName", _getName(object)
 		).build();
 	}
@@ -166,7 +166,7 @@ public class EntriesChecker extends RowChecker {
 		String checkBoxAllRowIds, String checkBoxPostOnClick,
 		Map<String, Object> data) {
 
-		StringBundler sb = new StringBundler(21);
+		StringBundler sb = new StringBundler(23);
 
 		sb.append("<div class=\"custom-checkbox custom-control\"><label>");
 		sb.append("<input ");
@@ -207,8 +207,10 @@ public class EntriesChecker extends RowChecker {
 		}
 
 		sb.append(HtmlUtil.buildData(data));
-		sb.append("><span class=\"custom-control-label\"></span></label>");
-		sb.append("</div>");
+		sb.append("><span class=\"custom-control-label\"></span><span ");
+		sb.append("class=\"sr-only\">");
+		sb.append(LanguageUtil.get(httpServletRequest.getLocale(), "select"));
+		sb.append("</span></label></div>");
 
 		return sb.toString();
 	}

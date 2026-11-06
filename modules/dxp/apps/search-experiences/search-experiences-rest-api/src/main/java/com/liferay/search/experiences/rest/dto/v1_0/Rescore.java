@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class Rescore implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Rescore.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getQuery() {
 		if (_querySupplier != null) {
@@ -93,7 +93,7 @@ public class Rescore implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _querySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getQueryWeight() {
 		if (_queryWeightSupplier != null) {
@@ -135,7 +135,7 @@ public class Rescore implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _queryWeightSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getRescoreQueryWeight() {
 		if (_rescoreQueryWeightSupplier != null) {
@@ -177,7 +177,7 @@ public class Rescore implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _rescoreQueryWeightSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getScoreMode() {
 		if (_scoreModeSupplier != null) {
 			scoreMode = _scoreModeSupplier.get();
@@ -218,7 +218,7 @@ public class Rescore implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _scoreModeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getWindowSize() {
 		if (_windowSizeSupplier != null) {
@@ -296,17 +296,7 @@ public class Rescore implements Serializable {
 
 			sb.append("\"query\": ");
 
-			if (query instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)query));
-			}
-			else if (query instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)query));
-				sb.append("\"");
-			}
-			else {
-				sb.append(query);
-			}
+			sb.append(_toJSON(query));
 		}
 
 		Object queryWeight = getQueryWeight();
@@ -318,18 +308,7 @@ public class Rescore implements Serializable {
 
 			sb.append("\"queryWeight\": ");
 
-			if (queryWeight instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)queryWeight));
-			}
-			else if (queryWeight instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)queryWeight));
-				sb.append("\"");
-			}
-			else {
-				sb.append(queryWeight);
-			}
+			sb.append(_toJSON(queryWeight));
 		}
 
 		Object rescoreQueryWeight = getRescoreQueryWeight();
@@ -341,19 +320,7 @@ public class Rescore implements Serializable {
 
 			sb.append("\"rescoreQueryWeight\": ");
 
-			if (rescoreQueryWeight instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)rescoreQueryWeight));
-			}
-			else if (rescoreQueryWeight instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)rescoreQueryWeight));
-				sb.append("\"");
-			}
-			else {
-				sb.append(rescoreQueryWeight);
-			}
+			sb.append(_toJSON(rescoreQueryWeight));
 		}
 
 		String scoreMode = getScoreMode();
@@ -381,18 +348,7 @@ public class Rescore implements Serializable {
 
 			sb.append("\"windowSize\": ");
 
-			if (windowSize instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)windowSize));
-			}
-			else if (windowSize instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)windowSize));
-				sb.append("\"");
-			}
-			else {
-				sb.append(windowSize);
-			}
+			sb.append(_toJSON(windowSize));
 		}
 
 		sb.append("}");
@@ -400,8 +356,8 @@ public class Rescore implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Rescore",
 		name = "x-class-name"
 	)
@@ -488,6 +444,27 @@ public class Rescore implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -496,3 +473,4 @@ public class Rescore implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1671781706

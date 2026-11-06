@@ -138,7 +138,7 @@ DLViewEntriesDisplayContext dlViewEntriesDisplayContext = new DLViewEntriesDispl
 															cssClass="card-title text-truncate"
 															href="<%= dlViewEntriesDisplayContext.getViewFileEntryURL(fileEntry) %>"
 															label="<%= latestFileVersion.getTitle() %>"
-															title="<%= HtmlUtil.escapeAttribute(latestFileVersion.getTitle()) %>"
+															title="<%= latestFileVersion.getTitle() %>"
 														/>
 
 														<c:if test="<%= !dlViewEntriesDisplayContext.hasGuestViewPermission(fileEntry) %>">
@@ -152,7 +152,7 @@ DLViewEntriesDisplayContext dlViewEntriesDisplayContext = new DLViewEntriesDispl
 													</div>
 
 													<div class="card-subtitle text-truncate">
-														<%= LanguageUtil.format(request, "modified-x-ago-by-x", new String[] {LanguageUtil.getTimeDescription(locale, System.currentTimeMillis() - fileEntry.getModifiedDate().getTime(), true), HtmlUtil.escape(latestFileVersion.getUserName())}, false) %>
+														<%= LanguageUtil.format(request, "modified-x-ago-by-x", new String[] {LanguageUtil.getTimeDescription(locale, System.currentTimeMillis() - latestFileVersion.getModifiedDate().getTime(), true), HtmlUtil.escape(latestFileVersion.getUserName())}, false) %>
 													</div>
 
 													<div class="card-detail">
@@ -253,7 +253,7 @@ DLViewEntriesDisplayContext dlViewEntriesDisplayContext = new DLViewEntriesDispl
 															<clay:link
 																cssClass="text-truncate"
 																href="<%= dlViewEntriesDisplayContext.getViewFileEntryURL(fileEntry) %>"
-																label="<%= HtmlUtil.unescape(latestFileVersion.getTitle()) %>"
+																label="<%= latestFileVersion.getTitle() %>"
 																translated="<%= false %>"
 															/>
 
@@ -454,8 +454,6 @@ DLViewEntriesDisplayContext dlViewEntriesDisplayContext = new DLViewEntriesDispl
 								liferayPortletResponse
 							).setMVCRenderCommandName(
 								"/document_library/view_folder"
-							).setRedirect(
-								currentURL
 							).setParameter(
 								"folderId", curFolder.getFolderId()
 							).buildString();
@@ -501,8 +499,6 @@ DLViewEntriesDisplayContext dlViewEntriesDisplayContext = new DLViewEntriesDispl
 																	liferayPortletResponse
 																).setMVCRenderCommandName(
 																	"/document_library/view_folder"
-																).setRedirect(
-																	currentURL
 																).setParameter(
 																	"folderId", curFolder.getFolderId()
 																).buildString()

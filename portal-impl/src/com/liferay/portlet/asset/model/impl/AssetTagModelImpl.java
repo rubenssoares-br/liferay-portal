@@ -98,6 +98,8 @@ public class AssetTagModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table AssetTag";
 
+	public static final String ENTITY_ALIAS = "assetTag";
+
 	public static final String ORDER_BY_JPQL = " ORDER BY assetTag.name ASC";
 
 	public static final String ORDER_BY_SQL = " ORDER BY AssetTag.name ASC";
@@ -176,7 +178,7 @@ public class AssetTagModelImpl
 		true;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.asset.kernel.model.AssetTag"));
 
 	public AssetTagModelImpl() {
@@ -1089,3 +1091,4 @@ public class AssetTagModelImpl
 	private AssetTag _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1995621866

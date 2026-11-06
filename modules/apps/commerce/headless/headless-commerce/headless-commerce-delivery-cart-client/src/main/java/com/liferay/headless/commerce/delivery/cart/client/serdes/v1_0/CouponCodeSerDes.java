@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.delivery.cart.client.serdes.v1_0;
 import com.liferay.headless.commerce.delivery.cart.client.dto.v1_0.CouponCode;
 import com.liferay.headless.commerce.delivery.cart.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Andrea Sbarra
@@ -163,6 +164,16 @@ public class CouponCodeSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -195,3 +206,4 @@ public class CouponCodeSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-623668274

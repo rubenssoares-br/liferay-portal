@@ -7,10 +7,10 @@ package com.liferay.saml.internal.servlet.filter.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.petra.string.StringBundler;
-import com.liferay.portal.kernel.model.CompanyConstants;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.CompanyProviderClassTestRule;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
@@ -51,14 +51,14 @@ public class SamlSameSiteLaxCookiesFilterTest {
 	@ClassRule
 	@Rule
 	public static final AggregateTestRule aggregateTestRule =
-		new LiferayIntegrationTestRule();
+		new LiferayIntegrationTestRule() {
+			{
+				skipTestRule(CompanyProviderClassTestRule.INSTANCE);
+			}
+		};
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_companyId = CompanyThreadLocal.getCompanyId();
-
-		CompanyThreadLocal.setCompanyId(CompanyConstants.SYSTEM);
-
 		samlProviderConfigurationHelper =
 			SamlProviderConfigurationHelperUtil.
 				getSamlProviderConfigurationHelper();
@@ -102,23 +102,30 @@ public class SamlSameSiteLaxCookiesFilterTest {
 			).put(
 				"saml.enabled", String.valueOf(_enabled)
 			).build());
-
-		CompanyThreadLocal.setCompanyId(_companyId);
 	}
 
 	@Test
 	public void testACSSameSiteLaxCookiesSupport() throws Exception {
-		_execute(new URL("http://localhost:8080/c/portal/saml/acs"));
+		_execute(
+			new URL(
+				"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+					"/c/portal/saml/acs"));
 	}
 
 	@Test
 	public void testSLOSameSiteLaxCookies() throws Exception {
-		_execute(new URL("http://localhost:8080/c/portal/saml/slo"));
+		_execute(
+			new URL(
+				"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+					"/c/portal/saml/slo"));
 	}
 
 	@Test
 	public void testSSOSameSiteLaxCookies() throws Exception {
-		_execute(new URL("http://localhost:8080/c/portal/saml/sso"));
+		_execute(
+			new URL(
+				"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+					"/c/portal/saml/sso"));
 	}
 
 	protected static SamlProviderConfigurationHelper
@@ -178,7 +185,6 @@ public class SamlSameSiteLaxCookiesFilterTest {
 			paramValues.isEmpty());
 	}
 
-	private static long _companyId;
 	private static boolean _enabled;
 	private static Map<String, String> _paramsMap;
 	private static String _postBody;

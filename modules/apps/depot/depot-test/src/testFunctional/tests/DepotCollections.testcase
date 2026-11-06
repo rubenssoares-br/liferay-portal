@@ -1,9 +1,10 @@
 @component-name = "portal-content-management"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.main.component.name = "Depot";
+	property testray.main.component.name = "Asset Libraries";
 
 	setUp {
 		TestCase.setUpPortalInstance();
@@ -75,7 +76,6 @@ definition {
 		AssetListsAdmin.selectAsset(
 			assetListName = "Depot Manual Asset List",
 			assetName = "Document Title",
-			assetType = "Basic Document",
 			itemSubtype = "Basic Document",
 			itemType = "Document");
 
@@ -162,7 +162,6 @@ definition {
 		AssetListsAdmin.selectAsset(
 			assetListName = "Depot Manual Asset List",
 			assetName = "Document Title",
-			assetType = "Basic Document",
 			itemSubtype = "Basic Document",
 			itemType = "Document");
 
@@ -330,9 +329,7 @@ definition {
 
 		AssetListsAdmin.selectAsset(
 			assetListName = "Site Manual Asset List",
-			assetName = "WC WebContent Title",
-			assetType = "Basic Web Content",
-			depotName = "Test Depot Name");
+			assetName = "WC WebContent Title");
 
 		Navigator.openSitePage(
 			pageName = "Asset Publisher Page",
@@ -376,7 +373,6 @@ definition {
 		AssetListsAdmin.selectAsset(
 			assetListName = "Depot Manual Asset List",
 			assetName = "Document Title",
-			assetType = "Basic Document",
 			itemSubtype = "Basic Document",
 			itemType = "Document");
 
@@ -573,7 +569,7 @@ definition {
 
 		AssetListsAdmin.viewAssetTypeList(
 			assetListName = "Depot Manual Asset List",
-			assetTypeList = "Web Content Folder,Basic Web Content,WC Structure Name",
+			assetTypeList = "Web Content Article,Web Content Folder",
 			itemType = "All Types",
 			manualSelection = "true");
 
@@ -658,10 +654,10 @@ definition {
 			depotName = "Test Depot Name");
 	}
 
-	@description = "This ensures that the asset can be removed in Collections."
+	@description = "This ensures that multiple assets can be selected manually through Collections in a depot and that a selected asset can be removed."
 	@priority = 4
 	@refactordone
-	test CanRemoveSelectedAsset {
+	test CanSelectAndRemoveAssetsManually {
 		for (var i : list "1,2,3") {
 			JSONWebcontent.addWebContent(
 				content = "WC WebContent Content",
@@ -688,8 +684,7 @@ definition {
 
 			AssetListsAdmin.selectAsset(
 				assetListName = "Depot Manual Asset List",
-				assetName = "WC WebContent Title ${i}",
-				assetType = "Basic Web Content");
+				assetName = "WC WebContent Title ${i}");
 		}
 
 		AssetListsAdmin.deleteManualSelectionAssets(assetsList = "WC WebContent Title 2");
@@ -811,7 +806,6 @@ definition {
 			AssetListsAdmin.selectAsset(
 				assetListName = "Depot Manual Asset List",
 				assetName = "DM Document Title ${i}",
-				assetType = "DM Document Type Name 2",
 				itemSubtype = "DM Document Type Name 2",
 				itemType = "Document");
 		}
@@ -823,107 +817,6 @@ definition {
 				assetListTitle = "Depot Manual Asset List",
 				assetTitle = ${documentName},
 				assetType = "Document");
-		}
-	}
-
-	@description = "This ensures that multiple documents can be selected through Collections in a depot."
-	@priority = 4
-	@refactordone
-	test CanSelectMultipleDMManually {
-		for (var documentName : list "Document_1.doc,Document_2.jpg,Document_3.txt") {
-			var extension = StringUtil.extractLast(${documentName}, ".");
-
-			if (${extension} == "doc") {
-				var mimeType = "application/msword";
-			}
-			else if (${extension} == "jpg") {
-				var mimeType = "image/jpg";
-			}
-			else if (${extension} == "txt") {
-				var mimeType = "text/plain";
-			}
-
-			JSONDocument.addFileWithUploadedFile(
-				dmDocumentDescription = "DM Document Description",
-				dmDocumentTitle = ${documentName},
-				groupName = "Test Depot Name",
-				mimeType = ${mimeType},
-				sourceFileName = ${documentName});
-		}
-
-		JSONAssetlist.addManualAssetListEntryWithItemType(
-			groupName = "Test Depot Name",
-			itemSubtype = "Basic Document",
-			itemType = "Document",
-			site = "false",
-			title = "Depot Manual Asset List");
-
-		DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
-
-		AssetListsAdmin.viewAssetList(
-			assetListTitle = "Depot Manual Asset List",
-			type = "Manual");
-
-		for (var documentName : list "Document_1.doc,Document_2.jpg,Document_3.txt") {
-			DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
-
-			AssetListsAdmin.selectAsset(
-				assetListName = "Depot Manual Asset List",
-				assetName = ${documentName},
-				assetType = "Basic Document");
-		}
-
-		for (var documentName : list "Document_1.doc,Document_2.jpg,Document_3.txt") {
-			DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
-
-			AssetListsAdmin.viewContent(
-				assetListTitle = "Depot Manual Asset List",
-				assetTitle = ${documentName},
-				assetType = "Document");
-		}
-	}
-
-	@description = "This ensures that multiple web content can be selected through Collections in a depot."
-	@priority = 4
-	@refactordone
-	test CanSelectMultipleWCManually {
-		for (var i : list "1,2,3") {
-			JSONWebcontent.addWebContent(
-				content = "WC WebContent Content",
-				groupName = "Test Depot Name",
-				site = "false",
-				title = "WC WebContent Title ${i}");
-		}
-
-		JSONAssetlist.addManualAssetListEntryWithItemType(
-			groupName = "Test Depot Name",
-			itemSubtype = "Basic Web Content",
-			itemType = "Web Content Article",
-			site = "false",
-			title = "Depot Manual Asset List");
-
-		DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
-
-		AssetListsAdmin.viewAssetList(
-			assetListTitle = "Depot Manual Asset List",
-			type = "Manual");
-
-		for (var i : list "1,3") {
-			DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
-
-			AssetListsAdmin.selectAsset(
-				assetListName = "Depot Manual Asset List",
-				assetName = "WC WebContent Title ${i}",
-				assetType = "Basic Web Content");
-		}
-
-		for (var i : list "1,3") {
-			DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
-
-			AssetListsAdmin.viewContent(
-				assetListTitle = "Depot Manual Asset List",
-				assetTitle = "WC WebContent Title ${i}",
-				assetType = "Web Content Article");
 		}
 	}
 
@@ -1057,7 +950,7 @@ definition {
 				webContentText = "WC WebContent Text ${i}",
 				webContentTitle = "WC WebContent Title ${i}");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		DepotNavigator.openDepotAssetListsAdmin(depotName = "Test Depot Name");
@@ -1070,7 +963,6 @@ definition {
 			AssetListsAdmin.selectAsset(
 				assetListName = "Depot Manual Asset List",
 				assetName = "WC WebContent Title ${i}",
-				assetType = "WC Structure Name",
 				itemSubtype = "WC Structure Name",
 				itemType = "Web Content Article");
 		}

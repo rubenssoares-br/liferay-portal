@@ -14,6 +14,7 @@ import com.liferay.info.item.InfoItemReference;
 import com.liferay.layout.display.page.LayoutDisplayPageObjectProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProviderRegistry;
+import com.liferay.layout.manager.ContentManager;
 import com.liferay.layout.model.LayoutClassedModelUsage;
 import com.liferay.layout.service.LayoutClassedModelUsageLocalService;
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
@@ -56,7 +57,7 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -93,15 +94,16 @@ public class ContentManagerActionsTest {
 
 		_layoutClassedModelUsage =
 			_layoutClassedModelUsageLocalService.addLayoutClassedModelUsage(
-				_group.getGroupId(),
+				_group.getGroupId(), StringPool.BLANK,
 				_portal.getClassNameId(FileEntry.class.getName()),
-				fileEntry.getFileEntryId(), StringPool.BLANK,
-				RandomTestUtil.randomString(), RandomTestUtil.randomLong(),
-				_layout.getPlid(), new ServiceContext());
+				fileEntry.getFileEntryId(), RandomTestUtil.randomString(),
+				RandomTestUtil.randomLong(), _layout.getPlid(),
+				new ServiceContext());
 
 		LayoutDisplayPageProvider<?> layoutDisplayPageProvider =
 			_layoutDisplayPageProviderRegistry.
 				getLayoutDisplayPageProviderByClassName(
+					_layout.getCompanyId(),
 					_layoutClassedModelUsage.getClassName());
 
 		_layoutDisplayPageObjectProvider =
@@ -110,6 +112,63 @@ public class ContentManagerActionsTest {
 					_layoutClassedModelUsage.getClassName(),
 					new ClassPKInfoItemIdentifier(
 						_layoutClassedModelUsage.getClassPK())));
+	}
+
+	@Test
+	public void testGetActionsJSONObjectWithPermissions() throws Exception {
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+		User user = UserTestUtil.addUser();
+
+		_userLocalService.addRoleUser(role.getRoleId(), user.getUserId());
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			_group.getCompanyId(), DLFileEntry.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(_layoutClassedModelUsage.getClassPK()),
+			role.getRoleId(),
+			new String[] {
+				ActionKeys.PERMISSIONS, ActionKeys.UPDATE, ActionKeys.VIEW
+			});
+
+		PermissionChecker originalPermissionChecker =
+			PermissionThreadLocal.getPermissionChecker();
+
+		try {
+			PermissionThreadLocal.setPermissionChecker(
+				PermissionCheckerFactoryUtil.create(user));
+
+			MockHttpServletRequest mockHttpServletRequest =
+				new MockHttpServletRequest();
+
+			mockHttpServletRequest.setAttribute(
+				JavaConstants.JAKARTA_PORTLET_RESPONSE,
+				new MockLiferayResourceResponse());
+
+			ThemeDisplay themeDisplay = ContentLayoutTestUtil.getThemeDisplay(
+				_company, _group, _layout);
+
+			mockHttpServletRequest.setAttribute(
+				WebKeys.THEME_DISPLAY, themeDisplay);
+
+			JSONObject actionsJSONObject = ReflectionTestUtil.invoke(
+				_contentManager, "_getActionsJSONObject",
+				new Class<?>[] {
+					LayoutClassedModelUsage.class,
+					LayoutDisplayPageObjectProvider.class, ThemeDisplay.class,
+					HttpServletRequest.class
+				},
+				_layoutClassedModelUsage, _layoutDisplayPageObjectProvider,
+				themeDisplay, mockHttpServletRequest);
+
+			Assert.assertTrue(actionsJSONObject.has("editImage"));
+			Assert.assertTrue(actionsJSONObject.has("editURL"));
+			Assert.assertTrue(actionsJSONObject.has("permissionsURL"));
+			Assert.assertTrue(actionsJSONObject.has("viewUsagesURL"));
+		}
+		finally {
+			PermissionThreadLocal.setPermissionChecker(
+				originalPermissionChecker);
+		}
 	}
 
 	@Test
@@ -156,63 +215,6 @@ public class ContentManagerActionsTest {
 		}
 	}
 
-	@Test
-	public void testGetActionsJSONObjectWithPermissions() throws Exception {
-		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
-		User user = UserTestUtil.addUser();
-
-		_userLocalService.addRoleUser(role.getRoleId(), user.getUserId());
-
-		_resourcePermissionLocalService.setResourcePermissions(
-			_group.getCompanyId(), DLFileEntry.class.getName(),
-			ResourceConstants.SCOPE_INDIVIDUAL,
-			String.valueOf(_layoutClassedModelUsage.getClassPK()),
-			role.getRoleId(),
-			new String[] {
-				ActionKeys.PERMISSIONS, ActionKeys.UPDATE, ActionKeys.VIEW
-			});
-
-		PermissionChecker originalPermissionChecker =
-			PermissionThreadLocal.getPermissionChecker();
-
-		try {
-			PermissionThreadLocal.setPermissionChecker(
-				PermissionCheckerFactoryUtil.create(user));
-
-			MockHttpServletRequest mockHttpServletRequest =
-				new MockHttpServletRequest();
-
-			mockHttpServletRequest.setAttribute(
-				JavaConstants.JAVAX_PORTLET_RESPONSE,
-				new MockLiferayResourceResponse());
-
-			ThemeDisplay themeDisplay = ContentLayoutTestUtil.getThemeDisplay(
-				_company, _group, _layout);
-
-			mockHttpServletRequest.setAttribute(
-				WebKeys.THEME_DISPLAY, themeDisplay);
-
-			JSONObject actionsJSONObject = ReflectionTestUtil.invoke(
-				_contentManager, "_getActionsJSONObject",
-				new Class<?>[] {
-					LayoutClassedModelUsage.class,
-					LayoutDisplayPageObjectProvider.class, ThemeDisplay.class,
-					HttpServletRequest.class
-				},
-				_layoutClassedModelUsage, _layoutDisplayPageObjectProvider,
-				themeDisplay, mockHttpServletRequest);
-
-			Assert.assertTrue(actionsJSONObject.has("editImage"));
-			Assert.assertTrue(actionsJSONObject.has("editURL"));
-			Assert.assertTrue(actionsJSONObject.has("permissionsURL"));
-			Assert.assertTrue(actionsJSONObject.has("viewUsagesURL"));
-		}
-		finally {
-			PermissionThreadLocal.setPermissionChecker(
-				originalPermissionChecker);
-		}
-	}
-
 	private FileEntry _addFileEntry(Group group) throws Exception {
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(
@@ -241,11 +243,8 @@ public class ContentManagerActionsTest {
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
-	@Inject(
-		filter = "component.name=com.liferay.layout.content.page.editor.web.internal.manager.ContentManager",
-		type = Inject.NoType.class
-	)
-	private Object _contentManager;
+	@Inject
+	private ContentManager _contentManager;
 
 	@Inject
 	private DLAppLocalService _dlAppLocalService;

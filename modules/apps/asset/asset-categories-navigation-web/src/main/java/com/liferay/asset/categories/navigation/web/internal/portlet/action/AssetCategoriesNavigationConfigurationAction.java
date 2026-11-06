@@ -8,28 +8,30 @@ package com.liferay.asset.categories.navigation.web.internal.portlet.action;
 import com.liferay.asset.categories.navigation.constants.AssetCategoriesNavigationPortletKeys;
 import com.liferay.asset.kernel.model.AssetVocabulary;
 import com.liferay.asset.kernel.service.AssetVocabularyService;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.portlet.ConfigurationAction;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portlet.display.template.portlet.action.BaseConfigurationAction;
 
+import jakarta.portlet.PortletPreferences;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.ReadOnlyException;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletPreferences;
-import javax.portlet.PortletRequest;
-import javax.portlet.ReadOnlyException;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -38,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Eudaldo Alonso
  */
 @Component(
-	property = "javax.portlet.name=" + AssetCategoriesNavigationPortletKeys.ASSET_CATEGORIES_NAVIGATION,
+	property = "jakarta.portlet.name=" + AssetCategoriesNavigationPortletKeys.ASSET_CATEGORIES_NAVIGATION,
 	service = ConfigurationAction.class
 )
 public class AssetCategoriesNavigationConfigurationAction
@@ -57,10 +59,6 @@ public class AssetCategoriesNavigationConfigurationAction
 
 		super.postProcess(companyId, portletRequest, portletPreferences);
 
-		if (!FeatureFlagManagerUtil.isEnabled(companyId, "LPD-27566")) {
-			return;
-		}
-
 		boolean allAssetVocabularies = GetterUtil.getBoolean(
 			portletPreferences.getValue("allAssetVocabularies", null));
 
@@ -71,22 +69,18 @@ public class AssetCategoriesNavigationConfigurationAction
 		String assetVocabularyIdsString = portletPreferences.getValue(
 			"assetVocabularyIds", null);
 
-		if (Validator.isNull(assetVocabularyIdsString)) {
+		if (assetVocabularyIdsString == null) {
 			return;
 		}
 
 		long[] assetVocabularyIds = GetterUtil.getLongValues(
 			StringUtil.split(assetVocabularyIdsString, ','));
 
-		Map<Long, List<String>> groupAssetVocabularyIdsMap =
-			_getGroupAssetVocabularyExternalReferenceCodesMap(
-				assetVocabularyIds);
-
 		try {
 			_resetPortletPreferences(portletPreferences);
 
 			_setPortletPreferences(
-				portletPreferences, groupAssetVocabularyIdsMap);
+				assetVocabularyIds, portletPreferences, portletRequest);
 
 			portletPreferences.reset("assetVocabularyIds");
 			portletPreferences.reset("displayStyleGroupId");
@@ -94,33 +88,6 @@ public class AssetCategoriesNavigationConfigurationAction
 		catch (ReadOnlyException readOnlyException) {
 			throw new SystemException(readOnlyException);
 		}
-	}
-
-	private Map<Long, List<String>>
-			_getGroupAssetVocabularyExternalReferenceCodesMap(
-				long[] assetVocabularyIds)
-		throws PortalException {
-
-		Map<Long, List<String>> groupAssetVocabularyExternalReferenceCodesMap =
-			new HashMap<>();
-
-		for (long assetVocabularyId : assetVocabularyIds) {
-			AssetVocabulary assetVocabulary =
-				_assetVocabularyService.fetchVocabulary(assetVocabularyId);
-
-			if (assetVocabulary == null) {
-				continue;
-			}
-
-			List<String> groupAssetVocabularyExternalReferenceCodes =
-				groupAssetVocabularyExternalReferenceCodesMap.computeIfAbsent(
-					assetVocabulary.getGroupId(), key -> new ArrayList<>());
-
-			groupAssetVocabularyExternalReferenceCodes.add(
-				assetVocabulary.getExternalReferenceCode());
-		}
-
-		return groupAssetVocabularyExternalReferenceCodesMap;
 	}
 
 	private void _resetPortletPreferences(PortletPreferences portletPreferences)
@@ -134,30 +101,64 @@ public class AssetCategoriesNavigationConfigurationAction
 
 			String key = entry.getKey();
 
-			if (key.startsWith("assetVocabularyExternalReferenceCodes_")) {
-				portletPreferences.reset(key);
+			if (!key.startsWith("assetVocabularyExternalReferenceCodes")) {
+				continue;
 			}
+
+			portletPreferences.reset(key);
 		}
 	}
 
 	private void _setPortletPreferences(
-			PortletPreferences portletPreferences,
-			Map<Long, List<String>> groupAssetVocabularyIdsMap)
+			long[] assetVocabularyIds, PortletPreferences portletPreferences,
+			PortletRequest portletRequest)
 		throws PortalException, ReadOnlyException {
 
+		Map<String, List<String>> assetVocabularyExternalReferenceCodesMap =
+			new LinkedHashMap<>();
 		List<String> groupExternalReferenceCodes = new ArrayList<>();
 
-		for (Map.Entry<Long, List<String>> entries :
-				groupAssetVocabularyIdsMap.entrySet()) {
+		ThemeDisplay themeDisplay = (ThemeDisplay)portletRequest.getAttribute(
+			WebKeys.THEME_DISPLAY);
 
-			Group group = _groupLocalService.getGroup(entries.getKey());
+		for (long assetVocabularyId : assetVocabularyIds) {
+			AssetVocabulary assetVocabulary =
+				_assetVocabularyService.fetchVocabulary(assetVocabularyId);
 
-			groupExternalReferenceCodes.add(group.getExternalReferenceCode());
+			if (assetVocabulary == null) {
+				continue;
+			}
+
+			Group group = _groupLocalService.getGroup(
+				assetVocabulary.getGroupId());
+
+			String groupExternalReferenceCode = StringPool.BLANK;
+
+			if (group.getGroupId() != themeDisplay.getScopeGroupId()) {
+				groupExternalReferenceCode = group.getExternalReferenceCode();
+			}
+
+			groupExternalReferenceCodes.add(groupExternalReferenceCode);
+
+			String key = "assetVocabularyExternalReferenceCodes";
+
+			if (Validator.isNotNull(groupExternalReferenceCode)) {
+				key += "_" + groupExternalReferenceCode;
+			}
+
+			List<String> assetVocabularyExternalReferenceCodes =
+				assetVocabularyExternalReferenceCodesMap.computeIfAbsent(
+					key, curKey -> new ArrayList<>());
+
+			assetVocabularyExternalReferenceCodes.add(
+				assetVocabulary.getExternalReferenceCode());
+		}
+
+		for (Map.Entry<String, List<String>> entry :
+				assetVocabularyExternalReferenceCodesMap.entrySet()) {
 
 			portletPreferences.setValues(
-				"assetVocabularyExternalReferenceCodes_" +
-					group.getExternalReferenceCode(),
-				ArrayUtil.toStringArray(entries.getValue()));
+				entry.getKey(), ArrayUtil.toStringArray(entry.getValue()));
 		}
 
 		portletPreferences.setValues(

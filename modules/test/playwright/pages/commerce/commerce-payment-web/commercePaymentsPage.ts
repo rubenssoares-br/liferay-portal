@@ -5,9 +5,12 @@
 
 import {Locator, Page} from '@playwright/test';
 
+import {GlobalMenuPage} from '../../product-navigation-applications-menu/GlobalMenuPage';
+
 export class CommercePaymentsPage {
 	readonly addCommentButton: Locator;
 	readonly amountInput: Locator;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly backLink: Locator;
 	readonly commentInput: Locator;
 	readonly commentSubmitButton: Locator;
@@ -20,6 +23,7 @@ export class CommercePaymentsPage {
 	readonly page: Page;
 	readonly reasonInput: Locator;
 	readonly saveButton: Locator;
+	readonly submitButton: Locator;
 
 	constructor(page: Page) {
 		this.addCommentButton = page.getByRole('link', {
@@ -27,12 +31,13 @@ export class CommercePaymentsPage {
 			name: 'Add',
 		});
 		this.amountInput = page.getByLabel('Amount');
-		this.backLink = page.getByRole('link', {exact: true, name: 'Back'});
+		this.globalMenuPage = new GlobalMenuPage(page);
+		this.backLink = page.locator('span[title="Back"]');
 		this.commentInput = page
 			.frameLocator('iframe[title="Comment"]')
 			.getByLabel('Note', {exact: true});
 		this.commentSubmitButton = page
-			.frameLocator('iframe[title="Comment"]')
+			.locator('.modal-item-last')
 			.getByRole('button', {exact: true, name: 'Submit'});
 		this.ercInput = page
 			.frameLocator('iframe[title="Edit External Reference Code"]')
@@ -47,5 +52,9 @@ export class CommercePaymentsPage {
 		this.makeRefundButton = page.getByLabel('Make a Refund', {exact: true});
 		this.reasonInput = page.getByLabel('Reason');
 		this.saveButton = page.getByRole('link', {exact: true, name: 'Save'});
+	}
+
+	async goto() {
+		await this.globalMenuPage.goToCommerce('Payments');
 	}
 }

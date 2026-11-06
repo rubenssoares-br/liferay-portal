@@ -20,21 +20,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -42,6 +42,9 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName(description = "Represents a Page element.", value = "PageElement")
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a Page element."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "PageElement")
 public class PageElement implements Serializable {
@@ -54,7 +57,9 @@ public class PageElement implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageElement.class, json);
 	}
 
-	@Schema(description = "The page element's definition.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page element's definition."
+	)
 	@Valid
 	public Object getDefinition() {
 		if (_definitionSupplier != null) {
@@ -96,7 +101,9 @@ public class PageElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _definitionSupplier;
 
-	@Schema(description = "The page element's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page element's ID."
+	)
 	public String getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -135,7 +142,9 @@ public class PageElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _idSupplier;
 
-	@Schema(description = "A list of the page elements this page element has.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of the page elements this page element has."
+	)
 	@Valid
 	public PageElement[] getPageElements() {
 		if (_pageElementsSupplier != null) {
@@ -179,10 +188,10 @@ public class PageElement implements Serializable {
 	@JsonIgnore
 	private Supplier<PageElement[]> _pageElementsSupplier;
 
-	@JsonGetter("type")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The page element's type (collection, collection item, column, drop zone, form, fragment, fragment drop zone, root, row, section or widget)."
 	)
+	@JsonGetter("type")
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -271,18 +280,7 @@ public class PageElement implements Serializable {
 
 			sb.append("\"definition\": ");
 
-			if (definition instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)definition));
-			}
-			else if (definition instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)definition));
-				sb.append("\"");
-			}
-			else {
-				sb.append(definition);
-			}
+			sb.append(_toJSON(definition));
 		}
 
 		String id = getId();
@@ -333,9 +331,7 @@ public class PageElement implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -344,8 +340,8 @@ public class PageElement implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.PageElement",
 		name = "x-class-name"
 	)
@@ -356,9 +352,10 @@ public class PageElement implements Serializable {
 
 		COLLECTION("Collection"), COLLECTION_ITEM("CollectionItem"),
 		COLUMN("Column"), DROP_ZONE("DropZone"), FORM("Form"),
-		FORM_STEP("FormStep"), FORM_STEP_CONTAINER("FormStepContainer"),
-		FRAGMENT("Fragment"), FRAGMENT_DROP_ZONE("FragmentDropZone"),
-		ROOT("Root"), ROW("Row"), SECTION("Section"), WIDGET("Widget");
+		FORM_RELATIONSHIP("FormRelationship"), FORM_STEP("FormStep"),
+		FORM_STEP_CONTAINER("FormStepContainer"), FRAGMENT("Fragment"),
+		FRAGMENT_DROP_ZONE("FragmentDropZone"), ROOT("Root"), ROW("Row"),
+		SECTION("Section"), WIDGET("Widget");
 
 		@JsonCreator
 		public static Type create(String value) {
@@ -474,6 +471,27 @@ public class PageElement implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -482,3 +500,4 @@ public class PageElement implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:64408436

@@ -17,6 +17,7 @@ import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.asset.kernel.service.AssetTagLocalService;
 import com.liferay.asset.link.service.AssetLinkLocalService;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.model.DLFileEntryMetadata;
 import com.liferay.document.library.kernel.model.DLFileEntryType;
@@ -25,7 +26,6 @@ import com.liferay.document.library.kernel.service.DLAppService;
 import com.liferay.document.library.kernel.service.DLFileEntryMetadataLocalService;
 import com.liferay.document.library.kernel.service.DLFileEntryTypeLocalService;
 import com.liferay.document.library.util.DLFileEntryTypeUtil;
-import com.liferay.document.library.util.DLURLHelper;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.service.DDMStructureService;
 import com.liferay.dynamic.data.mapping.storage.DDMFormFieldValue;
@@ -41,7 +41,6 @@ import com.liferay.headless.delivery.dto.v1_0.TaxonomyCategoryBrief;
 import com.liferay.headless.delivery.dto.v1_0.util.ContentFieldUtil;
 import com.liferay.headless.delivery.dto.v1_0.util.ContentValueUtil;
 import com.liferay.headless.delivery.dto.v1_0.util.CreatorUtil;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.AggregateRatingUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.DisplayPageRendererUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.RelatedContentUtil;
@@ -51,6 +50,7 @@ import com.liferay.info.item.InfoItemServiceRegistry;
 import com.liferay.journal.service.JournalArticleService;
 import com.liferay.layout.display.page.LayoutDisplayPageProviderRegistry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryService;
+import com.liferay.layout.util.LayoutServiceContextHelper;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.comment.CommentManager;
@@ -61,11 +61,12 @@ import com.liferay.portal.kernel.repository.model.Folder;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.GroupLocalService;
-import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.portal.vulcan.util.GroupUtil;
@@ -73,13 +74,13 @@ import com.liferay.portal.vulcan.util.JaxRsLinkUtil;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 import com.liferay.ratings.kernel.service.RatingsStatsLocalService;
 
+import jakarta.ws.rs.core.UriInfo;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
-import javax.ws.rs.core.UriInfo;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -88,7 +89,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Rubén Pulido
  */
 @Component(
-	property = "dto.class.name=com.liferay.document.library.kernel.model.DLFileEntry",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.document.library.kernel.model.DLFileEntry"
+	},
 	service = DTOConverter.class
 )
 public class DocumentDTOConverter
@@ -162,14 +166,14 @@ public class DocumentDTOConverter
 				setDescription(fileEntry::getDescription);
 				setDocumentFolderExternalReferenceCode(
 					() -> {
-						if (fileEntry.getFolderId() > 0) {
-							Folder folder = _dlAppService.getFolder(
-								fileEntry.getFolderId());
-
-							return folder.getExternalReferenceCode();
+						if (fileEntry.getFolderId() <= 0) {
+							return null;
 						}
 
-						return null;
+						Folder folder = _dlAppService.getFolder(
+							fileEntry.getFolderId());
+
+						return folder.getExternalReferenceCode();
 					});
 				setDocumentFolderId(fileEntry::getFolderId);
 				setDocumentType(
@@ -216,8 +220,9 @@ public class DocumentDTOConverter
 						_getDDMStructureId(fileEntry), dtoConverterContext,
 						fileEntry.getGroupId(), fileEntry,
 						_infoItemServiceRegistry,
-						_layoutDisplayPageProviderRegistry, _layoutLocalService,
+						_layoutDisplayPageProviderRegistry, _layoutService,
 						_layoutPageTemplateEntryService,
+						_layoutServiceContextHelper,
 						"getDocumentRenderedContentByDisplayPageDisplayPage" +
 							"Key"));
 				setSiteId(() -> GroupUtil.getSiteId(group));
@@ -383,8 +388,7 @@ public class DocumentDTOConverter
 								ContentFieldUtil.toContentField(
 									ddmFormFieldValue, _dlAppService,
 									_dlURLHelper, dtoConverterContext,
-									_journalArticleService,
-									_layoutLocalService),
+									_journalArticleService, _layoutService),
 							ContentField.class);
 					});
 				setDescription(
@@ -461,10 +465,13 @@ public class DocumentDTOConverter
 		_layoutDisplayPageProviderRegistry;
 
 	@Reference
-	private LayoutLocalService _layoutLocalService;
+	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;
 
 	@Reference
-	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;
+	private LayoutService _layoutService;
+
+	@Reference
+	private LayoutServiceContextHelper _layoutServiceContextHelper;
 
 	@Reference
 	private Portal _portal;

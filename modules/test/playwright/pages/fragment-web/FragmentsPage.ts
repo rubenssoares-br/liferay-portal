@@ -29,17 +29,15 @@ export class FragmentsPage {
 	}
 
 	async gotoFragmentSet(name: string) {
-		await this.page
-			.getByRole('menuitem', {
+		await clickAndExpectToBeVisible({
+			target: this.page
+				.locator('.sheet-title')
+				.getByText(name, {exact: true}),
+			trigger: this.page.getByRole('menuitem', {
 				exact: true,
 				name,
-			})
-			.click();
-
-		await this.page
-			.locator('.sheet-title')
-			.getByText(name, {exact: true})
-			.waitFor();
+			}),
+		});
 	}
 
 	async selectDefaultFormFragment({
@@ -124,7 +122,7 @@ export class FragmentsPage {
 		}
 		else if (setExists) {
 			await this.page
-				.getByLabel('Fragment Sets')
+				.getByLabel('Fragment Set', {exact: true})
 				.selectOption({label: setName});
 		}
 		else {
@@ -185,7 +183,10 @@ export class FragmentsPage {
 	) {
 		await this.gotoFragmentSet(setName);
 
-		const addButton = this.page.getByRole('button', {name: 'Add'});
+		const addButton = this.page.getByRole('button', {
+			exact: true,
+			name: 'Add',
+		});
 
 		await addButton.waitFor();
 
@@ -236,6 +237,22 @@ export class FragmentsPage {
 		await this.page.getByRole('button', {name: 'Delete'}).click();
 
 		await waitForAlert(this.page);
+	}
+
+	async importFile(fileName: string, zipFolder: string) {
+		const fileChooserPromise = this.page.waitForEvent('filechooser');
+
+		await this.page
+			.getByRole('button', {exact: true, name: 'Select File'})
+			.click();
+
+		const fileChooser = await fileChooserPromise;
+
+		await fileChooser.setFiles(zipFolder);
+
+		await this.page.getByText(fileName).waitFor();
+
+		await this.page.getByRole('button', {name: 'Import'}).click();
 	}
 
 	async markAsCacheable(title: string) {

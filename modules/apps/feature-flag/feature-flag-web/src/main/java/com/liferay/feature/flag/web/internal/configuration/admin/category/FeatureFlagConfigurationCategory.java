@@ -11,12 +11,11 @@ import com.liferay.feature.flag.web.internal.configuration.admin.display.Feature
 import com.liferay.feature.flag.web.internal.display.FeatureFlagsDisplayContextFactory;
 import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagType;
-import com.liferay.portal.kernel.util.HashMapDictionary;
+
+import jakarta.servlet.ServletContext;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.ServletContext;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -60,7 +59,7 @@ public class FeatureFlagConfigurationCategory implements ConfigurationCategory {
 						featureFlagType, _featureFlagsDisplayContextFactory, i,
 						ExtendedObjectClassDefinition.Scope.SYSTEM.getValue(),
 						_servletContext),
-					new HashMapDictionary<>()));
+					null));
 
 			_serviceRegistrations.add(
 				bundleContext.registerService(
@@ -69,7 +68,7 @@ public class FeatureFlagConfigurationCategory implements ConfigurationCategory {
 						featureFlagType, _featureFlagsDisplayContextFactory, i,
 						ExtendedObjectClassDefinition.Scope.COMPANY.getValue(),
 						_servletContext),
-					new HashMapDictionary<>()));
+					null));
 		}
 	}
 

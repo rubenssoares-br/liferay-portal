@@ -675,40 +675,36 @@ public abstract class PoshiElement
 				continue;
 			}
 
-			if (_isVarPoshiScriptSnippet(trimmedPoshiScriptSnippet) &&
-				(c != ';')) {
+			if ((_isVarPoshiScriptSnippet(trimmedPoshiScriptSnippet) &&
+				 (c != ';')) ||
+				!PoshiScriptParserUtil.isBalancedPoshiScript(
+					poshiScriptSnippet)) {
 
 				continue;
 			}
 
-			if (PoshiScriptParserUtil.isBalancedPoshiScript(
-					poshiScriptSnippet)) {
+			if (splitElseBlocks &&
+				(isValidPoshiScriptBlock(
+					ElseIfPoshiElement.blockNamePattern, poshiScriptSnippet) ||
+				 isValidPoshiScriptBlock(
+					 ElsePoshiElement.blockNamePattern, poshiScriptSnippet))) {
 
-				if (splitElseBlocks &&
-					(isValidPoshiScriptBlock(
-						ElseIfPoshiElement.blockNamePattern,
-						poshiScriptSnippet) ||
-					 isValidPoshiScriptBlock(
-						 ElsePoshiElement.blockNamePattern,
-						 poshiScriptSnippet))) {
+				int lastIndex = poshiScriptSnippets.size() - 1;
 
-					int lastIndex = poshiScriptSnippets.size() - 1;
+				String lastPoshiScriptSnippet = poshiScriptSnippets.get(
+					lastIndex);
 
-					String lastPoshiScriptSnippet = poshiScriptSnippets.get(
-						lastIndex);
-
-					poshiScriptSnippets.set(
-						lastIndex, lastPoshiScriptSnippet + poshiScriptSnippet);
-
-					sb.setLength(0);
-
-					continue;
-				}
-
-				poshiScriptSnippets.add(poshiScriptSnippet);
+				poshiScriptSnippets.set(
+					lastIndex, lastPoshiScriptSnippet + poshiScriptSnippet);
 
 				sb.setLength(0);
+
+				continue;
 			}
+
+			poshiScriptSnippets.add(poshiScriptSnippet);
+
+			sb.setLength(0);
 		}
 
 		String poshiScriptSnippet = sb.toString();
@@ -783,11 +779,7 @@ public abstract class PoshiElement
 	}
 
 	protected boolean isElementType(String name, Element element) {
-		if (name.equals(element.getName())) {
-			return true;
-		}
-
-		return false;
+		return name.equals(element.getName());
 	}
 
 	protected boolean isNestedCondition(String poshiScript) {
@@ -910,11 +902,7 @@ public abstract class PoshiElement
 		Matcher poshiScriptStatementMatcher =
 			poshiScriptStatementPattern.matcher(poshiScript);
 
-		if (poshiScriptStatementMatcher.find()) {
-			return true;
-		}
-
-		return false;
+		return poshiScriptStatementMatcher.find();
 	}
 
 	protected boolean isVarAssignedToMacroInvocation(String poshiScript) {
@@ -988,9 +976,11 @@ public abstract class PoshiElement
 				}
 			}
 
-			if (trimmedLine.endsWith("*/") && stackPeek.equals("/*")) {
-				stack.pop();
+			if (!trimmedLine.endsWith("*/") || !stackPeek.equals("/*")) {
+				continue;
 			}
+
+			stack.pop();
 		}
 
 		return sb.toString();
@@ -1145,9 +1135,11 @@ public abstract class PoshiElement
 				add(PoshiNodeFactory.newPoshiNode(node));
 			}
 
-			if (node instanceof CDATA) {
-				add(new PoshiCDATA((CDATA)node.clone()));
+			if (!(node instanceof CDATA)) {
+				continue;
 			}
+
+			add(new PoshiCDATA((CDATA)node.clone()));
 		}
 	}
 

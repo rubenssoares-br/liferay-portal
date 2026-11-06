@@ -8,13 +8,14 @@ package com.liferay.analytics.reports.rest.client.serdes.v1_0;
 import com.liferay.analytics.reports.rest.client.dto.v1_0.Trend;
 import com.liferay.analytics.reports.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Marcos Martins
@@ -62,9 +63,7 @@ public class TrendSerDes {
 			sb.append("\"trendClassification\": ");
 
 			sb.append("\"");
-
 			sb.append(trend.getTrendClassification());
-
 			sb.append("\"");
 		}
 
@@ -196,6 +195,16 @@ public class TrendSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -228,3 +237,4 @@ public class TrendSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:116886830

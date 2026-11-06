@@ -5,6 +5,8 @@
 
 package com.liferay.object.test.util;
 
+import com.liferay.object.constants.ObjectEntryFolderConstants;
+import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectField;
@@ -23,10 +25,13 @@ import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 
 import java.io.Serializable;
 
@@ -67,15 +72,57 @@ public class TreeTestUtil {
 			node -> _getExternalReferenceCode(node, objectEntryLocalService));
 	}
 
-	public static void bind(
-			ObjectDefinitionLocalService objectDefinitionLocalService,
-			List<ObjectRelationship> objectRelationships)
+	public static void assertRootObjectDefinitionIds(
+		Map<ObjectDefinition, ObjectDefinition[]> expectedMap) {
+
+		Map<Long, long[]> actualMap = new LinkedHashMap<>();
+
+		for (ObjectDefinition objectDefinition : expectedMap.keySet()) {
+			actualMap.put(
+				objectDefinition.getObjectDefinitionId(),
+				objectDefinition.getRootObjectDefinitionIds());
+		}
+
+		for (Map.Entry<ObjectDefinition, ObjectDefinition[]> entry :
+				expectedMap.entrySet()) {
+
+			ObjectDefinition objectDefinition = entry.getKey();
+
+			long[] actualRootObjectDefinitionIds = actualMap.get(
+				objectDefinition.getObjectDefinitionId());
+
+			long[] expectedRootObjectDefinitionIds =
+				TransformUtil.transformToLongArray(
+					entry.getValue(), ObjectDefinition::getObjectDefinitionId);
+
+			Assert.assertEquals(
+				Arrays.toString(actualRootObjectDefinitionIds),
+				expectedRootObjectDefinitionIds.length,
+				actualRootObjectDefinitionIds.length);
+
+			if (actualRootObjectDefinitionIds.length == 0) {
+				continue;
+			}
+
+			Assert.assertTrue(
+				ArrayUtil.containsAll(
+					actualRootObjectDefinitionIds,
+					expectedRootObjectDefinitionIds));
+		}
+	}
+
+	public static ObjectRelationship bind(
+			long objectDefinition1Id, long objectDefinition2Id,
+			ObjectRelationshipLocalService objectRelationshipLocalService)
 		throws PortalException {
 
-		objectDefinitionLocalService.bindObjectDefinitions(
-			TransformUtil.transformToLongArray(
-				objectRelationships,
-				ObjectRelationship::getObjectRelationshipId));
+		return objectRelationshipLocalService.addObjectRelationship(
+			StringUtil.randomId(), TestPropsValues.getUserId(),
+			objectDefinition1Id, objectDefinition2Id, 0,
+			ObjectRelationshipConstants.DELETION_TYPE_CASCADE, null, true,
+			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
+			StringUtil.randomId(), false,
+			ObjectRelationshipConstants.TYPE_ONE_TO_MANY, null);
 	}
 
 	public static void bind(
@@ -88,7 +135,8 @@ public class TreeTestUtil {
 				objectRelationship.getExternalReferenceCode(),
 				objectRelationship.getObjectRelationshipId(),
 				objectRelationship.getParameterObjectFieldId(),
-				objectRelationship.getDeletionType(), true,
+				objectRelationship.getDeletionType(),
+				objectRelationship.getDescriptionMap(), true,
 				objectRelationship.getLabelMap(), null);
 		}
 	}
@@ -153,7 +201,7 @@ public class TreeTestUtil {
 	}
 
 	public static Tree createObjectEntryTree(
-			String externalReferenceCodeSuffix,
+			Long accountEntryId, String externalReferenceCodeSuffix,
 			ObjectDefinitionLocalService objectDefinitionLocalService,
 			ObjectEntryLocalService objectEntryLocalService,
 			ObjectFieldLocalService objectFieldLocalService,
@@ -175,12 +223,20 @@ public class TreeTestUtil {
 		Queue<String> externalReferenceCodes = new ArrayDeque<>(
 			Arrays.asList("A", "AA", "AB", "AAA", "AAB"));
 
-		ObjectEntry rootObjectEntry = objectEntryLocalService.addObjectEntry(
-			TestPropsValues.getUserId(), 0, rootNode.getPrimaryKey(),
-			HashMapBuilder.<String, Serializable>put(
+		HashMapBuilder.HashMapWrapper<String, Serializable>
+			rootValuesHashMapBuilder = HashMapBuilder.<String, Serializable>put(
 				"externalReferenceCode",
-				externalReferenceCodes.poll() + externalReferenceCodeSuffix
-			).build(),
+				externalReferenceCodes.poll() + externalReferenceCodeSuffix);
+
+		_putAccountEntryRestrictedValue(
+			accountEntryId, objectDefinitionLocalService,
+			objectFieldLocalService, rootNode.getPrimaryKey(),
+			rootValuesHashMapBuilder);
+
+		ObjectEntry rootObjectEntry = objectEntryLocalService.addObjectEntry(
+			0, TestPropsValues.getUserId(), rootNode.getPrimaryKey(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null, rootValuesHashMapBuilder.build(),
 			ServiceContextTestUtil.getServiceContext());
 
 		Map<Long, Long> objectEntryIds = HashMapBuilder.put(
@@ -190,18 +246,18 @@ public class TreeTestUtil {
 		while (iterator.hasNext()) {
 			Node node = iterator.next();
 
-			ObjectEntry objectEntry = objectEntryLocalService.addObjectEntry(
-				TestPropsValues.getUserId(), 0, node.getPrimaryKey(),
-				HashMapBuilder.<String, Serializable>put(
+			HashMapBuilder.HashMapWrapper<String, Serializable>
+				valuesHashMapBuilder = HashMapBuilder.<String, Serializable>put(
 					"externalReferenceCode",
 					externalReferenceCodes.poll() + externalReferenceCodeSuffix
 				).put(
 					() -> {
+						Edge edge = node.getEdge();
+
 						ObjectRelationship objectRelationship =
 							objectRelationshipLocalService.
 								getObjectRelationship(
-									node.getEdge(
-									).getObjectRelationshipId());
+									edge.getObjectRelationshipId());
 
 						ObjectField objectField =
 							objectFieldLocalService.getObjectField(
@@ -214,7 +270,18 @@ public class TreeTestUtil {
 
 						return objectEntryIds.get(parentNode.getPrimaryKey());
 					}
-				).build(),
+				);
+
+			_putAccountEntryRestrictedValue(
+				accountEntryId, objectDefinitionLocalService,
+				objectFieldLocalService, node.getPrimaryKey(),
+				valuesHashMapBuilder);
+
+			ObjectEntry objectEntry = objectEntryLocalService.addObjectEntry(
+				0, TestPropsValues.getUserId(), node.getPrimaryKey(),
+				ObjectEntryFolderConstants.
+					PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+				null, valuesHashMapBuilder.build(),
 				ServiceContextTestUtil.getServiceContext());
 
 			objectEntryIds.put(
@@ -229,10 +296,26 @@ public class TreeTestUtil {
 			rootObjectEntry.getObjectEntryId());
 	}
 
+	public static Tree createObjectEntryTree(
+			String externalReferenceCodeSuffix,
+			ObjectDefinitionLocalService objectDefinitionLocalService,
+			ObjectEntryLocalService objectEntryLocalService,
+			ObjectFieldLocalService objectFieldLocalService,
+			ObjectRelationshipLocalService objectRelationshipLocalService,
+			long rootObjectDefinitionId)
+		throws PortalException {
+
+		return createObjectEntryTree(
+			null, externalReferenceCodeSuffix, objectDefinitionLocalService,
+			objectEntryLocalService, objectFieldLocalService,
+			objectRelationshipLocalService, rootObjectDefinitionId);
+	}
+
 	public static void deleteObjectDefinitionHierarchy(
 			ObjectDefinitionLocalService objectDefinitionLocalService,
 			String[] objectDefinitionNames,
-			ObjectEntryLocalService objectEntryLocalService)
+			ObjectEntryLocalService objectEntryLocalService,
+			ObjectRelationshipLocalService objectRelationshipLocalService)
 		throws Exception {
 
 		for (String objectDefinitionName : objectDefinitionNames) {
@@ -253,8 +336,12 @@ public class TreeTestUtil {
 				objectEntryLocalService.deleteObjectEntry(objectEntry);
 			}
 
-			if (objectDefinition.getRootObjectDefinitionId() != 0) {
-				unbind(objectDefinitionLocalService, objectDefinitionName);
+			if (ArrayUtil.isNotEmpty(
+					objectDefinition.getRootObjectDefinitionIds())) {
+
+				unbind(
+					objectDefinition.getObjectDefinitionId(),
+					objectRelationshipLocalService);
 			}
 
 			objectDefinitionLocalService.deleteObjectDefinition(
@@ -306,16 +393,36 @@ public class TreeTestUtil {
 	}
 
 	public static void unbind(
-			ObjectDefinitionLocalService objectDefinitionLocalService,
-			String objectDefinitionName)
+			Long objectDefinitionId,
+			ObjectRelationshipLocalService objectRelationshipLocalService)
 		throws PortalException {
 
-		ObjectDefinition objectDefinition =
-			objectDefinitionLocalService.fetchObjectDefinition(
-				TestPropsValues.getCompanyId(), objectDefinitionName);
+		List<ObjectRelationship> objectRelationships =
+			objectRelationshipLocalService.getObjectRelationships(
+				objectDefinitionId, true);
 
-		objectDefinitionLocalService.unbindObjectDefinition(
-			objectDefinition.getObjectDefinitionId());
+		for (ObjectRelationship objectRelationship : objectRelationships) {
+			unbind(objectRelationship, objectRelationshipLocalService);
+		}
+	}
+
+	public static ObjectRelationship unbind(
+			ObjectRelationship objectRelationship,
+			ObjectRelationshipLocalService objectRelationshipLocalService)
+		throws PortalException {
+
+		objectRelationship =
+			objectRelationshipLocalService.updateObjectRelationship(
+				objectRelationship.getExternalReferenceCode(),
+				objectRelationship.getObjectRelationshipId(),
+				objectRelationship.getParameterObjectFieldId(),
+				objectRelationship.getDeletionType(),
+				objectRelationship.getDescriptionMap(), false,
+				objectRelationship.getLabelMap(), null);
+
+		Assert.assertFalse(objectRelationship.isEdge());
+
+		return objectRelationship;
 	}
 
 	private static void _assertTree(
@@ -375,6 +482,36 @@ public class TreeTestUtil {
 				node.getPrimaryKey());
 
 		return objectDefinition.getShortName();
+	}
+
+	private static void _putAccountEntryRestrictedValue(
+			Long accountEntryId,
+			ObjectDefinitionLocalService objectDefinitionLocalService,
+			ObjectFieldLocalService objectFieldLocalService,
+			long objectDefinitionId,
+			HashMapBuilder.HashMapWrapper<String, Serializable>
+				valuesHashMapBuilder)
+		throws PortalException {
+
+		if (accountEntryId == null) {
+			return;
+		}
+
+		ObjectDefinition objectDefinition =
+			objectDefinitionLocalService.getObjectDefinition(
+				objectDefinitionId);
+
+		long accountEntryRestrictedObjectFieldId =
+			objectDefinition.getAccountEntryRestrictedObjectFieldId();
+
+		if (accountEntryRestrictedObjectFieldId <= 0) {
+			return;
+		}
+
+		ObjectField objectField = objectFieldLocalService.getObjectField(
+			accountEntryRestrictedObjectFieldId);
+
+		valuesHashMapBuilder.put(objectField.getName(), accountEntryId);
 	}
 
 }

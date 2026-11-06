@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render} from '@testing-library/react';
 import React, {useState as useStateMock} from 'react';
 
@@ -15,6 +15,18 @@ jest.mock('react', () => ({
 }));
 
 const setAllowScriptContent = jest.fn();
+
+const renderComponent = (props = {}) =>
+	render(
+		<ScriptManagementContainer
+			allowScriptContentToBeExecutedOrIncluded={false}
+			baseResourceURL=""
+			formName=""
+			namespace=""
+			redirectURL=""
+			{...props}
+		/>
+	);
 
 beforeAll(() => {
 
@@ -28,13 +40,7 @@ beforeAll(() => {
 
 describe('ScriptManagementContainer component', () => {
 	it('check if checkbox label renders correctly', () => {
-		const {getByLabelText} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={false}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={false}
-			/>
-		);
+		const {getByLabelText} = renderComponent();
 
 		const input = getByLabelText(
 			'allow-administrator-to-create-and-execute-code-in-liferay'
@@ -43,28 +49,8 @@ describe('ScriptManagementContainer component', () => {
 		expect(input).toBeInTheDocument();
 	});
 
-	it('check if Script Management title renders correctly', () => {
-		const {getByText} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={false}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={false}
-			/>
-		);
-
-		const scriptManagementTitle = getByText('script-management');
-
-		expect(scriptManagementTitle).toBeInTheDocument();
-	});
-
 	it('check if checkbox description renders correctly', () => {
-		const {getByText} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={false}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={false}
-			/>
-		);
+		const {getByText} = renderComponent();
 
 		const checkboxDescription = getByText(
 			'administrators-can-create-and-execute-code-in-their-virtual-instance'
@@ -74,13 +60,9 @@ describe('ScriptManagementContainer component', () => {
 	});
 
 	it('check if checkbox will be checked if allowScriptContentToBeExecutedOrIncluded is true', () => {
-		const {getByRole} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={true}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={false}
-			/>
-		);
+		const {getByRole} = renderComponent({
+			allowScriptContentToBeExecutedOrIncluded: true,
+		});
 
 		const checkboxInput = getByRole('checkbox');
 
@@ -88,56 +70,31 @@ describe('ScriptManagementContainer component', () => {
 	});
 
 	it('check if checkbox will be not checked if allowScriptContentToBeExecutedOrIncluded is false', () => {
-		const {getByRole} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={false}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={false}
-			/>
-		);
+		const {getByRole} = renderComponent();
 
 		const checkboxInput = getByRole('checkbox');
 
 		expect(checkboxInput).not.toBeChecked();
 	});
 
-	it('check if configuration information alert will render correctly when scriptManagementConfigurationDefined is false', () => {
-		const {getByRole, getByText} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={false}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={false}
-			/>
+	it('check if the hidden input value reflects the configuration when enabled', () => {
+		const {container} = renderComponent({
+			allowScriptContentToBeExecutedOrIncluded: true,
+			namespace: '_test_',
+		});
+
+		const hiddenInput = container.querySelector(
+			'input[name="_test_allowScriptContentToBeExecutedOrIncluded"]'
 		);
 
-		const alertHelperInfo = getByText('alert-helper-info:');
-		const alertText = getByText(
-			'this-configuration-is-not-saved-yet.-the-values-shown-are-the-default'
-		);
-		const infoCircleIcon = getByRole('presentation');
-
-		expect(alertHelperInfo).toBeInTheDocument();
-		expect(alertText).toBeInTheDocument();
-		expect(infoCircleIcon).toHaveClass('lexicon-icon-info-circle');
+		expect(hiddenInput).toHaveValue('true');
 	});
 
-	it('check if configuration information alert will not render when scriptManagementConfigurationDefined is true', () => {
-		const {queryByRole, queryByText} = render(
-			<ScriptManagementContainer
-				allowScriptContentToBeExecutedOrIncluded={false}
-				baseResourceURL=""
-				scriptManagementConfigurationDefined={true}
-			/>
-		);
+	it('check if the cancel link points to the redirect URL', () => {
+		const {getByText} = renderComponent({redirectURL: '/test-redirect'});
 
-		const alertHelperInfo = queryByText('alert-helper-info:');
-		const alertText = queryByText(
-			'this-configuration-is-not-saved-yet.-the-values-shown-are-the-default'
-		);
-		const infoCircleIcon = queryByRole('presentation');
+		const cancelLink = getByText('cancel');
 
-		expect(alertHelperInfo).not.toBeInTheDocument();
-		expect(alertText).not.toBeInTheDocument();
-		expect(infoCircleIcon).not.toBeInTheDocument();
+		expect(cancelLink).toHaveAttribute('href', '/test-redirect');
 	});
 });

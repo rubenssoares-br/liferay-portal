@@ -1,4 +1,4 @@
-@component-name = "portal-bpm-ee"
+@component-name = "portal-bpm"
 definition {
 
 	property ci.retries.disabled = "true";
@@ -45,8 +45,7 @@ definition {
 		property test.run.type = "single";
 
 		task ("Add the Kaleo Forms admin portlet to blacklist") {
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 

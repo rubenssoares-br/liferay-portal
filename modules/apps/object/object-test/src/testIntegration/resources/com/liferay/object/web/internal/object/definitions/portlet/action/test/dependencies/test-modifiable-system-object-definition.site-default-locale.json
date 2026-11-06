@@ -1,4 +1,5 @@
 {
+	"className": "com.liferay.object.model.ObjectDefinition#Z1W8",
 	"defaultLanguageId": "en_US",
 	"label": {
 		"en_US": "Definição de Objeto Teste",
@@ -8,7 +9,8 @@
 		{
 			"active": true,
 			"conditionExpression": "",
-			"description": "",
+			"description": {
+			},
 			"label": {
 				"en_US": "Test Object Action 1"
 			},
@@ -22,7 +24,8 @@
 		{
 			"active": true,
 			"conditionExpression": "",
-			"description": "",
+			"description": {
+			},
 			"label": {
 				"en_US": "Ação do Objeto Teste 2",
 				"pt_BR": "Ação do Objeto Teste 2"
@@ -37,7 +40,8 @@
 		{
 			"active": true,
 			"conditionExpression": "",
-			"description": "",
+			"description": {
+			},
 			"label": {
 				"en_US": "testObjectAction3",
 				"es_ES": "Acción del objeto de prueba 3"
@@ -69,6 +73,26 @@
 				"pt_BR": "Data de Criação"
 			},
 			"name": "createDate",
+			"system": true
+		},
+		{
+			"DBType": "DateTime",
+			"businessType": "DateTime",
+			"label": {
+				"en_US": "Display Date",
+				"pt_BR": "Data de exibição"
+			},
+			"name": "displayDate",
+			"system": true
+		},
+		{
+			"DBType": "DateTime",
+			"businessType": "DateTime",
+			"label": {
+				"en_US": "Expiration Date",
+				"pt_BR": "Data de expiração"
+			},
+			"name": "expirationDate",
 			"system": true
 		},
 		{
@@ -111,7 +135,17 @@
 			"name": "name"
 		},
 		{
-			"DBType": "String",
+			"DBType": "DateTime",
+			"businessType": "DateTime",
+			"label": {
+				"en_US": "Review Date",
+				"pt_BR": "Data de revisão"
+			},
+			"name": "reviewDate",
+			"system": true
+		},
+		{
+			"DBType": "Integer",
 			"businessType": "Text",
 			"label": {
 				"en_US": "Status",

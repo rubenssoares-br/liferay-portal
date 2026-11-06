@@ -17,6 +17,9 @@ import com.liferay.commerce.service.CommerceOrderService;
 import com.liferay.commerce.service.CommerceOrderTypeService;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONFactory;
+import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Country;
@@ -32,14 +35,18 @@ import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
 
 import java.text.Format;
 
+import java.util.HashMap;
 import java.util.List;
-
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -49,7 +56,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CommercePortletKeys.COMMERCE_ORDER_CONTENT,
+		"jakarta.portlet.name=" + CommercePortletKeys.COMMERCE_ORDER_CONTENT,
 		"mvc.command.name=/commerce_order_content/export_commerce_order_report"
 	},
 	service = MVCResourceCommand.class
@@ -225,129 +232,131 @@ public class ExportCommerceOrderReportMVCResourceCommand
 			).put(
 				"shippingDiscountAmount",
 				_commercePriceFormatter.format(
-					commerceOrder.getCommerceCurrency(),
-					commerceOrder.getShippingDiscountAmount(),
-					themeDisplay.getLocale())
+					commerceOrder.getCommerceCurrency(), true,
+					themeDisplay.getLocale(),
+					commerceOrder.getShippingDiscountAmount())
 			);
 		}
 
 		hashMapWrapper.put(
 			"shippingAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getShippingAmount(), themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(), commerceOrder.getShippingAmount())
 		).put(
 			"shippingDiscountAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getShippingDiscountAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getShippingDiscountAmount())
 		).put(
 			"shippingDiscountPercentageLevel1",
 			commerceOrder.getShippingDiscountPercentageLevel1()
 		).put(
 			"shippingDiscountPercentageLevel1WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getShippingDiscountPercentageLevel1WithTaxAmount(),
-				themeDisplay.getLocale())
+					getShippingDiscountPercentageLevel1WithTaxAmount())
 		).put(
 			"shippingDiscountPercentageLevel2",
 			commerceOrder.getShippingDiscountPercentageLevel2()
 		).put(
 			"shippingDiscountPercentageLevel2WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getShippingDiscountPercentageLevel2WithTaxAmount(),
-				themeDisplay.getLocale())
+					getShippingDiscountPercentageLevel2WithTaxAmount())
 		).put(
 			"shippingDiscountPercentageLevel3",
 			commerceOrder.getShippingDiscountPercentageLevel3()
 		).put(
 			"shippingDiscountPercentageLevel3WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getShippingDiscountPercentageLevel3WithTaxAmount(),
-				themeDisplay.getLocale())
+					getShippingDiscountPercentageLevel3WithTaxAmount())
 		).put(
 			"shippingDiscountPercentageLevel4",
 			commerceOrder.getShippingDiscountPercentageLevel4()
 		).put(
 			"shippingDiscountPercentageLevel4WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getShippingDiscountPercentageLevel4WithTaxAmount(),
-				themeDisplay.getLocale())
+					getShippingDiscountPercentageLevel4WithTaxAmount())
 		).put(
 			"shippingDiscountWithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getShippingDiscountWithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getShippingDiscountWithTaxAmount())
 		).put(
 			"shippingWithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getShippingWithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getShippingWithTaxAmount())
 		).put(
 			"siteDefaultLocale", themeDisplay.getSiteDefaultLocale()
 		).put(
+			"skuOptions", _getSkuOptions(commerceOrderItems)
+		).put(
 			"subtotalDiscountAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getSubtotalDiscountAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getSubtotalDiscountAmount())
 		).put(
 			"subtotalDiscountPercentageLevel1",
 			commerceOrder.getSubtotalDiscountPercentageLevel1()
 		).put(
 			"subtotalDiscountPercentageLevel1WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getSubtotalDiscountPercentageLevel1WithTaxAmount(),
-				themeDisplay.getLocale())
+					getSubtotalDiscountPercentageLevel1WithTaxAmount())
 		).put(
 			"subtotalDiscountPercentageLevel2",
 			commerceOrder.getSubtotalDiscountPercentageLevel2()
 		).put(
 			"subtotalDiscountPercentageLevel2WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getSubtotalDiscountPercentageLevel2WithTaxAmount(),
-				themeDisplay.getLocale())
+					getSubtotalDiscountPercentageLevel2WithTaxAmount())
 		).put(
 			"subtotalDiscountPercentageLevel3",
 			commerceOrder.getSubtotalDiscountPercentageLevel3()
 		).put(
 			"subtotalDiscountPercentageLevel3WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getSubtotalDiscountPercentageLevel3WithTaxAmount(),
-				themeDisplay.getLocale())
+					getSubtotalDiscountPercentageLevel3WithTaxAmount())
 		).put(
 			"subtotalDiscountPercentageLevel4",
 			commerceOrder.getSubtotalDiscountPercentageLevel4()
 		).put(
 			"subtotalDiscountPercentageLevel4WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
 				commerceOrder.
-					getSubtotalDiscountPercentageLevel4WithTaxAmount(),
-				themeDisplay.getLocale())
+					getSubtotalDiscountPercentageLevel4WithTaxAmount())
 		).put(
 			"subtotalDiscountWithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getSubtotalDiscountWithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getSubtotalDiscountWithTaxAmount())
 		).put(
 			"subtotalMoney", commerceOrder.getSubtotalMoney()
 		).put(
@@ -356,56 +365,56 @@ public class ExportCommerceOrderReportMVCResourceCommand
 		).put(
 			"taxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTaxAmount(), themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(), commerceOrder.getTaxAmount())
 		).put(
 			"totalDiscountAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTotalDiscountAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getTotalDiscountAmount())
 		).put(
 			"totalDiscountPercentageLevel1",
 			commerceOrder.getTotalDiscountPercentageLevel1()
 		).put(
 			"totalDiscountPercentageLevel1WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTotalDiscountPercentageLevel1WithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getTotalDiscountPercentageLevel1WithTaxAmount())
 		).put(
 			"totalDiscountPercentageLevel2",
 			commerceOrder.getTotalDiscountPercentageLevel2()
 		).put(
 			"totalDiscountPercentageLevel2WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTotalDiscountPercentageLevel2WithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getTotalDiscountPercentageLevel2WithTaxAmount())
 		).put(
 			"totalDiscountPercentageLevel3",
 			commerceOrder.getTotalDiscountPercentageLevel3()
 		).put(
 			"totalDiscountPercentageLevel3WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTotalDiscountPercentageLevel3WithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getTotalDiscountPercentageLevel3WithTaxAmount())
 		).put(
 			"totalDiscountPercentageLevel4",
 			commerceOrder.getTotalDiscountPercentageLevel4()
 		).put(
 			"totalDiscountPercentageLevel4WithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTotalDiscountPercentageLevel4WithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getTotalDiscountPercentageLevel4WithTaxAmount())
 		).put(
 			"totalDiscountWithTaxAmount",
 			_commercePriceFormatter.format(
-				commerceOrder.getCommerceCurrency(),
-				commerceOrder.getTotalDiscountWithTaxAmount(),
-				themeDisplay.getLocale())
+				commerceOrder.getCommerceCurrency(), true,
+				themeDisplay.getLocale(),
+				commerceOrder.getTotalDiscountWithTaxAmount())
 		).put(
 			"totalMoney", commerceOrder.getTotalMoney()
 		).put(
@@ -444,6 +453,41 @@ public class ExportCommerceOrderReportMVCResourceCommand
 		return _portal.getPortalURL(themeDisplay) + logoURL;
 	}
 
+	private Map<Long, String> _getSkuOptions(
+			List<CommerceOrderItem> commerceOrderItems)
+		throws Exception {
+
+		Map<Long, String> skuOptions = new HashMap<>();
+
+		for (CommerceOrderItem commerceOrderItem : commerceOrderItems) {
+			String json = commerceOrderItem.getJson();
+
+			if (Validator.isNull(json)) {
+				continue;
+			}
+
+			List<String> skuOptionValueNames = JSONUtil.toList(
+				_jsonFactory.createJSONArray(json),
+				jsonObject -> {
+					JSONArray skuOptionValueNamesJSONArray =
+						jsonObject.getJSONArray("skuOptionValueNames");
+
+					if (JSONUtil.isEmpty(skuOptionValueNamesJSONArray)) {
+						return null;
+					}
+
+					return skuOptionValueNamesJSONArray.getString(0);
+				});
+
+			skuOptions.put(
+				commerceOrderItem.getCommerceOrderItemId(),
+				StringUtil.merge(
+					skuOptionValueNames, StringPool.COMMA_AND_SPACE));
+		}
+
+		return skuOptions;
+	}
+
 	@Reference
 	private CommerceOrderService _commerceOrderService;
 
@@ -458,6 +502,9 @@ public class ExportCommerceOrderReportMVCResourceCommand
 
 	@Reference
 	private DLAppLocalService _dlAppLocalService;
+
+	@Reference
+	private JSONFactory _jsonFactory;
 
 	@Reference
 	private Language _language;

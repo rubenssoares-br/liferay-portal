@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductTaxConfiguration")
+@GraphQLName(
+	description = "Tax classification for a product; pairs the tax category used by tax engines with a taxable flag; sourced from the product itself at the product level and from the configuration entry when embedded inside a product configuration.",
+	value = "ProductTaxConfiguration"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Tax classification for a product; pairs the tax category used by tax engines with a taxable flag; sourced from the product itself at the product level and from the configuration entry when embedded inside a product configuration."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ProductTaxConfiguration")
 public class ProductTaxConfiguration implements Serializable {
@@ -52,7 +59,10 @@ public class ProductTaxConfiguration implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier of the tax category assigned to the product; 0 means no tax category is assigned.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -84,14 +94,19 @@ public class ProductTaxConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier of the tax category assigned to the product; 0 means no tax category is assigned."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "taxCategoryName")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized name of the tax category for the request locale; read-only.",
+		example = "taxCategoryName"
+	)
 	public String getTaxCategory() {
 		if (_taxCategorySupplier != null) {
 			taxCategory = _taxCategorySupplier.get();
@@ -125,14 +140,70 @@ public class ProductTaxConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized name of the tax category for the request locale; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String taxCategory;
 
 	@JsonIgnore
 	private Supplier<String> _taxCategorySupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the tax category assigned to the product; it takes precedence over `id`. An unresolved code fails the request, except during an import, where it creates an empty tax category to be completed later.",
+		example = "AB-34098-789-N"
+	)
+	public String getTaxCategoryExternalReferenceCode() {
+		if (_taxCategoryExternalReferenceCodeSupplier != null) {
+			taxCategoryExternalReferenceCode =
+				_taxCategoryExternalReferenceCodeSupplier.get();
+
+			_taxCategoryExternalReferenceCodeSupplier = null;
+		}
+
+		return taxCategoryExternalReferenceCode;
+	}
+
+	public void setTaxCategoryExternalReferenceCode(
+		String taxCategoryExternalReferenceCode) {
+
+		this.taxCategoryExternalReferenceCode =
+			taxCategoryExternalReferenceCode;
+
+		_taxCategoryExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTaxCategoryExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			taxCategoryExternalReferenceCodeUnsafeSupplier) {
+
+		_taxCategoryExternalReferenceCodeSupplier = () -> {
+			try {
+				return taxCategoryExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the tax category assigned to the product; it takes precedence over `id`. An unresolved code fails the request, except during an import, where it creates an empty tax category to be completed later."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String taxCategoryExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _taxCategoryExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the product is subject to tax; defaults to true on create when omitted.",
+		example = "true"
+	)
 	public Boolean getTaxable() {
 		if (_taxableSupplier != null) {
 			taxable = _taxableSupplier.get();
@@ -166,7 +237,9 @@ public class ProductTaxConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the product is subject to tax; defaults to true on create when omitted."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean taxable;
 
@@ -229,6 +302,23 @@ public class ProductTaxConfiguration implements Serializable {
 			sb.append("\"");
 		}
 
+		String taxCategoryExternalReferenceCode =
+			getTaxCategoryExternalReferenceCode();
+
+		if (taxCategoryExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"taxCategoryExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(taxCategoryExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		Boolean taxable = getTaxable();
 
 		if (taxable != null) {
@@ -246,8 +336,8 @@ public class ProductTaxConfiguration implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductTaxConfiguration",
 		name = "x-class-name"
 	)
@@ -334,6 +424,27 @@ public class ProductTaxConfiguration implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -342,3 +453,4 @@ public class ProductTaxConfiguration implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1982680170

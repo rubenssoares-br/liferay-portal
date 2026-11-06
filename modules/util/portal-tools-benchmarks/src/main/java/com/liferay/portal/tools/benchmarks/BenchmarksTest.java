@@ -158,9 +158,11 @@ public class BenchmarksTest {
 				sb.append(_excludedCompanyWebIds.get(i));
 				sb.append("'");
 
-				if (i < (_excludedCompanyWebIds.size() - 1)) {
-					sb.append(", ");
+				if (i >= (_excludedCompanyWebIds.size() - 1)) {
+					continue;
 				}
+
+				sb.append(", ");
 			}
 
 			sb.append(") and ");
@@ -178,8 +180,10 @@ public class BenchmarksTest {
 
 		try (Connection connection = DriverManager.getConnection(
 				_jdbcURL, _jdbcUserName, _jdbcPassword);
+
 			PreparedStatement preparedStatement = connection.prepareStatement(
 				sql);
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {

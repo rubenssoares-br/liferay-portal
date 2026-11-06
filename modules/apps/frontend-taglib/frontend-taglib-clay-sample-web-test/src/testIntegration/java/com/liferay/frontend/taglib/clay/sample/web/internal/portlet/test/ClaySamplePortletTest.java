@@ -27,10 +27,9 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import java.util.HashMap;
-import java.util.List;
+import jakarta.portlet.PortletRequest;
 
-import javax.portlet.PortletRequest;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -61,6 +60,35 @@ public class ClaySamplePortletTest {
 	}
 
 	@Test
+	public void testCheckboxIsDisabled() throws Exception {
+		ServiceContextThreadLocal.pushServiceContext(
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		Layout layout = LayoutTestUtil.addTypePortletLayout(_group);
+
+		LayoutTestUtil.addPortletToLayout(
+			TestPropsValues.getUserId(), layout, _PORTLET_NAME, "column-1",
+			null);
+
+		PortletContainerTestUtil.Response response =
+			PortletContainerTestUtil.request(
+				PortletURLBuilder.create(
+					_portletURLFactory.create(
+						PortletContainerTestUtil.getHttpServletRequest(
+							_group, layout),
+						_PORTLET_NAME, layout.getPlid(),
+						PortletRequest.RENDER_PHASE)
+				).buildString());
+
+		String body = response.getBody();
+
+		Assert.assertTrue(
+			body.contains(
+				"<li class=\"nav-item\"><div class=\"custom-control " +
+					"custom-checkbox\"><label><input disabled"));
+	}
+
+	@Test
 	public void testPublishLayoutWithClaySamplePortlet() throws Exception {
 		ServiceContextThreadLocal.pushServiceContext(
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
@@ -69,7 +97,7 @@ public class ClaySamplePortletTest {
 
 		LayoutTestUtil.addPortletToLayout(
 			TestPropsValues.getUserId(), layout, _PORTLET_NAME, "column-1",
-			new HashMap<String, String[]>());
+			null);
 
 		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
 				"net.htmlparser.jericho", LoggerTestUtil.ERROR)) {
@@ -90,6 +118,35 @@ public class ClaySamplePortletTest {
 
 			Assert.assertTrue(logEntries.isEmpty());
 		}
+	}
+
+	@Test
+	public void testSearchBarIsDisabled() throws Exception {
+		ServiceContextThreadLocal.pushServiceContext(
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		Layout layout = LayoutTestUtil.addTypePortletLayout(_group);
+
+		LayoutTestUtil.addPortletToLayout(
+			TestPropsValues.getUserId(), layout, _PORTLET_NAME, "column-1",
+			null);
+
+		PortletContainerTestUtil.Response response =
+			PortletContainerTestUtil.request(
+				PortletURLBuilder.create(
+					_portletURLFactory.create(
+						PortletContainerTestUtil.getHttpServletRequest(
+							_group, layout),
+						_PORTLET_NAME, layout.getPlid(),
+						PortletRequest.RENDER_PHASE)
+				).buildString());
+
+		String body = response.getBody();
+
+		Assert.assertTrue(
+			body.contains(
+				"<input class=\"form-control form-control input-group-inset " +
+					"input-group-inset-after\" disabled"));
 	}
 
 	private static final String _PORTLET_NAME =

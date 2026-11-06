@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Account")
+@GraphQLName(
+	description = "Read-only projection of a account referenced by a discount or price-list account binding. Carries the account ID, optional logo ID, and display name; the full record lives in headless-commerce-admin-account.",
+	value = "Account"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Read-only projection of a account referenced by a discount or price-list account binding. Carries the account ID, optional logo ID, and display name; the full record lives in headless-commerce-admin-account."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Account")
 public class Account implements Serializable {
@@ -51,7 +58,10 @@ public class Account implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the account. Server-assigned and stable.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -83,7 +93,9 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the account. Server-assigned and stable."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -91,7 +103,10 @@ public class Account implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "20078")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the logo entity (FK identifier).",
+		example = "20078"
+	)
 	public Long getLogoId() {
 		if (_logoIdSupplier != null) {
 			logoId = _logoIdSupplier.get();
@@ -125,14 +140,16 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the logo entity (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long logoId;
 
 	@JsonIgnore
 	private Supplier<Long> _logoIdSupplier;
 
-	@Schema(example = "Account Name")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the account.", example = "Account Name"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -164,7 +181,7 @@ public class Account implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Display name of the account.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
@@ -243,8 +260,8 @@ public class Account implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v2_0.Account",
 		name = "x-class-name"
 	)
@@ -331,6 +348,27 @@ public class Account implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -339,3 +377,4 @@ public class Account implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-918058375

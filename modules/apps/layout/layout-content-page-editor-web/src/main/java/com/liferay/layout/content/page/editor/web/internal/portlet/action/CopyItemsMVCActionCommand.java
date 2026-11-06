@@ -9,8 +9,9 @@ import com.liferay.fragment.listener.FragmentEntryLinkListener;
 import com.liferay.fragment.listener.FragmentEntryLinkListenerRegistry;
 import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.layout.content.page.editor.constants.ContentPageEditorPortletKeys;
-import com.liferay.layout.content.page.editor.web.internal.manager.ContentManager;
+import com.liferay.layout.content.page.editor.web.internal.manager.FormItemManager;
 import com.liferay.layout.content.page.editor.web.internal.util.layout.structure.LayoutStructureUtil;
+import com.liferay.layout.manager.ContentManager;
 import com.liferay.layout.util.structure.FragmentStyledLayoutStructureItem;
 import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.layout.util.structure.LayoutStructureItem;
@@ -22,14 +23,14 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -39,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
+		"jakarta.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 		"mvc.command.name=/layout_content_page_editor/copy_items"
 	},
 	service = MVCActionCommand.class
@@ -81,6 +82,9 @@ public class CopyItemsMVCActionCommand
 			themeDisplay.getScopeGroupId(), segmentsExperienceId,
 			themeDisplay.getPlid(),
 			layoutStructure -> {
+				_formItemManager.checkFormContainerParentItemRequired(
+					finalItemIds, layoutStructure, parentItemId);
+
 				List<LayoutStructureItem> copiedLayoutStructureItems =
 					layoutStructure.copyLayoutStructureItems(
 						Arrays.asList(finalItemIds), parentItemId);
@@ -163,18 +167,21 @@ public class CopyItemsMVCActionCommand
 	}
 
 	@Override
+	protected String getNoSuchEntryLinkExceptionMessage() {
+		return "the-section-could-not-be-copied-because-it-no-longer-exists";
+	}
+
+	@Override
 	protected String getNoninstanceablePortletExceptionMessage() {
 		return "the-layout-could-not-be-copied-because-it-contains-a-widget-" +
 			"x-that-can-only-appear-once-on-the-page";
 	}
 
-	@Override
-	protected String getNoSuchEntryLinkExceptionMessage() {
-		return "the-section-could-not-be-copied-because-it-no-longer-exists";
-	}
-
 	@Reference
 	private ContentManager _contentManager;
+
+	@Reference
+	private FormItemManager _formItemManager;
 
 	@Reference
 	private FragmentEntryLinkListenerRegistry

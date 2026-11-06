@@ -17,6 +17,7 @@ import com.liferay.portal.kernel.portlet.bridges.mvc.BaseTransactionalMVCActionC
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.service.permission.LayoutPermissionUtil;
@@ -28,8 +29,8 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -39,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
+		"jakarta.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
 		"mvc.command.name=/layout_admin/discard_draft_layout"
 	},
 	service = MVCActionCommand.class
@@ -101,8 +102,7 @@ public class DiscardDraftLayoutMVCActionCommand
 		try {
 			boolean published = layout.isPublished();
 
-			draftLayout = _layoutLocalService.copyLayoutContent(
-				layout, draftLayout);
+			draftLayout = _layoutService.copyLayoutContent(layout, draftLayout);
 
 			ServiceContext serviceContext = ServiceContextFactory.getInstance(
 				Layout.class.getName(), actionRequest);
@@ -153,6 +153,9 @@ public class DiscardDraftLayoutMVCActionCommand
 	@Reference
 	private LayoutPageTemplateEntryLocalService
 		_layoutPageTemplateEntryLocalService;
+
+	@Reference
+	private LayoutService _layoutService;
 
 	@Reference
 	private Portal _portal;

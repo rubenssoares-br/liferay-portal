@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +40,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "Represents the settings of a page.", value = "Settings"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents the settings of a page."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Settings")
@@ -53,7 +56,9 @@ public class Settings implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Settings.class, json);
 	}
 
-	@Schema(description = "The page's color scheme name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's color scheme name."
+	)
 	public String getColorSchemeName() {
 		if (_colorSchemeNameSupplier != null) {
 			colorSchemeName = _colorSchemeNameSupplier.get();
@@ -94,7 +99,7 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _colorSchemeNameSupplier;
 
-	@Schema(description = "The page's CSS.")
+	@io.swagger.v3.oas.annotations.media.Schema(description = "The page's CSS.")
 	public String getCss() {
 		if (_cssSupplier != null) {
 			css = _cssSupplier.get();
@@ -133,7 +138,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _cssSupplier;
 
-	@Schema(description = "The FavIcon of the page")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The FavIcon of the page"
+	)
 	@Valid
 	public Object getFavIcon() {
 		if (_favIconSupplier != null) {
@@ -175,7 +182,7 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _favIconSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The client extensions for global css associated to the page."
 	)
 	@Valid
@@ -225,7 +232,7 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<ClientExtension[]> _globalCSSClientExtensionsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The client extensions for global js associated to the page."
 	)
 	@Valid
@@ -274,7 +281,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<ClientExtension[]> _globalJSClientExtensionsSupplier;
 
-	@Schema(description = "The page's JavaScript.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's JavaScript."
+	)
 	public String getJavascript() {
 		if (_javascriptSupplier != null) {
 			javascript = _javascriptSupplier.get();
@@ -315,7 +324,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _javascriptSupplier;
 
-	@Schema(description = "The page's master page.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's master page."
+	)
 	@Valid
 	public MasterPage getMasterPage() {
 		if (_masterPageSupplier != null) {
@@ -357,7 +368,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<MasterPage> _masterPageSupplier;
 
-	@Schema(description = "The StyleBook that is applied to the page.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The StyleBook that is applied to the page."
+	)
 	@Valid
 	public StyleBook getStyleBook() {
 		if (_styleBookSupplier != null) {
@@ -399,7 +412,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<StyleBook> _styleBookSupplier;
 
-	@Schema(description = "The Client Extension for the theme css of a page")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The Client Extension for the theme css of a page"
+	)
 	@Valid
 	public ClientExtension getThemeCSSClientExtension() {
 		if (_themeCSSClientExtensionSupplier != null) {
@@ -446,7 +461,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<ClientExtension> _themeCSSClientExtensionSupplier;
 
-	@Schema(description = "The page's theme name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's theme name."
+	)
 	public String getThemeName() {
 		if (_themeNameSupplier != null) {
 			themeName = _themeNameSupplier.get();
@@ -487,7 +504,9 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _themeNameSupplier;
 
-	@Schema(description = "The page's theme settings.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's theme settings."
+	)
 	@Valid
 	public Object getThemeSettings() {
 		if (_themeSettingsSupplier != null) {
@@ -529,7 +548,7 @@ public class Settings implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _themeSettingsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The Client Extension for the theme spritemap of a page"
 	)
 	@Valid
@@ -647,17 +666,7 @@ public class Settings implements Serializable {
 
 			sb.append("\"favIcon\": ");
 
-			if (favIcon instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)favIcon));
-			}
-			else if (favIcon instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)favIcon));
-				sb.append("\"");
-			}
-			else {
-				sb.append(favIcon);
-			}
+			sb.append(_toJSON(favIcon));
 		}
 
 		ClientExtension[] globalCSSClientExtensions =
@@ -783,18 +792,7 @@ public class Settings implements Serializable {
 
 			sb.append("\"themeSettings\": ");
 
-			if (themeSettings instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)themeSettings));
-			}
-			else if (themeSettings instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)themeSettings));
-				sb.append("\"");
-			}
-			else {
-				sb.append(themeSettings);
-			}
+			sb.append(_toJSON(themeSettings));
 		}
 
 		ClientExtension themeSpritemapClientExtension =
@@ -815,8 +813,8 @@ public class Settings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.Settings",
 		name = "x-class-name"
 	)
@@ -903,6 +901,27 @@ public class Settings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -911,3 +930,4 @@ public class Settings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1793789084

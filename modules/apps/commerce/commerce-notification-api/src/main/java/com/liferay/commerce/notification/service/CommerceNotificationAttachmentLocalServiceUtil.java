@@ -27,8 +27,10 @@ import java.util.List;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationAttachmentLocalService
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 public class CommerceNotificationAttachmentLocalServiceUtil {
 
 	/*
@@ -53,18 +55,6 @@ public class CommerceNotificationAttachmentLocalServiceUtil {
 
 		return getService().addCommerceNotificationAttachment(
 			commerceNotificationAttachment);
-	}
-
-	public static CommerceNotificationAttachment
-			addCommerceNotificationAttachment(
-				long commerceNotificationQueueEntryId, long fileEntryId,
-				boolean deleteOnSend,
-				com.liferay.portal.kernel.service.ServiceContext serviceContext)
-		throws PortalException {
-
-		return getService().addCommerceNotificationAttachment(
-			commerceNotificationQueueEntryId, fileEntryId, deleteOnSend,
-			serviceContext);
 	}
 
 	/**
@@ -427,3 +417,4 @@ public class CommerceNotificationAttachmentLocalServiceUtil {
 			CommerceNotificationAttachmentLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:125284371

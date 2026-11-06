@@ -350,6 +350,11 @@ public interface CommerceChannelLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public CommerceChannel getOrAddEmptyCommerceChannel(
+			String externalReferenceCode, long companyId, long userId)
+		throws PortalException;
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -421,3 +426,4 @@ public interface CommerceChannelLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:100986067

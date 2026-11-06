@@ -1,5 +1,92 @@
 #!/bin/bash
 
+function assert_clean_upgrade_log {
+	local upgrade_log="${LIFERAY_HOME}/tools/portal-tools-db-upgrade-client/logs/upgrade.log"
+
+	if [ ! -f "${upgrade_log}" ]
+	then
+		echo "Unable to find upgrade log at ${upgrade_log}."
+
+		exit 1
+	fi
+
+	local unclean_log_entries
+
+	unclean_log_entries=$(grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}[[:space:]]+[0-9]{2}:[0-9]{2}:[0-9]{2}([.,][0-9]{3})?[[:space:]]+(ERROR|FATAL|WARN)" "${upgrade_log}" | grep -v "Do NOT use sidecar in production" || true)
+
+	if [ -n "${unclean_log_entries}" ]
+	then
+		echo "Upgrade log contains ERROR, FATAL, or WARN entries:"
+		printf "%s\n" "${unclean_log_entries}"
+
+		exit 1
+	fi
+}
+
+function assert_document_library_not_populated {
+	local document_library_dir="${LIFERAY_HOME}/data/document_library"
+
+	if [[ ! -d ${document_library_dir} ]]
+	then
+		return 0
+	fi
+
+	if [ $(ls -A "${document_library_dir}" | wc -l) -gt 1 ]
+	then
+		echo "Unable to confirm the database store was used for ${document_library_dir}."
+
+		exit 1
+	fi
+}
+
+function cluster_set_up {
+	local jvm_heap_override=${3}
+
+	if [[ -n ${jvm_heap_override} ]]
+	then
+		override_jvm_heap "$(get_app_server_dir ${LIFERAY_HOME})" "${jvm_heap_override}"
+	fi
+
+	default_set_up
+
+	prepare_additional_bundles "${1}" "${2}" "${jvm_heap_override}"
+
+	local slave_home="${LIFERAY_HOME}-${1}"
+
+	local current_dir_name=$(dirname "${BASH_SOURCE[1]}")
+
+	cp "${current_dir_name}/com.liferay.portal.search.elasticsearch8.configuration.ElasticsearchConfiguration.config" "${slave_home}/osgi/configs"
+
+	rm -fr "${slave_home}/data"
+
+	mkdir -p "${slave_home}/data"
+
+	ln -s "${LIFERAY_HOME}/data/document_library" "${slave_home}/data"
+
+	local domain
+
+	for domain in "${slave_home}/routes/default/dxp/"*
+	do
+		sed -i 's/8080/9080/g' "${domain}"
+	done
+
+	rm -fr "${slave_home}/osgi/state"
+	rm -fr "${slave_home}/osgi/tomcat/work"
+	rm -fr "${slave_home}/osgi/work"
+
+	local node_home
+
+	for node_home in "${LIFERAY_HOME}" "${slave_home}"
+	do
+		delete_property "${node_home}" "web.server.http.port"
+		delete_property "${node_home}" "web.server.https.port"
+	done
+
+	update_property "${slave_home}" "module.framework.properties.osgi.console" "localhost:11313"
+
+	start_additional_bundles ${1}
+}
+
 function combine_properties_files {
 	local temp_properties_file=temp.properties
 
@@ -49,29 +136,56 @@ function combine_properties_files {
 }
 
 function default_set_up {
-	update_portal_ext_properties
+	if [[ -n ${PLAYWRIGHT_WORKSPACE_NAME} ]]
+	then
+		update_workspace_portal_ext_properties
 
-	start_app_server
+		start_workspace_app_server
 
-	deploy_parent_project_osgi_modules
+		echo "Skipping the learn resources, OSGi modules, deploy folders, OSGi configs, and client extensions because the ${PLAYWRIGHT_WORKSPACE_NAME} workspace provides its own bundle."
+	else
+		update_portal_ext_properties
 
-	deploy_project_osgi_modules
+		update_learn_resources_dir
 
-	deploy_parent_project_deploy_folder
+		deploy_parent_project_osgi_modules
 
-	deploy_project_deploy_folder
+		deploy_project_osgi_modules
 
-	deploy_parent_project_osgi_configs
+		start_default_app_server
 
-	deploy_project_osgi_configs
+		deploy_parent_project_deploy_folder
 
-	deploy_parent_project_client_extensions
+		deploy_project_deploy_folder
 
-	deploy_project_client_extensions
+		deploy_parent_project_osgi_configs
+
+		deploy_project_osgi_configs
+
+		deploy_parent_project_client_extensions
+
+		deploy_project_client_extensions
+	fi
 }
 
 function default_tear_down {
-	stop_app_server
+	if [[ -n ${PLAYWRIGHT_WORKSPACE_NAME} ]]
+	then
+		stop_workspace_app_server
+	else
+		stop_default_app_server
+	fi
+}
+
+function delete_property {
+	local liferay_home=${1}
+	local properties_file
+	local property_name=${2}
+
+	for properties_file in ${liferay_home}/tomcat-*/webapps/ROOT/WEB-INF/classes/*.properties
+	do
+		sed -i "s/${property_name}=.*//g" "${properties_file}"
+	done
 }
 
 function deploy_client_extensions {
@@ -93,7 +207,7 @@ function deploy_client_extensions {
 
 			${gradlew} deploy -Pliferay.workspace.home.dir=${LIFERAY_HOME}
 
-			wait_for_portal_log_inactivity
+			wait_for_portal_log_inactivity ${LIFERAY_HOME}
 		else
 			echo "Unable to find client extension in ${client_extension_dir}."
 		fi
@@ -133,7 +247,7 @@ function deploy_osgi_modules {
 
 		for osgi_module_name in $(cat ${osgi_modules_list_file})
 		do
-			local osgi_module_dir=$(find ${_PORTAL_PROJECT_DIR}/modules/apps -type d -name "${osgi_module_name}" | grep -v .releng | grep -v .npmscripts | grep -v node_modules)
+			local osgi_module_dir=$(find ${_PORTAL_PROJECT_DIR}/modules/apps ${_PORTAL_PROJECT_DIR}/modules/dxp/apps -type d -name "${osgi_module_name}" | grep -v .releng | grep -v .npmscripts | grep -v node_modules)
 
 			if [[ $(echo ${osgi_module_dir} | wc -w | grep -o -E '[0-9]+') > 1 ]]
 			then
@@ -160,8 +274,6 @@ function deploy_osgi_modules {
 				local gradlew=$(get_gradlew)
 
 				${gradlew} deploy
-
-				wait_for_portal_log_inactivity
 			else
 				echo "Unable to find OSGi module in ${osgi_module_dir}."
 			fi
@@ -237,8 +349,17 @@ function get_absolute_dir {
 	echo $(cd -- $(dirname -- $1) &> /dev/null && pwd)
 }
 
+function get_app_server_dir {
+	if [[ "${APP_SERVER_TYPE}" == "tomcat" ]]
+	then
+		find "${1}" -maxdepth 2 -type d -name "${APP_SERVER_TYPE}*"
+	else
+		find "${1}" -maxdepth 2 -type d -name "${APP_SERVER_TYPE}*[0-9]]"
+	fi
+}
+
 function get_client_extension_dir {
-	local clients_extension_name=${1}
+	local client_extension_name=${1}
 
 	local client_extension_dir=$(find ${_PORTAL_PROJECT_DIR}/workspaces -type d | grep "${client_extension_name}$" | grep -v .releng | grep -v .npmscripts | grep -v dist | grep -v node_modules)
 
@@ -268,7 +389,7 @@ function get_client_extension_dirs {
 	then
 		for client_extension_name in $(cat ${client_extensions_list_file})
 		do
-			client_extension_dirs+=($(get_client_extension_dir))
+			client_extension_dirs+=($(get_client_extension_dir ${client_extension_name}))
 		done
 	fi
 
@@ -356,7 +477,7 @@ function get_playwright_project_dir {
 }
 
 function get_portal_log_file_size {
-	wc --lines --total=always ${LIFERAY_HOME}/logs/liferay.*.log | grep total | awk '{print $1}'
+	wc --lines --total=always ${1}/logs/liferay.*.log | grep total | awk '{print $1}'
 }
 
 function get_portal_project_dir {
@@ -370,10 +491,6 @@ function get_project_client_extension_workspace_portal_ext_properties_files {
 	then
 		get_client_extension_workspace_portal_ext_properties_files ${playwright_project_dir}/env/client-extensions.list
 	fi
-}
-
-function get_tomcat_dir {
-	find ${LIFERAY_HOME} -type d -name "tomcat*"
 }
 
 function get_tomcat_portal_ext_properties_file {
@@ -417,11 +534,96 @@ function reverse {
 	done
 }
 
+function override_jvm_heap {
+	local app_server_dir=${1}
+	local jvm_heap_override=${2}
+
+	if [[ -n ${jvm_heap_override} ]]
+	then
+		sed -i "s/-Xms[0-9]*m -Xmx[0-9]*m/${jvm_heap_override}/" "${app_server_dir}/bin/setenv.sh"
+	fi
+}
+
+function prepare_additional_bundles {
+	local jvm_heap_override=${3}
+
+	for ((i = 0 ; i < ${1} ; i++))
+	do
+		local app_server_bundles_size=$((1 + ${i}))
+
+		local leading_port_number=$((8 + ${app_server_bundles_size}))
+
+		local liferay_home="${LIFERAY_HOME}-${app_server_bundles_size}"
+
+		if [[ -d ${liferay_home} ]]
+		then
+			rm -fr ${liferay_home}
+		fi
+
+		cp -r ${LIFERAY_HOME} ${liferay_home}
+
+		local app_server_dir=$(get_app_server_dir ${liferay_home})
+
+		echo ${app_server_dir}
+
+		override_jvm_heap "${app_server_dir}" "${jvm_heap_override}"
+
+		sed -i "s/=\"8\([0-9]\{3\}\)\"/=\"${leading_port_number}\1\"/g" "${app_server_dir}/conf/server.xml"
+
+		local osgi_console_port=$((11312 + ${app_server_bundles_size}))
+
+		sed -i "s/11312/${osgi_console_port}/g" "${app_server_dir}/webapps/ROOT/WEB-INF/classes/portal-ext.properties"
+
+		sed -i "s/channel-logic-name/channel-logic-name-${app_server_bundles_size}/g" "${app_server_dir}/webapps/ROOT/WEB-INF/classes/portal-ext.properties"
+		sed -i "s|liferay.home=${LIFERAY_HOME}|liferay.home=${liferay_home}|g" "${app_server_dir}/webapps/ROOT/WEB-INF/classes/portal-ext.properties"
+
+		chmod a+x ${app_server_dir}
+
+		if [[ ${2} == "true" ]]
+		then
+			sed -i "s/lportal/lportal${app_server_bundles_size}/g" "${app_server_dir}/webapps/ROOT/WEB-INF/classes/portal-ext.properties"
+
+			cd ${_PORTAL_PROJECT_DIR}
+
+			ant -f build-test.xml rebuild-database-playwright
+		fi
+	done
+}
+
+function rebuild_legacy_database {
+	local data_archive_type=${1}
+	local portal_version=${2}
+
+	cd "${_PORTAL_PROJECT_DIR}"
+
+	ant -f build-test.xml \
+		-Ddata.archive.type="${data_archive_type}" \
+		-Dkeep.cached.app.server.data=true \
+		-Dportal.version="${portal_version}" \
+		-Dskip.get.testcase.database.properties=true \
+		rebuild-legacy-database
+}
+
 function set_variables {
 	local playwright_env_dir=$(dirname ${BASH_SOURCE[0]})
 
 	_PLAYWRIGHT_BASE_DIR=$(get_absolute_dir ${playwright_env_dir}/../..)
 	_PORTAL_PROJECT_DIR=$(get_absolute_dir ${playwright_env_dir}/../../../../..)
+}
+
+function start_additional_bundles {
+	for ((i = 0 ; i < ${1} ; i++ ))
+	do
+		local app_server_bundles_size=$((1 + ${i}))
+
+		local liferay_home="${LIFERAY_HOME}-${app_server_bundles_size}"
+
+		local leading_port_number=$((8 + ${app_server_bundles_size}))
+
+		local liferay_portal_url="${LIFERAY_PORTAL_URL/\:8/\:"${leading_port_number}"}"
+
+		start_app_server ${liferay_home} ${liferay_portal_url}
+	done
 }
 
 function start_analytics_cloud {
@@ -431,18 +633,56 @@ function start_analytics_cloud {
 }
 
 function start_app_server {
-	cd $(get_tomcat_dir)/bin
+	local liferay_home=${1}
 
-	/bin/bash catalina.sh run &
+	local app_server_dir=$(get_app_server_dir ${liferay_home})
 
-	while ! curl --output /dev/null --silent --head --fail ${LIFERAY_PORTAL_URL}
+	if [[ "${APP_SERVER_TYPE}" == "jboss" ]]
+	then
+		ant -f build-test-jboss.xml setup-jboss-playwright
+
+		cd ${app_server_dir}/standalone/deployments
+
+		touch ROOT.war.dodeploy
+
+		cd ${app_server_dir}/bin
+
+		/bin/bash standalone.sh &
+	elif [[ "${APP_SERVER_TYPE}" == "tomcat" ]]
+	then
+		cd ${app_server_dir}/bin
+
+		/bin/bash catalina.sh run &
+	elif [[ "${APP_SERVER_TYPE}" == "weblogic" ]]
+	then
+		ant -f build-test-weblogic.xml setup-weblogic-playwright
+
+		cd ${app_server_dir}/domains/liferay
+
+		/bin/bash startWeblogic.sh
+	elif [[ "${APP_SERVER_TYPE}" == "wildfly" ]]
+	then
+		ant -f build-test-wildfly.xml setup-wildfly-playwright
+
+		cd ${app_server_dir}/standalone/deployments
+
+		touch ROOT.war.dodeploy
+
+		cd ${app_server_dir}/bin
+
+		/bin/bash standalone.sh &
+	fi
+
+	local liferay_portal_url=${2}
+
+	while ! curl --fail --output /dev/null --silent ${liferay_portal_url}
 	do
 		sleep 5
 	done
 
-	wait_for_portal_log_inactivity
+	wait_for_portal_log_inactivity ${liferay_home}
 
-	echo "${LIFERAY_PORTAL_URL} is now available."
+	echo "${liferay_portal_url} is now available."
 }
 
 function start_client_extension_spring_boot_application {
@@ -456,17 +696,32 @@ function start_client_extension_spring_boot_application {
 
 		cd ${client_extension_dir}
 
-		local portal_url_hostname=$(echo ${LIFERAY_PORTAL_URL} | awk -F:// '{print $2}')
+		#
+		# The portal's Kubernetes agent rewrites the routes in its home
+		# directory to the company virtual host, which does not resolve from
+		# here. The application reads its routes once at boot, so give it a
+		# private home that only this script writes.
+		#
 
-		echo "${portal_url_hostname}" > ${LIFERAY_HOME}/routes/default/dxp/com.liferay.lxc.dxp.domains
-		echo "${portal_url_hostname}" > ${LIFERAY_HOME}/routes/default/dxp/com.liferay.lxc.dxp.main.domain
-		echo "${portal_url_hostname}" > ${LIFERAY_HOME}/routes/default/dxp/com.liferay.lxc.dxp.mainDomain
+		local routes_home=$(mktemp -d)
 
-		local portal_url_scheme=$(echo ${LIFERAY_PORTAL_URL} | awk -F:// '{print $1}')
+		write_client_extension_dxp_routes ${routes_home}
 
-		echo "${portal_url_scheme}" > ${LIFERAY_HOME}/routes/default/dxp/com.liferay.lxc.dxp.server.protocol
+		if ! curl --fail --output /dev/null --retry 12 --retry-all-errors --retry-delay 5 --silent ${LIFERAY_PORTAL_URL}/o/oauth2/jwks
+		then
+			echo "The portal's JWKS endpoint does not answer at ${LIFERAY_PORTAL_URL}."
 
-		$(get_gradlew) bootRun -Pliferay.workspace.home.dir=${LIFERAY_HOME} &
+			exit 1
+		fi
+
+		#
+		# Run "classes" first so the readiness wait below does not spend its
+		# budget on a cold wrapper downloading Gradle and starting a daemon.
+		#
+
+		$(get_gradlew) classes -Pliferay.workspace.home.dir=${routes_home}
+
+		$(get_gradlew) bootRun -Pliferay.workspace.home.dir=${routes_home} &
 
 		local sleep_duration=60
 		local sleep_interval=5
@@ -493,6 +748,36 @@ function start_client_extension_spring_boot_application {
 	fi
 }
 
+function start_default_app_server {
+	start_app_server ${LIFERAY_HOME} ${LIFERAY_PORTAL_URL}
+}
+
+function start_workspace_app_server {
+	if ! LIFERAY_COMPOSE_OVERRIDES=ci /bin/bash ${PLAYWRIGHT_WORKSPACE_DIR}/scripts/bootstrap/start.sh
+	then
+		echo "Unable to start the ${PLAYWRIGHT_WORKSPACE_NAME} workspace."
+
+		exit 1
+	fi
+}
+
+function stop_additional_bundles {
+	default_tear_down
+
+	for ((i = 0 ; i < ${1} ; i++))
+	do
+		local app_server_bundles_size=$((1 + ${i}))
+
+		local liferay_home=${LIFERAY_HOME}-${app_server_bundles_size}
+
+		local leading_port_number=$((8 + ${app_server_bundles_size}))
+
+		local liferay_portal_url="${LIFERAY_PORTAL_URL/\:8/\:"${leading_port_number}"}"
+
+		stop_app_server ${liferay_home} ${liferay_portal_url}
+	done
+}
+
 function stop_analytics_cloud {
 	cd ${_PORTAL_PROJECT_DIR}
 
@@ -500,16 +785,27 @@ function stop_analytics_cloud {
 }
 
 function stop_app_server {
-	cd $(get_tomcat_dir)/bin
+	local liferay_home=${1}
 
-	/bin/bash shutdown.sh &
+	cd $(get_app_server_dir ${liferay_home})/bin
 
-	while curl --output /dev/null --silent --head --fail ${LIFERAY_PORTAL_URL}
+	if [[ "${APP_SERVER_TYPE}" == "tomcat" ]]
+	then
+		/bin/bash shutdown.sh &
+	else
+		cd ${_PORTAL_PROJECT_DIR}
+
+		ant -f build-test.xml stop-app-server
+	fi
+
+	local portal_url=${2}
+
+	while curl --output /dev/null --silent --head --fail ${portal_url}
 	do
 		sleep 5
 	done
 
-	echo "${LIFERAY_PORTAL_URL} is no longer available."
+	echo "${portal_url} is no longer available."
 }
 
 function stop_client_extension_spring_boot_application {
@@ -548,6 +844,43 @@ function stop_client_extension_spring_boot_application {
 	fi
 }
 
+function stop_default_app_server {
+	stop_app_server ${LIFERAY_HOME} ${LIFERAY_PORTAL_URL}
+}
+
+function stop_workspace_app_server {
+	docker compose \
+		--file ${PLAYWRIGHT_WORKSPACE_DIR}/docker-compose.yaml \
+		--file ${PLAYWRIGHT_WORKSPACE_DIR}/docker-compose-ci.yaml \
+		down \
+		--volumes
+}
+
+function update_learn_resources_dir {
+	local learn_resources_dir=${_PORTAL_PROJECT_DIR}/learn-resources/data
+
+	if [[ ! -d ${learn_resources_dir} ]]
+	then
+		echo "Unable to find ${learn_resources_dir}."
+
+		exit 1
+	fi
+
+	local properties_files=$(get_tomcat_portal_ext_properties_file)
+
+	if [[ -z ${properties_files} ]]
+	then
+		properties_files=${LIFERAY_HOME}/portal-ext.properties
+	fi
+
+	local properties_file
+
+	for properties_file in ${properties_files}
+	do
+		echo "learn.resources.dir=${learn_resources_dir}" >> ${properties_file}
+	done
+}
+
 function update_portal_ext_properties {
 	combine_properties_files \
 		$(get_tomcat_portal_ext_properties_file) \
@@ -559,6 +892,63 @@ function update_portal_ext_properties {
 		$(get_parent_portal_ext_properties_files) \
 		\
 		$(get_playwright_project_dir)/env/portal-ext.properties
+}
+
+function update_property {
+	local liferay_home=${1}
+	local properties_file
+	local property_name=${2}
+	local property_value=${3}
+
+	for properties_file in ${liferay_home}/tomcat-*/webapps/ROOT/WEB-INF/classes/*.properties
+	do
+		sed -i "s/${property_name}=.*/${property_name}=${property_value}/g" "${properties_file}"
+	done
+}
+
+function update_workspace_portal_ext_properties {
+	local portal_setup_wizard_properties_file=$(mktemp)
+
+	combine_properties_files \
+		${portal_setup_wizard_properties_file} \
+		\
+		$(get_parent_portal_ext_properties_files) \
+		\
+		$(get_playwright_project_dir)/env/portal-ext.properties
+
+	chmod 644 ${portal_setup_wizard_properties_file}
+
+	if ! docker cp ${portal_setup_wizard_properties_file} ${HOSTNAME}_liferay:/opt/liferay/portal-setup-wizard.properties
+	then
+		echo "Unable to copy ${portal_setup_wizard_properties_file} to the ${PLAYWRIGHT_WORKSPACE_NAME} workspace."
+
+		exit 1
+	fi
+}
+
+function upgrade_legacy_database_set_up {
+	local custom_upgrade_properties=${3}
+	local data_archive_type=${1}
+	local portal_version=${2}
+
+	rebuild_legacy_database "${data_archive_type}" "${portal_version}"
+
+	if [[ -n ${custom_upgrade_properties} ]]
+	then
+		ant -f build-test.xml \
+			-Dcustom.upgrade.properties="${custom_upgrade_properties}" \
+			-Dportal.version="${portal_version}" \
+			-Dtest.class=playwright \
+			upgrade-legacy-database
+	else
+		ant -f build-test.xml \
+			-Dportal.version="${portal_version}" \
+			upgrade-legacy-database
+	fi
+
+	assert_clean_upgrade_log
+
+	default_set_up
 }
 
 function validate_environment_variables {
@@ -585,7 +975,7 @@ function validate_environment_variables {
 }
 
 function wait_for_portal_log_inactivity {
-	local portal_log_file_size=$(get_portal_log_file_size)
+	local portal_log_file_size=$(get_portal_log_file_size ${1})
 
 	local sleep_interval=15
 	local sleep_duration=180
@@ -593,9 +983,9 @@ function wait_for_portal_log_inactivity {
 
 	sleep ${sleep_interval}
 
-	while [[ ${portal_log_file_size} != $(get_portal_log_file_size) ]]
+	while [[ ${portal_log_file_size} != $(get_portal_log_file_size ${1}) ]]
 	do
-		portal_log_file_size=$(get_portal_log_file_size)
+		portal_log_file_size=$(get_portal_log_file_size ${1})
 
 		if [[ ${total_duration} -ge ${sleep_duration} ]]
 		then
@@ -606,10 +996,26 @@ function wait_for_portal_log_inactivity {
 
 		total_duration=$((total_duration + sleep_interval))
 
-		echo "Waiting for portal log inactivity"
+		echo "Waiting for portal log inactivity..."
 	done
 
-	echo "No portal activity in ${sleep_interval}s"
+	echo "No portal activity detected in ${sleep_interval}s."
+}
+
+function write_client_extension_dxp_routes {
+	local routes_dir=${1}/routes/default/dxp
+
+	mkdir -p ${routes_dir}
+
+	local portal_url_hostname=$(echo ${LIFERAY_PORTAL_URL} | awk -F:// '{print $2}')
+
+	echo "${portal_url_hostname}" > ${routes_dir}/com.liferay.lxc.dxp.domains
+	echo "${portal_url_hostname}" > ${routes_dir}/com.liferay.lxc.dxp.main.domain
+	echo "${portal_url_hostname}" > ${routes_dir}/com.liferay.lxc.dxp.mainDomain
+
+	local portal_url_scheme=$(echo ${LIFERAY_PORTAL_URL} | awk -F:// '{print $1}')
+
+	echo "${portal_url_scheme}" > ${routes_dir}/com.liferay.lxc.dxp.server.protocol
 }
 
 main "${@}"

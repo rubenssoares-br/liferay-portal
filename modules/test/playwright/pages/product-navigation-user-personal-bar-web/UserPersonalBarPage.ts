@@ -5,12 +5,17 @@
 
 import {Locator, Page} from '@playwright/test';
 
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {waitForAlert} from '../../utils/waitForAlert';
+import {InstanceSettingsPage} from '../configuration-admin-web/InstanceSettingsPage';
+import {GlobalMenuPage} from '../product-navigation-applications-menu/GlobalMenuPage';
 
 export class UserPersonalBarPage {
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly backArrow: Locator;
 	readonly editConfigurationSubmitButton: Locator;
+	readonly globalMenuPage: GlobalMenuPage;
+	readonly instanceSettingsPage: InstanceSettingsPage;
 	readonly notificationBadge: Locator;
+	readonly notificationsMenuItem: Locator;
 	readonly page: Page;
 	readonly processBuilderConfigurationTab: Locator;
 	readonly productsMenuItem: Locator;
@@ -19,18 +24,24 @@ export class UserPersonalBarPage {
 	readonly searchSubmit: Locator;
 	readonly showNotificationBadgeInPersonalMenuLabel: Locator;
 	readonly submitForWorkflowButton: Locator;
-	readonly usersSetting: Locator;
+	readonly userMenuButton: Locator;
 	readonly workflowDefinitionLinkCancelButton: Locator;
 	readonly workflowDefinitionLinkEditButton: Locator;
 	readonly workflowDefinitionLinkSaveButton: Locator;
 	readonly workflowDefinitionLinkSelectButton: Locator;
 
 	constructor(page: Page) {
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
+		this.backArrow = page.getByRole('link', {exact: true, name: 'Back'});
 		this.editConfigurationSubmitButton = page.getByTestId(
 			'submitConfiguration'
 		);
+		this.globalMenuPage = new GlobalMenuPage(page);
+		this.instanceSettingsPage = new InstanceSettingsPage(page);
 		this.notificationBadge = page.getByLabel('New Notification');
+		this.notificationsMenuItem = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Notifications',
+		});
 		this.page = page;
 		this.processBuilderConfigurationTab = page.getByRole('link', {
 			name: 'Configuration',
@@ -57,9 +68,7 @@ export class UserPersonalBarPage {
 		this.submitForWorkflowButton = page.getByRole('link', {
 			name: 'Submit for Workflow',
 		});
-		this.usersSetting = page.getByRole('link', {
-			name: 'Users',
-		});
+		this.userMenuButton = page.getByTestId('userPersonalMenu');
 		this.workflowDefinitionLinkCancelButton = page
 			.getByTestId('actionProduct')
 			.getByRole('button', {name: 'Cancel'});
@@ -74,21 +83,14 @@ export class UserPersonalBarPage {
 	}
 
 	async disableNotificationBadgeInPersonalMenu() {
-		await this.applicationsMenuPage.goToInstanceSettings();
-		await this.usersSetting.click();
+		await this.instanceSettingsPage.goToInstanceSetting(
+			'Users',
+			'Personal Menu'
+		);
 		await this.showNotificationBadgeInPersonalMenuLabel.uncheck();
-		await Promise.all([
-			this.editConfigurationSubmitButton.click(),
-			this.page.waitForResponse(
-				(resp) =>
-					resp.status() === 200 &&
-					resp
-						.url()
-						.includes(
-							'p_p_id=com_liferay_configuration_admin_web_portlet_InstanceSettingsPortlet'
-						)
-			),
-		]);
+		await this.editConfigurationSubmitButton.click();
+
+		await waitForAlert(this.page);
 	}
 
 	async disableSingleApproverWorkflowProduct() {
@@ -106,21 +108,14 @@ export class UserPersonalBarPage {
 	}
 
 	async enableNotificationBadgeInPersonalMenu() {
-		await this.applicationsMenuPage.goToInstanceSettings();
-		await this.usersSetting.click();
+		await this.instanceSettingsPage.goToInstanceSetting(
+			'Users',
+			'Personal Menu'
+		);
 		await this.showNotificationBadgeInPersonalMenuLabel.check();
-		await Promise.all([
-			this.editConfigurationSubmitButton.click(),
-			this.page.waitForResponse(
-				(resp) =>
-					resp.status() === 200 &&
-					resp
-						.url()
-						.includes(
-							'p_p_id=com_liferay_configuration_admin_web_portlet_InstanceSettingsPortlet'
-						)
-			),
-		]);
+		await this.editConfigurationSubmitButton.click();
+
+		await waitForAlert(this.page);
 	}
 
 	async enableSingleApproverWorkflowProduct() {
@@ -138,7 +133,7 @@ export class UserPersonalBarPage {
 	}
 
 	async goToProcessBuilderConfigurationTab() {
-		await this.applicationsMenuPage.goToProcessBuilder();
+		await this.globalMenuPage.goToApplications('Process Builder');
 		await Promise.all([
 			this.processBuilderConfigurationTab.click(),
 			this.page.waitForResponse(

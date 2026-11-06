@@ -10,6 +10,7 @@ import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.field.setting.util.ObjectFieldSettingUtil;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
+import com.liferay.object.rest.dto.v1_0.SystemProperties;
 import com.liferay.object.service.ObjectFieldLocalServiceUtil;
 
 import java.util.Map;
@@ -23,6 +24,28 @@ public class ObjectEntryManagerUtil {
 		ObjectEntry existingObjectEntry, long objectDefinitionId,
 		ObjectEntry objectEntry) {
 
+		SystemProperties systemProperties = objectEntry.getSystemProperties();
+
+		if ((systemProperties != null) &&
+			(systemProperties.getComments() != null)) {
+
+			SystemProperties existingSystemProperties =
+				existingObjectEntry.getSystemProperties();
+
+			if (existingSystemProperties == null) {
+				SystemProperties newSystemProperties = new SystemProperties();
+
+				newSystemProperties.setComments(systemProperties::getComments);
+
+				existingObjectEntry.setSystemProperties(
+					() -> newSystemProperties);
+			}
+			else {
+				existingSystemProperties.setComments(
+					systemProperties::getComments);
+			}
+		}
+
 		if (objectEntry.getDateCreated() != null) {
 			existingObjectEntry.setDateCreated(objectEntry::getDateCreated);
 		}
@@ -31,13 +54,42 @@ public class ObjectEntryManagerUtil {
 			existingObjectEntry.setDateModified(objectEntry::getDateModified);
 		}
 
+		if (objectEntry.getDisplayDate() != null) {
+			existingObjectEntry.setDisplayDate(objectEntry::getDisplayDate);
+		}
+
+		if (objectEntry.getExpirationDate() != null) {
+			existingObjectEntry.setExpirationDate(
+				objectEntry::getExpirationDate);
+		}
+
 		if (objectEntry.getExternalReferenceCode() != null) {
 			existingObjectEntry.setExternalReferenceCode(
 				objectEntry::getExternalReferenceCode);
 		}
 
+		if (objectEntry.getFriendlyUrlPath() != null) {
+			existingObjectEntry.setFriendlyUrlPath(
+				objectEntry::getFriendlyUrlPath);
+		}
+
+		if (objectEntry.getFriendlyUrlPath_i18n() != null) {
+			existingObjectEntry.setFriendlyUrlPath_i18n(
+				objectEntry::getFriendlyUrlPath_i18n);
+		}
+
 		if (objectEntry.getKeywords() != null) {
 			existingObjectEntry.setKeywords(objectEntry::getKeywords);
+		}
+
+		if (objectEntry.getObjectEntryFolderExternalReferenceCode() != null) {
+			existingObjectEntry.setObjectEntryFolderExternalReferenceCode(
+				objectEntry::getObjectEntryFolderExternalReferenceCode);
+		}
+
+		if (objectEntry.getObjectEntryFolderId() != null) {
+			existingObjectEntry.setObjectEntryFolderId(
+				objectEntry::getObjectEntryFolderId);
 		}
 
 		existingObjectEntry.setPermissions(objectEntry::getPermissions);
@@ -59,12 +111,20 @@ public class ObjectEntryManagerUtil {
 							NAME_OBJECT_RELATIONSHIP_ERC_OBJECT_FIELD_NAME,
 						objectField);
 
-				if (properties.containsKey(objectField.getName()) &&
+				String relationshipObjectFieldName = objectField.getName();
+
+				if (properties.containsKey(relationshipObjectFieldName) &&
 					!properties.containsKey(
 						objectRelationshipERCObjectFieldName)) {
 
 					existingProperties.remove(
 						objectRelationshipERCObjectFieldName);
+				}
+				else if (properties.containsKey(
+							objectRelationshipERCObjectFieldName) &&
+						 !properties.containsKey(relationshipObjectFieldName)) {
+
+					existingProperties.remove(relationshipObjectFieldName);
 				}
 			}
 
@@ -73,8 +133,17 @@ public class ObjectEntryManagerUtil {
 			existingObjectEntry.setProperties(() -> existingProperties);
 		}
 
+		if (objectEntry.getReviewDate() != null) {
+			existingObjectEntry.setReviewDate(objectEntry::getReviewDate);
+		}
+
 		if (objectEntry.getStatus() != null) {
 			existingObjectEntry.setStatus(objectEntry::getStatus);
+		}
+
+		if (objectEntry.getTaxonomyCategoryBriefs() != null) {
+			existingObjectEntry.setTaxonomyCategoryBriefs(
+				objectEntry::getTaxonomyCategoryBriefs);
 		}
 
 		if (objectEntry.getTaxonomyCategoryIds() != null) {

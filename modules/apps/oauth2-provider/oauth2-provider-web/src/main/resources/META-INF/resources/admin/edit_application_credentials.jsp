@@ -13,7 +13,8 @@ String redirect = ParamUtil.getString(request, "redirect");
 OAuth2Application oAuth2Application = oAuth2AdminPortletDisplayContext.getOAuth2Application();
 
 String clientId = (oAuth2Application == null) ? "" : oAuth2Application.getClientId();
-String clientSecret = (oAuth2Application == null) ? "" : oAuth2Application.getClientSecret();
+String clientSecret = (oAuth2Application == null) ? "" : oAuth2AdminPortletDisplayContext.getClientSecret(oAuth2Application);
+String externalReferenceCode = (oAuth2Application == null) ? "" : oAuth2Application.getExternalReferenceCode();
 %>
 
 <portlet:actionURL name="/oauth2_provider/update_oauth2_application" var="updateOAuth2ApplicationURL">
@@ -39,6 +40,7 @@ String clientSecret = (oAuth2Application == null) ? "" : oAuth2Application.getCl
 
 					<liferay-ui:error exception="<%= OAuth2ApplicationHomePageURLException.class %>" focusField="homePageURL" message="home-page-url-is-invalid" />
 					<liferay-ui:error exception="<%= OAuth2ApplicationHomePageURLSchemeException.class %>" focusField="homePageURL" message="home-page-url-scheme-is-invalid" />
+					<liferay-ui:error exception="<%= OAuth2ApplicationJWKSException.class %>" focusField="jwks" message="the-json-web-key-set-is-not-fips-compliant" />
 					<liferay-ui:error exception="<%= OAuth2ApplicationNameException.class %>" focusField="name" message="missing-application-name" />
 					<liferay-ui:error exception="<%= OAuth2ApplicationPrivacyPolicyURLException.class %>" focusField="privacyPolicyURL" message="privacy-policy-url-is-invalid" />
 
@@ -87,7 +89,7 @@ String clientSecret = (oAuth2Application == null) ? "" : oAuth2Application.getCl
 					<liferay-portlet:resourceURL copyCurrentRenderParameters="<%= false %>" var="baseResourceURL" />
 
 					<c:if test="<%= oAuth2Application != null %>">
-						<aui:fieldset cssClass="mb-3" style="border-bottom: 2px solid #F0F0F0;">
+						<aui:fieldset cssClass="mb-3">
 							<react:component
 								module="{EditClientDetails} from oauth2-provider-web"
 								props='<%=
@@ -97,6 +99,8 @@ String clientSecret = (oAuth2Application == null) ? "" : oAuth2Application.getCl
 										"clientId", clientId
 									).put(
 										"clientSecret", clientSecret
+									).put(
+										"externalReferenceCode", externalReferenceCode
 									).build()
 								%>'
 							/>

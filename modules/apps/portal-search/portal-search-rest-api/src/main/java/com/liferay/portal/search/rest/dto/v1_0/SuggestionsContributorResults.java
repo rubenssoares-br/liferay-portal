@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Petteri Karttunen
@@ -53,7 +53,7 @@ public class SuggestionsContributorResults implements Serializable {
 			SuggestionsContributorResults.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getAttributes() {
 		if (_attributesSupplier != null) {
@@ -95,7 +95,7 @@ public class SuggestionsContributorResults implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _attributesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDisplayGroupName() {
 		if (_displayGroupNameSupplier != null) {
 			displayGroupName = _displayGroupNameSupplier.get();
@@ -136,7 +136,7 @@ public class SuggestionsContributorResults implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _displayGroupNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Suggestion[] getSuggestions() {
 		if (_suggestionsSupplier != null) {
@@ -216,18 +216,7 @@ public class SuggestionsContributorResults implements Serializable {
 
 			sb.append("\"attributes\": ");
 
-			if (attributes instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)attributes));
-			}
-			else if (attributes instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)attributes));
-				sb.append("\"");
-			}
-			else {
-				sb.append(attributes);
-			}
+			sb.append(_toJSON(attributes));
 		}
 
 		String displayGroupName = getDisplayGroupName();
@@ -273,8 +262,8 @@ public class SuggestionsContributorResults implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.search.rest.dto.v1_0.SuggestionsContributorResults",
 		name = "x-class-name"
 	)
@@ -361,6 +350,27 @@ public class SuggestionsContributorResults implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -369,3 +379,4 @@ public class SuggestionsContributorResults implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:905008732

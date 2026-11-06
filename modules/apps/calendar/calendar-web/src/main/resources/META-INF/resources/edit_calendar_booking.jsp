@@ -20,13 +20,27 @@ defaultStartTimeJCalendar.add(java.util.Calendar.HOUR, 1);
 
 defaultStartTimeJCalendar.set(java.util.Calendar.MINUTE, 0);
 
-long calendarBookingId = BeanPropertiesUtil.getLong(calendarBooking, "calendarBookingId");
+java.util.Calendar userStartTimeJCalendar = CalendarFactoryUtil.getCalendar(userTimeZone);
+
+userStartTimeJCalendar.add(java.util.Calendar.HOUR, 1);
+
+userStartTimeJCalendar.set(java.util.Calendar.MINUTE, 0);
+
+long calendarBookingId = 0;
+
+if (calendarBooking != null) {
+	calendarBookingId = calendarBooking.getCalendarBookingId();
+}
 
 int instanceIndex = BeanParamUtil.getInteger(calendarBooking, request, "instanceIndex");
 
 long calendarId = BeanParamUtil.getLong(calendarBooking, request, "calendarId", defaultCalendar.getCalendarId());
 
-long startTime = BeanPropertiesUtil.getLong(calendarBooking, "startTime", defaultStartTimeJCalendar.getTimeInMillis());
+long startTime = defaultStartTimeJCalendar.getTimeInMillis();
+
+if (calendarBooking != null) {
+	startTime = calendarBooking.getStartTime();
+}
 
 java.util.Calendar startTimeJCalendar = JCalendarUtil.getJCalendar(startTime, calendarBookingTimeZone);
 
@@ -52,7 +66,11 @@ java.util.Calendar defaultEndTimeJCalendar = (java.util.Calendar)startTimeJCalen
 
 defaultEndTimeJCalendar.add(java.util.Calendar.MINUTE, defaultDuration);
 
-long endTime = BeanPropertiesUtil.getLong(calendarBooking, "endTime", defaultEndTimeJCalendar.getTimeInMillis());
+long endTime = defaultEndTimeJCalendar.getTimeInMillis();
+
+if (calendarBooking != null) {
+	endTime = calendarBooking.getEndTime();
+}
 
 java.util.Calendar endTimeJCalendar = JCalendarUtil.getJCalendar(endTime, calendarBookingTimeZone);
 
@@ -291,7 +309,22 @@ while (manageableCalendarsIterator.hasNext()) {
 					<a class="calendar-portlet-recurrence-summary" href="javascript:void(0);" id="<portlet:namespace />summary"></a>
 				</aui:field-wrapper>
 
-				<aui:input defaultLanguageId="<%= LocaleUtil.toLanguageId(themeDisplay.getSiteDefaultLocale()) %>" name="description" />
+				<c:choose>
+					<c:when test='<%= !FeatureFlagManagerUtil.isEnabled("LPD-11235") %>'>
+						<div data-testid="descriptionContainer">
+							<label for="<portlet:namespace />description"><liferay-ui:message key="description" /></label>
+
+							<liferay-editor:input-localized
+								defaultLanguageId="<%= LocaleUtil.toLanguageId(themeDisplay.getSiteDefaultLocale()) %>"
+								name="description"
+								xml="<%= (calendarBooking != null) ? calendarBooking.getDescription() : StringPool.BLANK %>"
+							/>
+						</div>
+					</c:when>
+					<c:otherwise>
+						<aui:input defaultLanguageId="<%= LocaleUtil.toLanguageId(themeDisplay.getSiteDefaultLocale()) %>" name="description" />
+					</c:otherwise>
+				</c:choose>
 			</clay:sheet-section>
 
 			<clay:panel-group>
@@ -587,10 +620,6 @@ while (manageableCalendarsIterator.hasNext()) {
 			});
 		},
 		['liferay-calendar-message-util', 'json']
-	);
-
-	Liferay.Util.focusFormField(
-		document.<portlet:namespace />fm.<portlet:namespace />title
 	);
 
 	<%
@@ -898,8 +927,6 @@ while (manageableCalendarsIterator.hasNext()) {
 						'<%= HtmlUtil.escapeJS(LanguageUtil.get(request, "submit-for-workflow")) %>';
 				}
 				else {
-					approvalProcessAlert.classList.toggle('hide');
-
 					publishButton.innerHTML =
 						'<%= HtmlUtil.escapeJS(LanguageUtil.get(request, "publish")) %>';
 				}
@@ -1043,13 +1070,17 @@ while (manageableCalendarsIterator.hasNext()) {
 				endDateContainer.style.display = 'block';
 
 				startTimeHours =
-					<%= defaultStartTimeJCalendar.get(java.util.Calendar.HOUR_OF_DAY) %>;
-				startTimeMinutes =
-					<%= defaultStartTimeJCalendar.get(java.util.Calendar.MINUTE) %>;
-				endTimeHours =
-					<%= defaultEndTimeJCalendar.get(java.util.Calendar.HOUR_OF_DAY) %>;
-				endTimeMinutes =
-					<%= defaultEndTimeJCalendar.get(java.util.Calendar.MINUTE) %>;
+					<%= userStartTimeJCalendar.get(java.util.Calendar.HOUR_OF_DAY) %>;
+				startTimeMinutes = 0;
+
+				if (startTimeHours === 23) {
+					endTimeHours = 23;
+					endTimeMinutes = 59;
+				}
+				else {
+					endTimeHours = (startTimeHours + 1) % 24;
+					endTimeMinutes = 0;
+				}
 			}
 
 			updateTimePickersValues(
@@ -1097,4 +1128,35 @@ while (manageableCalendarsIterator.hasNext()) {
 	};
 
 	scheduler.load();
+
+	var descriptionBoundingBox = document.getElementById(
+		'<portlet:namespace />descriptionBoundingBox'
+	);
+
+	if (descriptionBoundingBox) {
+		const observer = new MutationObserver((mutations, observer) => {
+			outer: for (const mutation of mutations) {
+				for (const node of mutation.addedNodes) {
+					if (node.tagName === 'IFRAME') {
+						node.addEventListener('load', () => {
+							const iframeBody = node.contentDocument?.body;
+
+							if (iframeBody) {
+								iframeBody.setAttribute(
+									'aria-label',
+									'<%= LanguageUtil.get(request, "description") %>'
+								);
+							}
+
+							observer.disconnect();
+						});
+
+						break outer;
+					}
+				}
+			}
+		});
+
+		observer.observe(descriptionBoundingBox, {childList: true, subtree: true});
+	}
 </aui:script>
