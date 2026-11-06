@@ -46,7 +46,7 @@ CommerceReturnItem commerceReturnItem = commerceReturnEditDisplayContext.getComm
 					elementClasses="py-3"
 					title='<%= LanguageUtil.get(request, "return-reason") %>'
 				>
-					<p class="mb-0" data-qa-id="commerceReturnReturnReason"><%= commerceReturnEditDisplayContext.getReturnReasonName() %></p>
+					<p class="mb-0" data-qa-id="commerceReturnReturnReason"><%= HtmlUtil.escape(commerceReturnEditDisplayContext.getReturnReasonName()) %></p>
 				</commerce-ui:info-box>
 			</div>
 		</div>
@@ -56,7 +56,7 @@ CommerceReturnItem commerceReturnItem = commerceReturnEditDisplayContext.getComm
 		title='<%= LanguageUtil.get(request, "workflow-actions") %>'
 	>
 		<div class="sheet-section">
-			<aui:field-wrapper cssClass="sheet-subtitle" helpMessage="authorization-step-help" label="authorization-step" />
+			<aui:field-wrapper cssClass="sheet-subtitle" helpMessage="authorization-step" label="authorization-step" />
 
 			<div class="row">
 				<div class="col">
@@ -65,7 +65,7 @@ CommerceReturnItem commerceReturnItem = commerceReturnEditDisplayContext.getComm
 				</div>
 			</div>
 
-			<aui:field-wrapper cssClass="sheet-subtitle" helpMessage="item-acceptance-step-help" label="item-acceptance-step" />
+			<aui:field-wrapper cssClass="sheet-subtitle" helpMessage="item-acceptance-step" label="item-acceptance-step" />
 
 			<div class="row">
 				<div class="col">
@@ -73,7 +73,7 @@ CommerceReturnItem commerceReturnItem = commerceReturnEditDisplayContext.getComm
 				</div>
 			</div>
 
-			<aui:field-wrapper cssClass="sheet-subtitle" helpMessage="resolution-method-step-help" label="resolution-method-step" />
+			<aui:field-wrapper cssClass="sheet-subtitle" helpMessage="resolution-method-step" label="resolution-method-step" />
 
 			<div class="row">
 				<div class="col">

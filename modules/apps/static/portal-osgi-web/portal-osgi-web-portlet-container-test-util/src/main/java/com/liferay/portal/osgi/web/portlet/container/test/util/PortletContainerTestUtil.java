@@ -5,10 +5,10 @@
 
 package com.liferay.portal.osgi.web.portlet.container.test.util;
 
+import com.liferay.petra.io.WriterOutputStream;
 import com.liferay.petra.memory.DeleteFileFinalizeAction;
 import com.liferay.petra.memory.FinalizeManager;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.io.WriterOutputStream;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -28,6 +28,11 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.theme.ThemeDisplayFactory;
 import com.liferay.portal.upload.LiferayServletRequest;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -46,11 +51,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -207,7 +207,9 @@ public class PortletContainerTestUtil {
 
 		try (CloseableHttpClient closeableHttpClient =
 				httpClientBuilder.build();
+
 			StringWriter stringWriter = new StringWriter();
+
 			WriterOutputStream writerOutputStream = new WriterOutputStream(
 				stringWriter)) {
 

@@ -8,7 +8,7 @@
 <%@ include file="/init.jsp" %>
 
 <%
-String redirect = ParamUtil.getString(request, "redirect");
+String redirect = PortalUtil.escapeRedirect(ParamUtil.getString(request, "redirect"));
 
 JournalEditDDMStructuresDisplayContext journalEditDDMStructuresDisplayContext = (JournalEditDDMStructuresDisplayContext)request.getAttribute(JournalEditDDMStructuresDisplayContext.class.getName());
 
@@ -56,8 +56,10 @@ editDDMStructureURL.setParameter("structureKey", String.valueOf(ddmStructureKey)
 
 	<aui:model-context bean="<%= ddmStructure %>" model="<%= DDMStructure.class %>" />
 
-	<nav class="component-tbar subnav-tbar-light tbar tbar-article">
-		<clay:container-fluid>
+	<nav class="component-tbar subnav-tbar-light tbar tbar-article tbar-structure">
+		<clay:container-fluid
+			fullWidth="<%= true %>"
+		>
 			<ul class="tbar-nav">
 				<li class="tbar-item tbar-item-expand">
 					<aui:input activeLanguageIds="<%= journalEditDDMStructuresDisplayContext.getAvailableLanguageIds() %>" adminMode="<%= true %>" cssClass="form-control-inline" defaultLanguageId="<%= (ddmForm == null) ? LocaleUtil.toLanguageId(LocaleUtil.getSiteDefault()): LocaleUtil.toLanguageId(ddmForm.getDefaultLocale()) %>" label='<%= LanguageUtil.get(request, "name") %>' labelCssClass="sr-only" languagesDropdownDirection="down" localized="<%= true %>" name="name" placeholder='<%= LanguageUtil.format(request, "untitled-x", "structure") %>' required="<%= true %>" type="text" wrapperCssClass="article-content-title c-mb-0" />
@@ -84,49 +86,47 @@ editDDMStructureURL.setParameter("structureKey", String.valueOf(ddmStructureKey)
 		</clay:container-fluid>
 	</nav>
 
-	<div class="contextual-sidebar-content">
+	<div class="contextual-sidebar-content contextual-sidebar-content--sidebar-open">
 		<clay:container-fluid
-			cssClass="container-view"
+			cssClass="container-view journal-edit-structure-content"
 		>
-			<div class="contextual-sidebar-mr">
-				<liferay-ui:error exception="<%= DDMStructureValidationModelListenerException.class %>" message="the-structure-key-cannot-be-modified" />
+			<liferay-ui:error exception="<%= DDMStructureValidationModelListenerException.class %>" message="the-structure-key-cannot-be-modified" />
 
-				<c:if test="<%= (ddmStructure != null) && (DDMStorageLinkLocalServiceUtil.getStructureStorageLinksCount(journalEditDDMStructuresDisplayContext.getDDMStructureId()) > 0) %>">
-					<clay:alert
-						displayType="warning"
-						message="there-are-content-references-to-this-structure.-you-may-lose-data-if-a-field-name-is-renamed-or-removed"
-					/>
-				</c:if>
+			<c:if test="<%= (ddmStructure != null) && (DDMStorageLinkLocalServiceUtil.getStructureStorageLinksCount(journalEditDDMStructuresDisplayContext.getDDMStructureId()) > 0) %>">
+				<clay:alert
+					displayType="warning"
+					message="there-are-content-references-to-this-structure.-you-may-lose-data-if-a-field-name-is-renamed-or-removed"
+				/>
+			</c:if>
 
-				<c:if test="<%= (journalEditDDMStructuresDisplayContext.getDDMStructureId() > 0) && (DDMTemplateLocalServiceUtil.getTemplatesCount(null, PortalUtil.getClassNameId(DDMStructure.class), journalEditDDMStructuresDisplayContext.getDDMStructureId()) > 0) %>">
-					<clay:alert
-						displayType="info"
-						message="there-are-template-references-to-this-structure.-please-update-them-if-a-field-name-is-renamed-or-removed"
-					/>
-				</c:if>
+			<c:if test="<%= (journalEditDDMStructuresDisplayContext.getDDMStructureId() > 0) && (DDMTemplateLocalServiceUtil.getTemplatesCount(null, PortalUtil.getClassNameId(DDMStructure.class), journalEditDDMStructuresDisplayContext.getDDMStructureId()) > 0) %>">
+				<clay:alert
+					displayType="info"
+					message="there-are-template-references-to-this-structure.-please-update-them-if-a-field-name-is-renamed-or-removed"
+				/>
+			</c:if>
 
-				<c:if test="<%= (ddmStructure != null) && (groupId != scopeGroupId) %>">
-					<clay:alert
-						displayType="warning"
-						message="this-structure-does-not-belong-to-this-site.-you-may-affect-other-sites-if-you-edit-this-structure"
-					/>
-				</c:if>
+			<c:if test="<%= (ddmStructure != null) && (groupId != scopeGroupId) %>">
+				<clay:alert
+					displayType="warning"
+					message="this-structure-does-not-belong-to-this-site.-you-may-affect-other-sites-if-you-edit-this-structure"
+				/>
+			</c:if>
 
-				<div class="contextual-sidebar-mr-n">
-					<liferay-data-engine:data-layout-builder
-						additionalPanels="<%= journalEditDDMStructuresDisplayContext.getAdditionalPanels() %>"
-						componentId='<%= liferayPortletResponse.getNamespace() + "dataLayoutBuilder" %>'
-						contentType="journal"
-						dataDefinitionId="<%= ddmStructureId %>"
-						displayFieldName="<%= journalEditDDMStructuresDisplayContext.getDisplayFieldName() %>"
-						groupId="<%= groupId %>"
-						namespace="<%= liferayPortletResponse.getNamespace() %>"
-						scopes='<%= SetUtil.fromCollection(Arrays.asList("journal")) %>'
-						searchableFieldsDisabled="<%= !journalEditDDMStructuresDisplayContext.isStructureFieldIndexableEnable() %>"
-						singlePage="<%= true %>"
-						submitButtonId='<%= liferayPortletResponse.getNamespace() + "submitButton" %>'
-					/>
-				</div>
+			<div>
+				<liferay-data-engine:data-layout-builder
+					additionalPanels="<%= journalEditDDMStructuresDisplayContext.getAdditionalPanels() %>"
+					componentId='<%= liferayPortletResponse.getNamespace() + "dataLayoutBuilder" %>'
+					contentType="journal"
+					dataDefinitionId="<%= ddmStructureId %>"
+					displayFieldName="<%= journalEditDDMStructuresDisplayContext.getDisplayFieldName() %>"
+					groupId="<%= groupId %>"
+					namespace="<%= liferayPortletResponse.getNamespace() %>"
+					scopes='<%= SetUtil.fromCollection(Arrays.asList("journal")) %>'
+					searchableFieldsDisabled="<%= !journalEditDDMStructuresDisplayContext.isStructureFieldIndexableEnable() %>"
+					singlePage="<%= true %>"
+					submitButtonId='<%= liferayPortletResponse.getNamespace() + "submitButton" %>'
+				/>
 			</div>
 		</clay:container-fluid>
 	</div>

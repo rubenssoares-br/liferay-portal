@@ -10,7 +10,8 @@ import {ClayCheckbox} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import classNames from 'classnames';
-import {debounce, fetch, getOpener, openToast, sub} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {debounce, fetch, getOpener, sub} from 'frontend-js-web';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 
 export default function SelectLayoutTree({
@@ -39,7 +40,9 @@ export default function SelectLayoutTree({
 	const updateSelectedItems = (item, selection, recursive) => {
 		if (!selection.has(item.id)) {
 			selectedItemsRef.current.set(item.id, {
+				externalReferenceCode: item.externalReferenceCode,
 				groupId: item.groupId,
+				hasGuestViewPermission: item.hasGuestViewPermission,
 				id: item.id,
 				layoutId: item.layoutId,
 				name: item.value,
@@ -89,7 +92,9 @@ export default function SelectLayoutTree({
 
 	const handleSingleSelection = (item, selection) => {
 		const data = {
+			externalReferenceCode: item.externalReferenceCode,
 			groupId: item.groupId,
+			hasGuestViewPermission: item.hasGuestViewPermission,
 			id: item.id,
 			layoutId: item.layoutId,
 			name: item.value,
@@ -431,7 +436,13 @@ export default function SelectLayoutTree({
 			description={Liferay.Language.get(
 				'try-again-with-a-different-search'
 			)}
-			imgSrc={`${themeDisplay.getPathThemeImages()}/states/search_state.svg`}
+			image={
+				<ClayIcon
+					className="c-empty-state-icon c-empty-state-icon-search-state"
+					illustration
+					symbol="search-state"
+				/>
+			}
 			small
 			title={Liferay.Language.get('no-results-found')}
 		/>
@@ -535,7 +546,13 @@ function SearchResults({
 			description={Liferay.Language.get(
 				'try-again-with-a-different-search'
 			)}
-			imgSrc={`${themeDisplay.getPathThemeImages()}/states/search_state.svg`}
+			image={
+				<ClayIcon
+					className="c-empty-state-icon c-empty-state-icon-search-state"
+					illustration
+					symbol="search-state"
+				/>
+			}
 			small
 			title={Liferay.Language.get('no-results-found')}
 		/>

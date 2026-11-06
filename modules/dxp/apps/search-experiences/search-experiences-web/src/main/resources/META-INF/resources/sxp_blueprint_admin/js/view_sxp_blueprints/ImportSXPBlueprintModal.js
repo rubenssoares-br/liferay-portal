@@ -169,8 +169,10 @@ const ImportSXPBlueprintModal = ({portletNamespace, redirectURL}) => {
 			observer={observer}
 			size="full-screen"
 		>
-			<ClayModal.Header>
-				{Liferay.Language.get('import')}
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
+				{Liferay.Language.get('import[noun]')}
 			</ClayModal.Header>
 
 			<ClayModal.Body>

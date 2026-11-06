@@ -10,6 +10,7 @@ import com.liferay.application.list.PanelAppRegistry;
 import com.liferay.application.list.constants.PanelCategoryKeys;
 import com.liferay.application.list.display.context.logic.PanelCategoryHelper;
 import com.liferay.osgi.util.ServiceTrackerFactory;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
@@ -28,10 +29,9 @@ import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.osgi.framework.BundleContext;
@@ -51,22 +51,16 @@ public class CompanyModelListener extends BaseModelListener<Company> {
 
 	@Override
 	public void onAfterCreate(Company company) {
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				PanelCategoryHelper panelCategoryHelper =
 					new PanelCategoryHelper(_panelAppRegistry);
 
-				List<PanelApp> panelApps = panelCategoryHelper.getAllPanelApps(
-					PanelCategoryKeys.SITE_ADMINISTRATION);
-
-				List<Portlet> portlets = new ArrayList<>(panelApps.size());
-
-				for (PanelApp panelApp : panelApps) {
-					Portlet portlet = _portletLocalService.getPortletById(
-						panelApp.getPortletId());
-
-					portlets.add(portlet);
-				}
+				List<Portlet> portlets = TransformUtil.transform(
+					panelCategoryHelper.getAllPanelApps(
+						PanelCategoryKeys.SITE_ADMINISTRATION),
+					panelApp -> _portletLocalService.getPortletById(
+						panelApp.getPortletId()));
 
 				_initPermissions(company.getCompanyId(), portlets);
 

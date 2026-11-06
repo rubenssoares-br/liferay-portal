@@ -24,7 +24,7 @@ import PageToolbar from '../shared/PageToolbar';
 import Sidebar from '../shared/Sidebar';
 import SubmitWarningModal from '../shared/SubmitWarningModal';
 import ThemeContext from '../shared/ThemeContext';
-import {DEFAULT_INDEX_CONFIGURATION} from '../utils/constants';
+import {DEFAULT_INDEX_CONFIGURATION, STATUS} from '../utils/constants';
 import {DEFAULT_ERROR} from '../utils/errorMessages';
 import addParams from '../utils/fetch/add_params';
 import fetchData, {DEFAULT_HEADERS} from '../utils/fetch/fetch_data';
@@ -32,6 +32,7 @@ import fetchPreviewSearch from '../utils/fetch/fetch_preview_search';
 import filterAndSortClassNames from '../utils/functions/filter_and_sort_class_names';
 import getResultsError from '../utils/functions/get_results_error';
 import isDefined from '../utils/functions/is_defined';
+import mapAssetSubtypes from '../utils/functions/map_asset_subtypes';
 import traverseAndEncodeJSONStrings from '../utils/functions/traverse_and_encode_json_strings';
 import formatLocaleWithUnderscores from '../utils/language/format_locale_with_underscores';
 import renameKeys from '../utils/language/rename_keys';
@@ -85,7 +86,13 @@ function EditSXPBlueprintForm({
 	initialTitleI18n = {},
 	sxpBlueprintId,
 }) {
-	const {isCompanyAdmin, locale, redirectURL} = useContext(ThemeContext);
+	const {
+		getAssetSubtypesURL = '',
+		isCompanyAdmin,
+		locale,
+		namespace,
+		redirectURL,
+	} = useContext(ThemeContext);
 
 	const formRef = useRef();
 	const sxpElementIdCounterRef = useRef(
@@ -109,10 +116,24 @@ function EditSXPBlueprintForm({
 
 	const [indexFields, setIndexFields] = useState(null);
 	const [searchIndexes, setSearchIndexes] = useState(null);
+	const [scope, setScope] = useState([]);
 
 	const {data: searchableTypes, refetch: refetchSearchableTypes} =
 		useFetchData({
 			resource: `/o/search-experiences-rest/v1.0/searchable-asset-names/${locale}`,
+		});
+
+	const {data: assetSubtypesMap, onChangeData: setAssetSubtypesMap} =
+		useFetchData({
+			defaultValue: {},
+			getData: (response) => mapAssetSubtypes(response?.assetSubtypes),
+			resource: addParams(getAssetSubtypesURL, {
+				[`${namespace}cmd`]: 'getAssetSubtypeInfo',
+				[`${namespace}searchableAssetTypes`]: (
+					initialConfiguration.generalConfiguration
+						?.searchableAssetTypes || []
+				).join(','),
+			}),
 		});
 
 	const {
@@ -149,7 +170,7 @@ function EditSXPBlueprintForm({
 		let elementInstances;
 
 		try {
-			configuration = _getConfiguration(values);
+			configuration = _getConfiguration(values, scope);
 			elementInstances = _getElementInstances(values);
 		}
 		catch (error) {
@@ -448,6 +469,67 @@ function EditSXPBlueprintForm({
 		}
 
 		setStorageAddSXPElementSidebar(SIDEBAR_STATE.OPEN);
+
+		const fetchAllScope = async () => {
+			const fetchScope = async (externalReferenceCode) => {
+				try {
+					const response = await fetch(
+						`/o/headless-admin-site/v1.0/sites/${externalReferenceCode}`,
+						{
+							headers: new Headers({
+								'Accept-Language':
+									Liferay.ThemeDisplay.getBCP47LanguageId(),
+								'Content-Type': 'application/json',
+							}),
+							method: 'GET',
+						}
+					);
+
+					if (!response.ok) {
+						throw `Error fetching site with ERC ${externalReferenceCode}`;
+					}
+
+					const data = await response.json();
+
+					return data;
+				}
+				catch (error) {
+					console.error(error);
+
+					return {
+						descriptiveName: externalReferenceCode,
+						externalReferenceCode,
+						status: false,
+					};
+				}
+			};
+
+			if (
+				initialConfiguration.generalConfiguration.scope &&
+				initialConfiguration.generalConfiguration.scope.length
+			) {
+				const responses = await Promise.all(
+					initialConfiguration.generalConfiguration.scope.map(
+						fetchScope
+					)
+				);
+
+				setScope(
+					responses.map((item) => {
+						return {
+							externalReferenceCode: item.externalReferenceCode,
+							name: item.descriptiveName,
+							status: item.active
+								? STATUS.ACTIVE
+								: STATUS.INACTIVE,
+							type: item.typeSettings?.depotEntryType,
+						};
+					})
+				);
+			}
+		};
+
+		fetchAllScope();
 	}, []); //eslint-disable-line
 
 	/**
@@ -491,16 +573,19 @@ function EditSXPBlueprintForm({
 	 * @param {Object} values Form values
 	 * @return {Object}
 	 */
-	const _getConfiguration = ({
-		advancedConfig,
-		aggregationConfig,
-		applyIndexerClauses,
-		frameworkConfig,
-		highlightConfig,
-		indexConfig,
-		parameterConfig,
-		sortConfig,
-	}) => {
+	const _getConfiguration = (
+		{
+			advancedConfig,
+			aggregationConfig,
+			applyIndexerClauses,
+			frameworkConfig,
+			highlightConfig,
+			indexConfig,
+			parameterConfig,
+			sortConfig,
+		},
+		scope
+	) => {
 		const configuration = {
 			advancedConfiguration: advancedConfig
 				? JSON.parse(advancedConfig)
@@ -508,7 +593,10 @@ function EditSXPBlueprintForm({
 			aggregationConfiguration: aggregationConfig
 				? JSON.parse(aggregationConfig)
 				: {},
-			generalConfiguration: frameworkConfig,
+			generalConfiguration: {
+				...frameworkConfig,
+				scope: scope.map((item) => item.externalReferenceCode),
+			},
 			highlightConfiguration: highlightConfig
 				? JSON.parse(highlightConfig)
 				: {},
@@ -651,7 +739,7 @@ function EditSXPBlueprintForm({
 		let elementInstances;
 
 		try {
-			configuration = _getConfiguration(formik.values);
+			configuration = _getConfiguration(formik.values, scope);
 			elementInstances = _getElementInstances(formik.values);
 
 			// Touch inputs with errors to show validation errors.
@@ -843,6 +931,22 @@ function EditSXPBlueprintForm({
 		}
 	};
 
+	/**
+	 * Adds new assetSubtypes to the assetSubtypes map in order to easily find
+	 * their label. This is called when updating searchableAssetTypes
+	 * selection.
+	 * @param {array} subtypes
+	 */
+	const _handleAssetSubtypesMapChange = (subtypes) => {
+		const newAssetSubtypesMap = {};
+
+		subtypes.forEach(({label, value}) => {
+			newAssetSubtypesMap[value] = label;
+		});
+
+		setAssetSubtypesMap({...assetSubtypesMap, ...newAssetSubtypesMap});
+	};
+
 	const _handleTabChange = (tab) => {
 		if (
 			tab !== 'query-builder' &&
@@ -889,10 +993,12 @@ function EditSXPBlueprintForm({
 						advancedConfig={formik.values.advancedConfig}
 						aggregationConfig={formik.values.aggregationConfig}
 						errors={formik.errors}
+						frameworkConfig={formik.values.frameworkConfig}
 						highlightConfig={formik.values.highlightConfig}
 						indexConfig={formik.values.indexConfig}
 						parameterConfig={formik.values.parameterConfig}
 						searchIndexes={searchIndexes}
+						searchableTypes={searchableTypes?.items}
 						setFieldTouched={formik.setFieldTouched}
 						setFieldValue={formik.setFieldValue}
 						sortConfig={formik.values.sortConfig}
@@ -984,6 +1090,7 @@ function EditSXPBlueprintForm({
 								applyIndexerClauses={
 									formik.values.applyIndexerClauses
 								}
+								assetSubtypesMap={assetSubtypesMap}
 								clauseContributorsList={[
 									...keywordQueryContributors,
 									...modelPrefilterContributors,
@@ -1003,6 +1110,9 @@ function EditSXPBlueprintForm({
 								onApplyIndexerClausesChange={
 									_handleApplyIndexerClausesChange
 								}
+								onAssetSubtypesMapChange={
+									_handleAssetSubtypesMapChange
+								}
 								onBlur={formik.handleBlur}
 								onChange={formik.handleChange}
 								onDeleteSXPElement={_handleDeleteSXPElement}
@@ -1011,10 +1121,12 @@ function EditSXPBlueprintForm({
 									_handleFrameworkConfigChange
 								}
 								openSidebar={openSidebar}
+								scope={scope}
 								searchableTypes={searchableTypes?.items}
 								setFieldTouched={formik.setFieldTouched}
 								setFieldValue={formik.setFieldValue}
 								setOpenSidebar={setOpenSidebar}
+								setScope={setScope}
 								touched={formik.touched.elementInstances}
 							/>
 						</div>
@@ -1068,7 +1180,7 @@ function EditSXPBlueprintForm({
 						data-qa-id={TEST_IDS.PREVIEW_SIDEBAR_BUTTON}
 						displayType="secondary"
 						onClick={_handleToggleSidebar(SIDEBAR_TYPES.PREVIEW)}
-						small
+						size="sm"
 					>
 						{Liferay.Language.get('preview')}
 					</ClayButton>

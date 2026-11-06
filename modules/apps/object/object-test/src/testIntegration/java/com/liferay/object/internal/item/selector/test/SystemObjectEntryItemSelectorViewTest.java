@@ -38,10 +38,10 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import jakarta.servlet.ServletRequest;
+
 import java.util.LinkedList;
 import java.util.Queue;
-
-import javax.servlet.ServletRequest;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -116,27 +116,49 @@ public class SystemObjectEntryItemSelectorViewTest {
 								return null;
 							}));
 
-		itemSelectorView.renderHTML(
-			_mockHttpServletRequest(), new MockHttpServletResponse(),
-			new InfoItemItemSelectorCriterion(), new MockLiferayPortletURL(),
-			RandomTestUtil.randomString(), true);
+		ObjectDefinitionLocalService objectDefinitionLocalService =
+			(ObjectDefinitionLocalService)
+				ReflectionTestUtil.getAndSetFieldValue(
+					itemSelectorView, "_objectDefinitionLocalService",
+					ProxyUtil.newProxyInstance(
+						ObjectDefinitionLocalService.class.getClassLoader(),
+						new Class<?>[] {ObjectDefinitionLocalService.class},
+						(proxy, method, arguments) -> {
+							if (StringUtil.equals(
+									method.getName(),
+									"fetchObjectDefinition") &&
+								(arguments.length == 1)) {
 
-		ItemSelectorViewDescriptor<BaseModel<?>> itemSelectorViewDescriptor =
-			(ItemSelectorViewDescriptor<BaseModel<?>>)queue.poll();
+								return null;
+							}
 
-		User user = UserTestUtil.addUser();
-
-		ItemSelectorViewDescriptor.ItemDescriptor itemDescriptor =
-			itemSelectorViewDescriptor.getItemDescriptor(user);
-
-		Assert.assertEquals(
-			user.getFirstName(),
-			itemDescriptor.getTitle(LocaleUtil.getDefault()));
+							return method.invoke(
+								_objectDefinitionLocalService, arguments);
+						}));
 
 		long originalTitleObjectFieldId =
 			objectDefinition.getTitleObjectFieldId();
 
 		try {
+			itemSelectorView.renderHTML(
+				_mockHttpServletRequest(), new MockHttpServletResponse(),
+				new InfoItemItemSelectorCriterion(),
+				new MockLiferayPortletURL(), RandomTestUtil.randomString(),
+				true);
+
+			ItemSelectorViewDescriptor<BaseModel<?>>
+				itemSelectorViewDescriptor =
+					(ItemSelectorViewDescriptor<BaseModel<?>>)queue.poll();
+
+			User user = UserTestUtil.addUser();
+
+			ItemSelectorViewDescriptor.ItemDescriptor itemDescriptor =
+				itemSelectorViewDescriptor.getItemDescriptor(user);
+
+			Assert.assertEquals(
+				user.getFirstName(),
+				itemDescriptor.getTitle(LocaleUtil.getDefault()));
+
 			ObjectField objectField = _objectFieldLocalService.getObjectField(
 				objectDefinition.getObjectDefinitionId(), "emailAddress");
 
@@ -147,6 +169,17 @@ public class SystemObjectEntryItemSelectorViewTest {
 			Assert.assertEquals(
 				user.getEmailAddress(),
 				itemDescriptor.getTitle(LocaleUtil.getDefault()));
+
+			objectField = _objectFieldLocalService.getObjectField(
+				objectDefinition.getObjectDefinitionId(), "name");
+
+			_objectDefinitionLocalService.updateTitleObjectFieldId(
+				objectDefinition.getObjectDefinitionId(),
+				objectField.getObjectFieldId());
+
+			Assert.assertEquals(
+				user.getFullName(),
+				itemDescriptor.getTitle(LocaleUtil.getDefault()));
 		}
 		finally {
 			_objectDefinitionLocalService.updateTitleObjectFieldId(
@@ -156,6 +189,9 @@ public class SystemObjectEntryItemSelectorViewTest {
 			ReflectionTestUtil.setFieldValue(
 				itemSelectorView, "_itemSelectorViewDescriptorRenderer",
 				itemSelectorViewDescriptorRenderer);
+			ReflectionTestUtil.setFieldValue(
+				itemSelectorView, "_objectDefinitionLocalService",
+				objectDefinitionLocalService);
 		}
 	}
 
@@ -200,11 +236,11 @@ public class SystemObjectEntryItemSelectorViewTest {
 			"null-" + WebKeys.CURRENT_PORTLET_URL, new MockLiferayPortletURL());
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_REQUEST,
+			JavaConstants.JAKARTA_PORTLET_REQUEST,
 			mockLiferayPortletRenderRequest);
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletRenderResponse());
 
 		ThemeDisplay themeDisplay = new ThemeDisplay();

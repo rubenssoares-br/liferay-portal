@@ -5,7 +5,8 @@
 
 package com.liferay.petra.string;
 
-import com.liferay.portal.kernel.test.SwappableSecurityManager;
+import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.ReloadURLClassLoader;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.CodeCoverageAssertor;
 import com.liferay.portal.kernel.test.rule.NewEnv;
@@ -18,10 +19,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StringWriter;
 
-import java.security.Permission;
-
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.lang.invoke.MethodHandles;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -742,40 +740,52 @@ public class StringBundlerTest {
 		Assert.assertEquals("test2", sb.stringAt(0));
 	}
 
-	@NewEnv(type = NewEnv.Type.CLASSLOADER)
+	@NewEnv(type = NewEnv.Type.JVM)
 	@Test
-	public void testStringBuilderFallbackOnUnsupportedJDK() {
-		AtomicInteger counter = new AtomicInteger();
+	public void testStringBuilderFallbackOnUnsupportedJDK() throws Exception {
+		ReloadURLClassLoader reloadURLClassLoader = new ReloadURLClassLoader(
+			StringBundler.class);
 
-		NoSuchFieldException noSuchFieldException = new NoSuchFieldException();
+		Class<?> clazz = reloadURLClassLoader.loadClass(
+			StringBundler.class.getName());
 
-		try (SwappableSecurityManager swappableSecurityManager =
-				new SwappableSecurityManager() {
+		MethodHandles.Lookup implLookup =
+			ReflectionTestUtil.getAndSetFieldValue(
+				MethodHandles.Lookup.class, "IMPL_LOOKUP",
+				MethodHandles.lookup());
 
-					@Override
-					public void checkPermission(Permission permission) {
-						if (Objects.equals(
-								permission.getName(),
-								"accessDeclaredMembers") &&
-							(counter.incrementAndGet() == 4)) {
+		try {
+			Class.forName(clazz.getName(), true, reloadURLClassLoader);
+		}
+		finally {
+			ReflectionTestUtil.setFieldValue(
+				MethodHandles.Lookup.class, "IMPL_LOOKUP", implLookup);
+		}
 
-							StringBundlerTest.this.
-								<RuntimeException>_throwException(
-									noSuchFieldException);
-						}
-					}
+		Object sbObject = clazz.newInstance();
 
-				}) {
+		ReflectionTestUtil.invoke(
+			sbObject, "append", new Class<?>[] {String.class}, "test1");
+		ReflectionTestUtil.invoke(
+			sbObject, "append", new Class<?>[] {String.class}, "test2");
+		ReflectionTestUtil.invoke(
+			sbObject, "append", new Class<?>[] {String.class}, "test3");
 
-			swappableSecurityManager.install();
+		Assert.assertEquals("test1test2test3", sbObject.toString());
 
-			StringBundler sb = new StringBundler();
+		StringBundler sb = new StringBundler();
 
-			sb.append("test1");
-			sb.append("test2");
-			sb.append("test3");
+		ReflectionTestUtil.setFieldValue(
+			sb, "_array", new String[] {"test1", "test2", null});
 
-			Assert.assertEquals("test1test2test3", sb.toString());
+		ReflectionTestUtil.setFieldValue(sb, "_arrayIndex", 3);
+
+		try {
+			sb.toString();
+
+			Assert.fail();
+		}
+		catch (NullPointerException nullPointerException) {
 		}
 	}
 
@@ -830,13 +840,6 @@ public class StringBundlerTest {
 		for (int i = prefix.length; i < strings.length; i++) {
 			Assert.assertNull(strings[i]);
 		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private <E extends Throwable> void _throwException(Throwable throwable)
-		throws E {
-
-		throw (E)throwable;
 	}
 
 }

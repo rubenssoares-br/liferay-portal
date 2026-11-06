@@ -53,7 +53,7 @@ if (liveLayout != null) {
 									<c:when test="<%= !remoteSiteURL.isEmpty() %>">
 										<clay:link
 											cssClass="nav-link"
-											href="<%= HtmlUtil.escape(remoteSiteURL) %>"
+											href="<%= HtmlUtil.escapeHREF(remoteSiteURL) %>"
 											icon="home"
 											label="go-to-remote-live"
 										/>
@@ -207,7 +207,7 @@ if (liveLayout != null) {
 									cssClass="staging-alert-container"
 								>
 									<div class="alert alert-warning hide warning-content" id="<portlet:namespace />warningMessage">
-										<liferay-ui:message key="an-inital-staging-publish-process-is-in-progress" />
+										<liferay-ui:message key="an-initial-staging-publish-process-is-in-progress" />
 									</div>
 
 									<liferay-util:include page="/last_publication_date_message.jsp" servletContext="<%= application %>" />

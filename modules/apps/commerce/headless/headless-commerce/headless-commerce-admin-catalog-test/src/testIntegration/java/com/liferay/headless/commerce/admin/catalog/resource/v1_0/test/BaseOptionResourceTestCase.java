@@ -13,29 +13,47 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.Option;
 import com.liferay.headless.commerce.admin.catalog.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Page;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Pagination;
+import com.liferay.headless.commerce.admin.catalog.client.permission.Permission;
 import com.liferay.headless.commerce.admin.catalog.client.resource.v1_0.OptionResource;
 import com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0.OptionSerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.RoleConstants;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -43,12 +61,27 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,13 +90,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -72,6 +103,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Zoltán Takács
@@ -82,13 +116,17 @@ public abstract class BaseOptionResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -101,18 +139,42 @@ public abstract class BaseOptionResourceTestCase {
 
 		_optionResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		OptionResource.Builder builder = OptionResource.builder();
-
-		optionResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		optionResource = OptionResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		permissionsOptionResource = OptionResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).parameter(
+			"nestedFields", "permissions"
 		).build();
 	}
 
@@ -186,6 +248,765 @@ public abstract class BaseOptionResourceTestCase {
 	}
 
 	@Test
+	public void testDeleteOption() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option option = testDeleteOption_addOption();
+
+		assertHttpResponseStatusCode(
+			204, optionResource.deleteOptionHttpResponse(option.getId()));
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option.getId()));
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(0L));
+	}
+
+	protected Option testDeleteOption_addOption() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteOption() throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option option1 = testGraphQLDeleteOption_addOption();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteOption",
+						new HashMap<String, Object>() {
+							{
+								put("id", option1.getId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteOption"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"option",
+					new HashMap<String, Object>() {
+						{
+							put("id", option1.getId());
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option option2 = testGraphQLDeleteOption_addOption();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"deleteOption",
+							new HashMap<String, Object>() {
+								{
+									put("id", option2.getId());
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminCatalog_v1_0",
+				"Object/deleteOption"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessCommerceAdminCatalog_v1_0",
+					new GraphQLField(
+						"option",
+						new HashMap<String, Object>() {
+							{
+								put("id", option2.getId());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected Option testGraphQLDeleteOption_addOption() throws Exception {
+		return testGraphQLOption_addOption();
+	}
+
+	@Test
+	public void testDeleteOptionBatch() throws Exception {
+		Option option1 = testDeleteOptionBatch_addOption();
+
+		testDeleteOptionBatch_deleteOption(
+			202, option1.getExternalReferenceCode(), null);
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option1.getId()));
+
+		option1 = testDeleteOptionBatch_addOption();
+
+		testDeleteOptionBatch_deleteOption(202, null, option1.getId());
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option1.getId()));
+
+		option1 = testDeleteOptionBatch_addOption();
+		Option option2 = testDeleteOptionBatch_addOption();
+
+		testDeleteOptionBatch_deleteOption(
+			202, option2.getExternalReferenceCode(), option1.getId());
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option1.getId()));
+		assertHttpResponseStatusCode(
+			200, optionResource.getOptionHttpResponse(option2.getId()));
+
+		testDeleteOptionBatch_deleteOption(
+			202, option2.getExternalReferenceCode(), option1.getId());
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option2.getId()));
+	}
+
+	protected Option testDeleteOptionBatch_addOption() throws Exception {
+		return testDeleteOption_addOption();
+	}
+
+	protected void testDeleteOptionBatch_deleteOption(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			optionResource.deleteOptionBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
+	public void testDeleteOptionByExternalReferenceCode() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option option = testDeleteOptionByExternalReferenceCode_addOption();
+
+		assertHttpResponseStatusCode(
+			204,
+			optionResource.deleteOptionByExternalReferenceCodeHttpResponse(
+				option.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			optionResource.getOptionByExternalReferenceCodeHttpResponse(
+				option.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			optionResource.getOptionByExternalReferenceCodeHttpResponse("-"));
+	}
+
+	protected Option testDeleteOptionByExternalReferenceCode_addOption()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteOptionByExternalReferenceCode()
+		throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option option1 =
+			testGraphQLDeleteOptionByExternalReferenceCode_addOption();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteOptionByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" + option1.getExternalReferenceCode() +
+										"\"");
+							}
+						})),
+				"JSONObject/data",
+				"Object/deleteOptionByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"optionByExternalReferenceCode",
+					new HashMap<String, Object>() {
+						{
+							put(
+								"externalReferenceCode",
+								"\"" + option1.getExternalReferenceCode() +
+									"\"");
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option option2 =
+			testGraphQLDeleteOptionByExternalReferenceCode_addOption();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"deleteOptionByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										"\"" +
+											option2.getExternalReferenceCode() +
+												"\"");
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminCatalog_v1_0",
+				"Object/deleteOptionByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessCommerceAdminCatalog_v1_0",
+					new GraphQLField(
+						"optionByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" + option2.getExternalReferenceCode() +
+										"\"");
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected Option testGraphQLDeleteOptionByExternalReferenceCode_addOption()
+		throws Exception {
+
+		return testGraphQLOption_addOption();
+	}
+
+	@Test
+	public void testGetOption() throws Exception {
+		Option postOption = testGetOption_addOption();
+
+		Option getOption = optionResource.getOption(postOption.getId());
+
+		assertEquals(postOption, getOption);
+		assertValid(getOption);
+
+		Assert.assertNull(getOption.getPermissions());
+
+		getOption = permissionsOptionResource.getOption(postOption.getId());
+
+		Assert.assertNotNull(getOption.getPermissions());
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		Option postOption = testGetOption_addOption();
+
+		Option getOption = optionResource.getOption(postOption.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.Option"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(postOption.getId());
+
+		assertEquals(getOption, OptionSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
+	}
+
+	protected Option testGetOption_addOption() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetOption() throws Exception {
+		Option option = testGraphQLGetOption_addOption();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				option,
+				OptionSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"option",
+								new HashMap<String, Object>() {
+									{
+										put("id", option.getId());
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data", "Object/option"))));
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		Assert.assertTrue(
+			equals(
+				option,
+				OptionSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceAdminCatalog_v1_0",
+								new GraphQLField(
+									"option",
+									new HashMap<String, Object>() {
+										{
+											put("id", option.getId());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceAdminCatalog_v1_0",
+						"Object/option"))));
+	}
+
+	@Test
+	public void testGraphQLGetOptionNotFound() throws Exception {
+		Long irrelevantId = RandomTestUtil.randomLong();
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"option",
+						new HashMap<String, Object>() {
+							{
+								put("id", irrelevantId);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"option",
+							new HashMap<String, Object>() {
+								{
+									put("id", irrelevantId);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Option testGraphQLGetOption_addOption() throws Exception {
+		return testGraphQLOption_addOption();
+	}
+
+	@Test
+	public void testGetOptionByExternalReferenceCode() throws Exception {
+		Option postOption = testGetOptionByExternalReferenceCode_addOption();
+
+		Option getOption = optionResource.getOptionByExternalReferenceCode(
+			postOption.getExternalReferenceCode());
+
+		assertEquals(postOption, getOption);
+		assertValid(getOption);
+
+		Assert.assertNull(getOption.getPermissions());
+
+		getOption = permissionsOptionResource.getOptionByExternalReferenceCode(
+			postOption.getExternalReferenceCode());
+
+		Assert.assertNotNull(getOption.getPermissions());
+	}
+
+	protected Option testGetOptionByExternalReferenceCode_addOption()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetOptionByExternalReferenceCode() throws Exception {
+		Option option = testGraphQLGetOptionByExternalReferenceCode_addOption();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				option,
+				OptionSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"optionByExternalReferenceCode",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"externalReferenceCode",
+											"\"" +
+												option.
+													getExternalReferenceCode() +
+														"\"");
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/optionByExternalReferenceCode"))));
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		Assert.assertTrue(
+			equals(
+				option,
+				OptionSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceAdminCatalog_v1_0",
+								new GraphQLField(
+									"optionByExternalReferenceCode",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"externalReferenceCode",
+												"\"" +
+													option.
+														getExternalReferenceCode() +
+															"\"");
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceAdminCatalog_v1_0",
+						"Object/optionByExternalReferenceCode"))));
+	}
+
+	@Test
+	public void testGraphQLGetOptionByExternalReferenceCodeNotFound()
+		throws Exception {
+
+		String irrelevantExternalReferenceCode =
+			"\"" + RandomTestUtil.randomString() + "\"";
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"optionByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									irrelevantExternalReferenceCode);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceAdminCatalog_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceAdminCatalog_v1_0",
+						new GraphQLField(
+							"optionByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										irrelevantExternalReferenceCode);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Option testGraphQLGetOptionByExternalReferenceCode_addOption()
+		throws Exception {
+
+		return testGraphQLOption_addOption();
+	}
+
+	@Test
+	public void testGetOptionPermissionsPage() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option postOption = testGetOptionPermissionsPage_addOption();
+
+		Page<Permission> page = optionResource.getOptionPermissionsPage(
+			postOption.getId(), RoleConstants.GUEST);
+
+		Assert.assertNotNull(page);
+	}
+
+	protected Option testGetOptionPermissionsPage_addOption() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetOptionPermissionsPage() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		Option postOption = testGraphQLGetOptionPermissionsPage_addOption();
+
+		GraphQLField graphQLField = new GraphQLField(
+			"optionPermissions",
+			new HashMap<String, Object>() {
+				{
+					put("optionId", postOption.getId());
+				}
+			},
+			new GraphQLField("page"), new GraphQLField("totalCount"));
+
+		JSONObject optionPermissionsJSONObject = JSONUtil.getValueAsJSONObject(
+			invokeGraphQLQuery(graphQLField), "JSONObject/data",
+			"JSONObject/optionPermissions");
+
+		Assert.assertNotNull(optionPermissionsJSONObject);
+	}
+
+	protected Option testGraphQLGetOptionPermissionsPage_addOption()
+		throws Exception {
+
+		return testGraphQLOption_addOption();
+	}
+
+	@Test
 	public void testGetOptionsPage() throws Exception {
 		Page<Option> page = optionResource.getOptionsPage(
 			null, null, Pagination.of(1, 10), null);
@@ -197,13 +1018,24 @@ public abstract class BaseOptionResourceTestCase {
 		Option option2 = testGetOptionsPage_addOption(randomOption());
 
 		page = optionResource.getOptionsPage(
-			null, null, Pagination.of(1, 10), null);
+			null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
 		assertContains(option1, (List<Option>)page.getItems());
 		assertContains(option2, (List<Option>)page.getItems());
 		assertValid(page, testGetOptionsPage_getExpectedActions());
+
+		for (Option option : page.getItems()) {
+			Assert.assertNull(option.getPermissions());
+		}
+
+		page = permissionsOptionResource.getOptionsPage(
+			null, null, Pagination.of(1, 10), null);
+
+		for (Option option : page.getItems()) {
+			Assert.assertNotNull(option.getPermissions());
+		}
 
 		optionResource.deleteOption(option1.getId());
 
@@ -293,10 +1125,10 @@ public abstract class BaseOptionResourceTestCase {
 
 	@Test
 	public void testGetOptionsPageWithPagination() throws Exception {
-		Page<Option> optionPage = optionResource.getOptionsPage(
+		Page<Option> optionsPage = optionResource.getOptionsPage(
 			null, null, null, null);
 
-		int totalCount = GetterUtil.getInteger(optionPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(optionsPage.getTotalCount());
 
 		Option option1 = testGetOptionsPage_addOption(randomOption());
 
@@ -499,16 +1331,8 @@ public abstract class BaseOptionResourceTestCase {
 
 	@Test
 	public void testGraphQLGetOptionsPage() throws Exception {
-		GraphQLField graphQLField = new GraphQLField(
-			"options",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
+		GraphQLField graphQLField =
+			testGraphQLGetOptionsPageOption_getGraphQLField();
 
 		// No namespace
 
@@ -518,8 +1342,9 @@ public abstract class BaseOptionResourceTestCase {
 
 		long totalCount = optionsJSONObject.getLong("totalCount");
 
-		Option option1 = testGraphQLGetOptionsPage_addOption();
-		Option option2 = testGraphQLGetOptionsPage_addOption();
+		Option option1 = testGraphQLOption_addOption(randomOption());
+
+		Option option2 = testGraphQLOption_addOption(randomOption());
 
 		optionsJSONObject = JSONUtil.getValueAsJSONObject(
 			invokeGraphQLQuery(graphQLField), "JSONObject/data",
@@ -559,8 +1384,30 @@ public abstract class BaseOptionResourceTestCase {
 				OptionSerDes.toDTOs(optionsJSONObject.getString("items"))));
 	}
 
-	protected Option testGraphQLGetOptionsPage_addOption() throws Exception {
-		return testGraphQLOption_addOption();
+	protected GraphQLField testGraphQLGetOptionsPageOption_getGraphQLField()
+		throws Exception {
+
+		return new GraphQLField(
+			"options",
+			new HashMap<String, Object>() {
+				{
+					put("search", null);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
+	}
+
+	@Test
+	public void testPatchOption() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testPatchOptionByExternalReferenceCode() throws Exception {
+		Assert.assertTrue(false);
 	}
 
 	@Test
@@ -571,6 +1418,20 @@ public abstract class BaseOptionResourceTestCase {
 
 		assertEquals(randomOption, postOption);
 		assertValid(postOption);
+
+		Option randomPermissionsOption1 = randomPermissionsOption();
+
+		Option postPermissionsOption1 = testPostOption_addOption(
+			randomPermissionsOption1);
+
+		Assert.assertNull(postPermissionsOption1.getPermissions());
+
+		Option randomPermissionsOption2 = randomPermissionsOption();
+
+		Option postPermissionsOption2 = testPostOption_addPermissionsOption(
+			randomPermissionsOption2);
+
+		Assert.assertNotNull(postPermissionsOption2.getPermissions());
 	}
 
 	protected Option testPostOption_addOption(Option option) throws Exception {
@@ -578,28 +1439,7 @@ public abstract class BaseOptionResourceTestCase {
 			"This method needs to be implemented");
 	}
 
-	@Test
-	public void testDeleteOptionByExternalReferenceCode() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		Option option = testDeleteOptionByExternalReferenceCode_addOption();
-
-		assertHttpResponseStatusCode(
-			204,
-			optionResource.deleteOptionByExternalReferenceCodeHttpResponse(
-				option.getExternalReferenceCode()));
-
-		assertHttpResponseStatusCode(
-			404,
-			optionResource.getOptionByExternalReferenceCodeHttpResponse(
-				option.getExternalReferenceCode()));
-
-		assertHttpResponseStatusCode(
-			404,
-			optionResource.getOptionByExternalReferenceCodeHttpResponse(
-				option.getExternalReferenceCode()));
-	}
-
-	protected Option testDeleteOptionByExternalReferenceCode_addOption()
+	protected Option testPostOption_addPermissionsOption(Option option)
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -607,136 +1447,12 @@ public abstract class BaseOptionResourceTestCase {
 	}
 
 	@Test
-	public void testGetOptionByExternalReferenceCode() throws Exception {
-		Option postOption = testGetOptionByExternalReferenceCode_addOption();
+	public void testGraphQLPostOption() throws Exception {
+		Option randomOption = randomOption();
 
-		Option getOption = optionResource.getOptionByExternalReferenceCode(
-			postOption.getExternalReferenceCode());
+		Option option = testGraphQLOption_addOption(randomOption);
 
-		assertEquals(postOption, getOption);
-		assertValid(getOption);
-	}
-
-	protected Option testGetOptionByExternalReferenceCode_addOption()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetOptionByExternalReferenceCode() throws Exception {
-		Option option = testGraphQLGetOptionByExternalReferenceCode_addOption();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				option,
-				OptionSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"optionByExternalReferenceCode",
-								new HashMap<String, Object>() {
-									{
-										put(
-											"externalReferenceCode",
-											"\"" +
-												option.
-													getExternalReferenceCode() +
-														"\"");
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data",
-						"Object/optionByExternalReferenceCode"))));
-
-		// Using the namespace headlessCommerceAdminCatalog_v1_0
-
-		Assert.assertTrue(
-			equals(
-				option,
-				OptionSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceAdminCatalog_v1_0",
-								new GraphQLField(
-									"optionByExternalReferenceCode",
-									new HashMap<String, Object>() {
-										{
-											put(
-												"externalReferenceCode",
-												"\"" +
-													option.
-														getExternalReferenceCode() +
-															"\"");
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceAdminCatalog_v1_0",
-						"Object/optionByExternalReferenceCode"))));
-	}
-
-	@Test
-	public void testGraphQLGetOptionByExternalReferenceCodeNotFound()
-		throws Exception {
-
-		String irrelevantExternalReferenceCode =
-			"\"" + RandomTestUtil.randomString() + "\"";
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"optionByExternalReferenceCode",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"externalReferenceCode",
-									irrelevantExternalReferenceCode);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceAdminCatalog_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceAdminCatalog_v1_0",
-						new GraphQLField(
-							"optionByExternalReferenceCode",
-							new HashMap<String, Object>() {
-								{
-									put(
-										"externalReferenceCode",
-										irrelevantExternalReferenceCode);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected Option testGraphQLGetOptionByExternalReferenceCode_addOption()
-		throws Exception {
-
-		return testGraphQLOption_addOption();
-	}
-
-	@Test
-	public void testPatchOptionByExternalReferenceCode() throws Exception {
-		Assert.assertTrue(false);
+		Assert.assertTrue(equals(randomOption, option));
 	}
 
 	@Test
@@ -751,11 +1467,28 @@ public abstract class BaseOptionResourceTestCase {
 		assertEquals(randomOption, putOption);
 		assertValid(putOption);
 
+		Assert.assertNull(putOption.getPermissions());
+
 		Option getOption = optionResource.getOptionByExternalReferenceCode(
 			putOption.getExternalReferenceCode());
 
 		assertEquals(randomOption, getOption);
 		assertValid(getOption);
+
+		Option randomPermissionsOption = randomPermissionsOption();
+
+		putOption = optionResource.putOptionByExternalReferenceCode(
+			postOption.getExternalReferenceCode(), randomPermissionsOption);
+
+		assertEquals(randomPermissionsOption, putOption);
+		assertValid(putOption);
+
+		Assert.assertNull(putOption.getPermissions());
+
+		putOption = permissionsOptionResource.putOptionByExternalReferenceCode(
+			postOption.getExternalReferenceCode(), randomPermissionsOption);
+
+		Assert.assertNotNull(putOption.getPermissions());
 
 		Option newOption = testPutOptionByExternalReferenceCode_createOption();
 
@@ -775,12 +1508,6 @@ public abstract class BaseOptionResourceTestCase {
 			putOption.getExternalReferenceCode());
 	}
 
-	protected Option testPutOptionByExternalReferenceCode_createOption()
-		throws Exception {
-
-		return randomOption();
-	}
-
 	protected Option testPutOptionByExternalReferenceCode_addOption()
 		throws Exception {
 
@@ -788,216 +1515,250 @@ public abstract class BaseOptionResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	protected Option testPutOptionByExternalReferenceCode_createOption()
+		throws Exception {
+
+		return randomOption();
+	}
+
 	@Test
-	public void testDeleteOption() throws Exception {
+	public void testPutOptionPermissionsPage() throws Exception {
 		@SuppressWarnings("PMD.UnusedLocalVariable")
-		Option option = testDeleteOption_addOption();
+		Option option = testPutOptionPermissionsPage_addOption();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
+			RoleConstants.TYPE_REGULAR);
 
 		assertHttpResponseStatusCode(
-			204, optionResource.deleteOptionHttpResponse(option.getId()));
-
-		assertHttpResponseStatusCode(
-			404, optionResource.getOptionHttpResponse(option.getId()));
-
-		assertHttpResponseStatusCode(
-			404, optionResource.getOptionHttpResponse(option.getId()));
-	}
-
-	protected Option testDeleteOption_addOption() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLDeleteOption() throws Exception {
-
-		// No namespace
-
-		Option option1 = testGraphQLDeleteOption_addOption();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"deleteOption",
-						new HashMap<String, Object>() {
-							{
-								put("id", option1.getId());
-							}
-						})),
-				"JSONObject/data", "Object/deleteOption"));
-
-		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"option",
-					new HashMap<String, Object>() {
+			200,
+			optionResource.putOptionPermissionsPageHttpResponse(
+				option.getId(),
+				new Permission[] {
+					new Permission() {
 						{
-							put("id", option1.getId());
+							setActionIds(new String[] {"VIEW"});
+							setRoleName(role.getName());
 						}
-					},
-					new GraphQLField("id"))),
-			"JSONArray/errors");
+					}
+				}));
 
-		Assert.assertTrue(errorsJSONArray1.length() > 0);
-
-		// Using the namespace headlessCommerceAdminCatalog_v1_0
-
-		Option option2 = testGraphQLDeleteOption_addOption();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"headlessCommerceAdminCatalog_v1_0",
-						new GraphQLField(
-							"deleteOption",
-							new HashMap<String, Object>() {
-								{
-									put("id", option2.getId());
-								}
-							}))),
-				"JSONObject/data",
-				"JSONObject/headlessCommerceAdminCatalog_v1_0",
-				"Object/deleteOption"));
-
-		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"headlessCommerceAdminCatalog_v1_0",
-					new GraphQLField(
-						"option",
-						new HashMap<String, Object>() {
-							{
-								put("id", option2.getId());
-							}
-						},
-						new GraphQLField("id")))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray2.length() > 0);
+		assertHttpResponseStatusCode(
+			404,
+			optionResource.putOptionPermissionsPageHttpResponse(
+				0L,
+				new Permission[] {
+					new Permission() {
+						{
+							setActionIds(new String[] {"-"});
+							setRoleName("-");
+						}
+					}
+				}));
 	}
 
-	protected Option testGraphQLDeleteOption_addOption() throws Exception {
-		return testGraphQLOption_addOption();
-	}
-
-	@Test
-	public void testGetOption() throws Exception {
-		Option postOption = testGetOption_addOption();
-
-		Option getOption = optionResource.getOption(postOption.getId());
-
-		assertEquals(postOption, getOption);
-		assertValid(getOption);
-	}
-
-	protected Option testGetOption_addOption() throws Exception {
+	protected Option testPutOptionPermissionsPage_addOption() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
 	@Test
-	public void testGraphQLGetOption() throws Exception {
-		Option option = testGraphQLGetOption_addOption();
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Option option1 = testBatchEngineDeleteImportTask_addOption();
 
-		// No namespace
+		testBatchEngineDeleteImportTask_deleteOption(
+			200, option1.getExternalReferenceCode(), null);
 
-		Assert.assertTrue(
-			equals(
-				option,
-				OptionSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"option",
-								new HashMap<String, Object>() {
-									{
-										put("id", option.getId());
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data", "Object/option"))));
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option1.getId()));
 
-		// Using the namespace headlessCommerceAdminCatalog_v1_0
+		option1 = testBatchEngineDeleteImportTask_addOption();
 
-		Assert.assertTrue(
-			equals(
-				option,
-				OptionSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceAdminCatalog_v1_0",
-								new GraphQLField(
-									"option",
-									new HashMap<String, Object>() {
-										{
-											put("id", option.getId());
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceAdminCatalog_v1_0",
-						"Object/option"))));
+		testBatchEngineDeleteImportTask_deleteOption(
+			200, null, option1.getId());
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option1.getId()));
+
+		option1 = testBatchEngineDeleteImportTask_addOption();
+		Option option2 = testBatchEngineDeleteImportTask_addOption();
+
+		testBatchEngineDeleteImportTask_deleteOption(
+			200, option2.getExternalReferenceCode(), option1.getId());
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option1.getId()));
+		assertHttpResponseStatusCode(
+			200, optionResource.getOptionHttpResponse(option2.getId()));
+
+		testBatchEngineDeleteImportTask_deleteOption(
+			200, option2.getExternalReferenceCode(), option1.getId());
+
+		assertHttpResponseStatusCode(
+			404, optionResource.getOptionHttpResponse(option2.getId()));
 	}
 
-	@Test
-	public void testGraphQLGetOptionNotFound() throws Exception {
-		Long irrelevantId = RandomTestUtil.randomLong();
+	protected Option testBatchEngineDeleteImportTask_addOption()
+		throws Exception {
 
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"option",
-						new HashMap<String, Object>() {
-							{
-								put("id", irrelevantId);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceAdminCatalog_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceAdminCatalog_v1_0",
-						new GraphQLField(
-							"option",
-							new HashMap<String, Object>() {
-								{
-									put("id", irrelevantId);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
+		return testDeleteOption_addOption();
 	}
 
-	protected Option testGraphQLGetOption_addOption() throws Exception {
-		return testGraphQLOption_addOption();
-	}
+	protected void testBatchEngineDeleteImportTask_deleteOption(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
 
-	@Test
-	public void testPatchOption() throws Exception {
-		Assert.assertTrue(false);
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.catalog.dto.v1_0.Option",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
 
 	protected Option testGraphQLOption_addOption() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testGraphQLOption_addOption(randomOption());
+	}
+
+	protected Option testGraphQLOption_addOption(Option option)
+		throws Exception {
+
+		JSONDeserializer<Option> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field : getDeclaredFields(Option.class)) {
+			if (getGraphQLValue(field.get(option)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(option)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createOption",
+						new HashMap<String, Object>() {
+							{
+								put("option", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data", "JSONObject/createOption"),
+			Option.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(Option option, List<Option> options) {
@@ -1062,6 +1823,14 @@ public abstract class BaseOptionResourceTestCase {
 	protected void assertValid(Option option) throws Exception {
 		boolean valid = true;
 
+		if (option.getDateCreated() == null) {
+			valid = false;
+		}
+
+		if (option.getDateModified() == null) {
+			valid = false;
+		}
+
 		if (option.getId() == null) {
 			valid = false;
 		}
@@ -1079,6 +1848,14 @@ public abstract class BaseOptionResourceTestCase {
 
 			if (Objects.equals("catalogId", additionalAssertFieldName)) {
 				if (option.getCatalogId() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("creator", additionalAssertFieldName)) {
+				if (option.getCreator() == null) {
 					valid = false;
 				}
 
@@ -1145,6 +1922,14 @@ public abstract class BaseOptionResourceTestCase {
 
 			if (Objects.equals("optionValues", additionalAssertFieldName)) {
 				if (option.getOptionValues() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("permissions", additionalAssertFieldName)) {
+				if (option.getPermissions() == null) {
 					valid = false;
 				}
 
@@ -1232,6 +2017,10 @@ public abstract class BaseOptionResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.commerce.admin.catalog.dto.v1_0.Option.
@@ -1311,9 +2100,39 @@ public abstract class BaseOptionResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("creator", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						option1.getCreator(), option2.getCreator())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("customFields", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						option1.getCustomFields(), option2.getCustomFields())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("dateCreated", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						option1.getDateCreated(), option2.getDateCreated())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("dateModified", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						option1.getDateModified(), option2.getDateModified())) {
 
 					return false;
 				}
@@ -1392,6 +2211,16 @@ public abstract class BaseOptionResourceTestCase {
 			if (Objects.equals("optionValues", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						option1.getOptionValues(), option2.getOptionValues())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("permissions", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						option1.getPermissions(), option2.getPermissions())) {
 
 					return false;
 				}
@@ -1547,9 +2376,72 @@ public abstract class BaseOptionResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("creator")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals("customFields")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("dateCreated")) {
+			if (operator.equals("between")) {
+				Date date = option.getDateCreated();
+
+				sb = new StringBundler();
+
+				sb.append("(");
+				sb.append(entityFieldName);
+				sb.append(" gt ");
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(" and ");
+				sb.append(entityFieldName);
+				sb.append(" lt ");
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(")");
+			}
+			else {
+				sb.append(entityFieldName);
+
+				sb.append(" ");
+				sb.append(operator);
+				sb.append(" ");
+
+				sb.append(_format.format(option.getDateCreated()));
+			}
+
+			return sb.toString();
+		}
+
+		if (entityFieldName.equals("dateModified")) {
+			if (operator.equals("between")) {
+				Date date = option.getDateModified();
+
+				sb = new StringBundler();
+
+				sb.append("(");
+				sb.append(entityFieldName);
+				sb.append(" gt ");
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(" and ");
+				sb.append(entityFieldName);
+				sb.append(" lt ");
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(")");
+			}
+			else {
+				sb.append(entityFieldName);
+
+				sb.append(" ");
+				sb.append(operator);
+				sb.append(" ");
+
+				sb.append(_format.format(option.getDateModified()));
+			}
+
+			return sb.toString();
 		}
 
 		if (entityFieldName.equals("description")) {
@@ -1674,6 +2566,11 @@ public abstract class BaseOptionResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
+		if (entityFieldName.equals("permissions")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals("priority")) {
 			sb.append(String.valueOf(option.getPriority()));
 
@@ -1703,7 +2600,9 @@ public abstract class BaseOptionResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1736,6 +2635,8 @@ public abstract class BaseOptionResourceTestCase {
 		return new Option() {
 			{
 				catalogId = RandomTestUtil.randomLong();
+				dateCreated = RandomTestUtil.nextDate();
+				dateModified = RandomTestUtil.nextDate();
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				facetable = RandomTestUtil.randomBoolean();
@@ -1758,8 +2659,51 @@ public abstract class BaseOptionResourceTestCase {
 		return randomOption();
 	}
 
+	protected Option randomPermissionsOption() throws Exception {
+		Option option = randomOption();
+
+		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
+			RoleConstants.TYPE_REGULAR);
+
+		option.setPermissions(
+			new Permission[] {
+				new Permission() {
+					{
+						setActionIds(new String[] {"VIEW"});
+						setRoleName(role.getName());
+					}
+				}
+			});
+
+		return option;
+	}
+
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected OptionResource optionResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
+	protected OptionResource permissionsOptionResource;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
 
@@ -1959,11 +2903,36 @@ public abstract class BaseOptionResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseOptionResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
 		com.liferay.headless.commerce.admin.catalog.resource.v1_0.OptionResource
 			_optionResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:-1401181406

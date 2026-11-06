@@ -36,22 +36,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro assertSchemaFieldsPresent(schemaFields = null, schemaEntity = null) {
-		Variables.assertDefined(parameterList = "${schemaEntity},${schemaFields}");
-
-		Click(
-			locator1 = "OpenAPI#SCHEMA_COLLAPSED",
-			schema = ${schemaEntity});
-
-		for (var schemaField : list ${schemaFields}) {
-			AssertElementPresent(
-				field = ${schemaField},
-				locator1 = "OpenAPI#SCHEMA_FIELD",
-				schema = ${schemaEntity});
-		}
-	}
-
-	@summary = "Default summary"
 	macro executeAllActionInSchema(schema = null, actionsList = null) {
 		Variables.assertDefined(parameterList = "${schema},${actionsList}");
 
@@ -212,33 +196,13 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro executeGraphqlQuery(query = null) {
-		Click(
-			locator1 = "Button#BUTTON_WITH_VALUE",
-			value = "GraphQL");
-
-		AssertElementPresent.assertVisible(locator1 = "OpenAPI#GRAPHQL_EDITOR_LINE");
-
-		Click(
-			editor = "query-editor",
-			locator1 = "OpenAPI#GRAPHQL_EDITOR_LINE");
-
-		Type.sendKeys(
-			locator1 = "//body",
-			value1 = "keys=CONTROL,a");
-
-		Type.typeCodeMirrorEditorNoError(
-			locator1 = "OpenAPI#GRAPHQL_EDITOR",
-			value1 = ${query});
-
-		Click(
-			locator1 = "Button#BUTTON_WITH_VALUE",
-			value = "Execute Query (Ctrl-Enter)");
-	}
-
-	@summary = "Default summary"
 	macro expandAPIMethod(method = null, service = null) {
 		Variables.assertDefined(parameterList = "${service},${method}");
+
+		WaitForElementPresent(
+			locator1 = "OpenAPI#API_METHOD",
+			method = ${method},
+			service = ${service});
 
 		Click(
 			locator1 = "OpenAPI#API_METHOD",
@@ -294,7 +258,12 @@ definition {
 		}
 
 		if (isSet(api)) {
-			Navigator.openSpecificURL(url = "${portalURL}/o/api?endpoint=${portalURL}/o/${api}/${version}/openapi.json");
+			if (isSet(version)) {
+				Navigator.openSpecificURL(url = "${portalURL}/o/api?endpoint=${portalURL}/o/${api}/${version}/openapi.json");
+			}
+			else {
+				Navigator.openSpecificURL(url = "${portalURL}/o/api?endpoint=${portalURL}/o/${api}/openapi.json");
+			}
 		}
 		else if (isSet(customObjectPlural)) {
 			Navigator.openSpecificURL(url = "${portalURL}/o/api?endpoint=${portalURL}/o/c/${customObjectPlural}/openapi.json");

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -12,23 +12,23 @@ import TopperItemActions from '../../../../../src/main/resources/META-INF/resour
 import {LAYOUT_DATA_ITEM_TYPES} from '../../../../../src/main/resources/META-INF/resources/page_editor/app/config/constants/layoutDataItemTypes';
 import {
 	ClipboardContextProvider,
-	useSetCopiedItemIds,
+	useSetClipboard,
 } from '../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext';
 import {StoreAPIContextProvider} from '../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/StoreContext';
 import deleteItem from '../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/deleteItem';
-import pasteItem from '../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItem';
+import pasteItems from '../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItems';
 
 jest.mock(
 	'../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext',
 	() => {
-		const setCopiedItemIds = jest.fn();
+		const setClipboard = jest.fn();
 
 		return {
 			...jest.requireActual(
 				'../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext'
 			),
-			useCopiedItemIds: () => ['itemId2'],
-			useSetCopiedItemIds: () => setCopiedItemIds,
+			useClipboard: () => ['itemId2'],
+			useSetClipboard: () => setClipboard,
 		};
 	}
 );
@@ -39,16 +39,23 @@ jest.mock(
 );
 
 jest.mock(
-	'../../../../../src/main/resources/META-INF/resources/page_editor/app/utils/canBeCopied',
-	() => jest.fn(() => true)
-);
-
-jest.mock(
-	'../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItem',
+	'../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItems',
 	() => jest.fn()
 );
 
+const mockOpenRulesModal = jest.fn();
+
+jest.mock(
+	'../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/RulesModalContext',
+	() => ({
+		useRulesModal: () => ({
+			openRulesModal: mockOpenRulesModal,
+		}),
+	})
+);
+
 const LAYOUT_DATA = {
+	deletedItems: [],
 	items: {
 		itemId1: {
 			children: [],
@@ -64,10 +71,18 @@ const LAYOUT_DATA = {
 			parentId: null,
 			type: LAYOUT_DATA_ITEM_TYPES.row,
 		},
+		itemId3: {
+			children: [],
+			config: {styles: {}},
+			itemId: 'itemId3',
+			parentId: null,
+			type: LAYOUT_DATA_ITEM_TYPES.container,
+		},
 	},
 };
 
 const renderTopperItemActions = ({
+	canManageFragments = true,
 	isDisabled = false,
 	itemId = 'itemId1',
 	layoutData = LAYOUT_DATA,
@@ -79,6 +94,9 @@ const renderTopperItemActions = ({
 			getState={() => ({
 				fragmentEntryLinks: {},
 				layoutData,
+				permissions: {
+					MANAGE_FRAGMENT_ENTRIES: canManageFragments,
+				},
 			})}
 		>
 			<ClipboardContextProvider>
@@ -89,77 +107,101 @@ const renderTopperItemActions = ({
 };
 
 describe('TopperItemActions', () => {
-	it('does not open TopperItemActions if disabled', () => {
+	afterEach(() => {
+		Liferay.FeatureFlags['LPS-169837'] = false;
+	});
+
+	beforeEach(() => {
+		Liferay.FeatureFlags['LPS-169837'] = true;
+	});
+
+	it('does not open TopperItemActions if disabled', async () => {
 		const {baseElement} = renderTopperItemActions({isDisabled: true});
 
 		expect(baseElement.querySelector('.dropdown')).toBeInTheDocument();
+
 		expect(baseElement.querySelector('.dropdown-toggle')).toHaveAttribute(
 			'disabled'
 		);
 	});
 
-	it('opens TopperItemActions if not disabled', () => {
+	it('opens TopperItemActions if not disabled', async () => {
 		const {baseElement} = renderTopperItemActions();
-
-		userEvent.click(baseElement.querySelector('.dropdown-toggle'));
+		await userEvent.click(baseElement.querySelector('.dropdown-toggle'));
 
 		expect(
 			baseElement.querySelector('.dropdown-menu.show')
 		).toBeInTheDocument();
 	});
 
-	it('calls setCopiedItemIds and deleteItem when Cut action is pressed', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
-		const setCopiedItemIds = useSetCopiedItemIds();
+	it('calls setClipboard and deleteItem when Cut action is pressed', async () => {
+		const setClipboard = useSetClipboard();
 
 		renderTopperItemActions();
 
-		userEvent.click(screen.getByText('cut'));
+		await userEvent.click(screen.getByText('cut'));
 
-		expect(deleteItem).toBeCalledWith(
+		expect(deleteItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['itemId1'],
 			})
 		);
 
-		expect(setCopiedItemIds).toBeCalledWith(
+		expect(setClipboard).toHaveBeenCalledWith(
 			expect.objectContaining(['itemId1'])
 		);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
-	it('calls setCopiedItemIds when Copy action is pressed', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
-		const setCopiedItemIds = useSetCopiedItemIds();
+	it('calls setClipboard when Copy action is pressed', async () => {
+		const setClipboard = useSetClipboard();
 
 		renderTopperItemActions();
 
-		userEvent.click(screen.getByText('copy'));
+		await userEvent.click(screen.getByText('copy'));
 
-		expect(setCopiedItemIds).toBeCalledWith(
+		expect(setClipboard).toHaveBeenCalledWith(
 			expect.objectContaining(['itemId1'])
 		);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
-	it('calls pasteItem when Paste action is pressed', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
+	it('calls pasteItem when Paste action is pressed', async () => {
+		renderTopperItemActions({itemId: 'itemId3'});
 
-		renderTopperItemActions();
+		await userEvent.click(screen.getByText('paste'));
 
-		userEvent.click(screen.getByText('paste'));
-
-		expect(pasteItem).toBeCalledWith(
+		expect(pasteItems).toHaveBeenCalledWith(
 			expect.objectContaining({
-				copiedItemIds: ['itemId2'],
-				parentItemId: 'itemId1',
+				clipboard: ['itemId2'],
+				parentItemId: 'itemId3',
 			})
 		);
+	});
 
-		Liferay.FeatureFlags['LPD-18221'] = false;
+	it('does not render save composition action if user does not have the correct permission', async () => {
+		renderTopperItemActions({canManageFragments: false, itemId: 'itemId3'});
+
+		expect(screen.queryByText('save-composition')).not.toBeInTheDocument();
+	});
+
+	it('calls openRulesModal with a readOnly action when clicking add-rule', async () => {
+		renderTopperItemActions({itemId: 'itemId3'});
+
+		await userEvent.click(screen.getByText('add-rule'));
+
+		expect(mockOpenRulesModal).toHaveBeenCalledTimes(1);
+
+		expect(mockOpenRulesModal).toHaveBeenCalledWith(
+			expect.objectContaining({
+				rule: expect.objectContaining({
+					actions: [
+						expect.objectContaining({
+							itemId: 'itemId3',
+							readOnly: true,
+							type: 'show',
+						}),
+					],
+				}),
+			})
+		);
 	});
 });

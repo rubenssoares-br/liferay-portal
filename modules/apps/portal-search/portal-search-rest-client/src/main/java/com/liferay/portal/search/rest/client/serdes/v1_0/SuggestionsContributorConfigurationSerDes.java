@@ -8,13 +8,14 @@ package com.liferay.portal.search.rest.client.serdes.v1_0;
 import com.liferay.portal.search.rest.client.dto.v1_0.SuggestionsContributorConfiguration;
 import com.liferay.portal.search.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Petteri Karttunen
@@ -58,18 +59,8 @@ public class SuggestionsContributorConfigurationSerDes {
 
 			sb.append("\"attributes\": ");
 
-			if (suggestionsContributorConfiguration.getAttributes() instanceof
-					String) {
-
-				sb.append("\"");
-				sb.append(
-					(String)
-						suggestionsContributorConfiguration.getAttributes());
-				sb.append("\"");
-			}
-			else {
-				sb.append(suggestionsContributorConfiguration.getAttributes());
-			}
+			sb.append(
+				_toJSON(suggestionsContributorConfiguration.getAttributes()));
 		}
 
 		if (suggestionsContributorConfiguration.getContributorName() != null) {
@@ -287,6 +278,16 @@ public class SuggestionsContributorConfigurationSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -319,3 +320,4 @@ public class SuggestionsContributorConfigurationSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1171476326

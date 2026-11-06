@@ -1,23 +1,30 @@
 /**
- * SPDX-FileCopyrightText: (c)2024 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2024 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {expect} from '@playwright/test';
+import {ObjectRelationship} from '@liferay/object-admin-rest-client-js/v1_0';
+
+import {AddNewObjectRelationshipModalPage} from '../object-relationship/AddObjectRelationshipModalPage';
 
 import type {Locator, Page} from '@playwright/test';
 
 export class ModelBuilderObjectDefinitionNodePage {
+	readonly addNewObjectRelationshipModalPage: AddNewObjectRelationshipModalPage;
 	readonly addObjectFieldButton: Locator;
 	readonly addObjectFieldOrRelationshipButton: Locator;
 	readonly addObjectRelationshipButton: Locator;
 	readonly deleteObjectDefinitionOption: Locator;
+	readonly editObjectDefinitionExternalReferenceCodeButton: Locator;
+	readonly modalAddObjectField: Locator;
+	readonly modalAddObjectFieldLabelInput: Locator;
+	readonly modalDeleteObjectDefinitionConfirmationButton: Locator;
+	readonly modalDeleteObjectDefinitionTextField: Locator;
+	readonly modalEditObjectDefinitionExternalReferenceCodeInput: Locator;
+	readonly modelBuilderDiagramAreaLoading: Locator;
 	readonly newObjectFieldSaveButton: Locator;
 	readonly newObjectRelationshipSaveButton: Locator;
-	readonly modalDeleteObjectDefinitionTextField: Locator;
-	readonly modalDeleteObjectDefinitionConfirmationButton: Locator;
 	readonly objectFieldBusinessTypeSelect: Locator;
-	readonly objectFieldLabelInput: Locator;
 	readonly objectFieldPicklistSelect: Locator;
 	readonly objectRelationshipLabelInput: Locator;
 	readonly objectRelationshipManyRecordsOf: Locator;
@@ -26,6 +33,8 @@ export class ModelBuilderObjectDefinitionNodePage {
 	readonly page: Page;
 
 	constructor(page: Page) {
+		this.addNewObjectRelationshipModalPage =
+			new AddNewObjectRelationshipModalPage(page);
 		this.addObjectFieldButton = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Add Field',
@@ -41,11 +50,24 @@ export class ModelBuilderObjectDefinitionNodePage {
 		this.deleteObjectDefinitionOption = page.getByRole('menuitem', {
 			name: 'Delete Object',
 		});
+		this.editObjectDefinitionExternalReferenceCodeButton = page
+			.getByText('Edit ERC')
+			.last();
+		this.modalAddObjectField = page.getByLabel('New Field');
+		this.modalAddObjectFieldLabelInput = this.modalAddObjectField.getByRole(
+			'textbox',
+			{name: 'Label'}
+		);
 		this.modalDeleteObjectDefinitionConfirmationButton = page
 			.getByRole('dialog')
 			.getByRole('button', {exact: true, name: 'Delete'});
+		this.modalEditObjectDefinitionExternalReferenceCodeInput =
+			page.getByLabel('External Reference Code' + 'Mandatory');
 		this.modalDeleteObjectDefinitionTextField = page.getByPlaceholder(
 			'Confirm Object Definition Name'
+		);
+		this.modelBuilderDiagramAreaLoading = page.locator(
+			'.lfr-objects__model-builder-diagram-area-loading'
 		);
 		this.newObjectFieldSaveButton = page
 			.getByLabel('New Field')
@@ -61,10 +83,6 @@ export class ModelBuilderObjectDefinitionNodePage {
 			.locator('div.form-group')
 			.filter({hasText: /^TypeMandatorySelect an Option$/})
 			.getByRole('combobox');
-		this.objectFieldLabelInput = page
-			.locator('div.form-group')
-			.filter({hasText: /^LabelMandatory$/})
-			.getByRole('textbox');
 		this.objectFieldPicklistSelect = page
 			.locator('div.form-group')
 			.filter({hasText: /^PicklistSelect an Option$/})
@@ -109,7 +127,7 @@ export class ModelBuilderObjectDefinitionNodePage {
 		await objectDefinitionNodes
 			.filter({hasText: objectDefinitionName})
 			.getByRole('button', {name: 'Show All Fields'})
-			.click();
+			.dispatchEvent('click');
 	}
 
 	async createObjectField({
@@ -119,7 +137,11 @@ export class ModelBuilderObjectDefinitionNodePage {
 		objectDefinitionNodes,
 		objectFieldBusinessType,
 		objectFieldLabel,
-	}: CreateObjectField) {
+	}: CreateObjectField & {
+		mandatory?: boolean;
+		objectDefinitionLabel?: string;
+		objectDefinitionNodes?: unknown;
+	}) {
 		await this.openAddNewObjectFieldOrRelationshipModal(
 			objectDefinitionLabel,
 			objectDefinitionNodes,
@@ -155,49 +177,35 @@ export class ModelBuilderObjectDefinitionNodePage {
 		objectDefinitionNodes,
 		objectRelationshipLabel,
 		objectRelationshipType,
-	}: CreateObjectRelationship): Promise<ObjectRelationship> {
+	}: {
+		manyRecordsOf: string;
+		objectDefinitionLabel: string;
+		objectDefinitionNodes: unknown;
+		objectRelationshipLabel: string;
+		objectRelationshipType: ObjectRelationshipType;
+	}): Promise<ObjectRelationship> {
 		await this.openAddNewObjectFieldOrRelationshipModal(
 			objectDefinitionLabel,
 			objectDefinitionNodes,
 			this.addObjectRelationshipButton
 		);
 
-		const objectRelationship = await this.handleObjectRelationshipModal({
-			manyRecordsOf,
-			objectRelationshipLabel,
-			type: objectRelationshipType,
-		});
+		const objectRelationship =
+			await this.addNewObjectRelationshipModalPage.handleForm({
+				manyRecordsOf,
+				objectRelationshipLabel,
+				type: objectRelationshipType,
+			});
 
 		return objectRelationship;
 	}
 
-	async handleObjectRelationshipModal({
-		manyRecordsOf,
-		objectRelationshipLabel,
-		type,
-	}: {
-		manyRecordsOf?: string;
-		objectRelationshipLabel: string;
-		type: string;
-	}): Promise<ObjectRelationship> {
-		await expect(this.objectRelationshipTitle).toBeVisible();
+	async deleteDraftObjectDefinition() {
+		const reloadedResponse = this._waitForModelBuilderReload();
 
-		await this.objectRelationshipLabelInput.fill(objectRelationshipLabel);
-		await this.objectRelationshipTypeButton.click();
-		await this.page.getByRole('option', {name: type}).click();
+		await this.deleteObjectDefinitionOption.click();
 
-		if (manyRecordsOf) {
-			await this.objectRelationshipManyRecordsOf.click();
-			await this.page.getByRole('option', {name: manyRecordsOf}).click();
-		}
-
-		const responsePromise = this.page.waitForResponse(
-			'**/object-relationships'
-		);
-		await this.newObjectRelationshipSaveButton.click();
-		const response = await responsePromise;
-
-		return response.json();
+		await reloadedResponse;
 	}
 
 	async deleteObjectDefinition(objectDefinitionName: string) {
@@ -206,11 +214,16 @@ export class ModelBuilderObjectDefinitionNodePage {
 		await this.modalDeleteObjectDefinitionTextField.fill(
 			objectDefinitionName
 		);
+
+		const reloadedResponse = this._waitForModelBuilderReload();
+
 		await this.modalDeleteObjectDefinitionConfirmationButton.click();
+
+		await reloadedResponse;
 	}
 
 	async fillObjectFieldLabelInput(objectFieldLabel: string) {
-		await this.objectFieldLabelInput.fill(objectFieldLabel);
+		await this.modalAddObjectFieldLabelInput.fill(objectFieldLabel);
 	}
 
 	getLinkedObjectDefinitionIconLocator(
@@ -242,7 +255,22 @@ export class ModelBuilderObjectDefinitionNodePage {
 	) {
 		await this.objectFieldBusinessTypeSelect.click();
 		await this.page
-			.getByRole('option', {exact: true, name: objectFieldBusinessType})
+			.getByRole('option', {
+				exact: true,
+				name: String(objectFieldBusinessType),
+			})
 			.click();
+	}
+
+	private async _waitForModelBuilderReload() {
+		await this.page.waitForResponse(
+			(response) =>
+				response.request().method() === 'GET' &&
+				response
+					.url()
+					.includes('/o/object-admin/v1.0/object-folders?pageSize=-1')
+		);
+
+		await this.modelBuilderDiagramAreaLoading.waitFor({state: 'hidden'});
 	}
 }

@@ -26,16 +26,16 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.util.WebAppPool;
 
+import jakarta.portlet.PortletRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.portlet.PortletRequest;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Iván Zaera Avellón
@@ -132,11 +132,13 @@ public class EditClientExtensionEntryDisplayContext<T extends CET> {
 					selectedPortletCategoryName.equals(
 						portletCategory.getName())));
 
-			if (Objects.equals(
+			if (!Objects.equals(
 					portletCategory.getName(), "category.client-extensions")) {
 
-				found = true;
+				continue;
 			}
+
+			found = true;
 		}
 
 		if (!found) {

@@ -14,23 +14,23 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.server.admin.web.internal.constants.ServerAdminNavigationEntryConstants;
+
+import jakarta.portlet.PortletPreferences;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
-
-import javax.portlet.PortletPreferences;
-import javax.portlet.PortletURL;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Mariano Álvaro Sáiz
@@ -192,15 +192,19 @@ public class ViewPortalPropertiesDisplayContext {
 
 			String keywords = _getKeywords();
 
-			if (Validator.isNull(keywords) || property.contains(keywords) ||
-				value.contains(keywords)) {
+			if (Validator.isNotNull(keywords) && !property.contains(keywords) &&
+				!value.contains(keywords)) {
 
-				filteredProperties.put(property, value);
-
-				if (overriddenPropertyValue) {
-					_overriddenProperties.add(property);
-				}
+				continue;
 			}
+
+			filteredProperties.put(property, value);
+
+			if (!overriddenPropertyValue) {
+				continue;
+			}
+
+			_overriddenProperties.add(property);
 		}
 
 		_filteredProperties = ListUtil.fromCollection(

@@ -44,6 +44,9 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 		InfoField infoField = (InfoField)object;
 
 		if (Objects.equals(
+				_builder._externalUniqueId,
+				infoField._builder._externalUniqueId) &&
+			Objects.equals(
 				_builder._infoFieldType, infoField._builder._infoFieldType) &&
 			Objects.equals(
 				_builder._labelInfoLocalizedValue,
@@ -59,6 +62,11 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 
 	public <V> V getAttribute(InfoFieldType.Attribute<T, V> attribute) {
 		return (V)_builder._attributes.get(attribute);
+	}
+
+	@Override
+	public String getExternalUniqueId() {
+		return _builder._externalUniqueId;
 	}
 
 	public InfoFieldType getInfoFieldType() {
@@ -121,9 +129,9 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 	@Override
 	public String toString() {
 		return StringBundler.concat(
-			"{name: ", _builder._name, ", type: ",
-			_builder._infoFieldType.getName(), ", uniqueId: ",
-			_builder._uniqueId, "}");
+			"{externalUniqueId: ", _builder._externalUniqueId, ", name: ",
+			_builder._name, ", type: ", _builder._infoFieldType.getName(),
+			", uniqueId: ", _builder._uniqueId, "}");
 	}
 
 	public static class Builder {
@@ -143,6 +151,7 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 			<InfoFieldType.Attribute<? extends InfoFieldType, ?>, Object>
 				_attributes = new HashMap<>();
 		private boolean _editable;
+		private String _externalUniqueId;
 		private InfoFieldType _infoFieldType;
 		private InfoLocalizedValue<String> _labelInfoLocalizedValue;
 		private boolean _localizable;
@@ -172,11 +181,21 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 					InfoField.class, _builder._name);
 			}
 
+			if (_builder._externalUniqueId == null) {
+				_builder._externalUniqueId = _builder._uniqueId;
+			}
+
 			return new InfoField<>(_builder);
 		}
 
 		public FinalStep<T> editable(boolean editable) {
 			_builder._editable = editable;
+
+			return this;
+		}
+
+		public FinalStep<T> externalUniqueId(String externalUniqueId) {
+			_builder._externalUniqueId = externalUniqueId;
 
 			return this;
 		}
@@ -227,25 +246,28 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 
 	}
 
-	public static class NamespacedBuilder {
+	public static class NameStep<T extends InfoFieldType> {
 
-		public <T extends InfoFieldType> NameStep<T> infoFieldType(
-			T infoFieldType) {
+		public FinalStep<T> name(String name) {
+			_builder._name = name;
 
-			Builder builder = new Builder();
+			if (Validator.isNull(_builder._uniqueId)) {
+				_builder._uniqueId =
+					_builder._namespace + StringPool.UNDERLINE + name;
+			}
 
-			return builder.infoFieldType(
-				infoFieldType
-			).namespace(
-				_namespace
-			);
+			if (Validator.isNull(_builder._externalUniqueId)) {
+				_builder._externalUniqueId = _builder._uniqueId;
+			}
+
+			return new FinalStep<>(_builder);
 		}
 
-		private NamespacedBuilder(String namespace) {
-			_namespace = namespace;
+		private NameStep(Builder builder) {
+			_builder = builder;
 		}
 
-		private final String _namespace;
+		private final Builder _builder;
 
 	}
 
@@ -271,24 +293,25 @@ public class InfoField<T extends InfoFieldType> implements InfoFieldSetEntry {
 
 	}
 
-	public static class NameStep<T extends InfoFieldType> {
+	public static class NamespacedBuilder {
 
-		public FinalStep<T> name(String name) {
-			_builder._name = name;
+		public <T extends InfoFieldType> NameStep<T> infoFieldType(
+			T infoFieldType) {
 
-			if (Validator.isNull(_builder._uniqueId)) {
-				_builder._uniqueId =
-					_builder._namespace + StringPool.UNDERLINE + name;
-			}
+			Builder builder = new Builder();
 
-			return new FinalStep<>(_builder);
+			return builder.infoFieldType(
+				infoFieldType
+			).namespace(
+				_namespace
+			);
 		}
 
-		private NameStep(Builder builder) {
-			_builder = builder;
+		private NamespacedBuilder(String namespace) {
+			_namespace = namespace;
 		}
 
-		private final Builder _builder;
+		private final String _namespace;
 
 	}
 

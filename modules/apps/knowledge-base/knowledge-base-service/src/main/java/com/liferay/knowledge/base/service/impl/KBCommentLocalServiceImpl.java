@@ -16,8 +16,8 @@ import com.liferay.knowledge.base.model.KBArticle;
 import com.liferay.knowledge.base.model.KBComment;
 import com.liferay.knowledge.base.model.KBTemplate;
 import com.liferay.knowledge.base.service.KBArticleLocalService;
-import com.liferay.knowledge.base.service.KBTemplateLocalService;
 import com.liferay.knowledge.base.service.base.KBCommentLocalServiceBaseImpl;
+import com.liferay.knowledge.base.service.persistence.KBTemplatePersistence;
 import com.liferay.knowledge.base.util.comparator.KBCommentCreateDateComparator;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.aop.AopService;
@@ -167,9 +167,9 @@ public class KBCommentLocalServiceImpl extends KBCommentLocalServiceBaseImpl {
 	public KBComment getKBComment(long userId, String className, long classPK)
 		throws PortalException {
 
-		return kbCommentPersistence.findByU_C_C_Last(
+		return kbCommentPersistence.findByU_C_C_First(
 			userId, _classNameLocalService.getClassNameId(className), classPK,
-			KBCommentCreateDateComparator.getInstance(false));
+			KBCommentCreateDateComparator.getInstance(true));
 	}
 
 	@Override
@@ -457,7 +457,7 @@ public class KBCommentLocalServiceImpl extends KBCommentLocalServiceBaseImpl {
 			kbComment.getClassPK(), WorkflowConstants.STATUS_APPROVED);
 
 		if (kbArticle == null) {
-			KBTemplate kbTemplate = _kbTemplateLocalService.fetchKBTemplate(
+			KBTemplate kbTemplate = _kbTemplatePersistence.fetchByPrimaryKey(
 				kbComment.getClassPK());
 
 			if (kbTemplate != null) {
@@ -532,7 +532,7 @@ public class KBCommentLocalServiceImpl extends KBCommentLocalServiceBaseImpl {
 				jsonObject.put("title", kbArticle.getTitle());
 			}
 			else if (className.equals(KBTemplate.class.getName())) {
-				kbTemplate = _kbTemplateLocalService.getKBTemplate(
+				kbTemplate = _kbTemplatePersistence.findByPrimaryKey(
 					kbComment.getClassPK());
 
 				jsonObject.put("title", kbTemplate.getTitle());
@@ -565,7 +565,7 @@ public class KBCommentLocalServiceImpl extends KBCommentLocalServiceBaseImpl {
 	private KBArticleLocalService _kbArticleLocalService;
 
 	@Reference
-	private KBTemplateLocalService _kbTemplateLocalService;
+	private KBTemplatePersistence _kbTemplatePersistence;
 
 	@Reference
 	private RatingsEntryLocalService _ratingsEntryLocalService;

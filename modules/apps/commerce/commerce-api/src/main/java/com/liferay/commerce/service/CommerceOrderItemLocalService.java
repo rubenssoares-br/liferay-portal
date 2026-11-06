@@ -6,7 +6,6 @@
 package com.liferay.commerce.service;
 
 import com.liferay.commerce.context.CommerceContext;
-import com.liferay.commerce.exception.NoSuchOrderItemException;
 import com.liferay.commerce.model.CommerceOrderItem;
 import com.liferay.exportimport.kernel.lar.PortletDataContext;
 import com.liferay.petra.sql.dsl.query.DSLQuery;
@@ -422,6 +421,15 @@ public interface CommerceOrderItemLocalService
 	 */
 	public String getOSGiServiceIdentifier();
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<CommerceOrderItem> getParentCommerceOrderItems(
+		long commerceOrderId, long parentCommerceOrderItemId, int start,
+		int end, OrderByComparator<CommerceOrderItem> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getParentCommerceOrderItemsCount(
+		long commerceOrderId, long parentCommerceOrderItemId);
+
 	/**
 	 * @throws PortalException
 	 */
@@ -448,7 +456,7 @@ public interface CommerceOrderItemLocalService
 	public CommerceOrderItem importCommerceOrderItem(
 			long userId, String externalReferenceCode, long commerceOrderItemId,
 			long commerceOrderId, long cpInstanceId,
-			String cpMeasurementUnitKey, BigDecimal quantity,
+			String cpMeasurementUnitKey, String json, BigDecimal quantity,
 			BigDecimal shippedQuantity,
 			BigDecimal unitOfMeasureIncrementalOrderQuantity,
 			String unitOfMeasureKey, ServiceContext serviceContext)
@@ -492,7 +500,7 @@ public interface CommerceOrderItemLocalService
 
 	public CommerceOrderItem updateCommerceOrderItem(
 			long commerceOrderItemId, long commerceInventoryBookedQuantityId)
-		throws NoSuchOrderItemException;
+		throws PortalException;
 
 	public CommerceOrderItem updateCommerceOrderItem(
 			long userId, long commerceOrderItemId, BigDecimal quantity,
@@ -513,14 +521,14 @@ public interface CommerceOrderItemLocalService
 	@Indexable(type = IndexableType.REINDEX)
 	public CommerceOrderItem updateCommerceOrderItem(
 			long userId, long commerceOrderItemId, String json,
-			BigDecimal quantity, CommerceContext commerceContext,
-			ServiceContext serviceContext)
+			BigDecimal quantity, ServiceContext serviceContext)
 		throws PortalException;
 
 	@Indexable(type = IndexableType.REINDEX)
 	public CommerceOrderItem updateCommerceOrderItem(
-			long userId, long commerceOrderItemId, String json,
-			BigDecimal quantity, ServiceContext serviceContext)
+			String externalReferenceCode, long userId, long commerceOrderItemId,
+			String json, BigDecimal quantity, CommerceContext commerceContext,
+			ServiceContext serviceContext)
 		throws PortalException;
 
 	@Indexable(type = IndexableType.REINDEX)
@@ -586,6 +594,13 @@ public interface CommerceOrderItemLocalService
 			BigDecimal unitPrice, BigDecimal unitPriceWithTaxAmount)
 		throws PortalException;
 
+	@Indexable(type = IndexableType.REINDEX)
+	public CommerceOrderItem updateCommerceOrderItemUnitOfMeasure(
+			long userId, long commerceOrderItemId, BigDecimal quantity,
+			String unitOfMeasureKey, CommerceContext commerceContext,
+			ServiceContext serviceContext)
+		throws PortalException;
+
 	/**
 	 * @deprecated As of Athanasius (7.3.x)
 	 */
@@ -609,3 +624,4 @@ public interface CommerceOrderItemLocalService
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1105793827

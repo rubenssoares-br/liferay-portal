@@ -117,7 +117,6 @@ else {
 />
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems='<%= journalDisplayContext.getNavigationItems("web-content") %>'
 />
 
@@ -142,6 +141,7 @@ else {
 
 	<clay:container-fluid
 		cssClass="container-view sidenav-content"
+		size="xxxl"
 	>
 
 		<%
@@ -173,7 +173,7 @@ else {
 						<clay:sheet
 							size="full"
 						>
-							<h2 class="sheet-title"><%= journalDisplayContext.getTitle() %></h2>
+							<h2 class="sheet-title"><%= HtmlUtil.escape(journalDisplayContext.getTitle()) %></h2>
 
 							<%@ include file="/view_form.jspf" %>
 						</clay:sheet>

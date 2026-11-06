@@ -489,12 +489,6 @@ public class ResourcePermissionLocalServiceUtil {
 		return getService().getIndexableActionableDynamicQuery();
 	}
 
-	public static Map<String, List<ResourcePermission>>
-		getIndividualPortletResourcePermissions(long companyId) {
-
-		return getService().getIndividualPortletResourcePermissions(companyId);
-	}
-
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -566,6 +560,12 @@ public class ResourcePermissionLocalServiceUtil {
 	}
 
 	public static List<ResourcePermission> getResourcePermissions(
+		long companyId, String name, int scope) {
+
+		return getService().getResourcePermissions(companyId, name, scope);
+	}
+
+	public static List<ResourcePermission> getResourcePermissions(
 		long companyId, String name, int scope, long roleId,
 		boolean viewActionId) {
 
@@ -618,23 +618,6 @@ public class ResourcePermissionLocalServiceUtil {
 
 		return getService().getResourcePermissionsCount(
 			companyId, name, scope, primKey);
-	}
-
-	/**
-	 * Returns the resource permissions that apply to the resource.
-	 *
-	 * @param companyId the primary key of the resource's company
-	 * @param groupId the primary key of the resource's group
-	 * @param name the resource's name, which can be either a class name or a
-	 portlet ID
-	 * @param primKey the primary key of the resource
-	 * @return the resource permissions associated with the resource
-	 */
-	public static List<ResourcePermission> getResourceResourcePermissions(
-		long companyId, long groupId, String name, String primKey) {
-
-		return getService().getResourceResourcePermissions(
-			companyId, groupId, name, primKey);
 	}
 
 	/**
@@ -1124,3 +1107,4 @@ public class ResourcePermissionLocalServiceUtil {
 	private static volatile ResourcePermissionLocalService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1507835299

@@ -123,6 +123,14 @@ public class CommercePricingClassCPDefinitionRelLocalServiceImpl
 	}
 
 	@Override
+	public long[] getCPDefinitionIds(long commercePricingClassId) {
+		return ListUtil.toLongArray(
+			commercePricingClassCPDefinitionRelPersistence.
+				findByCommercePricingClassId(commercePricingClassId),
+			CommercePricingClassCPDefinitionRel::getCPDefinitionId);
+	}
+
+	@Override
 	public List<CommercePricingClassCPDefinitionRel>
 		getCommercePricingClassByCPDefinitionId(long cpDefinitionId) {
 
@@ -156,34 +164,6 @@ public class CommercePricingClassCPDefinitionRelLocalServiceImpl
 
 		return commercePricingClassCPDefinitionRelPersistence.
 			countByCommercePricingClassId(commercePricingClassId);
-	}
-
-	@Override
-	public int getCommercePricingClassCPDefinitionRelsCount(
-		long commercePricingClassId, String name, String languageId) {
-
-		return commercePricingClassCPDefinitionRelFinder.
-			countByCommercePricingClassId(
-				commercePricingClassId, name, languageId);
-	}
-
-	@Override
-	public long[] getCPDefinitionIds(long commercePricingClassId) {
-		return ListUtil.toLongArray(
-			commercePricingClassCPDefinitionRelPersistence.
-				findByCommercePricingClassId(commercePricingClassId),
-			CommercePricingClassCPDefinitionRel::getCPDefinitionId);
-	}
-
-	@Override
-	public List<CommercePricingClassCPDefinitionRel>
-		searchByCommercePricingClassId(
-			long commercePricingClassId, String name, String languageId,
-			int start, int end) {
-
-		return commercePricingClassCPDefinitionRelFinder.
-			findByCommercePricingClassId(
-				commercePricingClassId, name, languageId, start, end);
 	}
 
 	private void _validate(long commercePricingClassId, long cpDefinitionId)

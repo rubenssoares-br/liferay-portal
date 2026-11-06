@@ -24,13 +24,13 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portlet.display.template.PortletDisplayTemplate;
 import com.liferay.site.navigation.language.web.internal.configuration.SiteNavigationLanguagePortletInstanceConfiguration;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Julio Camarero
@@ -65,14 +65,16 @@ public class SiteNavigationLanguageDisplayContext {
 			getAvailableLanguageIds());
 
 		for (String languageId : availableLanguageIdsSet) {
-			if (Arrays.binarySearch(languageIds, languageId) < 0) {
-				Locale locale = LocaleUtil.fromLanguageId(languageId);
-
-				availableLanguageIdKVPs.add(
-					new KeyValuePair(
-						languageId,
-						locale.getDisplayName(_themeDisplay.getLocale())));
+			if (Arrays.binarySearch(languageIds, languageId) >= 0) {
+				continue;
 			}
+
+			Locale locale = LocaleUtil.fromLanguageId(languageId);
+
+			availableLanguageIdKVPs.add(
+				new KeyValuePair(
+					languageId,
+					locale.getDisplayName(_themeDisplay.getLocale())));
 		}
 
 		return ListUtil.sort(
@@ -165,9 +167,13 @@ public class SiteNavigationLanguageDisplayContext {
 			List<String> filteredLanguageIds = new ArrayList<>();
 
 			for (String languageId : _languageIds) {
-				if (ArrayUtil.contains(getAvailableLanguageIds(), languageId)) {
-					filteredLanguageIds.add(languageId);
+				if (!ArrayUtil.contains(
+						getAvailableLanguageIds(), languageId)) {
+
+					continue;
 				}
+
+				filteredLanguageIds.add(languageId);
 			}
 
 			_languageIds = ArrayUtil.toStringArray(filteredLanguageIds);

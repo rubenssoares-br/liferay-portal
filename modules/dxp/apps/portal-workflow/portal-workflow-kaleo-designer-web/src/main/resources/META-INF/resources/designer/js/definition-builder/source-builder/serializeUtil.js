@@ -92,7 +92,7 @@ function appendXMLActions(
 				);
 			}
 
-			if (isValidValue(status, index)) {
+			if (isValidValue(status, index) && status[index]) {
 				buffer.push(
 					createTagWithEscapedContent('status', status[index])
 				);
@@ -191,13 +191,36 @@ function appendXMLAssignments(
 
 			const xmlRole = XMLUtil.createObj('role');
 
-			const roleId = dataAssignments.roleId;
+			buffer.push(xmlRole.open);
 
-			buffer.push(
-				xmlRole.open,
-				createTagWithEscapedContent('roleId', roleId),
-				xmlRole.close
-			);
+			const roleExternalReferenceCode =
+				dataAssignments.roleExternalReferenceCode;
+
+			if (roleExternalReferenceCode) {
+				buffer.push(
+					createTagWithEscapedContent(
+						'roleExternalReferenceCode',
+						roleExternalReferenceCode
+					)
+				);
+			}
+
+			const roleType = dataAssignments.roleType;
+
+			if (roleType) {
+				buffer.push(createTagWithEscapedContent('roleType', roleType));
+			}
+
+			if (dataAssignments.roleId) {
+				buffer.push(
+					createTagWithEscapedContent(
+						'roleId',
+						dataAssignments.roleId
+					)
+				);
+			}
+
+			buffer.push(xmlRole.close);
 
 			buffer.push(xmlRoles.close);
 		}
@@ -320,10 +343,22 @@ function appendXMLAssignments(
 			) {
 				const xmlUser = XMLUtil.createObj('user');
 
-				dataAssignments.userId.forEach((item) => {
+				dataAssignments.userId.forEach((item, index) => {
 					buffer.push(xmlUser.open);
 
-					if (item !== '') {
+					const userExternalReferenceCode =
+						dataAssignments.userExternalReferenceCode?.[index];
+
+					if (userExternalReferenceCode) {
+						buffer.push(
+							createTagWithEscapedContent(
+								'userExternalReferenceCode',
+								userExternalReferenceCode
+							)
+						);
+					}
+
+					if (item) {
 						buffer.push(
 							createTagWithEscapedContent('userId', item)
 						);
@@ -542,6 +577,24 @@ function appendXMLTaskTimers(buffer, taskTimers) {
 	}
 }
 
+function appendXMLLabels(buffer, label) {
+	const xmlLabels = XMLUtil.createObj('labels');
+
+	buffer.push(xmlLabels.open);
+
+	Object.entries(label).map(([key, value]) => {
+		const xmlLabel = XMLUtil.createObj('label', {
+			'language-id': `${key}`,
+		});
+
+		buffer.push(xmlLabel.open, value);
+
+		buffer.push(xmlLabel.close);
+	});
+
+	buffer.push(xmlLabels.close);
+}
+
 function appendXMLTransitions(buffer, transitions) {
 	if (transitions.length) {
 		const xmlTransitions = XMLUtil.createObj('transitions');
@@ -553,22 +606,9 @@ function appendXMLTransitions(buffer, transitions) {
 		transitions.forEach((item) => {
 			buffer.push(xmlTransition.open);
 
-			const xmlLabels = XMLUtil.createObj('labels');
+			appendXMLLabels(buffer, item.data.label);
 
-			buffer.push(xmlLabels.open);
-
-			Object.entries(item.data.label).map(([key, value]) => {
-				const xmlLabel = XMLUtil.createObj('label', {
-					'language-id': `${key}`,
-				});
-				buffer.push(xmlLabel.open, value);
-
-				buffer.push(xmlLabel.close);
-			});
-
-			buffer.push(xmlLabels.close);
-
-			buffer.push(createTagWithEscapedContent('name', item.id));
+			buffer.push(createTagWithEscapedContent('name', item.data.name));
 
 			buffer.push(
 				createTagWithEscapedContent('target', item.target),
@@ -627,6 +667,7 @@ function serializeDefinition(xmlNamespace, metadata, nodes, transitions) {
 		const description = item.data?.description;
 		const initial = item.type === 'start';
 		const name = item.id;
+		const prompt = item.data?.prompt;
 		const script = item.data?.script;
 		const scriptLanguage = item.data?.scriptLanguage;
 		let xmlType = item.type;
@@ -666,25 +707,54 @@ function serializeDefinition(xmlNamespace, metadata, nodes, transitions) {
 			buffer.push(createTagWithEscapedContent('initial', initial));
 		}
 
-		const xmlLabels = XMLUtil.createObj('labels');
-
-		buffer.push(xmlLabels.open);
-
-		Object.entries(item.data.label).map(([key, value]) => {
-			const xmlLabel = XMLUtil.createObj('label', {
-				'language-id': `${key}`,
-			});
-			buffer.push(xmlLabel.open, value);
-
-			buffer.push(xmlLabel.close);
-		});
-
-		buffer.push(xmlLabels.close);
+		if (item.type !== 'service') {
+			appendXMLLabels(buffer, item.data.label);
+		}
 
 		appendXMLTaskTimers(buffer, item.data.taskTimers);
 
 		if (script) {
 			buffer.push(XMLUtil.create('script', cdata(script)));
+		}
+
+		if (item.type === 'ai-decision' || item.type === 'llm') {
+			buffer.push(
+				XMLUtil.create(
+					'input-variables',
+					cdata(jsonStringify(item.data.inputVariables || []))
+				)
+			);
+			buffer.push(
+				XMLUtil.create(
+					'output-variables',
+					cdata(jsonStringify(item.data.outputVariables || []))
+				)
+			);
+			buffer.push(XMLUtil.create('prompt', cdata(prompt ? prompt : '')));
+			buffer.push(
+				XMLUtil.create('rag', cdata(jsonStringify(item.data.rag || {})))
+			);
+			buffer.push(
+				XMLUtil.create(
+					'tools',
+					cdata(jsonStringify(item.data.tools || []))
+				)
+			);
+		}
+
+		if (item.type === 'ai-hub-agent') {
+			buffer.push(
+				createTagWithEscapedContent(
+					'agent-definition-external-reference-code',
+					item.data.agentDefinitionExternalReferenceCode || ''
+				)
+			);
+
+			if (item.data.timeout) {
+				buffer.push(
+					createTagWithEscapedContent('timeout', item.data.timeout)
+				);
+			}
 		}
 
 		if (xmlType === 'condition') {
@@ -696,11 +766,70 @@ function serializeDefinition(xmlNamespace, metadata, nodes, transitions) {
 			);
 		}
 
+		if (item.type === 'http-request') {
+			buffer.push(
+				createTagWithEscapedContent(
+					'http-method',
+					item.data.httpMethod || 'GET'
+				)
+			);
+			buffer.push(
+				XMLUtil.create(
+					'input-variables',
+					cdata(jsonStringify(item.data.inputVariables || []))
+				)
+			);
+			buffer.push(
+				XMLUtil.create(
+					'output-variables',
+					cdata(jsonStringify(item.data.outputVariables || []))
+				)
+			);
+			buffer.push(
+				XMLUtil.create(
+					'request-body',
+					cdata(item.data.requestBody || '')
+				)
+			);
+
+			if (item.data.timeout) {
+				buffer.push(
+					createTagWithEscapedContent('timeout', item.data.timeout)
+				);
+			}
+		}
+
+		if (item.type === 'service') {
+			buffer.push(
+				createTagWithEscapedContent(
+					'java-delegate',
+					item.data.javaDelegate || ''
+				)
+			);
+
+			appendXMLLabels(buffer, item.data.label);
+		}
+
 		const nodeTransitions = transitions.filter(
 			(transition) => transition.source === name
 		);
 
 		appendXMLTransitions(buffer, nodeTransitions);
+
+		if (item.type === 'http-request') {
+			buffer.push(
+				createTagWithEscapedContent('url', item.data.url || '')
+			);
+		}
+
+		if (item.type === 'llm' || item.type === 'ai-decision') {
+			buffer.push(
+				XMLUtil.create(
+					'user-message',
+					cdata(item.data.userMessage ? item.data.userMessage : '')
+				)
+			);
+		}
 
 		buffer.push(xmlNode.close);
 	});

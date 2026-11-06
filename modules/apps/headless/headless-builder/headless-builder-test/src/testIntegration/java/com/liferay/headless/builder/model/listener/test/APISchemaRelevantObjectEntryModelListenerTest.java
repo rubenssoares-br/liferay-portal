@@ -19,7 +19,7 @@ import com.liferay.portal.kernel.test.util.HTTPTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
+import com.liferay.portal.test.rule.FeatureFlag;
 
 import java.util.Collections;
 
@@ -30,7 +30,7 @@ import org.junit.Test;
 /**
  * @author Sergio Jiménez del Coso
  */
-@FeatureFlags("LPS-178642")
+@FeatureFlag("LPS-178642")
 public class APISchemaRelevantObjectEntryModelListenerTest
 	extends BaseTestCase {
 
@@ -139,6 +139,26 @@ public class APISchemaRelevantObjectEntryModelListenerTest
 		Assert.assertEquals("BAD_REQUEST", jsonObject1.get("status"));
 		Assert.assertEquals(
 			"An API schema must be related to an API application.",
+			jsonObject1.get("title"));
+
+		jsonObject1 = HTTPTestUtil.invokeToJSONObject(
+			JSONUtil.put(
+				"description", RandomTestUtil.randomString(281)
+			).put(
+				"mainObjectDefinitionERC",
+				_objectDefinition.getExternalReferenceCode()
+			).put(
+				"name", RandomTestUtil.randomString()
+			).put(
+				"r_apiApplicationToAPISchemas_l_apiApplicationId",
+				apiApplicationJSONObject.getLong("id")
+			).toString(),
+			"headless-builder/schemas", Http.Method.POST);
+
+		Assert.assertEquals("BAD_REQUEST", jsonObject1.get("status"));
+		Assert.assertEquals(
+			"Object entry value exceeds the maximum length of 280 characters " +
+				"for object field \"description\"",
 			jsonObject1.get("title"));
 
 		JSONObject jsonObject2 = HTTPTestUtil.invokeToJSONObject(

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {act, cleanup, fireEvent, render} from '@testing-library/react';
+import {act, cleanup, fireEvent, render, within} from '@testing-library/react';
 import React from 'react';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 
 import TranslationAdminSelector from '../../src/main/resources/META-INF/resources/translation_manager/TranslationAdminSelector';
 
@@ -222,7 +222,7 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(manageTranslationsTrigger);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		const modal = document.querySelector('.modal');
@@ -248,7 +248,7 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(manageTranslationsTrigger);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		const modalCloseButton = document.querySelector('.modal .close');
@@ -256,13 +256,13 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(modalCloseButton);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		fireEvent.click(trigger);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		expect(dropdownMenu).toMatchSnapshot();
@@ -274,14 +274,16 @@ describe('TranslationAdminSelector', () => {
 	});
 
 	it('calls onSelectedLocaleChange callback on dropdown locale selection', () => {
-		const {getByTitle} = render(<TranslationAdminSelector {...props} />);
+		const {getByRole, getByTitle} = render(
+			<TranslationAdminSelector {...props} />
+		);
 
 		const trigger = getByTitle('select-a-language');
 
 		fireEvent.click(trigger);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		const dropdownMenu = document.querySelector('.dropdown-menu');
@@ -292,12 +294,16 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(localeElement);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		expect(props.onSelectedLanguageIdChange).toHaveBeenLastCalledWith(
 			'ca_ES'
 		);
+
+		const languageSelector = getByRole('combobox');
+
+		expect(within(languageSelector).getByText('ca-ES')).toBeInTheDocument();
 	});
 
 	it('is used as a controlled component', () => {
@@ -310,7 +316,7 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(changeStateButton);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		const trigger = getByTitle('select-a-language');
@@ -318,7 +324,7 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(trigger);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		const dropdownMenu = document.querySelector('.dropdown-menu');
@@ -348,7 +354,7 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(manageTranslationsTrigger);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		const modalCloseButton = document.querySelector('.modal .close');
@@ -356,7 +362,7 @@ describe('TranslationAdminSelector', () => {
 		fireEvent.click(modalCloseButton);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		expect(asFragment()).toMatchSnapshot();
@@ -375,7 +381,7 @@ describe('TranslationAdminSelector', () => {
 			'.form-control-select'
 		);
 
-		expect(horizontalSelector).toBeInTheDocument();
+		expect(horizontalSelector).toBeTruthy();
 	});
 
 	it('calls onSelectorActiveChange when the trigger is clicked', () => {
@@ -393,6 +399,6 @@ describe('TranslationAdminSelector', () => {
 
 		fireEvent.click(trigger);
 
-		expect(onSelectorActiveChange).toBeCalled();
+		expect(onSelectorActiveChange).toHaveBeenCalled();
 	});
 });

@@ -36,15 +36,16 @@ import com.liferay.commerce.product.model.CProduct;
 import com.liferay.commerce.product.service.CPDefinitionOptionRelLocalService;
 import com.liferay.commerce.product.service.CPDefinitionOptionValueRelLocalService;
 import com.liferay.commerce.product.service.CPInstanceOptionValueRelLocalService;
-import com.liferay.commerce.product.service.CProductLocalService;
 import com.liferay.commerce.product.service.base.CPInstanceLocalServiceBaseImpl;
 import com.liferay.commerce.product.service.persistence.CPDefinitionOptionValueRelPersistence;
 import com.liferay.commerce.product.service.persistence.CPDefinitionPersistence;
 import com.liferay.commerce.product.service.persistence.CPInstanceOptionValueRelPersistence;
 import com.liferay.commerce.product.service.persistence.CPInstanceUnitOfMeasurePersistence;
+import com.liferay.commerce.product.service.persistence.CProductPersistence;
 import com.liferay.commerce.product.util.CPSubscriptionType;
 import com.liferay.commerce.product.util.CPSubscriptionTypeRegistry;
 import com.liferay.expando.kernel.service.ExpandoRowLocalService;
+import com.liferay.exportimport.kernel.empty.model.EmptyModelManager;
 import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
@@ -53,6 +54,7 @@ import com.liferay.portal.kernel.dao.orm.QueryDefinition;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.SystemEventConstants;
@@ -71,15 +73,16 @@ import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.SearchException;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.SystemEventLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.service.WorkflowInstanceLinkLocalService;
-import com.liferay.portal.kernel.systemevent.SystemEvent;
 import com.liferay.portal.kernel.util.BigDecimalUtil;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LinkedHashMapBuilder;
+import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -99,7 +102,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -226,14 +228,20 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 			deliverySubscriptionTypeSettingsUnicodeProperties);
 		cpInstance.setDeliveryMaxSubscriptionCycles(
 			deliveryMaxSubscriptionCycles);
-		cpInstance.setStatus(WorkflowConstants.STATUS_DRAFT);
 
-		if ((displayDate != null) && date.before(displayDate)) {
-			cpInstance.setStatus(WorkflowConstants.STATUS_SCHEDULED);
+		if (_emptyModelManager.isEmptyModel()) {
+			cpInstance.setStatus(WorkflowConstants.STATUS_EMPTY);
 		}
+		else {
+			cpInstance.setStatus(WorkflowConstants.STATUS_DRAFT);
 
-		if (!neverExpire && expirationDate.before(date)) {
-			cpInstance.setStatus(WorkflowConstants.STATUS_EXPIRED);
+			if ((displayDate != null) && date.before(displayDate)) {
+				cpInstance.setStatus(WorkflowConstants.STATUS_SCHEDULED);
+			}
+
+			if (!neverExpire && expirationDate.before(date)) {
+				cpInstance.setStatus(WorkflowConstants.STATUS_EXPIRED);
+			}
 		}
 
 		cpInstance.setUnspsc(unspsc);
@@ -262,7 +270,9 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 
 		_reindexCPDefinition(cpDefinitionId);
 
-		if (!_isWorkflowActionPublish(serviceContext)) {
+		if (_emptyModelManager.isEmptyModel() ||
+			!_isWorkflowActionPublish(serviceContext)) {
+
 			return cpInstance;
 		}
 
@@ -332,6 +342,9 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 				externalReferenceCode, serviceContext.getCompanyId());
 
 			if (cpInstance != null) {
+				_updateEmptyCPInstanceOptionValueRels(
+					cpInstance, json, serviceContext);
+
 				return cpInstanceLocalService.updateCPInstance(
 					externalReferenceCode, cpInstance.getCPInstanceId(), sku,
 					gtin, manufacturerPartNumber, purchasable, width, height,
@@ -516,7 +529,6 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 
 	@Indexable(type = IndexableType.DELETE)
 	@Override
-	@SystemEvent(type = SystemEventConstants.TYPE_DELETE)
 	public CPInstance deleteCPInstance(CPInstance cpInstance)
 		throws PortalException {
 
@@ -525,7 +537,6 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 
 	@Indexable(type = IndexableType.DELETE)
 	@Override
-	@SystemEvent(type = SystemEventConstants.TYPE_DELETE)
 	public CPInstance deleteCPInstance(CPInstance cpInstance, boolean makeCopy)
 		throws PortalException {
 
@@ -567,6 +578,12 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 
 		_reindexCPDefinition(cpInstance.getCPDefinitionId());
 
+		_systemEventLocalService.addSystemEvent(
+			cpInstance.getCompanyId(), cpInstance.getExternalReferenceCode(),
+			CPInstance.class.getName(), cpInstance.getCPInstanceId(),
+			cpInstance.getCPInstanceUuid(), null,
+			SystemEventConstants.TYPE_DELETE, StringPool.BLANK);
+
 		return cpInstance;
 	}
 
@@ -592,7 +609,7 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 
 	@Override
 	public CPInstance fetchCPInstance(long cProductId, String cpInstanceUuid) {
-		CProduct cProduct = _cProductLocalService.fetchCProduct(cProductId);
+		CProduct cProduct = _cProductPersistence.fetchByPrimaryKey(cProductId);
 
 		if (cProduct == null) {
 			return null;
@@ -618,7 +635,7 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 	public CPInstance fetchCProductInstance(
 		long cProductId, String cpInstanceUuid) {
 
-		CProduct cProduct = _cProductLocalService.fetchCProduct(cProductId);
+		CProduct cProduct = _cProductPersistence.fetchByPrimaryKey(cProductId);
 
 		if (cProduct == null) {
 			return null;
@@ -826,10 +843,38 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 			long cProductId, String cpInstanceUuid)
 		throws PortalException {
 
-		CProduct cProduct = _cProductLocalService.getCProduct(cProductId);
+		CProduct cProduct = _cProductPersistence.findByPrimaryKey(cProductId);
 
 		return cpInstancePersistence.findByC_C(
 			cProduct.getPublishedCPDefinitionId(), cpInstanceUuid);
+	}
+
+	@Override
+	public CPInstance getOrAddEmptyCPInstance(
+			String externalReferenceCode, long cpDefinitionId, long groupId,
+			long companyId, long userId)
+		throws PortalException {
+
+		Calendar calendar = CalendarFactoryUtil.getCalendar();
+
+		ServiceContext serviceContext = new ServiceContext();
+
+		serviceContext.setUserId(userId);
+
+		return _emptyModelManager.getOrAddEmptyModel(
+			CPInstance.class, companyId,
+			() -> cpInstanceLocalService.addCPInstance(
+				externalReferenceCode, cpDefinitionId, groupId,
+				externalReferenceCode, null, null, false, null, 0, 0, 0, 0,
+				BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, false,
+				calendar.get(Calendar.MONTH), calendar.get(Calendar.DATE),
+				calendar.get(Calendar.YEAR), calendar.get(Calendar.HOUR_OF_DAY),
+				calendar.get(Calendar.MINUTE), 0, 0, 0, 0, 0, true, false,
+				false, 1, null, null, 0, false, 1, null, null, 0, null, false,
+				null, 0, 0, 0, 0, serviceContext),
+			externalReferenceCode, this::fetchCPInstanceByExternalReferenceCode,
+			this::getCPInstanceByExternalReferenceCode,
+			CPInstance.class.getName());
 	}
 
 	@Override
@@ -1129,10 +1174,6 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 		cpInstance.setDeliveryMaxSubscriptionCycles(
 			deliveryMaxSubscriptionCycles);
 
-		if (!neverExpire && expirationDate.before(date)) {
-			cpInstance.setStatus(WorkflowConstants.STATUS_EXPIRED);
-		}
-
 		cpInstance.setUnspsc(unspsc);
 		cpInstance.setDiscontinued(discontinued);
 		cpInstance.setDiscontinuedDate(
@@ -1141,6 +1182,27 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 				discontinuedDateYear));
 		cpInstance.setReplacementCPInstanceUuid(replacementCPInstanceUuid);
 		cpInstance.setReplacementCProductId(replacementCProductId);
+
+		if (cpInstance.getStatus() == WorkflowConstants.STATUS_EMPTY) {
+			cpInstance.setStatus(
+				_emptyModelManager.solveEmptyModel(
+					cpInstance.getExternalReferenceCode(),
+					cpInstance.getModelClassName(), cpInstance.getCompanyId(),
+					cpInstance.getGroupId(), cpInstance.getStatus(),
+					() -> {
+						if ((serviceContext != null) &&
+							_isWorkflowActionPublish(serviceContext)) {
+
+							return WorkflowConstants.STATUS_APPROVED;
+						}
+
+						return WorkflowConstants.STATUS_DRAFT;
+					}));
+		}
+		else if (!neverExpire && expirationDate.before(date)) {
+			cpInstance.setStatus(WorkflowConstants.STATUS_EXPIRED);
+		}
+
 		cpInstance.setStatusByUserId(user.getUserId());
 		cpInstance.setStatusDate(serviceContext.getModifiedDate(date));
 		cpInstance.setExpandoBridgeAttributes(serviceContext);
@@ -1192,12 +1254,6 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 
 		CPInstance cpInstance = cpInstancePersistence.findByPrimaryKey(
 			cpInstanceId);
-
-		if (Objects.equals(
-				cpInstance.getExternalReferenceCode(), externalReferenceCode)) {
-
-			return cpInstance;
-		}
 
 		cpInstance.setExternalReferenceCode(externalReferenceCode);
 
@@ -1696,8 +1752,8 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 			cpDefinitionId, WorkflowConstants.STATUS_APPROVED);
 
 		List<CPInstanceOptionValueRel> cpInstanceCPInstanceOptionValueRels =
-			_cpInstanceOptionValueRelLocalService.
-				getCPInstanceCPInstanceOptionValueRels(cpInstanceId);
+			_cpInstanceOptionValueRelPersistence.findByCPInstanceId(
+				cpInstanceId);
 
 		for (CPInstance curCPInstance : cpInstances) {
 			if (!_cpInstanceOptionValueRelLocalService.
@@ -1967,6 +2023,37 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 		return cpDefinitionOptionRelIdCPDefinitionOptionValueRelIds;
 	}
 
+	private void _updateEmptyCPInstanceOptionValueRels(
+			CPInstance cpInstance, String json, ServiceContext serviceContext)
+		throws PortalException {
+
+		if (!LazyReferencingThreadLocal.isEnabled() ||
+			(cpInstance.getStatus() != WorkflowConstants.STATUS_EMPTY)) {
+
+			return;
+		}
+
+		CPDefinitionOptionRelLocalService cpDefinitionOptionRelLocalService =
+			_cpDefinitionOptionRelLocalServiceSnapshot.get();
+
+		Map<Long, List<Long>>
+			cpDefinitionOptionRelIdCPDefinitionOptionValueRelIds =
+				cpDefinitionOptionRelLocalService.
+					getCPDefinitionOptionRelCPDefinitionOptionValueRelIds(
+						cpInstance.getCPDefinitionId(), json);
+
+		if (MapUtil.isEmpty(
+				cpDefinitionOptionRelIdCPDefinitionOptionValueRelIds)) {
+
+			return;
+		}
+
+		_cpInstanceOptionValueRelLocalService.updateCPInstanceOptionValueRels(
+			cpInstance.getGroupId(), cpInstance.getCompanyId(),
+			serviceContext.getUserId(), cpInstance.getCPInstanceId(),
+			cpDefinitionOptionRelIdCPDefinitionOptionValueRelIds);
+	}
+
 	private void _validate(
 			BigDecimal cost, double depth, double height, BigDecimal price,
 			BigDecimal promoPrice, double weight, double width)
@@ -2012,13 +2099,13 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 			_cpSubscriptionTypeRegistry.getCPSubscriptionType(
 				deliverySubscriptionType);
 
-		if (deliveryCPSubscriptionType != null) {
-			return deliveryCPSubscriptionType.
-				getDeliverySubscriptionTypeSettingsUnicodeProperties(
-					deliverySubscriptionTypeSettingsUnicodeProperties);
+		if (deliveryCPSubscriptionType == null) {
+			return null;
 		}
 
-		return null;
+		return deliveryCPSubscriptionType.
+			getDeliverySubscriptionTypeSettingsUnicodeProperties(
+				deliverySubscriptionTypeSettingsUnicodeProperties);
 	}
 
 	private void _validateReplacementCPInstance(
@@ -2083,13 +2170,12 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 		CPSubscriptionType cpSubscriptionType =
 			_cpSubscriptionTypeRegistry.getCPSubscriptionType(subscriptionType);
 
-		if (cpSubscriptionType != null) {
-			return cpSubscriptionType.
-				getSubscriptionTypeSettingsUnicodeProperties(
-					subscriptionTypeSettingsUnicodeProperties);
+		if (cpSubscriptionType == null) {
+			return null;
 		}
 
-		return null;
+		return cpSubscriptionType.getSubscriptionTypeSettingsUnicodeProperties(
+			subscriptionTypeSettingsUnicodeProperties);
 	}
 
 	private static final String[] _SELECTED_FIELD_NAMES = {
@@ -2107,6 +2193,9 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 		_cpDefinitionOptionValueRelLocalServiceSnapshot = new Snapshot<>(
 			CPInstanceLocalServiceImpl.class,
 			CPDefinitionOptionValueRelLocalService.class);
+
+	@Reference
+	private CProductPersistence _cProductPersistence;
 
 	@Reference
 	private CPDefinitionOptionValueRelPersistence
@@ -2128,16 +2217,19 @@ public class CPInstanceLocalServiceImpl extends CPInstanceLocalServiceBaseImpl {
 		_cpInstanceUnitOfMeasurePersistence;
 
 	@Reference
-	private CProductLocalService _cProductLocalService;
+	private CPSubscriptionTypeRegistry _cpSubscriptionTypeRegistry;
 
 	@Reference
-	private CPSubscriptionTypeRegistry _cpSubscriptionTypeRegistry;
+	private EmptyModelManager _emptyModelManager;
 
 	@Reference
 	private ExpandoRowLocalService _expandoRowLocalService;
 
 	@Reference
 	private Portal _portal;
+
+	@Reference
+	private SystemEventLocalService _systemEventLocalService;
 
 	@Reference
 	private UserLocalService _userLocalService;

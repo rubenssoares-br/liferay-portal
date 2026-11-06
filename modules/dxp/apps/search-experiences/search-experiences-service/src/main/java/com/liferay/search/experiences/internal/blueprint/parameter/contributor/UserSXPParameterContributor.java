@@ -43,8 +43,8 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.search.experiences.blueprint.parameter.SXPParameter;
 import com.liferay.search.experiences.blueprint.parameter.contributor.SXPParameterContributor;
 import com.liferay.search.experiences.blueprint.parameter.contributor.SXPParameterContributorDefinition;
@@ -223,12 +223,13 @@ public class UserSXPParameterContributor implements SXPParameterContributor {
 		for (AssetCategory assetCategory : assetCategories) {
 			assetCategoryIds.add(assetCategory.getCategoryId());
 
-			if (assetCategory.getParentCategoryId() > 0) {
-				parentAssetCategoryIds.addAll(
-					_getParentAssetCategoryIds(
-						assetCategory.getParentCategory(),
-						new ArrayList<Long>()));
+			if (assetCategory.getParentCategoryId() <= 0) {
+				continue;
 			}
+
+			parentAssetCategoryIds.addAll(
+				_getParentAssetCategoryIds(
+					assetCategory.getParentCategory(), new ArrayList<Long>()));
 		}
 
 		sxpParameters.add(
@@ -452,8 +453,7 @@ public class UserSXPParameterContributor implements SXPParameterContributor {
 							_language.getLanguageId(searchContext.getLocale()));
 						put(Context.SIGNED_IN, !user.isGuestUser());
 					}
-				},
-				new long[0]);
+				});
 
 			segmentsEntryIds = ArrayUtil.filter(
 				segmentsEntryIds, segmentsEntryId -> segmentsEntryId > 0);

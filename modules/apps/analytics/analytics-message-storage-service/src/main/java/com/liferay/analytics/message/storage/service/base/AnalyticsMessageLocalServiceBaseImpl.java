@@ -11,13 +11,13 @@ import com.liferay.analytics.message.storage.service.AnalyticsMessageLocalServic
 import com.liferay.analytics.message.storage.service.persistence.AnalyticsMessagePersistence;
 import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.io.AutoDeleteFileInputStream;
+import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 import com.liferay.portal.kernel.dao.db.DBType;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdate;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdateFactoryUtil;
+import com.liferay.portal.kernel.dao.jdbc.CurrentConnectionUtil;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DefaultActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
@@ -27,7 +27,6 @@ import com.liferay.portal.kernel.dao.orm.Projection;
 import com.liferay.portal.kernel.dao.orm.Session;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
-import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.PersistedModel;
@@ -42,12 +41,12 @@ import com.liferay.portal.kernel.service.persistence.change.tracking.CTPersisten
 import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.File;
 import com.liferay.portal.kernel.util.OrderByComparator;
-import com.liferay.portal.kernel.util.PortalUtil;
 
 import java.io.InputStream;
 import java.io.Serializable;
 
 import java.sql.Blob;
+import java.sql.Connection;
 
 import java.util.List;
 
@@ -450,8 +449,7 @@ public abstract class AnalyticsMessageLocalServiceBaseImpl
 
 		if ((db.getDBType() != DBType.DB2) &&
 			(db.getDBType() != DBType.MYSQL) &&
-			(db.getDBType() != DBType.MARIADB) &&
-			(db.getDBType() != DBType.SYBASE)) {
+			(db.getDBType() != DBType.MARIADB)) {
 
 			_useTempFile = true;
 		}
@@ -513,18 +511,23 @@ public abstract class AnalyticsMessageLocalServiceBaseImpl
 	 * @param sql the sql query
 	 */
 	protected void runSQL(String sql) {
+		DataSource dataSource = analyticsMessagePersistence.getDataSource();
+
+		DB db = DBManagerUtil.getDB();
+
+		Connection currentConnection = CurrentConnectionUtil.getConnection(
+			dataSource);
+
 		try {
-			DataSource dataSource = analyticsMessagePersistence.getDataSource();
+			if (currentConnection != null) {
+				db.runSQL(currentConnection, new String[] {sql});
 
-			DB db = DBManagerUtil.getDB();
+				return;
+			}
 
-			sql = db.buildSQL(sql);
-			sql = PortalUtil.transformSQL(sql);
-
-			SqlUpdate sqlUpdate = SqlUpdateFactoryUtil.getSqlUpdate(
-				dataSource, sql);
-
-			sqlUpdate.update();
+			try (Connection connection = dataSource.getConnection()) {
+				db.runSQL(connection, new String[] {sql});
+			}
 		}
 		catch (Exception exception) {
 			throw new SystemException(exception);
@@ -552,3 +555,4 @@ public abstract class AnalyticsMessageLocalServiceBaseImpl
 	private boolean _useTempFile;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1034630726

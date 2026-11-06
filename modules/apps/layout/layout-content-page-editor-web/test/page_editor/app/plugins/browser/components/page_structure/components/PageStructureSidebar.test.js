@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
 import {State} from '@liferay/frontend-js-state-web';
+
+import '@testing-library/jest-dom';
 import {fireEvent, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {openToast} from 'frontend-js-components-web';
 import React from 'react';
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
@@ -16,21 +18,29 @@ import {LAYOUT_DATA_ITEM_TYPE_LABELS} from '../../../../../../../../src/main/res
 import {LAYOUT_DATA_ITEM_TYPES} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/config/constants/layoutDataItemTypes';
 import {VIEWPORT_SIZES} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/config/constants/viewportSizes';
 import {ControlsProvider} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ControlsContext';
+import {KeyboardMovementContextProvider} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/KeyboardMovementContext';
 import {ShortcutContextProvider} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ShortcutContext';
 import {StoreAPIContextProvider} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/StoreContext';
 import updateItemConfig from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/updateItemConfig';
 import {pageContentsAtom} from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/utils/usePageContents';
 import PageStructureSidebar from '../../../../../../../../src/main/resources/META-INF/resources/page_editor/plugins/browser/components/page_structure/components/PageStructureSidebar';
 
+jest.mock('frontend-js-components-web', () => ({
+	...jest.requireActual('frontend-js-components-web'),
+	openToast: jest.fn(),
+}));
+
 jest.mock(
 	'../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/updateItemConfig',
 	() => jest.fn()
 );
 
-jest.mock('frontend-js-web', () => ({
-	...jest.requireActual('frontend-js-web'),
-	sub: jest.fn((langKey, arg) => langKey.replace('x', arg)),
-}));
+jest.mock(
+	'../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/services/FormService',
+	() => ({
+		getFormFields: jest.fn(() => Promise.resolve({})),
+	})
+);
 
 jest.mock(
 	'../../../../../../../../src/main/resources/META-INF/resources/page_editor/app/config',
@@ -108,6 +118,14 @@ const renderComponent = ({
 								fragmentEntryLinkId: '001',
 								name: 'Fragment 1',
 							},
+							'002': {
+								content: '<div>002</div>',
+								editableTypes: {},
+								editableValues: {},
+								fragmentEntryLinkId: '002',
+								name: 'Widget 1',
+								portletId: 'com_liferay_test_WidgetPortlet',
+							},
 						},
 
 						layoutData: {
@@ -178,6 +196,15 @@ const renderComponent = ({
 									},
 									itemId: '07-row',
 									parentId: '06-form',
+									type: LAYOUT_DATA_ITEM_TYPES.fragment,
+								},
+								'08-widget': {
+									children: [],
+									config: {
+										fragmentEntryLinkId: '002',
+									},
+									itemId: '08-widget',
+									parentId: '03-column',
 									type: LAYOUT_DATA_ITEM_TYPES.fragment,
 								},
 							},
@@ -253,9 +280,11 @@ const renderComponent = ({
 						selectedViewportSize: viewportSize,
 					})}
 				>
-					<ShortcutContextProvider>
-						<PageStructureSidebar />
-					</ShortcutContextProvider>
+					<KeyboardMovementContextProvider>
+						<ShortcutContextProvider>
+							<PageStructureSidebar />
+						</ShortcutContextProvider>
+					</KeyboardMovementContextProvider>
 				</StoreAPIContextProvider>
 			</ControlsProvider>
 		</DndProvider>
@@ -276,6 +305,7 @@ describe('PageStructureSidebar', () => {
 			masterRootItemChildren: [],
 			rootItemChildren: [],
 		});
+
 		expect(
 			screen.getByText('there-is-no-content-on-this-page')
 		).toBeInTheDocument();
@@ -285,6 +315,7 @@ describe('PageStructureSidebar', () => {
 		renderComponent({
 			activeItemIds: ['04-fragment'],
 		});
+
 		expect(
 			screen.getByText('Fragment 1', {selector: 'span'})
 		).toBeInTheDocument();
@@ -328,31 +359,31 @@ describe('PageStructureSidebar', () => {
 		expect(screen.queryByLabelText('remove-05-editable')).toBe(null);
 	});
 
-	it('sets element as active item', () => {
+	it('sets element as active item', async () => {
 		renderComponent({
 			activeItemIds: ['03-column'],
 		});
 		const button = screen.getByLabelText('select-grid');
-		userEvent.click(button);
+		await userEvent.click(button);
 		expect(button.parentElement).toHaveAttribute('aria-selected', 'true');
 	});
 
-	it('sets element as active item when it is a fragment', () => {
+	it('sets element as active item when it is a fragment', async () => {
 		renderComponent({
 			activeItemIds: ['03-column'],
 		});
 		const button = screen.getByLabelText('select-Fragment 1');
-		userEvent.click(button);
+		await userEvent.click(button);
 		expect(button.parentElement).toHaveAttribute('aria-selected', 'true');
 	});
 
-	it('sets element as active item when it is a column', () => {
+	it('sets element as active item when it is a column', async () => {
 		renderComponent({
 			activeItemIds: ['02-row'],
 		});
 		const button = screen.getByLabelText('select-module');
-		userEvent.click(button);
-		expect(button.parentElement).toHaveAttribute('aria-selected', 'false');
+		await userEvent.click(button);
+		expect(button.parentElement).toHaveAttribute('aria-selected', 'true');
 	});
 
 	it('does not allow removing items if user has no permissions', () => {
@@ -396,23 +427,73 @@ describe('PageStructureSidebar', () => {
 		).toBeInTheDocument();
 	});
 
-	it('allow changing fragment name', () => {
+	it('allow changing fragment name', async () => {
 		const {baseElement} = renderComponent({
 			activeItemIds: ['04-fragment'],
 			rootItemChildren: ['04-fragment'],
 		});
-		userEvent.dblClick(screen.getByLabelText('select-Fragment 1'));
+		await userEvent.dblClick(screen.getByLabelText('select-Fragment 1'));
 		const input = baseElement.querySelector('input');
 		expect(input).toBeInTheDocument();
-		userEvent.type(input, 'Custom Fragment Name');
+
+		await userEvent.clear(input);
+		await userEvent.type(input, 'Custom Fragment Name');
 		fireEvent.blur(input);
 		expect(screen.getByText('Custom Fragment Name')).toBeInTheDocument();
-		expect(updateItemConfig).toBeCalledWith(
+		expect(updateItemConfig).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemConfig: {name: 'Custom Fragment Name'},
 			})
 		);
 		updateItemConfig.mockClear();
+	});
+
+	it('restores fragment name and shows fragment-specific toast when cleared', async () => {
+		const {baseElement} = renderComponent({
+			activeItemIds: ['04-fragment'],
+			rootItemChildren: ['04-fragment'],
+		});
+		await userEvent.dblClick(screen.getByLabelText('select-Fragment 1'));
+		const input = baseElement.querySelector('input');
+
+		await userEvent.clear(input);
+		fireEvent.blur(input);
+
+		expect(openToast).toHaveBeenCalledWith({
+			message:
+				'fragment-name-cannot-be-empty.-the-last-saved-name-Fragment 1-was-restored-automatically',
+			type: 'info',
+		});
+		expect(updateItemConfig).not.toHaveBeenCalled();
+		expect(
+			screen.getByText('Fragment 1', {selector: 'span'})
+		).toBeInTheDocument();
+
+		openToast.mockClear();
+	});
+
+	it('restores widget name and shows widget-specific toast when cleared', async () => {
+		const {baseElement} = renderComponent({
+			activeItemIds: ['08-widget'],
+			rootItemChildren: ['08-widget'],
+		});
+		await userEvent.dblClick(screen.getByLabelText('select-Widget 1'));
+		const input = baseElement.querySelector('input');
+
+		await userEvent.clear(input);
+		fireEvent.blur(input);
+
+		expect(openToast).toHaveBeenCalledWith({
+			message:
+				'widget-name-cannot-be-empty.-the-last-saved-name-Widget 1-was-restored-automatically',
+			type: 'info',
+		});
+		expect(updateItemConfig).not.toHaveBeenCalled();
+		expect(
+			screen.getByText('Widget 1', {selector: 'span'})
+		).toBeInTheDocument();
+
+		openToast.mockClear();
 	});
 
 	describe('Form container without permissions', () => {
@@ -421,9 +502,11 @@ describe('PageStructureSidebar', () => {
 				activeItemIds: ['04-fragment'],
 				rootItemChildren: ['06-form'],
 			});
+
 			expect(
 				screen.getByText('form-container', {selector: 'span'})
 			).toBeInTheDocument();
+
 			expect(
 				screen.queryByText(
 					'this-content-cannot-be-displayed-due-to-permission-restrictions'

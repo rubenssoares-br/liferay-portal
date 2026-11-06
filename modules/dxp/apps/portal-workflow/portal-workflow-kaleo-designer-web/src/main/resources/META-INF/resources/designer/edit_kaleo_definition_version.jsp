@@ -189,7 +189,7 @@ String randomNamespace = StringUtil.randomId() + StringPool.UNDERLINE;
 								disabled='<%= kaleoDesignerDisplayContext.isDefinitionInputDisabled((Objects.equals(state, WorkflowWebKeys.WORKFLOW_PREVIEW_BEFORE_RESTORE_STATE) || Objects.equals(state, "view")), kaleoDefinitionVersion, permissionChecker) %>'
 								name="title"
 								placeholder="untitled-workflow"
-								xml='<%= BeanPropertiesUtil.getString(kaleoDefinitionVersion, "title") %>'
+								xml="<%= (kaleoDefinitionVersion == null) ? StringPool.BLANK : kaleoDefinitionVersion.getTitle() %>"
 							/>
 						</aui:fieldset>
 
@@ -230,7 +230,7 @@ String randomNamespace = StringUtil.randomId() + StringPool.UNDERLINE;
 													</li>
 													<li class="nav-item">
 														<a class="nav-link" href="javascript:void(0);">
-															<liferay-ui:message key="source" />
+															<liferay-ui:message key="source[code]" />
 														</a>
 													</li>
 												</ul>
@@ -255,7 +255,7 @@ String randomNamespace = StringUtil.randomId() + StringPool.UNDERLINE;
 															<liferay-ui:message arguments="<%= importFileMark %>" key="write-your-definition-or-x" translateArguments="<%= false %>" />
 														</c:if>
 
-														<input id="<portlet:namespace />upload" style="display: none;" type="file" />
+														<input class="d-none" id="<portlet:namespace />upload" type="file" />
 
 														<div class="lfr-template-editor-wrapper" id="<portlet:namespace />editorWrapper"></div>
 													</div>

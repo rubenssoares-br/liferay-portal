@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("LinkedProduct")
+@GraphQLName(
+	description = "Lightweight reference linking a product to another product without inlining the linked product's full payload.",
+	value = "LinkedProduct"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Lightweight reference linking a product to another product without inlining the linked product's full payload."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "LinkedProduct")
 public class LinkedProduct implements Serializable {
@@ -50,7 +57,10 @@ public class LinkedProduct implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(LinkedProduct.class, json);
 	}
 
-	@Schema(example = "exampleERC")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the linked product. Read-only.",
+		example = "AB-34098-789-N"
+	)
 	public String getProductExternalReferenceCode() {
 		if (_productExternalReferenceCodeSupplier != null) {
 			productExternalReferenceCode =
@@ -88,7 +98,9 @@ public class LinkedProduct implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the linked product. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String productExternalReferenceCode;
 
@@ -96,7 +108,10 @@ public class LinkedProduct implements Serializable {
 	private Supplier<String> _productExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "33131")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the linked product (FK identifier). Read-only.",
+		example = "33131"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -130,14 +145,19 @@ public class LinkedProduct implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the linked product (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema(example = "exampleERC")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Product-type discriminator of the linked product. Read-only.",
+		example = "simple"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -169,7 +189,9 @@ public class LinkedProduct implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Product-type discriminator of the linked product. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String type;
 
@@ -252,8 +274,8 @@ public class LinkedProduct implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.LinkedProduct",
 		name = "x-class-name"
 	)
@@ -340,6 +362,27 @@ public class LinkedProduct implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -348,3 +391,4 @@ public class LinkedProduct implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2055458210

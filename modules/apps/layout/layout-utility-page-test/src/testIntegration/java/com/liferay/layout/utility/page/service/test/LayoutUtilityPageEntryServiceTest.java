@@ -8,12 +8,15 @@ package com.liferay.layout.utility.page.service.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.fragment.model.FragmentCollection;
 import com.liferay.layout.admin.constants.LayoutAdminPortletKeys;
+import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.utility.page.constants.LayoutUtilityPageActionKeys;
 import com.liferay.layout.utility.page.model.LayoutUtilityPageEntry;
 import com.liferay.layout.utility.page.service.LayoutUtilityPageEntryLocalService;
 import com.liferay.layout.utility.page.service.LayoutUtilityPageEntryService;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.Repository;
@@ -95,22 +98,23 @@ public class LayoutUtilityPageEntryServiceTest {
 	}
 
 	@Test
-	public void testAddFragmentEntryWithoutAddPermission() throws Exception {
-		try {
-			UserTestUtil.setUser(
-				UserTestUtil.addGroupUser(_group, RoleConstants.SITE_MEMBER));
+	public void testAddLayoutUtilityPageEntryWithoutAddPermission()
+		throws Exception {
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				_user, PermissionCheckerFactoryUtil.create(_user))) {
 
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
 
 			Assert.fail();
 		}
 		catch (PrincipalException principalException) {
-		}
-		finally {
-			UserTestUtil.setUser(TestPropsValues.getUser());
+			if (_log.isDebugEnabled()) {
+				_log.debug(principalException);
+			}
 		}
 	}
 
@@ -119,8 +123,24 @@ public class LayoutUtilityPageEntryServiceTest {
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
+
+		Repository repository = _portletFileRepository.addPortletRepository(
+			_group.getGroupId(), LayoutAdminPortletKeys.GROUP_PAGES,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		FileEntry fileEntry = _portletFileRepository.addPortletFileEntry(
+			_group.getGroupId(), TestPropsValues.getUserId(),
+			FragmentCollection.class.getName(),
+			layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
+			LayoutAdminPortletKeys.GROUP_PAGES, repository.getDlFolderId(),
+			new byte[0], "test.png", ContentTypes.IMAGE_PNG, false);
+
+		layoutUtilityPageEntry =
+			_layoutUtilityPageEntryService.updateLayoutUtilityPageEntry(
+				layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
+				fileEntry.getFileEntryId(), _serviceContext);
 
 		LayoutUtilityPageEntry copiedLayoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.copyLayoutUtilityPageEntry(
@@ -140,50 +160,6 @@ public class LayoutUtilityPageEntryServiceTest {
 		Assert.assertNotEquals(
 			layoutUtilityPageEntry.getPlid(),
 			copiedLayoutUtilityPageEntry.getPlid());
-		Assert.assertEquals(
-			0, copiedLayoutUtilityPageEntry.getPreviewFileEntryId());
-		Assert.assertTrue(
-			StringUtil.startsWith(
-				copiedLayoutUtilityPageEntry.getName(),
-				StringBundler.concat(
-					layoutUtilityPageEntry.getName(), " (",
-					_language.get(LocaleUtil.getSiteDefault(), "copy"), ")")));
-		Assert.assertEquals(
-			layoutUtilityPageEntry.getType(),
-			copiedLayoutUtilityPageEntry.getType());
-	}
-
-	@Test
-	public void testCopyLayoutUtilityPageEntryWithPreviewFileEntry()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
-
-		Repository repository = _portletFileRepository.addPortletRepository(
-			_group.getGroupId(), LayoutAdminPortletKeys.GROUP_PAGES,
-			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
-
-		FileEntry fileEntry = _portletFileRepository.addPortletFileEntry(
-			_group.getGroupId(), TestPropsValues.getUserId(),
-			FragmentCollection.class.getName(),
-			layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
-			LayoutAdminPortletKeys.GROUP_PAGES, repository.getDlFolderId(),
-			new byte[0], "test.png", ContentTypes.IMAGE_PNG, false);
-
-		layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.updateLayoutUtilityPageEntry(
-				layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
-				fileEntry.getFileEntryId());
-
-		LayoutUtilityPageEntry copiedLayoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.copyLayoutUtilityPageEntry(
-				_group.getGroupId(),
-				layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
-				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
 		Assert.assertNotEquals(
 			layoutUtilityPageEntry.getPreviewFileEntryId(),
@@ -203,35 +179,77 @@ public class LayoutUtilityPageEntryServiceTest {
 
 		Assert.assertEquals(
 			WorkflowConstants.STATUS_APPROVED, copiedFileVersion.getStatus());
+
+		Assert.assertTrue(
+			StringUtil.startsWith(
+				copiedLayoutUtilityPageEntry.getName(),
+				StringBundler.concat(
+					layoutUtilityPageEntry.getName(), " (",
+					_language.get(LocaleUtil.getSiteDefault(), "copy"), ")")));
+		Assert.assertEquals(
+			layoutUtilityPageEntry.getType(),
+			copiedLayoutUtilityPageEntry.getType());
 	}
 
-	@Test(expected = PrincipalException.MustHavePermission.class)
-	public void testDeleteDefaultLayoutUtilityPageEntryWithNoPermissions()
+	@Test(expected = PrincipalException.class)
+	public void testCopyLayoutUtilityPageEntryWithoutPermissions()
 		throws Exception {
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
+
+		User user = UserTestUtil.addUser();
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		RoleTestUtil.addResourcePermission(
+			role, Group.class.getName(), ResourceConstants.SCOPE_GROUP,
+			String.valueOf(_group.getGroupId()),
+			LayoutUtilityPageActionKeys.ADD_LAYOUT_UTILITY_PAGE_ENTRY);
+
+		RoleTestUtil.removeResourcePermission(
+			RoleConstants.GUEST, LayoutUtilityPageEntry.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(
+				layoutUtilityPageEntry.getLayoutUtilityPageEntryId()),
+			ActionKeys.VIEW);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			_layoutUtilityPageEntryService.copyLayoutUtilityPageEntry(
+				_group.getGroupId(),
+				layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
+				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+		}
+	}
+
+	@Test
+	public void testDeleteLayoutUtilityPageEntry() throws Exception {
+		LayoutUtilityPageEntry layoutUtilityPageEntry =
+			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
+				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user, PermissionCheckerFactoryUtil.create(_user))) {
 
 			_layoutUtilityPageEntryService.deleteLayoutUtilityPageEntry(
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
+
+			Assert.fail();
 		}
-	}
-
-	@Test
-	public void testDeleteDefaultLayoutUtilityPageEntryWithPermissions()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+		catch (PrincipalException principalException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(principalException);
+			}
+		}
 
 		_resourcePermissionLocalService.addResourcePermission(
 			_group.getCompanyId(), Group.class.getName(),
@@ -254,68 +272,15 @@ public class LayoutUtilityPageEntryServiceTest {
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
 		}
 
-		LayoutUtilityPageEntry persistedLayoutUtilityPageEntry =
-			_layoutUtilityPageEntryLocalService.fetchLayoutUtilityPageEntry(
-				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
-
-		Assert.assertNull(persistedLayoutUtilityPageEntry);
-	}
-
-	@Test
-	public void testDeleteLayoutUtilityPageEntryByExternalReferenceCode()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
-
-		_layoutUtilityPageEntryService.deleteLayoutUtilityPageEntry(
-			layoutUtilityPageEntry.getExternalReferenceCode(),
-			layoutUtilityPageEntry.getGroupId());
-
 		Assert.assertNull(
 			_layoutUtilityPageEntryLocalService.fetchLayoutUtilityPageEntry(
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId()));
-	}
 
-	@Test
-	public void testDeleteLayoutUtilityPageEntryByExternalReferenceCodeWithoutDeletePermission()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
-
-		try {
-			UserTestUtil.setUser(
-				UserTestUtil.addGroupUser(_group, RoleConstants.SITE_MEMBER));
-
-			_layoutUtilityPageEntryService.deleteLayoutUtilityPageEntry(
-				layoutUtilityPageEntry.getExternalReferenceCode(),
-				layoutUtilityPageEntry.getGroupId());
-
-			Assert.fail();
-		}
-		catch (PrincipalException principalException) {
-		}
-		finally {
-			UserTestUtil.setUser(TestPropsValues.getUser());
-		}
-	}
-
-	@Test
-	public void testDeleteNondefaultLayoutUtilityPageEntryWithNoAssignPermissions()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
+		layoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, false,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
 
 		_resourcePermissionLocalService.setResourcePermissions(
 			_group.getCompanyId(), LayoutUtilityPageEntry.class.getName(),
@@ -331,11 +296,43 @@ public class LayoutUtilityPageEntryServiceTest {
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
 		}
 
-		LayoutUtilityPageEntry persistedLayoutUtilityPageEntry =
+		Assert.assertNull(
 			_layoutUtilityPageEntryLocalService.fetchLayoutUtilityPageEntry(
-				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
+				layoutUtilityPageEntry.getLayoutUtilityPageEntryId()));
+	}
 
-		Assert.assertNull(persistedLayoutUtilityPageEntry);
+	@Test
+	public void testDeleteLayoutUtilityPageEntryByExternalReferenceCode()
+		throws Exception {
+
+		LayoutUtilityPageEntry layoutUtilityPageEntry =
+			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
+				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				_user, PermissionCheckerFactoryUtil.create(_user))) {
+
+			_layoutUtilityPageEntryService.deleteLayoutUtilityPageEntry(
+				layoutUtilityPageEntry.getExternalReferenceCode(),
+				layoutUtilityPageEntry.getGroupId());
+
+			Assert.fail();
+		}
+		catch (PrincipalException principalException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(principalException);
+			}
+		}
+
+		_layoutUtilityPageEntryService.deleteLayoutUtilityPageEntry(
+			layoutUtilityPageEntry.getExternalReferenceCode(),
+			layoutUtilityPageEntry.getGroupId());
+
+		Assert.assertNull(
+			_layoutUtilityPageEntryLocalService.fetchLayoutUtilityPageEntry(
+				layoutUtilityPageEntry.getLayoutUtilityPageEntryId()));
 	}
 
 	@Test
@@ -345,8 +342,8 @@ public class LayoutUtilityPageEntryServiceTest {
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
 
 		LayoutUtilityPageEntry curLayoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.
@@ -357,17 +354,6 @@ public class LayoutUtilityPageEntryServiceTest {
 		Assert.assertEquals(
 			layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
 			curLayoutUtilityPageEntry.getLayoutUtilityPageEntryId());
-	}
-
-	@Test
-	public void testGetLayoutUtilityPageEntryByExternalReferenceCodeWithoutViewPermission()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
 
 		RoleTestUtil.removeResourcePermission(
 			RoleConstants.GUEST, LayoutUtilityPageEntry.class.getName(),
@@ -382,49 +368,49 @@ public class LayoutUtilityPageEntryServiceTest {
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId()),
 			ActionKeys.VIEW);
 
-		UserTestUtil.setUser(
-			UserTestUtil.addGroupUser(_group, RoleConstants.SITE_MEMBER));
-
-		Assert.assertNotNull(
-			_layoutUtilityPageEntryService.
-				getLayoutUtilityPageEntryByExternalReferenceCode(
-					layoutUtilityPageEntry.getExternalReferenceCode(),
-					layoutUtilityPageEntry.getGroupId()));
-	}
-
-	@Test(expected = PrincipalException.MustHavePermission.class)
-	public void testSetDefaultLayoutUtilityPageEntryWithNoPermissions()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
-
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user, PermissionCheckerFactoryUtil.create(_user))) {
 
-			_layoutUtilityPageEntryService.setDefaultLayoutUtilityPageEntry(
-				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
+			Assert.assertNotNull(
+				_layoutUtilityPageEntryService.
+					getLayoutUtilityPageEntryByExternalReferenceCode(
+						layoutUtilityPageEntry.getExternalReferenceCode(),
+						layoutUtilityPageEntry.getGroupId()));
 		}
 	}
 
 	@Test
-	public void testSetDefaultLayoutUtilityPageEntryWithPermissions()
-		throws Exception {
-
+	public void testSetDefaultLayoutUtilityPageEntry() throws Exception {
 		String type = RandomTestUtil.randomString();
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry1 =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), type, 0, _serviceContext);
+				RandomTestUtil.randomString(), type, null, _serviceContext);
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry2 =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, false,
-				RandomTestUtil.randomString(), type, 0, _serviceContext);
+				RandomTestUtil.randomString(), type, null, _serviceContext);
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutUtilityPageEntry2.getPlid());
+
+		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				_user, PermissionCheckerFactoryUtil.create(_user))) {
+
+			_layoutUtilityPageEntryService.setDefaultLayoutUtilityPageEntry(
+				layoutUtilityPageEntry2.getLayoutUtilityPageEntryId());
+
+			Assert.fail();
+		}
+		catch (PrincipalException principalException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(principalException);
+			}
+		}
 
 		_resourcePermissionLocalService.addResourcePermission(
 			_group.getCompanyId(), Group.class.getName(),
@@ -468,33 +454,27 @@ public class LayoutUtilityPageEntryServiceTest {
 			persistedLayoutUtilityPageEntry2.isDefaultLayoutUtilityPageEntry());
 	}
 
-	@Test(expected = PrincipalException.MustHavePermission.class)
-	public void testUnsetDefaultLayoutUtilityPageEntryWithNoPermissions()
-		throws Exception {
-
+	@Test
+	public void testUnsetDefaultLayoutUtilityPageEntry() throws Exception {
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
 
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				_user, PermissionCheckerFactoryUtil.create(_user))) {
 
 			_layoutUtilityPageEntryService.unsetDefaultLayoutUtilityPageEntry(
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
+
+			Assert.fail();
 		}
-	}
-
-	@Test
-	public void testUnsetDefaultLayoutUtilityPageEntryWithPermissions()
-		throws Exception {
-
-		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
-				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+		catch (PrincipalException principalException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(principalException);
+			}
+		}
 
 		_resourcePermissionLocalService.addResourcePermission(
 			_group.getCompanyId(), Group.class.getName(),
@@ -530,13 +510,13 @@ public class LayoutUtilityPageEntryServiceTest {
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
 			_layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 				RandomTestUtil.randomString(), _group.getGroupId(), 0, 0, true,
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(), 0,
-				_serviceContext);
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				null, _serviceContext);
 
 		layoutUtilityPageEntry =
 			_layoutUtilityPageEntryLocalService.updateLayoutUtilityPageEntry(
 				layoutUtilityPageEntry.getLayoutUtilityPageEntryId(),
-				RandomTestUtil.randomString());
+				RandomTestUtil.randomString(), _serviceContext);
 
 		Layout draftLayout = _layoutLocalService.fetchDraftLayout(
 			layoutUtilityPageEntry.getPlid());
@@ -552,6 +532,9 @@ public class LayoutUtilityPageEntryServiceTest {
 			layoutUtilityPageEntry.getName(),
 			layout.getName(LocaleUtil.getSiteDefault()));
 	}
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		LayoutUtilityPageEntryServiceTest.class);
 
 	@DeleteAfterTestRun
 	private Group _group;

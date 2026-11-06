@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.RelatedProduct;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -91,6 +92,20 @@ public class RelatedProductSerDes {
 			sb.append(relatedProduct.getProductId());
 		}
 
+		if (relatedProduct.getProductType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(relatedProduct.getProductType()));
+
+			sb.append("\"");
+		}
+
 		if (relatedProduct.getType() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -155,6 +170,14 @@ public class RelatedProductSerDes {
 			map.put("productId", String.valueOf(relatedProduct.getProductId()));
 		}
 
+		if (relatedProduct.getProductType() == null) {
+			map.put("productType", null);
+		}
+		else {
+			map.put(
+				"productType", String.valueOf(relatedProduct.getProductType()));
+		}
+
 		if (relatedProduct.getType() == null) {
 			map.put("type", null);
 		}
@@ -194,6 +217,9 @@ public class RelatedProductSerDes {
 			else if (Objects.equals(jsonParserFieldName, "productId")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "productType")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
 				return false;
 			}
@@ -230,6 +256,11 @@ public class RelatedProductSerDes {
 				if (jsonParserFieldValue != null) {
 					relatedProduct.setProductId(
 						Long.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "productType")) {
+				if (jsonParserFieldValue != null) {
+					relatedProduct.setProductType((String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -282,6 +313,16 @@ public class RelatedProductSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -314,3 +355,4 @@ public class RelatedProductSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1360166138

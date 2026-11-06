@@ -115,11 +115,7 @@ public class CPConfigurationListPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		CPConfigurationList newCPConfigurationList = _persistence.create(pk);
-
-		newCPConfigurationList.setMvccVersion(RandomTestUtil.nextLong());
+		CPConfigurationList newCPConfigurationList = addCPConfigurationList();
 
 		newCPConfigurationList.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -143,8 +139,7 @@ public class CPConfigurationListPersistenceTest {
 		newCPConfigurationList.setParentCPConfigurationListId(
 			RandomTestUtil.nextLong());
 
-		newCPConfigurationList.setMasterCPConfigurationList(
-			RandomTestUtil.randomBoolean());
+		newCPConfigurationList.setMaster(RandomTestUtil.randomBoolean());
 
 		newCPConfigurationList.setName(RandomTestUtil.randomString());
 
@@ -165,7 +160,9 @@ public class CPConfigurationListPersistenceTest {
 
 		newCPConfigurationList.setStatusDate(RandomTestUtil.nextDate());
 
-		_cpConfigurationLists.add(_persistence.update(newCPConfigurationList));
+		newCPConfigurationList = _persistence.update(newCPConfigurationList);
+
+		_cpConfigurationLists.add(newCPConfigurationList);
 
 		CPConfigurationList existingCPConfigurationList =
 			_persistence.findByPrimaryKey(
@@ -209,8 +206,8 @@ public class CPConfigurationListPersistenceTest {
 			existingCPConfigurationList.getParentCPConfigurationListId(),
 			newCPConfigurationList.getParentCPConfigurationListId());
 		Assert.assertEquals(
-			existingCPConfigurationList.isMasterCPConfigurationList(),
-			newCPConfigurationList.isMasterCPConfigurationList());
+			existingCPConfigurationList.isMaster(),
+			newCPConfigurationList.isMaster());
 		Assert.assertEquals(
 			existingCPConfigurationList.getName(),
 			newCPConfigurationList.getName());
@@ -294,21 +291,6 @@ public class CPConfigurationListPersistenceTest {
 	}
 
 	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
-	}
-
-	@Test
-	public void testCountByParentCPConfigurationListId() throws Exception {
-		_persistence.countByParentCPConfigurationListId(
-			RandomTestUtil.nextLong());
-
-		_persistence.countByParentCPConfigurationListId(0L);
-	}
-
-	@Test
 	public void testCountByG_C() throws Exception {
 		_persistence.countByG_C(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
@@ -324,52 +306,11 @@ public class CPConfigurationListPersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_MasterCPConfigurationList() throws Exception {
-		_persistence.countByG_MasterCPConfigurationList(
+	public void testCountByG_M() throws Exception {
+		_persistence.countByG_M(
 			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
 
-		_persistence.countByG_MasterCPConfigurationList(
-			0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
-	public void testCountByLtD_S() throws Exception {
-		_persistence.countByLtD_S(
-			RandomTestUtil.nextDate(), RandomTestUtil.nextInt());
-
-		_persistence.countByLtD_S(RandomTestUtil.nextDate(), 0);
-	}
-
-	@Test
-	public void testCountByG_C_S() throws Exception {
-		_persistence.countByG_C_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByG_C_S(0L, 0L, 0);
-	}
-
-	@Test
-	public void testCountByG_C_SArrayable() throws Exception {
-		_persistence.countByG_C_S(
-			new long[] {RandomTestUtil.nextLong(), 0L},
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-	}
-
-	@Test
-	public void testCountByG_C_NotS() throws Exception {
-		_persistence.countByG_C_NotS(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByG_C_NotS(0L, 0L, 0);
-	}
-
-	@Test
-	public void testCountByG_C_NotSArrayable() throws Exception {
-		_persistence.countByG_C_NotS(
-			new long[] {RandomTestUtil.nextLong(), 0L},
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
+		_persistence.countByG_M(0L, RandomTestUtil.randomBoolean());
 	}
 
 	@Test
@@ -412,11 +353,11 @@ public class CPConfigurationListPersistenceTest {
 			"uuid", true, "externalReferenceCode", true,
 			"CPConfigurationListId", true, "groupId", true, "companyId", true,
 			"userId", true, "userName", true, "createDate", true,
-			"modifiedDate", true, "parentCPConfigurationListId", true,
-			"masterCPConfigurationList", true, "name", true, "priority", true,
-			"displayDate", true, "expirationDate", true, "lastPublishDate",
-			true, "status", true, "statusByUserId", true, "statusByUserName",
-			true, "statusDate", true);
+			"modifiedDate", true, "parentCPConfigurationListId", true, "master",
+			true, "name", true, "priority", true, "displayDate", true,
+			"expirationDate", true, "lastPublishDate", true, "status", true,
+			"statusByUserId", true, "statusByUserName", true, "statusDate",
+			true);
 	}
 
 	@Test
@@ -711,23 +652,6 @@ public class CPConfigurationListPersistenceTest {
 				new Class<?>[] {String.class}, "groupId"));
 
 		Assert.assertEquals(
-			Long.valueOf(cpConfigurationList.getParentCPConfigurationListId()),
-			ReflectionTestUtil.<Long>invoke(
-				cpConfigurationList, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "parentCPConfigurationListId"));
-
-		Assert.assertEquals(
-			Long.valueOf(cpConfigurationList.getGroupId()),
-			ReflectionTestUtil.<Long>invoke(
-				cpConfigurationList, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "groupId"));
-		Assert.assertEquals(
-			Boolean.valueOf(cpConfigurationList.getMasterCPConfigurationList()),
-			ReflectionTestUtil.<Boolean>invoke(
-				cpConfigurationList, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "masterCPConfigurationList"));
-
-		Assert.assertEquals(
 			cpConfigurationList.getExternalReferenceCode(),
 			ReflectionTestUtil.invoke(
 				cpConfigurationList, "getColumnOriginalValue",
@@ -743,8 +667,6 @@ public class CPConfigurationListPersistenceTest {
 		long pk = RandomTestUtil.nextLong();
 
 		CPConfigurationList cpConfigurationList = _persistence.create(pk);
-
-		cpConfigurationList.setMvccVersion(RandomTestUtil.nextLong());
 
 		cpConfigurationList.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -768,8 +690,7 @@ public class CPConfigurationListPersistenceTest {
 		cpConfigurationList.setParentCPConfigurationListId(
 			RandomTestUtil.nextLong());
 
-		cpConfigurationList.setMasterCPConfigurationList(
-			RandomTestUtil.randomBoolean());
+		cpConfigurationList.setMaster(RandomTestUtil.randomBoolean());
 
 		cpConfigurationList.setName(RandomTestUtil.randomString());
 
@@ -800,3 +721,4 @@ public class CPConfigurationListPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:793835053

@@ -364,6 +364,8 @@ public interface User extends PersistedModel, UserModel {
 
 	public boolean isGuestUser();
 
+	public boolean isLayoutsUpdated();
+
 	public boolean isMale()
 		throws com.liferay.portal.kernel.exception.PortalException;
 
@@ -389,6 +391,8 @@ public interface User extends PersistedModel, UserModel {
 
 	public void setGroupIds(long[] groupIds);
 
+	public void setLayoutsUpdated(boolean layoutsUpdated);
+
 	public void setOrganizationIds(long[] organizationIds);
 
 	public void setPasswordModified(boolean passwordModified);
@@ -401,4 +405,8 @@ public interface User extends PersistedModel, UserModel {
 
 	public void setUserGroupIds(long[] userGroupIds);
 
+	@com.liferay.portal.kernel.template.TemplateRestricted
+	public String toString();
+
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1348386990

@@ -6,7 +6,6 @@
 package com.liferay.search.experiences.internal.info.collection.provider;
 
 import com.liferay.asset.util.AssetHelper;
-import com.liferay.info.collection.provider.BetaInfoCollectionProvider;
 import com.liferay.info.collection.provider.CollectionQuery;
 import com.liferay.info.collection.provider.FilteredInfoCollectionProvider;
 import com.liferay.info.collection.provider.SingleFormVariationInfoCollectionProvider;
@@ -15,7 +14,10 @@ import com.liferay.info.filter.InfoFilter;
 import com.liferay.info.filter.KeywordsInfoFilter;
 import com.liferay.info.filter.TagsInfoFilter;
 import com.liferay.info.pagination.Pagination;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
+import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.dao.orm.QueryUtil;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -24,6 +26,7 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.search.constants.SearchContextAttributes;
 import com.liferay.portal.search.searcher.SearchRequestBuilder;
 import com.liferay.portal.search.searcher.SearchRequestBuilderFactory;
+import com.liferay.portal.search.searcher.SearchResponse;
 import com.liferay.portal.search.searcher.Searcher;
 import com.liferay.search.experiences.model.SXPBlueprint;
 
@@ -35,7 +38,7 @@ import java.util.Locale;
  * @author Petteri Karttunen
  */
 public abstract class SXPBlueprintInfoCollectionProvider<T>
-	implements BetaInfoCollectionProvider<T>, FilteredInfoCollectionProvider<T>,
+	implements FilteredInfoCollectionProvider<T>,
 			   SingleFormVariationInfoCollectionProvider<T> {
 
 	public SXPBlueprintInfoCollectionProvider(
@@ -47,6 +50,30 @@ public abstract class SXPBlueprintInfoCollectionProvider<T>
 		this.searcher = searcher;
 		this.searchRequestBuilderFactory = searchRequestBuilderFactory;
 		this.sxpBlueprint = sxpBlueprint;
+	}
+
+	public SearchResponse getCollectionQuerySearchResponse(
+		CollectionQuery collectionQuery) {
+
+		Pagination pagination = collectionQuery.getPagination();
+
+		SearchRequestBuilder searchRequestBuilder = getSearchRequestBuilder(
+			collectionQuery, pagination);
+
+		return searcher.search(searchRequestBuilder.build());
+	}
+
+	@Override
+	public String getFormVariationKey() {
+		return sxpBlueprint.getExternalReferenceCode();
+	}
+
+	@Override
+	public String getKey() {
+		return StringBundler.concat(
+			SXPBlueprint.class.getName(), StringPool.UNDERLINE,
+			sxpBlueprint.getCompanyId(), StringPool.UNDERLINE,
+			sxpBlueprint.getExternalReferenceCode());
 	}
 
 	@Override
@@ -63,11 +90,25 @@ public abstract class SXPBlueprintInfoCollectionProvider<T>
 
 	@Override
 	public boolean isAvailable() {
-		return FeatureFlagManagerUtil.isEnabled("LPS-129412");
+		if (sxpBlueprint.getCompanyId() == CompanyThreadLocal.getCompanyId()) {
+			return true;
+		}
+
+		return false;
 	}
 
 	protected SearchRequestBuilder getSearchRequestBuilder(
 		CollectionQuery collectionQuery, Pagination pagination) {
+
+		Integer from = null;
+		Integer size = null;
+
+		if ((pagination.getEnd() != QueryUtil.ALL_POS) &&
+			(pagination.getStart() != QueryUtil.ALL_POS)) {
+
+			from = pagination.getStart();
+			size = pagination.getEnd() - pagination.getStart();
+		}
 
 		ServiceContext serviceContext =
 			ServiceContextThreadLocal.getServiceContext();
@@ -80,11 +121,11 @@ public abstract class SXPBlueprintInfoCollectionProvider<T>
 		).fields(
 			new String[0]
 		).from(
-			pagination.getStart()
+			from
 		).emptySearchEnabled(
 			true
 		).size(
-			pagination.getEnd() - pagination.getStart()
+			size
 		).withSearchContext(
 			searchContext -> {
 				CategoriesInfoFilter categoriesInfoFilter =
@@ -153,8 +194,8 @@ public abstract class SXPBlueprintInfoCollectionProvider<T>
 	}
 
 	protected final AssetHelper assetHelper;
-	protected final Searcher searcher;
 	protected final SearchRequestBuilderFactory searchRequestBuilderFactory;
+	protected final Searcher searcher;
 	protected final SXPBlueprint sxpBlueprint;
 
 }

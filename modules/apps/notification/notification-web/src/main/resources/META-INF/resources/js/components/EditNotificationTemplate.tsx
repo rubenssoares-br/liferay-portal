@@ -7,7 +7,6 @@ import ClayForm from '@clayui/form';
 import {
 	API,
 	ManagementToolbar,
-	MultiSelectItem,
 	constantsUtils,
 	invalidateRequired,
 	openToast,
@@ -23,7 +22,6 @@ import {BasicInfoContainer} from './BasicInfoContainer/BasicInfoContainer';
 import ContentContainer from './ContentContainer/ContentContainer';
 import DefinitionOfTermsContainer from './DefinitionOfTermsContainer/DefinitionOfTermsContainer';
 import {SettingsContainer} from './SettingsContainer/SettingsContainer';
-import {getEmailNotificationRoles} from './SettingsContainer/rolesUtil';
 
 import './EditNotificationTemplate.scss';
 
@@ -78,11 +76,20 @@ export function validate(values: NotificationTemplate) {
 			errors.fromName = constantsUtils.REQUIRED_MSG;
 		}
 
-		if (!Array.isArray(recipient.to) && !recipient.to[defaultLanguageId]) {
-			errors.to = constantsUtils.REQUIRED_MSG;
+		if (recipient.toType !== 'subscribers' && recipient.toType !== 'term') {
+			if (
+				!Array.isArray(recipient.to) &&
+				!(recipient.to as LocalizedValue<string>)[defaultLanguageId]
+			) {
+				errors.to = constantsUtils.REQUIRED_MSG;
+			}
+
+			if (Array.isArray(recipient.to) && !recipient.to.length) {
+				errors.to = constantsUtils.REQUIRED_MSG;
+			}
 		}
 
-		if (Array.isArray(recipient.to) && !recipient.to.length) {
+		if (recipient.toType === 'term' && !recipient.to) {
 			errors.to = constantsUtils.REQUIRED_MSG;
 		}
 	}
@@ -108,15 +115,12 @@ export default function EditNotificationTemplate({
 		ObjectDefinition[]
 	>([]);
 
-	const [selectedLocale, setSelectedLocale] = useState<Locale>(
-		Liferay.ThemeDisplay.getDefaultLanguageId
-	);
+	const [selectedLocale, setSelectedLocale] =
+		useState<Liferay.Language.Locale>(
+			Liferay.ThemeDisplay.getDefaultLanguageId
+		);
 
 	const [templateTitle, setTemplateTitle] = useState<string>('');
-
-	const [emailNotificationRoles, setEmailNotificationRoles] = useState<
-		MultiSelectItem[]
-	>([]);
 
 	const onSubmit = async (notification: NotificationTemplate) => {
 		if (isSubmitted) {
@@ -174,9 +178,7 @@ export default function EditNotificationTemplate({
 	) {
 		recipientInitialValue = [
 			{
-				bcc: '',
 				bccType: 'email',
-				cc: '',
 				ccType: 'email',
 				from: '',
 				fromName: {
@@ -248,9 +250,13 @@ export default function EditNotificationTemplate({
 					newRecipients = [
 						{
 							...recipients[0],
-							bcc: recipients[0].bcc ?? '',
+							...(recipients[0].bcc && {
+								bcc: recipients[0].bcc,
+							}),
 							bccType: recipients[0].bccType ?? 'email',
-							cc: recipients[0].cc ?? '',
+							...(recipients[0].cc && {
+								cc: recipients[0].cc,
+							}),
 							ccType: recipients[0].ccType ?? 'email',
 							toType: recipients[0].toType ?? 'email',
 						},
@@ -279,15 +285,6 @@ export default function EditNotificationTemplate({
 			else {
 				setTemplateTitle(
 					Liferay.Language.get('untitled-notification-template')
-				);
-			}
-
-			if (
-				notificationTemplateType === '' ||
-				notificationTemplateType === 'email'
-			) {
-				setEmailNotificationRoles(
-					await getEmailNotificationRoles(baseResourceURL)
 				);
 			}
 
@@ -375,7 +372,7 @@ export default function EditNotificationTemplate({
 							})}
 						>
 							<SettingsContainer
-								emailNotificationRoles={emailNotificationRoles}
+								baseResourceURL={baseResourceURL}
 								errors={errors}
 								learnResources={learnResources}
 								selectedLocale={selectedLocale}

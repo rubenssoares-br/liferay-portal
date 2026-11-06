@@ -15,8 +15,13 @@ import org.junit.Test;
 public class PropertiesSourceProcessorTest extends BaseSourceProcessorTestCase {
 
 	@Test
-	public void testIncorrectWhitespaceCheck() throws Exception {
-		test("IncorrectWhitespaceCheck.testproperties");
+	public void testFormatComments() throws Exception {
+		test("FormatComments.testproperties");
+	}
+
+	@Test
+	public void testIncorrectWhitespace() throws Exception {
+		test("IncorrectWhitespace.testproperties");
 	}
 
 	@Test
@@ -66,18 +71,8 @@ public class PropertiesSourceProcessorTest extends BaseSourceProcessorTestCase {
 	}
 
 	@Test
-	public void testSortProperties() throws Exception {
-		test("FormatProperties2/test.testproperties");
-	}
-
-	@Test
-	public void testSQLStylingCheck() throws Exception {
-		test("FormatProperties3/test.testproperties");
-	}
-
-	@Test
-	public void testStylingCheck() throws Exception {
-		test("StylingCheck.testproperties");
+	public void testStyling() throws Exception {
+		test("Styling.testproperties");
 	}
 
 }

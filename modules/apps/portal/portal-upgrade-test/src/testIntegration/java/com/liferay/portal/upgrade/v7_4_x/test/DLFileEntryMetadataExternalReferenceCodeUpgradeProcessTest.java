@@ -66,7 +66,7 @@ public class DLFileEntryMetadataExternalReferenceCodeUpgradeProcessTest
 			serviceContext.setAttribute("validateDDMFormValues", Boolean.FALSE);
 
 			DDMStructure ddmStructure = _ddmStructureLocalService.addStructure(
-				TestPropsValues.getUserId(), group.getGroupId(),
+				null, TestPropsValues.getUserId(), group.getGroupId(),
 				DDMStructureConstants.DEFAULT_PARENT_STRUCTURE_ID,
 				PortalUtil.getClassNameId(DLFileEntryMetadata.class),
 				StringPool.BLANK,
@@ -153,10 +153,8 @@ public class DLFileEntryMetadataExternalReferenceCodeUpgradeProcessTest
 		return new BaseExternalReferenceCodeUpgradeProcess() {
 
 			@Override
-			protected String[][] getTableAndPrimaryKeyColumnNames() {
-				return new String[][] {
-					{"DLFileEntryMetadata", "fileEntryMetadataId"}
-				};
+			protected String[] getTableNames() {
+				return new String[] {"DLFileEntryMetadata"};
 			}
 
 		};

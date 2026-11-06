@@ -283,22 +283,6 @@ public class CommerceChannelRelLocalServiceWrapper
 		return _commerceChannelRelLocalService.getActionableDynamicQuery();
 	}
 
-	@Override
-	public java.util.List<CommerceChannelRel> getCommerceChannelCountries(
-		long commerceChannelId, String name, int start, int end) {
-
-		return _commerceChannelRelLocalService.getCommerceChannelCountries(
-			commerceChannelId, name, start, end);
-	}
-
-	@Override
-	public int getCommerceChannelCountriesCount(
-		long commerceChannelId, String name) {
-
-		return _commerceChannelRelLocalService.getCommerceChannelCountriesCount(
-			commerceChannelId, name);
-	}
-
 	/**
 	 * Returns the commerce channel rel with the primary key.
 	 *
@@ -384,11 +368,38 @@ public class CommerceChannelRelLocalServiceWrapper
 	}
 
 	@Override
-	public int getCommerceChannelRelsCount(
-		String className, long classPK, String name) {
+	public java.util.List<CommerceChannelRel>
+		getCommerceCurrencyCommerceChannelRels(
+			long commerceChannelId, String name, int start, int end) {
 
-		return _commerceChannelRelLocalService.getCommerceChannelRelsCount(
-			className, classPK, name);
+		return _commerceChannelRelLocalService.
+			getCommerceCurrencyCommerceChannelRels(
+				commerceChannelId, name, start, end);
+	}
+
+	@Override
+	public int getCommerceCurrencyCommerceChannelRelsCount(
+		long commerceChannelId, String name) {
+
+		return _commerceChannelRelLocalService.
+			getCommerceCurrencyCommerceChannelRelsCount(
+				commerceChannelId, name);
+	}
+
+	@Override
+	public java.util.List<CommerceChannelRel> getCountryCommerceChannelRels(
+		long commerceChannelId, String name, int start, int end) {
+
+		return _commerceChannelRelLocalService.getCountryCommerceChannelRels(
+			commerceChannelId, name, start, end);
+	}
+
+	@Override
+	public int getCountryCommerceChannelRelsCount(
+		long commerceChannelId, String name) {
+
+		return _commerceChannelRelLocalService.
+			getCountryCommerceChannelRelsCount(commerceChannelId, name);
 	}
 
 	@Override
@@ -478,3 +489,4 @@ public class CommerceChannelRelLocalServiceWrapper
 	private CommerceChannelRelLocalService _commerceChannelRelLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:682421187

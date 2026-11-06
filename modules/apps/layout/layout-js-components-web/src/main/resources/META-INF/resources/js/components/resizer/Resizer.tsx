@@ -9,6 +9,14 @@ import React, {KeyboardEvent, useCallback, useEffect, useRef} from 'react';
 
 import './Resizer.scss';
 
+const ALLOWED_KEYS = ['ArrowLeft', 'ArrowRight', 'Home', 'End'] as const;
+
+type AllowedKey = (typeof ALLOWED_KEYS)[number];
+
+function isAllowedKey(key: string): key is AllowedKey {
+	return ALLOWED_KEYS.includes(key as AllowedKey);
+}
+
 interface ResizerProps {
 	ariaControls: string;
 	ariaLabel: string;
@@ -18,6 +26,7 @@ interface ResizerProps {
 	resizeStep: number;
 	setWidth: Function;
 	style: React.CSSProperties;
+	tabIndex: number;
 	targetRef: React.RefObject<HTMLDivElement>;
 	width: number;
 }
@@ -30,8 +39,10 @@ export default function Resizer({
 	minWidth,
 	resizeStep,
 	setWidth,
+	tabIndex = 0,
 	targetRef,
 	width,
+	...props
 }: ResizerProps) {
 	const [resizing, setResizing] = useStateSafe(false);
 
@@ -44,7 +55,7 @@ export default function Resizer({
 	widthRef.current = width;
 
 	const getInitialWidth = useCallback(
-		(currentWidth) =>
+		(currentWidth: any) =>
 			!currentWidth && targetRef.current
 				? targetRef.current.offsetWidth
 				: currentWidth,
@@ -52,6 +63,15 @@ export default function Resizer({
 	);
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+		const {key} = event;
+
+		if (!isAllowedKey(key)) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopPropagation();
+
 		const initialWidth = getInitialWidth(width);
 
 		const rtl =
@@ -163,7 +183,8 @@ export default function Resizer({
 			onKeyDown={handleKeyDown}
 			ref={resizerRef}
 			role="separator"
-			tabIndex={0}
+			tabIndex={tabIndex}
+			{...props}
 		/>
 	);
 }

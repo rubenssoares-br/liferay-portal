@@ -105,7 +105,17 @@ boolean singleSelect = ParamUtil.getBoolean(request, "singleSelect", true);
 				value="<%= accountUserDisplay.getAccountRoleNamesString(accountEntryDisplay.getAccountEntryId(), locale) %>"
 			/>
 
-			<c:if test="<%= !portletName.equals(UsersAdminPortletKeys.MY_ACCOUNT) && AccountEntryPermission.contains(permissionChecker, accountEntryDisplay.getAccountEntryId(), ActionKeys.MANAGE_USERS) %>">
+			<liferay-ui:search-container-column-text
+				cssClass="table-cell-expand-smallest"
+				name="status"
+			>
+				<clay:label
+					displayType="<%= accountEntryDisplay.getStatusLabelStyle() %>"
+					label="<%= accountEntryDisplay.getStatusLabel() %>"
+				/>
+			</liferay-ui:search-container-column-text>
+
+			<c:if test="<%= !portletName.equals(UsersAdminPortletKeys.MY_ACCOUNT) && AccountEntryPermission.contains(permissionChecker, accountEntryDisplay.getAccountEntryId(), AccountActionKeys.UNASSIGN_USERS) %>">
 				<liferay-ui:search-container-column-text>
 					<clay:button
 						aria-label='<%= LanguageUtil.format(request, "remove-x", HtmlUtil.escape(accountEntryDisplay.getName())) %>'
@@ -196,7 +206,7 @@ boolean singleSelect = ParamUtil.getBoolean(request, "singleSelect", true);
 									.replace('TOKEN_TITLE', label);
 
 								searchContainer.addRow(
-									[selectedItem.entityname, '', removeButton],
+									[entityName, '', removeButton],
 									entityId
 								);
 

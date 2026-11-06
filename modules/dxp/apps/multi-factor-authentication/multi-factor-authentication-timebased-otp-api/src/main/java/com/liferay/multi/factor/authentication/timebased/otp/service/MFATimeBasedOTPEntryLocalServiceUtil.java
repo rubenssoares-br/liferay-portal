@@ -294,10 +294,11 @@ public class MFATimeBasedOTPEntryLocalServiceUtil {
 		return getService().getPersistedModel(primaryKeyObj);
 	}
 
-	public static MFATimeBasedOTPEntry resetFailedAttempts(long userId)
+	public static String getPlaintextSharedSecret(
+			MFATimeBasedOTPEntry mfaTimeBasedOTPEntry)
 		throws PortalException {
 
-		return getService().resetFailedAttempts(userId);
+		return getService().getPlaintextSharedSecret(mfaTimeBasedOTPEntry);
 	}
 
 	public static MFATimeBasedOTPEntry updateAttempts(
@@ -340,3 +341,4 @@ public class MFATimeBasedOTPEntryLocalServiceUtil {
 			MFATimeBasedOTPEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1162912140

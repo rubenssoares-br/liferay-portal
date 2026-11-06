@@ -5,10 +5,13 @@
 
 package com.liferay.friendly.url.internal.change.tracking.spi.resolver;
 
+import com.liferay.change.tracking.configuration.CTSettingsConfiguration;
 import com.liferay.change.tracking.spi.resolver.ConstraintResolver;
 import com.liferay.change.tracking.spi.resolver.context.ConstraintResolverContext;
 import com.liferay.friendly.url.model.FriendlyURLEntryLocalization;
-import com.liferay.friendly.url.service.persistence.FriendlyURLEntryLocalizationPersistence;
+import com.liferay.friendly.url.service.FriendlyURLEntryLocalService;
+import com.liferay.layout.friendly.url.LayoutFriendlyURLEntryHelper;
+import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
 
@@ -37,7 +40,12 @@ public class FriendlyURLEntryLocalizationConstraintResolver
 
 	@Override
 	public String getResolutionDescriptionKey() {
-		return "duplicate-friendly-url-entry-localization-was-removed";
+		if (_resolved) {
+			return "duplicate-friendly-url-entry-localization-was-renamed";
+		}
+
+		return "duplicate-friendly-url-entry-localization-was-not-" +
+			"automatically-resolved";
 	}
 
 	@Override
@@ -48,7 +56,7 @@ public class FriendlyURLEntryLocalizationConstraintResolver
 	@Override
 	public String[] getUniqueIndexColumnNames() {
 		return new String[] {
-			"groupId", "classNameId", "languageId", "urlTitle"
+			"groupId", "classNameId", "parentClassPK", "languageId", "urlTitle"
 		};
 	}
 
@@ -59,14 +67,59 @@ public class FriendlyURLEntryLocalizationConstraintResolver
 		throws PortalException {
 
 		FriendlyURLEntryLocalization friendlyURLEntryLocalization =
-			constraintResolverContext.getTargetCTModel();
+			constraintResolverContext.getSourceCTModel();
 
-		_friendlyURLEntryLocalizationPersistence.remove(
+		CTSettingsConfiguration ctSettingsConfiguration =
+			_configurationProvider.getCompanyConfiguration(
+				CTSettingsConfiguration.class,
+				friendlyURLEntryLocalization.getCompanyId());
+
+		if (!ctSettingsConfiguration.
+				automaticFriendlyURLConflictResolutionEnabled()) {
+
+			_resolved = false;
+
+			return;
+		}
+
+		if ((friendlyURLEntryLocalization.getClassNameId() ==
+				_layoutFriendlyURLEntryHelper.getClassNameId(false)) ||
+			(friendlyURLEntryLocalization.getClassNameId() ==
+				_layoutFriendlyURLEntryHelper.getClassNameId(true))) {
+
+			_friendlyURLEntryLocalService.deleteFriendlyURLLocalizationEntry(
+				friendlyURLEntryLocalization);
+
+			_resolved = true;
+
+			return;
+		}
+
+		String uniqueUrlTitle = constraintResolverContext.getInTarget(
+			() -> _friendlyURLEntryLocalService.getUniqueUrlTitle(
+				friendlyURLEntryLocalization.getGroupId(),
+				friendlyURLEntryLocalization.getClassNameId(),
+				friendlyURLEntryLocalization.getParentClassPK(),
+				friendlyURLEntryLocalization.getClassPK(),
+				friendlyURLEntryLocalization.getUrlTitle()));
+
+		friendlyURLEntryLocalization.setUrlTitle(uniqueUrlTitle);
+
+		_friendlyURLEntryLocalService.updateFriendlyURLLocalization(
 			friendlyURLEntryLocalization);
+
+		_resolved = true;
 	}
 
 	@Reference
-	private FriendlyURLEntryLocalizationPersistence
-		_friendlyURLEntryLocalizationPersistence;
+	private ConfigurationProvider _configurationProvider;
+
+	@Reference
+	private FriendlyURLEntryLocalService _friendlyURLEntryLocalService;
+
+	@Reference
+	private LayoutFriendlyURLEntryHelper _layoutFriendlyURLEntryHelper;
+
+	private boolean _resolved;
 
 }

@@ -15,6 +15,8 @@ import com.liferay.asset.kernel.service.AssetVocabularyLocalServiceUtil;
 import com.liferay.asset.test.util.AssetTestUtil;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.service.DLAppLocalServiceUtil;
+import com.liferay.dynamic.data.mapping.model.DDMStructure;
+import com.liferay.dynamic.data.mapping.test.util.DDMStructureTestUtil;
 import com.liferay.expando.kernel.model.ExpandoColumn;
 import com.liferay.expando.kernel.model.ExpandoColumnConstants;
 import com.liferay.expando.kernel.model.ExpandoTable;
@@ -26,6 +28,7 @@ import com.liferay.exportimport.kernel.service.StagingLocalServiceUtil;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.model.JournalFolder;
 import com.liferay.journal.service.JournalArticleLocalService;
+import com.liferay.journal.service.JournalArticleLocalServiceUtil;
 import com.liferay.journal.service.JournalFolderServiceUtil;
 import com.liferay.journal.test.util.JournalTestUtil;
 import com.liferay.petra.string.StringBundler;
@@ -1867,6 +1870,40 @@ public class SXPBlueprintSearchResultTest {
 	}
 
 	@Test
+	public void testSearchableAssetTypesWithSubtype() throws Exception {
+		JournalTestUtil.addArticle(
+			_group.getGroupId(), "Basic Article",
+			RandomTestUtil.randomString());
+
+		DDMStructure ddmStructure = DDMStructureTestUtil.addStructure(
+			_group.getGroupId(), JournalArticle.class.getName());
+
+		JournalArticleLocalServiceUtil.addArticle(
+			null, _user.getUserId(), _group.getGroupId(), 0,
+			HashMapBuilder.put(
+				LocaleUtil.US, "Custom Article"
+			).build(),
+			null, DDMStructureTestUtil.getSampleStructuredContent(),
+			ddmStructure.getStructureId(), StringPool.BLANK, _serviceContext);
+
+		_keywords = "Article";
+
+		_assertSearchIgnoreRelevance("[Basic Article, Custom Article]");
+
+		String searchableAssetType = StringBundler.concat(
+			JournalArticle.class.getName(), "&&",
+			_group.getExternalReferenceCode(), "&&",
+			ddmStructure.getExternalReferenceCode());
+
+		_updateConfigurationJSON(
+			"generalConfiguration",
+			JSONUtil.put(
+				"searchableAssetTypes", JSONUtil.put(searchableAssetType)));
+
+		_assertSearch("[Custom Article]");
+	}
+
+	@Test
 	public void testStagingAware() throws Exception {
 		_updateConfigurationJSON(
 			"queryConfiguration", JSONUtil.put("applyIndexerClauses", false));
@@ -2511,13 +2548,7 @@ public class SXPBlueprintSearchResultTest {
 
 	private static final LocalTime _LOCAL_TIME_20 = LocalTime.of(20, 0, 0);
 
-	@Inject
-	private static JournalArticleLocalService _journalArticleLocalService;
-
 	private static List<SXPElement> _sxpElements;
-
-	@Inject
-	private static UserLocalService _userLocalService;
 
 	private AssetCategory _assetCategory;
 	private AssetTag _assetTag;
@@ -2544,15 +2575,19 @@ public class SXPBlueprintSearchResultTest {
 	private List<Group> _groups = new ArrayList<>();
 
 	private JournalArticleBuilder _journalArticleBuilder;
+
+	@Inject
+	private JournalArticleLocalService _journalArticleLocalService;
+
 	private final List<JournalArticle> _journalArticles = new ArrayList<>();
 	private JournalFolder _journalFolder;
 	private String _keywords;
 
 	@Inject
-	private Searcher _searcher;
+	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
 
 	@Inject
-	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
+	private Searcher _searcher;
 
 	private ServiceContext _serviceContext;
 
@@ -2567,6 +2602,9 @@ public class SXPBlueprintSearchResultTest {
 		_sxpBlueprintSearchRequestEnhancer;
 
 	private User _user;
+
+	@Inject
+	private UserLocalService _userLocalService;
 
 	@Inject(
 		filter = "segments.criteria.contributor.key=user",

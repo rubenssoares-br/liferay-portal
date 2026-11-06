@@ -22,17 +22,19 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
 import com.liferay.scim.rest.client.dto.v1_0.Group;
 import com.liferay.scim.rest.client.dto.v1_0.User;
@@ -41,9 +43,13 @@ import com.liferay.scim.rest.client.pagination.Page;
 import com.liferay.scim.rest.client.resource.v1_0.UserResource;
 import com.liferay.scim.rest.client.serdes.v1_0.UserSerDes;
 
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,10 +61,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -82,8 +84,10 @@ public abstract class BaseUserResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -96,16 +100,16 @@ public abstract class BaseUserResourceTestCase {
 
 		_userResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		UserResource.Builder builder = UserResource.builder();
-
-		userResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		userResource = UserResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -201,21 +205,6 @@ public abstract class BaseUserResourceTestCase {
 	}
 
 	@Test
-	public void testGetV2Users() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testPostV2User() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testPostV2UserSearch() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
 	public void testDeleteV2User() throws Exception {
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		User user = testDeleteV2User_addUser();
@@ -235,13 +224,28 @@ public abstract class BaseUserResourceTestCase {
 	}
 
 	@Test
-	public void testPutV2User() throws Exception {
+	public void testGetV2Users() throws Exception {
 		Assert.assertTrue(false);
 	}
 
-	protected User testGraphQLUser_addUser() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+	@Test
+	public void testPatchV2User() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testPostV2User() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testPostV2UserSearch() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testPutV2User() throws Exception {
+		Assert.assertTrue(false);
 	}
 
 	protected void assertContains(User user, List<User> users) {
@@ -576,6 +580,8 @@ public abstract class BaseUserResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(com.liferay.scim.rest.dto.v1_0.User.class)) {
@@ -1626,7 +1632,9 @@ public abstract class BaseUserResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1895,9 +1903,12 @@ public abstract class BaseUserResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseUserResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.scim.rest.resource.v1_0.UserResource _userResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1562514838

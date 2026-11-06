@@ -10,16 +10,16 @@ import com.liferay.document.library.kernel.service.DLAppServiceUtil;
 import com.liferay.document.library.kernel.util.DLUtil;
 import com.liferay.item.selector.ItemSelectorReturnType;
 import com.liferay.item.selector.ItemSelectorReturnTypeResolver;
+import com.liferay.item.selector.taglib.GroupSelectorBreadcrumbUtil;
 import com.liferay.item.selector.taglib.ItemSelectorRepositoryEntryBrowserReturnTypeUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
-import com.liferay.portal.kernel.portlet.PortletURLUtil;
-import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.repository.model.FileVersion;
 import com.liferay.portal.kernel.repository.model.Folder;
@@ -31,15 +31,15 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Ambrín Chaudhary
@@ -55,16 +55,22 @@ public class ItemSelectorRepositoryEntryBrowserUtil {
 			PortletURL portletURL)
 		throws Exception {
 
-		_addGroupSelectorBreadcrumbEntry(
-			httpServletRequest, liferayPortletResponse, portletURL);
-
-		portletURL.setParameter("displayStyle", displayStyle);
-
 		ThemeDisplay themeDisplay =
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
 
 		Group scopeGroup = themeDisplay.getScopeGroup();
+
+		if (scopeGroup.isControlPanel()) {
+			Company company = themeDisplay.getCompany();
+
+			scopeGroup = company.getGroup();
+		}
+
+		GroupSelectorBreadcrumbUtil.addPortletBreadcrumbEntries(
+			scopeGroup, httpServletRequest, liferayPortletResponse, portletURL);
+
+		portletURL.setParameter("displayStyle", displayStyle);
 
 		_addPortletBreadcrumbEntry(
 			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID, httpServletRequest,
@@ -106,7 +112,7 @@ public class ItemSelectorRepositoryEntryBrowserUtil {
 
 		PortletRequest portletRequest =
 			(PortletRequest)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_REQUEST);
+				JavaConstants.JAKARTA_PORTLET_REQUEST);
 
 		addPortletBreadcrumbEntries(
 			folderId, displayStyle, httpServletRequest,
@@ -205,24 +211,6 @@ public class ItemSelectorRepositoryEntryBrowserUtil {
 
 		return ItemSelectorRepositoryEntryBrowserReturnTypeUtil.getValue(
 			itemSelectorReturnType, fileEntry, themeDisplay);
-	}
-
-	private static void _addGroupSelectorBreadcrumbEntry(
-			HttpServletRequest httpServletRequest,
-			LiferayPortletResponse liferayPortletResponse,
-			PortletURL portletURL)
-		throws Exception {
-
-		PortalUtil.addPortletBreadcrumbEntry(
-			httpServletRequest,
-			LanguageUtil.get(httpServletRequest, "sites-and-libraries"),
-			PortletURLBuilder.create(
-				PortletURLUtil.clone(portletURL, liferayPortletResponse)
-			).setParameter(
-				"groupType", "site"
-			).setParameter(
-				"showGroupSelector", true
-			).buildString());
 	}
 
 	private static void _addPortletBreadcrumbEntry(

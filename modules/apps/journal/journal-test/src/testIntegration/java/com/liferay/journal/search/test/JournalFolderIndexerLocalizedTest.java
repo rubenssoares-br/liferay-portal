@@ -17,7 +17,6 @@ import com.liferay.portal.kernel.search.Indexer;
 import com.liferay.portal.kernel.search.IndexerRegistry;
 import com.liferay.portal.kernel.search.QueryConfig;
 import com.liferay.portal.kernel.search.SearchContext;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
@@ -61,8 +60,6 @@ public class JournalFolderIndexerLocalizedTest {
 		_indexer = _indexerRegistry.getIndexer(JournalFolder.class);
 
 		UserTestUtil.setUser(TestPropsValues.getUser());
-
-		CompanyThreadLocal.setCompanyId(TestPropsValues.getCompanyId());
 
 		List<Locale> availableLocales = Collections.singletonList(
 			LocaleUtil.JAPAN);
@@ -187,12 +184,12 @@ public class JournalFolderIndexerLocalizedTest {
 		}
 	}
 
-	@Inject
-	private static IndexerRegistry _indexerRegistry;
-
 	@DeleteAfterTestRun
 	private Group _group;
 
 	private Indexer<JournalFolder> _indexer;
+
+	@Inject
+	private IndexerRegistry _indexerRegistry;
 
 }

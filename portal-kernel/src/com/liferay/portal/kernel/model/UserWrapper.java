@@ -1421,6 +1421,11 @@ public class UserWrapper
 		return model.isGuestUser();
 	}
 
+	@Override
+	public boolean isLayoutsUpdated() {
+		return model.isLayoutsUpdated();
+	}
+
 	/**
 	 * Returns <code>true</code> if this user is lockout.
 	 *
@@ -1738,6 +1743,11 @@ public class UserWrapper
 		model.setLastName(lastName);
 	}
 
+	@Override
+	public void setLayoutsUpdated(boolean layoutsUpdated) {
+		model.setLayoutsUpdated(layoutsUpdated);
+	}
+
 	/**
 	 * Sets the ldap server ID of this user.
 	 *
@@ -2009,6 +2019,11 @@ public class UserWrapper
 	}
 
 	@Override
+	public String toString() {
+		return model.toString();
+	}
+
+	@Override
 	public String toXmlString() {
 		return model.toXmlString();
 	}
@@ -2036,3 +2051,4 @@ public class UserWrapper
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1689602330

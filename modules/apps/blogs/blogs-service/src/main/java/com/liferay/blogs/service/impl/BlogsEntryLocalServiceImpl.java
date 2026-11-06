@@ -31,6 +31,7 @@ import com.liferay.document.library.kernel.exception.NoSuchFileEntryException;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.expando.kernel.service.ExpandoRowLocalService;
 import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
+import com.liferay.friendly.url.constants.FriendlyURLEntryConstants;
 import com.liferay.friendly.url.exception.DuplicateFriendlyURLEntryException;
 import com.liferay.friendly.url.model.FriendlyURLEntry;
 import com.liferay.friendly.url.service.FriendlyURLEntryLocalService;
@@ -43,8 +44,8 @@ import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.comment.CommentManager;
 import com.liferay.portal.kernel.dao.orm.QueryDefinition;
+import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -78,10 +79,10 @@ import com.liferay.portal.kernel.settings.GroupServiceSettingsLocator;
 import com.liferay.portal.kernel.settings.LocalizedValuesMap;
 import com.liferay.portal.kernel.social.SocialActivityManagerUtil;
 import com.liferay.portal.kernel.systemevent.SystemEvent;
-import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.ContentTypes;
+import com.liferay.portal.kernel.util.DateUtil;
 import com.liferay.portal.kernel.util.FriendlyURLNormalizer;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.GroupSubscriptionCheckSubscriptionSender;
@@ -94,17 +95,16 @@ import com.liferay.portal.kernel.util.Localization;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.SubscriptionSender;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.URLCodec;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.kernel.workflow.WorkflowHandlerRegistryUtil;
 import com.liferay.portal.linkback.LinkbackProducerUtil;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.ratings.kernel.service.RatingsStatsLocalService;
 import com.liferay.social.kernel.model.SocialActivityConstants;
 import com.liferay.subscription.service.SubscriptionLocalService;
@@ -114,6 +114,10 @@ import com.liferay.trash.exception.TrashEntryException;
 import com.liferay.trash.model.TrashEntry;
 import com.liferay.trash.service.TrashEntryLocalService;
 import com.liferay.upload.UniqueFileNameProvider;
+
+import jakarta.portlet.PortletRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -126,10 +130,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.portlet.PortletRequest;
-
-import javax.servlet.http.HttpServletRequest;
 
 import net.htmlparser.jericho.Source;
 import net.htmlparser.jericho.StartTag;
@@ -313,8 +313,9 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		if (!ExportImportThreadLocal.isImportInProcess()) {
 			FriendlyURLEntry friendlyURLEntry =
 				_friendlyURLEntryLocalService.addFriendlyURLEntry(
-					groupId, BlogsEntry.class, entryId, urlTitle,
-					serviceContext);
+					groupId,
+					_classNameLocalService.getClassNameId(BlogsEntry.class),
+					entryId, urlTitle, serviceContext);
 
 			urlTitle = friendlyURLEntry.getUrlTitle();
 		}
@@ -559,23 +560,20 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 	public void checkEntries() throws PortalException {
 		Date date = new Date();
 
-		int count = blogsEntryPersistence.countByLtD_S(
-			date, WorkflowConstants.STATUS_SCHEDULED);
+		List<BlogsEntry> blogsEntries = blogsEntryPersistence.findByLtD_S(
+			DateUtil.getTomorrowDate(), WorkflowConstants.STATUS_SCHEDULED);
 
-		if (count == 0) {
-			return;
-		}
+		for (BlogsEntry blogsEntry : blogsEntries) {
+			if (date.before(blogsEntry.getDisplayDate())) {
+				continue;
+			}
 
-		List<BlogsEntry> entries = blogsEntryPersistence.findByLtD_S(
-			date, WorkflowConstants.STATUS_SCHEDULED);
-
-		for (BlogsEntry entry : entries) {
 			ServiceContext serviceContext = new ServiceContext();
 
 			serviceContext.setAttribute(
 				_INVOKED_BY_CHECK_ENTRIES, Boolean.TRUE);
 
-			String[] trackbacks = StringUtil.split(entry.getTrackbacks());
+			String[] trackbacks = StringUtil.split(blogsEntry.getTrackbacks());
 
 			serviceContext.setAttribute("trackbacks", trackbacks);
 
@@ -586,13 +584,14 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 			if (Validator.isNotNull(portletId)) {
 				serviceContext.setLayoutFullURL(
-					_portal.getLayoutFullURL(entry.getGroupId(), portletId));
+					_portal.getLayoutFullURL(
+						blogsEntry.getGroupId(), portletId));
 			}
 
-			serviceContext.setScopeGroupId(entry.getGroupId());
+			serviceContext.setScopeGroupId(blogsEntry.getGroupId());
 
 			blogsEntryLocalService.updateStatus(
-				entry.getStatusByUserId(), entry.getEntryId(),
+				blogsEntry.getStatusByUserId(), blogsEntry.getEntryId(),
 				WorkflowConstants.STATUS_APPROVED, serviceContext,
 				new HashMap<>());
 		}
@@ -695,7 +694,9 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		// Friendly URL
 
 		_friendlyURLEntryLocalService.deleteFriendlyURLEntry(
-			entry.getGroupId(), BlogsEntry.class, entry.getEntryId());
+			entry.getGroupId(),
+			_classNameLocalService.getClassNameId(BlogsEntry.class),
+			entry.getEntryId());
 
 		// Trash
 
@@ -747,7 +748,11 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 	public BlogsEntry fetchEntry(long groupId, String urlTitle) {
 		FriendlyURLEntry friendlyURLEntry =
 			_friendlyURLEntryLocalService.fetchFriendlyURLEntry(
-				groupId, BlogsEntry.class, urlTitle);
+				groupId,
+				_classNameLocalService.getClassNameId(BlogsEntry.class),
+				FriendlyURLEntryConstants.
+					FRIENDLY_URL_ENTRY_PARENT_CLASS_PK_DEFAULT,
+				urlTitle);
 
 		if (friendlyURLEntry != null) {
 			return blogsEntryPersistence.fetchByPrimaryKey(
@@ -821,16 +826,18 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 		BlogsEntry entry = blogsEntryPersistence.findByPrimaryKey(entryId);
 
-		BlogsEntry[] entries = blogsEntryPersistence.findByG_D_S_PrevAndNext(
-			entryId, entry.getGroupId(), entry.getDisplayDate(),
-			WorkflowConstants.STATUS_APPROVED,
-			EntryIdComparator.getInstance(true));
+		BlogsEntry[] entries = ListUtil.getPreviousAndNext(
+			blogsEntryPersistence.findByG_D_S(
+				entry.getGroupId(), entry.getDisplayDate(),
+				WorkflowConstants.STATUS_APPROVED, QueryUtil.ALL_POS,
+				QueryUtil.ALL_POS, EntryIdComparator.getInstance(true)),
+			entry::equals, BlogsEntry[]::new);
 
 		if (entries[0] == null) {
-			entries[0] = blogsEntryPersistence.fetchByG_LtD_S_Last(
+			entries[0] = blogsEntryPersistence.fetchByG_LtD_S_First(
 				entry.getGroupId(), entry.getDisplayDate(),
 				WorkflowConstants.STATUS_APPROVED,
-				EntryDisplayDateComparator.getInstance(true));
+				EntryDisplayDateComparator.getInstance(false));
 		}
 
 		if (entries[2] == null) {
@@ -854,7 +861,11 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 		FriendlyURLEntry friendlyURLEntry =
 			_friendlyURLEntryLocalService.fetchFriendlyURLEntry(
-				groupId, BlogsEntry.class, urlTitle);
+				groupId,
+				_classNameLocalService.getClassNameId(BlogsEntry.class),
+				FriendlyURLEntryConstants.
+					FRIENDLY_URL_ENTRY_PARENT_CLASS_PK_DEFAULT,
+				urlTitle);
 
 		if (friendlyURLEntry != null) {
 			return blogsEntryPersistence.findByPrimaryKey(
@@ -926,15 +937,6 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 	}
 
 	@Override
-	public List<BlogsEntry> getGroupsEntries(
-		long companyId, long groupId, Date displayDate,
-		QueryDefinition<BlogsEntry> queryDefinition) {
-
-		return blogsEntryFinder.findByGroupIds(
-			companyId, groupId, displayDate, queryDefinition);
-	}
-
-	@Override
 	public List<BlogsEntry> getGroupUserEntries(
 		long groupId, long userId, Date displayDate,
 		QueryDefinition<BlogsEntry> queryDefinition) {
@@ -953,35 +955,12 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 	}
 
 	@Override
-	public int getGroupUserEntriesCount(
-		long groupId, long userId, Date displayDate,
+	public List<BlogsEntry> getGroupsEntries(
+		long companyId, long groupId, Date displayDate,
 		QueryDefinition<BlogsEntry> queryDefinition) {
 
-		if (queryDefinition.isExcludeStatus()) {
-			return blogsEntryPersistence.countByG_U_LtD_NotS(
-				groupId, userId, displayDate, queryDefinition.getStatus());
-		}
-
-		return blogsEntryPersistence.countByG_U_LtD_S(
-			groupId, userId, displayDate, queryDefinition.getStatus());
-	}
-
-	@Override
-	public List<BlogsEntry> getOrganizationEntries(
-		long organizationId, Date displayDate,
-		QueryDefinition<BlogsEntry> queryDefinition) {
-
-		return blogsEntryFinder.findByOrganizationId(
-			organizationId, displayDate, queryDefinition);
-	}
-
-	@Override
-	public int getOrganizationEntriesCount(
-		long organizationId, Date displayDate,
-		QueryDefinition<BlogsEntry> queryDefinition) {
-
-		return blogsEntryFinder.countByOrganizationId(
-			organizationId, displayDate, queryDefinition);
+		return blogsEntryFinder.findByGroupIds(
+			companyId, groupId, displayDate, queryDefinition);
 	}
 
 	@Override
@@ -993,10 +972,11 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 	public void moveEntriesToTrash(long groupId, long userId)
 		throws PortalException {
 
-		List<BlogsEntry> entries = blogsEntryPersistence.findByGroupId(groupId);
+		List<BlogsEntry> blogsEntries = blogsEntryPersistence.findByGroupId(
+			groupId);
 
-		for (BlogsEntry entry : entries) {
-			blogsEntryLocalService.moveEntryToTrash(userId, entry);
+		for (BlogsEntry blogsEntry : blogsEntries) {
+			blogsEntryLocalService.moveEntryToTrash(userId, blogsEntry);
 		}
 	}
 
@@ -1252,8 +1232,9 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 			FriendlyURLEntry friendlyURLEntry =
 				_friendlyURLEntryLocalService.addFriendlyURLEntry(
-					entry.getGroupId(), BlogsEntry.class, entry.getEntryId(),
-					urlTitle, serviceContext);
+					entry.getGroupId(),
+					_classNameLocalService.getClassNameId(BlogsEntry.class),
+					entry.getEntryId(), urlTitle, serviceContext);
 
 			entry.setUrlTitle(friendlyURLEntry.getUrlTitle());
 		}
@@ -1466,8 +1447,9 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 			FriendlyURLEntry friendlyURLEntry =
 				_friendlyURLEntryLocalService.addFriendlyURLEntry(
-					entry.getGroupId(), BlogsEntry.class, entry.getEntryId(),
-					uniqueUrlTitle, serviceContext);
+					entry.getGroupId(),
+					_classNameLocalService.getClassNameId(BlogsEntry.class),
+					entry.getEntryId(), uniqueUrlTitle, serviceContext);
 
 			entry.setUrlTitle(friendlyURLEntry.getUrlTitle());
 		}
@@ -1819,21 +1801,25 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		return StringPool.BLANK;
 	}
 
-	private String _getLayoutFullURL(
-			ThemeDisplay themeDisplay, ServiceContext serviceContext)
-		throws PortalException {
+	private String _getLayoutFullURL(ServiceContext serviceContext) {
+		String layoutFullURL = GetterUtil.getString(
+			serviceContext.getAttribute("layoutFullURL"));
 
-		if (themeDisplay == null) {
-			return serviceContext.getLayoutFullURL();
+		if (Validator.isNotNull(layoutFullURL)) {
+			return layoutFullURL;
 		}
 
-		if (themeDisplay.getRefererPlid() == 0) {
-			return _portal.getLayoutFullURL(themeDisplay);
+		return serviceContext.getLayoutFullURL();
+	}
+
+	private String _getURLTitle(long entryId) {
+		BlogsEntry entry = blogsEntryPersistence.fetchByPrimaryKey(entryId);
+
+		if (entry != null) {
+			return entry.getUrlTitle();
 		}
 
-		return _portal.getLayoutFullURL(
-			_layoutLocalService.getLayout(themeDisplay.getRefererPlid()),
-			themeDisplay);
+		return StringPool.BLANK;
 	}
 
 	private String _getUniqueFileName(
@@ -1878,17 +1864,7 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 		return _friendlyURLEntryLocalService.getUniqueUrlTitle(
 			entry.getGroupId(),
 			_classNameLocalService.getClassNameId(BlogsEntry.class),
-			entry.getEntryId(), urlTitle, null);
-	}
-
-	private String _getURLTitle(long entryId) {
-		BlogsEntry entry = blogsEntryPersistence.fetchByPrimaryKey(entryId);
-
-		if (entry != null) {
-			return entry.getUrlTitle();
-		}
-
-		return StringPool.BLANK;
+			entry.getEntryId(), urlTitle);
 	}
 
 	private boolean _hasFileEntry(
@@ -1907,10 +1883,7 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 	private boolean _isUpdatedAssetCategories(
 		BlogsEntry entry, ServiceContext serviceContext) {
 
-		if ((serviceContext == null) ||
-			!FeatureFlagManagerUtil.isEnabled(
-				entry.getCompanyId(), "LPD-11147")) {
-
+		if (serviceContext == null) {
 			return false;
 		}
 
@@ -1927,22 +1900,13 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			serviceContext.getAttribute("friendlyURLAssetCategoryIds"));
 
 		if (assetEntry == null) {
-			if (ArrayUtil.isEmpty(friendlyURLAssetCategoryIds)) {
-				return false;
-			}
-
-			return true;
+			return ArrayUtil.isNotEmpty(friendlyURLAssetCategoryIds);
 		}
 
 		List<AssetCategory> assetCategories = assetEntry.getCategories();
 
-		if (assetCategories.containsAll(
-				ListUtil.toList(friendlyURLAssetCategoryIds))) {
-
-			return false;
-		}
-
-		return true;
+		return !assetCategories.containsAll(
+			ListUtil.toList(friendlyURLAssetCategoryIds));
 	}
 
 	private boolean _isValidImageMimeType(FileEntry fileEntry) {
@@ -2214,11 +2178,7 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			return;
 		}
 
-		ThemeDisplay themeDisplay =
-			(ThemeDisplay)httpServletRequest.getAttribute(
-				WebKeys.THEME_DISPLAY);
-
-		String layoutFullURL = _getLayoutFullURL(themeDisplay, serviceContext);
+		String layoutFullURL = _getLayoutFullURL(serviceContext);
 
 		if (Validator.isNull(layoutFullURL)) {
 			return;
@@ -2230,19 +2190,21 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 		Source source = new Source(entry.getContent());
 
-		List<StartTag> tags = source.getAllStartTags("a");
+		List<StartTag> startTags = source.getAllStartTags("a");
 
-		for (StartTag tag : tags) {
-			String targetUri = tag.getAttributeValue("href");
+		for (StartTag startTag : startTags) {
+			String targetUri = startTag.getAttributeValue("href");
 
-			if (Validator.isNotNull(targetUri)) {
-				try {
-					LinkbackProducerUtil.sendPingback(sourceUri, targetUri);
-				}
-				catch (Exception exception) {
-					_log.error(
-						"Error while sending pingback " + targetUri, exception);
-				}
+			if (Validator.isNull(targetUri)) {
+				continue;
+			}
+
+			try {
+				LinkbackProducerUtil.sendPingback(sourceUri, targetUri);
+			}
+			catch (Exception exception) {
+				_log.error(
+					"Error while sending pingback " + targetUri, exception);
 			}
 		}
 	}
@@ -2264,11 +2226,7 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 			return;
 		}
 
-		ThemeDisplay themeDisplay =
-			(ThemeDisplay)httpServletRequest.getAttribute(
-				WebKeys.THEME_DISPLAY);
-
-		String layoutFullURL = _getLayoutFullURL(themeDisplay, serviceContext);
+		String layoutFullURL = _getLayoutFullURL(serviceContext);
 
 		if (Validator.isNull(layoutFullURL)) {
 			return;
@@ -2290,17 +2248,17 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 				entry.getUrlTitle())
 		).build();
 
-		Set<String> trackbacksSet;
+		Set<String> newTrackbacks;
 
 		if (ArrayUtil.isNotEmpty(trackbacks)) {
-			trackbacksSet = SetUtil.fromArray(trackbacks);
+			newTrackbacks = SetUtil.fromArray(trackbacks);
 		}
 		else {
-			trackbacksSet = new HashSet<>();
+			newTrackbacks = new HashSet<>();
 		}
 
 		if (pingOldTrackbacks) {
-			trackbacksSet.addAll(
+			newTrackbacks.addAll(
 				SetUtil.fromArray(StringUtil.split(entry.getTrackbacks())));
 
 			entry.setTrackbacks(StringPool.BLANK);
@@ -2313,33 +2271,36 @@ public class BlogsEntryLocalServiceImpl extends BlogsEntryLocalServiceBaseImpl {
 
 		Set<String> validTrackbacks = new HashSet<>();
 
-		for (String trackback : trackbacksSet) {
-			if (oldTrackbacks.contains(trackback)) {
+		for (String newTrackback : newTrackbacks) {
+			if (oldTrackbacks.contains(newTrackback)) {
 				continue;
 			}
 
 			try {
-				if (LinkbackProducerUtil.sendTrackback(trackback, parts)) {
-					validTrackbacks.add(trackback);
+				if (LinkbackProducerUtil.sendTrackback(newTrackback, parts)) {
+					validTrackbacks.add(newTrackback);
 				}
 			}
 			catch (Exception exception) {
 				_log.error(
-					"Error while sending trackback at " + trackback, exception);
+					"Error while sending trackback at " + newTrackback,
+					exception);
 			}
 		}
 
-		if (!validTrackbacks.isEmpty()) {
-			String newTrackbacks = StringUtil.merge(validTrackbacks);
-
-			if (Validator.isNotNull(entry.getTrackbacks())) {
-				newTrackbacks += StringPool.COMMA + entry.getTrackbacks();
-			}
-
-			entry.setTrackbacks(newTrackbacks);
-
-			blogsEntryPersistence.update(entry);
+		if (validTrackbacks.isEmpty()) {
+			return;
 		}
+
+		String mergedTrackbacks = StringUtil.merge(validTrackbacks);
+
+		if (Validator.isNotNull(entry.getTrackbacks())) {
+			mergedTrackbacks += StringPool.COMMA + entry.getTrackbacks();
+		}
+
+		entry.setTrackbacks(mergedTrackbacks);
+
+		blogsEntryPersistence.update(entry);
 	}
 
 	private String _sanitizeUrlTitle(String urlTitle) {

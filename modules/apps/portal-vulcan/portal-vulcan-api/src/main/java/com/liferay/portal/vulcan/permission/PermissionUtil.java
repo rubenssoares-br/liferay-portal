@@ -29,6 +29,8 @@ import com.liferay.portal.kernel.service.RoleLocalServiceUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GroupThreadLocal;
 
+import jakarta.ws.rs.BadRequestException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,8 +38,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.ws.rs.BadRequestException;
 
 /**
  * @author Javier Gamarra
@@ -175,7 +175,10 @@ public class PermissionUtil {
 				new Permission() {
 					{
 						actionIds = actionsIdsSet.toArray(new String[0]);
+						roleExternalReferenceCode =
+							role.getExternalReferenceCode();
 						roleName = role.getName();
+						roleType = role.getTypeLabel();
 					}
 				});
 		}
@@ -239,15 +242,19 @@ public class PermissionUtil {
 		for (ResourceAction resourceAction : resourceActions) {
 			long bitwiseValue = resourceAction.getBitwiseValue();
 
-			if ((actionIds & bitwiseValue) == bitwiseValue) {
-				actionsIdsSet.add(resourceAction.getActionId());
+			if ((actionIds & bitwiseValue) != bitwiseValue) {
+				continue;
 			}
+
+			actionsIdsSet.add(resourceAction.getActionId());
 		}
 
 		return new Permission() {
 			{
 				actionIds = actionsIdsSet.toArray(new String[0]);
+				roleExternalReferenceCode = role.getExternalReferenceCode();
 				roleName = role.getName();
+				roleType = role.getTypeLabel();
 			}
 		};
 	}

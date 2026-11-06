@@ -19,22 +19,31 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
+import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.PortletConfigFactoryUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCResourceCommand;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.PortletLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.portlet.MockLiferayResourceRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayResourceResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -131,6 +140,45 @@ public class AutoSaveArticleMVCResourceCommandTest {
 	}
 
 	@Test
+	public void testServeResourceAddDraftArticleWithOwnerPermissions()
+		throws Exception {
+
+		MockLiferayResourceRequest mockLiferayResourceRequest =
+			_getMockLiferayResourceRequest();
+
+		mockLiferayResourceRequest.setParameter(
+			"groupPermissions", "ADD_DISCUSSION");
+		mockLiferayResourceRequest.setParameter(
+			"guestPermissions", "ADD_DISCUSSION");
+		mockLiferayResourceRequest.setParameter(
+			"inputPermissionsViewRole", "Owner");
+
+		_serveResource(mockLiferayResourceRequest);
+
+		JournalArticle journalArticle =
+			_journalArticleLocalService.fetchArticleByUrlTitle(
+				_group.getGroupId(), "title");
+
+		Assert.assertNotNull(journalArticle);
+		Assert.assertEquals(
+			WorkflowConstants.STATUS_DRAFT, journalArticle.getStatus());
+		Assert.assertFalse(_hasGuestViewPermission(journalArticle));
+
+		_serveResource(
+			_getMockLiferayResourceRequest(
+				journalArticle.getArticleId(),
+				journalArticle.getFriendlyURLMap()));
+
+		journalArticle = _journalArticleLocalService.fetchArticleByUrlTitle(
+			_group.getGroupId(), "title");
+
+		Assert.assertNotNull(journalArticle);
+		Assert.assertEquals(
+			WorkflowConstants.STATUS_DRAFT, journalArticle.getStatus());
+		Assert.assertFalse(_hasGuestViewPermission(journalArticle));
+	}
+
+	@Test
 	public void testServeResourceWithErrors() throws Exception {
 		JSONObject jsonObject = _serveResource(
 			_getMockLiferayResourceRequest());
@@ -151,6 +199,27 @@ public class AutoSaveArticleMVCResourceCommandTest {
 				_portal.getSiteDefaultLocale(_group),
 				"you-must-define-a-friendly-url-for-the-default-language"),
 			jsonObject.getString("errorMessage"));
+	}
+
+	@Test
+	public void testServeResourceWithManualArticleId() throws Exception {
+		MockLiferayResourceRequest mockLiferayResourceRequest =
+			_getMockLiferayResourceRequest();
+
+		String articleId = RandomTestUtil.randomString();
+
+		mockLiferayResourceRequest.setParameter("articleId", articleId);
+
+		mockLiferayResourceRequest.setParameter(
+			"autoArticleId", StringPool.FALSE);
+
+		JSONObject jsonObject = _serveResource(mockLiferayResourceRequest);
+
+		Assert.assertTrue(jsonObject.getBoolean("success"));
+		Assert.assertEquals(
+			StringUtil.toUpperCase(articleId),
+			jsonObject.getString("articleId"));
+		Assert.assertTrue(jsonObject.has("friendlyURL"));
 	}
 
 	private MockMultipartHttpServletRequest
@@ -178,10 +247,11 @@ public class AutoSaveArticleMVCResourceCommandTest {
 			new MockLiferayResourceRequest(mockMultipartHttpServletRequest);
 
 		mockLiferayResourceRequest.setAttribute(
-			WebKeys.CURRENT_URL, "http://localhost:8080");
+			WebKeys.CURRENT_URL,
+			"http://localhost:" + PortalUtil.getPortalServerPort(false));
 
 		mockMultipartHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_CONFIG,
+			JavaConstants.JAKARTA_PORTLET_CONFIG,
 			PortletConfigFactoryUtil.create(
 				_portletLocalService.getPortletById(JournalPortletKeys.JOURNAL),
 				null));
@@ -254,9 +324,26 @@ public class AutoSaveArticleMVCResourceCommandTest {
 		themeDisplay.setLocale(LocaleUtil.US);
 		themeDisplay.setRequest(mockMultipartHttpServletRequest);
 		themeDisplay.setSiteGroupId(_group.getGroupId());
-		themeDisplay.setUser(TestPropsValues.getUser());
+
+		User user = TestPropsValues.getUser();
+
+		themeDisplay.setTimeZone(user.getTimeZone());
+		themeDisplay.setUser(user);
 
 		return themeDisplay;
+	}
+
+	private boolean _hasGuestViewPermission(JournalArticle journalArticle)
+		throws Exception {
+
+		Role role = _roleLocalService.getRole(
+			journalArticle.getCompanyId(), RoleConstants.GUEST);
+
+		return _resourcePermissionLocalService.hasResourcePermission(
+			journalArticle.getCompanyId(), JournalArticle.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(journalArticle.getResourcePrimKey()),
+			role.getRoleId(), ActionKeys.VIEW);
 	}
 
 	private JSONObject _serveResource(
@@ -343,5 +430,11 @@ public class AutoSaveArticleMVCResourceCommandTest {
 
 	@Inject
 	private PortletLocalService _portletLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
 
 }

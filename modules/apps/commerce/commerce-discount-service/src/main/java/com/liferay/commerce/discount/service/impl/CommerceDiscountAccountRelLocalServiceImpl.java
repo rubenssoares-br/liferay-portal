@@ -106,18 +106,6 @@ public class CommerceDiscountAccountRelLocalServiceImpl
 			deleteCommerceDiscountAccountRel(commerceDiscountAccountRel);
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x)
-	 */
-	@Deprecated
-	@Override
-	public void deleteCommerceDiscountAccountRelsBycommerceAccountId(
-		long commerceAccountId) {
-
-		commerceDiscountAccountRelPersistence.removeByCommerceAccountId(
-			commerceAccountId);
-	}
-
 	@Override
 	public void deleteCommerceDiscountAccountRelsByCommerceDiscountId(
 			long commerceDiscountId)
@@ -133,6 +121,18 @@ public class CommerceDiscountAccountRelLocalServiceImpl
 			commerceDiscountAccountRelLocalService.
 				deleteCommerceDiscountAccountRel(commerceDiscountAccountRel);
 		}
+	}
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x)
+	 */
+	@Deprecated
+	@Override
+	public void deleteCommerceDiscountAccountRelsBycommerceAccountId(
+		long commerceAccountId) {
+
+		commerceDiscountAccountRelPersistence.removeByCommerceAccountId(
+			commerceAccountId);
 	}
 
 	@Override
@@ -153,25 +153,9 @@ public class CommerceDiscountAccountRelLocalServiceImpl
 	}
 
 	@Override
-	public List<CommerceDiscountAccountRel> getCommerceDiscountAccountRels(
-		long commerceDiscountId, String name, int start, int end) {
-
-		return commerceDiscountAccountRelFinder.findByCommerceDiscountId(
-			commerceDiscountId, name, start, end);
-	}
-
-	@Override
 	public int getCommerceDiscountAccountRelsCount(long commerceDiscountId) {
 		return commerceDiscountAccountRelPersistence.countByCommerceDiscountId(
 			commerceDiscountId);
-	}
-
-	@Override
-	public int getCommerceDiscountAccountRelsCount(
-		long commerceDiscountId, String name) {
-
-		return commerceDiscountAccountRelFinder.countByCommerceDiscountId(
-			commerceDiscountId, name);
 	}
 
 	private void _reindexCommerceDiscount(long commerceDiscountId)

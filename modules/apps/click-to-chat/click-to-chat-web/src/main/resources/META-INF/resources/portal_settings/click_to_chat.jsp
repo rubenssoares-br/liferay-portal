@@ -85,7 +85,7 @@ ClickToChatConfiguration clickToChatConfiguration = (ClickToChatConfiguration)re
 	</div>
 
 	<div class="col-md-6">
-		<aui:input id="chatProviderSecretKey" label="chat-provider-secret-key" name="chatProviderSecretKey" type="text" value="<%= clickToChatConfiguration.chatProviderSecretKey() %>" />
+		<aui:input id="chatProviderSecretKey" label="secret-key" name="chatProviderSecretKey" type="text" value="<%= clickToChatConfiguration.chatProviderSecretKey() %>" />
 	</div>
 </div>
 
@@ -175,7 +175,7 @@ ClickToChatConfiguration clickToChatConfiguration = (ClickToChatConfiguration)re
 		}
 		else {
 			clickToChatChatProvidersElement.classList.remove('hide');
-			zendeskWebWidgetFieldsElement.classList.remove('hide');
+			<portlet:namespace />toggleClickToChatZendeskWebWidgetFields();
 		}
 	}
 

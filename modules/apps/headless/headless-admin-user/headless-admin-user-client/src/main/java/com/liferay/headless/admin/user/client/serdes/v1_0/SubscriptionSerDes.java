@@ -8,16 +8,17 @@ package com.liferay.headless.admin.user.client.serdes.v1_0;
 import com.liferay.headless.admin.user.client.dto.v1_0.Subscription;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -59,14 +60,7 @@ public class SubscriptionSerDes {
 
 			sb.append("\"contentId\": ");
 
-			if (subscription.getContentId() instanceof String) {
-				sb.append("\"");
-				sb.append((String)subscription.getContentId());
-				sb.append("\"");
-			}
-			else {
-				sb.append(subscription.getContentId());
-			}
+			sb.append(_toJSON(subscription.getContentId()));
 		}
 
 		if (subscription.getContentType() != null) {
@@ -355,6 +349,16 @@ public class SubscriptionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -387,3 +391,4 @@ public class SubscriptionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-444363645

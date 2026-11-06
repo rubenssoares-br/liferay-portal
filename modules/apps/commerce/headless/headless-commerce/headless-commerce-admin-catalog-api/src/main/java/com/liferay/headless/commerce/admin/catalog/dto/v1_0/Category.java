@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Category")
+@GraphQLName(
+	description = "Asset-based taxonomy entry used to classify products; within the admin catalog API a category appears only as a reference body for assigning or listing categories against a product, and the resource itself does not create or delete category records.",
+	value = "Category"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Asset-based taxonomy entry used to classify products; within the admin catalog API a category appears only as a reference body for assigning or listing categories against a product, and the resource itself does not create or delete category records.",
+	requiredProperties = {"id"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"id"})
 @XmlRootElement(name = "Category")
 public class Category implements Serializable {
 
@@ -53,7 +60,10 @@ public class Category implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Category.class, json);
 	}
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per category within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -87,7 +97,9 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per category within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -95,7 +107,10 @@ public class Category implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the category (FK identifier); required when patching product-category assignments because each entry is resolved by identifier and unknown identifiers are rejected.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -127,7 +142,9 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the category (FK identifier); required when patching product-category assignments because each entry is resolved by identifier and unknown identifiers are rejected."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long id;
@@ -135,7 +152,10 @@ public class Category implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "Category Name")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal name of the category; the human-facing label is exposed through the localized `title` map.",
+		example = "Hand Tools"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -167,14 +187,19 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Category Name")
+	@GraphQLField(
+		description = "Internal name of the category; the human-facing label is exposed through the localized `title` map."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Liferay site (FK identifier) where the category was defined.",
+		example = "20121"
+	)
 	public Long getSiteId() {
 		if (_siteIdSupplier != null) {
 			siteId = _siteIdSupplier.get();
@@ -208,14 +233,17 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Liferay site (FK identifier) where the category was defined."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long siteId;
 
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text; map keys are locale codes and values are the translated strings.",
 		example = "{en_US=Category Title EN, hr_HR=Category Title HR, hu_HU=Category Title HU}"
 	)
 	@Valid
@@ -252,14 +280,19 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text; map keys are locale codes and values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> title;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _titleSupplier;
 
-	@Schema(example = "Default Vocabulary")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Name of the vocabulary that owns this category, resolved at read time; read-only.",
+		example = "Default Vocabulary"
+	)
 	public String getVocabulary() {
 		if (_vocabularySupplier != null) {
 			vocabulary = _vocabularySupplier.get();
@@ -293,12 +326,64 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Name of the vocabulary that owns this category, resolved at read time; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String vocabulary;
 
 	@JsonIgnore
 	private Supplier<String> _vocabularySupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the vocabulary that owns the category; on read the value mirrors the vocabulary's external reference code, and on write it is used only during an import to create the missing category inside the counterpart of that vocabulary.",
+		example = "AB-34098-789-N"
+	)
+	public String getVocabularyExternalReferenceCode() {
+		if (_vocabularyExternalReferenceCodeSupplier != null) {
+			vocabularyExternalReferenceCode =
+				_vocabularyExternalReferenceCodeSupplier.get();
+
+			_vocabularyExternalReferenceCodeSupplier = null;
+		}
+
+		return vocabularyExternalReferenceCode;
+	}
+
+	public void setVocabularyExternalReferenceCode(
+		String vocabularyExternalReferenceCode) {
+
+		this.vocabularyExternalReferenceCode = vocabularyExternalReferenceCode;
+
+		_vocabularyExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setVocabularyExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			vocabularyExternalReferenceCodeUnsafeSupplier) {
+
+		_vocabularyExternalReferenceCodeSupplier = () -> {
+			try {
+				return vocabularyExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the vocabulary that owns the category; on read the value mirrors the vocabulary's external reference code, and on write it is used only during an import to create the missing category inside the counterpart of that vocabulary."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String vocabularyExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _vocabularyExternalReferenceCodeSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -411,13 +496,30 @@ public class Category implements Serializable {
 			sb.append("\"");
 		}
 
+		String vocabularyExternalReferenceCode =
+			getVocabularyExternalReferenceCode();
+
+		if (vocabularyExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"vocabularyExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(vocabularyExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.Category",
 		name = "x-class-name"
 	)
@@ -504,6 +606,27 @@ public class Category implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -512,3 +635,4 @@ public class Category implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-846322885

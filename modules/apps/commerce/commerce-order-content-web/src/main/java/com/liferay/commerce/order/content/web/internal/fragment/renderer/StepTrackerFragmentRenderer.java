@@ -12,25 +12,22 @@ import com.liferay.commerce.util.CommerceOrderInfoItemUtil;
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.fragment.renderer.FragmentRendererContext;
 import com.liferay.petra.string.StringBundler;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
-import com.liferay.portal.kernel.log.Log;
-import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.util.Locale;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -49,11 +46,6 @@ public class StepTrackerFragmentRenderer implements FragmentRenderer {
 	@Override
 	public String getLabel(Locale locale) {
 		return _language.get(locale, "step-tracker");
-	}
-
-	@Override
-	public boolean isSelectable(HttpServletRequest httpServletRequest) {
-		return FeatureFlagManagerUtil.isEnabled("LPD-20379");
 	}
 
 	@Override
@@ -112,43 +104,21 @@ public class StepTrackerFragmentRenderer implements FragmentRenderer {
 		String layoutMode = ParamUtil.getString(
 			originalHttpServletRequest, "p_l_mode", Constants.VIEW);
 
-		if (layoutMode.equals(Constants.EDIT)) {
-			return true;
-		}
-
-		return false;
+		return layoutMode.equals(Constants.EDIT);
 	}
 
 	private void _printPortletMessageInfo(
-		HttpServletRequest httpServletRequest,
-		HttpServletResponse httpServletResponse, String message) {
+			HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse, String message)
+		throws IOException {
 
-		try {
-			PrintWriter printWriter = httpServletResponse.getWriter();
+		PrintWriter printWriter = httpServletResponse.getWriter();
 
-			StringBundler sb = new StringBundler(3);
-
-			sb.append("<div class=\"portlet-msg-info\">");
-
-			ThemeDisplay themeDisplay =
-				(ThemeDisplay)httpServletRequest.getAttribute(
-					WebKeys.THEME_DISPLAY);
-
-			sb.append(themeDisplay.translate(message));
-
-			sb.append("</div>");
-
-			printWriter.write(sb.toString());
-		}
-		catch (IOException ioException) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(ioException);
-			}
-		}
+		printWriter.write(
+			StringBundler.concat(
+				"<div class=\"portlet-msg-info\">",
+				_language.get(httpServletRequest, message), "</div>"));
 	}
-
-	private static final Log _log = LogFactoryUtil.getLog(
-		StepTrackerFragmentRenderer.class);
 
 	@Reference
 	private CommerceOrderService _commerceOrderService;

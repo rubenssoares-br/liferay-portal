@@ -15,19 +15,25 @@
 		).put(
 			"buttonDisplayType", buttonStyle
 		).put(
-			"elementId", uuid
+			"elementId", elementId
 		).put(
 			"field", field
 		).put(
-			"fieldValue", HtmlUtil.escape(fieldValue)
+			"fieldValue", fieldValue
 		).put(
 			"fieldValueType", fieldValueType
 		).put(
-			"hasPermission", hasPermission
+			"hasManageOrderNotesPermission", hasManageOrderNotesPermission
+		).put(
+			"hasManageOrderRestrictedNotesPermission", hasManageOrderRestrictedNotesPermission
+		).put(
+			"hasUpdatePermission", hasUpdatePermission
+		).put(
+			"hasViewPermission", hasViewPermission
 		).put(
 			"isOpen", open
 		).put(
-			"label", HtmlUtil.escape(label)
+			"label", label
 		).put(
 			"namespace", namespace
 		).put(

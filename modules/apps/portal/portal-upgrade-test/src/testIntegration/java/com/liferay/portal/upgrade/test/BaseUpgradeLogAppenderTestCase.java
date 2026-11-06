@@ -5,6 +5,7 @@
 
 package com.liferay.portal.upgrade.test;
 
+import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.petra.concurrent.DCLSingleton;
 import com.liferay.petra.io.unsync.UnsyncStringWriter;
 import com.liferay.petra.lang.SafeCloseable;
@@ -13,25 +14,42 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
 import com.liferay.portal.events.StartupHelperUtil;
 import com.liferay.portal.kernel.dao.db.DB;
+import com.liferay.portal.kernel.dao.db.DBInspector;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
+import com.liferay.portal.kernel.dao.db.DuplicateUniqueFinderRowsCleaner;
 import com.liferay.portal.kernel.dao.jdbc.DataAccess;
-import com.liferay.portal.kernel.db.partition.DBPartition;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.ClassName;
 import com.liferay.portal.kernel.model.Release;
 import com.liferay.portal.kernel.model.ReleaseConstants;
+import com.liferay.portal.kernel.module.util.BundleUtil;
+import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.ClassNameLocalService;
+import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.ReleaseLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.util.PropsValuesTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.upgrade.DeleteDuplicateUniqueFinderRowsUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.UpgradeException;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.upgrade.UpgradeProcessFactory;
+import com.liferay.portal.kernel.upgrade.data.cleanup.DataCleanupPreupgradeProcess;
+import com.liferay.portal.kernel.upgrade.data.cleanup.util.OrphanReferencesDataCleanupUtil;
+import com.liferay.portal.kernel.upgrade.recorder.UpgradeLogProgressTracker;
 import com.liferay.portal.kernel.upgrade.recorder.UpgradeSQLRecorder;
+import com.liferay.portal.kernel.upgrade.util.UpgradeProcessUtil;
+import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalClassLoaderUtil;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
@@ -41,10 +59,7 @@ import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.tools.DBUpgrader;
 import com.liferay.portal.upgrade.PortalUpgradeProcess;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -52,19 +67,26 @@ import java.io.Writer;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 import java.net.URI;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 
+import java.text.DateFormat;
+
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -88,6 +110,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import org.osgi.framework.Bundle;
+
 /**
  * @author Sam Ziemer
  */
@@ -106,8 +130,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 				_db.runSQL("DROP_TABLE_IF_EXISTS(UpgradeReportTable2)");
 			});
 
-		ReflectionTestUtil.setFieldValue(
-			DBUpgrader.class, "_upgradeClient", _originalUpgradeClient);
+		UpgradeProcessUtil.setUpgradeClient(_originalUpgradeClient);
 		ReflectionTestUtil.setFieldValue(
 			PropsValues.class, "UPGRADE_LOG_CONTEXT_ENABLED",
 			_originalUpgradeLogContextEnabled);
@@ -173,6 +196,185 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		_upgradeReportLogger.removeAppender(_logContextAppender);
 
 		_logContextAppender.stop();
+	}
+
+	@Test
+	public void testDLAndLiferayHome() throws Exception {
+		_appender.start();
+
+		_appender.stop();
+
+		_assertLogContext(
+			"upgrade.report.document.library.root.directory",
+			PropsValues.LIFERAY_HOME + "/data/document_library");
+		_assertLogContext(
+			"upgrade.report.document.library.storage.implementation",
+			PropsValues.DL_STORE_IMPL);
+		_assertLogContext(
+			"upgrade.report.liferay.home", PropsValues.LIFERAY_HOME);
+
+		_assertReport(
+			"Document library root directory: " + PropsValues.LIFERAY_HOME +
+				"/data/document_library");
+		_assertReport(
+			"Document library storage implementation: " +
+				PropsValues.DL_STORE_IMPL);
+		_assertReport("Liferay home: " + PropsValues.LIFERAY_HOME);
+	}
+
+	@Test
+	public void testDLStorageSizeAfterTimeout() throws Exception {
+		_appender.start();
+
+		try (SafeCloseable safeCloseable =
+				_setUpgradeReportDLStorageSizeTimeout(1)) {
+
+			Object upgradeReport = ReflectionTestUtil.getFieldValue(
+				_appender, "_upgradeReport");
+
+			ReflectionTestUtil.setFieldValue(
+				upgradeReport, "_dlSizeSupplier",
+				(Supplier<Long>)() -> {
+					try {
+						Thread.sleep(5 * Time.SECOND);
+					}
+					catch (InterruptedException interruptedException) {
+						Thread currentThread = Thread.currentThread();
+
+						currentThread.interrupt();
+					}
+
+					return 0L;
+				});
+
+			_appender.stop();
+
+			Assert.assertTrue(
+				_getLogContent().contains(
+					"INFO - Unable to determine the document library size. " +
+						"Increase the timeout or check it manually."));
+			_assertLogContext(
+				"upgrade.report.document.library.storage.size",
+				"unable to determine");
+			_assertReport("Document library storage size: unable to determine");
+		}
+	}
+
+	@Test
+	public void testDLStorageSizeDisabled() throws Exception {
+		_appender.start();
+
+		try (SafeCloseable safeCloseable =
+				_setUpgradeReportDLStorageSizeTimeout(0)) {
+
+			_appender.stop();
+
+			_assertLogContext(
+				"upgrade.report.document.library.storage.size", "disabled");
+			_assertReport("Document library storage size: disabled");
+		}
+	}
+
+	@Test
+	public void testDLStorageSizeInGb() throws Exception {
+		_appender.start();
+
+		Object upgradeReport = ReflectionTestUtil.getFieldValue(
+			_appender, "_upgradeReport");
+
+		ReflectionTestUtil.setFieldValue(
+			upgradeReport, "_dlSizeSupplier",
+			(Supplier<Long>)() -> 1073742000L);
+
+		_appender.stop();
+
+		String size = LanguageUtil.formatStorageSize(1073742000, LocaleUtil.US);
+
+		_assertLogContext("upgrade.report.document.library.storage.size", size);
+		_assertReport("Document library storage size: " + size);
+	}
+
+	@Test
+	public void testDLStorageSizeInMb() throws Exception {
+		_appender.start();
+
+		Object upgradeReport = ReflectionTestUtil.getFieldValue(
+			_appender, "_upgradeReport");
+
+		ReflectionTestUtil.setFieldValue(
+			upgradeReport, "_dlSizeSupplier", (Supplier<Long>)() -> 1048576L);
+
+		_appender.stop();
+
+		String size = LanguageUtil.formatStorageSize(1048576, LocaleUtil.US);
+
+		_assertLogContext("upgrade.report.document.library.storage.size", size);
+		_assertReport("Document library storage size: " + size);
+	}
+
+	@Test
+	public void testDataCleanupMessages() throws Exception {
+		Thread currentThread = Thread.currentThread();
+
+		long randomCompanyId = RandomTestUtil.nextLong();
+
+		try (AutoCloseable autoCloseable =
+				ReflectionTestUtil.setFieldValueWithAutoCloseable(
+					PortalClassLoaderUtil.class, "_classLoader",
+					currentThread.getContextClassLoader());
+			Connection connection = DataAccess.getConnection()) {
+
+			_db.runSQL(
+				StringBundler.concat(
+					"insert into Portlet (mvccVersion, id_, companyId, ",
+					"portletId, active_) values (0, ",
+					RandomTestUtil.nextLong(), ", ", randomCompanyId, ", '",
+					RandomTestUtil.randomString(), "', [$FALSE$])"));
+
+			_appender.start();
+
+			UpgradeProcess upgradeProcess =
+				new TestDataCleanupPreupgradeProcess();
+
+			upgradeProcess.upgrade();
+
+			upgradeProcess =
+				new TestDeleteDuplicateUniqueFinderRowsUpgradeProcess(
+					RandomTestUtil.randomString(),
+					new String[] {RandomTestUtil.randomString()},
+					RandomTestUtil.randomString());
+
+			upgradeProcess.upgrade();
+
+			OrphanReferencesDataCleanupUtil.cleanUpTable(
+				connection, null, null, "companyId", "Portlet",
+				new String[] {"companyId"}, "Company");
+
+			_appender.stop();
+
+			DBInspector dbInspector = new DBInspector(connection);
+
+			_assertLogContextDiagnostics(
+				"upgrade.report.data.clean.up", _CLEANUP_INFO_MESSAGE);
+			_assertLogContextDiagnostics(
+				"upgrade.report.data.clean.up",
+				_DELETE_DUPLICATES_FINDER_WARNING_MESSAGE);
+			_assertLogContextDiagnostics(
+				"upgrade.report.data.clean.up",
+				StringBundler.concat(
+					"Table ", dbInspector.normalizeName("Portlet"),
+					", 1 row deleted because ",
+					dbInspector.normalizeName("companyId"), StringPool.SPACE,
+					randomCompanyId, " was not found in column ",
+					dbInspector.normalizeName("companyId"), " from table ",
+					dbInspector.normalizeName("Company")));
+			_assertLogContextDiagnostics(
+				"upgrade.report.warnings", _CLEANUP_WARNING_MESSAGE);
+		}
+		finally {
+			_db.runSQL(
+				"delete from Portlet where companyId = " + randomCompanyId);
+		}
 	}
 
 	@Test
@@ -258,141 +460,9 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		_appender.stop();
 
-		Assert.assertFalse(
-			StringUtil.contains(
-				_getReportContent(), "Table Name", StringPool.BLANK));
-	}
+		String content = _getReportContent();
 
-	@Test
-	public void testDLAndLiferayHome() throws Exception {
-		_appender.start();
-
-		_appender.stop();
-
-		_assertLogContext(
-			"upgrade.report.document.library.root.directory",
-			PropsValues.LIFERAY_HOME + "/data/document_library");
-		_assertLogContext(
-			"upgrade.report.document.library.storage.implementation",
-			PropsValues.DL_STORE_IMPL);
-		_assertLogContext(
-			"upgrade.report.liferay.home", PropsValues.LIFERAY_HOME);
-
-		_assertReport(
-			"Document library root directory: " + PropsValues.LIFERAY_HOME +
-				"/data/document_library");
-		_assertReport(
-			"Document library storage implementation: " +
-				PropsValues.DL_STORE_IMPL);
-		_assertReport("Liferay home: " + PropsValues.LIFERAY_HOME);
-	}
-
-	@Test
-	public void testDLStorageSizeAfterTimeout() throws Exception {
-		_appender.start();
-
-		try (SafeCloseable safeCloseable =
-				_setUpgradeReportDLStorageSizeTimeout(1)) {
-
-			Object upgradeReport = ReflectionTestUtil.getFieldValue(
-				_appender, "_upgradeReport");
-
-			ReflectionTestUtil.setFieldValue(
-				upgradeReport, "_dlSizeThread",
-				new Thread() {
-
-					@Override
-					public void run() {
-						try {
-							sleep(5 * Time.SECOND);
-						}
-						catch (InterruptedException interruptedException) {
-							throw new RuntimeException(interruptedException);
-						}
-					}
-
-				});
-
-			_appender.stop();
-
-			Assert.assertTrue(
-				_getLogContent().contains(
-					"INFO - Unable to determine the document library size. " +
-						"Increase the timeout or check it manually."));
-			_assertLogContext(
-				"upgrade.report.document.library.storage.size",
-				"Unable to determine");
-			_assertReport("Document library storage size: Unable to determine");
-		}
-	}
-
-	@Test
-	public void testDLStorageSizeDisabled() throws Exception {
-		_appender.start();
-
-		try (SafeCloseable safeCloseable =
-				_setUpgradeReportDLStorageSizeTimeout(0)) {
-
-			_appender.stop();
-
-			_assertLogContext(
-				"upgrade.report.document.library.storage.size", "Disabled");
-			_assertReport("Document library storage size: Disabled");
-		}
-	}
-
-	@Test
-	public void testDLStorageSizeInGb() throws Exception {
-		_appender.start();
-
-		Object upgradeReport = ReflectionTestUtil.getFieldValue(
-			_appender, "_upgradeReport");
-
-		ReflectionTestUtil.setFieldValue(
-			upgradeReport, "_dlSizeThread",
-			new Thread() {
-
-				@Override
-				public void run() {
-					ReflectionTestUtil.setFieldValue(
-						upgradeReport, "_dlSize", 1073742000);
-				}
-
-			});
-
-		_appender.stop();
-
-		String size = LanguageUtil.formatStorageSize(1073742000, LocaleUtil.US);
-
-		_assertLogContext("upgrade.report.document.library.storage.size", size);
-		_assertReport("Document library storage size: " + size);
-	}
-
-	@Test
-	public void testDLStorageSizeInMb() throws Exception {
-		_appender.start();
-
-		Object upgradeReport = ReflectionTestUtil.getFieldValue(
-			_appender, "_upgradeReport");
-
-		ReflectionTestUtil.setFieldValue(
-			upgradeReport, "_dlSizeThread",
-			new Thread() {
-
-				@Override
-				public void run() {
-					ReflectionTestUtil.setFieldValue(
-						upgradeReport, "_dlSize", 1048576);
-				}
-
-			});
-
-		_appender.stop();
-
-		String size = LanguageUtil.formatStorageSize(1048576, LocaleUtil.US);
-
-		_assertLogContext("upgrade.report.document.library.storage.size", size);
-		_assertReport("Document library storage size: " + size);
+		Assert.assertFalse(content.contains("Table Name"));
 	}
 
 	@Test
@@ -429,6 +499,69 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			"upgrade.report.jvm.arguments", inputArguments.get(0));
 
 		_assertReport(inputArguments.get(0));
+	}
+
+	@Test
+	public void testLastKnownProgressesInDiagnosticsReport() throws Exception {
+		Map<String, Long> lastKnownProgresses =
+			ReflectionTestUtil.getFieldValue(
+				UpgradeLogProgressTracker.class, "_lastKnownProgresses");
+
+		lastKnownProgresses.clear();
+
+		_appender.start();
+
+		try {
+			long currentRow = RandomTestUtil.randomLong();
+
+			lastKnownProgresses.put(_UPGRADE_PROCESS_CLASS_NAME, currentRow);
+
+			_appender.stop();
+
+			_assertReportDiagnostics(
+				StringBundler.concat(
+					_UPGRADE_PROCESS_CLASS_NAME, " processed approximately ",
+					currentRow, " rows"));
+		}
+		finally {
+			lastKnownProgresses.clear();
+		}
+	}
+
+	@Test
+	public void testLastKnownProgressesWithTotalInDiagnosticsReport()
+		throws Exception {
+
+		Map<String, Long> lastKnownProgresses =
+			ReflectionTestUtil.getFieldValue(
+				UpgradeLogProgressTracker.class, "_lastKnownProgresses");
+		Map<String, Long> lastKnownTotalCounts =
+			ReflectionTestUtil.getFieldValue(
+				UpgradeLogProgressTracker.class, "_lastKnownTotalCounts");
+
+		lastKnownProgresses.clear();
+		lastKnownTotalCounts.clear();
+
+		_appender.start();
+
+		try {
+			long currentRow = RandomTestUtil.randomLong();
+			long totalRows = RandomTestUtil.randomLong();
+
+			lastKnownProgresses.put(_UPGRADE_PROCESS_CLASS_NAME, currentRow);
+			lastKnownTotalCounts.put(_UPGRADE_PROCESS_CLASS_NAME, totalRows);
+
+			_appender.stop();
+
+			_assertReportDiagnostics(
+				StringBundler.concat(
+					_UPGRADE_PROCESS_CLASS_NAME, " processed approximately ",
+					currentRow, " of ", totalRows, " rows"));
+		}
+		finally {
+			lastKnownProgresses.clear();
+			lastKnownTotalCounts.clear();
+		}
 	}
 
 	@Test
@@ -470,28 +603,30 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 	@Test
 	public void testLongestRunningSQLsThreshold() throws Exception {
-		long originalUpgradeReportSQLStatementThreshold =
-			ReflectionTestUtil.getAndSetFieldValue(
-				UpgradeSQLRecorder.class,
-				"_UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD", 0L);
+		String aboveThresholdSQL = null;
 
-		try {
+		try (SafeCloseable safeCloseable =
+				PropsValuesTestUtil.swapWithSafeCloseable(
+					"UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD", 0L)) {
+
 			_appender.start();
 
-			String aboveThresholdSQL =
+			aboveThresholdSQL =
 				"insert into UpgradeReportTable1 (id_) values (2)";
 
 			UpgradeProcess aboveThresholdUpgradeProcess =
 				UpgradeProcessFactory.runSQL(aboveThresholdSQL);
 
 			aboveThresholdUpgradeProcess.upgrade();
+		}
 
-			ReflectionTestUtil.setFieldValue(
-				UpgradeSQLRecorder.class,
-				"_UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD", 60000L);
+		String belowThresholdSQL = null;
 
-			String belowThresholdSQL =
-				"delete from UpgradeReportTable1 where id_ = 2";
+		try (SafeCloseable safeCloseable =
+				PropsValuesTestUtil.swapWithSafeCloseable(
+					"UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD", 60000L)) {
+
+			belowThresholdSQL = "delete from UpgradeReportTable1 where id_ = 2";
 
 			UpgradeProcess belowThresholdUpgradeProcess =
 				UpgradeProcessFactory.runSQL(belowThresholdSQL);
@@ -499,24 +634,13 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			belowThresholdUpgradeProcess.upgrade();
 
 			_appender.stop();
-
-			String longestRunningSQLs = _getLogContextValueDiagnostics(
-				"upgrade.report.longest.running.sqls");
-
-			Assert.assertFalse(
-				StringUtil.contains(
-					longestRunningSQLs, belowThresholdSQL, StringPool.BLANK));
-
-			Assert.assertTrue(
-				StringUtil.contains(
-					longestRunningSQLs, aboveThresholdSQL, StringPool.BLANK));
 		}
-		finally {
-			ReflectionTestUtil.setFieldValue(
-				UpgradeSQLRecorder.class,
-				"_UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD",
-				originalUpgradeReportSQLStatementThreshold);
-		}
+
+		String longestRunningSQLs = _getLogContextValueDiagnostics(
+			"upgrade.report.longest.running.sqls");
+
+		Assert.assertFalse(longestRunningSQLs.contains(belowThresholdSQL));
+		Assert.assertTrue(longestRunningSQLs.contains(aboveThresholdSQL));
 	}
 
 	@Test
@@ -560,9 +684,8 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			"upgrade.report.longest.upgrade.processes");
 
 		Assert.assertFalse(
-			StringUtil.contains(
-				longestUpgradeProcessesValue, belowThresholdUpgradeProcessName,
-				StringPool.BLANK));
+			longestUpgradeProcessesValue.contains(
+				belowThresholdUpgradeProcessName));
 
 		int index1 = longestUpgradeProcessesValue.indexOf(
 			slowerUpgradeProcessClassName);
@@ -653,12 +776,12 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 			_appender.stop();
 
+			String logEntries = String.valueOf(logCapture.getLogEntries());
+
 			Assert.assertTrue(
-				StringUtil.contains(
-					String.valueOf(logCapture.getLogEntries()),
+				logEntries.contains(
 					"Upgrade report was not generated because no upgrade " +
-						"processes were executed",
-					StringPool.BLANK));
+						"processes were executed"));
 		}
 
 		File file = new File(
@@ -671,6 +794,45 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			"upgrade_report_diagnostics.txt");
 
 		Assert.assertTrue(!file.exists());
+	}
+
+	@Test
+	public void testPostUpgradeDataCleanupMessages() throws Exception {
+		Thread currentThread = Thread.currentThread();
+
+		ClassName className = null;
+
+		try (AutoCloseable autoCloseable =
+				ReflectionTestUtil.setFieldValueWithAutoCloseable(
+					PortalClassLoaderUtil.class, "_classLoader",
+					currentThread.getContextClassLoader());
+			Connection connection = DataAccess.getConnection()) {
+
+			String value = "com.liferay.test." + RandomTestUtil.randomString();
+
+			className = _classNameLocalService.addClassName(value);
+
+			_appender.start();
+
+			_runClassNamePostUpgradeDataCleanUpProcess(connection);
+
+			_appender.stop();
+
+			DBInspector dbInspector = new DBInspector(connection);
+
+			_assertLogContextDiagnostics(
+				"upgrade.report.data.clean.up",
+				StringBundler.concat(
+					"Table ", dbInspector.normalizeName("ClassName_"),
+					", 1 row deleted because \"", value,
+					"\" is not defined in any deployed module and is not in ",
+					"use"));
+		}
+		finally {
+			if (className != null) {
+				_classNameLocalService.deleteClassName(className);
+			}
+		}
 	}
 
 	@Test
@@ -706,7 +868,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		properties.setProperty("my.property", "my property value");
 
-		PropsUtil.addProperties(properties);
+		PropsUtil.set("my.property", "my property value");
 
 		try (Writer writer = new FileWriter(file)) {
 			properties.store(writer, null);
@@ -738,46 +900,6 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 	}
 
 	@Test
-	public void testSchemaVersion() throws Exception {
-		_appender.start();
-
-		_restoreRelease();
-
-		_appender.stop();
-
-		_assertLogContext(
-			"upgrade.report.portal.expected.build.number",
-			String.valueOf(ReleaseInfo.getBuildNumber()));
-
-		Version latestSchemaVersion =
-			PortalUpgradeProcess.getLatestSchemaVersion();
-
-		_assertLogContext(
-			"upgrade.report.portal.expected.schema.version",
-			latestSchemaVersion.toString());
-
-		_assertLogContext(
-			"upgrade.report.portal.final.build.number",
-			String.valueOf(ReleaseInfo.getBuildNumber()));
-		_assertLogContext(
-			"upgrade.report.portal.final.schema.version",
-			latestSchemaVersion.toString());
-		_assertLogContext("upgrade.report.portal.initial.build.number", "7100");
-		_assertLogContext(
-			"upgrade.report.portal.initial.schema.version", "1.0.0");
-		_assertReport(
-			StringBundler.concat(
-				"Portal initial build number: 7100\n",
-				"Portal initial schema version: 1.0.0\n",
-				"Portal final build number: ", ReleaseInfo.getBuildNumber(),
-				StringPool.NEW_LINE, "Portal final schema version: ",
-				latestSchemaVersion, StringPool.NEW_LINE,
-				"Portal expected build number: ", ReleaseInfo.getBuildNumber(),
-				StringPool.NEW_LINE, "Portal expected schema version: ",
-				latestSchemaVersion, StringPool.NEW_LINE));
-	}
-
-	@Test
 	public void testSQLStatementsWithClassNameAndDuration() throws Exception {
 		String sql1 = "insert into UpgradeReportTable1 (id_) values (2)";
 
@@ -797,7 +919,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		DBPartitionUtil.forEachCompanyId(
 			companyId -> {
-				if (DBPartition.isPartitionEnabled()) {
+				if (PropsValues.DATABASE_PARTITION_ENABLED) {
 					upgradeProcess1ClassNames.add(
 						upgradeProcess1Class.getName() + StringPool.AT +
 							CompanyThreadLocal.getCompanyId());
@@ -815,12 +937,10 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 				}
 			});
 
-		long originalUpgradeReportSQLStatementThreshold =
-			ReflectionTestUtil.getAndSetFieldValue(
-				UpgradeSQLRecorder.class,
-				"_UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD", 0L);
+		try (SafeCloseable safeCloseable =
+				PropsValuesTestUtil.swapWithSafeCloseable(
+					"UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD", 0L)) {
 
-		try {
 			_appender.start();
 
 			upgradeProcess1.upgrade();
@@ -870,12 +990,46 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 						upgradeProcessClassName, sql, duration));
 			}
 		}
-		finally {
-			ReflectionTestUtil.setFieldValue(
-				UpgradeSQLRecorder.class,
-				"_UPGRADE_REPORT_SQL_STATEMENT_THRESHOLD",
-				originalUpgradeReportSQLStatementThreshold);
-		}
+	}
+
+	@Test
+	public void testSchemaVersion() throws Exception {
+		_appender.start();
+
+		_restoreRelease();
+
+		_appender.stop();
+
+		_assertLogContext(
+			"upgrade.report.portal.expected.build.number",
+			String.valueOf(ReleaseInfo.getBuildNumber()));
+
+		Version latestSchemaVersion =
+			PortalUpgradeProcess.getLatestSchemaVersion();
+
+		_assertLogContext(
+			"upgrade.report.portal.expected.schema.version",
+			latestSchemaVersion.toString());
+
+		_assertLogContext(
+			"upgrade.report.portal.final.build.number",
+			String.valueOf(ReleaseInfo.getBuildNumber()));
+		_assertLogContext(
+			"upgrade.report.portal.final.schema.version",
+			latestSchemaVersion.toString());
+		_assertLogContext("upgrade.report.portal.initial.build.number", "7100");
+		_assertLogContext(
+			"upgrade.report.portal.initial.schema.version", "1.0.0");
+		_assertReport(
+			StringBundler.concat(
+				"Portal initial build number: 7100\n",
+				"Portal initial schema version: 1.0.0\n",
+				"Portal final build number: ", ReleaseInfo.getBuildNumber(),
+				"\nPortal final schema version: ", latestSchemaVersion,
+				"\nPortal expected build number: ",
+				ReleaseInfo.getBuildNumber(),
+				"\nPortal expected schema version: ", latestSchemaVersion,
+				StringPool.NEW_LINE));
 	}
 
 	@Test
@@ -943,8 +1097,9 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 	@Test
 	public void testUpgradeReportDisabled() throws Exception {
-		boolean originalUpgradeEnable = ReflectionTestUtil.getAndSetFieldValue(
-			PropsValues.class, "UPGRADE_REPORT_ENABLED", false);
+		boolean originalUpgradeReportEnabled =
+			ReflectionTestUtil.getAndSetFieldValue(
+				PropsValues.class, "UPGRADE_REPORT_ENABLED", false);
 
 		try {
 			_appender.start();
@@ -962,7 +1117,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		finally {
 			ReflectionTestUtil.setFieldValue(
 				PropsValues.class, "UPGRADE_REPORT_ENABLED",
-				originalUpgradeEnable);
+				originalUpgradeReportEnabled);
 		}
 	}
 
@@ -985,8 +1140,9 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		_originalNewRelease = ReflectionTestUtil.getFieldValue(
 			StartupHelperUtil.class, "_newRelease");
 
-		_originalUpgradeClient = ReflectionTestUtil.getAndSetFieldValue(
-			DBUpgrader.class, "_upgradeClient", upgradeClient);
+		_originalUpgradeClient = UpgradeProcessUtil.isUpgradeClient();
+
+		UpgradeProcessUtil.setUpgradeClient(upgradeClient);
 
 		_originalUpgradeLogContextEnabled =
 			ReflectionTestUtil.getAndSetFieldValue(
@@ -1009,6 +1165,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		throws Exception {
 
 		try (Connection connection = DataAccess.getConnection();
+
 			PreparedStatement preparedStatement = connection.prepareStatement(
 				"update Release_ set schemaVersion = ?, buildNumber = ? " +
 					"where releaseId = ?")) {
@@ -1051,8 +1208,12 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		_appender.stop();
 
+		DateFormat dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+			"yyyyMMdd_HHmmss", LocaleUtil.US, TimeZone.getTimeZone("UTC"));
+
 		reportFile = _getReportFile(
-			reportFileName + "." + reportFile1LastModified);
+			reportFileName + "." +
+				dateFormat.format(new Date(reportFile1LastModified)));
 
 		Assert.assertTrue(reportFile.exists());
 
@@ -1067,8 +1228,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			_reportContent = _getReportContent();
 		}
 
-		Assert.assertTrue(
-			StringUtil.contains(_reportContent, testString, StringPool.BLANK));
+		Assert.assertTrue(_reportContent.contains(testString));
 	}
 
 	private void _assertReportDiagnostics(String testString) throws Exception {
@@ -1076,9 +1236,7 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			_diagnosticsReportContent = _getReportContentDiagnostics();
 		}
 
-		Assert.assertTrue(
-			StringUtil.contains(
-				_diagnosticsReportContent, testString, StringPool.BLANK));
+		Assert.assertTrue(_diagnosticsReportContent.contains(testString));
 	}
 
 	private void _assertTablesAreSortedByInitialRows(Matcher matcher) {
@@ -1113,15 +1271,15 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		URI uri = reportFile.toURI();
 
-		Assert.assertTrue(
-			StringUtil.contains(
-				uri.getPath(), _upgradeReportDir, StringPool.BLANK));
+		String path = uri.getPath();
+
+		Assert.assertTrue(path.contains(_upgradeReportDir));
+
+		String logEntries = String.valueOf(logCapture.getLogEntries());
 
 		Assert.assertTrue(
-			StringUtil.contains(
-				String.valueOf(logCapture.getLogEntries()),
-				"Upgrade report generated in " + reportFile.getAbsolutePath(),
-				StringPool.BLANK));
+			logEntries.contains(
+				"Upgrade report generated in " + reportFile.getAbsolutePath()));
 	}
 
 	private void _assertUpgradeReportDirectoryWriteProtected(
@@ -1132,11 +1290,10 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		Assert.assertFalse(reportFile.exists());
 
+		String logEntries = String.valueOf(logCapture.getLogEntries());
+
 		Assert.assertTrue(
-			StringUtil.contains(
-				String.valueOf(logCapture.getLogEntries()),
-				"Unable to generate the upgrade report at /",
-				StringPool.BLANK));
+			logEntries.contains("Unable to generate the upgrade report at /"));
 
 		_upgradeReportDir = "";
 
@@ -1144,10 +1301,8 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 
 		Assert.assertTrue(reportFile.exists());
 		Assert.assertTrue(
-			StringUtil.contains(
-				String.valueOf(logCapture.getLogEntries()),
-				"Upgrade report generated in " + reportFile.getAbsolutePath(),
-				StringPool.BLANK));
+			logEntries.contains(
+				"Upgrade report generated in " + reportFile.getAbsolutePath()));
 	}
 
 	private String _getLogContent() {
@@ -1235,6 +1390,30 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 		return new File(reportsDir, reportFileName);
 	}
 
+	private void _runClassNamePostUpgradeDataCleanUpProcess(
+			Connection connection)
+		throws Exception {
+
+		Bundle bundle = BundleUtil.getBundle(
+			SystemBundleUtil.getBundleContext(),
+			"com.liferay.data.cleanup.impl");
+
+		Class<?> clazz = bundle.loadClass(
+			"com.liferay.data.cleanup.internal.verify." +
+				"ClassNamePostUpgradeDataCleanupProcess");
+
+		Method method = clazz.getMethod("cleanUp");
+
+		Constructor<?> constructor = clazz.getConstructor(
+			ClassNameLocalService.class, CompanyLocalService.class,
+			Connection.class, ObjectDefinitionLocalService.class);
+
+		method.invoke(
+			constructor.newInstance(
+				_classNameLocalService, _companyLocalService, connection,
+				_objectDefinitionLocalService));
+	}
+
 	private void _setEnv(String key, String value) throws Exception {
 		Map<String, String> env = System.getenv();
 
@@ -1261,8 +1440,19 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 			originalUpgradeReportDLStorageSizeTimeout);
 	}
 
+	private static final String _CLEANUP_INFO_MESSAGE =
+		RandomTestUtil.randomString();
+
+	private static final String _CLEANUP_WARNING_MESSAGE =
+		RandomTestUtil.randomString();
+
+	private static final String _DELETE_DUPLICATES_FINDER_WARNING_MESSAGE =
+		RandomTestUtil.randomString();
+
+	private static final String _UPGRADE_PROCESS_CLASS_NAME =
+		"com.liferay.test.SampleUpgradeProcess";
+
 	private static DB _db;
-	private static Appender _logContextAppender;
 	private static final Pattern _logContextTablesInitialFinalRowsPattern =
 		Pattern.compile("(\\w+_?):(\\d+|-):(\\d+|-)");
 	private static boolean _originalNewRelease;
@@ -1271,18 +1461,20 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 	private static final Pattern _pattern = Pattern.compile(
 		"(\\w+_?)\\s+(\\d+|-)\\s+(\\d+|-)\n");
 
-	@Inject(
-		filter = "component.name=com.liferay.portal.upgrade.internal.recorder.UpgradeRecorder",
-		type = Inject.NoType.class
-	)
-	private static Object _upgradeRecorder;
-
-	private static Logger _upgradeReportLogger;
-
 	@Inject(filter = "appender.name=UpgradeLogAppender")
 	private Appender _appender;
 
+	@Inject
+	private ClassNameLocalService _classNameLocalService;
+
+	@Inject
+	private CompanyLocalService _companyLocalService;
+
 	private String _diagnosticsReportContent;
+	private Appender _logContextAppender;
+
+	@Inject
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Inject
 	private ReleaseLocalService _releaseLocalService;
@@ -1290,6 +1482,69 @@ public abstract class BaseUpgradeLogAppenderTestCase {
 	private String _reportContent;
 	private final UnsyncStringWriter _unsyncStringWriter =
 		new UnsyncStringWriter();
+
+	@Inject(
+		filter = "component.name=com.liferay.portal.upgrade.internal.recorder.UpgradeRecorder",
+		type = Inject.NoType.class
+	)
+	private Object _upgradeRecorder;
+
 	private String _upgradeReportDir = "";
+	private Logger _upgradeReportLogger;
+
+	private class TestDataCleanupPreupgradeProcess
+		extends DataCleanupPreupgradeProcess {
+
+		@Override
+		protected void doUpgrade() throws Exception {
+			LogEvent logEvent = Log4jLogEvent.newBuilder(
+			).setLoggerName(
+				TestDataCleanupPreupgradeProcess.class.getName()
+			).setLevel(
+				Level.WARN
+			).setMessage(
+				new SimpleMessage(_CLEANUP_WARNING_MESSAGE)
+			).build();
+
+			_appender.append(logEvent);
+
+			logEvent = Log4jLogEvent.newBuilder(
+			).setLoggerName(
+				TestDataCleanupPreupgradeProcess.class.getName()
+			).setLevel(
+				Level.INFO
+			).setMessage(
+				new SimpleMessage(_CLEANUP_INFO_MESSAGE)
+			).build();
+
+			_appender.append(logEvent);
+		}
+
+	}
+
+	private class TestDeleteDuplicateUniqueFinderRowsUpgradeProcess
+		extends DeleteDuplicateUniqueFinderRowsUpgradeProcess {
+
+		public TestDeleteDuplicateUniqueFinderRowsUpgradeProcess(
+			String tableName, String[] columnNames, String orderByClause) {
+
+			super(tableName, columnNames, orderByClause);
+		}
+
+		@Override
+		protected void doUpgrade() throws Exception {
+			LogEvent logEvent = Log4jLogEvent.newBuilder(
+			).setLoggerName(
+				DuplicateUniqueFinderRowsCleaner.class.getName()
+			).setLevel(
+				Level.INFO
+			).setMessage(
+				new SimpleMessage(_DELETE_DUPLICATES_FINDER_WARNING_MESSAGE)
+			).build();
+
+			_appender.append(logEvent);
+		}
+
+	}
 
 }

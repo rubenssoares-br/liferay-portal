@@ -99,6 +99,15 @@ public class CPOptionCategoryServiceWrapper
 				externalReferenceCode, companyId);
 	}
 
+	@Override
+	public CPOptionCategory getOrAddEmptyCPOptionCategory(
+			String externalReferenceCode)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _cpOptionCategoryService.getOrAddEmptyCPOptionCategory(
+			externalReferenceCode);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -148,3 +157,4 @@ public class CPOptionCategoryServiceWrapper
 	private CPOptionCategoryService _cpOptionCategoryService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1420062981

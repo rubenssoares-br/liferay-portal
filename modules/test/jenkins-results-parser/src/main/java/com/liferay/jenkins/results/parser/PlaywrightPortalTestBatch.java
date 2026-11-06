@@ -8,7 +8,10 @@ package com.liferay.jenkins.results.parser;
 import java.io.File;
 import java.io.IOException;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Michael Hashimoto
@@ -38,6 +41,22 @@ public class PlaywrightPortalTestBatch
 	}
 
 	@Override
+	protected void executeBatch() throws AntException {
+		PortalBatchBuildData portalBatchBuildData = getBatchBuildData();
+
+		Map<String, String> buildParameters = new HashMap<>();
+
+		buildParameters.put("axis.variable", "0");
+		buildParameters.put(
+			"test.batch.name", portalBatchBuildData.getBatchName());
+
+		AntUtil.callTarget(
+			getPrimaryPortalWorkspaceDirectory(), "build-test-batch.xml",
+			portalBatchBuildData.getBatchName(), buildParameters,
+			getEnvironmentVariables(), getAntLibDir());
+	}
+
+	@Override
 	protected Map<String, String> getEnvironmentVariables() {
 		Map<String, String> environmentVariables =
 			super.getEnvironmentVariables();
@@ -51,8 +70,23 @@ public class PlaywrightPortalTestBatch
 			"PORTAL_BATCH_TEST_SELECTOR");
 
 		if (!JenkinsResultsParserUtil.isNullOrEmpty(portalBatchTestSelector)) {
-			environmentVariables.put(
-				"PLAYWRIGHT_PROJECT_NAME", portalBatchTestSelector);
+			Matcher matcher = _playwrightFileNamePattern.matcher(
+				portalBatchTestSelector);
+
+			if (matcher.matches()) {
+				environmentVariables.put(
+					"PLAYWRIGHT_ARGS_0", portalBatchTestSelector);
+
+				String projectName = matcher.group("projectName");
+
+				environmentVariables.put(
+					"PLAYWRIGHT_PROJECT_NAME",
+					projectName.replaceAll("/", "."));
+			}
+			else {
+				environmentVariables.put(
+					"PLAYWRIGHT_PROJECT_NAME", portalBatchTestSelector);
+			}
 		}
 
 		return environmentVariables;
@@ -95,7 +129,7 @@ public class PlaywrightPortalTestBatch
 		sb.append(portalBatchBuildData.getTopLevelMasterHostname());
 		sb.append(".liferay.com/userContent/");
 		sb.append(portalBatchBuildData.getUserContentRelativePath());
-		sb.append(portalBatchBuildData.getRunID());
+		sb.append(portalBatchBuildData.getRunId());
 		sb.append("/playwright-reports/index.html\">Playwright Report</a>");
 
 		sb.append("<ul>");
@@ -110,5 +144,8 @@ public class PlaywrightPortalTestBatch
 
 		portalBatchBuildData.setBuildDescription(sb.toString());
 	}
+
+	private static final Pattern _playwrightFileNamePattern = Pattern.compile(
+		"tests/(?<filePath>(?<projectName>.+)/[^/]+.spec.ts)");
 
 }

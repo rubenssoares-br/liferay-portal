@@ -6,15 +6,17 @@
 package com.liferay.headless.admin.content.client.serdes.v1_0;
 
 import com.liferay.headless.admin.content.client.dto.v1_0.Creator;
+import com.liferay.headless.admin.content.client.dto.v1_0.UserGroupBrief;
 import com.liferay.headless.admin.content.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -68,6 +70,20 @@ public class CreatorSerDes {
 			sb.append("\"");
 
 			sb.append(_escape(creator.getContentType()));
+
+			sb.append("\"");
+		}
+
+		if (creator.getExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(creator.getExternalReferenceCode()));
 
 			sb.append("\"");
 		}
@@ -152,6 +168,26 @@ public class CreatorSerDes {
 			sb.append("\"");
 		}
 
+		if (creator.getUserGroupBriefs() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"userGroupBriefs\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < creator.getUserGroupBriefs().length; i++) {
+				sb.append(String.valueOf(creator.getUserGroupBriefs()[i]));
+
+				if ((i + 1) < creator.getUserGroupBriefs().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
@@ -183,6 +219,15 @@ public class CreatorSerDes {
 		}
 		else {
 			map.put("contentType", String.valueOf(creator.getContentType()));
+		}
+
+		if (creator.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(creator.getExternalReferenceCode()));
 		}
 
 		if (creator.getFamilyName() == null) {
@@ -227,6 +272,15 @@ public class CreatorSerDes {
 			map.put("profileURL", String.valueOf(creator.getProfileURL()));
 		}
 
+		if (creator.getUserGroupBriefs() == null) {
+			map.put("userGroupBriefs", null);
+		}
+		else {
+			map.put(
+				"userGroupBriefs",
+				String.valueOf(creator.getUserGroupBriefs()));
+		}
+
 		return map;
 	}
 
@@ -250,6 +304,11 @@ public class CreatorSerDes {
 			else if (Objects.equals(jsonParserFieldName, "contentType")) {
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "familyName")) {
 				return false;
 			}
@@ -266,6 +325,9 @@ public class CreatorSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "profileURL")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "userGroupBriefs")) {
 				return false;
 			}
 
@@ -285,6 +347,14 @@ public class CreatorSerDes {
 			else if (Objects.equals(jsonParserFieldName, "contentType")) {
 				if (jsonParserFieldValue != null) {
 					creator.setContentType((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					creator.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "familyName")) {
@@ -315,6 +385,22 @@ public class CreatorSerDes {
 			else if (Objects.equals(jsonParserFieldName, "profileURL")) {
 				if (jsonParserFieldValue != null) {
 					creator.setProfileURL((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "userGroupBriefs")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					UserGroupBrief[] userGroupBriefsArray =
+						new UserGroupBrief[jsonParserFieldValues.length];
+
+					for (int i = 0; i < userGroupBriefsArray.length; i++) {
+						userGroupBriefsArray[i] = UserGroupBriefSerDes.toDTO(
+							(String)jsonParserFieldValues[i]);
+					}
+
+					creator.setUserGroupBriefs(userGroupBriefsArray);
 				}
 			}
 		}
@@ -362,6 +448,16 @@ public class CreatorSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -394,3 +490,4 @@ public class CreatorSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:718392453

@@ -21,20 +21,20 @@ import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.servlet.filters.authverifier.AuthVerifierFilter;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.Dictionary;
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -348,12 +348,14 @@ public class AuthVerifierFilterTracker {
 					_defaultRegistrationProperties);
 
 			for (String key : serviceReference.getPropertyKeys()) {
-				if (key.startsWith(AUTH_VERIFIER_PROPERTY_PREFIX)) {
-					properties.put(
-						"filter.init." +
-							key.substring(AUTH_VERIFIER_PROPERTY_PREFIX_LENGTH),
-						serviceReference.getProperty(key));
+				if (!key.startsWith(AUTH_VERIFIER_PROPERTY_PREFIX)) {
+					continue;
 				}
+
+				properties.put(
+					"filter.init." +
+						key.substring(AUTH_VERIFIER_PROPERTY_PREFIX_LENGTH),
+					serviceReference.getProperty(key));
 			}
 
 			_putWhiteboardProperties(properties, serviceReference);
@@ -394,9 +396,11 @@ public class AuthVerifierFilterTracker {
 			properties.putAll(_defaultWhiteboardProperties);
 
 			for (String key : serviceReference.getPropertyKeys()) {
-				if (key.startsWith("osgi.http.whiteboard")) {
-					properties.put(key, serviceReference.getProperty(key));
+				if (!key.startsWith("osgi.http.whiteboard")) {
+					continue;
 				}
+
+				properties.put(key, serviceReference.getProperty(key));
 			}
 
 			properties.put(

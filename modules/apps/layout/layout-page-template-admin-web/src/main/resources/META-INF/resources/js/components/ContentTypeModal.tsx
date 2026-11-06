@@ -5,15 +5,17 @@
 
 import ClayAlert from '@clayui/alert';
 import ClayButton from '@clayui/button';
+import ClayLoadingIndicator from '@clayui/loading-indicator';
 import ClayModal, {useModal} from '@clayui/modal';
-import {fetch, navigate, openModal} from 'frontend-js-web';
+import {openModal} from 'frontend-js-components-web';
+import {fetch, navigate} from 'frontend-js-web';
 import React, {useCallback, useRef, useState} from 'react';
 
 import openInUseModal from '../commands/openInUseModal';
 import {ModalType} from '../constants/modalTypes';
 import {MappingType} from '../types/MappingTypes';
 import {ValidationError} from '../types/ValidationError';
-import ContentTypeModalForm from './ContentTypeModalForm';
+import ContentTypeModalForm, {validateForm} from './ContentTypeModalForm';
 
 interface Props {
 	description?: string;
@@ -100,43 +102,13 @@ export default function ContentTypeModal({
 
 	const formRef = useRef<HTMLFormElement>(null);
 
-	const validateForm = useCallback(
-		(form) => {
-			const {elements} = form;
-			const error: ValidationError = {};
-
-			const errorMessage = Liferay.Language.get('this-field-is-required');
-
-			const nameField = elements[`${namespace}name`];
-
-			if (nameField && !nameField.value) {
-				error.name = errorMessage;
-			}
-
-			const classNameIdField = elements[`${namespace}classNameId`];
-
-			if (classNameIdField.selectedIndex === 0) {
-				error.classNameId = errorMessage;
-			}
-
-			const classTypeIdField = elements[`${namespace}classTypeId`];
-
-			if (classTypeIdField && classTypeIdField.selectedIndex === 0) {
-				error.classTypeId = errorMessage;
-			}
-
-			return error;
-		},
-		[namespace]
-	);
-
 	const handleSubmit = useCallback(
-		(event) => {
+		(event: React.SyntheticEvent) => {
 			event.preventDefault();
 
 			const form = formRef.current;
 
-			const error = validateForm(form);
+			const error = validateForm(form, namespace);
 
 			if (Object.keys(error).length !== 0) {
 				setError(error);
@@ -204,12 +176,16 @@ export default function ContentTypeModal({
 					})
 				);
 		},
-		[formSubmitURL, onClose, validateForm]
+		[formSubmitURL, namespace, onClose]
 	);
 
 	return (
 		<ClayModal observer={observer}>
-			<ClayModal.Header>{title}</ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
+				{title}
+			</ClayModal.Header>
 
 			<ModalContent
 				disableWarning={disableWarning}
@@ -251,10 +227,10 @@ export default function ContentTypeModal({
 						>
 							{loading && (
 								<span className="inline-item inline-item-before">
-									<span
-										aria-hidden="true"
-										className="loading-animation"
-									></span>
+									<ClayLoadingIndicator
+										displayType="secondary"
+										size="sm"
+									/>
 								</span>
 							)}
 

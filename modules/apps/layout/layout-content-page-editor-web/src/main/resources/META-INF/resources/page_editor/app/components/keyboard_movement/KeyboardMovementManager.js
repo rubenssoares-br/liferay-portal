@@ -4,7 +4,8 @@
  */
 
 import {useEventListener} from '@liferay/frontend-js-react-web';
-import {openToast, sub} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {sub} from 'frontend-js-web';
 import {useEffect, useRef} from 'react';
 
 import {FRAGMENT_ENTRY_TYPES} from '../../config/constants/fragmentEntryTypes';
@@ -43,6 +44,7 @@ import getDropData from '../../utils/drag_and_drop/getDropData';
 import itemIsAncestor from '../../utils/drag_and_drop/itemIsAncestor';
 import {getFormParent} from '../../utils/getFormParent';
 import {isMultistepForm} from '../../utils/isMultistepForm';
+import isStepper from '../../utils/isStepper';
 import {isUnmappedCollection} from '../../utils/isUnmappedCollection';
 import {openFormConversionModal} from '../../utils/openFormConversionModal';
 
@@ -77,9 +79,7 @@ export default function KeyboardMovementManager() {
 
 	const getWidgets = useGetWidgets();
 
-	const selectItems = Liferay.FeatureFlags['LPD-18221']
-		? selectMultipleItems
-		: selectItem;
+	const selectItems = selectMultipleItems;
 
 	keymapRef.current = {
 		disableMovement: {
@@ -95,7 +95,7 @@ export default function KeyboardMovementManager() {
 					? ACTION_TYPES.move
 					: ACTION_TYPES.add;
 
-				const {dropItemId, position} = getDropData({
+				const {position, targetId} = getDropData({
 					isElevation: target.position !== TARGET_POSITIONS.MIDDLE,
 					layoutDataRef,
 					sourceItemId: lastSource.itemId,
@@ -114,15 +114,15 @@ export default function KeyboardMovementManager() {
 						return;
 					}
 
-					thunk = lastSource.fieldTypes?.includes('stepper')
+					thunk = isStepper(lastSource)
 						? moveStepper({
 								itemId: lastSource.itemId,
-								parentItemId: dropItemId,
+								parentItemId: targetId,
 								position,
 							})
 						: moveItems({
 								itemIds: sources.map(({itemId}) => itemId),
-								parentItemIds: [dropItemId],
+								parentItemIds: [targetId],
 								positions: [position],
 							});
 				}
@@ -132,18 +132,18 @@ export default function KeyboardMovementManager() {
 					if (source.type === LAYOUT_DATA_ITEM_TYPES.fragment) {
 						if (source.isWidget) {
 							thunk = addWidget({
-								parentItemId: dropItemId,
+								parentItemId: targetId,
 								portletId: source.portletId,
 								portletItemId: source.portletItemId,
 								position,
 								selectItems,
 							});
 						}
-						else if (source.fieldTypes?.includes('stepper')) {
+						else if (isStepper(source)) {
 							thunk = addStepper({
 								fragmentEntryKey: source.fragmentEntryKey,
 								groupId: source.groupId,
-								parentItemId: dropItemId,
+								parentItemId: targetId,
 								position,
 								selectItems,
 								type: source.type,
@@ -153,7 +153,7 @@ export default function KeyboardMovementManager() {
 							thunk = addFragment({
 								fragmentEntryKey: source.fragmentEntryKey,
 								groupId: source.groupId,
-								parentItemId: dropItemId,
+								parentItemId: targetId,
 								position,
 								selectItems,
 								type: source.fragmentEntryType,
@@ -163,7 +163,7 @@ export default function KeyboardMovementManager() {
 					else {
 						thunk = addItem({
 							itemType: source.type,
-							parentItemId: dropItemId,
+							parentItemId: targetId,
 							position,
 							selectItems,
 						});
@@ -196,13 +196,11 @@ export default function KeyboardMovementManager() {
 
 				if (
 					formParent &&
-					sources.every((source) =>
-						source.fieldTypes?.includes('stepper')
-					) &&
+					sources.every((source) => isStepper(source)) &&
 					!isMultistepForm(formParent)
 				) {
 					openFormConversionModal({
-						onContinue: () => executeAction(),
+						onContinue: async () => executeAction(),
 					});
 				}
 				else {
@@ -400,7 +398,7 @@ export function getInitialTarget(
 			layoutDataRef.current,
 			fragmentEntryLinksRef.current,
 			getWidgets
-		);
+		).valid;
 
 		// Check root children to see if someone is targetable
 
@@ -521,7 +519,7 @@ function getNextTarget(
 					layoutDataRef.current,
 					fragmentEntryLinksRef.current,
 					getWidgets
-				)
+				).valid
 			) {
 				return getNextTarget(
 					source,
@@ -543,7 +541,7 @@ function getNextTarget(
 					layoutDataRef.current,
 					fragmentEntryLinksRef.current,
 					getWidgets
-				)
+				).valid
 			) {
 				return getNextTarget(
 					source,
@@ -565,7 +563,7 @@ function getNextTarget(
 					layoutDataRef.current,
 					fragmentEntryLinksRef.current,
 					getWidgets
-				)
+				).valid
 			) {
 				return getNextTarget(
 					source,
@@ -718,7 +716,7 @@ function showErrorToast(source) {
 
 	if (source.fragmentEntryType === FRAGMENT_ENTRY_TYPES.input) {
 		error = Liferay.Language.get(
-			'form-components-can-only-be-placed-inside-a-mapped-form-container'
+			'this-form-component-can-only-be-placed-inside-a-mapped-form-container'
 		);
 	}
 

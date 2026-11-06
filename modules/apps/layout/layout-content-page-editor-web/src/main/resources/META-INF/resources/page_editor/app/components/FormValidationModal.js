@@ -40,11 +40,14 @@ export function FormValidationModal({onCloseModal, onPublish}) {
 
 	return (
 		<ClayModal
+			center
 			className="page-editor__form-validation-modal"
 			observer={observer}
 			status="warning"
 		>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{Liferay.Language.get('form-errors')}
 			</ClayModal.Header>
 
@@ -122,11 +125,16 @@ function SingleErrorModal({formValidation, observer, onClose, onPublish}) {
 
 	return (
 		<ClayModal
+			center
 			className="page-editor__form-validation-modal"
 			observer={observer}
 			status="warning"
 		>
-			<ClayModal.Header>{title}</ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
+				{title}
+			</ClayModal.Header>
 
 			<ClayModal.Body>
 				<p className="mb-0">{message}</p>

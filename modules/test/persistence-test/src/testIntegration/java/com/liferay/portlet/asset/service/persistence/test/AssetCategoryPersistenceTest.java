@@ -115,11 +115,7 @@ public class AssetCategoryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		AssetCategory newAssetCategory = _persistence.create(pk);
-
-		newAssetCategory.setMvccVersion(RandomTestUtil.nextLong());
+		AssetCategory newAssetCategory = addAssetCategory();
 
 		newAssetCategory.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -152,9 +148,15 @@ public class AssetCategoryPersistenceTest {
 
 		newAssetCategory.setVocabularyId(RandomTestUtil.nextLong());
 
+		newAssetCategory.setSystem(RandomTestUtil.randomBoolean());
+
 		newAssetCategory.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_assetCategories.add(_persistence.update(newAssetCategory));
+		newAssetCategory.setStatus(RandomTestUtil.nextInt());
+
+		newAssetCategory = _persistence.update(newAssetCategory);
+
+		_assetCategories.add(newAssetCategory);
 
 		AssetCategory existingAssetCategory = _persistence.findByPrimaryKey(
 			newAssetCategory.getPrimaryKey());
@@ -206,8 +208,12 @@ public class AssetCategoryPersistenceTest {
 			existingAssetCategory.getVocabularyId(),
 			newAssetCategory.getVocabularyId());
 		Assert.assertEquals(
+			existingAssetCategory.isSystem(), newAssetCategory.isSystem());
+		Assert.assertEquals(
 			Time.getShortTimestamp(existingAssetCategory.getLastPublishDate()),
 			Time.getShortTimestamp(newAssetCategory.getLastPublishDate()));
+		Assert.assertEquals(
+			existingAssetCategory.getStatus(), newAssetCategory.getStatus());
 	}
 
 	@Test(expected = DuplicateAssetCategoryExternalReferenceCodeException.class)
@@ -265,6 +271,13 @@ public class AssetCategoryPersistenceTest {
 	}
 
 	@Test
+	public void testCountByCompanyId() throws Exception {
+		_persistence.countByCompanyId(RandomTestUtil.nextLong());
+
+		_persistence.countByCompanyId(0L);
+	}
+
+	@Test
 	public void testCountByParentCategoryId() throws Exception {
 		_persistence.countByParentCategoryId(RandomTestUtil.nextLong());
 
@@ -302,29 +315,11 @@ public class AssetCategoryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByP_N() throws Exception {
-		_persistence.countByP_N(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByP_N(0L, "null");
-
-		_persistence.countByP_N(0L, (String)null);
-	}
-
-	@Test
 	public void testCountByP_V() throws Exception {
 		_persistence.countByP_V(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
 
 		_persistence.countByP_V(0L, 0L);
-	}
-
-	@Test
-	public void testCountByN_V() throws Exception {
-		_persistence.countByN_V("", RandomTestUtil.nextLong());
-
-		_persistence.countByN_V("null", 0L);
-
-		_persistence.countByN_V((String)null, 0L);
 	}
 
 	@Test
@@ -437,7 +432,7 @@ public class AssetCategoryPersistenceTest {
 			"groupId", true, "companyId", true, "userId", true, "userName",
 			true, "createDate", true, "modifiedDate", true, "parentCategoryId",
 			true, "treePath", true, "name", true, "vocabularyId", true,
-			"lastPublishDate", true);
+			"system", true, "lastPublishDate", true, "status", true);
 	}
 
 	@Test
@@ -748,8 +743,6 @@ public class AssetCategoryPersistenceTest {
 
 		AssetCategory assetCategory = _persistence.create(pk);
 
-		assetCategory.setMvccVersion(RandomTestUtil.nextLong());
-
 		assetCategory.setCtCollectionId(RandomTestUtil.nextLong());
 
 		assetCategory.setUuid(RandomTestUtil.randomString());
@@ -780,7 +773,11 @@ public class AssetCategoryPersistenceTest {
 
 		assetCategory.setVocabularyId(RandomTestUtil.nextLong());
 
+		assetCategory.setSystem(RandomTestUtil.randomBoolean());
+
 		assetCategory.setLastPublishDate(RandomTestUtil.nextDate());
+
+		assetCategory.setStatus(RandomTestUtil.nextInt());
 
 		_assetCategories.add(_persistence.update(assetCategory));
 
@@ -793,3 +790,4 @@ public class AssetCategoryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:203920897

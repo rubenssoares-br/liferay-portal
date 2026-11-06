@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.StringReader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -77,25 +78,26 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 
 			String value = properties.getProperty(key);
 
-			if (StringUtil.equals(value, "dev")) {
-				addMessage(
-					fileName,
-					"Remove unnecessary property \"" + key +
-						"\", since \"dev\" is the default value");
+			if (!StringUtil.equals(value, "dev")) {
+				continue;
 			}
+
+			addMessage(
+				fileName,
+				"Remove unnecessary property \"" + key +
+					"\", since \"dev\" is the default value");
 		}
 	}
 
-	private String _generateFeatureFlagProperties(String content)
-		throws IOException {
-
+	private String _generateFeatureFlagProperties(String content) {
 		List<String> featureFlagKeys = new ArrayList<>();
 
 		List<String> fileNames = SourceFormatterUtil.filterFileNames(
-			_allFileNames, new String[] {"**/test/**"},
+			_allFileNames, new String[] {"**/*-test-*/**", "**/test/**"},
 			new String[] {
-				"**/bnd.bnd", "**/*.java", "**/*.js", "**/*.json", "**/*.jsp",
-				"**/*.jspf", "**/*.jsx", "**/*.ts", "**/*.tsx"
+				"**/bnd.bnd", "**/rest-openapi*.yaml", "**/*.java", "**/*.js",
+				"**/*.json", "**/*.jsp", "**/*.jspf", "**/*.jsx", "**/*.ts",
+				"**/*.tsx"
 			},
 			getSourceFormatterExcludes(), true);
 
@@ -120,23 +122,40 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 				featureFlagKeys.addAll(
 					_getFeatureFlagKeys(fileContent, _featureFlagPattern1));
 				featureFlagKeys.addAll(
+					_getFeatureFlagKeys(fileContent, _featureFlagPattern4));
+				featureFlagKeys.addAll(
 					_getFeatureFlagKeys(fileContent, _featureFlagPattern5));
 				featureFlagKeys.addAll(
-					_getFeatureFlagKeys(fileContent, _featureFlagPattern6));
-				featureFlagKeys.addAll(_getFeatureFlagKeys(fileContent, true));
+					_getFeatureFlagKeysByFeatureFlagManagerUtilCall(
+						fileContent, true, "checkEnabled"));
+				featureFlagKeys.addAll(
+					_getFeatureFlagKeysByFeatureFlagManagerUtilCall(
+						fileContent, true, "isEnabled"));
+				featureFlagKeys.addAll(
+					_getFeatureFlagKeysByMapUtilSingletonDictionaryCall(
+						fileContent));
 			}
 			else if (fileName.endsWith(".json")) {
 				featureFlagKeys.addAll(
-					_getFeatureFlagKeys(fileContent, _featureFlagPattern4));
+					_getFeatureFlagKeys(fileContent, _featureFlagPattern3));
 			}
 			else if (fileName.endsWith(".jsp") || fileName.endsWith(".jspf")) {
 				featureFlagKeys.addAll(
-					_getFeatureFlagKeys(fileContent, _featureFlagPattern3));
-				featureFlagKeys.addAll(_getFeatureFlagKeys(fileContent, false));
+					_getFeatureFlagKeys(fileContent, _featureFlagPattern2));
+				featureFlagKeys.addAll(
+					_getFeatureFlagKeysByFeatureFlagManagerUtilCall(
+						fileContent, false, "checkEnabled"));
+				featureFlagKeys.addAll(
+					_getFeatureFlagKeysByFeatureFlagManagerUtilCall(
+						fileContent, false, "isEnabled"));
+			}
+			else if (fileName.endsWith(".yaml")) {
+				featureFlagKeys.addAll(
+					_getFeatureFlagKeys(fileContent, _featureFlagPattern6));
 			}
 			else {
 				featureFlagKeys.addAll(
-					_getFeatureFlagKeys(fileContent, _featureFlagPattern3));
+					_getFeatureFlagKeys(fileContent, _featureFlagPattern2));
 			}
 		}
 
@@ -167,7 +186,7 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 					deprecationFeatureFlagKeyMatcher.group(1));
 			}
 
-			StringBundler sb = new StringBundler(featureFlagKeys.size() * 15);
+			StringBundler sb = new StringBundler(featureFlagKeys.size() * 6);
 
 			for (String featureFlagKey : featureFlagKeys) {
 				String featureFlagPropertyKey =
@@ -176,27 +195,12 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 				String environmentVariable =
 					ToolsUtil.encodeEnvironmentProperty(featureFlagPropertyKey);
 
-				sb.append(StringPool.NEW_LINE);
-				sb.append(StringPool.NEW_LINE);
-				sb.append(StringPool.FOUR_SPACES);
-				sb.append(StringPool.POUND);
-				sb.append(StringPool.NEW_LINE);
-				sb.append("    # Env: ");
+				sb.append("\n\n    #\n    # Env: ");
 				sb.append(environmentVariable);
-				sb.append(StringPool.NEW_LINE);
-				sb.append(StringPool.FOUR_SPACES);
-				sb.append(StringPool.POUND);
-				sb.append(StringPool.NEW_LINE);
-				sb.append(StringPool.FOUR_SPACES);
+				sb.append("\n    #\n    ");
 				sb.append(featureFlagPropertyKey);
 				sb.append(StringPool.EQUAL);
-
-				if (deprecationFeatureFlagKeys.contains(featureFlagKey)) {
-					sb.append(true);
-				}
-				else {
-					sb.append(false);
-				}
+				sb.append(deprecationFeatureFlagKeys.contains(featureFlagKey));
 			}
 
 			if (matchedFeatureFlags.contains("feature.flag.")) {
@@ -216,7 +220,7 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 	private String _generateFeatureFlagUIProperties(
 		Map<String, String> properties) {
 
-		StringBundler sb = new StringBundler(properties.size() * 15);
+		StringBundler sb1 = new StringBundler(properties.size() * 6);
 
 		for (Map.Entry<String, String> entry : properties.entrySet()) {
 			String key = entry.getKey();
@@ -224,24 +228,31 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 			String environmentVariable = ToolsUtil.encodeEnvironmentProperty(
 				key);
 
-			sb.append(StringPool.NEW_LINE);
-			sb.append(StringPool.NEW_LINE);
-			sb.append(StringPool.FOUR_SPACES);
-			sb.append(StringPool.POUND);
-			sb.append(StringPool.NEW_LINE);
-			sb.append("    # Env: ");
-			sb.append(environmentVariable);
-			sb.append(StringPool.NEW_LINE);
-			sb.append(StringPool.FOUR_SPACES);
-			sb.append(StringPool.POUND);
-			sb.append(StringPool.NEW_LINE);
-			sb.append(StringPool.FOUR_SPACES);
-			sb.append(key);
-			sb.append(StringPool.EQUAL);
-			sb.append(entry.getValue());
+			sb1.append("\n\n    #\n    # Env: ");
+			sb1.append(environmentVariable);
+			sb1.append("\n    #\n    ");
+			sb1.append(key);
+			sb1.append(StringPool.EQUAL);
+
+			String[] jiraIssueIds = StringUtil.split(entry.getValue());
+
+			Arrays.sort(jiraIssueIds, new NaturalOrderStringComparator());
+
+			StringBundler sb2 = new StringBundler(jiraIssueIds.length * 2);
+
+			for (String jiraIssueId : jiraIssueIds) {
+				sb2.append(jiraIssueId);
+				sb2.append(StringPool.COMMA);
+			}
+
+			if (sb2.index() > 0) {
+				sb2.setIndex(sb2.index() - 1);
+			}
+
+			sb1.append(sb2.toString());
 		}
 
-		return sb.toString();
+		return sb1.toString();
 	}
 
 	private String _generateFeatureFlagUIProperties(
@@ -302,14 +313,16 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 								"\" must be in Language.properties");
 					}
 
-					if (!portalLanguageProperties.containsKey(
+					if (portalLanguageProperties.containsKey(
 							featureFlagUIPropertyName)) {
 
-						addMessage(
-							fileName,
-							"Missing property \"" + featureFlagUIPropertyName +
-								"\" in Language.properties");
+						continue;
 					}
+
+					addMessage(
+						fileName,
+						"Missing property \"" + featureFlagUIPropertyName +
+							"\" in Language.properties");
 				}
 			}
 
@@ -329,30 +342,52 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 		return content;
 	}
 
-	private List<String> _getFeatureFlagKeys(
-		String content, boolean javaSource) {
+	private List<String> _getFeatureFlagKeys(String content, Pattern pattern) {
+		List<String> featureFlagKeys = new ArrayList<>();
+
+		Matcher matcher = pattern.matcher(content);
+
+		while (matcher.find()) {
+			featureFlagKeys.add(matcher.group(1));
+		}
+
+		return featureFlagKeys;
+	}
+
+	private List<String> _getFeatureFlagKeysByFeatureFlagManagerUtilCall(
+		String content, boolean javaSource, String methodName) {
 
 		List<String> featureFlagKeys = new ArrayList<>();
 
-		Matcher matcher = _featureFlagPattern2.matcher(content);
+		int x = -1;
 
-		while (matcher.find()) {
+		while (true) {
+			x = content.indexOf(
+				"FeatureFlagManagerUtil." + methodName + "(", x + 1);
+
+			if (x == -1) {
+				return featureFlagKeys;
+			}
+
+			if (javaSource && ToolsUtil.isInsideQuotes(content, x)) {
+				continue;
+			}
+
 			String methodCall = null;
 
 			if (javaSource) {
-				methodCall = JavaSourceUtil.getMethodCall(
-					content, matcher.start());
+				methodCall = JavaSourceUtil.getMethodCall(content, x);
 			}
 			else {
 				methodCall = JavaSourceUtil.getMethodCall(
-					content.substring(matcher.start()), 0);
+					content.substring(x), 0);
 			}
 
 			List<String> parameterList = JavaSourceUtil.getParameterList(
 				methodCall);
 
 			if (parameterList.isEmpty()) {
-				return featureFlagKeys;
+				continue;
 			}
 
 			String parameter = null;
@@ -364,23 +399,58 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 				parameter = parameterList.get(1);
 			}
 
-			if ((parameter != null) && parameter.endsWith(StringPool.QUOTE) &&
-				parameter.startsWith(StringPool.QUOTE)) {
+			if (!parameter.endsWith(StringPool.QUOTE) ||
+				!parameter.startsWith(StringPool.QUOTE)) {
 
-				featureFlagKeys.add(StringUtil.unquote(parameter));
+				continue;
 			}
-		}
 
-		return featureFlagKeys;
+			String unquotedParameterValue = StringUtil.unquote(parameter);
+
+			if (!unquotedParameterValue.matches("[A-Z]+-\\d+")) {
+				continue;
+			}
+
+			featureFlagKeys.add(unquotedParameterValue);
+		}
 	}
 
-	private List<String> _getFeatureFlagKeys(String content, Pattern pattern) {
+	private List<String> _getFeatureFlagKeysByMapUtilSingletonDictionaryCall(
+		String content) {
+
 		List<String> featureFlagKeys = new ArrayList<>();
 
-		Matcher matcher = pattern.matcher(content);
+		Matcher matcher = _mapUtilSingletonDictionaryPattern.matcher(content);
 
 		while (matcher.find()) {
-			featureFlagKeys.add(matcher.group(1));
+			List<String> parameterList = JavaSourceUtil.getParameterList(
+				JavaSourceUtil.getMethodCall(content, matcher.start()));
+
+			if (parameterList.size() != 2) {
+				continue;
+			}
+
+			String parameter = parameterList.get(0);
+
+			if (!parameter.equals("\"feature.flag.key\"")) {
+				continue;
+			}
+
+			parameter = parameterList.get(1);
+
+			if (!parameter.endsWith(StringPool.QUOTE) ||
+				!parameter.startsWith(StringPool.QUOTE)) {
+
+				continue;
+			}
+
+			String unquotedParameterValue = StringUtil.unquote(parameter);
+
+			if (!unquotedParameterValue.matches("[A-Z]+-\\d+")) {
+				continue;
+			}
+
+			featureFlagKeys.add(unquotedParameterValue);
 		}
 
 		return featureFlagKeys;
@@ -414,19 +484,21 @@ public class PropertiesFeatureFlagsCheck extends BaseFileCheck {
 	private static final Pattern _featureFlagPattern1 = Pattern.compile(
 		"feature\\.flag[.=]([A-Z]+-\\d+)");
 	private static final Pattern _featureFlagPattern2 = Pattern.compile(
-		"FeatureFlagManagerUtil\\.isEnabled\\(");
-	private static final Pattern _featureFlagPattern3 = Pattern.compile(
 		"Liferay\\.FeatureFlags\\['(.+?)'\\]");
-	private static final Pattern _featureFlagPattern4 = Pattern.compile(
+	private static final Pattern _featureFlagPattern3 = Pattern.compile(
 		"\"featureFlag\": \"(.+?)\"");
+	private static final Pattern _featureFlagPattern4 = Pattern.compile(
+		"\"feature\\.flag\\.key=([A-Z]+-\\d+)\"");
 	private static final Pattern _featureFlagPattern5 = Pattern.compile(
-		"\"featureFlagKey=([A-Z]+-\\d+)\"");
-	private static final Pattern _featureFlagPattern6 = Pattern.compile(
 		"featureFlagKey = \"([A-Z]+-\\d+)\"");
-	private static final Pattern _featureFlagsPattern = Pattern.compile(
-		"(\n|\\A)##\n## Feature Flag\n##(\n\n[\\s\\S]*?)(?=(\n\n##|\\Z))");
+	private static final Pattern _featureFlagPattern6 = Pattern.compile(
+		"x-feature-flag: \"?([A-Z]+-\\d+)");
 	private static final Pattern _featureFlagUIPattern = Pattern.compile(
 		"(\n|\\A)##\n## Feature Flag UI\n##(\n\n[\\s\\S]*?)(?=(\n\n##|\\Z))");
+	private static final Pattern _featureFlagsPattern = Pattern.compile(
+		"(\n|\\A)##\n## Feature Flag\n##(\n\n[\\s\\S]*?)(?=(\n\n##|\\Z))");
+	private static final Pattern _mapUtilSingletonDictionaryPattern =
+		Pattern.compile("MapUtil\\.singletonDictionary\\(");
 
 	private List<String> _allFileNames;
 

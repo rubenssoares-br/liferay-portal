@@ -29,9 +29,11 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.Portlet;
 import com.liferay.portal.kernel.model.PortletPreferences;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
@@ -43,7 +45,8 @@ import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -134,7 +137,47 @@ public class WelcomeSiteInitializerTest {
 		Assert.assertTrue(html.contains("Enjoy using the best DXP on Earth!"));
 	}
 
-	@FeatureFlags("LPD-6378")
+	@Test
+	@TestInfo("LPD-101357")
+	public void testCookiePolicyLayoutUtilityPageEntryWidgets()
+		throws Exception {
+
+		Group group = _groupLocalService.getGroup(
+			TestPropsValues.getCompanyId(), GroupConstants.GUEST);
+
+		Layout layout =
+			LayoutUtilityPageEntryLayoutProviderUtil.
+				getDefaultLayoutUtilityPageEntryLayout(
+					group.getGroupId(),
+					LayoutUtilityPageEntryConstants.TYPE_COOKIE_POLICY);
+
+		List<FragmentEntryLink> fragmentEntryLinks =
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
+				group.getGroupId(), layout.getPlid());
+
+		int widgetCount = 0;
+
+		for (FragmentEntryLink fragmentEntryLink : fragmentEntryLinks) {
+			JSONObject jsonObject = _jsonFactory.createJSONObject(
+				fragmentEntryLink.getEditableValues());
+
+			String portletId = jsonObject.getString("portletId");
+
+			if (Validator.isNull(portletId)) {
+				continue;
+			}
+
+			widgetCount++;
+
+			Assert.assertNotNull(
+				portletId,
+				_portletLocalService.fetchPortletById(
+					group.getCompanyId(), portletId));
+		}
+
+		Assert.assertEquals(fragmentEntryLinks.toString(), 4, widgetCount);
+	}
+
 	@Test
 	public void testCreateAccountLayoutUtilityPageEntryPageDefinition()
 		throws Exception {
@@ -143,7 +186,7 @@ public class WelcomeSiteInitializerTest {
 			_layoutUtilityPageEntryLocalService.addLayoutUtilityPageEntry(
 				null, _serviceContext.getUserId(), _group.getGroupId(), 0, 0,
 				false, RandomTestUtil.randomString(),
-				LayoutUtilityPageEntryConstants.TYPE_CREATE_ACCOUNT, 0,
+				LayoutUtilityPageEntryConstants.TYPE_CREATE_ACCOUNT, null,
 				_serviceContext);
 
 		Layout layout1 = _layoutLocalService.fetchLayout(
@@ -175,7 +218,6 @@ public class WelcomeSiteInitializerTest {
 			_removeUUIDs(pageDefinition2.toString()));
 	}
 
-	@FeatureFlags("LPD-6378")
 	@Test
 	public void testForgotPasswordLayoutUtilityPageEntryPageDefinition()
 		throws Exception {
@@ -184,7 +226,7 @@ public class WelcomeSiteInitializerTest {
 			_layoutUtilityPageEntryLocalService.addLayoutUtilityPageEntry(
 				null, _serviceContext.getUserId(), _group.getGroupId(), 0, 0,
 				false, RandomTestUtil.randomString(),
-				LayoutUtilityPageEntryConstants.TYPE_FORGOT_PASSWORD, 0,
+				LayoutUtilityPageEntryConstants.TYPE_FORGOT_PASSWORD, null,
 				_serviceContext);
 
 		Layout layout1 = _layoutLocalService.fetchLayout(
@@ -216,7 +258,6 @@ public class WelcomeSiteInitializerTest {
 			_removeUUIDs(pageDefinition2.toString()));
 	}
 
-	@FeatureFlags("LPD-6378")
 	@Test
 	public void testInitialize() throws PortalException {
 		SiteInitializer siteInitializer =
@@ -247,7 +288,6 @@ public class WelcomeSiteInitializerTest {
 					LayoutUtilityPageEntryConstants.TYPE_LOGIN));
 	}
 
-	@FeatureFlags("LPD-6378")
 	@Test
 	public void testLoginLayoutUtilityPageEntryPageDefinition()
 		throws Exception {
@@ -256,7 +296,8 @@ public class WelcomeSiteInitializerTest {
 			_layoutUtilityPageEntryLocalService.addLayoutUtilityPageEntry(
 				null, _serviceContext.getUserId(), _group.getGroupId(), 0, 0,
 				false, RandomTestUtil.randomString(),
-				LayoutUtilityPageEntryConstants.TYPE_LOGIN, 0, _serviceContext);
+				LayoutUtilityPageEntryConstants.TYPE_LOGIN, null,
+				_serviceContext);
 
 		Layout layout1 = _layoutLocalService.fetchLayout(
 			layoutUtilityPageEntry.getPlid());
@@ -293,7 +334,7 @@ public class WelcomeSiteInitializerTest {
 
 		JSONObject editableValueJSONObject =
 			_fragmentEntryProcessorRegistry.getDefaultEditableValuesJSONObject(
-				StringPool.BLANK, StringPool.BLANK);
+				StringPool.BLANK, null);
 
 		Portlet portlet = _portletLocalService.getPortletById(portletId);
 
@@ -308,7 +349,7 @@ public class WelcomeSiteInitializerTest {
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
 				null, _serviceContext.getUserId(),
-				_serviceContext.getScopeGroupId(), 0, 0,
+				_serviceContext.getScopeGroupId(), null, null, null,
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(layout.getPlid()),
 				layout.getPlid(), StringPool.BLANK, StringPool.BLANK,
@@ -411,6 +452,9 @@ public class WelcomeSiteInitializerTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject
+	private GroupLocalService _groupLocalService;
 
 	@Inject
 	private JSONFactory _jsonFactory;

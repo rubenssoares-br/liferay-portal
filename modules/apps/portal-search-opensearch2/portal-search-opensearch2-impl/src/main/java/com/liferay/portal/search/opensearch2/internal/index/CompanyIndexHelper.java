@@ -9,6 +9,7 @@ import com.liferay.osgi.service.tracker.collections.EagerServiceTrackerCustomize
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerList;
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerListFactory;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.log.Log;
@@ -60,7 +61,7 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
- * @author Joao Victor Alves
+ * @author João Victor Alves
  * @author Petteri Karttunen
  */
 @Component(service = CompanyIndexHelper.class)
@@ -123,6 +124,12 @@ public class CompanyIndexHelper {
 				else {
 					_companyLocalService.updateIndexNameNext(companyId, null);
 				}
+			}
+		}
+		catch (PortalException portalException) {
+			if (_log.isInfoEnabled()) {
+				_log.info(
+					"Unable to update company index names", portalException);
 			}
 		}
 		catch (Exception exception) {
@@ -390,52 +397,51 @@ public class CompanyIndexHelper {
 		OpenSearchIndicesClient openSearchIndicesClient =
 			openSearchClient.indices();
 
-		_companyLocalService.forEachCompanyId(
-			companyId -> {
-				String indexName = getIndexName(companyId);
+		for (long companyId :
+				IndexFactoryCompanyIdRegistryUtil.getCompanyIds()) {
 
-				SettingsHelperImpl settingsHelperImpl =
-					new SettingsHelperImpl();
+			String indexName = getIndexName(companyId);
 
-				companyIndexConfigurationContributor.contributeSettings(
-					companyId, settingsHelperImpl);
+			SettingsHelperImpl settingsHelperImpl = new SettingsHelperImpl();
 
-				JSONObject settingsJSONObject =
-					settingsHelperImpl.getSettingsJSONObject();
+			companyIndexConfigurationContributor.contributeSettings(
+				companyId, settingsHelperImpl);
 
-				if (SetUtil.isNotEmpty(settingsJSONObject.keySet())) {
-					try {
-						openSearchIndicesClient.close(
-							CloseIndexRequest.of(
-								closeIndexRequest -> closeIndexRequest.index(
-									indexName)));
+			JSONObject settingsJSONObject =
+				settingsHelperImpl.getSettingsJSONObject();
 
-						openSearchIndicesClient.putSettings(
-							_buildPutIndicesSettingsRequest(
-								indexName, settingsJSONObject.toString()));
+			if (SetUtil.isNotEmpty(settingsJSONObject.keySet())) {
+				try {
+					openSearchIndicesClient.close(
+						CloseIndexRequest.of(
+							closeIndexRequest -> closeIndexRequest.index(
+								indexName)));
 
-						openSearchIndicesClient.open(
-							OpenRequest.of(
-								openRequest -> openRequest.index(indexName)));
-					}
-					catch (Exception exception) {
-						_log.error(
-							StringBundler.concat(
-								"Unable to put settings for index ", indexName,
-								" with contributor ",
-								companyIndexConfigurationContributor),
-							exception);
-					}
+					openSearchIndicesClient.putSettings(
+						_buildPutIndicesSettingsRequest(
+							indexName, settingsJSONObject.toString()));
+
+					openSearchIndicesClient.open(
+						OpenRequest.of(
+							openRequest -> openRequest.index(indexName)));
 				}
+				catch (Exception exception) {
+					_log.error(
+						StringBundler.concat(
+							"Unable to put settings for index ", indexName,
+							" with contributor ",
+							companyIndexConfigurationContributor),
+						exception);
+				}
+			}
 
-				companyIndexConfigurationContributor.contributeMappings(
-					companyId,
-					new MappingsHelperImpl(
-						indexName, _jsonFactory, openSearchIndicesClient,
-						_openSearchConfigurationWrapper.overrideTypeMappings(),
-						_searchEngineInformation));
-			},
-			IndexFactoryCompanyIdRegistryUtil.getCompanyIds());
+			companyIndexConfigurationContributor.contributeMappings(
+				companyId,
+				new MappingsHelperImpl(
+					indexName, _jsonFactory, openSearchIndicesClient,
+					_openSearchConfigurationWrapper.overrideTypeMappings(),
+					_searchEngineInformation));
+		}
 	}
 
 	private void _putAdditionalMappings(MappingsHelperImpl mappingsHelperImpl) {

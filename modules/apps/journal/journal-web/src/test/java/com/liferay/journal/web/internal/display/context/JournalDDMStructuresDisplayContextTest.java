@@ -11,6 +11,7 @@ import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.portlet.PortalPreferences;
 import com.liferay.portal.kernel.portlet.PortletPreferencesFactory;
 import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
+import com.liferay.portal.kernel.test.portlet.MockRenderRequest;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Portal;
@@ -18,11 +19,10 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 import com.liferay.portlet.PortalPreferencesImpl;
-import com.liferay.portletmvc4spring.test.mock.web.portlet.MockRenderRequest;
 
-import javax.portlet.RenderResponse;
+import jakarta.portlet.RenderResponse;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -118,6 +118,19 @@ public class JournalDDMStructuresDisplayContextTest {
 			Mockito.mock(PortletPreferencesFactory.class));
 	}
 
+	private void _testGetOrderByColWithParameter() {
+		String orderByColParamValue = RandomTestUtil.randomString();
+
+		JournalDDMStructuresDisplayContext journalDDMStructuresDisplayContext =
+			_getJournalDDMStructuresDisplayContext(
+				SearchContainer.DEFAULT_ORDER_BY_COL_PARAM,
+				orderByColParamValue, new PortalPreferencesImpl());
+
+		Assert.assertEquals(
+			orderByColParamValue,
+			journalDDMStructuresDisplayContext.getOrderByCol());
+	}
+
 	private void _testGetOrderByColWithoutParameter() {
 		String orderByColParamValue = RandomTestUtil.randomString();
 
@@ -142,17 +155,17 @@ public class JournalDDMStructuresDisplayContextTest {
 				JournalPortletKeys.JOURNAL, "ddm-structure-order-by-col"));
 	}
 
-	private void _testGetOrderByColWithParameter() {
-		String orderByColParamValue = RandomTestUtil.randomString();
+	private void _testGetOrderByTypeWithParameter() {
+		String orderByTypeParamValue = RandomTestUtil.randomString();
 
 		JournalDDMStructuresDisplayContext journalDDMStructuresDisplayContext =
 			_getJournalDDMStructuresDisplayContext(
-				SearchContainer.DEFAULT_ORDER_BY_COL_PARAM,
-				orderByColParamValue, new PortalPreferencesImpl());
+				SearchContainer.DEFAULT_ORDER_BY_TYPE_PARAM,
+				orderByTypeParamValue, new PortalPreferencesImpl());
 
 		Assert.assertEquals(
-			orderByColParamValue,
-			journalDDMStructuresDisplayContext.getOrderByCol());
+			orderByTypeParamValue,
+			journalDDMStructuresDisplayContext.getOrderByType());
 	}
 
 	private void _testGetOrderByTypeWithoutParameter() {
@@ -177,19 +190,6 @@ public class JournalDDMStructuresDisplayContextTest {
 			orderByTypeParamValue,
 			portalPreferences.getValue(
 				JournalPortletKeys.JOURNAL, "ddm-structure-order-by-type"));
-	}
-
-	private void _testGetOrderByTypeWithParameter() {
-		String orderByTypeParamValue = RandomTestUtil.randomString();
-
-		JournalDDMStructuresDisplayContext journalDDMStructuresDisplayContext =
-			_getJournalDDMStructuresDisplayContext(
-				SearchContainer.DEFAULT_ORDER_BY_TYPE_PARAM,
-				orderByTypeParamValue, new PortalPreferencesImpl());
-
-		Assert.assertEquals(
-			orderByTypeParamValue,
-			journalDDMStructuresDisplayContext.getOrderByType());
 	}
 
 }

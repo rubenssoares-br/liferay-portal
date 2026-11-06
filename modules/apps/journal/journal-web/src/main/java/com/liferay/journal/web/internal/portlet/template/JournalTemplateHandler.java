@@ -49,7 +49,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Jorge Ferrer
  */
 @Component(
-	property = "javax.portlet.name=" + JournalPortletKeys.JOURNAL,
+	property = "jakarta.portlet.name=" + JournalPortletKeys.JOURNAL,
 	service = TemplateHandler.class
 )
 public class JournalTemplateHandler extends BaseDDMTemplateHandler {
@@ -88,12 +88,6 @@ public class JournalTemplateHandler extends BaseDDMTemplateHandler {
 	@Override
 	public String getResourceName() {
 		return "com.liferay.journal.template";
-	}
-
-	@Override
-	public String getTemplatesHelpPath(String language) {
-		return "com/liferay/journal/web/portlet/template/dependencies" +
-			"/template.ftl";
 	}
 
 	@Override
@@ -142,6 +136,12 @@ public class JournalTemplateHandler extends BaseDDMTemplateHandler {
 			journalServicesTemplateVariableGroup);
 
 		return templateVariableGroups;
+	}
+
+	@Override
+	public String getTemplatesHelpPath(String language) {
+		return "com/liferay/journal/web/portlet/template/dependencies" +
+			"/template.ftl";
 	}
 
 	@Override

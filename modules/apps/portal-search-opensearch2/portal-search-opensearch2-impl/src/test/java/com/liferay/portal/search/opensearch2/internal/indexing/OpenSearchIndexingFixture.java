@@ -13,8 +13,8 @@ import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.Localization;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.search.engine.SearchEngineInformation;
 import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.index.IndexNameBuilder;
@@ -32,10 +32,8 @@ import com.liferay.portal.search.opensearch2.internal.connection.IndexName;
 import com.liferay.portal.search.opensearch2.internal.connection.OpenSearchConnectionManager;
 import com.liferay.portal.search.opensearch2.internal.connection.TestOpenSearchConnectionManager;
 import com.liferay.portal.search.opensearch2.internal.connection.helper.IndexCreationHelper;
-import com.liferay.portal.search.opensearch2.internal.facet.FacetProcessor;
 import com.liferay.portal.search.opensearch2.internal.search.engine.adapter.OpenSearchEngineAdapterFixture;
 import com.liferay.portal.search.test.util.indexing.IndexingFixture;
-import com.liferay.portal.util.DigesterImpl;
 import com.liferay.portal.util.LocalizationImpl;
 
 import java.io.IOException;
@@ -46,7 +44,6 @@ import java.util.Map;
 import org.mockito.Mockito;
 
 import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.opensearch.core.SearchRequest;
 import org.opensearch.client.opensearch.indices.DeleteIndexRequest;
 import org.opensearch.client.opensearch.indices.OpenSearchIndicesClient;
 
@@ -63,6 +60,11 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 	@Override
 	public long getCompanyId() {
 		return _companyId;
+	}
+
+	@Override
+	public String getIndexName() {
+		return _indexName;
 	}
 
 	@Override
@@ -99,7 +101,7 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 	public void setUp() throws Exception {
 		OpenSearchEngineAdapterFixture openSearchEngineAdapterFixture =
 			_createOpenSearchEngineAdapterFixture(
-				_testOpenSearchConnectionManager, _facetProcessor);
+				_testOpenSearchConnectionManager);
 
 		openSearchEngineAdapterFixture.setUp();
 
@@ -109,6 +111,8 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 		Localization localization = new LocalizationImpl();
 
 		_indexNameBuilder = _createIndexNameBuilder();
+
+		_indexName = _indexNameBuilder.getIndexName(_companyId);
 
 		_indexSearcher = _createIndexSearcher(
 			_indexNameBuilder, localization, _testOpenSearchConnectionManager,
@@ -150,12 +154,6 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 				}
 			}
 		};
-	}
-
-	protected void setFacetProcessor(
-		FacetProcessor<SearchRequest.Builder> facetProcessor) {
-
-		_facetProcessor = facetProcessor;
 	}
 
 	protected void setLiferayMappingsAddedToIndex(
@@ -216,8 +214,9 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 			openSearchIndexSearcher, "_openSearchConfigurationWrapper",
 			createOpenSearchConfigurationWrapper(
 				openSearchFixture.getOpenSearchConfigurationProperties()));
-		ReflectionTestUtil.setFieldValue(
-			openSearchIndexSearcher, "_props", _createProps());
+
+		_setUpIndexSearchLimit();
+
 		ReflectionTestUtil.setFieldValue(
 			openSearchIndexSearcher, "_querySuggester",
 			_createOpenSearchQuerySuggester(
@@ -264,12 +263,10 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 
 	private OpenSearchEngineAdapterFixture
 		_createOpenSearchEngineAdapterFixture(
-			OpenSearchConnectionManager openSearchConnectionManager,
-			FacetProcessor<SearchRequest.Builder> facetProcessor) {
+			OpenSearchConnectionManager openSearchConnectionManager) {
 
 		return new OpenSearchEngineAdapterFixture() {
 			{
-				setFacetProcessor(facetProcessor);
 				setOpenSearchConnectionManager(openSearchConnectionManager);
 			}
 		};
@@ -303,8 +300,6 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 		OpenSearchSpellCheckIndexWriter openSearchSpellCheckIndexWriter =
 			new OpenSearchSpellCheckIndexWriter() {
 				{
-					digester = new DigesterImpl();
-
 					setLocalization(localization);
 				}
 			};
@@ -317,20 +312,6 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 			searchEngineAdapter);
 
 		return openSearchSpellCheckIndexWriter;
-	}
-
-	private Props _createProps() {
-		Props props = Mockito.mock(Props.class);
-
-		Mockito.doReturn(
-			"20"
-		).when(
-			props
-		).get(
-			PropsKeys.INDEX_SEARCH_LIMIT
-		);
-
-		return props;
 	}
 
 	private SearchEngineInformation _createSearchEngineInformation() {
@@ -364,9 +345,13 @@ public class OpenSearchIndexingFixture implements IndexingFixture {
 		}
 	}
 
+	private void _setUpIndexSearchLimit() {
+		PropsUtil.set(PropsKeys.INDEX_SEARCH_LIMIT, "20");
+	}
+
 	private final long _companyId;
-	private FacetProcessor<SearchRequest.Builder> _facetProcessor;
 	private IndexCreationHelper _indexCreationHelper;
+	private String _indexName;
 	private IndexNameBuilder _indexNameBuilder;
 	private IndexSearcher _indexSearcher;
 	private IndexWriter _indexWriter;

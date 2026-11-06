@@ -6,6 +6,7 @@
 package com.liferay.portal.tools.db.partition.migration.validator.util;
 
 import com.liferay.petra.function.UnsafeRunnable;
+import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.version.Version;
 import com.liferay.portal.tools.db.partition.migration.validator.Company;
@@ -46,6 +47,7 @@ public class ValidatorUtilTest {
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidateCompany() throws Exception {
 		Company company = new Company(
 			RandomTestUtil.randomLong(), RandomTestUtil.randomString(),
@@ -65,8 +67,7 @@ public class ValidatorUtilTest {
 				Arrays.asList(
 					"[WARN] Company name ", company.getCompanyName(),
 					" already exists in the target database. You must set a ",
-					"different value in ",
-					"DBPartitionInsertVirtualInstanceConfiguration.config.")));
+					"different value in the portal instance import request.")));
 		_testValidateCompany(
 			true, true, false, true, company,
 			() -> _assertValidateDatabases(
@@ -74,8 +75,7 @@ public class ValidatorUtilTest {
 				Arrays.asList(
 					"[WARN] Virtual host ", company.getVirtualHostname(),
 					" already exists in the target database. You must set a ",
-					"different value in ",
-					"DBPartitionInsertVirtualInstanceConfiguration.config.")));
+					"different value in the portal instance import request.")));
 		_testValidateCompany(
 			true, true, true, false, company,
 			() -> _assertValidateDatabases(
@@ -83,11 +83,11 @@ public class ValidatorUtilTest {
 				Arrays.asList(
 					"[WARN] Web ID ", company.getWebId(),
 					" already exists in the target database. You must set a ",
-					"different value in ",
-					"DBPartitionInsertVirtualInstanceConfiguration.config.")));
+					"different value in the portal instance import request.")));
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidatePartitionedTables() throws Exception {
 		_testValidatePartitionedTables(
 			new ArrayList<>(
@@ -125,15 +125,18 @@ public class ValidatorUtilTest {
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidateReleaseMissingSourceModules() {
 		List<Release> targetReleases = new ArrayList<>();
 
 		List<Release> sourceReleases = _getReleases();
 
 		for (Release release : sourceReleases) {
-			if (!Objects.equals(release.getServletContextName(), "module1")) {
-				targetReleases.add(release);
+			if (Objects.equals(release.getServletContextName(), "module1")) {
+				continue;
 			}
+
+			targetReleases.add(release);
 		}
 
 		_sourceLiferayDatabase.setReleases(sourceReleases);
@@ -146,6 +149,7 @@ public class ValidatorUtilTest {
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidateReleaseMissingTargetModules() throws Exception {
 		_testValidateReleaseMissingTargetModule(
 			"module1",
@@ -164,6 +168,7 @@ public class ValidatorUtilTest {
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidateReleaseState() throws Exception {
 		List<String> failedServletContextNames = Arrays.asList(
 			"module1", "module2");
@@ -189,6 +194,7 @@ public class ValidatorUtilTest {
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidateReleaseUnverifiedModules() throws Exception {
 		_testValidateReleaseUnverifiedModule(
 			"module2.service", true,
@@ -207,6 +213,7 @@ public class ValidatorUtilTest {
 	}
 
 	@Test
+	@TestInfo("LPD-6742")
 	public void testValidateReleaseVersionModule() throws Exception {
 		_testValidateReleaseVersionModule(
 			"1.0.0", "module2.service",
@@ -325,11 +332,13 @@ public class ValidatorUtilTest {
 		for (Release release : _getReleases()) {
 			targetReleases.add(release);
 
-			if (!targetServletContextName.equals(
+			if (targetServletContextName.equals(
 					release.getServletContextName())) {
 
-				sourceReleases.add(release);
+				continue;
 			}
+
+			sourceReleases.add(release);
 		}
 
 		_sourceLiferayDatabase.setReleases(sourceReleases);

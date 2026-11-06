@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("WarehouseOrderType")
+@GraphQLName(
+	description = "Binding that scopes a warehouse to a specific order type, restricting which order kinds the warehouse can source inventory for. Created by POSTing under a warehouse and deleted through its own top-level resource path. Adding or removing the binding reindexes the parent warehouse.",
+	value = "WarehouseOrderType"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Binding that scopes a warehouse to a specific order type, restricting which order kinds the warehouse can source inventory for. Created by POSTing under a warehouse and deleted through its own top-level resource path. Adding or removing the binding reindexes the parent warehouse.",
+	requiredProperties = {"orderTypeId", "warehouseId"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"orderTypeId", "warehouseId"})
 @XmlRootElement(name = "WarehouseOrderType")
 public class WarehouseOrderType implements Serializable {
 
@@ -53,7 +60,9 @@ public class WarehouseOrderType implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(WarehouseOrderType.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -89,14 +98,16 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public OrderType getOrderType() {
 		if (_orderTypeSupplier != null) {
@@ -138,7 +149,10 @@ public class WarehouseOrderType implements Serializable {
 	@JsonIgnore
 	private Supplier<OrderType> _orderTypeSupplier;
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key of the bound order type. Either orderTypeId or orderTypeExternalReferenceCode must resolve to an existing order type on create.",
+		example = "DAB-34098-789-N"
+	)
 	public String getOrderTypeExternalReferenceCode() {
 		if (_orderTypeExternalReferenceCodeSupplier != null) {
 			orderTypeExternalReferenceCode =
@@ -176,7 +190,9 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key of the bound order type. Either orderTypeId or orderTypeExternalReferenceCode must resolve to an existing order type on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String orderTypeExternalReferenceCode;
 
@@ -184,7 +200,10 @@ public class WarehouseOrderType implements Serializable {
 	private Supplier<String> _orderTypeExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the bound order type (FK identifier). Either orderTypeId or orderTypeExternalReferenceCode must resolve to an existing order type on create.",
+		example = "30130"
+	)
 	public Long getOrderTypeId() {
 		if (_orderTypeIdSupplier != null) {
 			orderTypeId = _orderTypeIdSupplier.get();
@@ -218,7 +237,9 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the bound order type (FK identifier). Either orderTypeId or orderTypeExternalReferenceCode must resolve to an existing order type on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long orderTypeId;
@@ -227,7 +248,10 @@ public class WarehouseOrderType implements Serializable {
 	private Supplier<Long> _orderTypeIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reserved ordering hint for the binding. The runtime does not currently persist or read this field -- the underlying binding row has no priority column -- so the value round-trips on the request body but has no effect.",
+		example = "1"
+	)
 	public Integer getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -261,14 +285,19 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reserved ordering hint for the binding. The runtime does not currently persist or read this field -- the underlying binding row has no priority column -- so the value round-trips on the request body but has no effect."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer priority;
 
 	@JsonIgnore
 	private Supplier<Integer> _prioritySupplier;
 
-	@Schema(example = "PAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key of the warehouse side of the binding.",
+		example = "PAB-34098-789-N"
+	)
 	public String getWarehouseExternalReferenceCode() {
 		if (_warehouseExternalReferenceCodeSupplier != null) {
 			warehouseExternalReferenceCode =
@@ -306,7 +335,9 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key of the warehouse side of the binding."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String warehouseExternalReferenceCode;
 
@@ -314,7 +345,10 @@ public class WarehouseOrderType implements Serializable {
 	private Supplier<String> _warehouseExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the warehouse side of the binding (FK identifier).",
+		example = "30130"
+	)
 	public Long getWarehouseId() {
 		if (_warehouseIdSupplier != null) {
 			warehouseId = _warehouseIdSupplier.get();
@@ -348,7 +382,9 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the warehouse side of the binding (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long warehouseId;
@@ -357,7 +393,10 @@ public class WarehouseOrderType implements Serializable {
 	private Supplier<Long> _warehouseIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the binding; read-only and assigned by the service on create.",
+		example = "30643"
+	)
 	public Long getWarehouseOrderTypeId() {
 		if (_warehouseOrderTypeIdSupplier != null) {
 			warehouseOrderTypeId = _warehouseOrderTypeIdSupplier.get();
@@ -391,7 +430,9 @@ public class WarehouseOrderType implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the binding; read-only and assigned by the service on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long warehouseOrderTypeId;
 
@@ -536,8 +577,8 @@ public class WarehouseOrderType implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.inventory.dto.v1_0.WarehouseOrderType",
 		name = "x-class-name"
 	)
@@ -624,6 +665,27 @@ public class WarehouseOrderType implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -632,3 +694,4 @@ public class WarehouseOrderType implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:694986038

@@ -21,6 +21,7 @@ import com.liferay.asset.kernel.service.persistence.AssetEntryQuery;
 import com.liferay.asset.util.AssetHelper;
 import com.liferay.asset.util.AssetPublisherAddItemHolder;
 import com.liferay.dynamic.data.mapping.util.DDMIndexer;
+import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -36,7 +37,6 @@ import com.liferay.portal.kernel.portlet.PortletBagPool;
 import com.liferay.portal.kernel.search.BaseModelSearchResult;
 import com.liferay.portal.kernel.search.BaseSearcher;
 import com.liferay.portal.kernel.search.BooleanClause;
-import com.liferay.portal.kernel.search.BooleanClauseFactoryUtil;
 import com.liferay.portal.kernel.search.BooleanClauseOccur;
 import com.liferay.portal.kernel.search.BooleanQuery;
 import com.liferay.portal.kernel.search.Document;
@@ -65,11 +65,18 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.search.hits.SearchHit;
 import com.liferay.portal.search.hits.SearchHits;
 import com.liferay.portal.search.legacy.searcher.SearchRequestBuilderFactory;
+import com.liferay.portal.search.query.QueriesUtil;
 import com.liferay.portal.search.searcher.SearchResponse;
 import com.liferay.portal.search.searcher.Searcher;
 import com.liferay.portal.search.sort.FieldSort;
+import com.liferay.portal.search.sort.NestedSort;
 import com.liferay.portal.search.sort.SortOrder;
 import com.liferay.portal.search.sort.Sorts;
+
+import jakarta.portlet.PortletMode;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.Serializable;
 
@@ -84,11 +91,6 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.TimeZone;
 
-import javax.portlet.PortletMode;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -100,7 +102,7 @@ public class AssetHelperImpl implements AssetHelper {
 
 	@Override
 	public Set<String> addLayoutTags(
-		HttpServletRequest httpServletRequest, List<AssetTag> tags) {
+		HttpServletRequest httpServletRequest, List<AssetTag> assetTags) {
 
 		Set<String> tagNames = (Set<String>)httpServletRequest.getAttribute(
 			WebKeys.ASSET_LAYOUT_TAG_NAMES);
@@ -112,8 +114,8 @@ public class AssetHelperImpl implements AssetHelper {
 				WebKeys.ASSET_LAYOUT_TAG_NAMES, tagNames);
 		}
 
-		for (AssetTag tag : tags) {
-			tagNames.add(tag.getName());
+		for (AssetTag assetTag : assetTags) {
+			tagNames.add(assetTag.getName());
 		}
 
 		return tagNames;
@@ -192,22 +194,11 @@ public class AssetHelperImpl implements AssetHelper {
 
 					long assetVocabularyId = assetCategory.getVocabularyId();
 
-					if (assetVocabularyAssetCategoryIds.containsKey(
-							assetVocabularyId)) {
-
-						String assetCategoryIds =
-							assetVocabularyAssetCategoryIds.get(
-								assetVocabularyId);
-
-						assetVocabularyAssetCategoryIds.put(
-							assetVocabularyId,
-							assetCategoryIds + StringPool.COMMA +
-								assetCategoryId);
-					}
-					else {
-						assetVocabularyAssetCategoryIds.put(
-							assetVocabularyId, String.valueOf(assetCategoryId));
-					}
+					assetVocabularyAssetCategoryIds.merge(
+						assetVocabularyId, String.valueOf(assetCategoryId),
+						(currentAssetCategoryIds, newAssetCategoryId) ->
+							currentAssetCategoryIds + StringPool.COMMA +
+								newAssetCategoryId);
 				}
 
 				for (Map.Entry<Long, String> entry :
@@ -274,9 +265,11 @@ public class AssetHelperImpl implements AssetHelper {
 			AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
 				className, classPK);
 
-			if (assetEntry != null) {
-				assetEntries.add(assetEntry);
+			if (assetEntry == null) {
+				continue;
 			}
+
+			assetEntries.add(assetEntry);
 		}
 
 		return assetEntries;
@@ -302,9 +295,11 @@ public class AssetHelperImpl implements AssetHelper {
 			AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
 				className, classPK);
 
-			if (assetEntry != null) {
-				assetEntries.add(assetEntry);
+			if (assetEntry == null) {
+				continue;
 			}
+
+			assetEntries.add(assetEntry);
 		}
 
 		return assetEntries;
@@ -312,15 +307,23 @@ public class AssetHelperImpl implements AssetHelper {
 
 	@Override
 	public String getAssetKeywords(String className, long classPK) {
+		AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
+			className, classPK);
+
+		if (assetEntry == null) {
+			return StringPool.BLANK;
+		}
+
 		List<String> keywords = new ArrayList<>();
 
 		keywords.addAll(
 			ListUtil.toList(
-				_assetTagLocalService.getTags(className, classPK),
+				_assetTagLocalService.getEntryTags(assetEntry.getEntryId()),
 				AssetTag.NAME_ACCESSOR));
 		keywords.addAll(
 			ListUtil.toList(
-				_assetCategoryLocalService.getCategories(className, classPK),
+				_assetCategoryLocalService.getEntryCategories(
+					assetEntry.getEntryId()),
 				AssetCategory.NAME_ACCESSOR));
 
 		return StringUtil.merge(keywords);
@@ -330,15 +333,23 @@ public class AssetHelperImpl implements AssetHelper {
 	public String getAssetKeywords(
 		String className, long classPK, Locale locale) {
 
+		AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
+			className, classPK);
+
+		if (assetEntry == null) {
+			return StringPool.BLANK;
+		}
+
 		List<String> keywords = new ArrayList<>();
 
 		keywords.addAll(
 			ListUtil.toList(
-				_assetTagLocalService.getTags(className, classPK),
+				_assetTagLocalService.getEntryTags(assetEntry.getEntryId()),
 				AssetTag.NAME_ACCESSOR));
 		keywords.addAll(
 			ListUtil.toList(
-				_assetCategoryLocalService.getCategories(className, classPK),
+				_assetCategoryLocalService.getEntryCategories(
+					assetEntry.getEntryId()),
 				assetCategory -> assetCategory.getTitle(locale)));
 
 		return StringUtil.merge(keywords);
@@ -363,7 +374,11 @@ public class AssetHelperImpl implements AssetHelper {
 		Locale locale = themeDisplay.getLocale();
 
 		for (long classNameId : classNameIds) {
-			String className = _portal.getClassName(classNameId);
+			String className = _portal.fetchClassName(classNameId);
+
+			if (Validator.isNull(className)) {
+				continue;
+			}
 
 			AssetRendererFactory<?> assetRendererFactory =
 				AssetRendererFactoryRegistryUtil.
@@ -421,21 +436,25 @@ public class AssetHelperImpl implements AssetHelper {
 			for (ClassType classType : classTypes) {
 				long classTypeId = classType.getClassTypeId();
 
-				if (ArrayUtil.contains(classTypeIds, classTypeId) ||
-					(classTypeIds.length == 0)) {
+				if (!ArrayUtil.contains(classTypeIds, classTypeId) &&
+					(classTypeIds.length != 0)) {
 
-					PortletURL addPortletURL = getAddPortletURL(
-						liferayPortletRequest, liferayPortletResponse, groupId,
-						className, classTypeId, allAssetCategoryIds,
-						allAssetTagNames, redirect);
-
-					if (addPortletURL != null) {
-						assetPublisherAddItemHolders.add(
-							new AssetPublisherAddItemHolder(
-								portlet.getPortletId(), classType.getName(),
-								resourceBundle, locale, addPortletURL));
-					}
+					continue;
 				}
+
+				PortletURL addPortletURL = getAddPortletURL(
+					liferayPortletRequest, liferayPortletResponse, groupId,
+					className, classTypeId, allAssetCategoryIds,
+					allAssetTagNames, redirect);
+
+				if (addPortletURL == null) {
+					continue;
+				}
+
+				assetPublisherAddItemHolders.add(
+					new AssetPublisherAddItemHolder(
+						portlet.getPortletId(), classType.getName(),
+						resourceBundle, locale, addPortletURL));
 			}
 		}
 
@@ -457,18 +476,18 @@ public class AssetHelperImpl implements AssetHelper {
 		char[] wordCharArray = word.toCharArray();
 
 		for (char c : wordCharArray) {
-			for (char invalidChar : AssetHelper.INVALID_CHARACTERS) {
-				if (c == invalidChar) {
-					if (_log.isDebugEnabled()) {
-						_log.debug(
-							StringBundler.concat(
-								"Word ", word, " is not valid because ", c,
-								" is not allowed"));
-					}
-
-					return false;
-				}
+			if (!ArrayUtil.contains(AssetHelper.INVALID_CHARACTERS, c)) {
+				continue;
 			}
+
+			if (_log.isDebugEnabled()) {
+				_log.debug(
+					StringBundler.concat(
+						"Word ", word, " is not valid because ", c,
+						" is not allowed"));
+			}
+
+			return false;
 		}
 
 		return true;
@@ -625,16 +644,29 @@ public class AssetHelperImpl implements AssetHelper {
 		throws Exception {
 
 		if (sortField.startsWith(DDMIndexer.DDM_FIELD_PREFIX)) {
-			SortOrder sortOrder = SortOrder.ASC;
-
-			if (Validator.isNotNull(orderByType) &&
-				!StringUtil.equalsIgnoreCase(orderByType, "asc")) {
-
-				sortOrder = SortOrder.DESC;
-			}
-
 			return _ddmIndexer.createDDMStructureFieldSort(
-				sortField, locale, sortOrder);
+				sortField, locale, _getSortOrder(orderByType));
+		}
+
+		if (sortField.startsWith("nestedFieldArray.")) {
+			String[] sortFieldParts = StringUtil.split(
+				sortField, CharPool.PERIOD);
+
+			if (sortFieldParts.length == 3) {
+				FieldSort fieldSort = _sorts.field(
+					sortFieldParts[0] + StringPool.PERIOD + sortFieldParts[2],
+					_getSortOrder(orderByType));
+
+				NestedSort nestedSort = _sorts.nested(sortFieldParts[0]);
+
+				nestedSort.setFilterQuery(
+					QueriesUtil.term(
+						sortFieldParts[0] + ".fieldName", sortFieldParts[1]));
+
+				fieldSort.setNestedSort(nestedSort);
+
+				return fieldSort;
+			}
 		}
 
 		Sort sort = SortFactoryUtil.getSort(
@@ -664,12 +696,25 @@ public class AssetHelperImpl implements AssetHelper {
 		return new com.liferay.portal.search.sort.Sort[] {sort1, sort2};
 	}
 
+	private SortOrder _getSortOrder(String orderByType) {
+		if (Validator.isNotNull(orderByType) &&
+			!StringUtil.equalsIgnoreCase(orderByType, "asc")) {
+
+			return SortOrder.DESC;
+		}
+
+		return SortOrder.ASC;
+	}
+
 	private int _getSortType(String fieldType) {
 		int sortType = Sort.STRING_TYPE;
 
 		if (fieldType.equals(Field.CREATE_DATE) ||
+			fieldType.equals(Field.DISPLAY_DATE) ||
 			fieldType.equals(Field.EXPIRATION_DATE) ||
+			fieldType.equals(Field.MODIFIED_DATE) ||
 			fieldType.equals(Field.PUBLISH_DATE) ||
+			fieldType.equals(Field.REVIEW_DATE) ||
 			fieldType.equals("modifiedDate")) {
 
 			sortType = Sort.LONG_TYPE;
@@ -677,7 +722,9 @@ public class AssetHelperImpl implements AssetHelper {
 		else if (fieldType.equals(Field.PRIORITY)) {
 			sortType = Sort.DOUBLE_TYPE;
 		}
-		else if (fieldType.equals("viewCount")) {
+		else if (fieldType.equals(Field.STATUS) ||
+				 fieldType.equals("viewCount")) {
+
 			sortType = Sort.INT_TYPE;
 		}
 
@@ -688,6 +735,8 @@ public class AssetHelperImpl implements AssetHelper {
 			List<AssetEntryQuery> assetEntryQueries, int end,
 			SearchContext searchContext, int start)
 		throws Exception {
+
+		BooleanQuery booleanQuery = new BooleanQuery();
 
 		for (AssetEntryQuery assetEntryQuery : assetEntryQueries) {
 			SearchContext assetEntryQuerySearchContext = new SearchContext();
@@ -708,28 +757,29 @@ public class AssetHelperImpl implements AssetHelper {
 			BaseSearcher baseSearcher =
 				_assetSearcherFactory.createBaseSearcher(assetEntryQuery);
 
-			BooleanQuery booleanQuery = baseSearcher.getFullQuery(
+			BooleanQuery innerBooleanQuery = baseSearcher.getFullQuery(
 				assetEntryQuerySearchContext);
 
-			BooleanClause<Query>[] booleanClauses =
-				searchContext.getBooleanClauses();
-
-			if (booleanClauses == null) {
-				searchContext.setBooleanClauses(
-					new BooleanClause[] {
-						BooleanClauseFactoryUtil.create(
-							booleanQuery, BooleanClauseOccur.SHOULD.getName())
-					});
-			}
-			else {
-				searchContext.setBooleanClauses(
-					ArrayUtil.append(
-						booleanClauses,
-						BooleanClauseFactoryUtil.create(
-							booleanQuery,
-							BooleanClauseOccur.SHOULD.getName())));
-			}
+			booleanQuery.add(innerBooleanQuery, BooleanClauseOccur.SHOULD);
 		}
+
+		BooleanClause<Query> assetEntryBooleanClauses = new BooleanClause<>(
+			booleanQuery, BooleanClauseOccur.MUST);
+
+		BooleanClause<Query>[] booleanClauses =
+			searchContext.getBooleanClauses();
+
+		if (booleanClauses == null) {
+			searchContext.setBooleanClauses(
+				new BooleanClause[] {assetEntryBooleanClauses});
+		}
+		else {
+			searchContext.setBooleanClauses(
+				ArrayUtil.append(booleanClauses, assetEntryBooleanClauses));
+		}
+
+		searchContext.setEnd(end);
+		searchContext.setStart(start);
 	}
 
 	private void _prepareSearchContext(
@@ -832,10 +882,10 @@ public class AssetHelperImpl implements AssetHelper {
 	private PortletLocalService _portletLocalService;
 
 	@Reference
-	private Searcher _searcher;
+	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
 
 	@Reference
-	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
+	private Searcher _searcher;
 
 	@Reference
 	private Sorts _sorts;

@@ -14,33 +14,40 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("SkuSubscriptionConfiguration")
+@GraphQLName(
+	description = "Per-SKU subscription billing configuration; takes effect only when `overrideSubscriptionInfo` is true, otherwise the parent product's subscription configuration is used.",
+	value = "SkuSubscriptionConfiguration"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Per-SKU subscription billing configuration; takes effect only when `overrideSubscriptionInfo` is true, otherwise the parent product's subscription configuration is used."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "SkuSubscriptionConfiguration")
 public class SkuSubscriptionConfiguration implements Serializable {
@@ -55,7 +62,10 @@ public class SkuSubscriptionConfiguration implements Serializable {
 			SkuSubscriptionConfiguration.class, json);
 	}
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether recurring deliveries are enabled for this SKU.",
+		example = "true"
+	)
 	public Boolean getDeliverySubscriptionEnable() {
 		if (_deliverySubscriptionEnableSupplier != null) {
 			deliverySubscriptionEnable =
@@ -93,14 +103,19 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether recurring deliveries are enabled for this SKU."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean deliverySubscriptionEnable;
 
 	@JsonIgnore
 	private Supplier<Boolean> _deliverySubscriptionEnableSupplier;
 
-	@Schema(example = "2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Number of delivery interval units between deliveries; must be greater than zero.",
+		example = "2"
+	)
 	public Integer getDeliverySubscriptionLength() {
 		if (_deliverySubscriptionLengthSupplier != null) {
 			deliverySubscriptionLength =
@@ -138,14 +153,19 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Number of delivery interval units between deliveries; must be greater than zero."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer deliverySubscriptionLength;
 
 	@JsonIgnore
 	private Supplier<Integer> _deliverySubscriptionLengthSupplier;
 
-	@Schema(example = "12")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum number of delivery cycles before the recurring delivery ends; zero means no maximum.",
+		example = "12"
+	)
 	public Long getDeliverySubscriptionNumberOfLength() {
 		if (_deliverySubscriptionNumberOfLengthSupplier != null) {
 			deliverySubscriptionNumberOfLength =
@@ -184,15 +204,20 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Maximum number of delivery cycles before the recurring delivery ends; zero means no maximum."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long deliverySubscriptionNumberOfLength;
 
 	@JsonIgnore
 	private Supplier<Long> _deliverySubscriptionNumberOfLengthSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Delivery interval unit; one of daily, weekly, monthly, or yearly.",
+		example = "monthly"
+	)
 	@JsonGetter("deliverySubscriptionType")
-	@Schema(example = "monthly")
 	@Valid
 	public DeliverySubscriptionType getDeliverySubscriptionType() {
 		if (_deliverySubscriptionTypeSupplier != null) {
@@ -242,7 +267,9 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Delivery interval unit; one of daily, weekly, monthly, or yearly."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DeliverySubscriptionType deliverySubscriptionType;
 
@@ -250,7 +277,10 @@ public class SkuSubscriptionConfiguration implements Serializable {
 	private Supplier<DeliverySubscriptionType>
 		_deliverySubscriptionTypeSupplier;
 
-	@Schema(example = "{deliveryMonthDay=1, deliveryMonthlyMode=0}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form key-value settings consumed by the selected delivery interval unit.",
+		example = "{deliveryMonthDay=1, deliveryMonthlyMode=0}"
+	)
 	@Valid
 	public Map<String, String> getDeliverySubscriptionTypeSettings() {
 		if (_deliverySubscriptionTypeSettingsSupplier != null) {
@@ -290,7 +320,9 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form key-value settings consumed by the selected delivery interval unit."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> deliverySubscriptionTypeSettings;
 
@@ -298,7 +330,10 @@ public class SkuSubscriptionConfiguration implements Serializable {
 	private Supplier<Map<String, String>>
 		_deliverySubscriptionTypeSettingsSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether recurring billing is enabled for this SKU.",
+		example = "true"
+	)
 	public Boolean getEnable() {
 		if (_enableSupplier != null) {
 			enable = _enableSupplier.get();
@@ -332,14 +367,19 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether recurring billing is enabled for this SKU."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean enable;
 
 	@JsonIgnore
 	private Supplier<Boolean> _enableSupplier;
 
-	@Schema(example = "2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Number of subscription interval units between billings; must be greater than zero and defaults to 1.",
+		example = "2"
+	)
 	public Integer getLength() {
 		if (_lengthSupplier != null) {
 			length = _lengthSupplier.get();
@@ -373,14 +413,19 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Number of subscription interval units between billings; must be greater than zero and defaults to 1."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer length;
 
 	@JsonIgnore
 	private Supplier<Integer> _lengthSupplier;
 
-	@Schema(example = "12")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum number of billing cycles before the subscription ends; zero means no maximum.",
+		example = "12"
+	)
 	public Long getNumberOfLength() {
 		if (_numberOfLengthSupplier != null) {
 			numberOfLength = _numberOfLengthSupplier.get();
@@ -414,14 +459,19 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Maximum number of billing cycles before the subscription ends; zero means no maximum."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long numberOfLength;
 
 	@JsonIgnore
 	private Supplier<Long> _numberOfLengthSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true the service uses the per-SKU subscription fields on this object instead of the parent product's subscription settings.",
+		example = "true"
+	)
 	public Boolean getOverrideSubscriptionInfo() {
 		if (_overrideSubscriptionInfoSupplier != null) {
 			overrideSubscriptionInfo = _overrideSubscriptionInfoSupplier.get();
@@ -456,15 +506,20 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true the service uses the per-SKU subscription fields on this object instead of the parent product's subscription settings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean overrideSubscriptionInfo;
 
 	@JsonIgnore
 	private Supplier<Boolean> _overrideSubscriptionInfoSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Subscription interval unit; one of daily, weekly, monthly, or yearly.",
+		example = "monthly"
+	)
 	@JsonGetter("subscriptionType")
-	@Schema(example = "monthly")
 	@Valid
 	public SubscriptionType getSubscriptionType() {
 		if (_subscriptionTypeSupplier != null) {
@@ -511,14 +566,19 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Subscription interval unit; one of daily, weekly, monthly, or yearly."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected SubscriptionType subscriptionType;
 
 	@JsonIgnore
 	private Supplier<SubscriptionType> _subscriptionTypeSupplier;
 
-	@Schema(example = "{monthDay=1, monthlyMode=0}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form key-value settings consumed by the selected subscription interval unit.",
+		example = "{monthDay=1, monthlyMode=0}"
+	)
 	@Valid
 	public Map<String, String> getSubscriptionTypeSettings() {
 		if (_subscriptionTypeSettingsSupplier != null) {
@@ -556,7 +616,9 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form key-value settings consumed by the selected subscription interval unit."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> subscriptionTypeSettings;
 
@@ -640,9 +702,7 @@ public class SkuSubscriptionConfiguration implements Serializable {
 			sb.append("\"deliverySubscriptionType\": ");
 
 			sb.append("\"");
-
 			sb.append(deliverySubscriptionType);
-
 			sb.append("\"");
 		}
 
@@ -717,9 +777,7 @@ public class SkuSubscriptionConfiguration implements Serializable {
 			sb.append("\"subscriptionType\": ");
 
 			sb.append("\"");
-
 			sb.append(subscriptionType);
-
 			sb.append("\"");
 		}
 
@@ -741,8 +799,8 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.SkuSubscriptionConfiguration",
 		name = "x-class-name"
 	)
@@ -907,6 +965,27 @@ public class SkuSubscriptionConfiguration implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -915,3 +994,4 @@ public class SkuSubscriptionConfiguration implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2002224760

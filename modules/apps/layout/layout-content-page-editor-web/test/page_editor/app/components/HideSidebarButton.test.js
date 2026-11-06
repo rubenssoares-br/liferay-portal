@@ -32,15 +32,15 @@ const renderComponent = () =>
 	);
 
 describe('HideSidebarButton', () => {
-	it('calls onToggleSidebars when the Toggle Sidebars button is pressed', () => {
+	it('calls onToggleSidebars when the Toggle Sidebars button is pressed', async () => {
 		renderComponent();
 
 		const onToggleSidebars = useOnToggleSidebars();
 
-		userEvent.click(
+		await userEvent.click(
 			screen.getByLabelText('toggle-sidebars', {exact: false})
 		);
 
-		expect(onToggleSidebars).toBeCalled();
+		expect(onToggleSidebars).toHaveBeenCalled();
 	});
 });

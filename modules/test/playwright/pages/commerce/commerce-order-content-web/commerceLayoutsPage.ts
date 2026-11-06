@@ -8,20 +8,34 @@ import {FrameLocator, Locator, Page, expect} from '@playwright/test';
 import {liferayConfig} from '../../../liferay.config';
 
 export class CommerceLayoutsPage {
+	readonly accountSelectorButton: (name: string) => Locator;
+	readonly addDeliveryGroupButton: Locator;
 	readonly addOrderButton: Locator;
 	readonly addPageButton: Locator;
 	readonly addPageModalSubmitButton: Locator;
 	readonly addPageNameInput: Locator;
+	readonly addressCityInput: Locator;
+	readonly addressCountrySelect: Locator;
+	readonly addressNameInput: Locator;
+	readonly addressRegionSelect: Locator;
+	readonly addressStreet1Input: Locator;
+	readonly addressZipInput: Locator;
 	readonly addWidgetButton: Locator;
 	readonly addWidgetLabel: (widgetName: string) => Locator;
 	readonly availableThemesFrame: FrameLocator;
 	readonly backLink: Locator;
 	readonly cancelButton: Locator;
 	readonly changeCurrentThemeButton: Locator;
+	readonly closeFrameButton: Locator;
 	readonly closeProductMenuButton: Locator;
 	readonly configureMenuItem: Locator;
+	readonly createNewOrderButton: Locator;
 	readonly createPageMenuItem: Locator;
 	readonly defaultDisplayPageTemplateIcon: Locator;
+	readonly deliveryGroupCell: (name: string) => Locator;
+	readonly deliveryGroupDateInput: Locator;
+	readonly deliveryGroupNameInput: Locator;
+	readonly deliveryGroupQuantityInput: (sku: string) => Locator;
 	readonly defineCustomThemeCheckbox: Locator;
 	readonly deleteEntriesButton: Locator;
 	readonly deleteLayoutModal: Locator;
@@ -32,11 +46,18 @@ export class CommerceLayoutsPage {
 	readonly displayPageTemplateCheckBox: (displayPageName: string) => Locator;
 	readonly displayPageTemplateLink: (name: string) => Locator;
 	readonly displayPageTemplatesLink: Locator;
+	readonly downloadCsvTemplateButton: Locator;
+	readonly editButton: Locator;
 	readonly editMenuItem: Locator;
 	readonly firstFragment: Locator;
 	readonly fragmentsAndWidgetsTab: Locator;
 	readonly fragmentMenuItem: (itemName: string) => Locator;
 	readonly iconLock: Locator;
+	readonly importCsvErrorAlert: Locator;
+	readonly importCsvFileInput: Locator;
+	readonly importCsvFrame: FrameLocator;
+	readonly importCsvPreviewRow: (productName: string) => Locator;
+	readonly importCsvSubmitButton: Locator;
 	readonly infoBoxButton: (label: string) => Locator;
 	readonly infoBoxCancelButton: Locator;
 	readonly infoBoxDeletePurchaseOrderDocumentButton: Locator;
@@ -52,11 +73,13 @@ export class CommerceLayoutsPage {
 	readonly labelField: Locator;
 	readonly markAsDefaultMenuItem: Locator;
 	readonly moreActionsButton: Locator;
-	readonly orderActionsButton: (orderActionName: string) => Locator;
 	readonly openProductMenuButton: Locator;
+	readonly orderActionsButton: (orderActionName: string) => Locator;
+	readonly orderActionDropDownButton: Locator;
 	readonly orderItemCardButton: Locator;
 	readonly page: Page;
 	readonly pageEditorCollectionItem: Locator;
+	readonly pageEditorElement: (selector: string) => Locator;
 	readonly pageEditorText: (text: RegExp | string) => Locator;
 	readonly pagesMenuItem: Locator;
 	readonly pageTemplatesMenuItem: Locator;
@@ -77,7 +100,21 @@ export class CommerceLayoutsPage {
 	readonly submitButton: Locator;
 	readonly widgetPageTemplateButton: Locator;
 
+	readonly orderTypeModal: Locator;
+	readonly orderTypeModalHeading: Locator;
+	readonly orderTypeModalInput: Locator;
+	readonly orderTypeModalButton: Locator;
+
 	constructor(page: Page) {
+		this.accountSelectorButton = (name) => {
+			return page.getByRole('button', {
+				name,
+			});
+		};
+		this.addDeliveryGroupButton = page.getByRole('button', {
+			exact: true,
+			name: 'Add Delivery Group',
+		});
 		this.addOrderButton = page.getByRole('button', {
 			exact: true,
 			name: 'Add Order',
@@ -92,6 +129,14 @@ export class CommerceLayoutsPage {
 		this.addPageNameInput = page
 			.frameLocator('#addLayoutDialog_iframe_')
 			.getByTestId('addPageNameInput');
+		this.addressCityInput = page.getByLabel('City', {exact: true});
+		this.addressCountrySelect = page.getByLabel('Country');
+		this.addressNameInput = page.getByLabel('Name', {exact: true});
+		this.addressRegionSelect = page.getByLabel('Region');
+		this.addressStreet1Input = page.getByLabel('Address Line 1', {
+			exact: true,
+		});
+		this.addressZipInput = page.getByLabel('Zip', {exact: true});
 		this.addWidgetButton = page.getByTestId('add');
 		this.addWidgetLabel = (widgetName) => {
 			return page
@@ -102,7 +147,7 @@ export class CommerceLayoutsPage {
 		this.availableThemesFrame = page.frameLocator(
 			'iframe[title="Available Themes"]'
 		);
-		this.backLink = page.getByRole('link', {exact: true, name: 'Back'});
+		this.backLink = page.locator('span[title="Back"]');
 		this.cancelButton = page.getByRole('button', {
 			exact: true,
 			name: 'Cancel',
@@ -111,6 +156,9 @@ export class CommerceLayoutsPage {
 			exact: true,
 			name: 'Change Current Theme',
 		});
+		this.closeFrameButton = page
+			.getByRole('dialog')
+			.getByLabel('Close', {exact: true});
 		this.closeProductMenuButton = page.getByRole('tab', {
 			exact: true,
 			name: 'Close Product Menu',
@@ -118,6 +166,10 @@ export class CommerceLayoutsPage {
 		this.configureMenuItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Configure',
+		});
+		this.createNewOrderButton = page.getByRole('button', {
+			exact: true,
+			name: 'Create New Order',
 		});
 		this.createPageMenuItem = page
 			.getByTestId('dropdownMenu')
@@ -129,13 +181,24 @@ export class CommerceLayoutsPage {
 			.getByTestId('row')
 			.locator('use')
 			.nth(1);
+		this.deliveryGroupCell = (name: string) =>
+			page.locator('.delivery-group', {hasText: name});
+		this.deliveryGroupDateInput = page.getByLabel('Date', {exact: true});
+		this.deliveryGroupNameInput = page.getByLabel('Group Name');
+		this.deliveryGroupQuantityInput = (sku: string) =>
+			page
+				.locator('tr', {hasText: sku})
+				.locator('td.delivery-group')
+				.getByRole('spinbutton');
 		this.defineCustomThemeCheckbox = page.getByLabel(
 			'Define a custom theme for this page.'
 		);
 		this.deleteEntriesButton = page
 			.getByLabel('Delete Entries- Loading')
 			.getByRole('button', {name: 'Delete'});
-		this.deleteLayoutModal = page.locator('#deleteLayoutModalDeleteButton');
+		this.deleteLayoutModal = page
+			.locator('.modal-footer')
+			.getByRole('button', {name: 'Delete'});
 		this.deleteMenuItemModal = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Delete',
@@ -158,6 +221,7 @@ export class CommerceLayoutsPage {
 			exact: true,
 			name: 'Display Page Templates',
 		});
+		this.editButton = page.getByRole('link', {exact: true, name: 'Edit'});
 		this.editMenuItem = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Edit',
@@ -165,7 +229,7 @@ export class CommerceLayoutsPage {
 		this.firstFragment = page.locator('#page-editor div').nth(2);
 		this.fragmentsAndWidgetsTab = page.getByRole('tab', {
 			exact: true,
-			name: 'Fragments and Widgets',
+			name: 'Components',
 		});
 		this.fragmentMenuItem = (itemName: string) =>
 			page.getByRole('menuitem', {
@@ -178,6 +242,24 @@ export class CommerceLayoutsPage {
 			name: 'Cancel',
 		});
 		this.iconLock = page.locator('.lexicon-icon-lock');
+		this.importCsvFrame = page.frameLocator(
+			'iframe[title="Import from CSV"]'
+		);
+		this.downloadCsvTemplateButton = this.importCsvFrame.getByRole(
+			'button',
+			{name: 'Download Template'}
+		);
+		this.importCsvErrorAlert = this.importCsvFrame.locator('.alert-danger');
+		this.importCsvFileInput =
+			this.importCsvFrame.locator('input[type="file"]');
+		this.importCsvPreviewRow = (productName: string) =>
+			this.importCsvFrame
+				.locator('tbody tr')
+				.filter({hasText: productName});
+		this.importCsvSubmitButton = this.importCsvFrame.getByRole('button', {
+			exact: true,
+			name: 'Import',
+		});
 		this.infoBoxDeletePurchaseOrderDocumentButton = page.getByTestId(
 			'purchaseOrderDocument-infoBoxDeleteButton'
 		);
@@ -186,9 +268,9 @@ export class CommerceLayoutsPage {
 		);
 		this.infoBoxFieldSelect = page.getByLabel('Field', {exact: true});
 		this.infoBoxLabelInput = page.getByLabel('Label', {exact: true});
-		this.infoBoxShippingMethodAlert = page.getByText('are no available');
-		this.infoBoxShippingMethodSelect = page.getByLabel('Choose Courier');
 		this.infoBoxReadOnlyToggle = page.getByLabel('Read Only');
+		this.infoBoxShippingMethodAlert = page.getByText('are no available');
+		this.infoBoxShippingMethodSelect = page.getByLabel('Choose Carrier');
 		this.infoBoxValue = (name: string) => page.getByText(name);
 		this.inputTextArea = page.getByRole('textbox');
 		this.inputTextbox = (name: string) =>
@@ -199,19 +281,37 @@ export class CommerceLayoutsPage {
 		});
 		this.labelField = page.getByLabel('Field', {exact: true});
 		this.moreActionsButton = page.getByLabel('More actions');
-		this.orderActionsButton = (orderActionName: string) =>
-			page.getByRole('button', {exact: true, name: orderActionName});
 		this.openProductMenuButton = page.getByRole('tab', {
 			exact: true,
 			name: 'Open Product Menu',
 		});
+		this.orderActionsButton = (orderActionName: string) =>
+			page.getByRole('button', {exact: true, name: orderActionName});
+		this.orderActionDropDownButton = page
+			.locator(
+				'.lfr-layout-structure-item-com-liferay-commerce-order-content-web-internal-fragment-renderer-orderactionsfragmentrenderer'
+			)
+			.locator('.dropdown-toggle');
 		this.orderItemCardButton = page
 			.frameLocator('iframe[title="Select"]')
 			.getByRole('button', {name: 'Select Order Items'});
+		this.orderTypeModal = page.locator('.modal-content');
+		this.orderTypeModalHeading = this.orderTypeModal.getByRole('heading', {
+			name: 'Select Order Type',
+		});
+		this.orderTypeModalInput = this.orderTypeModal.getByLabel(
+			'Order Type',
+			{exact: true}
+		);
+		this.orderTypeModalButton = this.orderTypeModal.getByRole('button', {
+			name: 'Add Order',
+		});
 		this.page = page;
 		this.pageEditorCollectionItem = page
-			.locator('.page-editor__collection-item__border')
+			.locator('.page-editor__collection-item')
 			.first();
+		this.pageEditorElement = (selector: string) =>
+			page.locator('#page-editor').locator(selector);
 		this.pageEditorText = (text: RegExp | string) =>
 			page.locator('#page-editor').getByText(text);
 		this.pagesMenuItem = page
@@ -345,22 +445,17 @@ export class CommerceLayoutsPage {
 		await this.addWidgetLabel(widgetName).click();
 	}
 
-	async checkValueOrderSummary(nameValue: string, value: string) {
-		await expect(
-			this.page.getByText(nameValue, {exact: true})
-		).toBeVisible();
-		await expect(
-			this.page.locator('span').filter({hasText: value})
-		).toBeVisible();
-	}
-
 	async createDisplayPageTemplate(
 		displayPageTemplateName: string,
 		contentTypeLabel: string = 'Product',
 		siteName: string = 'guest'
 	) {
 		await this.page
-			.getByRole('link', {exact: true, name: 'Display Page Template'})
+			.getByRole('link', {exact: true, name: 'Display Page Templates'})
+			.click();
+		await this.page.getByRole('button', {exact: true, name: 'New'}).click();
+		await this.page
+			.getByRole('menuitem', {exact: true, name: 'Display Page Template'})
 			.click();
 		await this.page
 			.getByRole('button', {exact: true, name: 'Blank'})
@@ -391,29 +486,6 @@ export class CommerceLayoutsPage {
 		await this.saveButton.click();
 	}
 
-	async createWidgetPage(pageName: string) {
-		await this.addPageButton.first().click();
-		await this.createPageMenuItem.click();
-		await this.widgetPageTemplateButton.click();
-		await this.addPageNameInput.waitFor({
-			state: 'attached',
-		});
-		await this.addPageNameInput.click();
-		await this.addPageNameInput.fill(pageName);
-		await Promise.all([
-			this.addPageModalSubmitButton.click(),
-			this.page.waitForResponse(
-				(resp) =>
-					resp.status() === 200 &&
-					resp
-						.url()
-						.includes(
-							'p_p_id=com_liferay_layout_admin_web_portlet_GroupPagesPortlet'
-						)
-			),
-		]);
-	}
-
 	async expectOrderActionButtons({
 		approveCount = 0,
 		checkoutCount = 0,
@@ -442,6 +514,59 @@ export class CommerceLayoutsPage {
 		);
 	}
 
+	async importCsvFile(
+		file: {buffer: Buffer; mimeType: string; name: string} | string
+	) {
+		await this.importCsvFileInput.setInputFiles(file);
+
+		await this.importCsvSubmitButton.click();
+	}
+
+	async expectImportCsvPreviewRow(
+		productName: string,
+		{
+			importStatus,
+			quantity,
+			requestedDeliveryDate,
+			sku,
+			totalPrice,
+			unitPrice,
+		}: {
+			importStatus?: string;
+			quantity?: number;
+			requestedDeliveryDate?: string;
+			sku?: string;
+			totalPrice?: string;
+			unitPrice?: string;
+		}
+	) {
+		const cells = this.importCsvPreviewRow(productName).locator('td');
+
+		if (sku !== undefined) {
+			await expect(cells.nth(2)).toHaveText(sku);
+		}
+
+		if (unitPrice !== undefined) {
+			await expect(cells.nth(4)).toContainText(unitPrice);
+		}
+
+		if (quantity !== undefined) {
+			await expect(cells.nth(5)).toHaveText(String(quantity));
+		}
+
+		if (totalPrice !== undefined) {
+			await expect(cells.nth(6)).toContainText(totalPrice);
+		}
+
+		if (importStatus !== undefined) {
+			await expect(cells.nth(7)).toContainText(importStatus);
+		}
+
+		if (requestedDeliveryDate !== undefined) {
+			await expect(cells.nth(9)).toHaveText(requestedDeliveryDate);
+		}
+	}
+
 	async goto() {
 		await this.page.goto(liferayConfig.environment.baseUrl);
 	}
@@ -452,6 +577,12 @@ export class CommerceLayoutsPage {
 		}
 
 		if (
+			(await this.closeProductMenuButton.isVisible()) &&
+			(await this.pageTemplatesMenuItem.isVisible())
+		) {
+			return;
+		}
+		else if (
 			(await this.closeProductMenuButton.isVisible()) &&
 			(await this.pageTemplatesMenuItem.isHidden())
 		) {
@@ -539,13 +670,22 @@ export class CommerceLayoutsPage {
 		}
 	}
 
-	async selectDisplayPageTemplatePreviewItem(itemName: string) {
+	async selectDisplayPageTemplatePreviewItem(
+		itemName: string,
+		visible: boolean = true
+	) {
 		await this.previewItemSelectorButton.click();
 		await this.selectOtherItemDropdownItem.click();
 
 		const itemButton = await this.page
 			.frameLocator('iframe[title="Select"]')
 			.getByRole('button', {name: itemName});
+
+		if (!visible) {
+			await expect(itemButton).toHaveCount(0);
+
+			return;
+		}
 
 		await expect(itemButton).toBeVisible();
 

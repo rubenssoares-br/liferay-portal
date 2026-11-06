@@ -7,26 +7,28 @@ package com.liferay.headless.portal.instances.internal.resource.v1_0;
 
 import com.liferay.headless.portal.instances.dto.v1_0.Admin;
 import com.liferay.headless.portal.instances.dto.v1_0.PortalInstance;
+import com.liferay.headless.portal.instances.internal.dto.v1_0.converter.constants.DTOConverterConstants;
+import com.liferay.headless.portal.instances.internal.notifications.PortalInstanceNotificationUtil;
+import com.liferay.headless.portal.instances.internal.security.permission.PortalInstancePermissionUtil;
 import com.liferay.headless.portal.instances.resource.v1_0.PortalInstanceResource;
+import com.liferay.portal.instances.constants.PortalInstancesNotificationConstants;
+import com.liferay.portal.kernel.exception.ContactNameException;
 import com.liferay.portal.kernel.exception.UserEmailAddressException;
-import com.liferay.portal.kernel.exception.UserScreenNameException;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
+import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Company;
-import com.liferay.portal.kernel.model.Contact;
-import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.auth.EmailAddressValidator;
 import com.liferay.portal.kernel.service.CompanyService;
-import com.liferay.portal.kernel.service.UserLocalService;
-import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.security.auth.EmailAddressValidatorFactory;
 import com.liferay.portal.util.PortalInstances;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.pagination.Page;
+import com.liferay.site.initializer.SiteInitializer;
+import com.liferay.site.initializer.SiteInitializerRegistry;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
@@ -44,22 +46,39 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 
 	@Override
 	public void deletePortalInstance(String portalInstanceId) throws Exception {
+		PortalInstancePermissionUtil.check();
+
 		Company company = _companyService.getCompanyByWebId(portalInstanceId);
 
 		_companyService.deleteCompany(company.getCompanyId());
+
+		PortalInstanceNotificationUtil.sendUserNotificationEvent(
+			JSONUtil.put(
+				"operationType",
+				PortalInstancesNotificationConstants.OPERATION_TYPE_DELETE
+			).put(
+				"portalInstanceId", portalInstanceId
+			).put(
+				"status", PortalInstancesNotificationConstants.STATUS_SUCCESS
+			),
+			contextUser.getUserId());
 	}
 
 	@Override
 	public PortalInstance getPortalInstance(String portalInstanceId)
 		throws Exception {
 
-		return _toPortalInstance(
+		PortalInstancePermissionUtil.check();
+
+		return _portalInstanceDTOConverter.toDTO(
 			_companyService.getCompanyByWebId(portalInstanceId));
 	}
 
 	@Override
 	public Page<PortalInstance> getPortalInstancesPage(Boolean skipDefault)
 		throws Exception {
+
+		PortalInstancePermissionUtil.check();
 
 		boolean finalSkipDefault = GetterUtil.getBoolean(skipDefault);
 
@@ -71,7 +90,8 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 					(PortalInstancePool.getDefaultCompanyId() !=
 						company.getCompanyId())) {
 
-					portalInstances.add(_toPortalInstance(company));
+					portalInstances.add(
+						_portalInstanceDTOConverter.toDTO(company));
 				}
 			});
 
@@ -83,6 +103,8 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 			String portalInstanceId, PortalInstance portalInstance)
 		throws Exception {
 
+		PortalInstancePermissionUtil.check();
+
 		Company company = _companyService.getCompanyByWebId(portalInstanceId);
 
 		String virtualHostname = GetterUtil.getString(
@@ -90,7 +112,7 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 		String domain = GetterUtil.getString(
 			portalInstance.getDomain(), company.getMx());
 
-		return _toPortalInstance(
+		return _portalInstanceDTOConverter.toDTO(
 			_companyService.updateCompany(
 				company.getCompanyId(), virtualHostname, domain,
 				company.getMaxUsers(), company.isActive()));
@@ -100,64 +122,16 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 	public PortalInstance postPortalInstance(PortalInstance portalInstance)
 		throws Exception {
 
-		Admin admin = portalInstance.getAdmin();
+		PortalInstancePermissionUtil.check();
 
-		if (admin != null) {
-			_validateAdmin(admin);
-		}
-
-		Long companyId = portalInstance.getCompanyId();
-
-		if (companyId == null) {
-			companyId = 0L;
-		}
-
-		long finalCompanyId = companyId;
-
-		Company company = PortalInstances.addCompany(
-			portalInstance.getSiteInitializerKey(),
-			() -> _companyService.addCompany(
-				finalCompanyId, portalInstance.getPortalInstanceId(),
-				portalInstance.getVirtualHost(), portalInstance.getDomain(), 0,
-				true));
-
-		if (admin != null) {
-			User defaultAdminUser = _userLocalService.getUserByEmailAddress(
-				company.getCompanyId(),
-				PropsValues.DEFAULT_ADMIN_EMAIL_ADDRESS_PREFIX + "@" +
-					company.getMx());
-
-			Contact contact = defaultAdminUser.getContact();
-
-			Calendar calendar = CalendarFactoryUtil.getCalendar();
-
-			calendar.setTime(contact.getBirthday());
-
-			_userLocalService.updateUser(
-				defaultAdminUser.getUserId(), null, null, null, false,
-				defaultAdminUser.getReminderQueryQuestion(),
-				defaultAdminUser.getReminderQueryAnswer(),
-				defaultAdminUser.getScreenName(), admin.getEmailAddress(), true,
-				null, defaultAdminUser.getLanguageId(),
-				defaultAdminUser.getTimeZoneId(),
-				defaultAdminUser.getGreeting(), defaultAdminUser.getComments(),
-				admin.getGivenName(), defaultAdminUser.getMiddleName(),
-				admin.getFamilyName(), contact.getPrefixListTypeId(),
-				contact.getSuffixListTypeId(), defaultAdminUser.isMale(),
-				calendar.get(Calendar.MONTH),
-				calendar.get(Calendar.DAY_OF_MONTH),
-				calendar.get(Calendar.YEAR), contact.getSmsSn(),
-				contact.getFacebookSn(), contact.getJabberSn(),
-				contact.getSkypeSn(), contact.getTwitterSn(),
-				contact.getJobTitle(), null, null, null, null, null, null);
-		}
-
-		return _toPortalInstance(company);
+		return _addPortalInstance(portalInstance);
 	}
 
 	@Override
 	public void putPortalInstanceActivate(String portalInstanceId)
 		throws Exception {
+
+		PortalInstancePermissionUtil.check();
 
 		Company company = _companyService.getCompanyByWebId(portalInstanceId);
 
@@ -170,6 +144,8 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 	public void putPortalInstanceDeactivate(String portalInstanceId)
 		throws Exception {
 
+		PortalInstancePermissionUtil.check();
+
 		Company company = _companyService.getCompanyByWebId(portalInstanceId);
 
 		_companyService.updateCompany(
@@ -177,24 +153,60 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 			company.getMx(), company.getMaxUsers(), false);
 	}
 
-	private PortalInstance _toPortalInstance(Company company) {
-		return new PortalInstance() {
-			{
-				setActive(company::isActive);
-				setCompanyId(company::getCompanyId);
-				setDomain(company::getMx);
-				setPortalInstanceId(company::getWebId);
-				setVirtualHost(company::getVirtualHostname);
-			}
-		};
+	private PortalInstance _addPortalInstance(PortalInstance portalInstance)
+		throws Exception {
+
+		_validateSiteInitializerKey(portalInstance.getSiteInitializerKey());
+
+		Admin admin = portalInstance.getAdmin();
+
+		Long companyId = portalInstance.getCompanyId();
+
+		if (companyId == null) {
+			companyId = 0L;
+		}
+
+		long finalCompanyId = companyId;
+
+		boolean active = GetterUtil.getBoolean(
+			portalInstance.getActive(), true);
+		int maxUsers = GetterUtil.getInteger(portalInstance.getMaxUsers());
+
+		if (admin != null) {
+			_validateAdmin(admin);
+
+			return _portalInstanceDTOConverter.toDTO(
+				PortalInstances.addCompany(
+					portalInstance.getSiteInitializerKey(),
+					() -> _companyService.addCompany(
+						finalCompanyId, portalInstance.getPortalInstanceId(),
+						portalInstance.getVirtualHost(),
+						portalInstance.getDomain(), maxUsers, active,
+						admin.getPassword(), admin.getScreenName(),
+						admin.getEmailAddress(), admin.getGivenName(),
+						admin.getMiddleName(), admin.getFamilyName())));
+		}
+
+		return _portalInstanceDTOConverter.toDTO(
+			PortalInstances.addCompany(
+				portalInstance.getSiteInitializerKey(),
+				() -> _companyService.addCompany(
+					finalCompanyId, portalInstance.getPortalInstanceId(),
+					portalInstance.getVirtualHost(), portalInstance.getDomain(),
+					maxUsers, active)));
 	}
 
 	private void _validateAdmin(Admin admin) throws Exception {
-		if (Validator.isNull(admin.getEmailAddress()) ||
-			Validator.isNull(admin.getFamilyName()) ||
-			Validator.isNull(admin.getGivenName())) {
+		if (Validator.isNull(admin.getEmailAddress())) {
+			throw new UserEmailAddressException.MustNotBeNull();
+		}
 
-			throw new UserScreenNameException.MustNotBeNull();
+		if (Validator.isNull(admin.getFamilyName())) {
+			throw new ContactNameException.MustHaveLastName();
+		}
+
+		if (Validator.isNull(admin.getGivenName())) {
+			throw new ContactNameException.MustHaveFirstName();
 		}
 
 		EmailAddressValidator emailAddressValidator =
@@ -206,10 +218,32 @@ public class PortalInstanceResourceImpl extends BasePortalInstanceResourceImpl {
 		}
 	}
 
+	private void _validateSiteInitializerKey(String siteInitializerKey) {
+		if (Validator.isNull(siteInitializerKey)) {
+			return;
+		}
+
+		SiteInitializer siteInitializer =
+			_siteInitializerRegistry.getSiteInitializer(siteInitializerKey);
+
+		if (siteInitializer == null) {
+			throw new IllegalArgumentException(
+				"Site initializer " + siteInitializerKey + " does not exist");
+		}
+
+		if (!siteInitializer.isActive(contextCompany.getCompanyId())) {
+			throw new IllegalArgumentException(
+				"Site initializer " + siteInitializerKey + " is inactive");
+		}
+	}
+
 	@Reference
 	private CompanyService _companyService;
 
+	@Reference(target = DTOConverterConstants.PORTAL_INSTANCE_DTO_CONVERTER)
+	private DTOConverter<Company, PortalInstance> _portalInstanceDTOConverter;
+
 	@Reference
-	private UserLocalService _userLocalService;
+	private SiteInitializerRegistry _siteInitializerRegistry;
 
 }

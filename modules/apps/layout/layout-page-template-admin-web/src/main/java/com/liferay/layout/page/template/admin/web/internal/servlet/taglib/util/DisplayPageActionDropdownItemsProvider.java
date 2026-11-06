@@ -22,13 +22,16 @@ import com.liferay.layout.page.template.admin.constants.LayoutPageTemplateAdminP
 import com.liferay.layout.page.template.admin.web.internal.configuration.LayoutPageTemplateAdminWebConfiguration;
 import com.liferay.layout.page.template.admin.web.internal.constants.LayoutPageTemplateAdminWebKeys;
 import com.liferay.layout.page.template.admin.web.internal.security.permission.resource.LayoutPageTemplateEntryPermission;
-import com.liferay.layout.page.template.item.selector.criterion.LayoutPageTemplateCollectionTreeNodeItemSelectorCriterion;
+import com.liferay.layout.page.template.item.selector.LayoutPageTemplateCollectionTreeNodeItemSelectorCriterion;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryServiceUtil;
+import com.liferay.layout.page.template.util.LayoutPageTemplateEntryUtil;
 import com.liferay.petra.function.UnsafeConsumer;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.portlet.PortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.RequestBackedPortletURLFactoryUtil;
@@ -47,13 +50,13 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.taglib.security.PermissionsURLTag;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -69,6 +72,9 @@ public class DisplayPageActionDropdownItemsProvider {
 		_existsMappedContentType = existsMappedContentType;
 		_layoutPageTemplateEntry = layoutPageTemplateEntry;
 		_renderResponse = renderResponse;
+
+		_classTypeId = LayoutPageTemplateEntryUtil.getClassTypeId(
+			layoutPageTemplateEntry);
 
 		_draftLayout = LayoutLocalServiceUtil.fetchDraftLayout(
 			layoutPageTemplateEntry.getPlid());
@@ -95,8 +101,7 @@ public class DisplayPageActionDropdownItemsProvider {
 
 		int count =
 			AssetDisplayPageEntryServiceUtil.getAssetDisplayPageEntriesCount(
-				_layoutPageTemplateEntry.getClassNameId(),
-				_layoutPageTemplateEntry.getClassTypeId(),
+				_layoutPageTemplateEntry.getClassNameId(), _classTypeId,
 				_layoutPageTemplateEntry.getLayoutPageTemplateEntryId(),
 				_layoutPageTemplateEntry.isDefaultTemplate());
 
@@ -134,7 +139,8 @@ public class DisplayPageActionDropdownItemsProvider {
 					).add(
 						() ->
 							_layoutPageTemplateEntry.isApproved() &&
-							(_layoutPageTemplateEntry.getClassNameId() > 0) &&
+							Validator.isNotNull(
+								_layoutPageTemplateEntry.getClassName()) &&
 							hasUpdatePermission,
 						_getMarkAsDefaultDisplayPageActionUnsafeConsumer()
 					).add(
@@ -208,8 +214,7 @@ public class DisplayPageActionDropdownItemsProvider {
 					"classNameId",
 					String.valueOf(_layoutPageTemplateEntry.getClassNameId()));
 				dropdownItem.putData(
-					"classTypeId",
-					String.valueOf(_layoutPageTemplateEntry.getClassTypeId()));
+					"classTypeId", String.valueOf(_classTypeId));
 			}
 
 			dropdownItem.setLabel(
@@ -442,8 +447,7 @@ public class DisplayPageActionDropdownItemsProvider {
 					"classNameId",
 					String.valueOf(_layoutPageTemplateEntry.getClassNameId()));
 				dropdownItem.putData(
-					"classTypeId",
-					String.valueOf(_layoutPageTemplateEntry.getClassTypeId()));
+					"classTypeId", String.valueOf(_classTypeId));
 				dropdownItem.putData("hasMissingType", Boolean.TRUE.toString());
 				dropdownItem.putData("hasUsages", Boolean.FALSE.toString());
 			}
@@ -461,16 +465,20 @@ public class DisplayPageActionDropdownItemsProvider {
 		_getExportDisplayPageActionUnsafeConsumer() {
 
 		return dropdownItem -> {
-			dropdownItem.setDisabled(_layoutPageTemplateEntry.isDraft());
-			dropdownItem.setHref(
-				ResourceURLBuilder.createResourceURL(
+			LiferayPortletURL exportDisplayPageURL =
+				(LiferayPortletURL)ResourceURLBuilder.createResourceURL(
 					_renderResponse
 				).setParameter(
 					"layoutPageTemplateEntryId",
 					_layoutPageTemplateEntry.getLayoutPageTemplateEntryId()
 				).setResourceID(
 					"/layout_page_template_admin/export_display_pages"
-				).buildString());
+				).buildResourceURL();
+
+			exportDisplayPageURL.setCopyCurrentRenderParameters(false);
+
+			dropdownItem.setDisabled(_layoutPageTemplateEntry.isDraft());
+			dropdownItem.setHref(exportDisplayPageURL.toString());
 			dropdownItem.setIcon("upload");
 			dropdownItem.setLabel(
 				LanguageUtil.get(_httpServletRequest, "export"));
@@ -554,7 +562,7 @@ public class DisplayPageActionDropdownItemsProvider {
 					fetchDefaultLayoutPageTemplateEntry(
 						_layoutPageTemplateEntry.getGroupId(),
 						_layoutPageTemplateEntry.getClassNameId(),
-						_layoutPageTemplateEntry.getClassTypeId());
+						_classTypeId);
 
 			if (defaultLayoutPageTemplateEntry != null) {
 				long defaultLayoutPageTemplateEntryId =
@@ -611,6 +619,18 @@ public class DisplayPageActionDropdownItemsProvider {
 			dropdownItem.putData(
 				"layoutPageTemplateEntryName",
 				_layoutPageTemplateEntry.getName());
+			dropdownItem.putData(
+				"moveSelectedDisplayPageURL",
+				PortletURLBuilder.createActionURL(
+					_renderResponse
+				).setActionName(
+					StringBundler.concat(
+						"/layout_page_template_admin",
+						"/move_layout_page_template_entries",
+						"_and_layout_page_template_collections")
+				).setRedirect(
+					_themeDisplay.getURLCurrent()
+				).buildString());
 			dropdownItem.setIcon("move-folder");
 			dropdownItem.setLabel(
 				LanguageUtil.get(_httpServletRequest, "move"));
@@ -730,7 +750,7 @@ public class DisplayPageActionDropdownItemsProvider {
 		).setParameter(
 			"classNameId", _layoutPageTemplateEntry.getClassNameId()
 		).setParameter(
-			"classTypeId", _layoutPageTemplateEntry.getClassTypeId()
+			"classTypeId", _classTypeId
 		).setParameter(
 			"layoutPageTemplateEntryId",
 			_layoutPageTemplateEntry.getLayoutPageTemplateEntryId()
@@ -746,14 +766,11 @@ public class DisplayPageActionDropdownItemsProvider {
 			return false;
 		}
 
-		if (_draftLayout.isDraft()) {
-			return true;
-		}
-
-		return false;
+		return _draftLayout.isDraft();
 	}
 
 	private final boolean _allowedMappedContentType;
+	private final long _classTypeId;
 	private final Layout _draftLayout;
 	private final boolean _existsMappedContentType;
 	private final HttpServletRequest _httpServletRequest;

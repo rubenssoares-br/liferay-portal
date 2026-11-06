@@ -5,6 +5,8 @@
 
 package com.liferay.portal.dao.db;
 
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.db.DBInspector;
@@ -12,8 +14,6 @@ import com.liferay.portal.kernel.dao.db.DBType;
 import com.liferay.portal.kernel.dao.db.Index;
 import com.liferay.portal.kernel.dao.db.IndexMetadata;
 import com.liferay.portal.kernel.dao.jdbc.DataAccess;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -34,6 +34,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -81,6 +82,7 @@ public class OracleDB extends BaseDB {
 				connection, tableName, tempColumnName, newColumnType);
 
 			runSQL(
+				connection,
 				StringBundler.concat(
 					"update ", tableName, " set ", tempColumnName, " = ",
 					columnName));
@@ -134,6 +136,36 @@ public class OracleDB extends BaseDB {
 	}
 
 	@Override
+	public String getCharacterSet(Connection connection) throws SQLException {
+		try (PreparedStatement preparedStatement = connection.prepareStatement(
+				"select value from nls_database_parameters where parameter " +
+					"in ('NLS_CHARACTERSET')")) {
+
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				if (resultSet.next()) {
+					return resultSet.getString("value");
+				}
+			}
+		}
+
+		return StringPool.BLANK;
+	}
+
+	@Override
+	public ResultSet getIndexResultSet(
+			Connection connection, String tableName, boolean onlyUnique)
+		throws SQLException {
+
+		DatabaseMetaData databaseMetaData = connection.getMetaData();
+
+		DBInspector dbInspector = new DBInspector(connection);
+
+		return databaseMetaData.getIndexInfo(
+			dbInspector.getCatalog(), dbInspector.getSchema(), tableName,
+			onlyUnique, true);
+	}
+
+	@Override
 	public List<Index> getIndexes(Connection connection) throws SQLException {
 		List<Index> indexes = new ArrayList<>();
 
@@ -142,6 +174,7 @@ public class OracleDB extends BaseDB {
 					"select index_name, table_name, uniqueness from ",
 					"user_indexes where index_name like 'LIFERAY_%' or ",
 					"index_name like 'IX_%'"));
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
@@ -163,29 +196,21 @@ public class OracleDB extends BaseDB {
 	}
 
 	@Override
-	public ResultSet getIndexResultSet(
-			Connection connection, String tableName, boolean onlyUnique)
-		throws SQLException {
-
-		DatabaseMetaData databaseMetaData = connection.getMetaData();
-
-		DBInspector dbInspector = new DBInspector(connection);
-
-		return databaseMetaData.getIndexInfo(
-			dbInspector.getCatalog(), dbInspector.getSchema(), tableName,
-			onlyUnique, true);
-	}
-
-	@Override
 	public String getPopulateSQL(String databaseName, String sqlContent) {
-		return StringBundler.concat(
-			"connect &1/&2;\n", "set define off;\n\n", sqlContent, "quit");
+		return "connect &1/&2;\nset define off;\n\n" + sqlContent + "quit";
 	}
 
 	@Override
 	public String getRecreateSQL(String databaseName) {
 		return "drop user &1 cascade;\ncreate user &1 identified by &2;\n" +
 			"grant connect,resource to &1;\nquit";
+	}
+
+	@Override
+	public boolean isSupportsCharacterSet(Connection connection)
+		throws SQLException {
+
+		return Objects.equals(getCharacterSet(connection), "AL32UTF8");
 	}
 
 	@Override
@@ -280,11 +305,13 @@ public class OracleDB extends BaseDB {
 			sb.append(":new.");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(")");
@@ -329,11 +356,13 @@ public class OracleDB extends BaseDB {
 			sb.append(":new.");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(" where ");
@@ -349,6 +378,59 @@ public class OracleDB extends BaseDB {
 		}
 
 		runSQL(connection, sb.toString());
+	}
+
+	@Override
+	protected String getLockedQueryInfosSQL() {
+		return StringBundler.concat(
+			"select v$session.last_call_et * 1000 as duration, v$session.sid ",
+			"as id, dbms_lob.substr(v$sql.sql_fulltext, 4000, 1) as query, ",
+			"v$session.schemaname as schema_, v$session.event as state from ",
+			"v$session left join v$sql on v$session.sql_id = v$sql.sql_id and ",
+			"v$session.sql_child_number = v$sql.child_number where ",
+			"v$session.audsid != sys_context('USERENV', 'SESSIONID') and ",
+			"v$session.last_call_et * 1000 >= ? and v$session.status = ",
+			"'ACTIVE' and v$session.type = 'USER' and (v$session.event like ",
+			"'enq:%' or v$session.event like '%library cache%')");
+	}
+
+	@Override
+	protected String getLongRunningQueryInfosSQL() {
+		return StringBundler.concat(
+			"select v$session.last_call_et * 1000 as duration, v$session.sid ",
+			"as id, dbms_lob.substr(v$sql.sql_fulltext, 4000, 1) as query, ",
+			"v$session.schemaname as schema_, v$session.event as state from ",
+			"v$session left join v$sql on v$session.sql_id = v$sql.sql_id and ",
+			"v$session.sql_child_number = v$sql.child_number where ",
+			"v$session.audsid != sys_context('USERENV', 'SESSIONID') and ",
+			"v$session.last_call_et * 1000 >= ? and v$session.status = ",
+			"'ACTIVE' and v$session.type = 'USER' and (v$session.event is ",
+			"null or (v$session.event not like 'enq:%' and v$session.event ",
+			"not like '%library cache%'))");
+	}
+
+	@Override
+	protected List<QueryInfo> getQueryInfos(
+			Connection connection, String sql, long threshold)
+		throws SQLException {
+
+		try {
+			return super.getQueryInfos(connection, sql, threshold);
+		}
+		catch (SQLException sqlException) {
+			if (sqlException.getErrorCode() == _ERROR_CODE_ORA_942) {
+				throw new SQLException(
+					StringBundler.concat(
+						"Grant select privileges on \"sys.v_$session\" and ",
+						"\"sys.v_$sql\", or assign \"SELECT_CATALOG_ROLE\" or ",
+						"\"DBA\", because the database user lacks the ",
+						"required select privileges"),
+					sqlException.getSQLState(), sqlException.getErrorCode(),
+					sqlException);
+			}
+
+			throw sqlException;
+		}
 	}
 
 	@Override
@@ -510,6 +592,8 @@ public class OracleDB extends BaseDB {
 			return sb.toString();
 		}
 	}
+
+	private static final int _ERROR_CODE_ORA_942 = 942;
 
 	private static final String[] _ORACLE = {
 		"--", "1", "0",

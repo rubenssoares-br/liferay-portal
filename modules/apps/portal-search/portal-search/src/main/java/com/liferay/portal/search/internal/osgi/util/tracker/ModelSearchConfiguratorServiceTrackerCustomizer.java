@@ -24,7 +24,6 @@ import com.liferay.portal.kernel.search.hits.HitsProcessorRegistry;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermissionRegistryUtil;
 import com.liferay.portal.kernel.util.ClassUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.search.batch.BatchIndexingHelper;
 import com.liferay.portal.search.index.IndexStatusManager;
 import com.liferay.portal.search.index.UpdateDocumentIndexWriter;
@@ -216,9 +215,6 @@ public class ModelSearchConfiguratorServiceTrackerCustomizer
 	protected HitsProcessorRegistry hitsProcessorRegistry;
 
 	@Reference
-	protected IndexerRegistry indexerRegistry;
-
-	@Reference
 	protected IndexSearcherHelper indexSearcherHelper;
 
 	@Reference
@@ -228,10 +224,10 @@ public class ModelSearchConfiguratorServiceTrackerCustomizer
 	protected IndexWriterHelper indexWriterHelper;
 
 	@Reference
-	protected PreFilterContributorHelper preFilterContributorHelper;
+	protected IndexerRegistry indexerRegistry;
 
 	@Reference
-	protected Props props;
+	protected PreFilterContributorHelper preFilterContributorHelper;
 
 	@Reference
 	protected RelatedEntryIndexerRegistry relatedEntryIndexerRegistry;
@@ -326,7 +322,7 @@ public class ModelSearchConfiguratorServiceTrackerCustomizer
 			modelSearchConfigurator.getModelIndexerWriterContributor(),
 			indexerDocumentBuilder, searchPermissionIndexWriter,
 			updateDocumentIndexWriter, indexStatusManager, indexWriterHelper,
-			props, uidFactory);
+			uidFactory);
 
 		serviceRegistrationHolder.setIndexerWriterServiceRegistration(
 			_bundleContext.registerService(

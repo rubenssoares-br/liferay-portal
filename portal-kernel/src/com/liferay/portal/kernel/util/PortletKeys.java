@@ -38,6 +38,12 @@ public class PortletKeys {
 
 	public static final String CALENDAR = "8";
 
+	public static final String COMPANY_EXPORT =
+		"com_liferay_exportimport_web_portlet_CompanyExportPortlet";
+
+	public static final String COMPANY_IMPORT =
+		"com_liferay_exportimport_web_portlet_CompanyImportPortlet";
+
 	public static final String DIRECTORY =
 		"com_liferay_directory_web_portlet_DirectoryPortlet";
 
@@ -156,6 +162,8 @@ public class PortletKeys {
 
 	public static final String RECENT_DOCUMENTS =
 		"com_liferay_recent_documents_web_portlet_RecentDocumentsPortlet";
+
+	public static final String RECOMMENDATIONS = "198";
 
 	public static final String REQUESTS = "121";
 

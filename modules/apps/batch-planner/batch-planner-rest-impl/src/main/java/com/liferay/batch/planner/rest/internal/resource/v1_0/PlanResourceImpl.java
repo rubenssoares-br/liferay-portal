@@ -27,10 +27,10 @@ import com.liferay.portal.vulcan.batch.engine.Field;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
+import jakarta.ws.rs.core.Response;
+
 import java.util.Iterator;
 import java.util.List;
-
-import javax.ws.rs.core.Response;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -56,19 +56,6 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 	}
 
 	@Override
-	public Page<Plan> getPlansPage(Pagination pagination) throws Exception {
-		return Page.of(
-			transform(
-				_batchPlannerPlanService.getBatchPlannerPlans(
-					contextCompany.getCompanyId(),
-					pagination.getStartPosition(), pagination.getEndPosition()),
-				this::_toPlan),
-			pagination,
-			_batchPlannerPlanService.getBatchPlannerPlansCount(
-				contextCompany.getCompanyId()));
-	}
-
-	@Override
 	public Response getPlanTemplate(String internalClassNameKey)
 		throws Exception {
 
@@ -79,6 +66,19 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 				_objectDefinitionLocalService,
 				_objectEntryOpenAPIResourceProvider, _openAPIYAMLProvider,
 				contextUriInfo));
+	}
+
+	@Override
+	public Page<Plan> getPlansPage(Pagination pagination) throws Exception {
+		return Page.of(
+			transform(
+				_batchPlannerPlanService.getBatchPlannerPlans(
+					contextCompany.getCompanyId(),
+					pagination.getStartPosition(), pagination.getEndPosition()),
+				this::_toPlan),
+			pagination,
+			_batchPlannerPlanService.getBatchPlannerPlansCount(
+				contextCompany.getCompanyId()));
 	}
 
 	@Override
@@ -167,11 +167,13 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 
 			lineSB.append(field.getType());
 
-			if (iterator.hasNext()) {
-				headerSB.append(StringPool.COMMA);
-
-				lineSB.append(StringPool.COMMA);
+			if (!iterator.hasNext()) {
+				continue;
 			}
+
+			headerSB.append(StringPool.COMMA);
+
+			lineSB.append(StringPool.COMMA);
 		}
 
 		return Response.ok(

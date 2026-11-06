@@ -180,9 +180,11 @@ public class ContentTargetingUpgradeProcess extends UpgradeProcess {
 
 	private void _upgradeContentTargetingUserSegments() throws Exception {
 		try (LoggingTimer loggingTimer = new LoggingTimer();
-			PreparedStatement preparedStatement1 = connection.prepareStatement(
+
+			PreparedStatement preparedStatement = connection.prepareStatement(
 				"select * from CT_UserSegment");
-			ResultSet resultSet = preparedStatement1.executeQuery()) {
+
+			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			ServiceContext serviceContext = new ServiceContext();
 
@@ -220,9 +222,10 @@ public class ContentTargetingUpgradeProcess extends UpgradeProcess {
 					LocaleThreadLocal.setSiteDefaultLocale(defaultLocale);
 
 					_segmentsEntryLocalService.addSegmentsEntry(
-						"ct_" + userSegmentId, nameMap, descriptionMap, true,
-						_getCriteria(userSegmentId),
-						SegmentsEntryConstants.SOURCE_DEFAULT, serviceContext);
+						null, "ct_" + userSegmentId, nameMap, descriptionMap,
+						true, _getCriteria(userSegmentId),
+						SegmentsEntryConstants.SOURCE_DEFAULT,
+						SegmentsEntryConstants.TYPE_DEFAULT, serviceContext);
 				}
 				finally {
 					LocaleThreadLocal.setSiteDefaultLocale(

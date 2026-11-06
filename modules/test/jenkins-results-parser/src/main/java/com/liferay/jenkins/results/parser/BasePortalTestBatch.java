@@ -42,7 +42,7 @@ public abstract class BasePortalTestBatch<T extends PortalBatchBuildData>
 	}
 
 	protected File getAntLibDir() {
-		File antLibDir = new File(System.getenv("WORKSPACE"), "lib");
+		File antLibDir = new File(Environment.get("WORKSPACE"), "lib");
 
 		if (antLibDir.exists()) {
 			return antLibDir;
@@ -70,6 +70,7 @@ public abstract class BasePortalTestBatch<T extends PortalBatchBuildData>
 
 			environmentVariables.put("ANT_OPTS", getAntOpts(batchName));
 			environmentVariables.put("JAVA_HOME", getJavaHome(batchName));
+			environmentVariables.put("JAVA_OPTS", getJavaOpts(batchName));
 			environmentVariables.put("PATH", getPath(batchName));
 		}
 

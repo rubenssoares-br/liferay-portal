@@ -115,11 +115,7 @@ public class DLFileEntryTypePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		DLFileEntryType newDLFileEntryType = _persistence.create(pk);
-
-		newDLFileEntryType.setMvccVersion(RandomTestUtil.nextLong());
+		DLFileEntryType newDLFileEntryType = addDLFileEntryType();
 
 		newDLFileEntryType.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -152,7 +148,9 @@ public class DLFileEntryTypePersistenceTest {
 
 		newDLFileEntryType.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_dlFileEntryTypes.add(_persistence.update(newDLFileEntryType));
+		newDLFileEntryType = _persistence.update(newDLFileEntryType);
+
+		_dlFileEntryTypes.add(newDLFileEntryType);
 
 		DLFileEntryType existingDLFileEntryType = _persistence.findByPrimaryKey(
 			newDLFileEntryType.getPrimaryKey());
@@ -355,8 +353,8 @@ public class DLFileEntryTypePersistenceTest {
 			"uuid", true, "externalReferenceCode", true, "fileEntryTypeId",
 			true, "groupId", true, "companyId", true, "userId", true,
 			"userName", true, "createDate", true, "modifiedDate", true,
-			"dataDefinitionId", true, "fileEntryTypeKey", true, "name", true,
-			"description", true, "scope", true, "lastPublishDate", true);
+			"dataDefinitionId", true, "fileEntryTypeKey", true, "description",
+			true, "scope", true, "lastPublishDate", true);
 	}
 
 	@Test
@@ -674,8 +672,6 @@ public class DLFileEntryTypePersistenceTest {
 
 		DLFileEntryType dlFileEntryType = _persistence.create(pk);
 
-		dlFileEntryType.setMvccVersion(RandomTestUtil.nextLong());
-
 		dlFileEntryType.setCtCollectionId(RandomTestUtil.nextLong());
 
 		dlFileEntryType.setUuid(RandomTestUtil.randomString());
@@ -717,3 +713,4 @@ public class DLFileEntryTypePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1864396004

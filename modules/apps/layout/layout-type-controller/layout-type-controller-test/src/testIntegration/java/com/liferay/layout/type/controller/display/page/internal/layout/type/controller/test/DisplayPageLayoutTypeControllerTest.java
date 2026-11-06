@@ -12,6 +12,7 @@ import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
 import com.liferay.asset.test.util.AssetTestUtil;
 import com.liferay.fragment.constants.FragmentConstants;
+import com.liferay.fragment.contributor.FragmentCollectionContributorRegistry;
 import com.liferay.fragment.entry.processor.constants.FragmentEntryProcessorConstants;
 import com.liferay.fragment.model.FragmentCollection;
 import com.liferay.fragment.model.FragmentEntry;
@@ -25,7 +26,10 @@ import com.liferay.info.item.provider.InfoItemPermissionProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.layout.display.page.constants.LayoutDisplayPageWebKeys;
 import com.liferay.layout.manager.LayoutLockManager;
+import com.liferay.layout.page.template.constants.LayoutPageTemplateConstants;
+import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
+import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryService;
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
@@ -40,7 +44,9 @@ import com.liferay.portal.kernel.model.LayoutConstants;
 import com.liferay.portal.kernel.model.LayoutSet;
 import com.liferay.portal.kernel.model.LayoutTypeController;
 import com.liferay.portal.kernel.model.LayoutTypePortlet;
+import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactory;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
@@ -52,10 +58,12 @@ import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.servlet.HttpMethods;
 import com.liferay.portal.kernel.test.TestInfo;
+import com.liferay.portal.kernel.test.portlet.MockActionRequest;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
@@ -64,6 +72,8 @@ import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -72,13 +82,12 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.util.LayoutTypeControllerTracker;
-import com.liferay.portletmvc4spring.test.mock.web.portlet.MockActionRequest;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
-import java.util.Collections;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.util.Collections;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -147,8 +156,8 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -169,11 +178,120 @@ public class DisplayPageLayoutTypeControllerTest {
 	}
 
 	@Test
+	public void testDisplayPageTypeControllerGetFriendlyURLWithXSS()
+		throws Exception {
+
+		LayoutTypeController layoutTypeController =
+			LayoutTypeControllerTracker.getLayoutTypeController(
+				LayoutConstants.TYPE_ASSET_DISPLAY);
+
+		MockHttpServletRequest mockHttpServletRequest =
+			new MockHttpServletRequest();
+
+		mockHttpServletRequest.setAttribute(
+			WebKeys.CURRENT_URL, "x</script><svg/onload=alert(origin)>");
+		mockHttpServletRequest.setAttribute(
+			WebKeys.THEME_DISPLAY,
+			_getThemeDisplay(
+				StringPool.BLANK, mockHttpServletRequest,
+				TestPropsValues.getUser()));
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
+				RandomTestUtil.randomString(), 0,
+				WorkflowConstants.STATUS_DRAFT, _serviceContext);
+
+		Assert.assertEquals(
+			"x&lt;/script&gt;&lt;svg/onload=alert(origin)&gt;",
+			layoutTypeController.getFriendlyURL(
+				mockHttpServletRequest,
+				_layoutLocalService.getLayout(
+					layoutPageTemplateEntry.getPlid())));
+	}
+
+	@Test
+	@TestInfo("LPD-65271")
+	public void testDisplayPageTypeControllerMasterLayoutWrapperDiv()
+		throws Exception {
+
+		LayoutTypeController layoutTypeController =
+			LayoutTypeControllerTracker.getLayoutTypeController(
+				LayoutConstants.TYPE_ASSET_DISPLAY);
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
+				RandomTestUtil.randomString(), 0,
+				WorkflowConstants.STATUS_DRAFT, _serviceContext);
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		FragmentEntry fragmentEntry =
+			_fragmentCollectionContributorRegistry.getFragmentEntry(
+				"BASIC_COMPONENT-heading");
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
+			null, fragmentEntry.getCss(), fragmentEntry.getConfiguration(),
+			fragmentEntry.getExternalReferenceCode(), null,
+			fragmentEntry.getHtml(), fragmentEntry.getJs(),
+			layout.fetchDraftLayout(), fragmentEntry.getFragmentEntryKey(),
+			fragmentEntry.getType(), null, 0,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()));
+
+		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
+
+		layout = _layoutLocalService.getLayout(layout.getPlid());
+
+		MockHttpServletRequest mockHttpServletRequest =
+			_getMockHttpServletRequest(layout, TestPropsValues.getUser());
+
+		layoutTypeController.includeLayoutContent(
+			mockHttpServletRequest, new MockHttpServletResponse(), layout);
+
+		String content = String.valueOf(
+			mockHttpServletRequest.getAttribute(WebKeys.LAYOUT_CONTENT));
+
+		Assert.assertFalse(content.contains("id=\"master-layout-wrapper\""));
+
+		LayoutPageTemplateEntry masterLayoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
+				null, TestPropsValues.getUserId(), _group.getGroupId(),
+				LayoutPageTemplateConstants.
+					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+				null, StringUtil.randomString(),
+				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT, 0,
+				WorkflowConstants.STATUS_DRAFT,
+				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+
+		layout = _layoutLocalService.updateMasterLayoutPageTemplateEntryERC(
+			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
+			masterLayoutPageTemplateEntry.getExternalReferenceCode());
+
+		mockHttpServletRequest = _getMockHttpServletRequest(
+			layout, TestPropsValues.getUser());
+
+		layoutTypeController.includeLayoutContent(
+			mockHttpServletRequest, new MockHttpServletResponse(), layout);
+
+		content = String.valueOf(
+			mockHttpServletRequest.getAttribute(WebKeys.LAYOUT_CONTENT));
+
+		Assert.assertTrue(content.contains("id=\"master-layout-wrapper\""));
+	}
+
+	@Test
 	public void testDisplayPageTypeControllerWithInfoItem() throws Exception {
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -192,7 +310,8 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		Assert.assertTrue(layout.isPublished());
 
-		_assertIncludeLayoutContent(false, layout.getPlid(), _guestUser);
+		_assertIncludeLayoutContent(
+			HttpServletResponse.SC_OK, false, layout.getPlid(), _guestUser);
 	}
 
 	@Test
@@ -202,8 +321,8 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -232,10 +351,11 @@ public class DisplayPageLayoutTypeControllerTest {
 
 			ServiceContextThreadLocal.pushServiceContext(serviceContext);
 
-			_assertIncludeLayoutContent(true, layout.getPlid(), _guestUser);
+			_assertIncludeLayoutContent(
+				HttpServletResponse.SC_OK, true, layout.getPlid(), _guestUser);
 		}
 		finally {
-			ServiceContextThreadLocal.pushServiceContext(_serviceContext);
+			ServiceContextThreadLocal.popServiceContext();
 		}
 	}
 
@@ -253,8 +373,8 @@ public class DisplayPageLayoutTypeControllerTest {
 
 			LayoutPageTemplateEntry layoutPageTemplateEntry =
 				_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-					null, _group.getGroupId(), 0,
-					_portal.getClassNameId(AssetCategory.class.getName()), 0,
+					null, _group.getGroupId(), 0, null,
+					_portal.getClassNameId(AssetCategory.class.getName()), null,
 					RandomTestUtil.randomString(), 0,
 					WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -295,16 +415,16 @@ public class DisplayPageLayoutTypeControllerTest {
 				layoutTypeController.includeLayoutContent(
 					mockHttpServletRequest, mockHttpServletResponse, layout);
 
-				Assert.assertEquals(
-					HttpServletResponse.SC_FOUND,
-					mockHttpServletResponse.getStatus());
-
 				String redirectURL = mockHttpServletResponse.getRedirectedUrl();
 
 				Assert.assertTrue(redirectURL.contains("redirect"));
+
+				Assert.assertEquals(
+					HttpServletResponse.SC_FOUND,
+					mockHttpServletResponse.getStatus());
 			}
 			finally {
-				ServiceContextThreadLocal.pushServiceContext(_serviceContext);
+				ServiceContextThreadLocal.popServiceContext();
 			}
 		}
 	}
@@ -315,8 +435,8 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -350,13 +470,14 @@ public class DisplayPageLayoutTypeControllerTest {
 	}
 
 	@Test
+	@TestInfo({"LPD-75440", "LPD-78223"})
 	public void testDisplayPageTypeControllerWithoutContextInfoItem()
 		throws Exception {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -371,12 +492,32 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		Assert.assertTrue(layout.isPublished());
 
-		_assertIncludeLayoutContent(
-			false, draftLayout.getPlid(), TestPropsValues.getUser());
-		_assertIncludeLayoutContent(
-			false, layout.getPlid(), TestPropsValues.getUser());
-		_assertIncludeLayoutContent(true, draftLayout.getPlid(), _guestUser);
-		_assertIncludeLayoutContent(true, layout.getPlid(), _guestUser);
+		User user = UserTestUtil.addGroupUser(
+			_group, RoleConstants.SITE_MEMBER);
+
+		_testDisplayPageTypeControllerWithoutContextInfoItem(
+			HttpServletResponse.SC_OK, draftLayout, user);
+
+		_testDisplayPageTypeControllerWithoutContextInfoItemWithLoginRequest(
+			draftLayout);
+
+		RoleTestUtil.removeResourcePermission(
+			RoleConstants.GUEST, LayoutPageTemplateEntry.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(
+				layoutPageTemplateEntry.getLayoutPageTemplateEntryId()),
+			ActionKeys.VIEW);
+		RoleTestUtil.removeResourcePermission(
+			RoleConstants.SITE_MEMBER, LayoutPageTemplateEntry.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(
+				layoutPageTemplateEntry.getLayoutPageTemplateEntryId()),
+			ActionKeys.VIEW);
+
+		_testDisplayPageTypeControllerWithoutContextInfoItem(
+			HttpServletResponse.SC_FORBIDDEN, draftLayout, user);
+		_testDisplayPageTypeControllerWithoutContextInfoItemWithLoginRequest(
+			draftLayout);
 	}
 
 	private void _addFragmentEntryLink(Layout layout) throws Exception {
@@ -394,7 +535,7 @@ public class DisplayPageLayoutTypeControllerTest {
 				"<h1 data-lfr-editable-id=\"element-text\" " +
 					"data-lfr-editable-type=\"text\">Heading Example</h1>",
 				StringPool.BLANK, false, StringPool.BLANK, null, 0, false,
-				FragmentConstants.TYPE_COMPONENT, null,
+				false, FragmentConstants.TYPE_COMPONENT, null,
 				WorkflowConstants.STATUS_APPROVED, _serviceContext);
 
 		ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
@@ -406,9 +547,12 @@ public class DisplayPageLayoutTypeControllerTest {
 					JSONUtil.put("mappedField", "AssetCategory_name"))
 			).toString(),
 			fragmentEntry.getCss(), fragmentEntry.getConfiguration(),
-			fragmentEntry.getFragmentEntryId(), fragmentEntry.getHtml(),
-			fragmentEntry.getJs(), layout, fragmentEntry.getFragmentEntryKey(),
-			fragmentEntry.getType(), null, 0,
+			fragmentEntry.getExternalReferenceCode(),
+			ScopeUtil.getItemScopeExternalReferenceCode(
+				fragmentEntry.getGroupId(), layout.getGroupId()),
+			fragmentEntry.getHtml(), fragmentEntry.getJs(), layout,
+			fragmentEntry.getFragmentEntryKey(), fragmentEntry.getType(), null,
+			0,
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
 				layout.getPlid()));
 	}
@@ -423,8 +567,8 @@ public class DisplayPageLayoutTypeControllerTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
@@ -453,7 +597,8 @@ public class DisplayPageLayoutTypeControllerTest {
 	}
 
 	private void _assertIncludeLayoutContent(
-			boolean noSuchLayoutExceptionExpected, long plid, User user)
+			int expectedStatus, boolean noSuchLayoutExceptionExpected,
+			long plid, User user)
 		throws Exception {
 
 		Layout layout = _layoutLocalService.getLayout(plid);
@@ -483,13 +628,13 @@ public class DisplayPageLayoutTypeControllerTest {
 			Assert.assertFalse(noSuchLayoutExceptionExpected);
 
 			Assert.assertEquals(
-				HttpServletResponse.SC_OK, mockHttpServletResponse.getStatus());
+				expectedStatus, mockHttpServletResponse.getStatus());
 		}
 		catch (NoSuchLayoutException noSuchLayoutException) {
 			Assert.assertTrue(noSuchLayoutExceptionExpected);
 		}
 		finally {
-			ServiceContextThreadLocal.pushServiceContext(_serviceContext);
+			ServiceContextThreadLocal.popServiceContext();
 		}
 	}
 
@@ -560,7 +705,7 @@ public class DisplayPageLayoutTypeControllerTest {
 		themeDisplay.setPortalURL(_company.getPortalURL(_group.getGroupId()));
 		themeDisplay.setRequest(mockHttpServletRequest);
 		themeDisplay.setScopeGroupId(_group.getGroupId());
-		themeDisplay.setServerPort(8080);
+		themeDisplay.setServerPort(PortalUtil.getPortalServerPort(false));
 		themeDisplay.setSignedIn(!user.isGuestUser());
 		themeDisplay.setSiteGroupId(_group.getGroupId());
 		themeDisplay.setURLCurrent("redirect");
@@ -601,7 +746,7 @@ public class DisplayPageLayoutTypeControllerTest {
 		themeDisplay.setPortalURL(company.getPortalURL(_group.getGroupId()));
 		themeDisplay.setRequest(mockHttpServletRequest);
 		themeDisplay.setScopeGroupId(_group.getGroupId());
-		themeDisplay.setServerPort(8080);
+		themeDisplay.setServerPort(PortalUtil.getPortalServerPort(false));
 		themeDisplay.setSignedIn(true);
 		themeDisplay.setSiteGroupId(_group.getGroupId());
 		themeDisplay.setUser(user);
@@ -652,6 +797,89 @@ public class DisplayPageLayoutTypeControllerTest {
 				ActionKeys.VIEW));
 	}
 
+	private void _testDisplayPageTypeControllerWithoutContextInfoItem(
+			int expectedStatus, Layout draftLayout, User user)
+		throws Exception {
+
+		try (ConfigurationTemporarySwapper configurationTemporarySwapper =
+				new ConfigurationTemporarySwapper(
+					_PID,
+					HashMapDictionaryBuilder.<String, Object>put(
+						"promptEnabled", true
+					).build())) {
+
+			_assertIncludeLayoutContent(
+				HttpServletResponse.SC_FOUND, false, draftLayout.getClassPK(),
+				_guestUser);
+		}
+
+		_assertIncludeLayoutContent(
+			HttpServletResponse.SC_OK, false, draftLayout.getClassPK(),
+			TestPropsValues.getUser());
+		_assertIncludeLayoutContent(
+			HttpServletResponse.SC_OK, false, draftLayout.getPlid(),
+			TestPropsValues.getUser());
+		_assertIncludeLayoutContent(
+			HttpServletResponse.SC_OK, true, draftLayout.getClassPK(),
+			_guestUser);
+		_assertIncludeLayoutContent(
+			HttpServletResponse.SC_OK, true, draftLayout.getPlid(), _guestUser);
+		_assertIncludeLayoutContent(
+			expectedStatus, false, draftLayout.getClassPK(), user);
+	}
+
+	private void
+			_testDisplayPageTypeControllerWithoutContextInfoItemWithLoginRequest(
+				Layout draftLayout)
+		throws Exception {
+
+		try (ConfigurationTemporarySwapper configurationTemporarySwapper =
+				new ConfigurationTemporarySwapper(
+					_PID,
+					HashMapDictionaryBuilder.<String, Object>put(
+						"promptEnabled", true
+					).build())) {
+
+			LayoutTypeController layoutTypeController =
+				LayoutTypeControllerTracker.getLayoutTypeController(
+					LayoutConstants.TYPE_ASSET_DISPLAY);
+
+			Layout publishedLayout = _layoutLocalService.getLayout(
+				draftLayout.getClassPK());
+
+			MockHttpServletRequest mockHttpServletRequest =
+				_getMockHttpServletRequest(publishedLayout, _guestUser);
+
+			mockHttpServletRequest.setAttribute(
+				WebKeys.LOGIN_REQUEST, Boolean.TRUE);
+
+			ServiceContext serviceContext =
+				ServiceContextTestUtil.getServiceContext(
+					_group.getGroupId(), _guestUser.getUserId());
+
+			serviceContext.setRequest(mockHttpServletRequest);
+
+			ServiceContextThreadLocal.pushServiceContext(serviceContext);
+
+			try {
+				MockHttpServletResponse mockHttpServletResponse =
+					new MockHttpServletResponse();
+
+				layoutTypeController.includeLayoutContent(
+					mockHttpServletRequest, mockHttpServletResponse,
+					publishedLayout);
+
+				Assert.assertNull(mockHttpServletResponse.getRedirectedUrl());
+				Assert.assertEquals(
+					HttpServletResponse.SC_OK,
+					mockHttpServletResponse.getStatus());
+			}
+			finally {
+				ServiceContextThreadLocal.popServiceContext();
+			}
+		}
+	}
+
 	private static final String _PID =
 		"com.liferay.login.web.internal.configuration.AuthLoginConfiguration";
 
@@ -667,6 +895,10 @@ public class DisplayPageLayoutTypeControllerTest {
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	@Inject
+	private FragmentCollectionContributorRegistry
+		_fragmentCollectionContributorRegistry;
 
 	@Inject
 	private FragmentCollectionLocalService _fragmentCollectionLocalService;
@@ -699,6 +931,10 @@ public class DisplayPageLayoutTypeControllerTest {
 
 	@Inject
 	private LayoutLockManager _layoutLockManager;
+
+	@Inject
+	private LayoutPageTemplateEntryLocalService
+		_layoutPageTemplateEntryLocalService;
 
 	@Inject
 	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;

@@ -1,6 +1,7 @@
 Bundle-Name: ${manifest.bundle.name}
 Bundle-SymbolicName: ${manifest.bundle.symbolic.name}
-Bundle-Version: 108.1.1
+Bundle-Version: 135.0.0
+CPE-Name: ${cpe.name}
 Export-Package:\
 	com.liferay.portal.bean,\
 	com.liferay.portal.dao.orm.hibernate,\
@@ -10,6 +11,7 @@ Export-Package:\
 	com.liferay.portal.freemarker,\
 	com.liferay.portal.minifier,\
 	com.liferay.portal.plugin,\
+	com.liferay.portal.preview,\
 	com.liferay.portal.security.auth,\
 	com.liferay.portal.security.lang,\
 	com.liferay.portal.service,\
@@ -43,8 +45,6 @@ Export-Package:\
 Import-Package: *
 Include-Resource: classes
 Liferay-Service: true
-Private-Package: com.liferay.*.dependencies
--donotcopy: (log4j\.properties|logging\.properties|portal-.*\.properties|system-.*\.properties|\.touch)
 -include ../common.bnd
 -removeheaders:\
 	Bnd-LastModified,\

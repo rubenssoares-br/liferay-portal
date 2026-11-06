@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {ClayButtonWithIcon} from '@clayui/button';
 import ClayDropDown from '@clayui/drop-down';
 import {addDays, format} from 'date-fns';
 import {useNavigate} from 'react-router-dom';
 
+import ButtonWithIcon from '../../../components/ButtonWithIcon';
 import {DashboardEmptyTable} from '../../../components/DashboardTable/DashboardEmptyTable';
 import OrderStatus from '../../../components/OrderStatus';
 import Table from '../../../components/Table/Table';
-import {ORDER_CUSTOM_FIELDS, ORDER_TYPES} from '../../../enums/Order';
+import {OrderCustomFields, OrderTypes} from '../../../enums/Order';
 import i18n from '../../../i18n';
 
 type PurchasedSolutionsTableProps = {
@@ -19,9 +19,9 @@ type PurchasedSolutionsTableProps = {
 };
 
 const orderTypeLabel = {
-	[ORDER_TYPES.ADDONS]: {duration: null, label: 'Add-ons'},
-	[ORDER_TYPES.SOLUTIONS30]: {duration: 30, label: '30-day Trial'},
-	[ORDER_TYPES.SOLUTIONS7]: {duration: 7, label: '7-day Trial'},
+	[OrderTypes.ADDONS]: {duration: null, label: 'Add-ons'},
+	[OrderTypes.SOLUTIONS30]: {duration: 30, label: '30-day Trial'},
+	[OrderTypes.SOLUTIONS7]: {duration: 7, label: '7-day Trial'},
 } as const;
 
 const PurchasedSolutionsTable: React.FC<PurchasedSolutionsTableProps> = ({
@@ -90,7 +90,7 @@ const PurchasedSolutionsTable: React.FC<PurchasedSolutionsTableProps> = ({
 				},
 				{
 					key: 'orderTypeExternalReferenceCode',
-					render: (orderTypeExternalReferenceCode: ORDER_TYPES) => (
+					render: (orderTypeExternalReferenceCode: OrderTypes) => (
 						<span className="label label-info">
 							{(orderTypeLabel as any)[
 								orderTypeExternalReferenceCode
@@ -121,25 +121,24 @@ const PurchasedSolutionsTable: React.FC<PurchasedSolutionsTableProps> = ({
 				},
 				{
 					key: 'orderStatusInfo',
-					render: (orderStatusInfo) => (
-						<OrderStatus orderStatus={orderStatusInfo?.label}>
-							{orderStatusInfo?.label}
-						</OrderStatus>
+					render: (_, placedOrder) => (
+						<OrderStatus placedOrder={placedOrder} />
 					),
 					title: 'Status',
 				},
 				{
-					align: 'center',
+					align: 'right',
 					key: 'status',
 					render: (_, {customFields, id}) => {
 						const virtualHost =
-							customFields[ORDER_CUSTOM_FIELDS.VIRTUAL_HOST];
+							customFields[OrderCustomFields.TRIAL_VIRTUAL_HOST];
 
 						return (
 							<div onClick={(event) => event.stopPropagation()}>
 								<ClayDropDown
+									alignmentPosition={['tr', 'br']}
 									trigger={
-										<ClayButtonWithIcon
+										<ButtonWithIcon
 											aria-label="Kebab Button"
 											displayType={null}
 											symbol="ellipsis-v"

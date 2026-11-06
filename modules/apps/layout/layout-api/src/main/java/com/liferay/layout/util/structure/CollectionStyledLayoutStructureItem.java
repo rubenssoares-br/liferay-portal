@@ -388,19 +388,56 @@ public class CollectionStyledLayoutStructureItem
 	public void setViewportConfiguration(
 		String viewportSizeId, JSONObject configurationJSONObject) {
 
+		JSONObject viewportConfigurationJSONObject =
+			_viewportConfigurationJSONObjects.getOrDefault(
+				viewportSizeId, JSONFactoryUtil.createJSONObject());
+
 		_viewportConfigurationJSONObjects.put(
 			viewportSizeId,
-			_viewportConfigurationJSONObjects.getOrDefault(
-				viewportSizeId, JSONFactoryUtil.createJSONObject()
+			viewportConfigurationJSONObject.put(
+				"align",
+				() -> {
+					if (!configurationJSONObject.has("align")) {
+						return null;
+					}
+
+					return configurationJSONObject.getString("align");
+				}
+			).put(
+				"flexWrap",
+				() -> {
+					if (!configurationJSONObject.has("flexWrap")) {
+						return null;
+					}
+
+					return configurationJSONObject.getString("flexWrap");
+				}
+			).put(
+				"justify",
+				() -> {
+					if (!configurationJSONObject.has("justify")) {
+						return null;
+					}
+
+					return configurationJSONObject.getString("justify");
+				}
 			).put(
 				"numberOfColumns",
 				() -> {
-					if (configurationJSONObject.has("numberOfColumns")) {
-						return configurationJSONObject.getInt(
-							"numberOfColumns");
+					if (!configurationJSONObject.has("numberOfColumns")) {
+						return null;
 					}
 
-					return null;
+					return configurationJSONObject.getInt("numberOfColumns");
+				}
+			).put(
+				"styles",
+				() -> {
+					if (!configurationJSONObject.has("styles")) {
+						return null;
+					}
+
+					return configurationJSONObject.getJSONObject("styles");
 				}
 			));
 	}
@@ -490,16 +527,16 @@ public class CollectionStyledLayoutStructureItem
 		}
 
 		for (ViewportSize viewportSize : _viewportSizes) {
-			if (viewportSize.equals(ViewportSize.DESKTOP)) {
+			if (viewportSize.equals(ViewportSize.DESKTOP) ||
+				!itemConfigJSONObject.has(viewportSize.getViewportSizeId())) {
+
 				continue;
 			}
 
-			if (itemConfigJSONObject.has(viewportSize.getViewportSizeId())) {
-				setViewportConfiguration(
-					viewportSize.getViewportSizeId(),
-					itemConfigJSONObject.getJSONObject(
-						viewportSize.getViewportSizeId()));
-			}
+			setViewportConfiguration(
+				viewportSize.getViewportSizeId(),
+				itemConfigJSONObject.getJSONObject(
+					viewportSize.getViewportSizeId()));
 		}
 	}
 

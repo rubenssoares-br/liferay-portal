@@ -9,10 +9,13 @@ import ClayForm, {ClayCheckbox, ClayInput} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import ClayLabel from '@clayui/label';
 import classNames from 'classnames';
-import {TranslationAdminSelector} from 'frontend-js-components-web';
-import {fetch, objectToFormData, openSelectionModal} from 'frontend-js-web';
+import {
+	TranslationAdminSelector,
+	openSelectionModal,
+} from 'frontend-js-components-web';
+import {fetch, objectToFormData} from 'frontend-js-web';
 import PropTypes from 'prop-types';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 
 import '../css/main.scss';
 
@@ -20,6 +23,7 @@ function DisplayPageItemContextualSidebar({
 	chooseItemProps,
 	defaultLanguageId,
 	hasDisplayPage: initiallyHasDisplayPage,
+	hasModel,
 	item,
 	itemSubtype,
 	itemType,
@@ -43,9 +47,34 @@ function DisplayPageItemContextualSidebar({
 		translations[selectedLocaleId] || item.title
 	);
 	const [customNameInvalid, setCustomNameInvalid] = useState(false);
+	const nameRef = useRef(null);
 
 	const {eventName, getItemDetailsURL, itemSelectorURL, modalTitle} =
 		chooseItemProps;
+
+	useEffect(() => {
+		if (!customNameEnabled) {
+			return;
+		}
+
+		if (
+			translations[selectedLocaleId] === undefined &&
+			selectedLocaleId !== defaultLanguageId
+		) {
+			setCustomName('');
+		}
+		else {
+			setCustomName(translations[selectedLocaleId] ?? item.title);
+		}
+
+		nameRef.current?.focus();
+	}, [
+		customNameEnabled,
+		defaultLanguageId,
+		item.title,
+		selectedLocaleId,
+		translations,
+	]);
 
 	useEffect(() => {
 		const onFormSubmit = (event) => {
@@ -53,6 +82,13 @@ function DisplayPageItemContextualSidebar({
 				event.preventDefault();
 
 				setCustomNameInvalid(true);
+			}
+
+			if (customName && translations[defaultLanguageId] === '') {
+				setTranslations({
+					...translations,
+					[defaultLanguageId]: item.title,
+				});
 			}
 		};
 
@@ -63,7 +99,7 @@ function DisplayPageItemContextualSidebar({
 		return () => {
 			submitButton?.removeEventListener('click', onFormSubmit);
 		};
-	}, [customName]);
+	}, [customName, item.title, defaultLanguageId, translations]);
 
 	const openChooseItemModal = () =>
 		openSelectionModal({
@@ -73,17 +109,17 @@ function DisplayPageItemContextualSidebar({
 
 					let value;
 
-					if (typeof selectedItem.value === 'string') {
+					if (typeof selectedItems.value === 'string') {
 						try {
-							value = JSON.parse(selectedItem.value);
+							value = JSON.parse(selectedItems.value);
 						}
 						catch (error) {}
 					}
 					else if (
-						selectedItem.value &&
-						typeof selectedItem.value === 'object'
+						selectedItems.value &&
+						typeof selectedItems.value === 'object'
 					) {
-						value = selectedItem.value;
+						value = selectedItems.value;
 					}
 
 					if (value) {
@@ -158,6 +194,7 @@ function DisplayPageItemContextualSidebar({
 
 								setCustomName(event.target.value);
 							}}
+							ref={nameRef}
 							type="text"
 							value={customName}
 						/>
@@ -177,6 +214,13 @@ function DisplayPageItemContextualSidebar({
 					</ClayInput.GroupItem>
 				</ClayInput.Group>
 
+				{customNameEnabled &&
+					selectedLocaleId !== defaultLanguageId && (
+						<div className="form-text">
+							{translations[defaultLanguageId] ?? item.title}
+						</div>
+					)}
+
 				{customNameInvalid && (
 					<ClayForm.FeedbackItem>
 						{Liferay.Language.get('this-field-is-required')}
@@ -185,7 +229,9 @@ function DisplayPageItemContextualSidebar({
 			</ClayForm.Group>
 
 			<ClayForm.Group
-				className={classNames({'has-warning': !hasDisplayPage})}
+				className={classNames({
+					'has-warning': !hasModel || !hasDisplayPage,
+				})}
 			>
 				<label htmlFor={`${namespace}_itemInput`}>
 					{Liferay.Language.get('item')}
@@ -199,7 +245,7 @@ function DisplayPageItemContextualSidebar({
 							onChange={() => {}}
 							onClick={openChooseItemModal}
 							type="text"
-							value={selectedItem.title}
+							value={selectedItem?.title || ''}
 						/>
 					</ClayInput.GroupItem>
 
@@ -220,17 +266,25 @@ function DisplayPageItemContextualSidebar({
 							className="mt-1"
 							displayType="warning"
 							role={null}
-							title={Liferay.Language.get('no-display-page')}
+							title={
+								hasModel
+									? Liferay.Language.get('no-display-page')
+									: Liferay.Language.get('no-reference-found')
+							}
 							variant="feedback"
 						/>
 
 						<p className="small text-secondary">
-							{`${Liferay.Language.get(
-								'this-item-does-not-have-a-display-page'
-							)} 
+							{hasModel
+								? `${Liferay.Language.get(
+										'this-item-does-not-have-a-display-page'
+									)} 
 								${Liferay.Language.get(
 									'items-without-display-page-do-not-have-links-and-are-hidden-from-menus'
-								)}`}
+								)}`
+								: Liferay.Language.get(
+										'this-item-references-an-entity-that-is-missing-or-not-yet-available'
+									)}
 						</p>
 					</>
 				)}
@@ -271,12 +325,14 @@ function DisplayPageItemContextualSidebar({
 					</ClayForm.Group>
 				))}
 
-			<FormValues
-				localizedNames={translations}
-				namespace={namespace}
-				selectedItem={selectedItem}
-				useCustomName={customNameEnabled}
-			/>
+			{selectedItem && (
+				<FormValues
+					localizedNames={translations}
+					namespace={namespace}
+					selectedItem={selectedItem}
+					useCustomName={customNameEnabled}
+				/>
+			)}
 		</>
 	);
 }
@@ -286,10 +342,9 @@ DisplayPageItemContextualSidebar.propTypes = {
 	defaultLanguageId: PropTypes.string.isRequired,
 	hasDisplayPage: PropTypes.bool.isRequired,
 	item: PropTypes.shape({
-		classNameId: PropTypes.string,
-		classPK: PropTypes.string,
-		classTypeId: PropTypes.string,
+		className: PropTypes.string,
 		data: PropTypes.array,
+		externalReferenceCode: PropTypes.string,
 		title: PropTypes.string,
 		type: PropTypes.string,
 	}).isRequired,
@@ -305,22 +360,22 @@ function FormValues({localizedNames, namespace, selectedItem, useCustomName}) {
 	return (
 		<>
 			<input
-				name={getFieldName(namespace, 'classNameId')}
+				name={getFieldName(namespace, 'className')}
 				readOnly
 				type="hidden"
-				value={selectedItem.classNameId || ''}
+				value={selectedItem.className || ''}
 			/>
 			<input
-				name={getFieldName(namespace, 'classPK')}
+				name={getFieldName(namespace, 'externalReferenceCode')}
 				readOnly
 				type="hidden"
-				value={selectedItem.classPK || ''}
+				value={selectedItem.externalReferenceCode || ''}
 			/>
 			<input
-				name={getFieldName(namespace, 'classTypeId')}
+				name={getFieldName(namespace, 'scopeExternalReferenceCode')}
 				readOnly
 				type="hidden"
-				value={selectedItem.classTypeId || ''}
+				value={selectedItem.scopeExternalReferenceCode || ''}
 			/>
 			<input
 				name={getFieldName(namespace, 'title')}
@@ -354,10 +409,9 @@ FormValues.propTypes = {
 	localizedNames: PropTypes.object.isRequired,
 	namespace: PropTypes.string.isRequired,
 	selectedItem: PropTypes.shape({
-		classNameId: PropTypes.string,
-		classPK: PropTypes.string,
-		classTypeId: PropTypes.string,
+		className: PropTypes.string,
 		data: PropTypes.array,
+		externalReferenceCode: PropTypes.string,
 		title: PropTypes.string,
 		type: PropTypes.string,
 	}).isRequired,

@@ -5,18 +5,18 @@
 
 package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 
-import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.CustomField;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductOption;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductOptionValue;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -68,7 +68,7 @@ public class ProductOptionSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < productOption.getCustomFields().length; i++) {
-				sb.append(String.valueOf(productOption.getCustomFields()[i]));
+				sb.append(productOption.getCustomFields()[i]);
 
 				if ((i + 1) < productOption.getCustomFields().length) {
 					sb.append(", ");
@@ -96,6 +96,20 @@ public class ProductOptionSerDes {
 			sb.append("\"description\": ");
 
 			sb.append(_toJSON(productOption.getDescription()));
+		}
+
+		if (productOption.getExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(productOption.getExternalReferenceCode()));
+
+			sb.append("\"");
 		}
 
 		if (productOption.getFacetable() != null) {
@@ -327,6 +341,15 @@ public class ProductOptionSerDes {
 				"description", String.valueOf(productOption.getDescription()));
 		}
 
+		if (productOption.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(productOption.getExternalReferenceCode()));
+		}
+
 		if (productOption.getFacetable() == null) {
 			map.put("facetable", null);
 		}
@@ -465,6 +488,11 @@ public class ProductOptionSerDes {
 			else if (Objects.equals(jsonParserFieldName, "description")) {
 				return true;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "facetable")) {
 				return false;
 			}
@@ -533,12 +561,17 @@ public class ProductOptionSerDes {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.commerce.admin.catalog.client.custom.
+						field.CustomField[] customFieldsArray = new
+						com.liferay.headless.commerce.admin.catalog.client.
+							custom.field.CustomField
+							[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.commerce.admin.catalog.client.
+								custom.field.CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					productOption.setCustomFields(customFieldsArray);
@@ -554,6 +587,14 @@ public class ProductOptionSerDes {
 				if (jsonParserFieldValue != null) {
 					productOption.setDescription(
 						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					productOption.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "facetable")) {
@@ -697,6 +738,16 @@ public class ProductOptionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -729,3 +780,4 @@ public class ProductOptionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1047403655

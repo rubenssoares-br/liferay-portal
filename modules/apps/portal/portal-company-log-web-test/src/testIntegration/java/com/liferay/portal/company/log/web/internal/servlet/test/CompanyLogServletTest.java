@@ -16,6 +16,7 @@ import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.log4j.Log4JUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
@@ -33,13 +34,15 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.webdav.methods.Method;
-import com.liferay.portal.log4j.Log4JUtil;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LogEntry;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.util.PortalImpl;
+
+import jakarta.servlet.Servlet;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -52,9 +55,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletResponse;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -187,20 +187,6 @@ public class CompanyLogServletTest {
 			HttpServletResponse.SC_NOT_FOUND);
 	}
 
-	@Test
-	public void testDownloadWithoutStartAndEnd() throws Exception {
-		MockHttpServletRequest mockHttpServletRequest =
-			_createMockHttpServletRequest(
-				StringBundler.concat(
-					StringPool.SLASH, _company.getCompanyId(), StringPool.SLASH,
-					_file.getName()),
-				_companyAdminUser);
-
-		_servlet.service(mockHttpServletRequest, _mockHttpServletResponse);
-
-		_assertHttpServletResponse(0, _file.length());
-	}
-
 	@Ignore
 	@Test
 	public void testDownloadWithStartGreaterThanOrEqualsToEnd()
@@ -236,6 +222,20 @@ public class CompanyLogServletTest {
 		_assertDownloadWithInvalidData("-3", "-2");
 		_assertDownloadWithInvalidData("-3", "3");
 		_assertDownloadWithInvalidData("3", "-3");
+	}
+
+	@Test
+	public void testDownloadWithoutStartAndEnd() throws Exception {
+		MockHttpServletRequest mockHttpServletRequest =
+			_createMockHttpServletRequest(
+				StringBundler.concat(
+					StringPool.SLASH, _company.getCompanyId(), StringPool.SLASH,
+					_file.getName()),
+				_companyAdminUser);
+
+		_servlet.service(mockHttpServletRequest, _mockHttpServletResponse);
+
+		_assertHttpServletResponse(0, _file.length());
 	}
 
 	@Ignore

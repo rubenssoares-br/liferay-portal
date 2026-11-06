@@ -26,12 +26,12 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.security.script.management.configuration.helper.ScriptManagementConfigurationHelper;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Selton Guedes
@@ -174,7 +174,8 @@ public class ObjectDefinitionsValidationsDisplayContext
 	}
 
 	private List<Map<String, Object>> _createObjectValidationRuleElements(
-		String engine) {
+			String engine)
+		throws PortalException {
 
 		boolean includeDDMExpressionBuilderElements = false;
 
@@ -183,7 +184,7 @@ public class ObjectDefinitionsValidationsDisplayContext
 		}
 
 		return ObjectCodeEditorUtil.getCodeEditorElements(
-			includeDDMExpressionBuilderElements, true,
+			includeDDMExpressionBuilderElements, true, true,
 			objectRequestHelper.getLocale(), getObjectDefinitionId(),
 			objectField -> !objectField.compareBusinessType(
 				ObjectFieldConstants.BUSINESS_TYPE_AGGREGATION));

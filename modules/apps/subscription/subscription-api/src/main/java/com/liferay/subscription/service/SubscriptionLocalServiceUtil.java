@@ -208,6 +208,12 @@ public class SubscriptionLocalServiceUtil {
 		getService().deleteSubscriptions(userId, groupId);
 	}
 
+	public static void deleteSubscriptions(long companyId, String className)
+		throws PortalException {
+
+		getService().deleteSubscriptions(companyId, className);
+	}
+
 	/**
 	 * Deletes all the subscriptions to the entity.
 	 *
@@ -558,3 +564,4 @@ public class SubscriptionLocalServiceUtil {
 			SubscriptionLocalServiceUtil.class, SubscriptionLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:710032732

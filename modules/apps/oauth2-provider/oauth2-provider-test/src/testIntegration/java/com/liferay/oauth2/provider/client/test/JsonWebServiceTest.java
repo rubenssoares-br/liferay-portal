@@ -10,23 +10,24 @@ import com.liferay.portal.json.JSONObjectImpl;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
-import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 
 import java.util.Arrays;
 import java.util.Collections;
-
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -58,7 +59,7 @@ public class JsonWebServiceTest extends BaseClientTestCase {
 
 		MultivaluedMap<String, String> formData = new MultivaluedHashMap<>();
 
-		formData.putSingle("virtualHost", "testcompany.xyz");
+		formData.putSingle("virtualHostname", "testcompany.xyz");
 
 		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
 				"portal_web.docroot.errors.code_jsp", LoggerTestUtil.WARN)) {
@@ -71,9 +72,9 @@ public class JsonWebServiceTest extends BaseClientTestCase {
 		}
 
 		String tokenString = getToken(
-			"oauthTestApplicationRO", null,
+			_CLIENT_ID_READ_ONLY, null,
 			getResourceOwnerPasswordBiFunction(
-				"test@liferay.com", PropsValues.DEFAULT_ADMIN_PASSWORD),
+				_user.getEmailAddress(), PropsValues.DEFAULT_ADMIN_PASSWORD),
 			this::parseTokenString);
 
 		invocationBuilder = authorize(webTarget.request(), tokenString);
@@ -106,9 +107,9 @@ public class JsonWebServiceTest extends BaseClientTestCase {
 		}
 
 		String token = getToken(
-			"oauthTestApplicationRW", null,
+			_CLIENT_ID_READ_WRITE, null,
 			getResourceOwnerPasswordBiFunction(
-				"test@liferay.com", PropsValues.DEFAULT_ADMIN_PASSWORD,
+				_user.getEmailAddress(), PropsValues.DEFAULT_ADMIN_PASSWORD,
 				"everything.write"),
 			this::parseTokenString);
 
@@ -124,7 +125,7 @@ public class JsonWebServiceTest extends BaseClientTestCase {
 
 		formData = new MultivaluedHashMap<>();
 
-		formData.putSingle("virtualHost", "testcompany.xyz");
+		formData.putSingle("virtualHostname", "testcompany.xyz");
 
 		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
 				"portal_web.docroot.errors.code_jsp", LoggerTestUtil.WARN)) {
@@ -137,31 +138,39 @@ public class JsonWebServiceTest extends BaseClientTestCase {
 		}
 	}
 
-	public static class JsonWebServiceTestPreparatorBundleActivator
+	@Override
+	protected BundleActivator getBundleActivator() {
+		return new JsonWebServiceTestPreparatorBundleActivator();
+	}
+
+	private static final String _CLIENT_ID_READ_ONLY =
+		RandomTestUtil.randomString();
+
+	private static final String _CLIENT_ID_READ_WRITE =
+		RandomTestUtil.randomString();
+
+	private User _user;
+
+	private class JsonWebServiceTestPreparatorBundleActivator
 		extends BaseTestPreparatorBundleActivator {
 
 		@Override
 		protected void prepareTest() throws Exception {
-			long defaultCompanyId = PortalUtil.getDefaultCompanyId();
+			long companyId = TestPropsValues.getCompanyId();
 
-			User user = UserTestUtil.getAdminUser(defaultCompanyId);
+			_user = UserTestUtil.getAdminUser(companyId);
 
 			createCompany("testcompany");
 
 			createOAuth2Application(
-				defaultCompanyId, user, "oauthTestApplicationRO",
+				companyId, _user, _CLIENT_ID_READ_ONLY,
 				Collections.singletonList("everything.read"));
 
 			createOAuth2Application(
-				defaultCompanyId, user, "oauthTestApplicationRW",
+				companyId, _user, _CLIENT_ID_READ_WRITE,
 				Arrays.asList("everything.read", "everything.write"));
 		}
 
-	}
-
-	@Override
-	protected BundleActivator getBundleActivator() {
-		return new JsonWebServiceTestPreparatorBundleActivator();
 	}
 
 }

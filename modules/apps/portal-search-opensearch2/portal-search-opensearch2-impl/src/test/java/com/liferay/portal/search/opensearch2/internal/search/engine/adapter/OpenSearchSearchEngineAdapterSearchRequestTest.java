@@ -5,6 +5,7 @@
 
 package com.liferay.portal.search.opensearch2.internal.search.engine.adapter;
 
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
@@ -15,7 +16,7 @@ import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.DocumentImpl;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Hits;
-import com.liferay.portal.kernel.search.generic.MatchAllQuery;
+import com.liferay.portal.kernel.search.MatchAllQuery;
 import com.liferay.portal.kernel.search.suggest.CompletionSuggester;
 import com.liferay.portal.kernel.search.suggest.PhraseSuggester;
 import com.liferay.portal.kernel.search.suggest.Suggester;
@@ -25,7 +26,6 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.engine.adapter.search.OpenPointInTimeRequest;
 import com.liferay.portal.search.engine.adapter.search.OpenPointInTimeResponse;
-import com.liferay.portal.search.engine.adapter.search.SearchRequestExecutor;
 import com.liferay.portal.search.engine.adapter.search.SearchSearchRequest;
 import com.liferay.portal.search.engine.adapter.search.SearchSearchResponse;
 import com.liferay.portal.search.engine.adapter.search.SuggestSearchRequest;
@@ -37,9 +37,7 @@ import com.liferay.portal.search.internal.sort.SortsImpl;
 import com.liferay.portal.search.opensearch2.internal.BaseOpenSearchTestCase;
 import com.liferay.portal.search.opensearch2.internal.OpenSearchTestRule;
 import com.liferay.portal.search.opensearch2.internal.connection.OpenSearchConnectionManager;
-import com.liferay.portal.search.opensearch2.internal.document.OpenSearchDocumentFactory;
-import com.liferay.portal.search.opensearch2.internal.document.OpenSearchDocumentFactoryImpl;
-import com.liferay.portal.search.opensearch2.internal.search.engine.adapter.search.SearchRequestExecutorFixture;
+import com.liferay.portal.search.opensearch2.internal.document.OpenSearchDocumentFactoryUtil;
 import com.liferay.portal.search.opensearch2.internal.util.IndexUtil;
 import com.liferay.portal.search.pit.PointInTime;
 import com.liferay.portal.search.sort.SortOrder;
@@ -49,7 +47,7 @@ import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.io.IOException;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -376,28 +374,16 @@ public class OpenSearchSearchEngineAdapterSearchRequestTest
 	protected static SearchEngineAdapter createSearchEngineAdapter(
 		OpenSearchConnectionManager openSearchConnectionManager) {
 
-		SearchEngineAdapter searchEngineAdapter =
+		OpenSearchSearchEngineAdapterImpl openSearchSearchEngineAdapterImpl =
 			new OpenSearchSearchEngineAdapterImpl();
 
 		ReflectionTestUtil.setFieldValue(
-			searchEngineAdapter, "_searchRequestExecutor",
-			_createSearchRequestExecutor(openSearchConnectionManager));
+			openSearchSearchEngineAdapterImpl, "_openSearchConnectionManager",
+			openSearchConnectionManager);
 
-		return searchEngineAdapter;
-	}
+		openSearchSearchEngineAdapterImpl.activate(Collections.emptyMap());
 
-	private static SearchRequestExecutor _createSearchRequestExecutor(
-		OpenSearchConnectionManager openSearchConnectionManager) {
-
-		_searchRequestExecutorFixture = new SearchRequestExecutorFixture() {
-			{
-				setOpenSearchConnectionManager(openSearchConnectionManager);
-			}
-		};
-
-		_searchRequestExecutorFixture.setUp();
-
-		return _searchRequestExecutorFixture.getSearchRequestExecutor();
+		return openSearchSearchEngineAdapterImpl;
 	}
 
 	private void _assertSuggestion(
@@ -508,11 +494,8 @@ public class OpenSearchSearchEngineAdapterSearchRequestTest
 		indexRequestBuilder.index(TEST_INDEX_NAME);
 		indexRequestBuilder.refresh(Refresh.True);
 
-		OpenSearchDocumentFactory openSearchDocumentFactory =
-			new OpenSearchDocumentFactoryImpl();
-
 		indexRequestBuilder.document(
-			openSearchDocumentFactory.getOpenSearchDocument(document));
+			OpenSearchDocumentFactoryUtil.getOpenSearchDocument(document));
 
 		try {
 			_openSearchClient.index(indexRequestBuilder.build());
@@ -564,15 +547,10 @@ public class OpenSearchSearchEngineAdapterSearchRequestTest
 		List<SuggestSearchResult.Entry.Option>
 			suggestSearchResultEntryOptions) {
 
-		List<String> options = new ArrayList<>();
-
-		for (SuggestSearchResult.Entry.Option suggestSearchResultEntryOption :
-				suggestSearchResultEntryOptions) {
-
-			options.add(suggestSearchResultEntryOption.getText());
-		}
-
-		return options;
+		return TransformUtil.transform(
+			suggestSearchResultEntryOptions,
+			suggestSearchResultEntryOption ->
+				suggestSearchResultEntryOption.getText());
 	}
 
 	private static final long _DEFAULT_COMPANY_ID = 12345;
@@ -586,7 +564,6 @@ public class OpenSearchSearchEngineAdapterSearchRequestTest
 		_frameworkUtilMockedStatic = Mockito.mockStatic(FrameworkUtil.class);
 	private static OpenSearchClient _openSearchClient;
 	private static OpenSearchIndicesClient _openSearchIndicesClient;
-	private static SearchRequestExecutorFixture _searchRequestExecutorFixture;
 
 	private final DocumentFixture _documentFixture = new DocumentFixture();
 

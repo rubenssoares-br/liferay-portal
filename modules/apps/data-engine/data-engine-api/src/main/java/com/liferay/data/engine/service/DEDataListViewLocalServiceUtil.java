@@ -118,10 +118,6 @@ public class DEDataListViewLocalServiceUtil {
 		return getService().deleteDEDataListView(deDataListViewId);
 	}
 
-	public static void deleteDEDataListViews(long ddmStructureId) {
-		getService().deleteDEDataListViews(ddmStructureId);
-	}
-
 	/**
 	 * @throws PortalException
 	 */
@@ -411,3 +407,4 @@ public class DEDataListViewLocalServiceUtil {
 			DEDataListViewLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1141928109

@@ -33,6 +33,8 @@ public class RelevantTestSuiteTest extends BaseRelevantRuleTestCase {
 
 	@Test
 	public void testJUnitTestSelectorMerge() throws IOException {
+		getRelevantRuleEngine();
+
 		RelevantTestSuite relevantTestSuite = new RelevantTestSuite(
 			getPortalAcceptancePullRequestJob());
 
@@ -40,11 +42,6 @@ public class RelevantTestSuiteTest extends BaseRelevantRuleTestCase {
 			Arrays.asList(
 				new File(getBaseDir(), "text_file_0.txt"),
 				new File(getBaseDir(), "modules/module-1/text_file_1.txt")));
-
-		RelevantRuleEngine relevantRuleEngine =
-			RelevantRuleEngine.getInstance();
-
-		relevantRuleEngine.setBaseDir(getBaseDir());
 
 		JUnitTestBatch jUnitTestBatch = null;
 
@@ -81,6 +78,8 @@ public class RelevantTestSuiteTest extends BaseRelevantRuleTestCase {
 
 	@Test
 	public void testPlaywrightTestSelectorMerge() {
+		getRelevantRuleEngine();
+
 		RelevantTestSuite relevantTestSuite = new RelevantTestSuite(
 			getPortalAcceptancePullRequestJob());
 
@@ -88,11 +87,6 @@ public class RelevantTestSuiteTest extends BaseRelevantRuleTestCase {
 			Arrays.asList(
 				new File(getBaseDir(), "modules/module-1/text_file_1.txt"),
 				new File(getBaseDir(), "modules/module-2/text_file_2.txt")));
-
-		RelevantRuleEngine relevantRuleEngine =
-			RelevantRuleEngine.getInstance();
-
-		relevantRuleEngine.setBaseDir(getBaseDir());
 
 		PlaywrightTestBatch playwrightTestBatch = null;
 
@@ -125,6 +119,8 @@ public class RelevantTestSuiteTest extends BaseRelevantRuleTestCase {
 
 	@Test
 	public void testPoshiTestSelectorMerge() throws IOException {
+		getRelevantRuleEngine();
+
 		RelevantTestSuite relevantTestSuite = new RelevantTestSuite(
 			getPortalAcceptancePullRequestJob());
 
@@ -133,32 +129,48 @@ public class RelevantTestSuiteTest extends BaseRelevantRuleTestCase {
 				new File(getBaseDir(), "test.properties"),
 				new File(getBaseDir(), "modules/module-2/text_file_2.txt")));
 
-		RelevantRuleEngine relevantRuleEngine =
-			RelevantRuleEngine.getInstance();
-
-		relevantRuleEngine.setBaseDir(getBaseDir());
-
 		PoshiTestBatch poshiTestBatch = null;
 
 		for (TestBatch testBatch : relevantTestSuite.getTestBatches(false)) {
-			if (testBatch instanceof PoshiTestBatch) {
-				poshiTestBatch = (PoshiTestBatch)testBatch;
-
-				PoshiTestSelector poshiTestSelector =
-					poshiTestBatch.getTestSelector();
-
-				String pql = JenkinsResultsParserUtil.read(
-					new File(getBaseDir(), "modules/module-2/text_file_2.txt"));
-
-				Assert.assertEquals(
-					pql, poshiTestSelector.getPoshiQuery(false));
-
-				pql = JenkinsResultsParserUtil.combine(
-					"((portal.acceptance != quarantine)) AND (", pql, ")");
-
-				Assert.assertEquals(pql, poshiTestSelector.getPoshiQuery());
+			if (!(testBatch instanceof PoshiTestBatch)) {
+				continue;
 			}
+
+			poshiTestBatch = (PoshiTestBatch)testBatch;
+
+			PoshiTestSelector poshiTestSelector =
+				poshiTestBatch.getTestSelector();
+
+			String pql = JenkinsResultsParserUtil.read(
+				new File(getBaseDir(), "modules/module-2/text_file_2.txt"));
+
+			Assert.assertEquals(pql, poshiTestSelector.getPoshiQuery(false));
+
+			pql = JenkinsResultsParserUtil.combine(
+				"((portal.acceptance != quarantine)) AND (", pql, ")");
+
+			Assert.assertEquals(pql, poshiTestSelector.getPoshiQuery());
 		}
+	}
+
+	@Test
+	public void testStableRuleBatchBypassesWhitelist() {
+		getRelevantRuleEngine();
+
+		RelevantTestSuite relevantTestSuite = new RelevantTestSuite(
+			getPortalAcceptancePullRequestJob());
+
+		relevantTestSuite.setModifiedFiles(
+			Arrays.asList(new File(getBaseDir(), "stable/trigger.txt")));
+
+		Set<String> batchNames = new HashSet<>();
+
+		for (TestBatch testBatch : relevantTestSuite.getTestBatches(false)) {
+			batchNames.add(testBatch.getName());
+		}
+
+		Assert.assertTrue(
+			batchNames.contains("rest-builder-and-service-builder"));
 	}
 
 }

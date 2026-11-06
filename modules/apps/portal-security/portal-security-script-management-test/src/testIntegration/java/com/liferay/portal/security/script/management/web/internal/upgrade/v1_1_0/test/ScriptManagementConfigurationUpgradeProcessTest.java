@@ -22,7 +22,9 @@ import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.cache.MultiVMPool;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -37,6 +39,9 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.portal.upgrade.test.util.UpgradeTestUtil;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
+import com.liferay.portal.workflow.constants.WorkflowDefinitionConstants;
+import com.liferay.portal.workflow.kaleo.model.KaleoDefinition;
+import com.liferay.portal.workflow.kaleo.service.KaleoDefinitionLocalService;
 import com.liferay.portal.workflow.manager.WorkflowDefinitionManager;
 
 import java.io.Closeable;
@@ -78,6 +83,16 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 
 	@Test
 	public void testUpgradeSafeResources() throws Exception {
+		KaleoDefinition kaleoDefinition =
+			_kaleoDefinitionLocalService.getKaleoDefinition(
+				WorkflowDefinitionConstants.
+					NAME_MESSAGE_BOARDS_USER_STATS_MODERATION,
+				ServiceContextTestUtil.getServiceContext());
+
+		kaleoDefinition.setName("message-boards-user-stats-moderation");
+
+		_kaleoDefinitionLocalService.updateKaleoDefinition(kaleoDefinition);
+
 		try (Closeable closeable =
 				ScriptManagementConfigurationTestUtil.saveWithCloseable(true)) {
 
@@ -100,21 +115,20 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 				TestPropsValues.getUserId());
 
 			_workflowDefinitionManager.deployWorkflowDefinition(
-				null, TestPropsValues.getCompanyId(),
-				TestPropsValues.getUserId(), "PublishedWorkflowDefinition",
-				StringUtil.randomId(),
-				_getContentBytes("workflow-definition-1.json"));
+				_getContentBytes("workflow-definition-1.json"),
+				TestPropsValues.getCompanyId(), null, StringUtil.randomId(),
+				"PublishedWorkflowDefinition", TestPropsValues.getUserId());
 
 			_workflowDefinitionManager.saveWorkflowDefinition(
-				null, TestPropsValues.getCompanyId(),
-				TestPropsValues.getUserId(),
-				"UnpublishedGroovyWorkflowDefinition", StringUtil.randomId(),
-				_getContentBytes("workflow-definition-2.json"));
+				_getContentBytes("workflow-definition-2.json"),
+				TestPropsValues.getCompanyId(), null, StringUtil.randomId(),
+				"UnpublishedGroovyWorkflowDefinition",
+				TestPropsValues.getUserId());
 			_workflowDefinitionManager.saveWorkflowDefinition(
-				null, TestPropsValues.getCompanyId(),
-				TestPropsValues.getUserId(),
-				"UnpublishedJavaWorkflowDefinition", StringUtil.randomId(),
-				_getContentBytes("workflow-definition-3.json"));
+				_getContentBytes("workflow-definition-3.json"),
+				TestPropsValues.getCompanyId(), null, StringUtil.randomId(),
+				"UnpublishedJavaWorkflowDefinition",
+				TestPropsValues.getUserId());
 		}
 
 		Assert.assertFalse(
@@ -126,6 +140,16 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 		Assert.assertFalse(
 			_scriptManagementConfigurationHelper.
 				isAllowScriptContentToBeExecutedOrIncluded());
+
+		kaleoDefinition = _kaleoDefinitionLocalService.getKaleoDefinition(
+			"message-boards-user-stats-moderation",
+			ServiceContextTestUtil.getServiceContext());
+
+		kaleoDefinition.setName(
+			WorkflowDefinitionConstants.
+				NAME_MESSAGE_BOARDS_USER_STATS_MODERATION);
+
+		_kaleoDefinitionLocalService.updateKaleoDefinition(kaleoDefinition);
 	}
 
 	@Test
@@ -156,10 +180,9 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 
 		_testUpgrade(
 			() -> _workflowDefinitionManager.deployWorkflowDefinition(
-				null, TestPropsValues.getCompanyId(),
-				TestPropsValues.getUserId(), StringUtil.randomId(),
-				StringUtil.randomId(),
-				_getContentBytes("workflow-definition-2.json")));
+				_getContentBytes("workflow-definition-2.json"),
+				TestPropsValues.getCompanyId(), null, StringUtil.randomId(),
+				StringUtil.randomId(), TestPropsValues.getUserId()));
 	}
 
 	@Test
@@ -168,10 +191,9 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 
 		_testUpgrade(
 			() -> _workflowDefinitionManager.deployWorkflowDefinition(
-				null, TestPropsValues.getCompanyId(),
-				TestPropsValues.getUserId(), StringUtil.randomId(),
-				StringUtil.randomId(),
-				_getContentBytes("workflow-definition-3.json")));
+				_getContentBytes("workflow-definition-3.json"),
+				TestPropsValues.getCompanyId(), null, StringUtil.randomId(),
+				StringUtil.randomId(), TestPropsValues.getUserId()));
 	}
 
 	private ObjectAction _addObjectAction(
@@ -197,7 +219,7 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 		return _objectActionLocalService.addObjectAction(
 			RandomTestUtil.randomString(), userId,
 			objectDefinition.getObjectDefinitionId(), active, StringPool.BLANK,
-			RandomTestUtil.randomString(),
+			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 			LocalizedMapUtil.getLocalizedMap(label),
 			RandomTestUtil.randomString(), objectActionExecutorKey,
@@ -232,12 +254,14 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.addCustomObjectDefinition(
-				userId, 0, null, false, true, false, false,
+				null, userId, 0, null, null, true, false, true, false, true,
+				false, false, false, false, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				ObjectDefinitionTestUtil.getRandomName(), null, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				false, ObjectDefinitionConstants.SCOPE_COMPANY,
 				ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
 				Arrays.asList(
 					new TextObjectFieldBuilder(
 					).labelMap(
@@ -245,7 +269,8 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 							RandomTestUtil.randomString())
 					).name(
 						"textObjectField"
-					).build()));
+					).build()),
+				Collections.emptyList(), new ServiceContext());
 
 		return _objectDefinitionLocalService.publishCustomObjectDefinition(
 			TestPropsValues.getUserId(),
@@ -303,6 +328,9 @@ public class ScriptManagementConfigurationUpgradeProcessTest {
 	private static final String _CLASS_NAME =
 		"com.liferay.portal.security.script.management.web.internal.upgrade." +
 			"v1_1_0.ScriptManagementConfigurationUpgradeProcess";
+
+	@Inject
+	private KaleoDefinitionLocalService _kaleoDefinitionLocalService;
 
 	@Inject
 	private MultiVMPool _multiVMPool;

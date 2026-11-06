@@ -5,6 +5,7 @@
 
 package com.liferay.layout.internal.manager;
 
+import com.liferay.configuration.admin.util.ConfigurationFilterStringUtil;
 import com.liferay.layout.admin.constants.LayoutAdminPortletKeys;
 import com.liferay.layout.configuration.LockedLayoutsGroupConfiguration;
 import com.liferay.layout.manager.LayoutLockManager;
@@ -13,12 +14,7 @@ import com.liferay.layout.model.LockedLayoutType;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
-import com.liferay.petra.sql.dsl.Column;
-import com.liferay.petra.sql.dsl.DSLFunctionFactoryUtil;
-import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
-import com.liferay.petra.sql.dsl.base.BaseTable;
-import com.liferay.petra.string.StringBundler;
-import com.liferay.petra.string.StringPool;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
@@ -30,7 +26,6 @@ import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutConstants;
-import com.liferay.portal.kernel.model.LayoutTable;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.GroupLocalService;
@@ -39,19 +34,21 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.DateUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.lock.model.LockTable;
 import com.liferay.portal.lock.service.LockLocalService;
 import com.liferay.portal.model.impl.LayoutModelImpl;
 
-import java.sql.Types;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.PortletRequest;
 
-import java.util.ArrayList;
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Dictionary;
@@ -60,11 +57,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.PortletRequest;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -122,80 +114,6 @@ public class LayoutLockManagerImpl implements LayoutLockManager {
 	}
 
 	@Override
-	public List<LockedLayout> getLockedLayouts(
-		long companyId, long groupId, Locale locale) {
-
-		List<LockedLayout> lockedLayouts = new ArrayList<>();
-
-		List<Object[]> results = _layoutLocalService.dslQuery(
-			DSLQueryFactoryUtil.select(
-			).from(
-				DSLQueryFactoryUtil.select(
-					LayoutTable.INSTANCE.classPK, LockTable.INSTANCE.createDate,
-					LayoutTable.INSTANCE.plid, LayoutTable.INSTANCE.type,
-					LockTable.INSTANCE.userName
-				).from(
-					LayoutTable.INSTANCE
-				).innerJoinON(
-					LockTable.INSTANCE,
-					LockTable.INSTANCE.companyId.eq(
-						companyId
-					).and(
-						LockTable.INSTANCE.className.eq(Layout.class.getName())
-					).and(
-						LockTable.INSTANCE.key.eq(
-							DSLFunctionFactoryUtil.castText(
-								LayoutTable.INSTANCE.plid))
-					)
-				).where(
-					LayoutTable.INSTANCE.groupId.eq(
-						groupId
-					).and(
-						LayoutTable.INSTANCE.classPK.gt(0L)
-					).and(
-						LayoutTable.INSTANCE.hidden.eq(true)
-					).and(
-						LayoutTable.INSTANCE.system.eq(true)
-					).and(
-						LayoutTable.INSTANCE.status.eq(
-							WorkflowConstants.STATUS_DRAFT)
-					).and(
-						LayoutTable.INSTANCE.type.in(
-							new String[] {
-								LayoutConstants.TYPE_ASSET_DISPLAY,
-								LayoutConstants.TYPE_COLLECTION,
-								LayoutConstants.TYPE_CONTENT,
-								LayoutConstants.TYPE_UTILITY
-							})
-					)
-				).as(
-					"LockedLayoutsTable", LockedLayoutsTable.INSTANCE
-				)
-			));
-
-		for (Object[] columns : results) {
-			Layout layout = _layoutLocalService.fetchLayout(
-				GetterUtil.getLong(columns[2]));
-
-			if (layout == null) {
-				continue;
-			}
-
-			long classPK = GetterUtil.getLong(columns[0]);
-
-			lockedLayouts.add(
-				new LockedLayout(
-					classPK, (Date)columns[1],
-					_getLockedLayoutType(
-						classPK, GetterUtil.getString(columns[3])),
-					layout.getName(locale), GetterUtil.getLong(columns[2]),
-					GetterUtil.getString(columns[4])));
-		}
-
-		return lockedLayouts;
-	}
-
-	@Override
 	public String getLockedLayoutURL(ActionRequest actionRequest) {
 		return getLockedLayoutURL(_portal.getHttpServletRequest(actionRequest));
 	}
@@ -239,6 +157,28 @@ public class LayoutLockManagerImpl implements LayoutLockManager {
 				return null;
 			}
 		).buildString();
+	}
+
+	@Override
+	public List<LockedLayout> getLockedLayouts(
+		long companyId, long groupId, Locale locale) {
+
+		return TransformUtil.transform(
+			_lockLocalService.getLocks(companyId, Layout.class.getName()),
+			lock -> {
+				Layout layout = _layoutLocalService.fetchLayout(
+					GetterUtil.getLong(lock.getKey()));
+
+				if ((layout == null) || (layout.getGroupId() != groupId)) {
+					return null;
+				}
+
+				return new LockedLayout(
+					layout.getClassPK(), lock.getCreateDate(),
+					_getLockedLayoutType(layout.getClassPK(), layout.getType()),
+					layout.getName(locale), layout.getPlid(),
+					lock.getUserName());
+			});
 	}
 
 	@Override
@@ -347,9 +287,11 @@ public class LayoutLockManagerImpl implements LayoutLockManager {
 		for (com.liferay.portal.lock.model.Lock lock :
 				_lockLocalService.getLocks(companyId, _CLASS_NAME_LAYOUT)) {
 
-			if (lock.getUserId() == userId) {
-				_lockLocalService.unlock(_CLASS_NAME_LAYOUT, lock.getKey());
+			if (lock.getUserId() != userId) {
+				continue;
 			}
+
+			_lockLocalService.unlock(_CLASS_NAME_LAYOUT, lock.getKey());
 		}
 	}
 
@@ -412,68 +354,9 @@ public class LayoutLockManagerImpl implements LayoutLockManager {
 		return null;
 	}
 
-	private String _getLockedLayoutsGroupConfigurationFilterString(
-		long companyId) {
-
-		String filterString = StringBundler.concat(
-			"(&(", ConfigurationAdmin.SERVICE_FACTORYPID, StringPool.EQUAL,
-			LockedLayoutsGroupConfiguration.class.getName(), ".scoped)(|");
-
-		for (Group group :
-				_groupLocalService.getGroups(
-					companyId, GroupConstants.ANY_PARENT_GROUP_ID, true)) {
-
-			filterString = filterString.concat(
-				"(groupId=" + group.getGroupId() + ")");
-		}
-
-		return filterString.concat("))");
-	}
-
-	private Map<Long, LockedLayoutsGroupConfiguration>
-			_getLockedLayoutsGroupConfigurations(long companyId)
-		throws PortalException {
-
-		Map<Long, LockedLayoutsGroupConfiguration>
-			lockedLayoutsGroupConfigurations = new HashMap<>();
-
-		try {
-			Configuration[] configurations =
-				_configurationAdmin.listConfigurations(
-					_getLockedLayoutsGroupConfigurationFilterString(companyId));
-
-			if (ArrayUtil.isEmpty(configurations)) {
-				return Collections.emptyMap();
-			}
-
-			for (Configuration configuration : configurations) {
-				Dictionary<String, Object> dictionary =
-					configuration.getProperties();
-
-				long groupId = GetterUtil.getLong(dictionary.get("groupId"));
-
-				if (groupId > 0) {
-					lockedLayoutsGroupConfigurations.put(
-						groupId,
-						_configurationProvider.getGroupConfiguration(
-							LockedLayoutsGroupConfiguration.class, groupId));
-				}
-			}
-		}
-		catch (Exception exception) {
-			throw new PortalException(
-				"Unable to get locked layouts group configurations", exception);
-		}
-
-		return lockedLayoutsGroupConfigurations;
-	}
-
 	private LockedLayoutType _getLockedLayoutType(long classPK, String type) {
 		if (Objects.equals(type, LayoutConstants.TYPE_ASSET_DISPLAY)) {
 			return LockedLayoutType.DISPLAY_PAGE_TEMPLATE;
-		}
-		else if (Objects.equals(type, LayoutConstants.TYPE_COLLECTION)) {
-			return LockedLayoutType.COLLECTION_PAGE;
 		}
 		else if (Objects.equals(type, LayoutConstants.TYPE_UTILITY)) {
 			return LockedLayoutType.UTILITY_PAGE;
@@ -493,6 +376,56 @@ public class LayoutLockManagerImpl implements LayoutLockManager {
 		}
 
 		return LockedLayoutType.CONTENT_PAGE;
+	}
+
+	private Map<Long, LockedLayoutsGroupConfiguration>
+			_getLockedLayoutsGroupConfigurations(long companyId)
+		throws PortalException {
+
+		Map<Long, LockedLayoutsGroupConfiguration>
+			lockedLayoutsGroupConfigurations = new HashMap<>();
+
+		try {
+			Configuration[] configurations =
+				_configurationAdmin.listConfigurations(
+					ConfigurationFilterStringUtil.getGroupScopedFilterString(
+						companyId, null,
+						LockedLayoutsGroupConfiguration.class.getName(), null));
+
+			if (ArrayUtil.isEmpty(configurations)) {
+				return Collections.emptyMap();
+			}
+
+			long[] groupIds = ListUtil.toLongArray(
+				_groupLocalService.getGroups(
+					companyId, GroupConstants.ANY_PARENT_GROUP_ID, true),
+				Group.GROUP_ID_ACCESSOR);
+
+			Arrays.sort(groupIds);
+
+			for (Configuration configuration : configurations) {
+				Dictionary<String, Object> dictionary =
+					configuration.getProperties();
+
+				long groupId = GetterUtil.getLong(dictionary.get("groupId"));
+
+				if (Arrays.binarySearch(groupIds, groupId) < 0) {
+					continue;
+				}
+
+				lockedLayoutsGroupConfigurations.put(
+					groupId,
+					_configurationProvider.getGroupConfiguration(
+						LockedLayoutsGroupConfiguration.class, companyId,
+						groupId));
+			}
+		}
+		catch (Exception exception) {
+			throw new PortalException(
+				"Unable to get locked layouts group configurations", exception);
+		}
+
+		return lockedLayoutsGroupConfigurations;
 	}
 
 	private static final String _CLASS_NAME_LAYOUT = Layout.class.getName();
@@ -523,35 +456,5 @@ public class LayoutLockManagerImpl implements LayoutLockManager {
 
 	@Reference
 	private Portal _portal;
-
-	private static class LockedLayoutsTable
-		extends BaseTable<LockedLayoutsTable> {
-
-		public static final LockedLayoutsTable INSTANCE =
-			new LockedLayoutsTable();
-
-		public final Column<LockedLayoutsTable, Long> classPKColumn =
-			createColumn(
-				"classPK", Long.class, Types.BIGINT, Column.FLAG_DEFAULT);
-		public final Column<LockedLayoutsTable, Date> createDateColumn =
-			createColumn(
-				"createDate", Date.class, Types.TIMESTAMP, Column.FLAG_DEFAULT);
-		public final Column<LockedLayoutsTable, Long> groupIdColumn =
-			createColumn(
-				"groupId", Long.class, Types.BIGINT, Column.FLAG_DEFAULT);
-		public final Column<LockedLayoutsTable, Long> plidColumn = createColumn(
-			"plid", Long.class, Types.BIGINT, Column.FLAG_PRIMARY);
-		public final Column<LockedLayoutsTable, String> typeColumn =
-			createColumn(
-				"type_", String.class, Types.VARCHAR, Column.FLAG_DEFAULT);
-		public final Column<LockedLayoutsTable, String> userNameColumn =
-			createColumn(
-				"userName", String.class, Types.VARCHAR, Column.FLAG_DEFAULT);
-
-		private LockedLayoutsTable() {
-			super("LockedLayoutsTable", LockedLayoutsTable::new);
-		}
-
-	}
 
 }

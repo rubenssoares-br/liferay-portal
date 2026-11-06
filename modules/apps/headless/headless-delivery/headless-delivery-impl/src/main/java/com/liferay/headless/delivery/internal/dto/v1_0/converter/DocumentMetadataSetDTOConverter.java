@@ -25,7 +25,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Sam Ziemer
  */
 @Component(
-	property = "dto.class.name=com.liferay.dynamic.data.mapping.model.DDMStructure",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.dynamic.data.mapping.model.DDMStructure"
+	},
 	service = DTOConverter.class
 )
 public class DocumentMetadataSetDTOConverter
@@ -33,7 +36,7 @@ public class DocumentMetadataSetDTOConverter
 
 	@Override
 	public String getContentType() {
-		return DDMStructure.class.getSimpleName();
+		return DocumentMetadataSet.class.getSimpleName();
 	}
 
 	@Override
@@ -77,6 +80,8 @@ public class DocumentMetadataSetDTOConverter
 				setDescription_i18n(
 					() -> LocalizedMapUtil.getI18nMap(
 						ddmStructure.getDescriptionMap()));
+				setExternalReferenceCode(
+					ddmStructure::getExternalReferenceCode);
 				setId(ddmStructure::getStructureId);
 				setName(
 					() -> ddmStructure.getName(

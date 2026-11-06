@@ -14,26 +14,27 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -43,6 +44,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents settings related with the site navigation menu of a page.",
 	value = "SitePageNavigationMenuSettings"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents settings related with the site navigation menu of a page."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "SitePageNavigationMenuSettings")
@@ -58,7 +62,9 @@ public class SitePageNavigationMenuSettings implements Serializable {
 			SitePageNavigationMenuSettings.class, json);
 	}
 
-	@Schema(description = "The default parameter for a page.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The default parameter for a page."
+	)
 	public String getQueryString() {
 		if (_queryStringSupplier != null) {
 			queryString = _queryStringSupplier.get();
@@ -99,7 +105,7 @@ public class SitePageNavigationMenuSettings implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _queryStringSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The page's description to be used as summary for search engines."
 	)
 	public String getTarget() {
@@ -144,8 +150,10 @@ public class SitePageNavigationMenuSettings implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _targetSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The target's type (specific frame or new tab)."
+	)
 	@JsonGetter("targetType")
-	@Schema(description = "The target's type (specific frame or new tab).")
 	@Valid
 	public TargetType getTargetType() {
 		if (_targetTypeSupplier != null) {
@@ -271,9 +279,7 @@ public class SitePageNavigationMenuSettings implements Serializable {
 			sb.append("\"targetType\": ");
 
 			sb.append("\"");
-
 			sb.append(targetType);
-
 			sb.append("\"");
 		}
 
@@ -282,8 +288,8 @@ public class SitePageNavigationMenuSettings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.SitePageNavigationMenuSettings",
 		name = "x-class-name"
 	)
@@ -408,6 +414,27 @@ public class SitePageNavigationMenuSettings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -416,3 +443,4 @@ public class SitePageNavigationMenuSettings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2031208781

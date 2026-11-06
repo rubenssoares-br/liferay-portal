@@ -11,18 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,18 +37,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Riccardo Ferrari
  * @generated
  */
 @Generated("")
-@GraphQLName("AccountForecast")
+@GraphQLName(
+	description = "Monthly revenue forecast point for one account, produced by the analytics training pipeline and downloaded back into the portal by the analytics download executor.",
+	value = "AccountForecast"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Monthly revenue forecast point for one account, produced by the analytics training pipeline and downloaded back into the portal by the analytics download executor."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "AccountForecast")
 public class AccountForecast implements Serializable {
@@ -54,7 +61,10 @@ public class AccountForecast implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(AccountForecast.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the account the forecast point belongs to (FK identifier).",
+		example = "30130"
+	)
 	public Long getAccount() {
 		if (_accountSupplier != null) {
 			account = _accountSupplier.get();
@@ -88,14 +98,19 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the account the forecast point belongs to (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long account;
 
 	@JsonIgnore
 	private Supplier<Long> _accountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Observed revenue for the period, aggregated from completed orders by the analytics pipeline. Zero -- or the float marker 1.4E-45 -- for periods that lie in the forecast horizon and have not been observed yet.",
+		example = "43855"
+	)
 	@Valid
 	public Float getActual() {
 		if (_actualSupplier != null) {
@@ -130,14 +145,19 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Observed revenue for the period, aggregated from completed orders by the analytics pipeline. Zero -- or the float marker 1.4E-45 -- for periods that lie in the forecast horizon and have not been observed yet."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Float actual;
 
 	@JsonIgnore
 	private Supplier<Float> _actualSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Point estimate of monthly revenue for the period.",
+		example = "410459.44"
+	)
 	@Valid
 	public Float getForecast() {
 		if (_forecastSupplier != null) {
@@ -172,14 +192,19 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Point estimate of monthly revenue for the period."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Float forecast;
 
 	@JsonIgnore
 	private Supplier<Float> _forecastSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Lower bound of the forecast confidence interval. Negative values occur when the model's confidence interval extends below zero; treat them as zero for display purposes.",
+		example = "-21236.652"
+	)
 	@Valid
 	public Float getForecastLowerBound() {
 		if (_forecastLowerBoundSupplier != null) {
@@ -214,14 +239,19 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Lower bound of the forecast confidence interval. Negative values occur when the model's confidence interval extends below zero; treat them as zero for display purposes."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Float forecastLowerBound;
 
 	@JsonIgnore
 	private Supplier<Float> _forecastLowerBoundSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Upper bound of the forecast confidence interval.",
+		example = "842155.5"
+	)
 	@Valid
 	public Float getForecastUpperBound() {
 		if (_forecastUpperBoundSupplier != null) {
@@ -256,14 +286,19 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Upper bound of the forecast confidence interval."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Float forecastUpperBound;
 
 	@JsonIgnore
 	private Supplier<Float> _forecastUpperBoundSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Start instant of the monthly period the point covers, in ISO 8601 UTC with date-time precision.",
+		example = "2018-04-01"
+	)
 	public Date getTimestamp() {
 		if (_timestampSupplier != null) {
 			timestamp = _timestampSupplier.get();
@@ -297,14 +332,19 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Start instant of the monthly period the point covers, in ISO 8601 UTC with date-time precision."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date timestamp;
 
 	@JsonIgnore
 	private Supplier<Date> _timestampSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Forecast target dimension. Always `revenue` for this schema.",
+		example = "revenue"
+	)
 	public String getUnit() {
 		if (_unitSupplier != null) {
 			unit = _unitSupplier.get();
@@ -336,7 +376,9 @@ public class AccountForecast implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Forecast target dimension. Always `revenue` for this schema."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String unit;
 
@@ -470,8 +512,8 @@ public class AccountForecast implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.machine.learning.dto.v1_0.AccountForecast",
 		name = "x-class-name"
 	)
@@ -558,6 +600,27 @@ public class AccountForecast implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -566,3 +629,4 @@ public class AccountForecast implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-209041996

@@ -57,13 +57,13 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -157,7 +157,7 @@ public class FragmentCollectionContributorPropagationTest {
 			FragmentEntryLink fragmentEntryLink =
 				_fragmentEntryLinkLocalService.addFragmentEntryLink(
 					null, TestPropsValues.getUserId(),
-					defaultGroup.getGroupId(), 0, 0,
+					defaultGroup.getGroupId(), null, null, null,
 					_segmentsExperienceLocalService.
 						fetchDefaultSegmentsExperienceId(layout.getPlid()),
 					layout.getPlid(), StringPool.BLANK, originalHTML,
@@ -252,9 +252,6 @@ public class FragmentCollectionContributorPropagationTest {
 		String modifiedHTML =
 			"<div>" + RandomTestUtil.randomString() + "</div>";
 
-		ServiceContext originalServiceContext =
-			ServiceContextThreadLocal.getServiceContext();
-
 		try {
 			_setUpServiceContext();
 
@@ -276,8 +273,7 @@ public class FragmentCollectionContributorPropagationTest {
 			_assertCompanyContext(TestPropsValues.getCompanyId());
 		}
 		finally {
-			ServiceContextThreadLocal.pushServiceContext(
-				originalServiceContext);
+			ServiceContextThreadLocal.popServiceContext();
 		}
 
 		Map<Long, String> companyIdsMap =
@@ -314,8 +310,8 @@ public class FragmentCollectionContributorPropagationTest {
 
 				FragmentEntryLink fragmentEntryLink =
 					_fragmentEntryLinkLocalService.addFragmentEntryLink(
-						null, user.getUserId(), group.getGroupId(), 0, 0,
-						segmentsExperienceId, layout.getPlid(),
+						null, user.getUserId(), group.getGroupId(), null, null,
+						null, segmentsExperienceId, layout.getPlid(),
 						StringPool.BLANK, originalHTML, StringPool.BLANK,
 						StringPool.BLANK, null, StringPool.BLANK, 0,
 						fragmentEntryKey, FragmentConstants.TYPE_COMPONENT,
@@ -401,8 +397,6 @@ public class FragmentCollectionContributorPropagationTest {
 	private void _setUpServiceContext() throws Exception {
 		Company company = _companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
-
-		CompanyThreadLocal.setCompanyId(company.getCompanyId());
 
 		Group group = _groupLocalService.getGroup(
 			company.getCompanyId(), GroupConstants.GUEST);
@@ -505,8 +499,9 @@ public class FragmentCollectionContributorPropagationTest {
 
 		@Override
 		public String processFragmentEntryLinkHTML(
-				FragmentEntryLink fragmentEntryLink, String html,
-				FragmentEntryProcessorContext fragmentEntryProcessorContext)
+				FragmentEntryLink fragmentEntryLink,
+				FragmentEntryProcessorContext fragmentEntryProcessorContext,
+				String html)
 			throws PortalException {
 
 			if (!Objects.equals(

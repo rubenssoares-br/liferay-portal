@@ -129,9 +129,6 @@ public interface AccountRoleLocalService
 	public AccountRole deleteAccountRole(long accountRoleId)
 		throws PortalException;
 
-	public void deleteAccountRolesByCompanyId(long companyId)
-		throws PortalException;
-
 	/**
 	 * @throws PortalException
 	 */
@@ -281,6 +278,12 @@ public interface AccountRoleLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public AccountRole getOrAddEmptyAccountRole(
+			String externalReferenceCode, long companyId, long userId,
+			long accountEntryId, String name)
+		throws PortalException;
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -329,3 +332,4 @@ public interface AccountRoleLocalService
 	public AccountRole updateAccountRole(AccountRole accountRole);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1755458467

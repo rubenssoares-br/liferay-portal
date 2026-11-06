@@ -17,10 +17,10 @@ import com.liferay.portal.kernel.security.pwd.Toolkit;
 import com.liferay.portal.kernel.service.PasswordTrackerLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.PwdGenerator;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.words.WordsUtil;
-import com.liferay.portal.util.PropsValues;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -304,9 +304,11 @@ public class PasswordPolicyToolkit extends BasicToolkit {
 		int count = 0;
 
 		for (int i = 0; i < s.length(); i++) {
-			if (Arrays.binarySearch(chars, s.charAt(i)) >= 0) {
-				count++;
+			if (Arrays.binarySearch(chars, s.charAt(i)) < 0) {
+				continue;
 			}
+
+			count++;
 		}
 
 		return count;

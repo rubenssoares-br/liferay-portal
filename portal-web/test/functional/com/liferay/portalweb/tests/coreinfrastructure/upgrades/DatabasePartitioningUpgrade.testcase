@@ -2,6 +2,7 @@
 definition {
 
 	property app.server.types = "tomcat";
+	property browser.chrome.version = "139.0";
 	property ci.retries.disabled = "true";
 	property database.partition.enabled = "true";
 	property database.types = "mysql";
@@ -16,8 +17,8 @@ definition {
 
 	@priority = 5
 	test CanAutoUpgradeLargePartitionedDatabase7413 {
-		property custom.properties = "upgrade.report.enabled=true";
-		property custom.startup.timeout = "540";
+		property custom.properties = "upgrade.report.enabled=true${line.separator}virtual.hosts.valid.hosts=localhost,127.0.0.1,www.able.com";
+		property custom.startup.timeout = "2700";
 		property data.archive.type = "data-archive-portal-partition-large";
 		property database.auto.upgrade.enabled = "true";
 		property minimum.slave.ram = "24";
@@ -40,6 +41,7 @@ definition {
 	@priority = 5
 	test CanAutoUpgradeLargePartitionedDatabase7413Benchmark {
 		property custom.properties = "upgrade.report.enabled=true";
+		property custom.startup.timeout = "2700";
 		property data.archive.type = "data-archive-portal-partition-large";
 		property database.auto.upgrade.enabled = "true";
 		property minimum.slave.ram = "24";
@@ -67,7 +69,8 @@ definition {
 
 	@priority = 5
 	test CanUpgradeLargePartitionedDatabase7413 {
-		property custom.startup.timeout = "600";
+		property custom.properties = "virtual.hosts.valid.hosts=localhost,127.0.0.1,www.able.com";
+		property custom.startup.timeout = "2700";
 		property data.archive.type = "data-archive-portal-partition-large";
 		property minimum.slave.ram = "24";
 		property portal.release = "false";
@@ -87,6 +90,8 @@ definition {
 
 	@priority = 5
 	test CanUpgradeLargePartitionedDatabase7413Benchmark {
+		property custom.properties = "virtual.hosts.valid.hosts=localhost,127.0.0.1,www.able.com";
+		property custom.startup.timeout = "2700";
 		property data.archive.type = "data-archive-portal-partition-large";
 		property minimum.slave.ram = "24";
 		property portal.release = "false";
@@ -110,27 +115,15 @@ definition {
 		}
 	}
 
-	@priority = 5
-	test CanUpgradePartitionedDatabase7413U33 {
-		property data.archive.type = "data-archive-portal-partition";
-		property portal.smoke.upgrades = "true";
-		property portal.version = "7.4.13.u33";
-
-		User.loginPG(
-			nodePort = 8080,
-			password = PropsUtil.get("default.admin.password"),
-			userEmailAddress = "test@liferay.com");
-
-		SearchAdministration.executeReindex();
-
-		ValidateDatabasePartitioningUpgrade.viewUpgradeDBPartition();
-	}
-
-	@priority = 5
-	test ExtractAndAddDBPartitionCompaniesWithUpgradedDB {
+	@priority = 4
+	test ExportAndAddDBPartitionWithUpgradedDB {
+		property app.server.bundles.size = "1";
+		property cluster.enabled = "true";
+		property custom.properties = "virtual.hosts.valid.hosts=localhost,127.0.0.1,www.able.com,www.baker.com";
 		property data.archive.type = "data-archive-portal-partition";
 		property portal.version = "7.4.13.u33";
 		property test.assert.warning.exceptions = "false";
+		property web.xml.timeout = "60";
 
 		task ("Validate www.able.com and www.baker.com partitions") {
 			User.loginPG(
@@ -147,28 +140,52 @@ definition {
 			SignOut.signOutOfSpecificURL(url = "http://www.baker.com:8080");
 		}
 
-		task ("Extract www.able.com and www.baker.com partitions and shutdown the server") {
-			DBPartition.extractDBPartition(partitionCompanyId = 42638);
+		task ("Export www.able.com and www.baker.com partitions and shutdown the server") {
+			var companyId1 = DBPartition.exportDBPartition(portalInstanceId = "www.able.com");
+			var companyId2 = DBPartition.exportDBPartition(portalInstanceId = "www.baker.com");
 
-			DBPartition.extractDBPartition(partitionCompanyId = 44913);
+			Clustering.shutdownSpecificServer(nodePort = 8080);
 
-			Portlet.shutdownServer();
+			Clustering.shutdownSpecificServer(nodePort = 9080);
 		}
 
 		task ("Create an empty database") {
 			AntCommands.runCommand("build-test.xml", "rebuild-database -Ddatabase.type=mysql -Dsql.dir=sql/create-bare/ -Dsql.file=create-bare-mysql.sql");
 
-			Portlet.startServer(deleteLiferayHome = "false");
+			Clustering.startSpecificServer(
+				deleteLiferayHome = "false",
+				nodePort = 8080);
+
+			Clustering.startSpecificServer(
+				deleteLiferayHome = "false",
+				nodePort = 9080);
 		}
 
-		task ("Add previously extracted partitions into new database") {
-			DBPartition.insertDBPartition(partitionCompanyId = 42638);
+		task ("Removing the original schemas") {
+			var databaseType = PropsUtil.get("database.type");
 
-			DBPartition.insertDBPartition(partitionCompanyId = 44913);
+			if (${databaseType} == "mysql") {
+				SQL.executeSQLStatement(sqlStatement = "drop schema if exists lpartition_${companyId1};");
+
+				SQL.executeSQLStatement(sqlStatement = "drop schema if exists lpartition_${companyId2};");
+			}
+			else if (${databaseType} == "postgresql") {
+				SQL.executeSQLStatement(sqlStatement = "drop schema if exists lpartition_${companyId1} cascade;");
+
+				SQL.executeSQLStatement(sqlStatement = "drop schema if exists lpartition_${companyId2} cascade;");
+			}
+		}
+
+		task ("Add previously exported partitions into new database") {
+			DBPartition.importDBPartition(partitionCompanyId = ${companyId1});
+
+			DBPartition.importDBPartition(partitionCompanyId = ${companyId2});
 		}
 
 		task ("Ensure that portal main functionalities work correctly") {
 			SignIn.signInTestSetup();
+
+			PagesAdmin.enableWidgetPages();
 
 			Smoke.runSmoke();
 

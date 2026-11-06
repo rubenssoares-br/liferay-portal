@@ -9,13 +9,14 @@ import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductVirtua
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductVirtualSettingsFileEntry;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -210,6 +211,46 @@ public class ProductVirtualSettingsSerDes {
 			sb.append(_toJSON(productVirtualSettings.getTermsOfUseContent()));
 		}
 
+		if (productVirtualSettings.
+				getTermsOfUseJournalArticleExternalReferenceCode() != null) {
+
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"termsOfUseJournalArticleExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(
+					productVirtualSettings.
+						getTermsOfUseJournalArticleExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (productVirtualSettings.
+				getTermsOfUseJournalArticleGroupExternalReferenceCode() !=
+					null) {
+
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append(
+				"\"termsOfUseJournalArticleGroupExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(
+					productVirtualSettings.
+						getTermsOfUseJournalArticleGroupExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
 		if (productVirtualSettings.getTermsOfUseJournalArticleId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -384,6 +425,33 @@ public class ProductVirtualSettingsSerDes {
 				String.valueOf(productVirtualSettings.getTermsOfUseContent()));
 		}
 
+		if (productVirtualSettings.
+				getTermsOfUseJournalArticleExternalReferenceCode() == null) {
+
+			map.put("termsOfUseJournalArticleExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"termsOfUseJournalArticleExternalReferenceCode",
+				String.valueOf(
+					productVirtualSettings.
+						getTermsOfUseJournalArticleExternalReferenceCode()));
+		}
+
+		if (productVirtualSettings.
+				getTermsOfUseJournalArticleGroupExternalReferenceCode() ==
+					null) {
+
+			map.put("termsOfUseJournalArticleGroupExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"termsOfUseJournalArticleGroupExternalReferenceCode",
+				String.valueOf(
+					productVirtualSettings.
+						getTermsOfUseJournalArticleGroupExternalReferenceCode()));
+		}
+
 		if (productVirtualSettings.getTermsOfUseJournalArticleId() == null) {
 			map.put("termsOfUseJournalArticleId", null);
 		}
@@ -477,6 +545,18 @@ public class ProductVirtualSettingsSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "termsOfUseContent")) {
 				return true;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleGroupExternalReferenceCode")) {
+
+				return false;
 			}
 			else if (Objects.equals(
 						jsonParserFieldName, "termsOfUseJournalArticleId")) {
@@ -597,6 +677,26 @@ public class ProductVirtualSettingsSerDes {
 				}
 			}
 			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					productVirtualSettings.
+						setTermsOfUseJournalArticleExternalReferenceCode(
+							(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleGroupExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					productVirtualSettings.
+						setTermsOfUseJournalArticleGroupExternalReferenceCode(
+							(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "termsOfUseJournalArticleId")) {
 
 				if (jsonParserFieldValue != null) {
@@ -668,6 +768,16 @@ public class ProductVirtualSettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -700,3 +810,4 @@ public class ProductVirtualSettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:432597896

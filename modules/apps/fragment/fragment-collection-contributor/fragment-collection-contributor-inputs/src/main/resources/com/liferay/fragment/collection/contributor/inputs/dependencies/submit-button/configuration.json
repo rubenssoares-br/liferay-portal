@@ -24,11 +24,17 @@
 				},
 				{
 					"dataType": "string",
-					"defaultValue": "approved",
+					"defaultValue": "0",
 					"label": "submitted-entry-status",
 					"name": "submittedEntryStatus",
 					"type": "select",
 					"typeOptions": {
+						"dependency": {
+							"type": {
+								"type": "equal",
+								"value": "submit"
+							}
+						},
 						"validValues": [
 							{
 								"label": "approved",

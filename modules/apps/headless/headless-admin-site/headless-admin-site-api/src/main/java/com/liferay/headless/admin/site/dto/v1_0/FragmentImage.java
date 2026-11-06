@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -39,6 +39,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName(description = "A fragment image.", value = "FragmentImage")
+@io.swagger.v3.oas.annotations.media.Schema(description = "A fragment image.")
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "FragmentImage")
 public class FragmentImage implements Serializable {
@@ -51,33 +52,126 @@ public class FragmentImage implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(FragmentImage.class, json);
 	}
 
-	@Schema(
-		description = "Represents the Adaptive Media fragment image configuration for different viewports."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized fragment image's descriptions."
 	)
 	@Valid
-	public Config getConfig() {
-		if (_configSupplier != null) {
-			config = _configSupplier.get();
+	public Map<String, String> getDescription_i18n() {
+		if (_description_i18nSupplier != null) {
+			description_i18n = _description_i18nSupplier.get();
 
-			_configSupplier = null;
+			_description_i18nSupplier = null;
 		}
 
-		return config;
+		return description_i18n;
 	}
 
-	public void setConfig(Config config) {
-		this.config = config;
+	public void setDescription_i18n(Map<String, String> description_i18n) {
+		this.description_i18n = description_i18n;
 
-		_configSupplier = null;
+		_description_i18nSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setConfig(
-		UnsafeSupplier<Config, Exception> configUnsafeSupplier) {
+	public void setDescription_i18n(
+		UnsafeSupplier<Map<String, String>, Exception>
+			description_i18nUnsafeSupplier) {
 
-		_configSupplier = () -> {
+		_description_i18nSupplier = () -> {
 			try {
-				return configUnsafeSupplier.get();
+				return description_i18nUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The localized fragment image's descriptions.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Map<String, String> description_i18n;
+
+	@JsonIgnore
+	private Supplier<Map<String, String>> _description_i18nSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment image's value."
+	)
+	@Valid
+	public FragmentImageValue getFragmentImageValue() {
+		if (_fragmentImageValueSupplier != null) {
+			fragmentImageValue = _fragmentImageValueSupplier.get();
+
+			_fragmentImageValueSupplier = null;
+		}
+
+		return fragmentImageValue;
+	}
+
+	public void setFragmentImageValue(FragmentImageValue fragmentImageValue) {
+		this.fragmentImageValue = fragmentImageValue;
+
+		_fragmentImageValueSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setFragmentImageValue(
+		UnsafeSupplier<FragmentImageValue, Exception>
+			fragmentImageValueUnsafeSupplier) {
+
+		_fragmentImageValueSupplier = () -> {
+			try {
+				return fragmentImageValueUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The fragment image's value.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected FragmentImageValue fragmentImageValue;
+
+	@JsonIgnore
+	private Supplier<FragmentImageValue> _fragmentImageValueSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of viewports configuration of the fragment image."
+	)
+	@Valid
+	public FragmentImageViewport[] getFragmentImageViewports() {
+		if (_fragmentImageViewportsSupplier != null) {
+			fragmentImageViewports = _fragmentImageViewportsSupplier.get();
+
+			_fragmentImageViewportsSupplier = null;
+		}
+
+		return fragmentImageViewports;
+	}
+
+	public void setFragmentImageViewports(
+		FragmentImageViewport[] fragmentImageViewports) {
+
+		this.fragmentImageViewports = fragmentImageViewports;
+
+		_fragmentImageViewportsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setFragmentImageViewports(
+		UnsafeSupplier<FragmentImageViewport[], Exception>
+			fragmentImageViewportsUnsafeSupplier) {
+
+		_fragmentImageViewportsSupplier = () -> {
+			try {
+				return fragmentImageViewportsUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -89,84 +183,38 @@ public class FragmentImage implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "Represents the Adaptive Media fragment image configuration for different viewports."
+		description = "A list of viewports configuration of the fragment image."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Config config;
+	protected FragmentImageViewport[] fragmentImageViewports;
 
 	@JsonIgnore
-	private Supplier<Config> _configSupplier;
+	private Supplier<FragmentImageViewport[]> _fragmentImageViewportsSupplier;
 
-	@Schema(description = "The fragment image's description.")
-	@Valid
-	public Object getDescription() {
-		if (_descriptionSupplier != null) {
-			description = _descriptionSupplier.get();
+	@io.swagger.v3.oas.annotations.media.Schema
+	public Boolean getLazyLoading() {
+		if (_lazyLoadingSupplier != null) {
+			lazyLoading = _lazyLoadingSupplier.get();
 
-			_descriptionSupplier = null;
+			_lazyLoadingSupplier = null;
 		}
 
-		return description;
+		return lazyLoading;
 	}
 
-	public void setDescription(Object description) {
-		this.description = description;
+	public void setLazyLoading(Boolean lazyLoading) {
+		this.lazyLoading = lazyLoading;
 
-		_descriptionSupplier = null;
+		_lazyLoadingSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setDescription(
-		UnsafeSupplier<Object, Exception> descriptionUnsafeSupplier) {
+	public void setLazyLoading(
+		UnsafeSupplier<Boolean, Exception> lazyLoadingUnsafeSupplier) {
 
-		_descriptionSupplier = () -> {
+		_lazyLoadingSupplier = () -> {
 			try {
-				return descriptionUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "The fragment image's description.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object description;
-
-	@JsonIgnore
-	private Supplier<Object> _descriptionSupplier;
-
-	@Schema
-	@Valid
-	public ItemExternalReference getItemExternalReference() {
-		if (_itemExternalReferenceSupplier != null) {
-			itemExternalReference = _itemExternalReferenceSupplier.get();
-
-			_itemExternalReferenceSupplier = null;
-		}
-
-		return itemExternalReference;
-	}
-
-	public void setItemExternalReference(
-		ItemExternalReference itemExternalReference) {
-
-		this.itemExternalReference = itemExternalReference;
-
-		_itemExternalReferenceSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setItemExternalReference(
-		UnsafeSupplier<ItemExternalReference, Exception>
-			itemExternalReferenceUnsafeSupplier) {
-
-		_itemExternalReferenceSupplier = () -> {
-			try {
-				return itemExternalReferenceUnsafeSupplier.get();
+				return lazyLoadingUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -179,96 +227,10 @@ public class FragmentImage implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference itemExternalReference;
+	protected Boolean lazyLoading;
 
 	@JsonIgnore
-	private Supplier<ItemExternalReference> _itemExternalReferenceSupplier;
-
-	@Schema(description = "The fragment image's title.")
-	@Valid
-	public Object getTitle() {
-		if (_titleSupplier != null) {
-			title = _titleSupplier.get();
-
-			_titleSupplier = null;
-		}
-
-		return title;
-	}
-
-	public void setTitle(Object title) {
-		this.title = title;
-
-		_titleSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setTitle(
-		UnsafeSupplier<Object, Exception> titleUnsafeSupplier) {
-
-		_titleSupplier = () -> {
-			try {
-				return titleUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "The fragment image's title.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object title;
-
-	@JsonIgnore
-	private Supplier<Object> _titleSupplier;
-
-	@Schema(
-		description = "The fragment image's url. Can be inline or mapped to an external value."
-	)
-	@Valid
-	public Object getUrl() {
-		if (_urlSupplier != null) {
-			url = _urlSupplier.get();
-
-			_urlSupplier = null;
-		}
-
-		return url;
-	}
-
-	public void setUrl(Object url) {
-		this.url = url;
-
-		_urlSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setUrl(UnsafeSupplier<Object, Exception> urlUnsafeSupplier) {
-		_urlSupplier = () -> {
-			try {
-				return urlUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The fragment image's url. Can be inline or mapped to an external value."
-	)
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object url;
-
-	@JsonIgnore
-	private Supplier<Object> _urlSupplier;
+	private Supplier<Boolean> _lazyLoadingSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -297,96 +259,63 @@ public class FragmentImage implements Serializable {
 
 		sb.append("{");
 
-		Config config = getConfig();
+		Map<String, String> description_i18n = getDescription_i18n();
 
-		if (config != null) {
+		if (description_i18n != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"config\": ");
+			sb.append("\"description_i18n\": ");
 
-			sb.append(String.valueOf(config));
+			sb.append(_toJSON(description_i18n));
 		}
 
-		Object description = getDescription();
+		FragmentImageValue fragmentImageValue = getFragmentImageValue();
 
-		if (description != null) {
+		if (fragmentImageValue != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"description\": ");
+			sb.append("\"fragmentImageValue\": ");
 
-			if (description instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)description));
-			}
-			else if (description instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)description));
-				sb.append("\"");
-			}
-			else {
-				sb.append(description);
-			}
+			sb.append(String.valueOf(fragmentImageValue));
 		}
 
-		ItemExternalReference itemExternalReference =
-			getItemExternalReference();
+		FragmentImageViewport[] fragmentImageViewports =
+			getFragmentImageViewports();
 
-		if (itemExternalReference != null) {
+		if (fragmentImageViewports != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"itemExternalReference\": ");
+			sb.append("\"fragmentImageViewports\": ");
 
-			sb.append(String.valueOf(itemExternalReference));
+			sb.append("[");
+
+			for (int i = 0; i < fragmentImageViewports.length; i++) {
+				sb.append(String.valueOf(fragmentImageViewports[i]));
+
+				if ((i + 1) < fragmentImageViewports.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
-		Object title = getTitle();
+		Boolean lazyLoading = getLazyLoading();
 
-		if (title != null) {
+		if (lazyLoading != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"title\": ");
+			sb.append("\"lazyLoading\": ");
 
-			if (title instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)title));
-			}
-			else if (title instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)title));
-				sb.append("\"");
-			}
-			else {
-				sb.append(title);
-			}
-		}
-
-		Object url = getUrl();
-
-		if (url != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"url\": ");
-
-			if (url instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)url));
-			}
-			else if (url instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)url));
-				sb.append("\"");
-			}
-			else {
-				sb.append(url);
-			}
+			sb.append(lazyLoading);
 		}
 
 		sb.append("}");
@@ -394,8 +323,8 @@ public class FragmentImage implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.FragmentImage",
 		name = "x-class-name"
 	)
@@ -482,6 +411,27 @@ public class FragmentImage implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -490,3 +440,4 @@ public class FragmentImage implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1954432791

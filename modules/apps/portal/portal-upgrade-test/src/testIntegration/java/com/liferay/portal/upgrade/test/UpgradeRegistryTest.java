@@ -11,10 +11,10 @@ import com.liferay.portal.kernel.service.ReleaseLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.upgrade.UpgradeStep;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
-import com.liferay.portal.util.PropsUtil;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -96,10 +96,10 @@ public class UpgradeRegistryTest {
 		Assert.assertTrue(testUpgradeSteps[3]._upgradeCalled);
 	}
 
-	private static String _originalUpgradeDatabaseAutoRun;
+	private String _originalUpgradeDatabaseAutoRun;
 
 	@Inject
-	private static ReleaseLocalService _releaseLocalService;
+	private ReleaseLocalService _releaseLocalService;
 
 	private ServiceRegistration<UpgradeStepRegistrator> _serviceRegistration;
 

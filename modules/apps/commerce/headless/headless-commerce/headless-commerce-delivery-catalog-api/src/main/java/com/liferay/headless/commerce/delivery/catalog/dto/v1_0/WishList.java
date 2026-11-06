@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("WishList")
+@GraphQLName(
+	description = "Named buyer wish list scoping a collection of wish-list items for the authenticated account within a commerce channel.",
+	value = "WishList"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Named buyer wish list scoping a collection of wish-list items for the authenticated account within a commerce channel."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "WishList")
 public class WishList implements Serializable {
@@ -50,7 +57,10 @@ public class WishList implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(WishList.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, this is the account's default wish list (the one that receives items when no list is specified).",
+		example = "true"
+	)
 	public Boolean getDefaultWishList() {
 		if (_defaultWishListSupplier != null) {
 			defaultWishList = _defaultWishListSupplier.get();
@@ -84,14 +94,19 @@ public class WishList implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, this is the account's default wish list (the one that receives items when no list is specified)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean defaultWishList;
 
 	@JsonIgnore
 	private Supplier<Boolean> _defaultWishListSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the wish list (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -123,14 +138,19 @@ public class WishList implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the wish list (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the wish list. Required on create. Filterable, sortable, and matched by the search query parameter.",
+		example = "My Wish List"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -162,14 +182,18 @@ public class WishList implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the wish list. Required on create. Filterable, sortable, and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Inline wish-list items belonging to the wish list."
+	)
 	@Valid
 	public WishListItem[] getWishListItems() {
 		if (_wishListItemsSupplier != null) {
@@ -204,7 +228,9 @@ public class WishList implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Inline wish-list items belonging to the wish list."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected WishListItem[] wishListItems;
 
@@ -305,8 +331,8 @@ public class WishList implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.WishList",
 		name = "x-class-name"
 	)
@@ -393,6 +419,27 @@ public class WishList implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -401,3 +448,4 @@ public class WishList implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1940567199

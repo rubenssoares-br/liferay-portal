@@ -345,13 +345,6 @@ public class ObjectValidationRuleLocalServiceUtil {
 			objectDefinitionId, active);
 	}
 
-	public static List<ObjectValidationRule> getObjectValidationRules(
-		long objectDefinitionId, String engine) {
-
-		return getService().getObjectValidationRules(
-			objectDefinitionId, engine);
-	}
-
 	/**
 	 * Returns the number of object validation rules.
 	 *
@@ -435,6 +428,14 @@ public class ObjectValidationRuleLocalServiceUtil {
 			baseModel, objectDefinitionId, payloadJSONObject, userId);
 	}
 
+	public static void validate(
+			List<String> externalReferenceCodes,
+			com.liferay.object.model.ObjectEntry objectEntry, long userId)
+		throws PortalException {
+
+		getService().validate(externalReferenceCodes, objectEntry, userId);
+	}
+
 	public static ObjectValidationRuleLocalService getService() {
 		return _serviceSnapshot.get();
 	}
@@ -445,3 +446,4 @@ public class ObjectValidationRuleLocalServiceUtil {
 			ObjectValidationRuleLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:904551089

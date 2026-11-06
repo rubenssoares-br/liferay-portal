@@ -23,7 +23,7 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portlet.configuration.kernel.util.PortletConfigurationApplicationType;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -34,6 +34,11 @@ import org.osgi.service.component.annotations.Reference;
 @Component(service = EditModePortletConfigurationIcon.class)
 public class PortletPermissionsEditModePortletConfigurationIcon
 	implements EditModePortletConfigurationIcon {
+
+	@Override
+	public int getPortletConfigurationIconGroup() {
+		return PORTLET_CONFIGURATION_ICON_GROUP_CONFIGURATION;
+	}
 
 	@Override
 	public String getTitle(HttpServletRequest httpServletRequest) {

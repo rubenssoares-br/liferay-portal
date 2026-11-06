@@ -12,12 +12,12 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Map;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Shuyang Zhou
@@ -206,15 +206,17 @@ public class AUIUtil {
 		for (int i = 0; i < name.length(); i++) {
 			char c = name.charAt(i);
 
-			if ((_VALID_CHARS.length <= c) || !_VALID_CHARS[c]) {
-				if (chars == null) {
-					chars = new char[name.length()];
-
-					name.getChars(0, chars.length, chars, 0);
-				}
-
-				chars[i] = CharPool.DASH;
+			if ((_VALID_CHARS.length > c) && _VALID_CHARS[c]) {
+				continue;
 			}
+
+			if (chars == null) {
+				chars = new char[name.length()];
+
+				name.getChars(0, chars.length, chars, 0);
+			}
+
+			chars[i] = CharPool.DASH;
 		}
 
 		if (chars == null) {

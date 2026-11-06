@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -44,6 +45,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a relationship between a user and a company or site. This follows the [`Role`](https://www.schema.org/Role) specification.",
 	value = "Role"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a relationship between a user and a company or site. This follows the [`Role`](https://www.schema.org/Role) specification."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Role")
@@ -57,7 +61,7 @@ public class Role implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Role.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Block of actions that the user can perform with the roles."
 	)
 	@Valid
@@ -104,7 +108,7 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A list of languages for which the role has a translation."
 	)
 	public String[] getAvailableLanguages() {
@@ -149,7 +153,9 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _availableLanguagesSupplier;
 
-	@Schema(description = "The role's creator.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's creator."
+	)
 	@Valid
 	public Creator getCreator() {
 		if (_creatorSupplier != null) {
@@ -191,7 +197,9 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The role's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -232,7 +240,7 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The last time any of the role's fields were changed."
 	)
 	public Date getDateModified() {
@@ -277,7 +285,9 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The role's description.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's description."
+	)
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -318,7 +328,7 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getDescription_i18n() {
 		if (_description_i18nSupplier != null) {
@@ -361,7 +371,9 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _description_i18nSupplier;
 
-	@Schema(description = "The optional external key of this role.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The optional external key of this role."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -402,7 +414,7 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The role's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(description = "The role's ID.")
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -441,7 +453,9 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "The role's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -480,7 +494,7 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getName_i18n() {
 		if (_name_i18nSupplier != null) {
@@ -523,7 +537,54 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _name_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public com.liferay.portal.vulcan.permission.Permission[] getPermissions() {
+		if (_permissionsSupplier != null) {
+			permissions = _permissionsSupplier.get();
+
+			_permissionsSupplier = null;
+		}
+
+		return permissions;
+	}
+
+	public void setPermissions(
+		com.liferay.portal.vulcan.permission.Permission[] permissions) {
+
+		this.permissions = permissions;
+
+		_permissionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.permission.Permission[], Exception>
+				permissionsUnsafeSupplier) {
+
+		_permissionsSupplier = () -> {
+			try {
+				return permissionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.permission.Permission[] permissions;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.permission.Permission[]>
+		_permissionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public RolePermission[] getRolePermissions() {
 		if (_rolePermissionsSupplier != null) {
@@ -566,7 +627,9 @@ public class Role implements Serializable {
 	@JsonIgnore
 	private Supplier<RolePermission[]> _rolePermissionsSupplier;
 
-	@Schema(description = "The role's type.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's type."
+	)
 	public String getRoleType() {
 		if (_roleTypeSupplier != null) {
 			roleType = _roleTypeSupplier.get();
@@ -606,6 +669,49 @@ public class Role implements Serializable {
 
 	@JsonIgnore
 	private Supplier<String> _roleTypeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's subtype."
+	)
+	public String getSubtype() {
+		if (_subtypeSupplier != null) {
+			subtype = _subtypeSupplier.get();
+
+			_subtypeSupplier = null;
+		}
+
+		return subtype;
+	}
+
+	public void setSubtype(String subtype) {
+		this.subtype = subtype;
+
+		_subtypeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setSubtype(
+		UnsafeSupplier<String, Exception> subtypeUnsafeSupplier) {
+
+		_subtypeSupplier = () -> {
+			try {
+				return subtypeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The role's subtype.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String subtype;
+
+	@JsonIgnore
+	private Supplier<String> _subtypeSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -803,6 +909,29 @@ public class Role implements Serializable {
 			sb.append(_toJSON(name_i18n));
 		}
 
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
+
+		if (permissions != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
+
+				if ((i + 1) < permissions.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		RolePermission[] rolePermissions = getRolePermissions();
 
 		if (rolePermissions != null) {
@@ -841,13 +970,29 @@ public class Role implements Serializable {
 			sb.append("\"");
 		}
 
+		String subtype = getSubtype();
+
+		if (subtype != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"subtype\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(subtype));
+
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.user.dto.v1_0.Role",
 		name = "x-class-name"
 	)
@@ -934,6 +1079,27 @@ public class Role implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -942,3 +1108,4 @@ public class Role implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:553956919

@@ -22,8 +22,22 @@ export function PreviewModal({observer}) {
 
 	const displayTemplateSelectId = `${portletNamespace}-displayTemplateSelect`;
 
+	const effectiveDisplayTemplateOptions =
+		!!displayTemplateOptions.length &&
+		!displayTemplateOptions.some((option) => option.selected)
+			? [
+					{
+						label: Liferay.Language.get('default'),
+						selected: true,
+						value: '',
+					},
+					...displayTemplateOptions,
+				]
+			: displayTemplateOptions;
+
 	const [displayTemplateId, setDisplayTemplateId] = useState(
-		displayTemplateOptions.find((option) => option.selected).value
+		effectiveDisplayTemplateOptions.find((option) => option.selected)
+			?.value ?? ''
 	);
 
 	const [loading, setLoading] = useState(true);
@@ -39,25 +53,31 @@ export function PreviewModal({observer}) {
 
 	return (
 		<ClayModal observer={observer} size="xl">
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{Liferay.Language.get('preview-menu')}
 			</ClayModal.Header>
 
 			<ClayModal.Body className="site-navigation__preview-modal">
 				<ClayForm.Group className="h-100">
-					<label htmlFor={displayTemplateSelectId}>
-						{Liferay.Language.get('display-template')}
-					</label>
+					{!!effectiveDisplayTemplateOptions.length && (
+						<>
+							<label htmlFor={displayTemplateSelectId}>
+								{Liferay.Language.get('display-template')}
+							</label>
 
-					<ClaySelectWithOption
-						id={displayTemplateSelectId}
-						onChange={(event) => {
-							setDisplayTemplateId(event.target.value);
-							setLoading(true);
-						}}
-						options={displayTemplateOptions}
-						value={displayTemplateId}
-					/>
+							<ClaySelectWithOption
+								id={displayTemplateSelectId}
+								onChange={(event) => {
+									setDisplayTemplateId(event.target.value);
+									setLoading(true);
+								}}
+								options={effectiveDisplayTemplateOptions}
+								value={displayTemplateId}
+							/>
+						</>
+					)}
 
 					{loading && (
 						<div className="pt-4">

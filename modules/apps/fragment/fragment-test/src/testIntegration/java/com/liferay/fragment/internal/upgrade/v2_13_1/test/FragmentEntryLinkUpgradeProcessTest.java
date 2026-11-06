@@ -20,7 +20,6 @@ import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
-import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -78,15 +77,20 @@ public class FragmentEntryLinkUpgradeProcessTest
 
 		_layout = LayoutTestUtil.addTypeContentLayout(_group);
 
+		_draftLayout = _layout.fetchDraftLayout();
+
 		_segmentsExperienceId =
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				_layout.getPlid());
+				_draftLayout.getPlid());
 	}
 
 	@Test
 	public void testUpgrade() throws Exception {
 		String editableValues = StringUtil.replace(
-			_read("editable_values.json"), "${", "}",
+			new String(
+				FileUtil.getBytes(
+					getClass(), "dependencies/editable_values.json")),
+			"${", "}",
 			HashMapBuilder.put(
 				"CLASS_NAME_ID",
 				String.valueOf(
@@ -108,13 +112,11 @@ public class FragmentEntryLinkUpgradeProcessTest
 				}
 			).build());
 
-		Layout draftLayout = _layout.fetchDraftLayout();
-
 		FragmentEntryLink draftLayoutFragmentEntryLink =
 			ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
-				editableValues, draftLayout, _segmentsExperienceId);
+				editableValues, _draftLayout, _segmentsExperienceId);
 
-		ContentLayoutTestUtil.publishLayout(draftLayout, _layout);
+		ContentLayoutTestUtil.publishLayout(_draftLayout, _layout);
 
 		List<FragmentEntryLink> publishedLayoutFragmentEntryLinks =
 			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
@@ -143,7 +145,7 @@ public class FragmentEntryLinkUpgradeProcessTest
 	@Override
 	protected CTModel<?> addCTModel() throws Exception {
 		return ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
-			"{}", _layout.fetchDraftLayout(), _segmentsExperienceId);
+			"{}", _draftLayout, _segmentsExperienceId);
 	}
 
 	@Override
@@ -177,7 +179,8 @@ public class FragmentEntryLinkUpgradeProcessTest
 				JSONUtil.put(
 					RandomTestUtil.randomString(),
 					RandomTestUtil.randomString())
-			).toString());
+			).toString(),
+			true);
 	}
 
 	private DLFileEntry _addDLFileEntry() throws Exception {
@@ -204,8 +207,7 @@ public class FragmentEntryLinkUpgradeProcessTest
 					fragmentEntryLinkId);
 
 			JSONObject editableValuesJSONObject =
-				JSONFactoryUtil.createJSONObject(
-					fragmentEntryLink.getEditableValues());
+				fragmentEntryLink.getEditableValuesJSONObject();
 
 			JSONObject editableFragmentEntryProcessorJSONObject =
 				editableValuesJSONObject.getJSONObject(
@@ -247,21 +249,13 @@ public class FragmentEntryLinkUpgradeProcessTest
 		}
 	}
 
-	private String _read(String fileName) throws Exception {
-		return new String(
-			FileUtil.getBytes(getClass(), "dependencies/" + fileName));
-	}
-
-	@Inject(
-		filter = "(&(component.name=com.liferay.fragment.internal.upgrade.registry.FragmentServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private ClassNameLocalService _classNameLocalService;
 
 	@Inject
 	private DLFileEntryLocalService _dlFileEntryLocalService;
+
+	private Layout _draftLayout;
 
 	@Inject
 	private EntityCache _entityCache;
@@ -281,5 +275,10 @@ public class FragmentEntryLinkUpgradeProcessTest
 
 	@Inject
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.fragment.internal.upgrade.registry.FragmentServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

@@ -38,7 +38,9 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PortletKeys;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
+import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -47,7 +49,9 @@ import com.liferay.portal.kernel.xml.DocumentException;
 import com.liferay.portal.kernel.xml.DocumentType;
 import com.liferay.portal.kernel.xml.Element;
 import com.liferay.portal.kernel.xml.UnsecureSAXReaderUtil;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.InputStream;
 
@@ -66,9 +70,6 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 /**
  * @author Brian Wing Shun Chan
@@ -148,9 +149,11 @@ public class ResourceActionsImpl implements ResourceActions {
 		List<String> modelNames = new ArrayList<>();
 
 		for (String name : _resourceActionsBags.keySet()) {
-			if (name.indexOf(CharPool.PERIOD) != -1) {
-				modelNames.add(name);
+			if (name.indexOf(CharPool.PERIOD) == -1) {
+				continue;
 			}
+
+			modelNames.add(name);
 		}
 
 		return modelNames;
@@ -275,9 +278,11 @@ public class ResourceActionsImpl implements ResourceActions {
 		List<String> portletNames = new ArrayList<>();
 
 		for (String name : _resourceActionsBags.keySet()) {
-			if (name.indexOf(CharPool.PERIOD) == -1) {
-				portletNames.add(name);
+			if (name.indexOf(CharPool.PERIOD) != -1) {
+				continue;
 			}
+
+			portletNames.add(name);
 		}
 
 		return portletNames;
@@ -419,11 +424,7 @@ public class ResourceActionsImpl implements ResourceActions {
 
 	@Override
 	public boolean isPortalModelResource(String modelResource) {
-		if (_portalModelResources.contains(modelResource)) {
-			return true;
-		}
-
-		return false;
+		return _portalModelResources.contains(modelResource);
 	}
 
 	@Override
@@ -431,11 +432,7 @@ public class ResourceActionsImpl implements ResourceActions {
 		Collection<String> rootModelResources =
 			_portletRootModelResources.values();
 
-		if (rootModelResources.contains(modelResource)) {
-			return true;
-		}
-
-		return false;
+		return rootModelResources.contains(modelResource);
 	}
 
 	@Override
@@ -601,7 +598,12 @@ public class ResourceActionsImpl implements ResourceActions {
 		ResourceActionsBag resourceActionsBag = _getResourceActionsBag(
 			name, false);
 
-		Set<String> resourceActions = resourceActionsBag.getSupportsActions();
+		Set<String> resourceActions =
+			resourceActionsBag.getOwnerDefaultActions();
+
+		resourceActions.remove(action);
+
+		resourceActions = resourceActionsBag.getSupportsActions();
 
 		resourceActions.remove(action);
 
@@ -628,17 +630,6 @@ public class ResourceActionsImpl implements ResourceActions {
 					modelResourceElement.element("composite-model-name"));
 			}
 
-			List<ResourceAction> resourceActions =
-				resourceActionLocalService.getResourceActions(modelName);
-
-			for (ResourceAction resourceAction : resourceActions) {
-				resourceActionLocalService.deleteResourceAction(resourceAction);
-			}
-
-			synchronized (_resourceActionsBags) {
-				_resourceActionsBags.remove(modelName);
-			}
-
 			Element portletRefElement = modelResourceElement.element(
 				"portlet-ref");
 
@@ -654,6 +645,13 @@ public class ResourceActionsImpl implements ResourceActions {
 					_portletRootModelResources.remove(portletName);
 				}
 
+				Set<String> portletResourceNames = _resourceReferences.get(
+					modelName);
+
+				if (portletResourceNames != null) {
+					portletResourceNames.remove(portletName);
+				}
+
 				Set<String> modelResourceNames = _resourceReferences.get(
 					portletName);
 
@@ -663,9 +661,25 @@ public class ResourceActionsImpl implements ResourceActions {
 
 				modelResourceNames.remove(modelName);
 
-				if (modelResourceNames.isEmpty()) {
-					_resourceReferences.remove(portletName);
+				if (!modelResourceNames.isEmpty()) {
+					continue;
 				}
+
+				_resourceReferences.remove(portletName);
+			}
+
+			if (SetUtil.isNotEmpty(_resourceReferences.get(modelName))) {
+				continue;
+			}
+
+			for (ResourceAction resourceAction :
+					resourceActionLocalService.getResourceActions(modelName)) {
+
+				resourceActionLocalService.deleteResourceAction(resourceAction);
+			}
+
+			synchronized (_resourceActionsBags) {
+				_resourceActionsBags.remove(modelName);
 			}
 
 			_resourceReferences.remove(modelName);
@@ -742,9 +756,11 @@ public class ResourceActionsImpl implements ResourceActions {
 		while (iterator.hasNext()) {
 			String actionId = iterator.next();
 
-			if (guestUnsupportedActions.contains(actionId)) {
-				iterator.remove();
+			if (!guestUnsupportedActions.contains(actionId)) {
+				continue;
 			}
+
+			iterator.remove();
 		}
 	}
 
@@ -804,9 +820,11 @@ public class ResourceActionsImpl implements ResourceActions {
 
 			sb.append(modelNameElement.getTextTrim());
 
-			if (iterator.hasNext()) {
-				sb.append(_COMPOSITE_MODEL_NAME_SEPARATOR);
+			if (!iterator.hasNext()) {
+				continue;
 			}
+
+			sb.append(_COMPOSITE_MODEL_NAME_SEPARATOR);
 		}
 
 		return sb.toString();
@@ -1151,21 +1169,23 @@ public class ResourceActionsImpl implements ResourceActions {
 				boolean root = GetterUtil.getBoolean(
 					modelResourceElement.elementText("root"));
 
-				if (root) {
-					String existingModelName =
-						_portletRootModelResources.putIfAbsent(
-							portletName, modelName);
+				if (!root) {
+					continue;
+				}
 
-					if (Validator.isNotNull(existingModelName) &&
-						!Objects.equals(existingModelName, modelName)) {
+				String existingModelName =
+					_portletRootModelResources.putIfAbsent(
+						portletName, modelName);
 
-						throw new ResourceActionsException(
-							StringBundler.concat(
-								"Portlet ", portletName,
-								" cannot be assigned to both ",
-								existingModelName, " and ", modelName,
-								" as root model resources. See LPS-135983."));
-					}
+				if (Validator.isNotNull(existingModelName) &&
+					!Objects.equals(existingModelName, modelName)) {
+
+					throw new ResourceActionsException(
+						StringBundler.concat(
+							"Portlet ", portletName,
+							" cannot be assigned to both ", existingModelName,
+							" and ", modelName,
+							" as root model resources. See LPS-135983."));
 				}
 			}
 
@@ -1178,9 +1198,11 @@ public class ResourceActionsImpl implements ResourceActions {
 				modelResourceElement, modelName,
 				Collections.singleton(ActionKeys.PERMISSIONS));
 
-			if (resourceNames != null) {
-				resourceNames.add(modelName);
+			if (resourceNames == null) {
+				continue;
 			}
+
+			resourceNames.add(modelName);
 		}
 	}
 
@@ -1235,9 +1257,11 @@ public class ResourceActionsImpl implements ResourceActions {
 				_readResource(
 					portletResourceElement, portletName, portletActions);
 
-				if (resourceNames != null) {
-					resourceNames.add(portletName);
+				if (resourceNames == null) {
+					continue;
 				}
+
+				resourceNames.add(portletName);
 			}
 		}
 	}

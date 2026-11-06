@@ -8,7 +8,6 @@ package com.liferay.object.web.internal.object.definitions.frontend.taglib.servl
 import com.liferay.frontend.taglib.servlet.taglib.ScreenNavigationEntry;
 import com.liferay.list.type.service.ListTypeDefinitionService;
 import com.liferay.object.model.ObjectDefinition;
-import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFolderLocalService;
 import com.liferay.object.web.internal.object.definitions.constants.ObjectDefinitionsScreenNavigationEntryConstants;
 import com.liferay.object.web.internal.object.definitions.display.context.ObjectDefinitionsStateManagerDisplayContext;
@@ -16,10 +15,10 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.io.IOException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -61,7 +60,7 @@ public class StateManagerObjectDefinitionsScreenNavigationEntry
 			new ObjectDefinitionsStateManagerDisplayContext(
 				httpServletRequest, _listTypeDefinitionService,
 				_objectDefinitionModelResourcePermission,
-				_objectFieldSettingLocalService, _objectFolderLocalService));
+				_objectFolderLocalService));
 
 		super.render(httpServletRequest, httpServletResponse);
 	}
@@ -74,9 +73,6 @@ public class StateManagerObjectDefinitionsScreenNavigationEntry
 	)
 	private ModelResourcePermission<ObjectDefinition>
 		_objectDefinitionModelResourcePermission;
-
-	@Reference
-	private ObjectFieldSettingLocalService _objectFieldSettingLocalService;
 
 	@Reference
 	private ObjectFolderLocalService _objectFolderLocalService;

@@ -12,7 +12,7 @@ import {
 	IPostalAddressAPIResponse,
 } from '../../../src/main/resources/META-INF/resources/components/multishipping/Types';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {
 	RenderResult,
 	cleanup,
@@ -51,6 +51,8 @@ describe('AddDeliveryGroupButton', () => {
 	const handleSubmit = jest.fn();
 
 	beforeEach(async () => {
+		fetchMock.mockGlobal();
+
 		fetchMock.get(
 			/headless-admin-address\/.*\/countries/i,
 			(): ICountryAPIResponse => {
@@ -111,7 +113,7 @@ describe('AddDeliveryGroupButton', () => {
 	});
 
 	afterEach(() => {
-		fetchMock.restore();
+		fetchMock.hardReset();
 		jest.clearAllMocks();
 
 		cleanup();
@@ -203,7 +205,7 @@ describe('AddDeliveryGroupButton', () => {
 			saveButton.click();
 		});
 
-		expect(handleSubmit).toBeCalledTimes(1);
+		expect(handleSubmit).toHaveBeenCalledTimes(1);
 		await waitFor(() => {
 			expect(screen.queryByText('cancel')).not.toBeInTheDocument();
 		});

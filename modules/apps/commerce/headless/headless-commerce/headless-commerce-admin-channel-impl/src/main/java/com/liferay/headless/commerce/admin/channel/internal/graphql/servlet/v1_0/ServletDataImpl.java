@@ -12,6 +12,7 @@ import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.Accoun
 import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.CategoryDisplayPageResourceImpl;
 import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.ChannelAccountResourceImpl;
 import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.ChannelResourceImpl;
+import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.ChannelSiteResourceImpl;
 import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.DefaultCategoryDisplayPageResourceImpl;
 import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.DefaultProductDisplayPageResourceImpl;
 import com.liferay.headless.commerce.admin.channel.internal.resource.v1_0.OrderTypeResourceImpl;
@@ -28,6 +29,7 @@ import com.liferay.headless.commerce.admin.channel.resource.v1_0.AccountResource
 import com.liferay.headless.commerce.admin.channel.resource.v1_0.CategoryDisplayPageResource;
 import com.liferay.headless.commerce.admin.channel.resource.v1_0.ChannelAccountResource;
 import com.liferay.headless.commerce.admin.channel.resource.v1_0.ChannelResource;
+import com.liferay.headless.commerce.admin.channel.resource.v1_0.ChannelSiteResource;
 import com.liferay.headless.commerce.admin.channel.resource.v1_0.DefaultCategoryDisplayPageResource;
 import com.liferay.headless.commerce.admin.channel.resource.v1_0.DefaultProductDisplayPageResource;
 import com.liferay.headless.commerce.admin.channel.resource.v1_0.OrderTypeResource;
@@ -42,10 +44,10 @@ import com.liferay.headless.commerce.admin.channel.resource.v1_0.TermResource;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.vulcan.graphql.servlet.ServletData;
 
+import jakarta.annotation.Generated;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.annotation.Generated;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentServiceObjects;
@@ -102,6 +104,8 @@ public class ServletDataImpl implements ServletData {
 			_channelResourceComponentServiceObjects);
 		Query.setChannelAccountResourceComponentServiceObjects(
 			_channelAccountResourceComponentServiceObjects);
+		Query.setChannelSiteResourceComponentServiceObjects(
+			_channelSiteResourceComponentServiceObjects);
 		Query.setDefaultCategoryDisplayPageResourceComponentServiceObjects(
 			_defaultCategoryDisplayPageResourceComponentServiceObjects);
 		Query.setDefaultProductDisplayPageResourceComponentServiceObjects(
@@ -206,10 +210,27 @@ public class ServletDataImpl implements ServletData {
 							CategoryDisplayPageResourceImpl.class,
 							"postChannelIdCategoryDisplayPage"));
 					put(
-						"mutation#createChannelsPageExportBatch",
+						"mutation#deleteChannel",
+						new ObjectValuePair<>(
+							ChannelResourceImpl.class, "deleteChannel"));
+					put(
+						"mutation#deleteChannelBatch",
+						new ObjectValuePair<>(
+							ChannelResourceImpl.class, "deleteChannelBatch"));
+					put(
+						"mutation#deleteChannelByExternalReferenceCode",
 						new ObjectValuePair<>(
 							ChannelResourceImpl.class,
-							"postChannelsPageExportBatch"));
+							"deleteChannelByExternalReferenceCode"));
+					put(
+						"mutation#patchChannel",
+						new ObjectValuePair<>(
+							ChannelResourceImpl.class, "patchChannel"));
+					put(
+						"mutation#patchChannelByExternalReferenceCode",
+						new ObjectValuePair<>(
+							ChannelResourceImpl.class,
+							"patchChannelByExternalReferenceCode"));
 					put(
 						"mutation#createChannel",
 						new ObjectValuePair<>(
@@ -219,32 +240,10 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							ChannelResourceImpl.class, "postChannelBatch"));
 					put(
-						"mutation#deleteChannelByExternalReferenceCode",
+						"mutation#createChannelsPageExportBatch",
 						new ObjectValuePair<>(
 							ChannelResourceImpl.class,
-							"deleteChannelByExternalReferenceCode"));
-					put(
-						"mutation#patchChannelByExternalReferenceCode",
-						new ObjectValuePair<>(
-							ChannelResourceImpl.class,
-							"patchChannelByExternalReferenceCode"));
-					put(
-						"mutation#updateChannelByExternalReferenceCode",
-						new ObjectValuePair<>(
-							ChannelResourceImpl.class,
-							"putChannelByExternalReferenceCode"));
-					put(
-						"mutation#deleteChannel",
-						new ObjectValuePair<>(
-							ChannelResourceImpl.class, "deleteChannel"));
-					put(
-						"mutation#deleteChannelBatch",
-						new ObjectValuePair<>(
-							ChannelResourceImpl.class, "deleteChannelBatch"));
-					put(
-						"mutation#patchChannel",
-						new ObjectValuePair<>(
-							ChannelResourceImpl.class, "patchChannel"));
+							"postChannelsPageExportBatch"));
 					put(
 						"mutation#updateChannel",
 						new ObjectValuePair<>(
@@ -253,6 +252,11 @@ public class ServletDataImpl implements ServletData {
 						"mutation#updateChannelBatch",
 						new ObjectValuePair<>(
 							ChannelResourceImpl.class, "putChannelBatch"));
+					put(
+						"mutation#updateChannelByExternalReferenceCode",
+						new ObjectValuePair<>(
+							ChannelResourceImpl.class,
+							"putChannelByExternalReferenceCode"));
 					put(
 						"mutation#deleteChannelAccount",
 						new ObjectValuePair<>(
@@ -279,15 +283,15 @@ public class ServletDataImpl implements ServletData {
 							DefaultCategoryDisplayPageResourceImpl.class,
 							"deleteChannelByExternalReferenceCodeDefaultCategoryDisplayPage"));
 					put(
-						"mutation#createChannelByExternalReferenceCodeDefaultCategoryDisplayPage",
-						new ObjectValuePair<>(
-							DefaultCategoryDisplayPageResourceImpl.class,
-							"postChannelByExternalReferenceCodeDefaultCategoryDisplayPage"));
-					put(
 						"mutation#deleteChannelIdDefaultCategoryDisplayPage",
 						new ObjectValuePair<>(
 							DefaultCategoryDisplayPageResourceImpl.class,
 							"deleteChannelIdDefaultCategoryDisplayPage"));
+					put(
+						"mutation#createChannelByExternalReferenceCodeDefaultCategoryDisplayPage",
+						new ObjectValuePair<>(
+							DefaultCategoryDisplayPageResourceImpl.class,
+							"postChannelByExternalReferenceCodeDefaultCategoryDisplayPage"));
 					put(
 						"mutation#createChannelIdDefaultCategoryDisplayPage",
 						new ObjectValuePair<>(
@@ -299,15 +303,15 @@ public class ServletDataImpl implements ServletData {
 							DefaultProductDisplayPageResourceImpl.class,
 							"deleteChannelByExternalReferenceCodeDefaultProductDisplayPage"));
 					put(
-						"mutation#createChannelByExternalReferenceCodeDefaultProductDisplayPage",
-						new ObjectValuePair<>(
-							DefaultProductDisplayPageResourceImpl.class,
-							"postChannelByExternalReferenceCodeDefaultProductDisplayPage"));
-					put(
 						"mutation#deleteChannelIdDefaultProductDisplayPage",
 						new ObjectValuePair<>(
 							DefaultProductDisplayPageResourceImpl.class,
 							"deleteChannelIdDefaultProductDisplayPage"));
+					put(
+						"mutation#createChannelByExternalReferenceCodeDefaultProductDisplayPage",
+						new ObjectValuePair<>(
+							DefaultProductDisplayPageResourceImpl.class,
+							"postChannelByExternalReferenceCodeDefaultProductDisplayPage"));
 					put(
 						"mutation#createChannelIdDefaultProductDisplayPage",
 						new ObjectValuePair<>(
@@ -344,16 +348,6 @@ public class ServletDataImpl implements ServletData {
 							PaymentMethodGroupRelTermResourceImpl.class,
 							"postPaymentMethodGroupRelIdPaymentMethodGroupRelTerm"));
 					put(
-						"mutation#createChannelByExternalReferenceCodeProductDisplayPage",
-						new ObjectValuePair<>(
-							ProductDisplayPageResourceImpl.class,
-							"postChannelByExternalReferenceCodeProductDisplayPage"));
-					put(
-						"mutation#createChannelIdProductDisplayPage",
-						new ObjectValuePair<>(
-							ProductDisplayPageResourceImpl.class,
-							"postChannelIdProductDisplayPage"));
-					put(
 						"mutation#deleteProductDisplayPage",
 						new ObjectValuePair<>(
 							ProductDisplayPageResourceImpl.class,
@@ -368,6 +362,16 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							ProductDisplayPageResourceImpl.class,
 							"patchProductDisplayPage"));
+					put(
+						"mutation#createChannelByExternalReferenceCodeProductDisplayPage",
+						new ObjectValuePair<>(
+							ProductDisplayPageResourceImpl.class,
+							"postChannelByExternalReferenceCodeProductDisplayPage"));
+					put(
+						"mutation#createChannelIdProductDisplayPage",
+						new ObjectValuePair<>(
+							ProductDisplayPageResourceImpl.class,
+							"postChannelIdProductDisplayPage"));
 					put(
 						"mutation#deleteShippingFixedOptionOrderType",
 						new ObjectValuePair<>(
@@ -404,10 +408,28 @@ public class ServletDataImpl implements ServletData {
 							ShippingMethodResourceImpl.class,
 							"postChannelShippingMethodsPageExportBatch"));
 					put(
+						"mutation#patchTaxCategory",
+						new ObjectValuePair<>(
+							TaxCategoryResourceImpl.class, "patchTaxCategory"));
+					put(
+						"mutation#patchTaxCategoryByExternalReferenceCode",
+						new ObjectValuePair<>(
+							TaxCategoryResourceImpl.class,
+							"patchTaxCategoryByExternalReferenceCode"));
+					put(
 						"mutation#createTaxCategoriesPageExportBatch",
 						new ObjectValuePair<>(
 							TaxCategoryResourceImpl.class,
 							"postTaxCategoriesPageExportBatch"));
+					put(
+						"mutation#createTaxCategory",
+						new ObjectValuePair<>(
+							TaxCategoryResourceImpl.class, "postTaxCategory"));
+					put(
+						"mutation#createTaxCategoryBatch",
+						new ObjectValuePair<>(
+							TaxCategoryResourceImpl.class,
+							"postTaxCategoryBatch"));
 
 					put(
 						"query#channelAccountAccount",
@@ -445,18 +467,18 @@ public class ServletDataImpl implements ServletData {
 							ChannelResourceImpl.class,
 							"getAccountAddressChannelChannel"));
 					put(
-						"query#channels",
+						"query#channel",
 						new ObjectValuePair<>(
-							ChannelResourceImpl.class, "getChannelsPage"));
+							ChannelResourceImpl.class, "getChannel"));
 					put(
 						"query#channelByExternalReferenceCode",
 						new ObjectValuePair<>(
 							ChannelResourceImpl.class,
 							"getChannelByExternalReferenceCode"));
 					put(
-						"query#channel",
+						"query#channels",
 						new ObjectValuePair<>(
-							ChannelResourceImpl.class, "getChannel"));
+							ChannelResourceImpl.class, "getChannelsPage"));
 					put(
 						"query#channelByExternalReferenceCodeChannelAccounts",
 						new ObjectValuePair<>(
@@ -467,6 +489,16 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							ChannelAccountResourceImpl.class,
 							"getChannelIdChannelAccountsPage"));
+					put(
+						"query#channelAvailableSites",
+						new ObjectValuePair<>(
+							ChannelSiteResourceImpl.class,
+							"getChannelAvailableSitesPage"));
+					put(
+						"query#channelByExternalReferenceCodeAvailableSites",
+						new ObjectValuePair<>(
+							ChannelSiteResourceImpl.class,
+							"getChannelByExternalReferenceCodeAvailableSitesPage"));
 					put(
 						"query#channelByExternalReferenceCodeDefaultCategoryDisplayPage",
 						new ObjectValuePair<>(
@@ -547,6 +579,11 @@ public class ServletDataImpl implements ServletData {
 						new ObjectValuePair<>(
 							TaxCategoryResourceImpl.class, "getTaxCategory"));
 					put(
+						"query#taxCategoryByExternalReferenceCode",
+						new ObjectValuePair<>(
+							TaxCategoryResourceImpl.class,
+							"getTaxCategoryByExternalReferenceCode"));
+					put(
 						"query#paymentMethodGroupRelTermTerm",
 						new ObjectValuePair<>(
 							TermResourceImpl.class,
@@ -558,44 +595,64 @@ public class ServletDataImpl implements ServletData {
 							"getShippingFixedOptionTermTerm"));
 
 					put(
-						"query#Channel.accountAddressByExternalReferenceCodeAccountAddressChannels",
+						"query#ChannelAccount.channel",
 						new ObjectValuePair<>(
-							AccountAddressChannelResourceImpl.class,
-							"getAccountAddressByExternalReferenceCodeAccountAddressChannelsPage"));
+							ChannelResourceImpl.class, "getChannel"));
+					put(
+						"query#TaxCategory.channelByExternalReferenceCode",
+						new ObjectValuePair<>(
+							ChannelResourceImpl.class,
+							"getChannelByExternalReferenceCode"));
+					put(
+						"query#Channel.availableSites",
+						new ObjectValuePair<>(
+							ChannelSiteResourceImpl.class,
+							"getChannelAvailableSitesPage"));
 					put(
 						"query#Channel.shippingMethods",
 						new ObjectValuePair<>(
 							ShippingMethodResourceImpl.class,
 							"getChannelShippingMethodsPage"));
 					put(
-						"query#ChannelAccount.channel",
+						"query#Channel.taxCategoryByExternalReferenceCode",
 						new ObjectValuePair<>(
-							ChannelResourceImpl.class, "getChannel"));
+							TaxCategoryResourceImpl.class,
+							"getTaxCategoryByExternalReferenceCode"));
 					put(
-						"query#Channel.byExternalReferenceCodeChannelAccounts",
+						"query#Channel.accountAddressByExternalReferenceCodeAccountAddressChannels",
 						new ObjectValuePair<>(
-							ChannelAccountResourceImpl.class,
-							"getChannelByExternalReferenceCodeChannelAccountsPage"));
-					put(
-						"query#Channel.byExternalReferenceCodeProductDisplayPages",
-						new ObjectValuePair<>(
-							ProductDisplayPageResourceImpl.class,
-							"getChannelByExternalReferenceCodeProductDisplayPagesPage"));
-					put(
-						"query#Channel.byExternalReferenceCodeDefaultCategoryDisplayPage",
-						new ObjectValuePair<>(
-							DefaultCategoryDisplayPageResourceImpl.class,
-							"getChannelByExternalReferenceCodeDefaultCategoryDisplayPage"));
+							AccountAddressChannelResourceImpl.class,
+							"getAccountAddressByExternalReferenceCodeAccountAddressChannelsPage"));
 					put(
 						"query#Channel.byExternalReferenceCodeCategoryDisplayPages",
 						new ObjectValuePair<>(
 							CategoryDisplayPageResourceImpl.class,
 							"getChannelByExternalReferenceCodeCategoryDisplayPagesPage"));
 					put(
+						"query#Channel.byExternalReferenceCodeChannelAccounts",
+						new ObjectValuePair<>(
+							ChannelAccountResourceImpl.class,
+							"getChannelByExternalReferenceCodeChannelAccountsPage"));
+					put(
+						"query#Channel.byExternalReferenceCodeAvailableSites",
+						new ObjectValuePair<>(
+							ChannelSiteResourceImpl.class,
+							"getChannelByExternalReferenceCodeAvailableSitesPage"));
+					put(
+						"query#Channel.byExternalReferenceCodeDefaultCategoryDisplayPage",
+						new ObjectValuePair<>(
+							DefaultCategoryDisplayPageResourceImpl.class,
+							"getChannelByExternalReferenceCodeDefaultCategoryDisplayPage"));
+					put(
 						"query#Channel.byExternalReferenceCodeDefaultProductDisplayPage",
 						new ObjectValuePair<>(
 							DefaultProductDisplayPageResourceImpl.class,
 							"getChannelByExternalReferenceCodeDefaultProductDisplayPage"));
+					put(
+						"query#Channel.byExternalReferenceCodeProductDisplayPages",
+						new ObjectValuePair<>(
+							ProductDisplayPageResourceImpl.class,
+							"getChannelByExternalReferenceCodeProductDisplayPagesPage"));
 				}
 			};
 
@@ -656,6 +713,10 @@ public class ServletDataImpl implements ServletData {
 		_accountResourceComponentServiceObjects;
 
 	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
+	private ComponentServiceObjects<ChannelSiteResource>
+		_channelSiteResourceComponentServiceObjects;
+
+	@Reference(scope = ReferenceScope.PROTOTYPE_REQUIRED)
 	private ComponentServiceObjects<OrderTypeResource>
 		_orderTypeResourceComponentServiceObjects;
 
@@ -664,3 +725,4 @@ public class ServletDataImpl implements ServletData {
 		_termResourceComponentServiceObjects;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1406460515

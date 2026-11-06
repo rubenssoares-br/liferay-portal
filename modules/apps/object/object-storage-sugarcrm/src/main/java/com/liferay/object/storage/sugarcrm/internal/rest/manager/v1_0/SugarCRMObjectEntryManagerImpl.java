@@ -190,11 +190,11 @@ public class SugarCRMObjectEntryManagerImpl
 		StringBuilder sb, ObjectDefinition objectDefinition,
 		String filterString) {
 
-		filterString = StringUtil.trim(filterString);
-
-		if (filterString.isEmpty()) {
+		if (Validator.isNull(filterString)) {
 			return;
 		}
+
+		filterString = StringUtil.trim(filterString);
 
 		sb.append("&filter");
 		sb.append(StringPool.EQUAL);
@@ -362,7 +362,7 @@ public class SugarCRMObjectEntryManagerImpl
 			@Override
 			public JSONObject getAccessToken(long companyId, long groupId) {
 				JSONObject jSONObject = SugarCRMAccessTokenWebCacheItem.get(
-					_getSugarCRMConfiguration(companyId, groupId));
+					companyId, _getSugarCRMConfiguration(companyId, groupId));
 
 				if (jSONObject == null) {
 					throw new ObjectEntryManagerHttpException(
@@ -390,7 +390,7 @@ public class SugarCRMObjectEntryManagerImpl
 					}
 
 					return _configurationProvider.getGroupConfiguration(
-						SugarCRMConfiguration.class, groupId);
+						SugarCRMConfiguration.class, companyId, groupId);
 				}
 				catch (ConfigurationException configurationException) {
 					return ReflectionUtil.throwException(

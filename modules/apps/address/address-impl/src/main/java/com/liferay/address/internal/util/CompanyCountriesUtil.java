@@ -41,7 +41,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * @author Joao Victor Alves
+ * @author João Victor Alves
  */
 public class CompanyCountriesUtil {
 
@@ -61,7 +61,7 @@ public class CompanyCountriesUtil {
 			serviceContext.setUserId(guestUser.getUserId());
 
 			Country country = countryLocalService.addCountry(
-				countryJSONObject.getString("a2"),
+				null, countryJSONObject.getString("a2"),
 				countryJSONObject.getString("a3"), true, true,
 				countryJSONObject.getString("idd"),
 				countryJSONObject.getString("name"),
@@ -174,19 +174,19 @@ public class CompanyCountriesUtil {
 				AutoBatchPreparedStatementUtil.autoBatch(
 					connection,
 					StringBundler.concat(
-						"INSERT INTO Region (mvccVersion, ctCollectionId",
-						", uuid_, regionId, companyId, userId, createDate",
-						", modifiedDate, countryId, active_, name",
-						", position, regionCode) VALUES (0, 0, ?, ?, ?, ?, ?, ",
-						"?, ?, ?, ?, 0, ?)"));
+						"insert into Region (mvccVersion, ctCollectionId, ",
+						"uuid_, externalReferenceCode, regionId, companyId, ",
+						"userId, createDate, modifiedDate, countryId, ",
+						"active_, name, position, regionCode)",
+						"values (0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)"));
 			PreparedStatement regionLocalizationPreparedStatement =
 				AutoBatchPreparedStatementUtil.autoBatch(
 					connection,
 					StringBundler.concat(
-						"INSERT INTO RegionLocalization (mvccVersion, ",
-						"ctCollectionId, regionLocalizationId, companyId",
-						", regionId, languageId, title) VALUES (0, 0, ?, ?, ",
-						"?, ?, ?)"))) {
+						"insert into RegionLocalization (mvccVersion, ",
+						"ctCollectionId, regionLocalizationId, companyId, ",
+						"regionId, languageId, title) values (0, 0, ?, ?, ?, ",
+						"?, ?)"))) {
 
 			int length = regionsJSONArray.length();
 
@@ -204,7 +204,10 @@ public class CompanyCountriesUtil {
 
 				_addRegionBatch(
 					regionPreparedStatement, country.getCompanyId(),
-					country.getCountryId(), regionJSONObject.getString("name"),
+					country.getCountryId(),
+					country.getA2() + "_" +
+						regionJSONObject.getString("regionCode"),
+					regionJSONObject.getString("name"),
 					regionJSONObject.getString("regionCode"), regionId,
 					country.getUserId());
 
@@ -250,6 +253,7 @@ public class CompanyCountriesUtil {
 			}
 
 			regionPreparedStatement.executeBatch();
+
 			regionLocalizationPreparedStatement.executeBatch();
 		}
 		catch (Exception exception) {
@@ -277,19 +281,21 @@ public class CompanyCountriesUtil {
 
 	private static void _addRegionBatch(
 			PreparedStatement preparedStatement, long companyId, long countryId,
-			String name, String regionCode, long regionId, long userId)
+			String externalReferenceCode, String name, String regionCode,
+			long regionId, long userId)
 		throws SQLException {
 
 		preparedStatement.setString(1, PortalUUIDUtil.generate());
-		preparedStatement.setLong(2, regionId);
-		preparedStatement.setLong(3, companyId);
-		preparedStatement.setLong(4, userId);
-		preparedStatement.setDate(5, new Date(System.currentTimeMillis()));
+		preparedStatement.setString(2, externalReferenceCode);
+		preparedStatement.setLong(3, regionId);
+		preparedStatement.setLong(4, companyId);
+		preparedStatement.setLong(5, userId);
 		preparedStatement.setDate(6, new Date(System.currentTimeMillis()));
-		preparedStatement.setLong(7, countryId);
-		preparedStatement.setBoolean(8, true);
-		preparedStatement.setString(9, name);
-		preparedStatement.setString(10, regionCode);
+		preparedStatement.setDate(7, new Date(System.currentTimeMillis()));
+		preparedStatement.setLong(8, countryId);
+		preparedStatement.setBoolean(9, true);
+		preparedStatement.setString(10, name);
+		preparedStatement.setString(11, regionCode);
 
 		preparedStatement.addBatch();
 	}
@@ -329,6 +335,7 @@ public class CompanyCountriesUtil {
 			}
 
 			try (Statement statement = connection.createStatement();
+
 				ResultSet resultSet2 = statement.executeQuery(
 					StringBundler.concat(
 						"select max(", primaryKey, ") from ", tableName))) {

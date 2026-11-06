@@ -6,16 +6,32 @@
 package com.liferay.headless.commerce.admin.catalog.resource.v1_0.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.commerce.product.configuration.CProductVersionConfiguration;
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPOptionCategory;
 import com.liferay.commerce.product.model.CPSpecificationOption;
 import com.liferay.commerce.product.model.CProduct;
 import com.liferay.commerce.product.model.CommerceCatalog;
+import com.liferay.commerce.product.service.CPDefinitionLocalService;
+import com.liferay.commerce.product.service.CPDefinitionSpecificationOptionValueLocalService;
+import com.liferay.commerce.product.service.CPOptionCategoryLocalService;
 import com.liferay.commerce.product.test.util.CPTestUtil;
+import com.liferay.exportimport.test.util.LazyReferencingTestUtil;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductSpecification;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.test.rule.Inject;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,7 +60,7 @@ public class ProductSpecificationResourceTest
 		_cpOptionCategory = CPTestUtil.addCPOptionCategory(
 			testGroup.getGroupId());
 		_cpSpecificationOption = CPTestUtil.addCPSpecificationOption(
-			testGroup.getGroupId());
+			testGroup.getGroupId(), false);
 	}
 
 	@Override
@@ -88,6 +104,16 @@ public class ProductSpecificationResourceTest
 			randomProductSpecificationWithExternalReferenceCode,
 			postProductSpecification);
 		assertValid(postProductSpecification);
+	}
+
+	@Override
+	@Test
+	public void testPostProductIdProductSpecification() throws Exception {
+		super.testPostProductIdProductSpecification();
+
+		_testPostProductIdProductSpecificationProductVersioning();
+		_testPostProductIdProductSpecificationWithLazyReferencingDisabled();
+		_testPostProductIdProductSpecificationWithLazyReferencingEnabled();
 	}
 
 	@Override
@@ -270,11 +296,200 @@ public class ProductSpecificationResourceTest
 			_cpDefinition.getCProductId(), productSpecification);
 	}
 
+	private ProductSpecification
+		_randomProductSpecificationWithEmptyOptionCategory() {
+
+		ProductSpecification productSpecification =
+			randomProductSpecification();
+
+		productSpecification.setOptionCategoryExternalReferenceCode(
+			StringUtil.toLowerCase(RandomTestUtil.randomString()));
+
+		return productSpecification;
+	}
+
+	private void _testPostProductIdProductSpecificationProductVersioning()
+		throws Exception {
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper =
+					new CompanyConfigurationTemporarySwapper(
+						testCompany.getCompanyId(),
+						CProductVersionConfiguration.class.getName(),
+						HashMapDictionaryBuilder.<String, Object>put(
+							"enabled", true
+						).build())) {
+
+			CommerceCatalog commerceCatalog =
+				CPTestUtil.getSystemCommerceCatalog(testCompany.getCompanyId());
+
+			CPDefinition cpDefinition1 = CPTestUtil.addCPDefinitionFromCatalog(
+				commerceCatalog.getGroupId(), "simple", null, null, true, true,
+				WorkflowConstants.STATUS_APPROVED,
+				ServiceContextTestUtil.getServiceContext(
+					commerceCatalog.getGroupId()));
+
+			_cpDefinitions.add(cpDefinition1);
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_APPROVED));
+
+			Assert.assertEquals(
+				0,
+				_cpDefinitionSpecificationOptionValueLocalService.
+					getCPDefinitionSpecificationOptionValuesCount(
+						cpDefinition1.getCPDefinitionId(), null));
+
+			ProductSpecification productSpecification1 =
+				randomProductSpecification();
+
+			assertEquals(
+				productSpecification1,
+				productSpecificationResource.postProductIdProductSpecification(
+					cpDefinition1.getCProductId(), productSpecification1));
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_APPROVED));
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT));
+
+			CPDefinition cpDefinition2 =
+				_cpDefinitionLocalService.fetchCPDefinitionByCProductId(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT);
+
+			_cpDefinitions.add(cpDefinition2);
+
+			Assert.assertEquals(
+				0,
+				_cpDefinitionSpecificationOptionValueLocalService.
+					getCPDefinitionSpecificationOptionValuesCount(
+						cpDefinition1.getCPDefinitionId(), null));
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionSpecificationOptionValueLocalService.
+					getCPDefinitionSpecificationOptionValuesCount(
+						cpDefinition2.getCPDefinitionId(), null));
+
+			ProductSpecification productSpecification2 =
+				randomProductSpecification();
+
+			assertEquals(
+				productSpecification2,
+				productSpecificationResource.postProductIdProductSpecification(
+					cpDefinition1.getCProductId(), productSpecification2));
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_APPROVED));
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT));
+
+			CPDefinition cpDefinition3 =
+				_cpDefinitionLocalService.fetchCPDefinitionByCProductId(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT);
+
+			Assert.assertEquals(
+				cpDefinition2.getCPDefinitionId(),
+				cpDefinition3.getCPDefinitionId());
+
+			Assert.assertEquals(
+				2,
+				_cpDefinitionSpecificationOptionValueLocalService.
+					getCPDefinitionSpecificationOptionValuesCount(
+						cpDefinition3.getCPDefinitionId(), null));
+		}
+	}
+
+	private void _testPostProductIdProductSpecificationWithLazyReferencingDisabled()
+		throws Exception {
+
+		ProductSpecification productSpecification =
+			_randomProductSpecificationWithEmptyOptionCategory();
+
+		ProductSpecification postProductSpecification =
+			productSpecificationResource.postProductIdProductSpecification(
+				_cpDefinition.getCProductId(), productSpecification);
+
+		Assert.assertEquals(
+			0,
+			GetterUtil.get(postProductSpecification.getOptionCategoryId(), 0));
+
+		Assert.assertNull(
+			_cpOptionCategoryLocalService.
+				fetchCPOptionCategoryByExternalReferenceCode(
+					productSpecification.
+						getOptionCategoryExternalReferenceCode(),
+					testCompany.getCompanyId()));
+	}
+
+	private void _testPostProductIdProductSpecificationWithLazyReferencingEnabled()
+		throws Exception {
+
+		ProductSpecification postProductSpecification = null;
+
+		ProductSpecification productSpecification =
+			_randomProductSpecificationWithEmptyOptionCategory();
+
+		try (SafeCloseable safeCloseable =
+				LazyReferencingTestUtil.setLazyReferencingWithSafeCloseable(
+					true)) {
+
+			postProductSpecification =
+				productSpecificationResource.postProductIdProductSpecification(
+					_cpDefinition.getCProductId(), productSpecification);
+		}
+
+		CPOptionCategory cpOptionCategory =
+			_cpOptionCategoryLocalService.
+				getCPOptionCategoryByExternalReferenceCode(
+					productSpecification.
+						getOptionCategoryExternalReferenceCode(),
+					testCompany.getCompanyId());
+
+		Assert.assertEquals(
+			WorkflowConstants.STATUS_EMPTY, cpOptionCategory.getStatus());
+		Assert.assertEquals(
+			cpOptionCategory.getCPOptionCategoryId(),
+			GetterUtil.getLong(postProductSpecification.getOptionCategoryId()));
+	}
+
 	@DeleteAfterTestRun
 	private CPDefinition _cpDefinition;
 
+	@Inject
+	private CPDefinitionLocalService _cpDefinitionLocalService;
+
+	@Inject
+	private CPDefinitionSpecificationOptionValueLocalService
+		_cpDefinitionSpecificationOptionValueLocalService;
+
+	@DeleteAfterTestRun
+	private List<CPDefinition> _cpDefinitions = new ArrayList<>();
+
 	@DeleteAfterTestRun
 	private CPOptionCategory _cpOptionCategory;
+
+	@Inject
+	private CPOptionCategoryLocalService _cpOptionCategoryLocalService;
 
 	@DeleteAfterTestRun
 	private CPSpecificationOption _cpSpecificationOption;

@@ -13,12 +13,11 @@ import java.net.URL;
  */
 public class PortalTopLevelBuild
 	extends DefaultTopLevelBuild
-	implements AnalyticsCloudBranchInformationBuild,
-			   PluginsBranchInformationBuild, PortalBranchInformationBuild,
+	implements PluginsBranchInformationBuild, PortalBranchInformationBuild,
 			   PortalFixpackReleaseBuild, PortalReleaseBuild {
 
-	public PortalTopLevelBuild(String url, TopLevelBuild topLevelBuild) {
-		super(url, topLevelBuild);
+	public PortalTopLevelBuild(String buildURL, TopLevelBuild topLevelBuild) {
+		super(buildURL, topLevelBuild);
 	}
 
 	@Override
@@ -30,31 +29,6 @@ public class PortalTopLevelBuild
 		}
 
 		return "liferay-portal-ee";
-	}
-
-	@Override
-	public BranchInformation getOSBAsahBranchInformation() {
-		if (fromArchive || !(this instanceof PortalWorkspaceBuild)) {
-			return getBranchInformation("osb.asah");
-		}
-
-		PortalWorkspaceBuild portalWorkspaceBuild = (PortalWorkspaceBuild)this;
-
-		PortalWorkspace portalWorkspace =
-			portalWorkspaceBuild.getPortalWorkspace();
-
-		if (portalWorkspace == null) {
-			return null;
-		}
-
-		WorkspaceGitRepository workspaceGitRepository =
-			portalWorkspace.getOSBAsahWorkspaceGitRepository();
-
-		if (workspaceGitRepository == null) {
-			return null;
-		}
-
-		return new WorkspaceBranchInformation(workspaceGitRepository);
 	}
 
 	@Override
@@ -146,7 +120,7 @@ public class PortalTopLevelBuild
 			"PORTAL_FIX_PACK_VERSION");
 
 		if (portalFixPackVersion != null) {
-			portalFixpackRelease = new PortalFixpackRelease(
+			portalFixpackRelease = PortalReleaseFactory.newPortalFixpackRelease(
 				portalFixPackVersion, getPortalRelease());
 
 			return portalFixpackRelease;
@@ -157,8 +131,9 @@ public class PortalTopLevelBuild
 
 		if (portalFixPackZipURL != null) {
 			try {
-				portalFixpackRelease = new PortalFixpackRelease(
-					new URL(portalFixPackZipURL));
+				portalFixpackRelease =
+					PortalReleaseFactory.newPortalFixpackRelease(
+						new URL(portalFixPackZipURL));
 
 				return portalFixpackRelease;
 			}
@@ -186,7 +161,8 @@ public class PortalTopLevelBuild
 			"PORTAL_BUNDLE_VERSION");
 
 		if (portalBundleVersion != null) {
-			portalRelease = new PortalRelease(portalBundleVersion);
+			portalRelease = PortalReleaseFactory.newPortalRelease(
+				portalBundleVersion);
 
 			return portalRelease;
 		}

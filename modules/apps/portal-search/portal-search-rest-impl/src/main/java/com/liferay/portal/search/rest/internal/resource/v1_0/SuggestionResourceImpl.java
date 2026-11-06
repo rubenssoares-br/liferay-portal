@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -36,14 +37,14 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portlet.RenderRequestFactory;
 import com.liferay.portlet.RenderResponseFactory;
 
+import jakarta.portlet.PortletConfig;
+import jakarta.portlet.PortletMode;
+import jakarta.portlet.WindowState;
+
+import jakarta.servlet.ServletContext;
+
 import java.util.Collections;
 import java.util.Map;
-
-import javax.portlet.PortletConfig;
-import javax.portlet.PortletMode;
-import javax.portlet.WindowState;
-
-import javax.servlet.ServletContext;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -78,15 +79,26 @@ public class SuggestionResourceImpl extends BaseSuggestionResourceImpl {
 
 		Layout layout = _layoutLocalService.getLayout(plid);
 
+		if (Validator.isNotNull(destinationFriendlyURL)) {
+			if (!StringUtil.startsWith(
+					destinationFriendlyURL, CharPool.SLASH)) {
+
+				destinationFriendlyURL = StringPool.SLASH.concat(
+					destinationFriendlyURL);
+			}
+
+			Layout destinationLayout = _fetchLayoutByFriendlyURL(
+				layout.getGroupId(), destinationFriendlyURL);
+
+			if (destinationLayout != null) {
+				layout = destinationLayout;
+			}
+		}
+
 		ThemeDisplay themeDisplay = _createThemeDisplay(currentURL, layout);
 
 		LiferayRenderRequest liferayRenderRequest = _createLiferayRenderRequest(
 			layout, themeDisplay);
-
-		if (!StringUtil.startsWith(destinationFriendlyURL, CharPool.SLASH)) {
-			destinationFriendlyURL = StringPool.SLASH.concat(
-				destinationFriendlyURL);
-		}
 
 		return Page.of(
 			transform(
@@ -231,6 +243,12 @@ public class SuggestionResourceImpl extends BaseSuggestionResourceImpl {
 		themeDisplay.setPermissionChecker(
 			PermissionThreadLocal.getPermissionChecker());
 		themeDisplay.setPlid(layout.getPlid());
+
+		String portalURL = _portal.getPortalURL(contextHttpServletRequest);
+
+		themeDisplay.setPortalDomain(HttpComponentsUtil.getDomain(portalURL));
+		themeDisplay.setPortalURL(portalURL);
+
 		themeDisplay.setRequest(contextHttpServletRequest);
 		themeDisplay.setScopeGroupId(layout.getGroupId());
 		themeDisplay.setSiteGroupId(layout.getGroupId());
@@ -238,6 +256,18 @@ public class SuggestionResourceImpl extends BaseSuggestionResourceImpl {
 		themeDisplay.setUser(contextUser);
 
 		return themeDisplay;
+	}
+
+	private Layout _fetchLayoutByFriendlyURL(long groupId, String friendlyURL) {
+		Layout layout = _layoutLocalService.fetchLayoutByFriendlyURL(
+			groupId, false, friendlyURL);
+
+		if (layout != null) {
+			return layout;
+		}
+
+		return _layoutLocalService.fetchLayoutByFriendlyURL(
+			groupId, true, friendlyURL);
 	}
 
 	@Reference

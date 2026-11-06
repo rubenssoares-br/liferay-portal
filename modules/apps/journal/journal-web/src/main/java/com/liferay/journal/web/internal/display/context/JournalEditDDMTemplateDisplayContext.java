@@ -5,7 +5,7 @@
 
 package com.liferay.journal.web.internal.display.context;
 
-import com.liferay.change.tracking.spi.constants.CTTimelineKeys;
+import com.liferay.change.tracking.spi.history.util.CTTimelineUtil;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.model.DDMTemplate;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalServiceUtil;
@@ -33,6 +33,7 @@ import com.liferay.portal.kernel.template.TemplateVariableGroup;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
@@ -41,15 +42,15 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.template.engine.TemplateContextHelper;
 
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
-
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -150,8 +151,8 @@ public class JournalEditDDMTemplateDisplayContext {
 			"propertiesViewURL",
 			() -> PortletURLBuilder.createRenderURL(
 				_renderResponse
-			).setMVCPath(
-				"/ddm_template/edit_properties.jsp"
+			).setMVCRenderCommandName(
+				"/journal/edit_ddm_template_properties"
 			).setParameter(
 				"classPK", getClassPK()
 			).setParameter(
@@ -190,10 +191,8 @@ public class JournalEditDDMTemplateDisplayContext {
 		_ddmTemplateId = ParamUtil.getLong(
 			_httpServletRequest, "ddmTemplateId");
 
-		_httpServletRequest.setAttribute(
-			CTTimelineKeys.CLASS_NAME, DDMTemplate.class.getName());
-		_httpServletRequest.setAttribute(
-			CTTimelineKeys.CLASS_PK, _ddmTemplateId);
+		CTTimelineUtil.setCTTimelineKeys(
+			_httpServletRequest, DDMTemplate.class, _ddmTemplateId);
 
 		return _ddmTemplateId;
 	}
@@ -233,15 +232,15 @@ public class JournalEditDDMTemplateDisplayContext {
 			getDDMTemplate(), _httpServletRequest, "script");
 
 		if (Validator.isNotNull(script)) {
-			_script = new String(Base64.decode(script));
+			script = new String(Base64.decode(script));
 		}
 
-		if (Validator.isNull(_script)) {
+		if (Validator.isNull(script)) {
 			TemplateHandler templateHandler =
 				TemplateHandlerRegistryUtil.getTemplateHandler(
 					_portal.getClassNameId(JournalArticle.class));
 
-			_script = templateHandler.getTemplatesHelpContent(
+			script = templateHandler.getTemplatesHelpContent(
 				TemplateConstants.LANG_TYPE_FTL);
 		}
 
@@ -249,8 +248,10 @@ public class JournalEditDDMTemplateDisplayContext {
 			_httpServletRequest, "scriptContent");
 
 		if (Validator.isNotNull(scriptContent)) {
-			_script = new String(Base64.decode(scriptContent));
+			script = new String(Base64.decode(scriptContent));
 		}
+
+		_script = HtmlUtil.escape(script);
 
 		return _script;
 	}

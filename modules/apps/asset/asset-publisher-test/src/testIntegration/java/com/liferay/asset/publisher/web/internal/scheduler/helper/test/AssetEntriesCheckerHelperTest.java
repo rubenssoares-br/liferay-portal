@@ -19,15 +19,23 @@ import com.liferay.asset.publisher.util.AssetPublisherHelper;
 import com.liferay.asset.util.AssetHelper;
 import com.liferay.blogs.model.BlogsEntry;
 import com.liferay.blogs.service.BlogsEntryLocalService;
+import com.liferay.info.collection.provider.CollectionQuery;
+import com.liferay.info.collection.provider.InfoCollectionProvider;
+import com.liferay.info.item.InfoItemServiceRegistry;
+import com.liferay.info.pagination.InfoPage;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.configuration.test.util.ConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
-import com.liferay.portal.kernel.module.util.BundleUtil;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
@@ -43,14 +51,15 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.segments.configuration.provider.SegmentsConfigurationProvider;
 
+import jakarta.portlet.PortletPreferences;
+
 import java.lang.reflect.Constructor;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
-
-import javax.portlet.PortletPreferences;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,7 +69,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.ServiceRegistration;
 
 /**
  * @author István András Dézsi
@@ -143,6 +154,58 @@ public class AssetEntriesCheckerHelperTest {
 					new Class<?>[] {PortletPreferences.class, Layout.class},
 					LayoutTestUtil.getPortletPreferences(_layout, _portletId),
 					_layout));
+		}
+	}
+
+	@Test
+	public void testGetAssetEntriesFromInfoCollectionProviderSelectionAssetPublisher()
+		throws Exception {
+
+		AssetEntry assetEntry1 = _addAssetEntry();
+		AssetEntry assetEntry2 = _addAssetEntry();
+
+		Bundle bundle = FrameworkUtil.getBundle(
+			AssetEntriesCheckerHelperTest.class);
+
+		BundleContext bundleContext = bundle.getBundleContext();
+
+		TestInfoCollectionProvider testInfoCollectionProvider =
+			new TestInfoCollectionProvider(
+				Arrays.asList(assetEntry1, assetEntry2));
+
+		ServiceRegistration<InfoCollectionProvider<?>> serviceRegistration =
+			bundleContext.registerService(
+				(Class<InfoCollectionProvider<?>>)
+					(Class<?>)InfoCollectionProvider.class,
+				testInfoCollectionProvider, null);
+
+		try {
+			_setInfoCollectionProviderSelectionStylePreference(
+				TestInfoCollectionProvider.class.getName());
+
+			_assertAssetEntries(
+				Arrays.asList(assetEntry1, assetEntry2),
+				ReflectionTestUtil.invoke(
+					_assetEntriesCheckerHelper, "_getAssetEntries",
+					new Class<?>[] {PortletPreferences.class, Layout.class},
+					LayoutTestUtil.getPortletPreferences(_layout, _portletId),
+					_layout));
+
+			PermissionChecker permissionChecker =
+				testInfoCollectionProvider.getPermissionChecker();
+
+			Assert.assertTrue(permissionChecker.isCompanyAdmin());
+
+			ServiceContext serviceContext =
+				testInfoCollectionProvider.getServiceContext();
+
+			Assert.assertEquals(
+				_layout.getCompanyId(), serviceContext.getCompanyId());
+			Assert.assertEquals(
+				_layout.getGroupId(), serviceContext.getScopeGroupId());
+		}
+		finally {
+			serviceRegistration.unregister();
 		}
 	}
 
@@ -245,6 +308,19 @@ public class AssetEntriesCheckerHelperTest {
 		portletPreferences.store();
 	}
 
+	private void _setInfoCollectionProviderSelectionStylePreference(
+			String infoListProviderKey)
+		throws Exception {
+
+		PortletPreferences portletPreferences =
+			LayoutTestUtil.getPortletPreferences(_layout, _portletId);
+
+		portletPreferences.setValue("infoListProviderKey", infoListProviderKey);
+		portletPreferences.setValue("selectionStyle", "asset-list");
+
+		portletPreferences.store();
+	}
+
 	private void _setPortletManualSelectionStylePreference(
 			AssetEntry... assetEntries)
 		throws Exception {
@@ -261,10 +337,11 @@ public class AssetEntriesCheckerHelperTest {
 			String assetEntryXml = AssetPublisherTestUtil.getAssetEntryXml(
 				assetEntry);
 
-			if (!ArrayUtil.contains(assetEntryXmls, assetEntryXml)) {
-				assetEntryXmls = ArrayUtil.append(
-					assetEntryXmls, assetEntryXml);
+			if (ArrayUtil.contains(assetEntryXmls, assetEntryXml)) {
+				continue;
 			}
+
+			assetEntryXmls = ArrayUtil.append(assetEntryXmls, assetEntryXml);
 		}
 
 		portletPreferences.setValues("assetEntryXml", assetEntryXmls);
@@ -274,16 +351,9 @@ public class AssetEntriesCheckerHelperTest {
 
 	private void _setUpAssetEntriesCheckerHelper() throws Exception {
 		Bundle bundle = FrameworkUtil.getBundle(
-			AssetEntriesCheckerHelperTest.class);
+			_assetPublisherHelper.getClass());
 
-		Bundle assetPublisherWebBundle = BundleUtil.getBundle(
-			bundle.getBundleContext(), "com.liferay.asset.publisher.web");
-
-		Assert.assertNotNull(
-			"Unable to find asset-publisher-web bundle",
-			assetPublisherWebBundle);
-
-		Class<?> clazz = assetPublisherWebBundle.loadClass(
+		Class<?> clazz = bundle.loadClass(
 			"com.liferay.asset.publisher.web.internal.scheduler.helper." +
 				"AssetEntriesCheckerHelper");
 
@@ -313,8 +383,15 @@ public class AssetEntriesCheckerHelperTest {
 			_assetEntriesCheckerHelper, "_groupLocalService",
 			_groupLocalService);
 		ReflectionTestUtil.setFieldValue(
+			_assetEntriesCheckerHelper, "_infoItemServiceRegistry",
+			_infoItemServiceRegistry);
+		ReflectionTestUtil.setFieldValue(
+			_assetEntriesCheckerHelper, "_roleLocalService", _roleLocalService);
+		ReflectionTestUtil.setFieldValue(
 			_assetEntriesCheckerHelper, "_segmentsConfigurationProvider",
 			_segmentsConfigurationProvider);
+		ReflectionTestUtil.setFieldValue(
+			_assetEntriesCheckerHelper, "_userLocalService", _userLocalService);
 	}
 
 	private Object _assetEntriesCheckerHelper;
@@ -350,10 +427,55 @@ public class AssetEntriesCheckerHelperTest {
 	@Inject
 	private GroupLocalService _groupLocalService;
 
+	@Inject
+	private InfoItemServiceRegistry _infoItemServiceRegistry;
+
 	private Layout _layout;
 	private String _portletId;
 
 	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
 	private SegmentsConfigurationProvider _segmentsConfigurationProvider;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	private static class TestInfoCollectionProvider
+		implements InfoCollectionProvider<AssetEntry> {
+
+		public TestInfoCollectionProvider(List<AssetEntry> assetEntries) {
+			_assetEntries = assetEntries;
+		}
+
+		@Override
+		public InfoPage<AssetEntry> getCollectionInfoPage(
+			CollectionQuery collectionQuery) {
+
+			_permissionChecker = PermissionThreadLocal.getPermissionChecker();
+			_serviceContext = ServiceContextThreadLocal.getServiceContext();
+
+			return InfoPage.of(_assetEntries);
+		}
+
+		@Override
+		public String getLabel(Locale locale) {
+			return StringPool.BLANK;
+		}
+
+		public PermissionChecker getPermissionChecker() {
+			return _permissionChecker;
+		}
+
+		public ServiceContext getServiceContext() {
+			return _serviceContext;
+		}
+
+		private final List<AssetEntry> _assetEntries;
+		private PermissionChecker _permissionChecker;
+		private ServiceContext _serviceContext;
+
+	}
 
 }

@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2024 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.ParentTaxonomyCategory;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -46,38 +47,19 @@ public class ParentTaxonomyCategorySerDes {
 
 		sb.append("{");
 
-		if (parentTaxonomyCategory.getId() != null) {
+		if (parentTaxonomyCategory.getExternalReferenceCode() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"id\": ");
-
-			sb.append(parentTaxonomyCategory.getId());
-		}
-
-		if (parentTaxonomyCategory.getName() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"name\": ");
+			sb.append("\"externalReferenceCode\": ");
 
 			sb.append("\"");
 
-			sb.append(_escape(parentTaxonomyCategory.getName()));
+			sb.append(
+				_escape(parentTaxonomyCategory.getExternalReferenceCode()));
 
 			sb.append("\"");
-		}
-
-		if (parentTaxonomyCategory.getName_i18n() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"name_i18n\": ");
-
-			sb.append(_toJSON(parentTaxonomyCategory.getName_i18n()));
 		}
 
 		sb.append("}");
@@ -101,27 +83,14 @@ public class ParentTaxonomyCategorySerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
-		if (parentTaxonomyCategory.getId() == null) {
-			map.put("id", null);
-		}
-		else {
-			map.put("id", String.valueOf(parentTaxonomyCategory.getId()));
-		}
-
-		if (parentTaxonomyCategory.getName() == null) {
-			map.put("name", null);
-		}
-		else {
-			map.put("name", String.valueOf(parentTaxonomyCategory.getName()));
-		}
-
-		if (parentTaxonomyCategory.getName_i18n() == null) {
-			map.put("name_i18n", null);
+		if (parentTaxonomyCategory.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
 		}
 		else {
 			map.put(
-				"name_i18n",
-				String.valueOf(parentTaxonomyCategory.getName_i18n()));
+				"externalReferenceCode",
+				String.valueOf(
+					parentTaxonomyCategory.getExternalReferenceCode()));
 		}
 
 		return map;
@@ -142,14 +111,8 @@ public class ParentTaxonomyCategorySerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "id")) {
+			if (Objects.equals(jsonParserFieldName, "externalReferenceCode")) {
 				return false;
-			}
-			else if (Objects.equals(jsonParserFieldName, "name")) {
-				return false;
-			}
-			else if (Objects.equals(jsonParserFieldName, "name_i18n")) {
-				return true;
 			}
 
 			return false;
@@ -160,22 +123,10 @@ public class ParentTaxonomyCategorySerDes {
 			ParentTaxonomyCategory parentTaxonomyCategory,
 			String jsonParserFieldName, Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "id")) {
+			if (Objects.equals(jsonParserFieldName, "externalReferenceCode")) {
 				if (jsonParserFieldValue != null) {
-					parentTaxonomyCategory.setId(
-						Long.valueOf((String)jsonParserFieldValue));
-				}
-			}
-			else if (Objects.equals(jsonParserFieldName, "name")) {
-				if (jsonParserFieldValue != null) {
-					parentTaxonomyCategory.setName(
+					parentTaxonomyCategory.setExternalReferenceCode(
 						(String)jsonParserFieldValue);
-				}
-			}
-			else if (Objects.equals(jsonParserFieldName, "name_i18n")) {
-				if (jsonParserFieldValue != null) {
-					parentTaxonomyCategory.setName_i18n(
-						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
 		}
@@ -223,6 +174,16 @@ public class ParentTaxonomyCategorySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -255,3 +216,4 @@ public class ParentTaxonomyCategorySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:12682470

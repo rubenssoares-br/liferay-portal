@@ -48,7 +48,11 @@ renderResponse.setTitle(objectDefinition.getLabel(locale, true));
 			).put(
 				"items", objectDefinitionsRelationshipsDisplayContext.getFDSActionDropdownItems()
 			).put(
+				"learnResources", LearnMessageUtil.getReactDataJSONObject("object-web")
+			).put(
 				"objectDefinitionExternalReferenceCode", objectDefinition.getExternalReferenceCode()
+			).put(
+				"objectDefinitionId", objectDefinition.getObjectDefinitionId()
 			).put(
 				"parameterRequired", objectDefinitionsRelationshipsDisplayContext.isParameterRequired(objectDefinition)
 			).put(
@@ -57,5 +61,11 @@ renderResponse.setTitle(objectDefinition.getLabel(locale, true));
 				"url", objectDefinitionsRelationshipsDisplayContext.getEditObjectRelationshipURL()
 			).build()
 		%>'
+	/>
+</div>
+
+<div>
+	<react:component
+		module="{ModalDisableInheritance} from object-web"
 	/>
 </div>

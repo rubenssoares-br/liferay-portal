@@ -134,7 +134,7 @@ public class HttpUtil {
 	}
 
 	private static ByteBuffer _read(InputStream inputStream) throws Exception {
-		byte[] bytes = _bytesThreadLocal.get();
+		byte[] bytes = _bytes.get();
 
 		int left = bytes.length;
 
@@ -145,19 +145,21 @@ public class HttpUtil {
 			left -= length;
 			offset += length;
 
-			if (left == 0) {
-				int newLength = bytes.length * 6 / 5;
-
-				byte[] newBytes = new byte[newLength];
-
-				System.arraycopy(bytes, 0, newBytes, 0, bytes.length);
-
-				left = newLength - bytes.length;
-
-				bytes = newBytes;
-
-				_bytesThreadLocal.set(bytes);
+			if (left != 0) {
+				continue;
 			}
+
+			int newLength = bytes.length * 6 / 5;
+
+			byte[] newBytes = new byte[newLength];
+
+			System.arraycopy(bytes, 0, newBytes, 0, bytes.length);
+
+			left = newLength - bytes.length;
+
+			bytes = newBytes;
+
+			_bytes.set(bytes);
 		}
 
 		inputStream.close();
@@ -165,7 +167,7 @@ public class HttpUtil {
 		return ByteBuffer.wrap(bytes, 0, offset);
 	}
 
-	private static final ThreadLocal<byte[]> _bytesThreadLocal =
+	private static final ThreadLocal<byte[]> _bytes =
 		CentralizedThreadLocal.withInitial(() -> new byte[8192]);
 
 	static {

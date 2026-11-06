@@ -16,20 +16,15 @@ import org.osgi.service.component.annotations.Component;
  * @author Eudaldo Alonso
  */
 @Component(
-	property = "javax.portlet.name=" + AssetPublisherPortletKeys.HIGHEST_RATED_ASSETS,
+	property = "jakarta.portlet.name=" + AssetPublisherPortletKeys.HIGHEST_RATED_ASSETS,
 	service = PortletManager.class
 )
 public class HighestRatedAssetsPortletManager implements PortletManager {
 
 	@Override
 	public boolean isVisible(Layout layout) {
-		if (!FeatureFlagManagerUtil.isEnabled(
-				layout.getCompanyId(), "LPD-39304")) {
-
-			return false;
-		}
-
-		return true;
+		return FeatureFlagManagerUtil.isEnabled(
+			layout.getCompanyId(), "LPD-39304");
 	}
 
 }

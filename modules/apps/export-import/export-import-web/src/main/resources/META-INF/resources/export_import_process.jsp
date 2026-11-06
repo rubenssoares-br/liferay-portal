@@ -10,9 +10,9 @@
 <%
 String backURL = ParamUtil.getString(request, "backURL");
 
-ExportImportProcessDisplayContext exportImportProcessDisplayContext = new ExportImportProcessDisplayContext(request);
+ExportImportBackgroundTaskDisplayContext exportImportBackgroundTaskDisplayContext = new ExportImportBackgroundTaskDisplayContext(request);
 
-BackgroundTask backgroundTask = exportImportProcessDisplayContext.getBackgroundTask();
+BackgroundTask backgroundTask = exportImportBackgroundTaskDisplayContext.getBackgroundTask();
 
 if (Validator.isNotNull(backURL)) {
 	portletDisplay.setShowBackIcon(true);
@@ -21,7 +21,7 @@ if (Validator.isNotNull(backURL)) {
 %>
 
 <liferay-ui:search-container
-	searchContainer="<%= exportImportProcessDisplayContext.getSearchContainer() %>"
+	searchContainer="<%= exportImportBackgroundTaskDisplayContext.getSearchContainer() %>"
 >
 	<liferay-ui:search-container-row
 		className="com.liferay.portal.kernel.backgroundtask.BackgroundTask"
@@ -109,13 +109,9 @@ if (Validator.isNotNull(backURL)) {
 					}
 					%>
 
-					<div class="active progress">
-						<div class="progress-bar" style="width: <%= percentage %>%;">
-							<c:if test="<%= allProgressBarCountersTotal > 0 %>">
-								<%= percentage + StringPool.PERCENT %>
-							</c:if>
-						</div>
-					</div>
+					<clay:progressbar
+						value="<%= percentage %>"
+					/>
 
 					<%
 					String stagedModelName = (String)backgroundTaskStatus.getAttribute("stagedModelName");
@@ -136,11 +132,11 @@ if (Validator.isNotNull(backURL)) {
 
 			<c:if test="<%= Validator.isNotNull(curBackgroundTask.getStatusMessage()) %>">
 				<div class="background-task-status-row h6">
-					<liferay:csp>
+					<liferay-ui:csp>
 						<a class="details-link" href="javascript:void(0);" onclick="<portlet:namespace />viewBackgroundTaskDetails(<%= curBackgroundTask.getBackgroundTaskId() %>);">
 							<liferay-ui:message key="see-more-details" />
 						</a>
-					</liferay:csp>
+					</liferay-ui:csp>
 				</div>
 
 				<div class="background-task-status-message hide" id="<portlet:namespace />backgroundTaskStatusMessage<%= curBackgroundTask.getBackgroundTaskId() %>">

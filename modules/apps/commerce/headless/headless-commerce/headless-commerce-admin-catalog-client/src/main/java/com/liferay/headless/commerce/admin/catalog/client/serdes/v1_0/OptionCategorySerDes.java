@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.OptionCategory;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -307,6 +308,16 @@ public class OptionCategorySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -339,3 +350,4 @@ public class OptionCategorySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:877195911

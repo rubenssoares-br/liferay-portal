@@ -5,7 +5,7 @@
 
 package com.liferay.learn;
 
-import com.liferay.client.extension.util.spring.boot.BaseRestController;
+import com.liferay.client.extension.util.spring.boot3.BaseRestController;
 import com.liferay.petra.string.StringBundler;
 
 import org.apache.commons.logging.Log;
@@ -14,7 +14,6 @@ import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author José Abelenda
@@ -38,12 +38,22 @@ public class ObjectActionCourseRestController extends BaseRestController {
 		JSONObject responseJSONObject = new JSONObject(
 			get(
 				"Bearer " + jwt.getTokenValue(),
-				StringBundler.concat(
-					"/o/c/courses/scopes/", _siteGroupId,
-					"?fields=id,module.lessonDurationMinutes,module.lessons,",
-					"module.quizDurationMinutes,module.quizzes&filter=",
-					"module/id eq '", _getModuleId(json),
-					"'&nestedFields=module")));
+				UriComponentsBuilder.fromPath(
+					"/o/c/p2s3courses"
+				).queryParam(
+					"fields",
+					StringBundler.concat(
+						"id,p2s3CourseToP2S3Modules.lessonDurationMinutes,",
+						"p2s3CourseToP2S3Modules.lessons,",
+						"p2s3CourseToP2S3Modules.quizDurationMinutes,",
+						"p2s3CourseToP2S3Modules.quizzes")
+				).queryParam(
+					"filter",
+					"p2s3CourseToP2S3Modules/id eq '" + _getModuleId(json) + "'"
+				).queryParam(
+					"nestedFields", "p2s3CourseToP2S3Modules"
+				).build(
+				).toUri()));
 
 		JSONArray itemsJSONArray = responseJSONObject.getJSONArray("items");
 
@@ -52,9 +62,12 @@ public class ObjectActionCourseRestController extends BaseRestController {
 		patch(
 			"Bearer " + jwt.getTokenValue(),
 			_getPayloadJSONObject(
-				itemJSONObject.getJSONArray("module")
+				itemJSONObject.getJSONArray("p2s3CourseToP2S3Modules")
 			).toString(),
-			"/o/c/courses/" + itemJSONObject.getLong("id"));
+			UriComponentsBuilder.fromPath(
+				"/o/c/p2s3courses/" + itemJSONObject.getLong("id")
+			).build(
+			).toUri());
 
 		if (_log.isInfoEnabled()) {
 			_log.info("Updated course " + itemJSONObject.getLong("id"));
@@ -72,11 +85,13 @@ public class ObjectActionCourseRestController extends BaseRestController {
 		JSONObject valuesJSONObject = objectEntryJSONObject.getJSONObject(
 			"values");
 
-		if (valuesJSONObject.has("r_lesson_c_moduleId")) {
-			return valuesJSONObject.getLong("r_lesson_c_moduleId");
+		if (valuesJSONObject.has("r_p2s3ModuleToP2S3Lessons_c_p2s3ModuleId")) {
+			return valuesJSONObject.getLong(
+				"r_p2s3ModuleToP2S3Lessons_c_p2s3ModuleId");
 		}
 
-		return valuesJSONObject.getLong("r_quiz_c_moduleId");
+		return valuesJSONObject.getLong(
+			"r_p2s3ModuleToP2S3Quizzes_c_p2s3ModuleId");
 	}
 
 	private JSONObject _getPayloadJSONObject(JSONArray moduleJSONArray) {
@@ -94,9 +109,11 @@ public class ObjectActionCourseRestController extends BaseRestController {
 				totalAssets += moduleJSONObject.getInt("lessons");
 			}
 
-			if (moduleJSONObject.has("quizzes")) {
-				totalAssets += moduleJSONObject.getInt("quizzes");
+			if (!moduleJSONObject.has("quizzes")) {
+				continue;
 			}
+
+			totalAssets += moduleJSONObject.getInt("quizzes");
 		}
 
 		return new JSONObject(
@@ -109,8 +126,5 @@ public class ObjectActionCourseRestController extends BaseRestController {
 
 	private static final Log _log = LogFactory.getLog(
 		ObjectActionCourseRestController.class);
-
-	@Value("${liferay.learn.dxp.site.group.id}")
-	private long _siteGroupId;
 
 }

@@ -68,6 +68,7 @@ import com.liferay.wiki.model.WikiNode;
 import com.liferay.wiki.model.WikiPage;
 import com.liferay.wiki.service.WikiPageLocalService;
 import com.liferay.wiki.service.WikiPageLocalServiceUtil;
+import com.liferay.wiki.service.WikiPageServiceUtil;
 import com.liferay.wiki.test.util.WikiTestUtil;
 
 import java.io.Serializable;
@@ -199,6 +200,38 @@ public class WikiPageLocalServiceTest {
 	}
 
 	@Test
+	public void testAddPageWithRequiredCategory() throws Exception {
+		AssetVocabulary assetVocabulary = getRequiredAssetVocabulary();
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
+
+		AssetCategory assetCategory = AssetCategoryLocalServiceUtil.addCategory(
+			TestPropsValues.getUserId(), _group.getGroupId(), "category 1",
+			assetVocabulary.getVocabularyId(), serviceContext);
+
+		long categoryId = assetCategory.getCategoryId();
+
+		serviceContext.setAssetCategoryIds(new long[] {categoryId});
+
+		WikiPage page = WikiTestUtil.addPage(
+			TestPropsValues.getUserId(), _node.getNodeId(),
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(), true,
+			serviceContext);
+
+		List<AssetCategory> assetCategories =
+			AssetCategoryLocalServiceUtil.getCategories(
+				WikiPage.class.getName(), page.getResourcePrimKey());
+
+		Assert.assertEquals(
+			assetCategories.toString(), 1, assetCategories.size());
+
+		AssetCategory persistedAssetCategory = assetCategories.get(0);
+
+		Assert.assertEquals(categoryId, persistedAssetCategory.getCategoryId());
+	}
+
+	@Test
 	public void testAddPageWithoutExternalReferenceCode() throws Exception {
 		WikiPage wikiPage1 = WikiTestUtil.addPage(
 			TestPropsValues.getUserId(), _node.getNodeId(),
@@ -240,38 +273,6 @@ public class WikiPageLocalServiceTest {
 
 			throw new AssetCategoryTestException();
 		}
-	}
-
-	@Test
-	public void testAddPageWithRequiredCategory() throws Exception {
-		AssetVocabulary assetVocabulary = getRequiredAssetVocabulary();
-
-		ServiceContext serviceContext =
-			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
-
-		AssetCategory assetCategory = AssetCategoryLocalServiceUtil.addCategory(
-			TestPropsValues.getUserId(), _group.getGroupId(), "category 1",
-			assetVocabulary.getVocabularyId(), serviceContext);
-
-		long categoryId = assetCategory.getCategoryId();
-
-		serviceContext.setAssetCategoryIds(new long[] {categoryId});
-
-		WikiPage page = WikiTestUtil.addPage(
-			TestPropsValues.getUserId(), _node.getNodeId(),
-			RandomTestUtil.randomString(), RandomTestUtil.randomString(), true,
-			serviceContext);
-
-		List<AssetCategory> assetCategories =
-			AssetCategoryLocalServiceUtil.getCategories(
-				WikiPage.class.getName(), page.getResourcePrimKey());
-
-		Assert.assertEquals(
-			assetCategories.toString(), 1, assetCategories.size());
-
-		AssetCategory persistedAssetCategory = assetCategories.get(0);
-
-		Assert.assertEquals(categoryId, persistedAssetCategory.getCategoryId());
 	}
 
 	@Test
@@ -697,7 +698,7 @@ public class WikiPageLocalServiceTest {
 			TestPropsValues.getUserId(), _node.getNodeId(), "Page2",
 			RandomTestUtil.randomString(), true, serviceContext);
 
-		List<WikiPage> recentPages = WikiPageLocalServiceUtil.getRecentChanges(
+		List<WikiPage> recentPages = WikiPageServiceUtil.getRecentChanges(
 			_group.getGroupId(), _node.getNodeId(), QueryUtil.ALL_POS,
 			QueryUtil.ALL_POS);
 
@@ -732,7 +733,7 @@ public class WikiPageLocalServiceTest {
 
 		WikiPage updatedPage2 = WikiTestUtil.updatePage(page2);
 
-		List<WikiPage> recentPages = WikiPageLocalServiceUtil.getRecentChanges(
+		List<WikiPage> recentPages = WikiPageServiceUtil.getRecentChanges(
 			_group.getGroupId(), _node.getNodeId(), QueryUtil.ALL_POS,
 			QueryUtil.ALL_POS);
 
@@ -777,7 +778,7 @@ public class WikiPageLocalServiceTest {
 			TestPropsValues.getUserId(), _node.getNodeId(), "Page2",
 			RandomTestUtil.randomString(), true, serviceContext);
 
-		List<WikiPage> recentPages = WikiPageLocalServiceUtil.getRecentChanges(
+		List<WikiPage> recentPages = WikiPageServiceUtil.getRecentChanges(
 			_group.getGroupId(), _node.getNodeId(), QueryUtil.ALL_POS,
 			QueryUtil.ALL_POS);
 
@@ -802,7 +803,7 @@ public class WikiPageLocalServiceTest {
 
 		WikiPage updatedPage1 = WikiTestUtil.updatePage(page1);
 
-		List<WikiPage> recentPages = WikiPageLocalServiceUtil.getRecentChanges(
+		List<WikiPage> recentPages = WikiPageServiceUtil.getRecentChanges(
 			_group.getGroupId(), _node.getNodeId(), QueryUtil.ALL_POS,
 			QueryUtil.ALL_POS);
 

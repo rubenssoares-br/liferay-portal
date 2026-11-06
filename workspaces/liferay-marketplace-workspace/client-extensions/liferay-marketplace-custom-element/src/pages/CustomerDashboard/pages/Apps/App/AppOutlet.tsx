@@ -3,23 +3,23 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import ClayButton from '@clayui/button';
+import DropDown from '@clayui/drop-down';
 import ClayIcon from '@clayui/icon';
-import {
-	Link,
-	Outlet,
-	useNavigate,
-	useOutletContext,
-	useParams,
-} from 'react-router-dom';
+import {ReactNode} from 'react';
+import {Outlet, useOutletContext, useParams} from 'react-router-dom';
 
+import BackLink from '../../../../../components/BackLink';
 import Navbar, {NavbarProps} from '../../../../../components/Navbar';
 import {PageRenderer} from '../../../../../components/Page';
-import {ORDER_WORKFLOW_STATUS_CODE} from '../../../../../enums/Order';
-import {OrderType} from '../../../../../enums/OrderType';
+import {MarketplaceDeliveryProduct} from '../../../../../entity/MarketplaceDeliveryProduct';
+import {OrderTypes, OrderWorkflowStatusCode} from '../../../../../enums/Order';
+import {ProductSupportSpecificationKey} from '../../../../../enums/Product';
 import useGetProductByOrderId from '../../../../../hooks/useGetProductByOrderId';
 import i18n from '../../../../../i18n';
-import getProductPriceModel from '../../../../GetApp/utils/getProductPriceModel';
+import {getProductPriceModel} from '../../../../../utils/productUtils';
 import OrderDetailsHeader from '../../../components/OrderDetailsHeader';
+import AppDropdownActions from './AppDropdownActions/AppDropdownActions';
 
 import './App.scss';
 
@@ -28,23 +28,30 @@ type ProductAndOrderPayload = NonNullable<
 >;
 
 type BaseOutletProps = {
+	actionButtons?: ReactNode | ((data: ProductAndOrderPayload) => ReactNode);
 	backTitle: string;
 	backURL?: string;
+	description?: ReactNode | ((data: ProductAndOrderPayload) => ReactNode);
 	routes:
 		| NavbarProps['routes']
 		| ((data: ProductAndOrderPayload) => NavbarProps['routes']);
+	showActions?: boolean;
 };
 
 const BaseOutlet: React.FC<BaseOutletProps> = ({
+	actionButtons,
 	backTitle,
 	backURL = '..',
+	description,
 	routes,
+	showActions = true,
 }) => {
-	const navigate = useNavigate();
 	const {orderId} = useParams();
 	const outletContext = useOutletContext();
 	const {data, error, isLoading} = useGetProductByOrderId(orderId as string);
 
+	const beta =
+		data?.marketplaceDeliveryProduct?.specificationValues?.APP_BETA;
 	const placedOrderItems = data?.placedOrder.placedOrderItems ?? [];
 	const productCreatorAccountName = data?.product?.catalogName || '';
 
@@ -54,24 +61,61 @@ const BaseOutlet: React.FC<BaseOutletProps> = ({
 			error={error}
 			isLoading={isLoading}
 		>
-			<Link
-				className="align-items-center d-flex text-dark"
-				onClick={() => navigate('..')}
-				to={backURL}
-			>
-				<ClayIcon className="mr-2" symbol="order-arrow-left" />
+			<BackLink path={backURL}>{backTitle}</BackLink>
 
-				<span className="h5 mt-1">{backTitle}</span>
-			</Link>
+			<div className="d-flex justify-content-between">
+				<div className="d-flex flex-column w-100">
+					<div className="d-flex justify-content-between">
+						<OrderDetailsHeader
+							beta={beta}
+							className="d-flex flex-row justify-content-between pb-3 pt-5"
+							hasOrderDetails
+							image={placedOrderItems[0]?.thumbnail}
+							name={placedOrderItems[0]?.name}
+							order={data?.placedOrder}
+							productOwner={productCreatorAccountName}
+						/>
 
-			<OrderDetailsHeader
-				className="d-flex flex-row justify-content-between pb-3 pt-5"
-				hasOrderDetails
-				image={placedOrderItems[0]?.thumbnail}
-				name={placedOrderItems[0]?.name}
-				order={data?.placedOrder as unknown as Cart}
-				productOwner={productCreatorAccountName}
-			/>
+						{actionButtons && (
+							<div id="solution-action-buttons">
+								{typeof actionButtons === 'function'
+									? actionButtons(
+											data as ProductAndOrderPayload
+										)
+									: actionButtons}
+							</div>
+						)}
+					</div>
+
+					<p className="app-details-description">
+						{typeof description === 'function'
+							? description(data as ProductAndOrderPayload)
+							: description}
+					</p>
+				</div>
+
+				{showActions && (
+					<DropDown
+						className="align-items-center cursor-pointer d-flex h-100"
+						trigger={
+							<ClayButton displayType="secondary">
+								{i18n.translate('manage-app')}
+
+								<ClayIcon
+									className="ml-2"
+									symbol="angle-down-small"
+								/>
+							</ClayButton>
+						}
+					>
+						{data?.placedOrder && (
+							<AppDropdownActions
+								placedOrder={data.placedOrder}
+							/>
+						)}
+					</DropDown>
+				)}
+			</div>
 
 			<Navbar
 				routes={
@@ -88,63 +132,82 @@ const BaseOutlet: React.FC<BaseOutletProps> = ({
 	);
 };
 
-const AppOutlet = () => {
-	return (
-		<BaseOutlet
-			backTitle={i18n.translate('back-to-my-apps')}
-			routes={({placedOrder, product}) => {
-				const {isPaidApp} = getProductPriceModel(product);
+const AppOutlet = () => (
+	<BaseOutlet
+		backTitle={i18n.translate('back-to-my-apps')}
+		routes={({marketplaceDeliveryOrder, placedOrder, product}) => {
+			const {isPaidApp} = getProductPriceModel(product);
 
-				const isCompletedOrderWithVirtualItems =
-					placedOrder.workflowStatusInfo.code ===
-						ORDER_WORKFLOW_STATUS_CODE.COMPLETED &&
-					placedOrder.placedOrderItems.some(
-						(item: PlacedOrderItems) => item.virtualItems?.length
-					);
+			const marketplaceDeliveryProduct = new MarketplaceDeliveryProduct(
+				product
+			);
 
-				const tabs = [
-					{
-						name: i18n.translate('details'),
-						path: '',
-					},
-				];
+			const orderCompleted =
+				placedOrder.orderStatusInfo.code ===
+				OrderWorkflowStatusCode.COMPLETED;
 
-				if (
-					placedOrder.orderTypeExternalReferenceCode ===
-					OrderType.CLOUD
-				) {
-					return [
-						...tabs,
-						{
-							name: i18n.translate('app-provisioning'),
-							path: 'cloud-provisioning',
-						},
-					];
-				}
+			const isCompletedOrderWithVirtualItems =
+				orderCompleted &&
+				placedOrder.placedOrderItems.some(
+					(item: PlacedOrderItems) => item.virtualItems?.length
+				);
 
-				if (
-					placedOrder.orderTypeExternalReferenceCode === OrderType.DXP
-				) {
-					return [
-						...tabs,
-						{
-							name: i18n.translate('download'),
-							path: 'download',
-							visible: isCompletedOrderWithVirtualItems,
-						},
-						{
-							name: i18n.translate('licenses'),
-							path: 'licenses',
-							visible: isPaidApp,
-						},
-					];
-				}
+			const hasSupportDetails = product.productSpecifications.some(
+				(specification: DeliveryProductSpecification) =>
+					Object?.values(ProductSupportSpecificationKey).includes(
+						specification.specificationKey as ProductSupportSpecificationKey
+					)
+			);
 
-				return tabs;
-			}}
-		/>
-	);
-};
+			const tabs = [
+				{
+					name: i18n.translate('details'),
+					path: '',
+				},
+				{
+					name: i18n.translate('download'),
+					path: 'download',
+					visible:
+						isCompletedOrderWithVirtualItems &&
+						(marketplaceDeliveryOrder.canDownload ||
+							marketplaceDeliveryProduct.appSettings
+								.isDownloadable),
+				},
+				{
+					name: i18n.translate('app-provisioning'),
+					path: 'cloud-provisioning',
+					visible: [
+						OrderTypes.CLIENT_EXTENSION,
+						OrderTypes.CLOUD_APP,
+					].includes(
+						placedOrder.orderTypeExternalReferenceCode as OrderTypes
+					),
+				},
+				{
+					name: i18n.translate('licenses'),
+					path: 'licenses',
+					visible:
+						orderCompleted &&
+						isPaidApp &&
+						[
+							OrderTypes.COMPOSITE_APP,
+							OrderTypes.CLIENT_EXTENSION,
+							OrderTypes.DXP_APP,
+						].includes(
+							placedOrder.orderTypeExternalReferenceCode as OrderTypes
+						),
+				},
+				{
+					name: i18n.translate('support'),
+					path: 'support',
+					visible: hasSupportDetails,
+				},
+			];
+
+			return tabs;
+		}}
+	/>
+);
 
 export {BaseOutlet};
 

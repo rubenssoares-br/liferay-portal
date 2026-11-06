@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -37,6 +38,11 @@ public class RelevantTestSuite {
 
 		_relevantRuleEngine = RelevantRuleEngine.getInstance(
 			portalAcceptancePullRequestJob);
+		_testSuiteName = portalAcceptancePullRequestJob.getTestSuiteName();
+	}
+
+	public Set<JobProperty> getTestBatchNamesJobProperties() {
+		return _testBatchNamesJobProperties;
 	}
 
 	public List<TestBatch> getTestBatches(boolean validateAllRules) {
@@ -46,12 +52,19 @@ public class RelevantTestSuite {
 		String testBatchNamesPropertyValue =
 			JenkinsResultsParserUtil.getProperty(
 				JenkinsResultsParserUtil.getProperties(baseTestPropertiesFile),
-				"test.batch.names[relevant]");
+				"relevant.batch.names.whitelist", _testSuiteName);
 
 		if (testBatchNamesPropertyValue == null) {
-			throw new RuntimeException(
-				"Please set test.batch.names[relevant] in " +
-					baseTestPropertiesFile);
+			testBatchNamesPropertyValue = JenkinsResultsParserUtil.getProperty(
+				JenkinsResultsParserUtil.getProperties(baseTestPropertiesFile),
+				"test.batch.names", _testSuiteName);
+
+			if (testBatchNamesPropertyValue == null) {
+				throw new RuntimeException(
+					"Please set relevant.batch.names.whitelist or " +
+						"test.batch.names[relevant] in " +
+							baseTestPropertiesFile);
+			}
 		}
 
 		List<RelevantRule> relevantRules =
@@ -73,7 +86,7 @@ public class RelevantTestSuite {
 			throw new RuntimeException(ioException);
 		}
 
-		List<String> validTestBatchNames = Arrays.asList(
+		List<String> validTestBatchRegexes = Arrays.asList(
 			testBatchNamesPropertyValue.split(","));
 
 		List<TestBatch> testBatches = new ArrayList<>();
@@ -83,6 +96,9 @@ public class RelevantTestSuite {
 				_relevantRuleEngine.getRelevantRuleNames(relevantRules));
 
 		for (RelevantRule relevantRule : relevantRules) {
+			boolean stableRule = Objects.equals(
+				relevantRule.getName(), "stable-rule");
+
 			for (TestBatch testBatch : relevantRule.getTestBatches()) {
 				if (testBatches.contains(testBatch)) {
 					TestBatch existingTestBatch = testBatches.get(
@@ -93,10 +109,20 @@ public class RelevantTestSuite {
 					continue;
 				}
 
-				if (!validTestBatchNames.isEmpty() &&
-					validTestBatchNames.contains(testBatch.getName())) {
+				if (stableRule ||
+					isValidTestBatch(
+						validTestBatchRegexes, testBatch.getName())) {
 
 					testBatches.add(testBatch);
+				}
+				else {
+					System.out.println(
+						JenkinsResultsParserUtil.combine(
+							testBatch.getName(),
+							" is not a valid test batch in relevant. Check ",
+							"the property \"relevant.batch.names.whitelist\" ",
+							"in the base test.properties file and set the ",
+							"batch name.\n"));
 				}
 			}
 
@@ -109,8 +135,16 @@ public class RelevantTestSuite {
 		return testBatches;
 	}
 
-	public Set<JobProperty> getTestBatchNamesJobProperties() {
-		return _testBatchNamesJobProperties;
+	public Boolean isValidTestBatch(
+		List<String> validTestBatchRegexes, String testBatchName) {
+
+		for (String validTestBatchRegex : validTestBatchRegexes) {
+			if (testBatchName.matches(validTestBatchRegex)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	public void setModifiedFiles(List<File> modifiedFiles) {
@@ -122,5 +156,6 @@ public class RelevantTestSuite {
 	private final RelevantRuleEngine _relevantRuleEngine;
 	private final Set<JobProperty> _testBatchNamesJobProperties =
 		new HashSet<>();
+	private final String _testSuiteName;
 
 }

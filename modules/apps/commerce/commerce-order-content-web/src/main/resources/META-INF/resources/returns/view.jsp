@@ -26,9 +26,8 @@ long commerceChannelId = commerceReturnContentDisplayContext.getCommerceChannelI
 				fdsActionDropdownItems="<%= commerceReturnContentDisplayContext.getFDSActionDropdownItems() %>"
 				formName="fm"
 				id="<%= CommerceOrderFDSNames.RETURNS %>"
-				itemsPerPage="<%= 10 %>"
 				propsTransformer="{commerceReturnPropsTransformer} from commerce-order-content-web"
-				style="stacked"
+				style="fluid"
 			/>
 		</div>
 	</c:otherwise>

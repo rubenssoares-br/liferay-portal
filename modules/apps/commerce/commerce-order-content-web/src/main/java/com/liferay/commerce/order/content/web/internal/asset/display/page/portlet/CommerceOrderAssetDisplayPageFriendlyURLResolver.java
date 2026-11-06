@@ -18,14 +18,15 @@ import com.liferay.info.item.InfoItemReference;
 import com.liferay.layout.display.page.LayoutDisplayPageObjectProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.LayoutFriendlyURLComposite;
 import com.liferay.portal.kernel.portlet.FriendlyURLResolver;
 import com.liferay.portal.kernel.portlet.constants.FriendlyURLResolverConstants;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -69,18 +70,18 @@ public class CommerceOrderAssetDisplayPageFriendlyURLResolver
 		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider =
 			_getLayoutDisplayPageObjectProvider(commerceOrder);
 
-		if ((layoutDisplayPageObjectProvider != null) &&
-			AssetDisplayPageUtil.hasAssetDisplayPage(
+		if ((layoutDisplayPageObjectProvider == null) ||
+			!AssetDisplayPageUtil.hasAssetDisplayPage(
 				groupId, layoutDisplayPageObjectProvider.getClassNameId(),
 				layoutDisplayPageObjectProvider.getClassPK(),
 				layoutDisplayPageObjectProvider.getClassTypeId())) {
 
-			return super.getActualURL(
-				companyId, groupId, privateLayout, mainPath, friendlyURL,
-				params, requestContext);
+			return null;
 		}
 
-		return null;
+		return super.getActualURL(
+			companyId, groupId, privateLayout, mainPath, friendlyURL, params,
+			requestContext);
 	}
 
 	@Override
@@ -112,6 +113,13 @@ public class CommerceOrderAssetDisplayPageFriendlyURLResolver
 			return null;
 		}
 
+		PermissionChecker permissionChecker =
+			PermissionThreadLocal.getPermissionChecker();
+
+		if ((permissionChecker == null) || !permissionChecker.isSignedIn()) {
+			return null;
+		}
+
 		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider =
 			_getLayoutDisplayPageObjectProvider(commerceOrder);
 
@@ -133,7 +141,7 @@ public class CommerceOrderAssetDisplayPageFriendlyURLResolver
 
 	@Override
 	public boolean isURLSeparatorConfigurable() {
-		return FeatureFlagManagerUtil.isEnabled("LPD-11147");
+		return true;
 	}
 
 	private LayoutDisplayPageObjectProvider<?>
@@ -142,6 +150,7 @@ public class CommerceOrderAssetDisplayPageFriendlyURLResolver
 		LayoutDisplayPageProvider<?> layoutDisplayPageProvider =
 			layoutDisplayPageProviderRegistry.
 				getLayoutDisplayPageProviderByClassName(
+					commerceOrder.getCompanyId(),
 					CommerceOrder.class.getName());
 
 		InfoItemReference infoItemReference = new InfoItemReference(

@@ -11,12 +11,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
@@ -25,6 +31,8 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,21 +40,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("CartItem")
+@GraphQLName(
+	description = "Cart line item. Binds a purchasable SKU and a quantity to its parent cart, with unit pricing, selected options, the resolved unit-of-measure tier, an optional per-item shipping address, and any bundle children.",
+	value = "CartItem"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Cart line item. Binds a purchasable SKU and a quantity to its parent cart, with unit pricing, selected options, the resolved unit-of-measure tier, an optional per-item shipping address, and any bundle children.",
+	requiredProperties = {"skuId"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"skuId"})
 @XmlRootElement(name = "CartItem")
 public class CartItem implements Serializable {
 
@@ -58,7 +65,10 @@ public class CartItem implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(CartItem.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Pre-rendered HTML `img` tag for the SKU's adaptive media thumbnail. Read-only.",
+		example = "<img src='https://example.com/thumbnail.png' alt='Hand Saw'/>"
+	)
 	public String getAdaptiveMediaImageHTMLTag() {
 		if (_adaptiveMediaImageHTMLTagSupplier != null) {
 			adaptiveMediaImageHTMLTag =
@@ -94,14 +104,18 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Pre-rendered HTML `img` tag for the SKU's adaptive media thumbnail. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String adaptiveMediaImageHTMLTag;
 
 	@JsonIgnore
 	private Supplier<String> _adaptiveMediaImageHTMLTagSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Nested child cart items when this item is a bundle parent."
+	)
 	@Valid
 	public CartItem[] getCartItems() {
 		if (_cartItemsSupplier != null) {
@@ -136,14 +150,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Nested child cart items when this item is a bundle parent."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected CartItem[] cartItems;
 
 	@JsonIgnore
 	private Supplier<CartItem[]> _cartItemsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Custom attribute bag for the cart item. Keys are the configured custom-field names; values are typed by the custom-field definition.",
+		example = "{engravingText=For Alex, giftWrap=true}"
+	)
 	@Valid
 	public Map<String, ?> getCustomFields() {
 		if (_customFieldsSupplier != null) {
@@ -178,14 +197,20 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Custom attribute bag for the cart item. Keys are the configured custom-field names; values are typed by the custom-field definition."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, ?> customFields;
 
 	@JsonIgnore
 	private Supplier<Map<String, ?>> _customFieldsSupplier;
 
-	@Schema(deprecated = true)
+	@io.swagger.v3.oas.annotations.media.Schema(
+		deprecated = true,
+		description = "Deprecated -- use the delivery group name field instead. Retained for backward compatibility; both fields are written but only the new field is honored on create and update.",
+		example = "warehouse-east"
+	)
 	public String getDeliveryGroup() {
 		if (_deliveryGroupSupplier != null) {
 			deliveryGroup = _deliveryGroupSupplier.get();
@@ -220,14 +245,19 @@ public class CartItem implements Serializable {
 	}
 
 	@Deprecated
-	@GraphQLField
+	@GraphQLField(
+		description = "Deprecated -- use the delivery group name field instead. Retained for backward compatibility; both fields are written but only the new field is honored on create and update."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String deliveryGroup;
 
 	@JsonIgnore
 	private Supplier<String> _deliveryGroupSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Warehouse or fulfillment group name used to split shipments across origins.",
+		example = "warehouse-east"
+	)
 	public String getDeliveryGroupName() {
 		if (_deliveryGroupNameSupplier != null) {
 			deliveryGroupName = _deliveryGroupNameSupplier.get();
@@ -261,14 +291,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Warehouse or fulfillment group name used to split shipments across origins."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String deliveryGroupName;
 
 	@JsonIgnore
 	private Supplier<String> _deliveryGroupNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Validation messages collected during item-level validation -- for example, quantity outside the configured bounds.",
+		example = "[Quantity must be at least 1., SKU is no longer available.]"
+	)
 	public String[] getErrorMessages() {
 		if (_errorMessagesSupplier != null) {
 			errorMessages = _errorMessagesSupplier.get();
@@ -302,14 +337,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Validation messages collected during item-level validation -- for example, quantity outside the configured bounds."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String[] errorMessages;
 
 	@JsonIgnore
 	private Supplier<String[]> _errorMessagesSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for the cart item; unique per item within the company. Read-only on the wire and set automatically when omitted.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -343,14 +383,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for the cart item; unique per item within the company. Read-only on the wire and set automatically when omitted."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the cart item (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -382,14 +427,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the cart item (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized product display name as of the item snapshot. Read-only.",
+		example = "Hand Saw"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -421,14 +471,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized product display name as of the item snapshot. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "JSON-serialized snapshot of the buyer-selected product option values.",
+		example = "[{key:color,value:red}]"
+	)
 	public String getOptions() {
 		if (_optionsSupplier != null) {
 			options = _optionsSupplier.get();
@@ -462,14 +517,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "JSON-serialized snapshot of the buyer-selected product option values."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String options;
 
 	@JsonIgnore
 	private Supplier<String> _optionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent cart item when this row is a bundle child (FK identifier); 0 for top-level items. Read-only.",
+		example = "0"
+	)
 	public Long getParentCartItemId() {
 		if (_parentCartItemIdSupplier != null) {
 			parentCartItemId = _parentCartItemIdSupplier.get();
@@ -503,14 +563,16 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent cart item when this row is a bundle child (FK identifier); 0 for top-level items. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long parentCartItemId;
 
 	@JsonIgnore
 	private Supplier<Long> _parentCartItemIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Price getPrice() {
 		if (_priceSupplier != null) {
@@ -550,7 +612,10 @@ public class CartItem implements Serializable {
 	@JsonIgnore
 	private Supplier<Price> _priceSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the product the SKU belongs to (FK identifier).",
+		example = "10130"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -584,15 +649,18 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the product the SKU belongs to (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema(
-		example = "{en_US=product-url-us, hr_HR=product-url-hr, hu_HU=product-url-hu}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the storefront product URLs.",
+		example = "{en_US=https://example.com/products/hand-saw, hr_HR=https://example.com/hr/products/hand-saw, hu_HU=https://example.com/hu/products/hand-saw}"
 	)
 	@Valid
 	public Map<String, String> getProductURLs() {
@@ -629,14 +697,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the storefront product URLs."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, String> productURLs;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _productURLsSupplier;
 
-	@Schema(example = "10.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Ordered quantity expressed in the item's unit of measure. Validated against the item settings -- minimum, maximum, multiple, allowed quantities.",
+		example = "10.1"
+	)
 	@Valid
 	public BigDecimal getQuantity() {
 		if (_quantitySupplier != null) {
@@ -671,14 +744,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Ordered quantity expressed in the item's unit of measure. Validated against the item settings -- minimum, maximum, multiple, allowed quantities."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal quantity;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _quantitySupplier;
 
-	@Schema(example = "12341234")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Original SKU code when this line replaces another SKU after an out-of-stock substitution or similar swap. Read-only.",
+		example = "12341234"
+	)
 	public String getReplacedSku() {
 		if (_replacedSkuSupplier != null) {
 			replacedSku = _replacedSkuSupplier.get();
@@ -712,14 +790,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Original SKU code when this line replaces another SKU after an out-of-stock substitution or similar swap. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String replacedSku;
 
 	@JsonIgnore
 	private Supplier<String> _replacedSkuSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the replaced SKU. Alternative to the replaced-SKU ID.",
+		example = "AB-34098-789-N"
+	)
 	public String getReplacedSkuExternalReferenceCode() {
 		if (_replacedSkuExternalReferenceCodeSupplier != null) {
 			replacedSkuExternalReferenceCode =
@@ -758,14 +841,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the replaced SKU. Alternative to the replaced-SKU ID."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String replacedSkuExternalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _replacedSkuExternalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the SKU the original line pointed to before the replacement (FK identifier).",
+		example = "10131"
+	)
 	public Long getReplacedSkuId() {
 		if (_replacedSkuIdSupplier != null) {
 			replacedSkuId = _replacedSkuIdSupplier.get();
@@ -799,14 +887,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the SKU the original line pointed to before the replacement (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long replacedSkuId;
 
 	@JsonIgnore
 	private Supplier<Long> _replacedSkuIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Item-specific requested delivery date and time in ISO 8601. Overrides the cart-level requested delivery date and time when set.",
+		example = "2017-07-21"
+	)
 	public Date getRequestedDeliveryDate() {
 		if (_requestedDeliveryDateSupplier != null) {
 			requestedDeliveryDate = _requestedDeliveryDateSupplier.get();
@@ -840,14 +933,16 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Item-specific requested delivery date and time in ISO 8601. Overrides the cart-level requested delivery date and time when set."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date requestedDeliveryDate;
 
 	@JsonIgnore
 	private Supplier<Date> _requestedDeliveryDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Settings getSettings() {
 		if (_settingsSupplier != null) {
@@ -889,7 +984,7 @@ public class CartItem implements Serializable {
 	@JsonIgnore
 	private Supplier<Settings> _settingsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Address getShippingAddress() {
 		if (_shippingAddressSupplier != null) {
@@ -931,7 +1026,10 @@ public class CartItem implements Serializable {
 	@JsonIgnore
 	private Supplier<Address> _shippingAddressSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the address to use as the item-level shipping address.",
+		example = "AB-34098-789-N"
+	)
 	public String getShippingAddressExternalReferenceCode() {
 		if (_shippingAddressExternalReferenceCodeSupplier != null) {
 			shippingAddressExternalReferenceCode =
@@ -970,14 +1068,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the address to use as the item-level shipping address."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String shippingAddressExternalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _shippingAddressExternalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the address used as item-level shipping address (FK identifier). Overrides the cart-level shipping address for this line.",
+		example = "10131"
+	)
 	public Long getShippingAddressId() {
 		if (_shippingAddressIdSupplier != null) {
 			shippingAddressId = _shippingAddressIdSupplier.get();
@@ -1011,14 +1114,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the address used as item-level shipping address (FK identifier). Overrides the cart-level shipping address for this line."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long shippingAddressId;
 
 	@JsonIgnore
 	private Supplier<Long> _shippingAddressIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "SKU code of the purchased variant. Read-only.",
+		example = "HS-001"
+	)
 	public String getSku() {
 		if (_skuSupplier != null) {
 			sku = _skuSupplier.get();
@@ -1050,14 +1158,17 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "SKU code of the purchased variant. Read-only.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String sku;
 
 	@JsonIgnore
 	private Supplier<String> _skuSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the SKU (FK identifier). Required on create.",
+		example = "30130"
+	)
 	public Long getSkuId() {
 		if (_skuIdSupplier != null) {
 			skuId = _skuIdSupplier.get();
@@ -1089,7 +1200,9 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the SKU (FK identifier). Required on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long skuId;
@@ -1097,7 +1210,7 @@ public class CartItem implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _skuIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public SkuUnitOfMeasure getSkuUnitOfMeasure() {
 		if (_skuUnitOfMeasureSupplier != null) {
@@ -1140,7 +1253,10 @@ public class CartItem implements Serializable {
 	@JsonIgnore
 	private Supplier<SkuUnitOfMeasure> _skuUnitOfMeasureSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the SKU is configured for subscription-based delivery. Read-only.",
+		example = "true"
+	)
 	public Boolean getSubscription() {
 		if (_subscriptionSupplier != null) {
 			subscription = _subscriptionSupplier.get();
@@ -1174,14 +1290,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the SKU is configured for subscription-based delivery. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean subscription;
 
 	@JsonIgnore
 	private Supplier<Boolean> _subscriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "URL of the SKU's adaptive media thumbnail. Read-only.",
+		example = "https://example.com/thumbnail.png"
+	)
 	public String getThumbnail() {
 		if (_thumbnailSupplier != null) {
 			thumbnail = _thumbnailSupplier.get();
@@ -1215,14 +1336,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "URL of the SKU's adaptive media thumbnail. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String thumbnail;
 
 	@JsonIgnore
 	private Supplier<String> _thumbnailSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized unit-of-measure label. Read-only; derived from the resolved unit-of-measure tier name.",
+		example = "Pallet"
+	)
 	public String getUnitOfMeasure() {
 		if (_unitOfMeasureSupplier != null) {
 			unitOfMeasure = _unitOfMeasureSupplier.get();
@@ -1256,14 +1382,19 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized unit-of-measure label. Read-only; derived from the resolved unit-of-measure tier name."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String unitOfMeasure;
 
 	@JsonIgnore
 	private Supplier<String> _unitOfMeasureSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Aggregate validation flag for the item. Read-only.",
+		example = "true"
+	)
 	public Boolean getValid() {
 		if (_validSupplier != null) {
 			valid = _validSupplier.get();
@@ -1297,7 +1428,9 @@ public class CartItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Aggregate validation flag for the item. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean valid;
 
@@ -1777,8 +1910,8 @@ public class CartItem implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.cart.dto.v1_0.CartItem",
 		name = "x-class-name"
 	)
@@ -1865,6 +1998,27 @@ public class CartItem implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1873,3 +2027,4 @@ public class CartItem implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:286658979

@@ -7,9 +7,9 @@ package com.liferay.portal.security.xml;
 
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.NewEnv;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
-import com.liferay.portal.util.PropsValues;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -39,7 +39,7 @@ import org.xml.sax.helpers.DefaultHandler;
  * @author Tomas Polesovsky
  */
 @NewEnv(type = NewEnv.Type.JVM)
-@NewEnv.JVMArgsLine("-Dattached=true -Xmx11m")
+@NewEnv.JVMArgsLine("-Dattached=true -Xmx15m")
 public class SecureXMLFactoryProviderImplTest {
 
 	@ClassRule
@@ -194,14 +194,14 @@ public class SecureXMLFactoryProviderImplTest {
 						public void characters(
 							char[] ch, int start, int length) {
 
-							_contentLenght += length;
+							_contentLength += length;
 
-							if (_contentLenght > (1024 * 1024 * 10)) {
+							if (_contentLength > (1024 * 1024 * 10)) {
 								throw new OutOfMemoryError();
 							}
 						}
 
-						private int _contentLenght;
+						private int _contentLength;
 
 					});
 
@@ -264,15 +264,9 @@ public class SecureXMLFactoryProviderImplTest {
 				throw throwable;
 			}
 
-			Throwable causeThrowable = throwable;
+			Class<?> throwableClass = throwable.getClass();
 
-			while (causeThrowable.getCause() != null) {
-				causeThrowable = causeThrowable.getCause();
-			}
-
-			Class<?> causeClass = causeThrowable.getClass();
-
-			if (!causeClass.isAssignableFrom(expectedException)) {
+			if (!expectedException.isAssignableFrom(throwableClass)) {
 				throw throwable;
 			}
 		}
@@ -310,14 +304,13 @@ public class SecureXMLFactoryProviderImplTest {
 		}
 	}
 
-	private static String _xmlBombBillionLaughsXML;
-	private static String _xmlBombQuadraticBlowupXML;
-	private static String _xxeGeneralEntitiesXML1;
-	private static String _xxeGeneralEntitiesXML2;
-	private static String _xxeParameterEntitiesXML1;
-	private static String _xxeParameterEntitiesXML2;
-
 	private SecureXMLFactoryProviderImpl _secureXMLFactoryProviderImpl;
+	private String _xmlBombBillionLaughsXML;
+	private String _xmlBombQuadraticBlowupXML;
+	private String _xxeGeneralEntitiesXML1;
+	private String _xxeGeneralEntitiesXML2;
+	private String _xxeParameterEntitiesXML1;
+	private String _xxeParameterEntitiesXML2;
 
 	private abstract class XMLSecurityTest {
 

@@ -27,8 +27,10 @@ import java.util.List;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationTemplateCommerceAccountGroupRelLocalService
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 public class
 	CommerceNotificationTemplateCommerceAccountGroupRelLocalServiceUtil {
 
@@ -94,15 +96,6 @@ public class
 		throws PortalException {
 
 		return getService().createPersistedModel(primaryKeyObj);
-	}
-
-	public static void
-		deleteCNTemplateCommerceAccountGroupRelsBycommerceAccountGroupId(
-			long commerceAccountGroupId) {
-
-		getService().
-			deleteCNTemplateCommerceAccountGroupRelsBycommerceAccountGroupId(
-				commerceAccountGroupId);
 	}
 
 	public static void
@@ -394,3 +387,4 @@ public class
 					class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1225436763

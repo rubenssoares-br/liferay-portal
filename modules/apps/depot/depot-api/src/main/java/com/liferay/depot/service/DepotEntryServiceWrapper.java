@@ -29,12 +29,12 @@ public class DepotEntryServiceWrapper
 	@Override
 	public DepotEntry addDepotEntry(
 			java.util.Map<java.util.Locale, String> nameMap,
-			java.util.Map<java.util.Locale, String> descriptionMap,
+			java.util.Map<java.util.Locale, String> descriptionMap, int type,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryService.addDepotEntry(
-			nameMap, descriptionMap, serviceContext);
+			nameMap, descriptionMap, type, serviceContext);
 	}
 
 	@Override
@@ -45,12 +45,19 @@ public class DepotEntryServiceWrapper
 	}
 
 	@Override
+	public DepotEntry fetchGroupDepotEntry(long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _depotEntryService.fetchGroupDepotEntry(groupId);
+	}
+
+	@Override
 	public java.util.List<DepotEntry> getCurrentAndGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryService.getCurrentAndGroupConnectedDepotEntries(
-			groupId, start, end);
+			groupId, type, start, end);
 	}
 
 	@Override
@@ -58,6 +65,14 @@ public class DepotEntryServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryService.getDepotEntry(depotEntryId);
+	}
+
+	@Override
+	public java.util.List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type) {
+
+		return _depotEntryService.getDepotEntryGroupIds(
+			companyId, userId, type);
 	}
 
 	@Override
@@ -71,18 +86,19 @@ public class DepotEntryServiceWrapper
 
 	@Override
 	public java.util.List<DepotEntry> getGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryService.getGroupConnectedDepotEntries(
-			groupId, start, end);
+			groupId, type, start, end);
 	}
 
 	@Override
-	public int getGroupConnectedDepotEntriesCount(long groupId)
+	public int getGroupConnectedDepotEntriesCount(long groupId, int type)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		return _depotEntryService.getGroupConnectedDepotEntriesCount(groupId);
+		return _depotEntryService.getGroupConnectedDepotEntriesCount(
+			groupId, type);
 	}
 
 	@Override
@@ -107,6 +123,7 @@ public class DepotEntryServiceWrapper
 			long depotEntryId, java.util.Map<java.util.Locale, String> nameMap,
 			java.util.Map<java.util.Locale, String> descriptionMap,
 			java.util.Map<String, Boolean> depotAppCustomizationMap,
+			String friendlyURL,
 			com.liferay.portal.kernel.util.UnicodeProperties
 				typeSettingsUnicodeProperties,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
@@ -114,7 +131,7 @@ public class DepotEntryServiceWrapper
 
 		return _depotEntryService.updateDepotEntry(
 			depotEntryId, nameMap, descriptionMap, depotAppCustomizationMap,
-			typeSettingsUnicodeProperties, serviceContext);
+			friendlyURL, typeSettingsUnicodeProperties, serviceContext);
 	}
 
 	@Override
@@ -130,3 +147,4 @@ public class DepotEntryServiceWrapper
 	private DepotEntryService _depotEntryService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-598259630

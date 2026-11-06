@@ -11,35 +11,42 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.math.BigDecimal;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Settings")
+@GraphQLName(
+	description = "Inventory order-quantity settings inherited from the SKU's product-definition inventory configuration. Drives the buyer-facing quantity constraints for the line item. Read-only.",
+	value = "Settings"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Inventory order-quantity settings inherited from the SKU's product-definition inventory configuration. Drives the buyer-facing quantity constraints for the line item. Read-only."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Settings")
 public class Settings implements Serializable {
@@ -52,7 +59,10 @@ public class Settings implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Settings.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Explicit list of allowed order quantities for the SKU. Populated only when the SKU's inventory configuration declares an explicit allowed-quantities list. Read-only.",
+		example = "[1, 5, 10]"
+	)
 	@Valid
 	public BigDecimal[] getAllowedQuantities() {
 		if (_allowedQuantitiesSupplier != null) {
@@ -88,14 +98,19 @@ public class Settings implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Explicit list of allowed order quantities for the SKU. Populated only when the SKU's inventory configuration declares an explicit allowed-quantities list. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected BigDecimal[] allowedQuantities;
 
 	@JsonIgnore
 	private Supplier<BigDecimal[]> _allowedQuantitiesSupplier;
 
-	@Schema(example = "10.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum order quantity permitted for the SKU. Defaults to the product-definition inventory default when no override is set. Read-only.",
+		example = "100"
+	)
 	@Valid
 	public BigDecimal getMaxQuantity() {
 		if (_maxQuantitySupplier != null) {
@@ -130,14 +145,19 @@ public class Settings implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Maximum order quantity permitted for the SKU. Defaults to the product-definition inventory default when no override is set. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected BigDecimal maxQuantity;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _maxQuantitySupplier;
 
-	@Schema(example = "10.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Minimum order quantity permitted for the SKU. Defaults to the product-definition inventory default when no override is set. Read-only.",
+		example = "1"
+	)
 	@Valid
 	public BigDecimal getMinQuantity() {
 		if (_minQuantitySupplier != null) {
@@ -172,14 +192,19 @@ public class Settings implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Minimum order quantity permitted for the SKU. Defaults to the product-definition inventory default when no override is set. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected BigDecimal minQuantity;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _minQuantitySupplier;
 
-	@Schema(example = "10.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Quantity step the order quantity must be a multiple of. Defaults to the product-definition inventory default when no override is set. Read-only.",
+		example = "1"
+	)
 	@Valid
 	public BigDecimal getMultipleQuantity() {
 		if (_multipleQuantitySupplier != null) {
@@ -214,7 +239,9 @@ public class Settings implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Quantity step the order quantity must be a multiple of. Defaults to the product-definition inventory default when no override is set. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected BigDecimal multipleQuantity;
 
@@ -311,8 +338,8 @@ public class Settings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.order.dto.v1_0.Settings",
 		name = "x-class-name"
 	)
@@ -399,6 +426,27 @@ public class Settings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -407,3 +455,4 @@ public class Settings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:570785662

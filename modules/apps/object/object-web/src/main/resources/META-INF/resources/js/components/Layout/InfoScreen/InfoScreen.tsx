@@ -24,10 +24,11 @@ const InfoScreen: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 
 	if (
 		invalidateRequired(
-			stringUtils.getLocalizableLabel(
-				creationLanguageId as Liferay.Language.Locale,
-				objectLayout.name
-			)
+			stringUtils.getLocalizableLabel({
+				fallbackLanguageId:
+					creationLanguageId as Liferay.Language.Locale,
+				labels: objectLayout.name,
+			})
 		)
 	) {
 		error = constantsUtils.REQUIRED_MSG;
@@ -38,6 +39,7 @@ const InfoScreen: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 			<Input
 				disabled={isViewOnly}
 				error={error}
+				id="objectLayoutName"
 				label={Liferay.Language.get('name')}
 				name="name"
 				onChange={({target: {value}}) => {
@@ -47,10 +49,11 @@ const InfoScreen: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 					});
 				}}
 				required
-				value={stringUtils.getLocalizableLabel(
-					creationLanguageId as Liferay.Language.Locale,
-					objectLayout.name
-				)}
+				value={stringUtils.getLocalizableLabel({
+					fallbackLanguageId:
+						creationLanguageId as Liferay.Language.Locale,
+					labels: objectLayout.name,
+				})}
 			/>
 
 			<ClayForm.Group className="mb-0">

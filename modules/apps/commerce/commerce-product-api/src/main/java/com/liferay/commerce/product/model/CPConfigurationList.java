@@ -51,4 +51,14 @@ public interface CPConfigurationList
 
 			};
 
+	public CommerceCatalog fetchCommerceCatalog();
+
+	public CPConfigurationEntry fetchTemplateCPConfigurationEntry();
+
+	public CPConfigurationList getParentCPConfigurationList()
+		throws com.liferay.portal.kernel.exception.PortalException;
+
+	public long getTemplateCPConfigurationEntryId();
+
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2141309340

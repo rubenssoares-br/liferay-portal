@@ -9,6 +9,7 @@ import com.liferay.petra.io.StreamUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.db.index.IndexUpdaterUtil;
+import com.liferay.portal.deploy.hot.ServiceWrapperRegistry;
 import com.liferay.portal.events.EventsProcessorUtil;
 import com.liferay.portal.events.ShutdownHelperUtil;
 import com.liferay.portal.events.StartupAction;
@@ -42,6 +43,9 @@ import com.liferay.portal.kernel.plugin.PluginPackage;
 import com.liferay.portal.kernel.portlet.PortletConfigFactoryUtil;
 import com.liferay.portal.kernel.portlet.PortletInstanceFactoryUtil;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.security.fips.FIPSModeValidator;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.security.permission.ResourceActionsUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.GroupLocalServiceUtil;
@@ -60,6 +64,8 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalClassLoaderUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -87,13 +93,22 @@ import com.liferay.portal.tools.DBUpgrader;
 import com.liferay.portal.upgrade.PortalUpgradeProcess;
 import com.liferay.portal.util.MaintenanceUtil;
 import com.liferay.portal.util.PortalInstances;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.util.ShutdownUtil;
 import com.liferay.portlet.PortletBagFactory;
 import com.liferay.portlet.PortletFilterFactory;
 import com.liferay.portlet.PortletURLListenerFactory;
 import com.liferay.social.kernel.util.SocialConfigurationUtil;
+
+import jakarta.portlet.PortletConfig;
+import jakarta.portlet.PortletContext;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -107,17 +122,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
-
-import javax.portlet.PortletConfig;
-import javax.portlet.PortletContext;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -181,6 +185,10 @@ public class MainServlet extends HttpServlet {
 		}
 		catch (Exception exception) {
 			_log.error(exception);
+		}
+
+		if (_serviceWrapperRegistry != null) {
+			_serviceWrapperRegistry.close();
 		}
 	}
 
@@ -384,16 +392,17 @@ public class MainServlet extends HttpServlet {
 
 		if (DBUpgrader.isUpgradeDatabaseAutoRunEnabled()) {
 			DBUpgrader.upgradeModules();
-
-			StartupHelperUtil.setUpgrading(false);
 		}
-		else if (PropsValues.DATABASE_INDEXES_UPDATE_ON_STARTUP &&
-				 !StartupHelperUtil.isDBNew()) {
+
+		if (PropsValues.DATABASE_INDEXES_UPDATE_ON_STARTUP &&
+			!StartupHelperUtil.isDBNew()) {
 
 			IndexUpdaterUtil.updateAllIndexes();
 		}
 
 		servletContext.setAttribute(WebKeys.STARTUP_FINISHED, Boolean.TRUE);
+
+		_serviceWrapperRegistry = new ServiceWrapperRegistry();
 
 		_registerPortalInitialized();
 
@@ -451,7 +460,7 @@ public class MainServlet extends HttpServlet {
 		long companyId = PortalInstances.getCompanyId(httpServletRequest);
 
 		if (_processCompanyInactiveRequest(
-				httpServletRequest, httpServletResponse, companyId)) {
+				httpServletRequest, httpServletResponse)) {
 
 			if (_log.isDebugEnabled()) {
 				_log.debug("Processed company inactive request");
@@ -626,10 +635,11 @@ public class MainServlet extends HttpServlet {
 
 		try (Connection connection = DataAccess.getConnection()) {
 			PortalUpgradeProcess.updateBuildInfo(connection);
+			PortalUpgradeProcess.updateVersionDisplayName(connection);
 		}
 		catch (Exception exception) {
 			if (_log.isWarnEnabled()) {
-				_log.warn("Unable to update build information", exception);
+				_log.warn("Unable to update release information", exception);
 			}
 		}
 	}
@@ -657,6 +667,8 @@ public class MainServlet extends HttpServlet {
 
 			timeout = GetterUtil.getInteger(sessionTimeout, timeout);
 		}
+
+		FIPSModeValidator.validateSessionTimeout(timeout);
 
 		PropsUtil.set(PropsKeys.SESSION_TIMEOUT, String.valueOf(timeout));
 
@@ -889,8 +901,10 @@ public class MainServlet extends HttpServlet {
 				}
 
 				ActionMapping actionMapping = new ActionMapping(
-					moduleConfig, actionElement.attributeValue("forward"),
-					actionElement.attributeValue("path"), action);
+					action, actionElement.attributeValue("forward"),
+					GetterUtil.getBoolean(
+						actionElement.attributeValue("layout-required"), true),
+					moduleConfig, actionElement.attributeValue("path"));
 
 				for (Element forwardElement :
 						actionElement.elements("forward")) {
@@ -961,14 +975,31 @@ public class MainServlet extends HttpServlet {
 
 			portletBagFactory.create(portlet);
 
-			if (i == 0) {
-				_initPortletApp(portlet, servletContext);
+			if (i != 0) {
+				continue;
 			}
+
+			_initPortletApp(portlet, servletContext);
 		}
 
 		servletContext.setAttribute(WebKeys.PLUGIN_PORTLETS, portlets);
 
 		return portlets;
+	}
+
+	private boolean _isCompanyActive(HttpServletRequest httpServletRequest) {
+		try {
+			Company company = PortalUtil.getCompany(httpServletRequest, false);
+
+			if (company != null) {
+				return company.isActive();
+			}
+		}
+		catch (Exception exception) {
+			_log.error(exception);
+		}
+
+		return false;
 	}
 
 	private long _loginUser(
@@ -983,7 +1014,7 @@ public class MainServlet extends HttpServlet {
 
 		if (PropsValues.PORTAL_JAAS_ENABLE) {
 			try {
-				userId = JAASHelper.getJaasUserId(companyId, remoteUser);
+				userId = JAASHelper.getJAASUserId(companyId, remoteUser);
 			}
 			catch (Exception exception) {
 				if (_log.isWarnEnabled()) {
@@ -1039,10 +1070,10 @@ public class MainServlet extends HttpServlet {
 
 	private boolean _processCompanyInactiveRequest(
 			HttpServletRequest httpServletRequest,
-			HttpServletResponse httpServletResponse, long companyId)
+			HttpServletResponse httpServletResponse)
 		throws IOException {
 
-		if (PortalInstances.isCompanyActive(companyId)) {
+		if (_isCompanyActive(httpServletRequest)) {
 			return false;
 		}
 
@@ -1059,7 +1090,18 @@ public class MainServlet extends HttpServlet {
 	private boolean _processGroupInactiveRequest(
 			HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse)
-		throws IOException, PortalException {
+		throws IOException, PortalException, ServletException {
+
+		Object renderingMaintenanceUtilityPage =
+			httpServletRequest.getAttribute(
+				WebKeys.RENDERING_MAINTENANCE_UTILITY_PAGE);
+
+		if (renderingMaintenanceUtilityPage != null) {
+			httpServletRequest.removeAttribute(
+				WebKeys.RENDERING_MAINTENANCE_UTILITY_PAGE);
+
+			return false;
+		}
 
 		long plid = ParamUtil.getLong(httpServletRequest, "p_l_id");
 
@@ -1069,8 +1111,29 @@ public class MainServlet extends HttpServlet {
 
 		Layout layout = LayoutLocalServiceUtil.getLayout(plid);
 
-		if (GroupLocalServiceUtil.isLiveGroupActive(layout.getGroup())) {
+		Group group = layout.getGroup();
+
+		if (GroupLocalServiceUtil.isLiveGroupActive(group)) {
 			return false;
+		}
+
+		if (GroupLocalServiceUtil.isMaintenanceMode(group)) {
+			PermissionChecker permissionChecker =
+				PermissionThreadLocal.getPermissionChecker();
+
+			if ((permissionChecker != null) &&
+				permissionChecker.isGroupAdmin(group.getGroupId())) {
+
+				return false;
+			}
+
+			PortalUtil.sendError(
+				HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+				new PortalException(
+					"this-site-is-temporarily-unavailable-for-maintenance"),
+				httpServletRequest, httpServletResponse);
+
+			return true;
 		}
 
 		InactiveRequestHandler inactiveRequestHandler =
@@ -1325,5 +1388,6 @@ public class MainServlet extends HttpServlet {
 	private PortalRequestProcessor _portalRequestProcessor;
 	private final List<ServiceRegistration<?>> _serviceRegistrations =
 		new ArrayList<>();
+	private ServiceWrapperRegistry _serviceWrapperRegistry;
 
 }

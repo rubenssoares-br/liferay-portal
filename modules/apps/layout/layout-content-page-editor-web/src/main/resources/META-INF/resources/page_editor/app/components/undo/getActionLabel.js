@@ -18,6 +18,8 @@ import {
 	MOVE_ITEM,
 	MOVE_STEPPER,
 	PASTE_ITEM,
+	REMOVE_FORM_STEP,
+	SWAP_FRAGMENT,
 	SWITCH_VIEWPORT_SIZE,
 	TOGGLE_FRAGMENT_HIGHLIGHTED,
 	TOGGLE_WIDGET_HIGHLIGHTED,
@@ -30,6 +32,7 @@ import {
 	UPDATE_LANGUAGE_ID,
 	UPDATE_ROW_COLUMNS,
 	UPDATE_RULE,
+	UPDATE_RULES,
 } from '../../actions/types';
 import {UNDO_TYPES} from '../../config/constants/undoTypes';
 import {config} from '../../config/index';
@@ -52,16 +55,16 @@ export default function getActionLabel(
 						Liferay.Language.get('select-x-master-layout'),
 						config.masterLayouts.find(
 							(masterLayout) =>
-								masterLayout.masterLayoutPlid ===
-								action.nextMasterLayoutPlid
+								masterLayout.masterLayoutPageTemplateEntryERC ===
+								action.nextMasterLayoutPageTemplateEntryERC
 						).name
 					)
 				: sub(
 						Liferay.Language.get('select-x-master-layout'),
 						config.masterLayouts.find(
 							(masterLayout) =>
-								masterLayout.masterLayoutPlid ===
-								action.masterLayoutPlid
+								masterLayout.masterLayoutPageTemplateEntryERC ===
+								action.masterLayoutPageTemplateEntryERC
 						).name
 					);
 
@@ -75,6 +78,8 @@ export default function getActionLabel(
 		case MOVE_ITEM:
 		case MOVE_STEPPER:
 			return sub(Liferay.Language.get('move-x'), action.itemName);
+		case REMOVE_FORM_STEP:
+			return Liferay.Language.get('remove-step');
 		case SELECT_SEGMENTS_EXPERIENCE:
 			return type === UNDO_TYPES.undo
 				? sub(
@@ -91,6 +96,8 @@ export default function getActionLabel(
 							availableSegmentsExperiences
 						)
 					);
+		case SWAP_FRAGMENT:
+			return Liferay.Language.get('swap-fragment');
 		case SWITCH_VIEWPORT_SIZE:
 			return type === UNDO_TYPES.undo
 				? sub(
@@ -140,6 +147,8 @@ export default function getActionLabel(
 					);
 		case UPDATE_RULE:
 			return sub(Liferay.Language.get('update-x'), action.itemName);
+		case UPDATE_RULES:
+			return Liferay.Language.get('reorder-rule');
 		default:
 			return;
 	}

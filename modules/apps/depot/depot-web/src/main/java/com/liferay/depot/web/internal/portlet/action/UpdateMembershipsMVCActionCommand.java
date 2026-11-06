@@ -32,13 +32,13 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.users.admin.constants.UsersAdminPortletKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletRequest;
+
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Set;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -48,9 +48,9 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + UsersAdminPortletKeys.MY_ORGANIZATIONS,
-		"javax.portlet.name=" + UsersAdminPortletKeys.SERVICE_ACCOUNTS,
-		"javax.portlet.name=" + UsersAdminPortletKeys.USERS_ADMIN,
+		"jakarta.portlet.name=" + UsersAdminPortletKeys.MY_ORGANIZATIONS,
+		"jakarta.portlet.name=" + UsersAdminPortletKeys.SERVICE_ACCOUNTS,
+		"jakarta.portlet.name=" + UsersAdminPortletKeys.USERS_ADMIN,
 		"mvc.command.name=/depot/update_memberships"
 	},
 	service = MVCActionCommand.class
@@ -67,9 +67,9 @@ public class UpdateMembershipsMVCActionCommand extends BaseMVCActionCommand {
 
 			Contact contact = user.getContact();
 
-			Calendar birthdayCal = CalendarFactoryUtil.getCalendar();
+			Calendar calendar = CalendarFactoryUtil.getCalendar();
 
-			birthdayCal.setTime(user.getBirthday());
+			calendar.setTime(user.getBirthday());
 
 			_validateGroupIds(actionRequest);
 
@@ -86,8 +86,8 @@ public class UpdateMembershipsMVCActionCommand extends BaseMVCActionCommand {
 				user.getTimeZoneId(), user.getGreeting(), user.getComments(),
 				user.getFirstName(), user.getMiddleName(), user.getLastName(),
 				contact.getPrefixListTypeId(), contact.getSuffixListTypeId(),
-				user.isMale(), birthdayCal.get(Calendar.MONTH),
-				birthdayCal.get(Calendar.DATE), birthdayCal.get(Calendar.YEAR),
+				user.isMale(), calendar.get(Calendar.MONTH),
+				calendar.get(Calendar.DATE), calendar.get(Calendar.YEAR),
 				contact.getSmsSn(), contact.getFacebookSn(),
 				contact.getJabberSn(), contact.getSkypeSn(),
 				contact.getTwitterSn(), user.getJobTitle(),

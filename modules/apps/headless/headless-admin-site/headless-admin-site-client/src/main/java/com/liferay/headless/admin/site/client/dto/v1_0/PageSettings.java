@@ -8,11 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.PageSettingsSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -24,28 +24,6 @@ public abstract class PageSettings implements Cloneable, Serializable {
 	public static PageSettings toDTO(String json) {
 		return PageSettingsSerDes.toDTO(json);
 	}
-
-	public CustomMetaTag[] getCustomMetaTags() {
-		return customMetaTags;
-	}
-
-	public void setCustomMetaTags(CustomMetaTag[] customMetaTags) {
-		this.customMetaTags = customMetaTags;
-	}
-
-	public void setCustomMetaTags(
-		UnsafeSupplier<CustomMetaTag[], Exception>
-			customMetaTagsUnsafeSupplier) {
-
-		try {
-			customMetaTags = customMetaTagsUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected CustomMetaTag[] customMetaTags;
 
 	public Boolean getHiddenFromNavigation() {
 		return hiddenFromNavigation;
@@ -68,72 +46,50 @@ public abstract class PageSettings implements Cloneable, Serializable {
 
 	protected Boolean hiddenFromNavigation;
 
-	public NavigationMenuSettings getNavigationMenuSettings() {
-		return navigationMenuSettings;
+	public SitePageNavigationSettings getNavigationSettings() {
+		return navigationSettings;
 	}
 
-	public void setNavigationMenuSettings(
-		NavigationMenuSettings navigationMenuSettings) {
+	public void setNavigationSettings(
+		SitePageNavigationSettings navigationSettings) {
 
-		this.navigationMenuSettings = navigationMenuSettings;
+		this.navigationSettings = navigationSettings;
 	}
 
-	public void setNavigationMenuSettings(
-		UnsafeSupplier<NavigationMenuSettings, Exception>
-			navigationMenuSettingsUnsafeSupplier) {
+	public void setNavigationSettings(
+		UnsafeSupplier<SitePageNavigationSettings, Exception>
+			navigationSettingsUnsafeSupplier) {
 
 		try {
-			navigationMenuSettings = navigationMenuSettingsUnsafeSupplier.get();
+			navigationSettings = navigationSettingsUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected NavigationMenuSettings navigationMenuSettings;
+	protected SitePageNavigationSettings navigationSettings;
 
-	public OpenGraphSettings getOpenGraphSettings() {
-		return openGraphSettings;
+	public Integer getPriority() {
+		return priority;
 	}
 
-	public void setOpenGraphSettings(OpenGraphSettings openGraphSettings) {
-		this.openGraphSettings = openGraphSettings;
+	public void setPriority(Integer priority) {
+		this.priority = priority;
 	}
 
-	public void setOpenGraphSettings(
-		UnsafeSupplier<OpenGraphSettings, Exception>
-			openGraphSettingsUnsafeSupplier) {
+	public void setPriority(
+		UnsafeSupplier<Integer, Exception> priorityUnsafeSupplier) {
 
 		try {
-			openGraphSettings = openGraphSettingsUnsafeSupplier.get();
+			priority = priorityUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected OpenGraphSettings openGraphSettings;
-
-	public SEOSettings getSeoSettings() {
-		return seoSettings;
-	}
-
-	public void setSeoSettings(SEOSettings seoSettings) {
-		this.seoSettings = seoSettings;
-	}
-
-	public void setSeoSettings(
-		UnsafeSupplier<SEOSettings, Exception> seoSettingsUnsafeSupplier) {
-
-		try {
-			seoSettings = seoSettingsUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected SEOSettings seoSettings;
+	protected Integer priority;
 
 	public Type getType() {
 		return type;
@@ -195,8 +151,11 @@ public abstract class PageSettings implements Cloneable, Serializable {
 
 	public static enum Type {
 
-		COLLECTION_PAGE_SETTINGS("CollectionPageSettings"),
 		CONTENT_PAGE_SETTINGS("ContentPageSettings"),
+		EMBEDDED_PAGE_SETTINGS("EmbeddedPageSettings"),
+		LINK_TO_PAGE_PAGE_SETTINGS("LinkToPagePageSettings"),
+		LINK_TO_URL_PAGE_SETTINGS("LinkToURLPageSettings"),
+		PAGE_SET_PAGE_SETTINGS("PageSetPageSettings"),
 		WIDGET_PAGE_SETTINGS("WidgetPageSettings");
 
 		public static Type create(String value) {
@@ -229,3 +188,4 @@ public abstract class PageSettings implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:862436985

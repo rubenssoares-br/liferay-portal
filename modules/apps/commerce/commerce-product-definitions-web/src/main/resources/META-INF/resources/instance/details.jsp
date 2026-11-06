@@ -41,6 +41,7 @@ boolean discontinued = BeanParamUtil.getBoolean(cpInstance, request, "discontinu
 		<liferay-ui:message arguments="<%= CommercePriceConstants.PRICE_VALUE_MAX %>" key="price-max-value-is-x" />
 	</liferay-ui:error>
 
+	<liferay-ui:error exception="<%= CPInstancePriceException.class %>" message="please-enter-a-valid-price" />
 	<liferay-ui:error exception="<%= CPInstanceReplacementCPInstanceUuidException.class %>" message="please-enter-a-valid-replacement" />
 	<liferay-ui:error exception="<%= CPInstanceSkuException.class %>" message="please-enter-a-valid-sku" />
 	<liferay-ui:error exception="<%= DuplicateCPInstanceException.class %>" message="there-is-already-one-sku-with-the-external-reference-code" />
@@ -153,7 +154,7 @@ boolean discontinued = BeanParamUtil.getBoolean(cpInstance, request, "discontinu
 	</c:if>
 
 	<commerce-ui:panel
-		title='<%= LanguageUtil.get(request, "schedule") %>'
+		title='<%= LanguageUtil.get(request, "schedule[noun]") %>'
 	>
 		<aui:input bean="<%= cpInstance %>" model="<%= CPInstance.class %>" name="published" />
 

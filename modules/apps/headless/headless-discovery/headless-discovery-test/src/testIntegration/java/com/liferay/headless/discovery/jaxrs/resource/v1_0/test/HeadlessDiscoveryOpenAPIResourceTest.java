@@ -12,12 +12,13 @@ import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
 import com.liferay.portal.kernel.json.JSONObject;
-import com.liferay.portal.kernel.test.TestInfo;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.DataGuard;
 import com.liferay.portal.kernel.test.util.HTTPTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.Http;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
@@ -31,7 +32,6 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,9 +56,7 @@ public class HeadlessDiscoveryOpenAPIResourceTest {
 			ObjectDefinitionConstants.SCOPE_SITE);
 	}
 
-	@Ignore
 	@Test
-	@TestInfo("LPD-33459")
 	public void testGetGlobalOpenAPI() throws Exception {
 		List<String> globalOpenAPIPaths = _getPaths(
 			HTTPTestUtil.invokeToJSONObject(
@@ -92,7 +90,9 @@ public class HeadlessDiscoveryOpenAPIResourceTest {
 
 	private String _getOpenAPISubpath(String openAPIPath) {
 		String openAPISubpath = StringUtil.removeFirst(
-			openAPIPath, "http://localhost:8080/o/");
+			openAPIPath,
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/");
 
 		return StringUtil.replaceLast(openAPISubpath, ".yaml", ".json");
 	}
@@ -110,16 +110,19 @@ public class HeadlessDiscoveryOpenAPIResourceTest {
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.addCustomObjectDefinition(
-				TestPropsValues.getUserId(), 0, null, false, true, false, false,
+				null, TestPropsValues.getUserId(), 0, null, null, true, false,
+				true, false, true, false, false, false, false, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				ObjectDefinitionTestUtil.getRandomName(), null, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				true, scope, ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
 				Collections.singletonList(
 					ObjectFieldUtil.createObjectField(
 						"Text", "String", true, true, null,
 						RandomTestUtil.randomString(),
-						"x" + RandomTestUtil.randomString(), false)));
+						"x" + RandomTestUtil.randomString(), false)),
+				Collections.emptyList(), new ServiceContext());
 
 		return _objectDefinitionLocalService.publishCustomObjectDefinition(
 			TestPropsValues.getUserId(),

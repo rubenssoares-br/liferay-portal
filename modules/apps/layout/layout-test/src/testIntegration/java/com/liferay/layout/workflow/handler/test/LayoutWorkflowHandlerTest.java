@@ -22,7 +22,6 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Company;
@@ -52,7 +51,7 @@ import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
-import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
@@ -66,11 +65,11 @@ import com.liferay.portal.search.test.util.IndexerFixture;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.portal.util.PropsValues;
-import com.liferay.segments.constants.SegmentsEntryConstants;
 import com.liferay.segments.model.SegmentsExperience;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 import com.liferay.segments.test.util.SegmentsTestUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.Serializable;
 
@@ -80,8 +79,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -254,8 +251,7 @@ public class LayoutWorkflowHandlerTest {
 		String content = document.get(
 			Field.getLocalizedName(locale, Field.CONTENT));
 
-		Assert.assertTrue(
-			content, StringUtil.contains(content, keywords, StringPool.BLANK));
+		Assert.assertTrue(content, content.contains(keywords));
 
 		Assert.assertEquals(
 			document.get(Field.ENTRY_CLASS_PK),
@@ -275,20 +271,17 @@ public class LayoutWorkflowHandlerTest {
 		String languageId = LocaleUtil.toLanguageId(
 			_portal.getSiteDefaultLocale(_group));
 
-		long defaultSegmentsExperienceId =
-			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				layout.getPlid());
-
 		String defaultExperienceHeadingText = RandomTestUtil.randomString();
 
 		_addHeadingFragmentToLayout(
-			draftLayout, languageId, defaultSegmentsExperienceId,
+			draftLayout, languageId,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()),
 			defaultExperienceHeadingText);
 
 		SegmentsExperience segmentsExperience1 =
 			SegmentsTestUtil.addSegmentsExperience(
-				_group.getGroupId(), SegmentsEntryConstants.ID_DEFAULT,
-				layout.getPlid());
+				_group.getGroupId(), null, null, draftLayout.getPlid());
 
 		String experience1HeadingText = RandomTestUtil.randomString();
 
@@ -299,8 +292,7 @@ public class LayoutWorkflowHandlerTest {
 
 		SegmentsExperience segmentsExperience2 =
 			SegmentsTestUtil.addSegmentsExperience(
-				_group.getGroupId(), SegmentsEntryConstants.ID_DEFAULT,
-				layout.getPlid());
+				_group.getGroupId(), null, null, draftLayout.getPlid());
 
 		String experience2HeadingText = RandomTestUtil.randomString();
 
@@ -329,12 +321,26 @@ public class LayoutWorkflowHandlerTest {
 					_group.getGroupId(), layout.getPlid());
 
 		_assertSegmentExperienceFragmentEntryLink(
-			languageId, defaultSegmentsExperienceId,
+			languageId,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				layout.getPlid()),
 			defaultExperienceHeadingText, layoutPageTemplateStructure);
+
+		segmentsExperience1 =
+			_segmentsExperienceLocalService.fetchSegmentsExperience(
+				segmentsExperience1.getGroupId(),
+				segmentsExperience1.getSegmentsExperienceKey(),
+				layout.getPlid());
 
 		_assertSegmentExperienceFragmentEntryLink(
 			languageId, segmentsExperience1.getSegmentsExperienceId(),
 			experience1HeadingText, layoutPageTemplateStructure);
+
+		segmentsExperience2 =
+			_segmentsExperienceLocalService.fetchSegmentsExperience(
+				segmentsExperience2.getGroupId(),
+				segmentsExperience2.getSegmentsExperienceKey(),
+				layout.getPlid());
 
 		_assertSegmentExperienceFragmentEntryLink(
 			languageId, segmentsExperience2.getSegmentsExperienceId(),
@@ -354,20 +360,17 @@ public class LayoutWorkflowHandlerTest {
 		String languageId = LocaleUtil.toLanguageId(
 			_portal.getSiteDefaultLocale(_group));
 
-		long defaultSegmentsExperienceId =
-			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				layout.getPlid());
-
 		String defaultExperienceHeadingText = RandomTestUtil.randomString();
 
 		_addHeadingFragmentToLayout(
-			draftLayout, languageId, defaultSegmentsExperienceId,
+			draftLayout, languageId,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()),
 			defaultExperienceHeadingText);
 
 		SegmentsExperience segmentsExperience1 =
 			SegmentsTestUtil.addSegmentsExperience(
-				_group.getGroupId(), SegmentsEntryConstants.ID_DEFAULT,
-				layout.getPlid());
+				_group.getGroupId(), null, null, draftLayout.getPlid());
 
 		String experience1HeadingText = RandomTestUtil.randomString();
 
@@ -378,8 +381,7 @@ public class LayoutWorkflowHandlerTest {
 
 		SegmentsExperience segmentsExperience2 =
 			SegmentsTestUtil.addSegmentsExperience(
-				_group.getGroupId(), SegmentsEntryConstants.ID_DEFAULT,
-				layout.getPlid());
+				_group.getGroupId(), null, null, draftLayout.getPlid());
 
 		String experience2HeadingText = RandomTestUtil.randomString();
 
@@ -417,12 +419,26 @@ public class LayoutWorkflowHandlerTest {
 					_group.getGroupId(), layout.getPlid());
 
 		_assertSegmentExperienceFragmentEntryLink(
-			languageId, defaultSegmentsExperienceId,
+			languageId,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				layout.getPlid()),
 			defaultExperienceHeadingText, layoutPageTemplateStructure);
+
+		segmentsExperience1 =
+			_segmentsExperienceLocalService.fetchSegmentsExperience(
+				segmentsExperience1.getGroupId(),
+				segmentsExperience1.getSegmentsExperienceKey(),
+				layout.getPlid());
 
 		_assertSegmentExperienceFragmentEntryLink(
 			languageId, segmentsExperience1.getSegmentsExperienceId(),
 			experience1HeadingText, layoutPageTemplateStructure);
+
+		segmentsExperience2 =
+			_segmentsExperienceLocalService.fetchSegmentsExperience(
+				segmentsExperience2.getGroupId(),
+				segmentsExperience2.getSegmentsExperienceKey(),
+				layout.getPlid());
 
 		_assertSegmentExperienceFragmentEntryLink(
 			languageId, segmentsExperience2.getSegmentsExperienceId(),
@@ -509,9 +525,10 @@ public class LayoutWorkflowHandlerTest {
 				JSONUtil.put("headingLevel", "h1")
 			).toString(),
 			fragmentEntry.getCss(), fragmentEntry.getConfiguration(),
-			fragmentEntry.getFragmentEntryId(), fragmentEntry.getHtml(),
-			fragmentEntry.getJs(), layout, fragmentEntry.getFragmentEntryKey(),
-			fragmentEntry.getType(), null, 0, segmentsExperienceId);
+			fragmentEntry.getExternalReferenceCode(), null,
+			fragmentEntry.getHtml(), fragmentEntry.getJs(), layout,
+			fragmentEntry.getFragmentEntryKey(), fragmentEntry.getType(), null,
+			0, segmentsExperienceId);
 	}
 
 	private void _approveUserWorkflowTasks() throws PortalException {
@@ -599,8 +616,7 @@ public class LayoutWorkflowHandlerTest {
 
 		Assert.assertNotNull(fragmentEntryLink);
 
-		JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
-			fragmentEntryLink.getEditableValues());
+		JSONObject jsonObject = fragmentEntryLink.getEditableValuesJSONObject();
 
 		JSONObject editableJSONObject = jsonObject.getJSONObject(
 			FragmentEntryProcessorConstants.
@@ -622,7 +638,7 @@ public class LayoutWorkflowHandlerTest {
 			new MockHttpServletRequest();
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletRenderResponse());
 
 		Company company = _companyLocalService.getCompany(

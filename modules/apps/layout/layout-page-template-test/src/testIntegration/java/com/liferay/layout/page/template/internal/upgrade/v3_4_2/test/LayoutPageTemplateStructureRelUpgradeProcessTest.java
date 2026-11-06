@@ -663,8 +663,8 @@ public class LayoutPageTemplateStructureRelUpgradeProcessTest
 	protected CTModel<?> addCTModel() throws Exception {
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, 0, 0,
-				RandomTestUtil.randomString(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, null,
+				0, null, RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0,
 				0, 0, WorkflowConstants.STATUS_APPROVED, new ServiceContext());
 
@@ -826,24 +826,26 @@ public class LayoutPageTemplateStructureRelUpgradeProcessTest
 
 		Layout draftLayout = layout.fetchDraftLayout();
 
-		long segmentsExperienceId =
-			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				layout.getPlid());
-
 		String draftLayoutItemId = _addFragmentStyledLayoutStructureItem(
 			configurationJSONObject, editableValuesJSONObject, draftLayout, map,
-			segmentsExperienceId);
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()));
 
 		String layoutItemId = _addFragmentStyledLayoutStructureItem(
 			configurationJSONObject, editableValuesJSONObject, layout, map,
-			segmentsExperienceId);
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				layout.getPlid()));
 
 		_runUpgrade();
 
 		_assertItemConfigJSONObject(
-			expectedMap, draftLayoutItemId, draftLayout, segmentsExperienceId);
+			expectedMap, draftLayoutItemId, draftLayout,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()));
 		_assertItemConfigJSONObject(
-			expectedMap, layoutItemId, layout, segmentsExperienceId);
+			expectedMap, layoutItemId, layout,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				layout.getPlid()));
 	}
 
 	private void _assertUpgradeWithViewportConfigurationSize(
@@ -861,22 +863,26 @@ public class LayoutPageTemplateStructureRelUpgradeProcessTest
 
 		Layout draftLayout = layout.fetchDraftLayout();
 
-		long segmentsExperienceId =
-			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				layout.getPlid());
-
 		String draftLayoutItemId = _addColumnLayoutStructureItem(
-			draftLayout, map, segmentsExperienceId);
+			draftLayout, map,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()));
 
 		String layoutItemId = _addColumnLayoutStructureItem(
-			layout, map, segmentsExperienceId);
+			layout, map,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				layout.getPlid()));
 
 		_runUpgrade();
 
 		_assertViewportSizeConfiguration(
-			expectedMap, draftLayoutItemId, draftLayout, segmentsExperienceId);
+			expectedMap, draftLayoutItemId, draftLayout,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid()));
 		_assertViewportSizeConfiguration(
-			expectedMap, layoutItemId, layout, segmentsExperienceId);
+			expectedMap, layoutItemId, layout,
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				layout.getPlid()));
 	}
 
 	private void _assertViewportSizeConfiguration(
@@ -969,11 +975,6 @@ public class LayoutPageTemplateStructureRelUpgradeProcessTest
 		"com.liferay.layout.page.template.internal.upgrade.v3_4_2." +
 			"LayoutPageTemplateStructureRelUpgradeProcess";
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.layout.page.template.internal.upgrade.registry.LayoutPageTemplateServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private FragmentEntryLinkLocalService _fragmentEntryLinkLocalService;
 
@@ -1003,5 +1004,10 @@ public class LayoutPageTemplateStructureRelUpgradeProcessTest
 
 	@Inject
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.layout.page.template.internal.upgrade.registry.LayoutPageTemplateServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

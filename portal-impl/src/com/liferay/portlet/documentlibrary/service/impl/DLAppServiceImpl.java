@@ -30,16 +30,18 @@ import com.liferay.document.library.kernel.util.comparator.FolderNameComparator;
 import com.liferay.document.library.kernel.util.comparator.RepositoryModelModifiedDateComparator;
 import com.liferay.document.library.kernel.util.comparator.RepositoryModelTitleComparator;
 import com.liferay.petra.function.UnsafeRunnable;
+import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.bean.BeanReference;
 import com.liferay.portal.kernel.cache.thread.local.ThreadLocalCachable;
 import com.liferay.portal.kernel.change.tracking.CTAware;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.NoSuchGroupException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
-import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.portal.kernel.lock.Lock;
 import com.liferay.portal.kernel.lock.LockManagerUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -60,6 +62,7 @@ import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.SearchException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermissionRegistryUtil;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermissionUtil;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
@@ -67,7 +70,7 @@ import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.persistence.RepositoryPersistence;
 import com.liferay.portal.kernel.transaction.Propagation;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ContentTypes;
@@ -558,15 +561,21 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 
 		FileEntry fileEntry = repository.getFileEntry(fileEntryId);
 
-		FileVersion draftFileVersion = repository.cancelCheckOut(fileEntryId);
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileEntry.getCtCollectionId())) {
 
-		ServiceContext serviceContext = new ServiceContext();
+			FileVersion draftFileVersion = repository.cancelCheckOut(
+				fileEntryId);
 
-		serviceContext.setWorkflowAction(WorkflowConstants.ACTION_PUBLISH);
+			ServiceContext serviceContext = new ServiceContext();
 
-		_dlAppHelperLocalService.cancelCheckOut(
-			getUserId(), fileEntry, null, fileEntry.getFileVersion(),
-			draftFileVersion, serviceContext);
+			serviceContext.setWorkflowAction(WorkflowConstants.ACTION_PUBLISH);
+
+			_dlAppHelperLocalService.cancelCheckOut(
+				getUserId(), fileEntry, null, fileEntry.getFileVersion(),
+				draftFileVersion, serviceContext);
+		}
 	}
 
 	/**
@@ -689,10 +698,15 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		FileEntry fileEntry = repository.checkOutFileEntry(
 			fileEntryId, serviceContext);
 
-		FileVersion fileVersion = fileEntry.getLatestFileVersion();
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileEntry.getCtCollectionId())) {
 
-		_dlAppHelperLocalService.updateFileEntry(
-			getUserId(), fileEntry, null, fileVersion, fileEntryId);
+			FileVersion fileVersion = fileEntry.getLatestFileVersion();
+
+			_dlAppHelperLocalService.updateFileEntry(
+				getUserId(), fileEntry, null, fileVersion, fileEntryId);
+		}
 	}
 
 	/**
@@ -733,10 +747,15 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		FileEntry fileEntry = repository.checkOutFileEntry(
 			fileEntryId, owner, expirationTime, serviceContext);
 
-		FileVersion fileVersion = fileEntry.getLatestFileVersion();
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileEntry.getCtCollectionId())) {
 
-		_dlAppHelperLocalService.updateFileEntry(
-			getUserId(), fileEntry, null, fileVersion, fileEntryId);
+			FileVersion fileVersion = fileEntry.getLatestFileVersion();
+
+			_dlAppHelperLocalService.updateFileEntry(
+				getUserId(), fileEntry, null, fileVersion, fileEntryId);
+		}
 
 		return fileEntry;
 	}
@@ -748,13 +767,21 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 			ServiceContext serviceContext)
 		throws PortalException {
 
+		ModelResourcePermission<FileEntry> fileEntryModelResourcePermission =
+			ModelResourcePermissionRegistryUtil.getModelResourcePermission(
+				FileEntry.class.getName());
+
 		Repository sourceRepository =
 			RepositoryProviderUtil.getFileEntryRepository(fileEntryId);
 
+		FileEntry sourceFileEntry = sourceRepository.getFileEntry(fileEntryId);
+
+		fileEntryModelResourcePermission.check(
+			getPermissionChecker(), sourceFileEntry, ActionKeys.DOWNLOAD);
+
 		return copyFileEntry(
-			getRepository(destinationRepositoryId),
-			sourceRepository.getFileEntry(fileEntryId), destinationFolderId,
-			fileEntryTypeId, groupIds, serviceContext);
+			getRepository(destinationRepositoryId), sourceFileEntry,
+			destinationFolderId, fileEntryTypeId, groupIds, serviceContext);
 	}
 
 	@Override
@@ -1023,6 +1050,87 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 
 		TempFileEntryUtil.deleteTempFileEntry(
 			groupId, getUserId(), folderName, fileName);
+	}
+
+	@Override
+	public FileEntry fetchFileEntry(long fileEntryId) throws PortalException {
+		try {
+			return getFileEntry(fileEntryId);
+		}
+		catch (NoSuchFileEntryException noSuchFileEntryException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(noSuchFileEntryException);
+			}
+
+			return null;
+		}
+	}
+
+	@Override
+	public FileEntry fetchFileEntry(long groupId, long folderId, String title)
+		throws PortalException {
+
+		try {
+			return getFileEntry(groupId, folderId, title);
+		}
+		catch (NoSuchFileEntryException noSuchFileEntryException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(noSuchFileEntryException);
+			}
+
+			return null;
+		}
+	}
+
+	@Override
+	public FileEntry fetchFileEntryByExternalReferenceCode(
+			String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		try {
+			return getFileEntryByExternalReferenceCode(
+				externalReferenceCode, groupId);
+		}
+		catch (NoSuchFileEntryException noSuchFileEntryException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(noSuchFileEntryException);
+			}
+
+			return null;
+		}
+	}
+
+	@Override
+	public FileEntry fetchFileEntryByFileName(
+			long groupId, long folderId, String fileName)
+		throws PortalException {
+
+		try {
+			return getFileEntryByFileName(groupId, folderId, fileName);
+		}
+		catch (NoSuchFileEntryException noSuchFileEntryException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(noSuchFileEntryException);
+			}
+
+			return null;
+		}
+	}
+
+	@Override
+	public FileEntry fetchFileEntryByUuidAndGroupId(String uuid, long groupId)
+		throws PortalException {
+
+		try {
+			return getFileEntryByUuidAndGroupId(uuid, groupId);
+		}
+		catch (NoSuchFileEntryException noSuchFileEntryException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(noSuchFileEntryException);
+			}
+
+			return null;
+		}
 	}
 
 	/**
@@ -2679,6 +2787,19 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		}
 	}
 
+	@Override
+	public void subscribeFileEntry(long groupId, long fileEntryId)
+		throws PortalException {
+
+		PortletResourcePermission portletResourcePermission =
+			DLPortletResourcePermissionUtil.getPortletResourcePermission();
+
+		portletResourcePermission.check(
+			getPermissionChecker(), groupId, ActionKeys.SUBSCRIBE);
+
+		dlAppLocalService.subscribeFileEntry(getUserId(), groupId, fileEntryId);
+	}
+
 	/**
 	 * Subscribe the user to changes in documents of the file entry type. This
 	 * method is only supported by the Liferay repository.
@@ -2756,6 +2877,20 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		Repository repository = getRepository(repositoryId);
 
 		repository.unlockFolder(parentFolderId, name, lockUuid);
+	}
+
+	@Override
+	public void unsubscribeFileEntry(long groupId, long fileEntryId)
+		throws PortalException {
+
+		PortletResourcePermission portletResourcePermission =
+			DLPortletResourcePermissionUtil.getPortletResourcePermission();
+
+		portletResourcePermission.check(
+			getPermissionChecker(), groupId, ActionKeys.SUBSCRIBE);
+
+		dlAppLocalService.unsubscribeFileEntry(
+			getUserId(), groupId, fileEntryId);
 	}
 
 	/**
@@ -3239,7 +3374,7 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		FileVersion latestFileVersion = fileVersions.get(
 			fileVersions.size() - 1);
 
-		String sourceFileName = DLAppUtil.getSourceFileName(latestFileVersion);
+		String sourceFileName = latestFileVersion.getFileName();
 
 		DLValidatorUtil.validateFileSize(
 			toRepository.getRepositoryId(), sourceFileName,
@@ -3273,7 +3408,7 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		for (int i = fileVersions.size() - 2; i >= 0; i--) {
 			FileVersion fileVersion = fileVersions.get(i);
 
-			sourceFileName = DLAppUtil.getSourceFileName(fileVersion);
+			sourceFileName = fileVersion.getFileName();
 
 			FileVersion previousFileVersion = fileVersions.get(i + 1);
 
@@ -3430,7 +3565,7 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 			sourceFolder.getRepositoryId(), sourceFolder.getFolderId(),
 			targetFolder.getRepositoryId(), targetFolder.getFolderId());
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				for (FileEntry fileEntry : fileEntries) {
 					DLProcessorHelperUtil.trigger(fileEntry, null);
@@ -3648,11 +3783,13 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		Set<Long> allowedAssetCategoryIds = new HashSet<>();
 
 		for (long assetCategoryId : assetCategoryIds) {
-			if (_isAssetCategoryIdAllowed(
+			if (!_isAssetCategoryIdAllowed(
 					assetCategoryId, repositoryId, groupIds)) {
 
-				allowedAssetCategoryIds.add(assetCategoryId);
+				continue;
 			}
+
+			allowedAssetCategoryIds.add(assetCategoryId);
 		}
 
 		return ArrayUtil.toLongArray(allowedAssetCategoryIds);
@@ -3671,9 +3808,11 @@ public class DLAppServiceImpl extends DLAppServiceBaseImpl {
 		Set<String> allowedAssetTagNames = new HashSet<>();
 
 		for (String assetTagName : assetTagNames) {
-			if (_isAssetTagNameAllowed(groupIds, assetTagName)) {
-				allowedAssetTagNames.add(assetTagName);
+			if (!_isAssetTagNameAllowed(groupIds, assetTagName)) {
+				continue;
 			}
+
+			allowedAssetTagNames.add(assetTagName);
 		}
 
 		return ArrayUtil.toStringArray(allowedAssetTagNames);

@@ -55,7 +55,7 @@ public interface FragmentCollectionService extends BaseService {
 	public FragmentCollection addFragmentCollection(
 			String externalReferenceCode, long groupId,
 			String fragmentCollectionKey, String name, String description,
-			ServiceContext serviceContext)
+			boolean marketplace, ServiceContext serviceContext)
 		throws PortalException;
 
 	public FragmentCollection deleteFragmentCollection(
@@ -74,6 +74,35 @@ public interface FragmentCollectionService extends BaseService {
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<FragmentCollection> getExportableFragmentCollections(
+		long[] fragmentCollectionIds);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<FragmentCollection> getExportableFragmentCollectionsByGroupId(
+		long[] groupIds, int start, int end,
+		OrderByComparator<FragmentCollection> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<FragmentCollection> getExportableFragmentCollectionsByGroupId(
+		long[] groupIds, String name, int start, int end,
+		OrderByComparator<FragmentCollection> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getExportableFragmentCollectionsCount(
+		long[] fragmentCollectionIds);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getExportableFragmentCollectionsCountByGroupId(long[] groupIds);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getExportableFragmentCollectionsCountByGroupId(
+		long[] groupIds, String name);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public FragmentCollection getFragmentCollection(long fragmentCollectionId)
+		throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public FragmentCollection getFragmentCollectionByExternalReferenceCode(
 			String externalReferenceCode, long groupId)
 		throws PortalException;
@@ -84,7 +113,8 @@ public interface FragmentCollectionService extends BaseService {
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<FragmentCollection> getFragmentCollections(long groupId);
+	public List<FragmentCollection> getFragmentCollections(long groupId)
+		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<FragmentCollection> getFragmentCollections(
@@ -119,7 +149,17 @@ public interface FragmentCollectionService extends BaseService {
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<FragmentCollection> getFragmentCollections(
+		long[] groupIds, boolean marketplace, int start, int end,
+		OrderByComparator<FragmentCollection> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<FragmentCollection> getFragmentCollections(
 		long[] groupIds, int start, int end,
+		OrderByComparator<FragmentCollection> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<FragmentCollection> getFragmentCollections(
+		long[] groupIds, String name, boolean marketplace, int start, int end,
 		OrderByComparator<FragmentCollection> orderByComparator);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -144,7 +184,15 @@ public interface FragmentCollectionService extends BaseService {
 	public int getFragmentCollectionsCount(long[] groupIds);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getFragmentCollectionsCount(
+		long[] groupIds, boolean marketplace);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getFragmentCollectionsCount(long[] groupIds, String name);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getFragmentCollectionsCount(
+		long[] groupIds, String name, boolean marketplace);
 
 	/**
 	 * Returns the OSGi service identifier.
@@ -162,3 +210,4 @@ public interface FragmentCollectionService extends BaseService {
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1181115310

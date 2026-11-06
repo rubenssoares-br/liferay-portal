@@ -76,11 +76,10 @@ export function ModalEditObjectFolder({
 				message: sub(
 					Liferay.Language.get('x-was-saved-successfully'),
 					`<strong>${Liferay.Util.escapeHTML(
-						stringUtils.getLocalizableLabel(
-							defaultLanguageId,
-							objectFolder.label,
-							objectFolder.name
-						)
+						stringUtils.getLocalizableLabel({
+							fallbackLabel: objectFolder.name,
+							labels: objectFolder.label,
+						})
 					)}</strong>`
 				),
 				type: 'success',
@@ -119,7 +118,9 @@ export function ModalEditObjectFolder({
 		<ClayModalProvider>
 			<ClayModal center observer={observer}>
 				<ClayForm onSubmit={handleSubmit}>
-					<ClayModal.Header>
+					<ClayModal.Header
+						closeButtonAriaLabel={Liferay.Language.get('close')}
+					>
 						{Liferay.Language.get('edit-label-and-erc')}
 					</ClayModal.Header>
 

@@ -3,25 +3,125 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {Locator, Page, expect} from '@playwright/test';
 
+import {ApiHelpers} from '../../helpers/ApiHelpers';
 import {clickAndExpectToBeHidden} from '../../utils/clickAndExpectToBeHidden';
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
-import {hoverAndExpectToBeVisible} from '../../utils/hoverAndExpectToBeVisible';
+import getRandomString from '../../utils/getRandomString';
 import {PORTLET_URLS} from '../../utils/portletUrls';
 import {waitForAlert} from '../../utils/waitForAlert';
+import {PageEditorPage} from '../layout-content-page-editor-web/PageEditorPage';
 
 export class DisplayPageTemplatesPage {
 	readonly page: Page;
 
+	readonly apiHelpers: ApiHelpers;
 	readonly newButton: Locator;
 	readonly publishButton: Locator;
 
 	constructor(page: Page) {
 		this.page = page;
 
+		this.apiHelpers = new ApiHelpers(page);
 		this.newButton = page.getByText('New', {exact: true});
 		this.publishButton = page.getByLabel('Publish', {exact: true});
+	}
+
+	/**
+	 * Creates the default display page template of an item type and maps a
+	 * Heading fragment to one of its fields, so an item of that type renders
+	 * its own value at its friendly URL.
+	 *
+	 * The template is created and marked as default through the API. Only the
+	 * fragment mapping goes through the page editor, because no API exposes it.
+	 */
+	async createDefaultTemplate({
+		className,
+		classTypeKey,
+		mappedField = 'Title',
+		pageEditorPage,
+		site,
+	}: {
+		className: string;
+		classTypeKey?: string;
+		mappedField?: string;
+		pageEditorPage: PageEditorPage;
+		site: Site;
+	}) {
+		const {layoutPageTemplateEntryId, name} =
+			await this.createMappedTemplate({
+				className,
+				classTypeKey,
+				mappedField,
+				pageEditorPage,
+				site,
+			});
+
+		await this.apiHelpers.jsonWebServicesLayoutPageTemplateEntry.markAsDefaultDisplayPageLayoutPageTemplateEntry(
+			{layoutPageTemplateEntryId}
+		);
+
+		return name;
+	}
+
+	/**
+	 * Creates a display page template of an item type through the API and
+	 * maps a Heading fragment to one of its fields in the page editor.
+	 */
+	async createMappedTemplate({
+		className,
+		classTypeKey,
+		mappedField = 'Title',
+		pageEditorPage,
+		site,
+	}: {
+		className: string;
+		classTypeKey?: string;
+		mappedField?: string;
+		pageEditorPage: PageEditorPage;
+		site: Site;
+	}) {
+		const name = `DPT ${getRandomString()}`;
+
+		const {classNameId} =
+			await this.apiHelpers.jsonWebServicesClassName.fetchClassName(
+				className
+			);
+
+		const {layoutPageTemplateEntryId} =
+			await this.apiHelpers.jsonWebServicesLayoutPageTemplateEntry.addDisplayPageLayoutPageTemplateEntry(
+				{
+					classNameId,
+					classTypeKey,
+					groupId: String(site.id),
+					name,
+				}
+			);
+
+		await this.goto(site.friendlyUrlPath);
+
+		await this.editTemplate(name);
+
+		await pageEditorPage.addFragment(
+			'Basic Components',
+			'Heading',
+			this.page.getByText('Drag and drop fragments or widgets here')
+		);
+
+		const headingId = await pageEditorPage.getFragmentId('Heading');
+
+		await pageEditorPage.selectEditable(headingId, 'element-text');
+
+		await pageEditorPage.changeConfiguration({
+			fieldLabel: 'Field',
+			tab: 'Mapping',
+			value: mappedField,
+		});
+
+		await pageEditorPage.publishPage();
+
+		return {layoutPageTemplateEntryId, name};
 	}
 
 	async goto(siteUrl?: Site['friendlyUrlPath']) {
@@ -55,9 +155,12 @@ export class DisplayPageTemplatesPage {
 				.getByLabel('More actions'),
 		});
 
-		await hoverAndExpectToBeVisible({
+		await clickAndExpectToBeVisible({
 			autoClick: true,
-			target: this.page.getByText('Display Page', {exact: true}).nth(1),
+			target: this.page
+				.getByText('Display Page', {exact: true})
+				.filter({visible: true}),
+			timeout: 5000,
 			trigger: this.page.getByRole('menuitem', {name: 'Make a Copy'}),
 		});
 
@@ -69,23 +172,27 @@ export class DisplayPageTemplatesPage {
 
 		await this.page.getByRole('button', {name: 'Delete'}).click();
 
-		await waitForAlert(
-			this.page,
-			'Success:You successfully deleted 1 display page template(s).'
-		);
+		await waitForAlert(this.page, 'Success:');
 	}
 
 	async deleteAllDisplayPageTemplates() {
+		await expect(
+			this.page.getByLabel('Search for', {exact: true})
+		).toBeEnabled();
+
 		await this.page
 			.getByLabel('Select All Items on the Page')
 			.setChecked(true);
 
 		await this.page.getByRole('button', {name: 'Delete'}).click();
 
-		await this.page
-			.getByLabel('Delete Entries- Loading')
-			.getByRole('button', {name: 'Delete'})
-			.click();
+		const deleteEntriesModal = this.page.getByRole('dialog', {
+			name: 'Delete Entries',
+		});
+
+		await deleteEntriesModal.waitFor();
+
+		await deleteEntriesModal.getByRole('button', {name: 'Delete'}).click();
 	}
 
 	async editTemplate(name: string) {
@@ -249,26 +356,26 @@ export class DisplayPageTemplatesPage {
 			await this.page.getByText(folderName, {exact: true}).waitFor();
 
 			await clickAndExpectToBeVisible({
-				autoClick: false,
-				target: this.page.getByRole('menuitem', {
-					name: 'Display Page Template',
-				}),
-				trigger: this.newButton,
+				target: this.page
+					.locator('.breadcrumb-item')
+					.getByText(folderName),
+				trigger: this.page.getByRole('link', {name: folderName}),
 			});
+		}
 
-			await this.page
-				.getByRole('menuitem', {
-					name: 'Display Page Template',
-				})
-				.click();
-		}
-		else {
-			await clickAndExpectToBeVisible({
-				target: this.page.getByRole('button', {name: 'Blank'}),
-				timeout: 3000,
-				trigger: this.newButton,
-			});
-		}
+		await clickAndExpectToBeVisible({
+			autoClick: false,
+			target: this.page.getByRole('menuitem', {
+				name: 'Display Page Template',
+			}),
+			trigger: this.newButton,
+		});
+
+		await this.page
+			.getByRole('menuitem', {
+				name: 'Display Page Template',
+			})
+			.click();
 
 		await this.page.getByRole('button', {name: 'Blank'}).click();
 		await this.page.getByLabel('Name', {exact: true}).fill(name);

@@ -40,8 +40,10 @@ import org.osgi.annotation.versioning.ProviderType;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationQueueEntryLocalServiceUtil
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 @ProviderType
 @Transactional(
 	isolation = Isolation.PORTAL,
@@ -110,7 +112,8 @@ public interface CommerceNotificationQueueEntryLocalService
 			CommerceNotificationQueueEntry commerceNotificationQueueEntry)
 		throws PortalException;
 
-	public void deleteCommerceNotificationQueueEntries(Date sentDate);
+	public void deleteCommerceNotificationQueueEntries(Date sentDate)
+		throws PortalException;
 
 	public void deleteCommerceNotificationQueueEntries(long groupId)
 		throws PortalException;
@@ -339,3 +342,4 @@ public interface CommerceNotificationQueueEntryLocalService
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-122325422

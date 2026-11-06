@@ -14,14 +14,13 @@ import java.io.File;
 import java.io.IOException;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import org.apache.commons.lang.StringEscapeUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 import org.dom4j.Element;
 
@@ -33,17 +32,28 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 
 	@Override
 	public void run() {
-		validateBuildParameters();
-
 		publishJenkinsReport();
 
 		updateBuildDescription();
 
 		setUpWorkspace();
 
+		validateBuildParameters();
+
 		prepareInvocationBuildDataList();
 
-		propagateBuildDatabaseToDistNodes();
+		if (JenkinsResultsParserUtil.isCloudCINode()) {
+			BuildDatabase buildDatabase = BuildDatabaseUtil.getBuildDatabase();
+
+			TopLevelBuildData topLevelBuildData = getBuildData();
+
+			buildDatabase.uploadBuildDatabaseFileToCloudBucket(
+				topLevelBuildData.getS3BucketDistPath() + "/" +
+					BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
+		}
+		else {
+			propagateBuildDatabaseToDistNodes();
+		}
 
 		invokeDownstreamBuilds();
 
@@ -97,6 +107,24 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 		}
 
 		throw new RuntimeException(message, exception);
+	}
+
+	protected String getBaseInvocationURL(String cohortName, String jobName) {
+		try {
+			String baseInvocationURL =
+				JenkinsResultsParserUtil.getBuildProperty(
+					"jenkins.osb.jenkins.web.master.url", jobName);
+
+			if (!JenkinsResultsParserUtil.isNullOrEmpty(baseInvocationURL)) {
+				return baseInvocationURL;
+			}
+		}
+		catch (IOException ioException) {
+			throw new RuntimeException(ioException);
+		}
+
+		return JenkinsResultsParserUtil.getMostAvailableMasterURL(
+			"http://" + cohortName + ".liferay.com", null, 1, jobName);
 	}
 
 	protected String getBuildParameter(String key) {
@@ -159,11 +187,10 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 
 		BuildDatabase buildDatabase = BuildDatabaseUtil.getBuildDatabase();
 
-		buildDatabase.rsyncBuildDatabaseFile(
-			Collections.singletonList(buildData.getTopLevelMasterHostname()),
+		buildDatabase.rsyncBuildDatabaseFileToJenkinsMaster(
 			"/opt/java/jenkins/userContent/" +
 				buildData.getUserContentRelativePath(),
-			null, null, _THREADS_FILE_PROPAGATOR_THREAD_SIZE);
+			JenkinsMaster.getInstance(buildData.getTopLevelMasterHostname()));
 	}
 
 	protected void publishJenkinsReport() {
@@ -194,7 +221,9 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 
 		workspace.setUp();
 
-		workspace.synchronizeToGitHubDev();
+		if (!JenkinsResultsParserUtil.isCloudCINode()) {
+			workspace.synchronizeToGitHubDev();
+		}
 	}
 
 	protected void updateJenkinsReport() {
@@ -274,10 +303,10 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 			return null;
 		}
 
-		String runID = downstreamBuild.getParameterValue("RUN_ID");
+		String runId = downstreamBuild.getParameterValue("RUN_ID");
 
 		for (BuildData downstreamBuildData : _downstreamBuildDataList) {
-			if (runID.equals(downstreamBuildData.getRunID())) {
+			if (runId.equals(downstreamBuildData.getRunId())) {
 				return downstreamBuildData;
 			}
 		}
@@ -289,42 +318,16 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 		String cohortName, String jobName,
 		Map<String, String> invocationParameters) {
 
-		Properties buildProperties;
+		invocationParameters.put(
+			"PARENT_BUILD_URL", _topLevelBuild.getBuildURL());
 
-		try {
-			buildProperties = JenkinsResultsParserUtil.getBuildProperties();
-		}
-		catch (IOException ioException) {
-			throw new RuntimeException(ioException);
-		}
+		URIBuilder uriBuilder = JenkinsResultsParserUtil.newURIBuilder(
+			JenkinsResultsParserUtil.combine(
+				getBaseInvocationURL(cohortName, jobName), "/job/", jobName,
+				"/buildWithParameters"),
+			invocationParameters);
 
-		String invocationURL =
-			JenkinsResultsParserUtil.getMostAvailableMasterURL(
-				JenkinsResultsParserUtil.combine(
-					"http://", cohortName, ".liferay.com"),
-				1);
-
-		StringBuilder sb = new StringBuilder();
-
-		sb.append(invocationURL);
-		sb.append("/job/");
-		sb.append(jobName);
-		sb.append("/buildWithParameters?token=");
-		sb.append(buildProperties.getProperty("jenkins.authentication.token"));
-
-		for (Map.Entry<String, String> invocationParameter :
-				invocationParameters.entrySet()) {
-
-			sb.append("&");
-			sb.append(
-				JenkinsResultsParserUtil.fixURL(invocationParameter.getKey()));
-			sb.append("=");
-			sb.append(
-				JenkinsResultsParserUtil.fixURL(
-					invocationParameter.getValue()));
-		}
-
-		_topLevelBuild.addDownstreamBuilds(sb.toString());
+		_topLevelBuild.addDownstreamBuilds(uriBuilder.toString());
 	}
 
 	private void _invokeDownstreamBuild(BuildData buildData) {
@@ -340,9 +343,11 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 		invocationParameters.put("DIST_PATH", topLevelBuildData.getDistPath());
 		invocationParameters.put(
 			"JENKINS_GITHUB_URL", topLevelBuildData.getJenkinsGitHubURL());
-		invocationParameters.put("RUN_ID", buildData.getRunID());
+		invocationParameters.put("RUN_ID", buildData.getRunId());
 		invocationParameters.put(
-			"TOP_LEVEL_RUN_ID", topLevelBuildData.getRunID());
+			"S3_BUCKET_DIST_PATH", topLevelBuildData.getS3BucketDistPath());
+		invocationParameters.put(
+			"TOP_LEVEL_RUN_ID", topLevelBuildData.getRunId());
 
 		buildData.setInvocationTime(
 			JenkinsResultsParserUtil.getCurrentTimeMillis());
@@ -384,7 +389,7 @@ public abstract class TopLevelBuildRunner<T extends TopLevelBuildData>
 
 	private static final String _COMMAND_FILE_PROPAGATOR_PRE_DIST_COMMAND =
 		JenkinsResultsParserUtil.combine(
-			"find ", BuildData.FILE_PATH_DIST_ROOT,
+			"find ", JenkinsResultsParserUtil.getJenkinsDistRootPath(),
 			"/*/* -maxdepth 1 -type d -mmin +",
 			String.valueOf(
 				TopLevelBuildRunner._MILLIS_FILE_PROPAGATOR_EXPIRATION),

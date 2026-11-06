@@ -16,8 +16,9 @@ import com.liferay.portal.kernel.service.OrganizationLocalServiceUtil;
 import com.liferay.portal.kernel.service.permission.OrganizationPermissionUtil;
 import com.liferay.users.admin.constants.UserScreenNavigationEntryConstants;
 
-import javax.portlet.RenderResponse;
-import javax.portlet.RenderURL;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderResponse;
+import jakarta.portlet.RenderURL;
 
 /**
  * @author Samuel Trong Tran
@@ -81,6 +82,18 @@ public class UsersAdminPortletURLUtil {
 		return createOrganizationViewTreeURL(
 			OrganizationConstants.DEFAULT_PARENT_ORGANIZATION_ID,
 			renderResponse);
+	}
+
+	public static PortletURL removeSelectionParameters(PortletURL portletURL) {
+		return PortletURLBuilder.create(
+			portletURL
+		).setParameter(
+			"accountEntryIds", (String)null
+		).setParameter(
+			"organizationIds", (String)null
+		).setParameter(
+			"selection", "all"
+		).buildPortletURL();
 	}
 
 }

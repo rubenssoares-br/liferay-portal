@@ -33,6 +33,12 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.Serializable;
 
 import java.util.ArrayList;
@@ -45,12 +51,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * Contains context information about a given API call.
@@ -121,7 +121,7 @@ public class ServiceContext implements Cloneable, Serializable {
 		}
 
 		serviceContext.setPortalURL(getPortalURL());
-		serviceContext.setPortletPreferencesIds(getPortletPreferencesIds());
+		serviceContext.setPortletPreferencesIds(_portletPreferencesIds);
 		serviceContext.setRemoteAddr(getRemoteAddr());
 		serviceContext.setRemoteHost(getRemoteHost());
 		serviceContext.setRequest(getRequest());
@@ -457,7 +457,7 @@ public class ServiceContext implements Cloneable, Serializable {
 
 		PortletRequest portletRequest =
 			(PortletRequest)_httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_REQUEST);
+				JavaConstants.JAKARTA_PORTLET_REQUEST);
 
 		if (portletRequest == null) {
 			return null;
@@ -474,7 +474,7 @@ public class ServiceContext implements Cloneable, Serializable {
 
 		PortletResponse portletResponse =
 			(PortletResponse)_httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_RESPONSE);
+				JavaConstants.JAKARTA_PORTLET_RESPONSE);
 
 		if (portletResponse == null) {
 			return null;
@@ -671,6 +671,18 @@ public class ServiceContext implements Cloneable, Serializable {
 	}
 
 	public Group getScopeGroup() throws PortalException {
+		ThemeDisplay themeDisplay = getThemeDisplay();
+
+		if (themeDisplay != null) {
+			Group scopeGroup = themeDisplay.getScopeGroup();
+
+			if ((scopeGroup != null) &&
+				(scopeGroup.getGroupId() == _scopeGroupId)) {
+
+				return scopeGroup;
+			}
+		}
+
 		return GroupLocalServiceUtil.getGroup(_scopeGroupId);
 	}
 

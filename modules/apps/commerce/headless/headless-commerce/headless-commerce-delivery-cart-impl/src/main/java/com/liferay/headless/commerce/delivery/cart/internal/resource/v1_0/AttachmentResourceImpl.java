@@ -7,19 +7,43 @@ package com.liferay.headless.commerce.delivery.cart.internal.resource.v1_0;
 
 import com.liferay.commerce.exception.NoSuchOrderException;
 import com.liferay.commerce.model.CommerceOrder;
+import com.liferay.commerce.model.CommerceOrderAttachment;
+import com.liferay.commerce.order.CommerceOrderAttachmentURLProvider;
+import com.liferay.commerce.service.CommerceOrderAttachmentService;
 import com.liferay.commerce.service.CommerceOrderService;
+import com.liferay.document.library.kernel.service.DLAppLocalService;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.Attachment;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.AttachmentBase64;
-import com.liferay.headless.commerce.delivery.cart.internal.dto.v1_0.converter.constants.DTOConverterConstants;
+import com.liferay.headless.commerce.delivery.cart.internal.odata.entity.v1_0.AttachmentEntityModel;
 import com.liferay.headless.commerce.delivery.cart.resource.v1_0.AttachmentResource;
-import com.liferay.portal.kernel.repository.LocalRepository;
+import com.liferay.list.type.model.ListTypeDefinition;
+import com.liferay.list.type.model.ListTypeEntry;
+import com.liferay.list.type.service.ListTypeDefinitionLocalService;
+import com.liferay.list.type.service.ListTypeEntryLocalService;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.search.Sort;
+import com.liferay.portal.kernel.search.filter.Filter;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.util.Base64;
-import com.liferay.portal.vulcan.dto.converter.DTOConverter;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
+import com.liferay.portal.vulcan.util.ActionUtil;
+import com.liferay.portal.vulcan.util.SearchUtil;
+
+import jakarta.ws.rs.core.MultivaluedMap;
 
 import java.io.ByteArrayInputStream;
+
+import java.util.Collections;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -38,11 +62,15 @@ public class AttachmentResourceImpl extends BaseAttachmentResourceImpl {
 	public void deleteCartAttachment(Long attachmentId, Long cartId)
 		throws Exception {
 
-		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
-			cartId);
+		CommerceOrderAttachment commerceOrderAttachment =
+			_commerceOrderAttachmentService.getCommerceOrderAttachment(
+				attachmentId);
 
-		_commerceOrderService.deleteAttachmentFileEntry(
-			attachmentId, commerceOrder.getCommerceOrderId());
+		_commerceOrderService.getCommerceOrder(
+			commerceOrderAttachment.getCommerceOrderId());
+
+		_commerceOrderAttachmentService.deleteCommerceOrderAttachment(
+			attachmentId);
 	}
 
 	@Override
@@ -62,35 +90,49 @@ public class AttachmentResourceImpl extends BaseAttachmentResourceImpl {
 					externalReferenceCode);
 		}
 
-		LocalRepository localRepository = commerceOrder.getLocalRepository();
+		CommerceOrderAttachment commerceOrderAttachment =
+			_commerceOrderAttachmentService.
+				fetchCommerceOrderAttachmentByExternalReferenceCode(
+					attachmentExternalReferenceCode,
+					contextCompany.getCompanyId());
 
-		FileEntry fileEntry =
-			localRepository.getFileEntryByExternalReferenceCode(
-				attachmentExternalReferenceCode);
-
-		deleteCartAttachment(
-			fileEntry.getFileEntryId(), commerceOrder.getCommerceOrderId());
+		if (commerceOrderAttachment != null) {
+			deleteCartAttachment(
+				commerceOrderAttachment.getCommerceOrderAttachmentId(),
+				commerceOrder.getCommerceOrderId());
+		}
 	}
 
 	@Override
 	public Page<Attachment> getCartAttachmentsPage(
-			Long cartId, Pagination pagination)
+			Long cartId, String search, Filter filter, Pagination pagination,
+			Sort[] sorts)
 		throws Exception {
 
 		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
 			cartId);
 
-		return Page.of(
-			transform(
-				commerceOrder.getAttachmentFileEntries(
-					pagination.getStartPosition(), pagination.getEndPosition()),
-				_attachmentDTOConverter::toDTO),
-			pagination, commerceOrder.getAttachmentFileEntriesCount());
+		return SearchUtil.search(
+			Collections.emptyMap(),
+			booleanQuery -> booleanQuery.getPreBooleanFilter(), filter,
+			CommerceOrderAttachment.class.getName(), search, pagination,
+			queryConfig -> queryConfig.setSelectedFieldNames(
+				Field.ENTRY_CLASS_PK),
+			searchContext -> {
+				searchContext.setAttribute(
+					"commerceOrderId", commerceOrder.getCommerceOrderId());
+				searchContext.setCompanyId(contextCompany.getCompanyId());
+			},
+			sorts,
+			document -> _toAttachment(
+				_commerceOrderAttachmentService.getCommerceOrderAttachment(
+					GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK)))));
 	}
 
 	@Override
 	public Page<Attachment> getCartByExternalReferenceCodeAttachmentsPage(
-			String externalReferenceCode, Pagination pagination)
+			String externalReferenceCode, String search, Filter filter,
+			Pagination pagination, Sort[] sorts)
 		throws Exception {
 
 		CommerceOrder commerceOrder =
@@ -104,7 +146,15 @@ public class AttachmentResourceImpl extends BaseAttachmentResourceImpl {
 		}
 
 		return getCartAttachmentsPage(
-			commerceOrder.getCommerceOrderId(), pagination);
+			commerceOrder.getCommerceOrderId(), search, filter, pagination,
+			sorts);
+	}
+
+	@Override
+	public EntityModel getEntityModel(MultivaluedMap multivaluedMap)
+		throws Exception {
+
+		return _entityModel;
 	}
 
 	@Override
@@ -115,10 +165,12 @@ public class AttachmentResourceImpl extends BaseAttachmentResourceImpl {
 		CommerceOrder commerceOrder = _commerceOrderService.getCommerceOrder(
 			cartId);
 
-		return _attachmentDTOConverter.toDTO(
-			_commerceOrderService.addAttachmentFileEntry(
-				attachmentBase64.getExternalReferenceCode(),
-				contextUser.getUserId(), commerceOrder.getCommerceOrderId(),
+		return _toAttachment(
+			_commerceOrderAttachmentService.addCommerceOrderAttachment(
+				commerceOrder.getCommerceOrderId(),
+				GetterUtil.getDouble(attachmentBase64.getPriority()),
+				GetterUtil.getBoolean(attachmentBase64.getRestricted()),
+				attachmentBase64.getTitle(), attachmentBase64.getType(),
 				attachmentBase64.getTitle(),
 				new ByteArrayInputStream(
 					Base64.decode(attachmentBase64.getAttachment()))));
@@ -143,10 +195,132 @@ public class AttachmentResourceImpl extends BaseAttachmentResourceImpl {
 			commerceOrder.getCommerceOrderId(), attachmentBase64);
 	}
 
-	@Reference(target = DTOConverterConstants.ATTACHMENT_DTO_CONVERTER)
-	private DTOConverter<FileEntry, Attachment> _attachmentDTOConverter;
+	private Map<String, String> _addDeleteAction(
+		long commerceOrderId, long commerceOrderAttachmentId) {
+
+		Map<String, String> action = ActionUtil.addAction(
+			ActionKeys.DELETE, AttachmentResourceImpl.class,
+			commerceOrderAttachmentId, "deleteCartAttachment",
+			_commerceOrderAttachmentModelResourcePermission, commerceOrderId,
+			contextUriInfo);
+
+		if (action == null) {
+			return null;
+		}
+
+		action.put(
+			"href",
+			StringUtil.replace(
+				action.get("href"), "{attachmentId}",
+				String.valueOf(commerceOrderAttachmentId)));
+
+		return action;
+	}
+
+	private String _getTypeLabel(String type) {
+		if (Validator.isNull(type)) {
+			return type;
+		}
+
+		ListTypeDefinition listTypeDefinition =
+			_listTypeDefinitionLocalService.
+				fetchListTypeDefinitionByExternalReferenceCode(
+					"L_COMMERCE_ORDER_ATTACHMENT_TYPES",
+					contextCompany.getCompanyId());
+
+		if (listTypeDefinition == null) {
+			return type;
+		}
+
+		ListTypeEntry listTypeEntry =
+			_listTypeEntryLocalService.fetchListTypeEntry(
+				listTypeDefinition.getListTypeDefinitionId(), type);
+
+		if (listTypeEntry == null) {
+			return type;
+		}
+
+		return listTypeEntry.getName(
+			contextAcceptLanguage.getPreferredLocale());
+	}
+
+	private Attachment _toAttachment(
+			CommerceOrderAttachment commerceOrderAttachment)
+		throws PortalException {
+
+		FileEntry fileEntry = _dlAppLocalService.fetchFileEntry(
+			commerceOrderAttachment.getFileEntryId());
+
+		return new Attachment() {
+			{
+				setActions(
+					() -> HashMapBuilder.<String, Map<String, String>>put(
+						"delete",
+						_addDeleteAction(
+							commerceOrderAttachment.getCommerceOrderId(),
+							commerceOrderAttachment.
+								getCommerceOrderAttachmentId())
+					).build());
+				setDateModified(commerceOrderAttachment::getModifiedDate);
+				setExtension(
+					() -> {
+						if (fileEntry == null) {
+							return null;
+						}
+
+						return fileEntry.getExtension();
+					});
+				setExternalReferenceCode(
+					commerceOrderAttachment::getExternalReferenceCode);
+				setFileEntryId(commerceOrderAttachment::getFileEntryId);
+				setId(commerceOrderAttachment::getCommerceOrderAttachmentId);
+				setPriority(commerceOrderAttachment::getPriority);
+				setRestricted(commerceOrderAttachment::isRestricted);
+				setTitle(commerceOrderAttachment::getTitle);
+				setType(commerceOrderAttachment::getType);
+				setTypeLabel(
+					() -> _getTypeLabel(commerceOrderAttachment.getType()));
+				setUrl(
+					() -> {
+						if (fileEntry == null) {
+							return null;
+						}
+
+						return _commerceOrderAttachmentURLProvider.
+							getDownloadURL(
+								commerceOrderAttachment.
+									getCommerceOrderAttachmentId(),
+								contextHttpServletRequest);
+					});
+			}
+		};
+	}
+
+	private static final EntityModel _entityModel = new AttachmentEntityModel();
+
+	@Reference(
+		target = "(model.class.name=com.liferay.commerce.model.CommerceOrderAttachment)"
+	)
+	private ModelResourcePermission<CommerceOrderAttachment>
+		_commerceOrderAttachmentModelResourcePermission;
+
+	@Reference
+	private CommerceOrderAttachmentService _commerceOrderAttachmentService;
+
+	@Reference
+	private CommerceOrderAttachmentURLProvider
+		_commerceOrderAttachmentURLProvider;
 
 	@Reference
 	private CommerceOrderService _commerceOrderService;
+
+	@Reference
+	private DLAppLocalService _dlAppLocalService;
+
+	@Reference
+	private ListTypeDefinitionLocalService _listTypeDefinitionLocalService;
+
+	@Reference
+	private ListTypeEntryLocalService _listTypeEntryLocalService;
 
 }

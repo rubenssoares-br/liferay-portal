@@ -12,13 +12,20 @@ import com.liferay.jenkins.results.parser.Job;
 import com.liferay.jenkins.results.parser.PortalTestClassJob;
 import com.liferay.jenkins.results.parser.job.property.JobProperty;
 import com.liferay.jenkins.results.parser.test.batch.JUnitTestBatch;
+import com.liferay.jenkins.results.parser.test.clazz.ModulesJUnitTestClass;
+import com.liferay.jenkins.results.parser.test.clazz.TestClass;
+import com.liferay.jenkins.results.parser.test.task.TestTask;
+import com.liferay.jenkins.results.parser.test.task.TestTaskFactory;
 
 import java.io.File;
 import java.io.IOException;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -29,6 +36,39 @@ import org.json.JSONObject;
  * @author Yi-Chen Tsai
  */
 public class ModulesJUnitBatchTestClassGroup extends JUnitBatchTestClassGroup {
+
+	@Override
+	public List<TestTask> getTestTasks() {
+		if (_testTasks != null) {
+			return new ArrayList<>(_testTasks.values());
+		}
+
+		_testTasks = new HashMap<>();
+
+		TestClassGroup.GroupingStrategy groupingStrategy =
+			getGroupingStrategy();
+
+		for (ModulesJUnitTestClass modulesJUnitTestClass :
+				_getModulesJUnitTestClasses()) {
+
+			String testTaskName = modulesJUnitTestClass.getTestTaskName();
+
+			TestTask testTask = _testTasks.get(testTaskName);
+
+			if (testTask == null) {
+				testTask = TestTaskFactory.newTestTask(
+					this, groupingStrategy, testTaskName);
+
+				_testTasks.put(testTaskName, testTask);
+			}
+
+			testTask.addTestClass(modulesJUnitTestClass);
+
+			modulesJUnitTestClass.setTestTask(testTask);
+		}
+
+		return new ArrayList<>(_testTasks.values());
+	}
 
 	protected ModulesJUnitBatchTestClassGroup(
 		JSONObject jsonObject, PortalTestClassJob portalTestClassJob) {
@@ -47,6 +87,23 @@ public class ModulesJUnitBatchTestClassGroup extends JUnitBatchTestClassGroup {
 		JUnitTestBatch jUnitTestBatch) {
 
 		super(batchName, portalTestClassJob, jUnitTestBatch);
+	}
+
+	@Override
+	protected void addTestClass(TestClass testClass) {
+		String testClassFilePath = JenkinsResultsParserUtil.getCanonicalPath(
+			testClass.getTestClassFile());
+
+		for (File testClassRootDir : getTestClassRootDirs()) {
+			String testClassRootDirPath =
+				JenkinsResultsParserUtil.getCanonicalPath(testClassRootDir);
+
+			if (testClassFilePath.startsWith(testClassRootDirPath + "/")) {
+				super.addTestClass(testClass);
+
+				return;
+			}
+		}
 	}
 
 	@Override
@@ -202,6 +259,12 @@ public class ModulesJUnitBatchTestClassGroup extends JUnitBatchTestClassGroup {
 		return new ArrayList<>(includesJobProperties);
 	}
 
+	protected List<File> getTestClassRootDirs() {
+		return Collections.singletonList(
+			new File(
+				portalGitWorkingDirectory.getWorkingDirectory(), "modules"));
+	}
+
 	private String _getAppTitle(File appBndFile) {
 		Properties appBndProperties = JenkinsResultsParserUtil.getProperties(
 			appBndFile);
@@ -278,6 +341,16 @@ public class ModulesJUnitBatchTestClassGroup extends JUnitBatchTestClassGroup {
 		}
 
 		return new File(liferayHomePath);
+	}
+
+	private List<ModulesJUnitTestClass> _getModulesJUnitTestClasses() {
+		List<ModulesJUnitTestClass> modulesJUnitTestClasses = new ArrayList<>();
+
+		for (TestClass testClass : getTestClasses()) {
+			modulesJUnitTestClasses.add((ModulesJUnitTestClass)testClass);
+		}
+
+		return modulesJUnitTestClasses;
 	}
 
 	private File _getReleaseModuleAppDir(File releaseModuleDir) {
@@ -386,5 +459,7 @@ public class ModulesJUnitBatchTestClassGroup extends JUnitBatchTestClassGroup {
 
 		return bndBndProperties.getProperty("Bundle-SymbolicName");
 	}
+
+	private Map<String, TestTask> _testTasks;
 
 }

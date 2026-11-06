@@ -431,11 +431,8 @@ public class SiteInitializerSerializerImpl
 		throws Exception {
 
 		File file = _layoutsExporter.exportLayoutPageTemplateEntries(groupId);
-		ZipReader zipReader = null;
 
-		try {
-			zipReader = _zipReaderFactory.getZipReader(file);
-
+		try (ZipReader zipReader = _zipReaderFactory.getZipReader(file)) {
 			for (String name : zipReader.getEntries()) {
 				InputStream inputStream = zipReader.getEntryAsInputStream(name);
 
@@ -444,10 +441,32 @@ public class SiteInitializerSerializerImpl
 			}
 		}
 		finally {
-			if (zipReader != null) {
-				zipReader.close();
-			}
+			file.delete();
+		}
+	}
 
+	private void _serializeLayoutUtilityPageEntries(
+			long groupId, ZipWriter zipWriter)
+		throws Exception {
+
+		File file = _layoutsExporter.exportLayoutUtilityPageEntries(
+			ListUtil.toLongArray(
+				_layoutUtilityPageEntryLocalService.getLayoutUtilityPageEntries(
+					groupId),
+				LayoutUtilityPageEntry.LAYOUT_UTILITY_PAGE_ENTRY_ID_ACCESSOR));
+
+		try (ZipReader zipReader = _zipReaderFactory.getZipReader(file)) {
+			for (String name : zipReader.getEntries()) {
+				String fileName = "layout-utility-page-entries/";
+
+				fileName += StringUtil.removeSubstring(
+					name, "layout-utility-page-template/");
+
+				_addZipEntry(
+					fileName, zipReader.getEntryAsInputStream(name), zipWriter);
+			}
+		}
+		finally {
 			file.delete();
 		}
 	}
@@ -483,46 +502,13 @@ public class SiteInitializerSerializerImpl
 			zipWriter);
 	}
 
-	private void _serializeLayoutUtilityPageEntries(
-			long groupId, ZipWriter zipWriter)
-		throws Exception {
-
-		File file = _layoutsExporter.exportLayoutUtilityPageEntries(
-			ListUtil.toLongArray(
-				_layoutUtilityPageEntryLocalService.getLayoutUtilityPageEntries(
-					groupId),
-				LayoutUtilityPageEntry.LAYOUT_UTILITY_PAGE_ENTRY_ID_ACCESSOR));
-		ZipReader zipReader = null;
-
-		try {
-			zipReader = _zipReaderFactory.getZipReader(file);
-
-			for (String name : zipReader.getEntries()) {
-				String fileName = "layout-utility-page-entries/";
-
-				fileName += StringUtil.removeSubstring(
-					name, "layout-utility-page-template/");
-
-				_addZipEntry(
-					fileName, zipReader.getEntryAsInputStream(name), zipWriter);
-			}
-		}
-		finally {
-			if (zipReader != null) {
-				zipReader.close();
-			}
-
-			file.delete();
-		}
-	}
-
 	private void _serializeObjectDefinition(
-			ObjectDefinition objectDefinition, ZipWriter zipWriter)
+			ObjectDefinition objectDefinition1, ZipWriter zipWriter)
 		throws Exception {
 
 		JSONArray objectFieldsJSONArray = JSONUtil.toJSONArray(
 			_objectFieldLocalService.getCustomObjectFields(
-				objectDefinition.getObjectDefinitionId()),
+				objectDefinition1.getObjectDefinitionId()),
 			objectField -> {
 				if (StringUtil.equals(
 						objectField.getBusinessType(),
@@ -576,17 +562,18 @@ public class SiteInitializerSerializerImpl
 			});
 
 		String name = StringUtil.removeSubstring(
-			objectDefinition.getName(), "C_");
+			objectDefinition1.getName(), "C_");
 
 		JSONArray objectRelationshipsJSONArray = JSONUtil.toJSONArray(
 			_objectRelationshipLocalService.getObjectRelationships(
-				objectDefinition.getObjectDefinitionId()),
+				objectDefinition1.getObjectDefinitionId()),
 			objectRelationship -> {
-				String objectDefinition2Name = StringUtil.removeSubstring(
+				ObjectDefinition objectDefinition2 =
 					_objectDefinitionLocalService.getObjectDefinition(
-						objectRelationship.getObjectDefinitionId2()
-					).getName(),
-					"C_");
+						objectRelationship.getObjectDefinitionId2());
+
+				String objectDefinition2Name = StringUtil.removeSubstring(
+					objectDefinition2.getName(), "C_");
 
 				return JSONUtil.put(
 					"deletionType", objectRelationship.getDeletionType()
@@ -611,10 +598,10 @@ public class SiteInitializerSerializerImpl
 
 		_addZipEntry(
 			"object-definitions/" +
-				_normalize(objectDefinition.getLabel(LocaleUtil.US)),
+				_normalize(objectDefinition1.getLabel(LocaleUtil.US)),
 			JSONUtil.put(
 				"label",
-				JSONUtil.put("en_US", objectDefinition.getLabel(LocaleUtil.US))
+				JSONUtil.put("en_US", objectDefinition1.getLabel(LocaleUtil.US))
 			).put(
 				"name", name
 			).put(
@@ -622,9 +609,9 @@ public class SiteInitializerSerializerImpl
 			).put(
 				"objectRelationships", objectRelationshipsJSONArray
 			).put(
-				"pluralLabel", objectDefinition.getPluralLabel(LocaleUtil.US)
+				"pluralLabel", objectDefinition1.getPluralLabel(LocaleUtil.US)
 			).put(
-				"scope", objectDefinition.getScope()
+				"scope", objectDefinition1.getScope()
 			),
 			zipWriter);
 	}
@@ -865,11 +852,11 @@ public class SiteInitializerSerializerImpl
 		_layoutPageTemplateStructureLocalService;
 
 	@Reference
-	private LayoutsExporter _layoutsExporter;
-
-	@Reference
 	private LayoutUtilityPageEntryLocalService
 		_layoutUtilityPageEntryLocalService;
+
+	@Reference
+	private LayoutsExporter _layoutsExporter;
 
 	@Reference
 	private ListTypeDefinitionLocalService _listTypeDefinitionLocalService;

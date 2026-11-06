@@ -11,19 +11,23 @@
 PasswordPolicy passwordPolicy = userDisplayContext.getPasswordPolicy();
 User selUser = userDisplayContext.getSelectedUser();
 
-boolean ldapPasswordPolicyEnabled = LDAPSettingsUtil.isPasswordPolicyEnabled(company.getCompanyId());
 boolean passwordReset = false;
 boolean passwordResetDisabled = false;
 
-if (((selUser == null) || (selUser.getLastLoginDate() == null)) && (((passwordPolicy == null) && !ldapPasswordPolicyEnabled) || ((passwordPolicy != null) && passwordPolicy.isChangeable() && passwordPolicy.isChangeRequired()))) {
+if (((selUser == null) || (selUser.getLastLoginDate() == null)) && passwordPolicy.isChangeable() && passwordPolicy.isChangeRequired()) {
 	passwordReset = true;
 	passwordResetDisabled = true;
 }
 else {
 	passwordReset = BeanParamUtil.getBoolean(selUser, request, "passwordReset");
 
-	if ((passwordPolicy != null) && !passwordPolicy.isChangeable()) {
+	if (!passwordPolicy.isChangeable()) {
 		passwordResetDisabled = true;
+	}
+
+	if (passwordPolicy.isChangeRequired()) {
+		passwordResetDisabled = true;
+		passwordReset = true;
 	}
 }
 %>
@@ -246,7 +250,9 @@ else {
 		</div>
 	</c:if>
 
-	<aui:button data-qa-id="generateWebDAVPasswordButton" onClick='<%= liferayPortletResponse.getNamespace() + "generateWebDavPassword()" %>' value="generate-webdav-password" />
+	<c:if test="<%= userDisplayContext.hasUpdatePermission() %>">
+		<aui:button data-qa-id="generateWebDAVPasswordButton" onClick='<%= liferayPortletResponse.getNamespace() + "generateWebDavPassword()" %>' value="generate-webdav-password" />
+	</c:if>
 </clay:sheet-section>
 
 <aui:script>

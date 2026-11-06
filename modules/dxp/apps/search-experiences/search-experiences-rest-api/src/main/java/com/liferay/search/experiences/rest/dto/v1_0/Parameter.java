@@ -20,21 +20,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -54,7 +54,7 @@ public class Parameter implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Parameter.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getDefaultValue() {
 		if (_defaultValueSupplier != null) {
@@ -96,7 +96,7 @@ public class Parameter implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _defaultValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFormat() {
 		if (_formatSupplier != null) {
 			format = _formatSupplier.get();
@@ -137,7 +137,7 @@ public class Parameter implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _formatSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getMax() {
 		if (_maxSupplier != null) {
@@ -177,7 +177,7 @@ public class Parameter implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _maxSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getMin() {
 		if (_minSupplier != null) {
@@ -217,8 +217,8 @@ public class Parameter implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _minSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema
 	@JsonGetter("type")
-	@Schema
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -305,18 +305,7 @@ public class Parameter implements Serializable {
 
 			sb.append("\"defaultValue\": ");
 
-			if (defaultValue instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)defaultValue));
-			}
-			else if (defaultValue instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)defaultValue));
-				sb.append("\"");
-			}
-			else {
-				sb.append(defaultValue);
-			}
+			sb.append(_toJSON(defaultValue));
 		}
 
 		String format = getFormat();
@@ -344,17 +333,7 @@ public class Parameter implements Serializable {
 
 			sb.append("\"max\": ");
 
-			if (max instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)max));
-			}
-			else if (max instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)max));
-				sb.append("\"");
-			}
-			else {
-				sb.append(max);
-			}
+			sb.append(_toJSON(max));
 		}
 
 		Object min = getMin();
@@ -366,17 +345,7 @@ public class Parameter implements Serializable {
 
 			sb.append("\"min\": ");
 
-			if (min instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)min));
-			}
-			else if (min instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)min));
-				sb.append("\"");
-			}
-			else {
-				sb.append(min);
-			}
+			sb.append(_toJSON(min));
 		}
 
 		Type type = getType();
@@ -389,9 +358,7 @@ public class Parameter implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -400,8 +367,8 @@ public class Parameter implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Parameter",
 		name = "x-class-name"
 	)
@@ -529,6 +496,27 @@ public class Parameter implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -537,3 +525,4 @@ public class Parameter implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1665589719

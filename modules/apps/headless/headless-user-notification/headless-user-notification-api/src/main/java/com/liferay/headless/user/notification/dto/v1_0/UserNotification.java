@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Carlos Correa
@@ -44,6 +45,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents the current user notification.",
 	value = "UserNotification"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents the current user notification."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "UserNotification")
@@ -57,7 +61,7 @@ public class UserNotification implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(UserNotification.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Block of actions allowed by the user making the request."
 	)
 	@Valid
@@ -104,7 +108,9 @@ public class UserNotification implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(description = "The user notification's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The user notification's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -145,7 +151,9 @@ public class UserNotification implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The user notification's identifier.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The user notification's identifier."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -184,7 +192,9 @@ public class UserNotification implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "The user notification's message.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The user notification's message."
+	)
 	public String getMessage() {
 		if (_messageSupplier != null) {
 			message = _messageSupplier.get();
@@ -225,7 +235,7 @@ public class UserNotification implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _messageSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether this user notification has been read."
 	)
 	public Boolean getRead() {
@@ -268,7 +278,9 @@ public class UserNotification implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _readSupplier;
 
-	@Schema(description = "User notification's type.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "User notification's type."
+	)
 	public Integer getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -422,8 +434,8 @@ public class UserNotification implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.user.notification.dto.v1_0.UserNotification",
 		name = "x-class-name"
 	)
@@ -510,6 +522,27 @@ public class UserNotification implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -518,3 +551,4 @@ public class UserNotification implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2030428322

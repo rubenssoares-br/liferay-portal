@@ -52,6 +52,7 @@ import org.osgi.service.component.annotations.Reference;
 @Component(
 	property = {
 		"application.name=Liferay.Headless.Commerce.Admin.Order",
+		"default=true",
 		"dto.class.name=com.liferay.commerce.model.CommerceOrder",
 		"version=v1.0"
 	},
@@ -92,6 +93,7 @@ public class OrderDTOConverter implements DTOConverter<CommerceOrder, Order> {
 				setAccountId(commerceOrder::getCommerceAccountId);
 				setActions(dtoConverterContext::getActions);
 				setAdvanceStatus(commerceOrder::getAdvanceStatus);
+				setAuthor(commerceOrder::getUserName);
 				setBillingAddressExternalReferenceCode(
 					() -> {
 						CommerceAddress billingCommerceAddress =
@@ -122,6 +124,9 @@ public class OrderDTOConverter implements DTOConverter<CommerceOrder, Order> {
 						return user.getEmailAddress();
 					});
 				setCurrencyCode(commerceCurrency::getCode);
+				setCurrencyExternalReferenceCode(
+					commerceCurrency::getExternalReferenceCode);
+				setCurrencyId(commerceCurrency::getCommerceCurrencyId);
 				setCustomFields(
 					() -> {
 						ExpandoBridge expandoBridge =
@@ -827,7 +832,8 @@ public class OrderDTOConverter implements DTOConverter<CommerceOrder, Order> {
 			price = BigDecimal.ZERO;
 		}
 
-		return _commercePriceFormatter.format(commerceCurrency, price, locale);
+		return _commercePriceFormatter.format(
+			commerceCurrency, true, locale, price);
 	}
 
 	private CommerceOrder _getCommerceOrder(

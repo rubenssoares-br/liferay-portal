@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://java.sun.com/portlet_2_0" prefix="portlet" %>
 
@@ -37,7 +37,6 @@ page import="com.liferay.commerce.model.CommerceOrderItem" %><%@
 page import="com.liferay.commerce.model.CommerceShipment" %><%@
 page import="com.liferay.commerce.model.CommerceShipmentItem" %><%@
 page import="com.liferay.commerce.model.CommerceShippingMethod" %><%@
-page import="com.liferay.commerce.product.model.CommerceChannel" %><%@
 page import="com.liferay.commerce.shipment.web.internal.constants.CommerceShipmentScreenNavigationConstants" %><%@
 page import="com.liferay.commerce.shipment.web.internal.display.context.CommerceShipmentDisplayContext" %><%@
 page import="com.liferay.commerce.shipment.web.internal.display.context.CommerceShipmentItemDisplayContext" %><%@
@@ -45,6 +44,7 @@ page import="com.liferay.portal.kernel.language.LanguageUtil" %><%@
 page import="com.liferay.portal.kernel.model.Country" %><%@
 page import="com.liferay.portal.kernel.model.Region" %><%@
 page import="com.liferay.portal.kernel.portlet.LiferayWindowState" %><%@
+page import="com.liferay.portal.kernel.servlet.SessionMessages" %><%@
 page import="com.liferay.portal.kernel.util.CalendarFactoryUtil" %><%@
 page import="com.liferay.portal.kernel.util.Constants" %><%@
 page import="com.liferay.portal.kernel.util.FastDateFormatFactoryUtil" %><%@

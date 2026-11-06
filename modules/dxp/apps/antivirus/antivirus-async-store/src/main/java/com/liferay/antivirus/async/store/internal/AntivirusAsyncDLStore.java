@@ -24,7 +24,7 @@ import com.liferay.portal.kernel.messaging.MessageBus;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -137,6 +137,39 @@ public class AntivirusAsyncDLStore implements DLStore {
 				tempFile.delete();
 			}
 		}
+	}
+
+	@Override
+	public void copyFileVersion(
+			DLStoreRequest dlStoreRequest, String toVersionLabel)
+		throws PortalException {
+
+		InputStream inputStream = _store.getFileAsStream(
+			dlStoreRequest.getCompanyId(), dlStoreRequest.getRepositoryId(),
+			dlStoreRequest.getFileName(), dlStoreRequest.getVersionLabel());
+
+		if (inputStream == null) {
+			inputStream = new UnsyncByteArrayInputStream(new byte[0]);
+		}
+
+		addFile(
+			DLStoreRequest.builder(
+				dlStoreRequest.getCompanyId(), dlStoreRequest.getRepositoryId(),
+				dlStoreRequest.getFileName()
+			).className(
+				dlStoreRequest.getClassName()
+			).classPK(
+				dlStoreRequest.getClassPK()
+			).fileExtension(
+				dlStoreRequest.getFileExtension()
+			).sourceFileName(
+				dlStoreRequest.getSourceFileName()
+			).validateFileExtension(
+				false
+			).versionLabel(
+				toVersionLabel
+			).build(),
+			inputStream);
 	}
 
 	@Override
@@ -360,7 +393,7 @@ public class AntivirusAsyncDLStore implements DLStore {
 
 		_antivirusAsyncEventListenerManager.onPrepare(message);
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				_messageBus.sendMessage(
 					AntivirusAsyncDestinationNames.ANTIVIRUS, message);

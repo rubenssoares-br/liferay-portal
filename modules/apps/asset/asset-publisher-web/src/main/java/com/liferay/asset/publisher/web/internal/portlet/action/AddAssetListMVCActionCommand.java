@@ -13,37 +13,36 @@ import com.liferay.asset.list.service.AssetListEntryService;
 import com.liferay.asset.publisher.constants.AssetPublisherPortletKeys;
 import com.liferay.asset.publisher.util.AssetPublisherHelper;
 import com.liferay.asset.publisher.web.internal.constants.AssetPublisherSelectionStyleConstants;
-import com.liferay.petra.string.StringPool;
+import com.liferay.asset.publisher.web.internal.util.AssetListTypeSettingsUtil;
+import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
+import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
+import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.JSONPortletResponseUtil;
 import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseMVCActionCommand;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.servlet.MultiSessionMessages;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
-import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
-import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.kernel.util.UnicodeProperties;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Objects;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletPreferences;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletPreferences;
+import java.util.Objects;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -53,7 +52,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + AssetPublisherPortletKeys.ASSET_PUBLISHER,
+		"jakarta.portlet.name=" + AssetPublisherPortletKeys.ASSET_PUBLISHER,
 		"mvc.command.name=/asset_publisher/add_asset_list"
 	},
 	service = MVCActionCommand.class
@@ -83,6 +82,18 @@ public class AddAssetListMVCActionCommand extends BaseMVCActionCommand {
 				portletPreferences.setValue(
 					"assetListEntryExternalReferenceCode",
 					assetListEntry.getExternalReferenceCode());
+
+				if (assetListEntry.getGroupId() !=
+						themeDisplay.getScopeGroupId()) {
+
+					Group group = _groupLocalService.getGroup(
+						assetListEntry.getGroupId());
+
+					portletPreferences.setValue(
+						"assetListEntryGroupExternalReferenceCode",
+						group.getExternalReferenceCode());
+				}
+
 				portletPreferences.setValue(
 					"selectionStyle",
 					AssetPublisherSelectionStyleConstants.TYPE_ASSET_LIST);
@@ -121,82 +132,55 @@ public class AddAssetListMVCActionCommand extends BaseMVCActionCommand {
 		ServiceContext serviceContext = ServiceContextFactory.getInstance(
 			actionRequest);
 
+		long scopeGroupId = _getScopeGroupId(themeDisplay);
+
 		if (Objects.equals(
 				selectionStyle,
 				AssetPublisherSelectionStyleConstants.TYPE_DYNAMIC)) {
 
-			UnicodeProperties unicodeProperties = new UnicodeProperties(true);
-
-			Enumeration<String> enumeration = portletPreferences.getNames();
-
-			while (enumeration.hasMoreElements()) {
-				String name = enumeration.nextElement();
-
-				String value = StringUtil.merge(
-					portletPreferences.getValues(name, null));
-
-				if (Validator.isNull(value)) {
-					continue;
-				}
-
-				if (!name.equals("scopeIds")) {
-					unicodeProperties.put(name, value);
-
-					continue;
-				}
-
-				List<Long> groupIds = new ArrayList<>();
-
-				String[] parts = value.split(StringPool.COMMA);
-
-				for (String part : parts) {
-					if (part.equals("Group_default")) {
-						groupIds.add(serviceContext.getScopeGroupId());
-					}
-					else if (part.startsWith("Group_")) {
-						long groupId = GetterUtil.getLong(
-							StringUtil.removeSubstring(part, "Group_"), -1);
-
-						if (groupId != -1) {
-							groupIds.add(groupId);
-						}
-					}
-				}
-
-				if (groupIds.isEmpty()) {
-					continue;
-				}
-
-				name = "groupIds";
-				value = ListUtil.toString(groupIds, StringPool.BLANK);
-
-				unicodeProperties.put(name, value);
-			}
-
 			return _assetListEntryService.addDynamicAssetListEntry(
-				null, themeDisplay.getScopeGroupId(), title,
-				unicodeProperties.toString(), serviceContext);
-		}
-
-		if (Objects.equals(
-				selectionStyle,
-				AssetPublisherSelectionStyleConstants.TYPE_MANUAL)) {
-
-			return _assetListEntryService.addManualAssetListEntry(
-				null, themeDisplay.getScopeGroupId(), title,
-				ListUtil.toLongArray(
-					_assetPublisherHelper.getAssetEntries(
-						actionRequest, portletPreferences,
-						themeDisplay.getPermissionChecker(),
-						_assetPublisherHelper.getGroupIds(
-							portletPreferences, themeDisplay.getScopeGroupId(),
-							themeDisplay.getLayout()),
-						true, true),
-					AssetEntry::getEntryId),
+				null, scopeGroupId, title,
+				AssetListTypeSettingsUtil.getTypeSettings(
+					serviceContext.getScopeGroupId(), portletPreferences),
 				serviceContext);
 		}
 
-		return null;
+		if (!Objects.equals(
+				selectionStyle,
+				AssetPublisherSelectionStyleConstants.TYPE_MANUAL)) {
+
+			return null;
+		}
+
+		return _assetListEntryService.addManualAssetListEntry(
+			null, scopeGroupId, title,
+			ListUtil.toLongArray(
+				_assetPublisherHelper.getAssetEntries(
+					actionRequest, portletPreferences,
+					themeDisplay.getPermissionChecker(),
+					_assetPublisherHelper.getGroupIds(
+						portletPreferences, scopeGroupId,
+						themeDisplay.getLayout()),
+					true, true),
+				AssetEntry::getEntryId),
+			serviceContext);
+	}
+
+	private long _getScopeGroupId(ThemeDisplay themeDisplay) {
+		Layout layout = themeDisplay.getLayout();
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.
+				fetchLayoutPageTemplateEntryByPlid(layout.getPlid());
+
+		if ((layoutPageTemplateEntry != null) &&
+			(layoutPageTemplateEntry.getType() ==
+				LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE)) {
+
+			return layoutPageTemplateEntry.getGroupId();
+		}
+
+		return themeDisplay.getScopeGroupId();
 	}
 
 	private void _handlePortalException(
@@ -239,6 +223,13 @@ public class AddAssetListMVCActionCommand extends BaseMVCActionCommand {
 	private AssetPublisherHelper _assetPublisherHelper;
 
 	@Reference
+	private GroupLocalService _groupLocalService;
+
+	@Reference
 	private Language _language;
+
+	@Reference
+	private LayoutPageTemplateEntryLocalService
+		_layoutPageTemplateEntryLocalService;
 
 }

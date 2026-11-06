@@ -17,22 +17,22 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + WikiNavigationPortletKeys.PAGE_MENU,
-		"javax.portlet.name=" + WikiNavigationPortletKeys.TREE_MENU
+		"jakarta.portlet.name=" + WikiNavigationPortletKeys.PAGE_MENU,
+		"jakarta.portlet.name=" + WikiNavigationPortletKeys.TREE_MENU
 	},
 	service = PortletManager.class
 )
 public class WikiNavigationPortletManager implements PortletManager {
 
 	@Override
-	public boolean isVisible(Layout layout) {
-		if (!FeatureFlagManagerUtil.isEnabled(
-				layout.getCompanyId(), "LPD-35013")) {
-
-			return false;
-		}
-
+	public boolean isDeprecated() {
 		return true;
+	}
+
+	@Override
+	public boolean isVisible(Layout layout) {
+		return FeatureFlagManagerUtil.isEnabled(
+			layout.getCompanyId(), "LPD-35013");
 	}
 
 }

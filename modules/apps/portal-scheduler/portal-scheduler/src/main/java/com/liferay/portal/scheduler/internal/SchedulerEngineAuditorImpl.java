@@ -57,10 +57,10 @@ public class SchedulerEngineAuditorImpl implements SchedulerEngineAuditor {
 
 		try {
 			AuditMessage auditMessage = new AuditMessage(
-				SchedulerEngine.SCHEDULER, CompanyConstants.SYSTEM, 0,
-				StringPool.BLANK, SchedulerEngine.class.getName(), "0",
-				triggerState.toString(), new Date(),
-				_jsonFactory.createJSONObject(_jsonFactory.serialize(message)));
+				CompanyConstants.SYSTEM, 0, StringPool.BLANK, new Date(),
+				_jsonFactory.createJSONObject(_jsonFactory.serialize(message)),
+				SchedulerEngine.class.getName(), "0", SchedulerEngine.SCHEDULER,
+				triggerState.toString());
 
 			auditMessage.setServerName(InetAddressUtil.getLocalHostName());
 			auditMessage.setServerPort(_portal.getPortalLocalPort(false));
@@ -82,7 +82,7 @@ public class SchedulerEngineAuditorImpl implements SchedulerEngineAuditor {
 
 	private static final Snapshot<AuditRouter> _auditRouterSnapshot =
 		new Snapshot<>(
-			SchedulerEngineHelperImpl.class, AuditRouter.class, null, true);
+			SchedulerEngineAuditorImpl.class, AuditRouter.class, null, true);
 
 	@Reference
 	private ClusterMasterExecutor _clusterMasterExecutor;

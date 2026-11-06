@@ -34,6 +34,7 @@ import org.osgi.service.component.annotations.Reference;
 @Component(
 	property = {
 		"application.name=Liferay.Headless.Commerce.Admin.Payment",
+		"default=true",
 		"dto.class.name=com.liferay.commerce.model.CommercePayment",
 		"version=v1.0"
 	},
@@ -80,6 +81,9 @@ public class PaymentDTOConverter
 				setComment(commercePaymentEntry::getNote);
 				setCreateDate(commercePaymentEntry::getCreateDate);
 				setCurrencyCode(commercePaymentEntry::getCurrencyCode);
+				setCurrencyExternalReferenceCode(
+					commerceCurrency::getExternalReferenceCode);
+				setCurrencyId(commerceCurrency::getCommerceCurrencyId);
 				setErrorMessages(commercePaymentEntry::getErrorMessages);
 				setExternalReferenceCode(
 					commercePaymentEntry::getExternalReferenceCode);
@@ -131,7 +135,8 @@ public class PaymentDTOConverter
 			amount = BigDecimal.ZERO;
 		}
 
-		return _commercePriceFormatter.format(commerceCurrency, amount, locale);
+		return _commercePriceFormatter.format(
+			commerceCurrency, true, locale, amount);
 	}
 
 	private Status _toPaymentStatusStatus(

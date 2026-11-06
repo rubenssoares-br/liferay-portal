@@ -9,15 +9,16 @@ import com.liferay.headless.commerce.admin.pricing.client.dto.v1_0.PriceEntry;
 import com.liferay.headless.commerce.admin.pricing.client.dto.v1_0.TierPrice;
 import com.liferay.headless.commerce.admin.pricing.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.math.BigDecimal;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -123,6 +124,34 @@ public class PriceEntrySerDes {
 			sb.append("\"priceListId\": ");
 
 			sb.append(priceEntry.getPriceListId());
+		}
+
+		if (priceEntry.getProductExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(priceEntry.getProductExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (priceEntry.getProductType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(priceEntry.getProductType()));
+
+			sb.append("\"");
 		}
 
 		if (priceEntry.getPromoPrice() != null) {
@@ -266,6 +295,22 @@ public class PriceEntrySerDes {
 			map.put("priceListId", String.valueOf(priceEntry.getPriceListId()));
 		}
 
+		if (priceEntry.getProductExternalReferenceCode() == null) {
+			map.put("productExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"productExternalReferenceCode",
+				String.valueOf(priceEntry.getProductExternalReferenceCode()));
+		}
+
+		if (priceEntry.getProductType() == null) {
+			map.put("productType", null);
+		}
+		else {
+			map.put("productType", String.valueOf(priceEntry.getProductType()));
+		}
+
 		if (priceEntry.getPromoPrice() == null) {
 			map.put("promoPrice", null);
 		}
@@ -347,6 +392,14 @@ public class PriceEntrySerDes {
 			else if (Objects.equals(jsonParserFieldName, "priceListId")) {
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "productExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "productType")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "promoPrice")) {
 				return false;
 			}
@@ -417,6 +470,19 @@ public class PriceEntrySerDes {
 				if (jsonParserFieldValue != null) {
 					priceEntry.setPriceListId(
 						Long.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "productExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					priceEntry.setProductExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "productType")) {
+				if (jsonParserFieldValue != null) {
+					priceEntry.setProductType((String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "promoPrice")) {
@@ -505,6 +571,16 @@ public class PriceEntrySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -537,3 +613,4 @@ public class PriceEntrySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1069829792

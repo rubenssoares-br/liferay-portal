@@ -14,11 +14,11 @@ import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.io.IOException;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -26,7 +26,10 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Drew Brokke
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/bottom.jsp#post",
+	service = DynamicInclude.class
+)
 public class EPNJSPDynamicInclude extends BaseJSPDynamicInclude {
 
 	@Override
@@ -50,11 +53,6 @@ public class EPNJSPDynamicInclude extends BaseJSPDynamicInclude {
 
 			super.include(httpServletRequest, httpServletResponse, key);
 		}
-	}
-
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register("/html/common/themes/bottom.jsp#post");
 	}
 
 	@Override

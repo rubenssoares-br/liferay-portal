@@ -6,7 +6,6 @@
 import {fetch} from 'frontend-js-web';
 
 import {ERRORS} from './errors';
-import {stringToURLParameterFormat} from './string';
 
 interface Actions {
 	delete?: HTTPMethod;
@@ -17,6 +16,13 @@ interface Actions {
 
 export interface ErrorDetails extends Error {
 	detail?: string;
+	type?: string;
+}
+
+interface ErrorResponseBody<T> {
+	detail?: string;
+	message?: string | T[];
+	title?: string;
 	type?: string;
 }
 
@@ -49,10 +55,14 @@ type NotificationTemplateType = 'email' | 'userNotification';
 
 type RecipientType = 'role' | 'term' | 'user';
 
+interface UserGroupProps {
+	userGroupName: string;
+}
+
 type Recipient = {
-	bcc: string;
+	bcc: string | UserGroupProps[];
 	bccType: string;
-	cc: string;
+	cc: string | UserGroupProps[];
 	ccType: string;
 	from: string;
 	fromName: LocalizedValue<string>;
@@ -60,6 +70,12 @@ type Recipient = {
 	toType: string;
 };
 
+type URLParameters = {
+	filter?: string;
+	pageSize?: string;
+	search?: string;
+	sort?: string;
+};
 export interface NotificationTemplate {
 	attachmentObjectFieldIds: string[] | number[];
 	bcc: string;
@@ -114,7 +130,9 @@ type ObjectRelationshipType = 'manyToMany' | 'oneToMany' | 'oneToOne';
 
 interface ObjectRelationship {
 	deletionType: string;
+	description?: LocalizedValue<string>;
 	edge: boolean;
+	externalReferenceCode: string;
 	id: number;
 	label: LocalizedValue<string>;
 	name: string;
@@ -148,16 +166,14 @@ export async function deleteItem(url: string) {
 		window.location.reload();
 	}
 	else if (!response.ok) {
-		const {
-			title,
-		}: {
-			title?: string;
-		} = await response.json();
-
-		const errorMessage = title || Liferay.Language.get('an-error-occurred');
-
-		throw new Error(errorMessage);
+		await throwResponseError(response);
 	}
+}
+
+export function deleteListTypeEntry(listTypeEntryId: number) {
+	return deleteItem(
+		`/o/headless-admin-list-type/v1.0/list-type-entries/${listTypeEntryId}`
+	);
 }
 
 export function deleteObjectDefinition(objectDefinitionId: number) {
@@ -200,8 +216,23 @@ export async function getAllObjectFolders() {
 	);
 }
 
-export async function getList<T>(url: string) {
-	const {items} = await fetchJSON<{items: T[]}>(url);
+export async function getList<T>(
+	url: string,
+	urlParameters: URLParameters = {}
+) {
+	const searchParams = new URLSearchParams();
+
+	for (const [key, value] of Object.entries(urlParameters)) {
+		if (value) {
+			searchParams.append(key, value);
+		}
+	}
+
+	const queryString = searchParams.toString().replace(/\+/g, '%20');
+
+	const requestUrl = queryString ? `${url}?${queryString}` : url;
+
+	const {items} = await fetchJSON<{items: T[]}>(requestUrl);
 
 	return items;
 }
@@ -215,16 +246,21 @@ export async function getListTypeDefinition(
 }
 
 export async function getListTypeDefinitionListTypeEntries(
-	listTypeDefinitionId: number
+	listTypeDefinitionId: number,
+	urlParameters: URLParameters = {}
 ) {
 	return await getList<ListTypeEntry>(
-		`/o/headless-admin-list-type/v1.0/list-type-definitions/${listTypeDefinitionId}/list-type-entries?pageSize=-1`
+		`/o/headless-admin-list-type/v1.0/list-type-definitions/${listTypeDefinitionId}/list-type-entries`,
+		{pageSize: '-1', ...urlParameters}
 	);
 }
 
-export async function getListTypeDefinitions() {
+export async function getListTypeDefinitions(
+	urlParameters: URLParameters = {}
+) {
 	return await getList<ListTypeDefinition>(
-		'/o/headless-admin-list-type/v1.0/list-type-definitions?pageSize=-1'
+		'/o/headless-admin-list-type/v1.0/list-type-definitions',
+		{pageSize: '-1', ...urlParameters}
 	);
 }
 
@@ -244,9 +280,12 @@ export async function getNotificationTemplateById(
 	);
 }
 
-export async function getNotificationTemplates() {
+export async function getNotificationTemplates(
+	urlParameters: URLParameters = {}
+) {
 	return await getList<NotificationTemplate>(
-		'/o/notification/v1.0/notification-templates?pageSize=-1'
+		'/o/notification/v1.0/notification-templates',
+		{pageSize: '-1', ...urlParameters}
 	);
 }
 
@@ -259,18 +298,22 @@ export async function getObjectDefinitionByExternalReferenceCode(
 }
 
 export async function getObjectDefinitionByExternalReferenceCodeObjectFields(
-	externalReferenceCode: string
+	externalReferenceCode: string,
+	urlParameters: URLParameters = {}
 ) {
 	return await getList<ObjectField>(
-		`/o/object-admin/v1.0/object-definitions/by-external-reference-code/${externalReferenceCode}/object-fields?pageSize=-1`
+		`/o/object-admin/v1.0/object-definitions/by-external-reference-code/${externalReferenceCode}/object-fields`,
+		{pageSize: '-1', ...urlParameters}
 	);
 }
 
 export async function getObjectDefinitionByExternalReferenceCodeObjectRelationships(
-	externalReferenceCode: string
+	externalReferenceCode: string,
+	urlParameters: URLParameters = {}
 ) {
 	return await getList<ObjectRelationship>(
-		`/o/object-admin/v1.0/object-definitions/by-external-reference-code/${externalReferenceCode}/object-relationships`
+		`/o/object-admin/v1.0/object-definitions/by-external-reference-code/${externalReferenceCode}/object-relationships`,
+		{...urlParameters}
 	);
 }
 
@@ -281,24 +324,19 @@ export async function getObjectDefinitionById(objectDefinitionId: number) {
 }
 
 export async function getObjectDefinitionObjectFields(
-	objectDefinitionId: number
+	objectDefinitionId: number,
+	urlParameters: URLParameters = {}
 ) {
 	return await getList<ObjectField>(
-		`/o/object-admin/v1.0/object-definitions/${objectDefinitionId}/object-fields?pageSize=-1`
+		`/o/object-admin/v1.0/object-definitions/${objectDefinitionId}/object-fields`,
+		{pageSize: '-1', ...urlParameters}
 	);
 }
 
-export async function getObjectDefinitions(parameters?: string) {
-	if (!parameters) {
-		return await getList<ObjectDefinition>(
-			'/o/object-admin/v1.0/object-definitions?pageSize=-1'
-		);
-	}
-
+export async function getObjectDefinitions(urlParameters: URLParameters = {}) {
 	return await getList<ObjectDefinition>(
-		`/o/object-admin/v1.0/object-definitions?pageSize=-1&${stringToURLParameterFormat(
-			parameters
-		)}`
+		`/o/object-admin/v1.0/object-definitions`,
+		{pageSize: '-1', ...urlParameters}
 	);
 }
 
@@ -381,6 +419,17 @@ export async function postObjectDefinitionPublish(objectDefinitionId: number) {
 	);
 }
 
+export async function putObjectDefinition(
+	objectDefinition: Partial<ObjectDefinition>
+) {
+	return await save<ObjectDefinition>({
+		item: objectDefinition,
+		method: 'PUT',
+		returnValue: true,
+		url: `/o/object-admin/v1.0/object-definitions/${objectDefinition.id}`,
+	});
+}
+
 export async function putObjectDefinitionByExternalReferenceCode(
 	objectDefinition: Partial<ObjectDefinition>
 ) {
@@ -458,22 +507,13 @@ export async function save<T>({
 		window.location.reload();
 	}
 	else if (!response.ok) {
-		const {
-			detail,
-			message,
-			title,
-			type,
-		}: {
-			detail?: string;
-			message?: string | T[];
-			title?: string;
-			type?: string;
-		} = await response.json();
+		const {detail, message, title, type}: ErrorResponseBody<T> =
+			(await parseJSON<ErrorResponseBody<T>>(response)) ?? {};
 
 		const errorMessage =
-			(type && ERRORS[type]) ??
-			title ??
-			message ??
+			(type && ERRORS[type]) ||
+			title ||
+			message ||
 			Liferay.Language.get('an-error-occurred');
 
 		const ErrorDetails = () => {
@@ -491,4 +531,23 @@ export async function save<T>({
 	if (returnValue) {
 		return (await response.json()) as T;
 	}
+}
+
+async function parseJSON<T>(response: Response): Promise<T | null> {
+	try {
+		return (await response.json()) as T;
+	}
+	catch (error) {
+		return null;
+	}
+}
+
+async function throwResponseError(response: Response): Promise<never> {
+	const {
+		title,
+	}: {
+		title?: string;
+	} = (await parseJSON<{title?: string}>(response)) ?? {};
+
+	throw new Error(title || Liferay.Language.get('an-error-occurred'));
 }

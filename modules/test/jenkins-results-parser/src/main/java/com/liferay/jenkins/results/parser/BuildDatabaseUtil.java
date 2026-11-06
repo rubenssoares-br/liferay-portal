@@ -18,6 +18,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * @author Michael Hashimoto
  */
@@ -27,10 +30,16 @@ public class BuildDatabaseUtil {
 		File buildDir = _getBuildDir(null);
 
 		File buildDatabaseFile = new File(
-			buildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE);
+			buildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
 
 		if (buildDatabaseFile.exists()) {
 			buildDatabaseFile.delete();
+		}
+	}
+
+	public static void clearBuildDatabases() {
+		synchronized (_buildDatabases) {
+			_buildDatabases.clear();
 		}
 	}
 
@@ -45,7 +54,7 @@ public class BuildDatabaseUtil {
 		File buildDir = new File(buildDirPath);
 
 		File buildDatabaseFile = new File(
-			buildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE);
+			buildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
 
 		buildDatabaseFile.delete();
 
@@ -57,7 +66,8 @@ public class BuildDatabaseUtil {
 				buildDatabaseFile,
 				JenkinsResultsParserUtil.toString(
 					JenkinsResultsParserUtil.getBuildArtifactURL(
-						buildURL, BuildDatabase.FILE_NAME_BUILD_DATABASE)));
+						buildURL,
+						BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON)));
 		}
 		catch (IOException ioException) {
 			throw new RuntimeException(
@@ -103,26 +113,42 @@ public class BuildDatabaseUtil {
 		return getBuildDatabase(topLevelBuild);
 	}
 
+	public static void setBuildDatabase(BuildDatabase buildDatabase) {
+		synchronized (_buildDatabases) {
+			_buildDatabases.put(_getBuildDir(null), buildDatabase);
+		}
+	}
+
 	private static void _downloadBuildDatabaseFile(File buildDir, Build build) {
 		if (!buildDir.exists()) {
 			buildDir.mkdirs();
 		}
 
 		File buildDatabaseFile = new File(
-			buildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE);
+			buildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
 
 		if (buildDatabaseFile.exists()) {
 			return;
 		}
 
-		String distNodes = System.getenv("DIST_NODES");
-		String distPath = System.getenv("DIST_PATH");
+		if (JenkinsResultsParserUtil.isCloudCINode()) {
+			String s3BucketDistPath = Environment.get("S3_BUCKET_DIST_PATH");
 
-		if (!JenkinsResultsParserUtil.isNullOrEmpty(distNodes) &&
-			!JenkinsResultsParserUtil.isNullOrEmpty(distPath)) {
+			if (!JenkinsResultsParserUtil.isNullOrEmpty(s3BucketDistPath)) {
+				_downloadBuildDatabaseFileFromS3Bucket(
+					buildDatabaseFile, Environment.get("S3_BUCKET_DIST_PATH"));
+			}
+		}
+		else {
+			String distNodes = Environment.get("DIST_NODES");
+			String distPath = Environment.get("DIST_PATH");
 
-			_downloadBuildDatabaseFileFromDistNodes(
-				buildDatabaseFile, distNodes, distPath);
+			if (!JenkinsResultsParserUtil.isNullOrEmpty(distNodes) &&
+				!JenkinsResultsParserUtil.isNullOrEmpty(distPath)) {
+
+				_downloadBuildDatabaseFileFromDistNodes(
+					buildDatabaseFile, distNodes, distPath);
+			}
 		}
 
 		if (buildDatabaseFile.exists() || (build == null)) {
@@ -157,7 +183,8 @@ public class BuildDatabaseUtil {
 				}
 
 				File defaultBuildDatabaseFile = new File(
-					defaultBuildDir, BuildDatabase.FILE_NAME_BUILD_DATABASE);
+					defaultBuildDir,
+					BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
 
 				try {
 					Files.copy(
@@ -179,23 +206,14 @@ public class BuildDatabaseUtil {
 			return;
 		}
 
-		String currentNetworkName = _getCurrentNetworkName();
-
 		List<String> distNodesList = new ArrayList<>(
 			Arrays.asList(distNodes.split(",")));
 
 		while (!distNodesList.isEmpty()) {
 			try {
-				String distNode = JenkinsResultsParserUtil.getRandomString(
-					distNodesList);
+				String distNode = _getRandomDistNode(distNodesList);
 
 				distNodesList.remove(distNode);
-
-				if (!JenkinsResultsParserUtil.isJenkinsSlaveInNetwork(
-						distNode, currentNetworkName)) {
-
-					continue;
-				}
 
 				String[] commands = new String[2];
 
@@ -209,7 +227,7 @@ public class BuildDatabaseUtil {
 					commands[1] = JenkinsResultsParserUtil.combine(
 						"timeout 1200 rsync -Iq \"root@", distNode, ":",
 						JenkinsResultsParserUtil.escapeForBash(distPath), "/",
-						BuildDatabase.FILE_NAME_BUILD_DATABASE, "\" ",
+						BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON, "\" ",
 						JenkinsResultsParserUtil.escapeForBash(
 							JenkinsResultsParserUtil.getCanonicalPath(
 								buildDatabaseFile)));
@@ -233,7 +251,8 @@ public class BuildDatabaseUtil {
 						JenkinsResultsParserUtil.combine(
 							"#!/bin/sh\nscp \"", distNode, ":",
 							JenkinsResultsParserUtil.escapeForBash(distPath),
-							"/", BuildDatabase.FILE_NAME_BUILD_DATABASE, "\" ",
+							"/", BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON,
+							"\" ",
 							JenkinsResultsParserUtil.escapeForBash(
 								JenkinsResultsParserUtil.getCanonicalPath(
 									buildDatabaseFile))));
@@ -246,13 +265,13 @@ public class BuildDatabaseUtil {
 					commands[1] = JenkinsResultsParserUtil.combine(
 						"if ! ", "timeout 1200 rsync -Iq \"", distNode, ":",
 						JenkinsResultsParserUtil.escapeForBash(distPath), "/",
-						BuildDatabase.FILE_NAME_BUILD_DATABASE, "\" ",
+						BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON, "\" ",
 						JenkinsResultsParserUtil.escapeForBash(
 							JenkinsResultsParserUtil.getCanonicalPath(
 								buildDatabaseFile)),
 						"; then ", "timeout 1200 rsync -Iq ", distNode, ":",
 						JenkinsResultsParserUtil.escapeForBash(distPath), "/",
-						BuildDatabase.FILE_NAME_BUILD_DATABASE, " ",
+						BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON, " ",
 						JenkinsResultsParserUtil.escapeForBash(
 							JenkinsResultsParserUtil.getCanonicalPath(
 								buildDatabaseFile)),
@@ -269,9 +288,39 @@ public class BuildDatabaseUtil {
 					throw new RuntimeException(
 						JenkinsResultsParserUtil.combine(
 							"Unable to download ",
-							BuildDatabase.FILE_NAME_BUILD_DATABASE, "\n\n",
+							BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON, "\n\n",
 							errorText));
 				}
+
+				if (!buildDatabaseFile.exists()) {
+					System.out.println(
+						JenkinsResultsParserUtil.combine(
+							"Unable to get ",
+							BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON,
+							" from ", distNode, ", retrying..."));
+
+					continue;
+				}
+
+				if (!_isValidBuildDatabaseFile(buildDatabaseFile)) {
+					JenkinsResultsParserUtil.delete(buildDatabaseFile);
+
+					System.out.println(
+						JenkinsResultsParserUtil.combine(
+							"Invalid ",
+							JenkinsResultsParserUtil.getCanonicalPath(
+								buildDatabaseFile),
+							" from ", distNode, ", retrying..."));
+
+					continue;
+				}
+
+				System.out.println(
+					JenkinsResultsParserUtil.combine(
+						"Downloaded ",
+						JenkinsResultsParserUtil.getCanonicalPath(
+							buildDatabaseFile),
+						" from ", distNode));
 
 				break;
 			}
@@ -282,17 +331,109 @@ public class BuildDatabaseUtil {
 					throw new RuntimeException(
 						JenkinsResultsParserUtil.combine(
 							"Unable to get ",
-							BuildDatabase.FILE_NAME_BUILD_DATABASE, " file"),
+							BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON,
+							" file"),
 						exception);
 				}
 
 				System.out.println(
-					"Unable to execute bash commands, retrying... ");
+					"Unable to execute bash commands, retrying...");
 
 				exception.printStackTrace();
 
 				JenkinsResultsParserUtil.sleep(3000);
 			}
+		}
+	}
+
+	private static void _downloadBuildDatabaseFileFromS3Bucket(
+		File buildDatabaseFile, String path) {
+
+		if (buildDatabaseFile.exists()) {
+			return;
+		}
+
+		File parentDir = buildDatabaseFile.getParentFile();
+
+		parentDir.mkdirs();
+
+		String buildDatabaseFilePath =
+			JenkinsResultsParserUtil.getCanonicalPath(buildDatabaseFile);
+
+		Retryable<Object> retryable = new Retryable<Object>(true, 3, 5, true) {
+
+			@Override
+			public Object execute() {
+				try {
+					_deleteBuildDatabaseFiles();
+
+					_downloadBuildDatabaseFiles();
+
+					if (!_isValidBuildDatabaseFile(buildDatabaseFile)) {
+						_deleteBuildDatabaseFiles();
+
+						throw new RuntimeException(
+							JenkinsResultsParserUtil.combine(
+								"Invalid ", buildDatabaseFilePath, " from ",
+								path));
+					}
+
+					System.out.println(
+						JenkinsResultsParserUtil.combine(
+							"Downloaded ", path, " to ",
+							buildDatabaseFilePath));
+				}
+				catch (Exception exception) {
+					if (JenkinsResultsParserUtil.isCloudCINode()) {
+						exception.printStackTrace();
+					}
+
+					throw new RuntimeException(
+						JenkinsResultsParserUtil.combine(
+							"Unable to get ",
+							BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON,
+							" file from ", path),
+						exception);
+				}
+
+				return null;
+			}
+
+			@Override
+			protected String getRetryMessage(int retryCount) {
+				return JenkinsResultsParserUtil.combine(
+					"Unable to download ", path, " to ",
+					JenkinsResultsParserUtil.getCanonicalPath(
+						buildDatabaseFile),
+					": ", super.getRetryMessage(retryCount));
+			}
+
+			private void _deleteBuildDatabaseFiles() {
+				if (buildDatabaseFile.exists()) {
+					JenkinsResultsParserUtil.delete(buildDatabaseFile);
+				}
+			}
+
+			private void _downloadBuildDatabaseFiles() {
+				try {
+					CloudBucketUtil.downloadS3File(
+						buildDatabaseFile,
+						path + "/" +
+							BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
+				}
+				catch (IOException ioException) {
+					throw new RuntimeException(
+						"Unable to download build database files", ioException);
+				}
+			}
+
+		};
+
+		try {
+			retryable.executeWithRetries();
+		}
+		catch (Exception exception) {
+			throw new RuntimeException(exception);
 		}
 	}
 
@@ -370,7 +511,7 @@ public class BuildDatabaseUtil {
 			return new File(build.getBuildDirPath());
 		}
 
-		String buildDir = System.getenv("BUILD_DIR");
+		String buildDir = Environment.get("BUILD_DIR");
 
 		if (!JenkinsResultsParserUtil.isNullOrEmpty(buildDir)) {
 			return new File(buildDir);
@@ -380,11 +521,84 @@ public class BuildDatabaseUtil {
 	}
 
 	private static String _getCurrentNetworkName() {
-		String masterHostname = System.getenv("MASTER_HOSTNAME");
+		String masterHostname = Environment.get("MASTER_HOSTNAME");
 
 		JenkinsMaster jenkinsMaster = JenkinsMaster.getInstance(masterHostname);
 
 		return jenkinsMaster.getNetworkName();
+	}
+
+	private static String _getRandomDistNode(List<String> distNodes) {
+		if (distNodes.isEmpty()) {
+			return null;
+		}
+
+		String currentNetworkName = _getCurrentNetworkName();
+
+		List<String> currentNetworkDistNodes = new ArrayList<>();
+		List<String> externalNetworkDistNodes = new ArrayList<>();
+
+		for (String distNode : distNodes) {
+			if (JenkinsResultsParserUtil.isJenkinsSlaveInNetwork(
+					distNode, currentNetworkName)) {
+
+				currentNetworkDistNodes.add(distNode);
+
+				continue;
+			}
+
+			externalNetworkDistNodes.add(distNode);
+		}
+
+		if (!currentNetworkDistNodes.isEmpty()) {
+			return JenkinsResultsParserUtil.getRandomString(
+				currentNetworkDistNodes);
+		}
+
+		return JenkinsResultsParserUtil.getRandomString(
+			externalNetworkDistNodes);
+	}
+
+	private static boolean _isValidBuildDatabaseFile(File buildDatabaseFile) {
+		String buildDatabaseFileContent;
+
+		try {
+			buildDatabaseFileContent = JenkinsResultsParserUtil.read(
+				buildDatabaseFile);
+		}
+		catch (IOException ioException) {
+			return false;
+		}
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(buildDatabaseFileContent)) {
+			return false;
+		}
+
+		JSONObject buildDatabaseJSONObject;
+
+		try {
+			buildDatabaseJSONObject = new JSONObject(buildDatabaseFileContent);
+		}
+		catch (JSONException jsonException) {
+			return false;
+		}
+
+		String jobVariant = Environment.get("JOB_VARIANT");
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(jobVariant)) {
+			return true;
+		}
+
+		JSONObject propertiesJSONObject = buildDatabaseJSONObject.optJSONObject(
+			"properties");
+
+		if ((propertiesJSONObject == null) ||
+			!propertiesJSONObject.has(jobVariant + "/start.properties")) {
+
+			return false;
+		}
+
+		return true;
 	}
 
 	private static final Map<File, BuildDatabase> _buildDatabases =

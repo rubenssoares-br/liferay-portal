@@ -32,7 +32,6 @@ import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.experiences.SXPBlueprintTitleProvider;
 import com.liferay.portal.search.hits.SearchHit;
 import com.liferay.portal.search.hits.SearchHits;
-import com.liferay.portal.search.query.Queries;
 import com.liferay.portal.search.sort.Sorts;
 import com.liferay.portal.search.tuning.rankings.constants.ResultRankingsConstants;
 import com.liferay.portal.search.tuning.rankings.index.Ranking;
@@ -45,14 +44,14 @@ import com.liferay.portal.search.tuning.rankings.web.internal.index.RankingField
 import com.liferay.portal.search.tuning.rankings.web.internal.request.SearchRankingRequest;
 import com.liferay.portal.search.tuning.rankings.web.internal.request.SearchRankingResponse;
 
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletURL;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Kevin Tan
@@ -61,7 +60,7 @@ public class RankingPortletDisplayBuilder {
 
 	public RankingPortletDisplayBuilder(
 		HttpServletRequest httpServletRequest, Language language, Portal portal,
-		Queries queries, RankingBuilderFactory rankingBuilderFactory,
+		RankingBuilderFactory rankingBuilderFactory,
 		RankingIndexNameBuilder rankingIndexNameBuilder,
 		RenderRequest renderRequest, RenderResponse renderResponse,
 		SearchEngineAdapter searchEngineAdapter,
@@ -70,7 +69,6 @@ public class RankingPortletDisplayBuilder {
 		_httpServletRequest = httpServletRequest;
 		_language = language;
 		_portal = portal;
-		_queries = queries;
 		_rankingBuilderFactory = rankingBuilderFactory;
 		_rankingIndexNameBuilder = rankingIndexNameBuilder;
 		_renderRequest = renderRequest;
@@ -531,11 +529,7 @@ public class RankingPortletDisplayBuilder {
 	}
 
 	private boolean _isSearch(String keywords) {
-		if (!Validator.isBlank(keywords)) {
-			return true;
-		}
-
-		return false;
+		return !Validator.isBlank(keywords);
 	}
 
 	private SearchContainer<RankingEntryDisplayContext> _search() {
@@ -543,7 +537,7 @@ public class RankingPortletDisplayBuilder {
 			getSearchContainer(getKeywords());
 
 		SearchRankingRequest searchRankingRequest = new SearchRankingRequest(
-			_httpServletRequest, _queries, _buildRankingIndexName(), _sorts,
+			_httpServletRequest, _buildRankingIndexName(), _sorts,
 			searchContainer, _searchEngineAdapter);
 
 		SearchRankingResponse searchRankingResponse =
@@ -575,7 +569,6 @@ public class RankingPortletDisplayBuilder {
 	private String _orderByCol;
 	private String _orderByType;
 	private final Portal _portal;
-	private final Queries _queries;
 	private final RankingBuilderFactory _rankingBuilderFactory;
 	private final RankingIndexNameBuilder _rankingIndexNameBuilder;
 	private final RenderRequest _renderRequest;

@@ -133,22 +133,22 @@ CommerceOrder commerceOrder = commerceReturnEditDisplayContext.getCommerceReturn
 							<portlet:param name="commerceReturnId" value="<%= String.valueOf(commerceReturn.getId()) %>" />
 						</liferay-portlet:renderURL>
 
-						<commerce-ui:modal
-							id="commerce-return-note-modal"
-							refreshPageOnClose="<%= true %>"
-							size="lg"
-							title='<%= LanguageUtil.get(request, "comment") %>'
-							url="<%= editCommerceReturnNoteURL %>"
-						/>
-
 						<%
 						String note = commerceReturn.getNote();
 						%>
 
 						<commerce-ui:info-box
+							actionContext='<%=
+								HashMapBuilder.<String, Object>put(
+									"namespace", liferayPortletResponse.getNamespace()
+								).put(
+									"refreshOnClose", true
+								).put(
+									"size", "lg"
+								).build()
+							%>'
 							actionLabel='<%= LanguageUtil.get(request, Validator.isNull(note) ? "add" : "edit") %>'
-							actionTargetId="commerce-return-note-modal"
-							actionUrl="<%= editCommerceReturnNoteURL %>"
+							actionURL="<%= editCommerceReturnNoteURL %>"
 							elementClasses="py-3"
 							title='<%= LanguageUtil.get(request, "comment") %>'
 						>
@@ -179,7 +179,7 @@ CommerceOrder commerceOrder = commerceReturnEditDisplayContext.getCommerceReturn
 							"namespace", liferayPortletResponse.getNamespace()
 						).build()
 					%>'
-					apiURL='<%= "/o/commerce-return-items?filter=r_commerceReturnToCommerceReturnItems_l_commerceReturnId eq '" + commerceReturn.getId() + "'&nestedFields=commerceOrderItem" %>'
+					apiURL='<%= "/o/commerce/return-items?filter=r_commerceReturnToCommerceReturnItems_l_commerceReturnId eq '" + commerceReturn.getId() + "'&nestedFields=commerceOrderItem" %>'
 					fdsActionDropdownItems="<%= commerceReturnEditDisplayContext.getCommerceReturnItemFDSActionDropdownItems() %>"
 					id="<%= CommerceReturnFDSNames.RETURN_ITEMS %>"
 					propsTransformer="{commerceReturnItemsPropsTransformer} from commerce-order-web"

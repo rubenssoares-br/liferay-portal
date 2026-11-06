@@ -5,6 +5,7 @@
 
 package com.liferay.headless.commerce.machine.learning.internal.dto.v1_0.converter;
 
+import com.liferay.account.model.AccountEntry;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderItem;
@@ -54,18 +55,21 @@ public class OrderDTOConverter implements DTOConverter<CommerceOrder, Order> {
 			return null;
 		}
 
+		CommerceChannel commerceChannel =
+			_commerceChannelLocalService.fetchCommerceChannelByGroupClassPK(
+				commerceOrder.getGroupId());
+
 		return new Order() {
 			{
-				setAccountId(commerceOrder::getCommerceAccountId);
-				setChannelId(
+				setAccountExternalReferenceCode(
 					() -> {
-						CommerceChannel commerceChannel =
-							_commerceChannelLocalService.
-								fetchCommerceChannelByGroupClassPK(
-									commerceOrder.getGroupId());
+						AccountEntry accountEntry =
+							commerceOrder.getAccountEntry();
 
-						return commerceChannel.getCommerceChannelId();
+						return accountEntry.getExternalReferenceCode();
 					});
+				setAccountId(commerceOrder::getCommerceAccountId);
+				setChannelId(commerceChannel::getCommerceChannelId);
 				setCreateDate(commerceOrder::getCreateDate);
 				setCurrencyCode(
 					() -> {
@@ -83,6 +87,7 @@ public class OrderDTOConverter implements DTOConverter<CommerceOrder, Order> {
 					});
 				setExternalReferenceCode(
 					commerceOrder::getExternalReferenceCode);
+				setGroupId(commerceChannel::getSiteGroupId);
 				setId(commerceOrder::getCommerceOrderId);
 				setModifiedDate(commerceOrder::getModifiedDate);
 				setOrderDate(commerceOrder::getOrderDate);

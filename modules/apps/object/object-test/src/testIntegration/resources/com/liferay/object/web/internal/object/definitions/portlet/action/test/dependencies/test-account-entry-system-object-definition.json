@@ -9,7 +9,7 @@
 	},
 	"active": true,
 	"defaultLanguageId": "en_US",
-	"enableCategorization": true,
+	"enableCategorization": false,
 	"enableComments": false,
 	"enableObjectEntryHistory": false,
 	"label": {
@@ -20,7 +20,8 @@
 		{
 			"active": true,
 			"conditionExpression": "",
-			"description": "",
+			"description": {
+			},
 			"label": {
 				"en_US": "testAction"
 			},
@@ -39,6 +40,23 @@
 	],
 	"objectFields": [
 		{
+			"DBType": "Date",
+			"businessType": "Date",
+			"indexed": false,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "",
+			"label": {
+				"en_US": "Create Date"
+			},
+			"name": "createDate",
+			"objectFieldSettings": [
+			],
+			"required": false,
+			"state": false,
+			"system": true,
+			"type": "Date"
+		},
+		{
 			"DBType": "String",
 			"businessType": "Text",
 			"indexed": false,
@@ -56,21 +74,38 @@
 			"type": "String"
 		},
 		{
-			"DBType": "Date",
-			"businessType": "Date",
+			"DBType": "String",
+			"businessType": "Text",
+			"indexed": true,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "en_US",
+			"label": {
+				"en_US": "customField"
+			},
+			"name": "customField",
+			"objectFieldSettings": [
+			],
+			"required": false,
+			"state": false,
+			"system": false,
+			"type": "String"
+		},
+		{
+			"DBType": "String",
+			"businessType": "Text",
 			"indexed": false,
 			"indexedAsKeyword": false,
 			"indexedLanguageId": "",
 			"label": {
-				"en_US": "Create Date"
+				"en_US": "Description"
 			},
-			"name": "createDate",
+			"name": "description",
 			"objectFieldSettings": [
 			],
 			"required": false,
 			"state": false,
 			"system": true,
-			"type": "Date"
+			"type": "String"
 		},
 		{
 			"DBType": "String",
@@ -130,40 +165,6 @@
 			"indexedAsKeyword": false,
 			"indexedLanguageId": "",
 			"label": {
-				"en_US": "Status"
-			},
-			"name": "status",
-			"objectFieldSettings": [
-			],
-			"required": false,
-			"state": false,
-			"system": true,
-			"type": "String"
-		},
-		{
-			"DBType": "String",
-			"businessType": "Text",
-			"indexed": false,
-			"indexedAsKeyword": false,
-			"indexedLanguageId": "",
-			"label": {
-				"en_US": "Description"
-			},
-			"name": "description",
-			"objectFieldSettings": [
-			],
-			"required": false,
-			"state": false,
-			"system": true,
-			"type": "String"
-		},
-		{
-			"DBType": "String",
-			"businessType": "Text",
-			"indexed": false,
-			"indexedAsKeyword": false,
-			"indexedLanguageId": "",
-			"label": {
 				"en_US": "Name"
 			},
 			"name": "name",
@@ -173,6 +174,23 @@
 			"state": false,
 			"system": true,
 			"type": "String"
+		},
+		{
+			"DBType": "Integer",
+			"businessType": "Text",
+			"indexed": false,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "",
+			"label": {
+				"en_US": "Status"
+			},
+			"name": "status",
+			"objectFieldSettings": [
+			],
+			"required": false,
+			"state": false,
+			"system": true,
+			"type": "Integer"
 		},
 		{
 			"DBType": "String",
@@ -189,23 +207,6 @@
 			"required": true,
 			"state": false,
 			"system": true,
-			"type": "String"
-		},
-		{
-			"DBType": "String",
-			"businessType": "Text",
-			"indexed": true,
-			"indexedAsKeyword": false,
-			"indexedLanguageId": "en_US",
-			"label": {
-				"en_US": "customField"
-			},
-			"name": "customField",
-			"objectFieldSettings": [
-			],
-			"required": false,
-			"state": false,
-			"system": false,
 			"type": "String"
 		}
 	],

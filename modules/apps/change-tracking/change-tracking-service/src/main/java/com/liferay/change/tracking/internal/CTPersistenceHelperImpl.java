@@ -19,7 +19,7 @@ import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.persistence.change.tracking.helper.CTPersistenceHelper;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
-import com.liferay.portal.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsUtil;
 
 import java.io.Serializable;
 
@@ -66,11 +66,7 @@ public class CTPersistenceHelperImpl implements CTPersistenceHelper {
 				return true;
 			}
 
-			if (userId != ctEntry.getUserId()) {
-				ctEntry.setUserId(userId);
-			}
-
-			_ctEntryLocalService.updateCTEntry(ctEntry);
+			_ctEntryLocalService.updateUserId(ctEntry.getCtEntryId(), userId);
 		}
 		catch (PortalException portalException) {
 			throw new SystemException(portalException);
@@ -100,22 +96,12 @@ public class CTPersistenceHelperImpl implements CTPersistenceHelper {
 			ctModelClass);
 
 		if (primaryKey instanceof Long) {
-			if (_ctEntryLocalService.hasCTEntry(
-					ctCollectionId, modelClassNameId, (Long)primaryKey)) {
-
-				return false;
-			}
-
-			return true;
+			return !_ctEntryLocalService.hasCTEntry(
+				ctCollectionId, modelClassNameId, (Long)primaryKey);
 		}
 
-		if (_ctEntryLocalService.hasCTEntries(
-				ctCollectionId, modelClassNameId)) {
-
-			return false;
-		}
-
-		return true;
+		return !_ctEntryLocalService.hasCTEntries(
+			ctCollectionId, modelClassNameId);
 	}
 
 	@Override
@@ -164,14 +150,14 @@ public class CTPersistenceHelperImpl implements CTPersistenceHelper {
 				int changeType = ctEntry.getChangeType();
 
 				if (changeType == CTConstants.CT_CHANGE_TYPE_ADDITION) {
-					_ctEntryLocalService.deleteCTEntry(ctEntry);
+					_ctEntryLocalService.deleteCTEntry(ctEntry, false);
 
 					return true;
 				}
 
-				ctEntry.setChangeType(CTConstants.CT_CHANGE_TYPE_DELETION);
-
-				_ctEntryLocalService.updateCTEntry(ctEntry);
+				_ctEntryLocalService.updateChangeType(
+					ctEntry.getCtEntryId(),
+					CTConstants.CT_CHANGE_TYPE_DELETION);
 
 				if ((changeType == CTConstants.CT_CHANGE_TYPE_MODIFICATION) &&
 					(ctModel.getCtCollectionId() !=

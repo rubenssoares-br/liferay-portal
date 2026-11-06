@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.OrderRuleOrderType;
 import com.liferay.headless.commerce.admin.order.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.order.client.pagination.Page;
@@ -28,23 +31,29 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -83,8 +88,10 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -97,17 +104,27 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 
 		_orderRuleOrderTypeResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		OrderRuleOrderTypeResource.Builder builder =
-			OrderRuleOrderTypeResource.builder();
-
-		orderRuleOrderTypeResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		orderRuleOrderTypeResource = OrderRuleOrderTypeResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -187,12 +204,116 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 
 	@Test
 	public void testDeleteOrderRuleOrderType() throws Exception {
-		Assert.assertTrue(false);
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		OrderRuleOrderType orderRuleOrderType =
+			testDeleteOrderRuleOrderType_addOrderRuleOrderType();
+
+		assertHttpResponseStatusCode(
+			204,
+			orderRuleOrderTypeResource.deleteOrderRuleOrderTypeHttpResponse(
+				orderRuleOrderType.getOrderRuleOrderTypeId()));
+	}
+
+	protected OrderRuleOrderType
+			testDeleteOrderRuleOrderType_addOrderRuleOrderType()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
 	public void testGraphQLDeleteOrderRuleOrderType() throws Exception {
-		Assert.assertTrue(false);
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		OrderRuleOrderType orderRuleOrderType1 =
+			testGraphQLDeleteOrderRuleOrderType_addOrderRuleOrderType();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteOrderRuleOrderType",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"orderRuleOrderTypeId",
+									orderRuleOrderType1.
+										getOrderRuleOrderTypeId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteOrderRuleOrderType"));
+
+		// Using the namespace headlessCommerceAdminOrder_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		OrderRuleOrderType orderRuleOrderType2 =
+			testGraphQLDeleteOrderRuleOrderType_addOrderRuleOrderType();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminOrder_v1_0",
+						new GraphQLField(
+							"deleteOrderRuleOrderType",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"orderRuleOrderTypeId",
+										orderRuleOrderType2.
+											getOrderRuleOrderTypeId());
+								}
+							}))),
+				"JSONObject/data", "JSONObject/headlessCommerceAdminOrder_v1_0",
+				"Object/deleteOrderRuleOrderType"));
+	}
+
+	protected OrderRuleOrderType
+			testGraphQLDeleteOrderRuleOrderType_addOrderRuleOrderType()
+		throws Exception {
+
+		return testGraphQLOrderRuleOrderType_addOrderRuleOrderType();
+	}
+
+	@Test
+	public void testDeleteOrderRuleOrderTypeBatch() throws Exception {
+		OrderRuleOrderType orderRuleOrderType1 =
+			testDeleteOrderRuleOrderTypeBatch_addOrderRuleOrderType();
+
+		testDeleteOrderRuleOrderTypeBatch_deleteOrderRuleOrderType(
+			202, null, orderRuleOrderType1.getOrderRuleOrderTypeId());
+	}
+
+	protected OrderRuleOrderType
+			testDeleteOrderRuleOrderTypeBatch_addOrderRuleOrderType()
+		throws Exception {
+
+		return testDeleteOrderRuleOrderType_addOrderRuleOrderType();
+	}
+
+	protected void testDeleteOrderRuleOrderTypeBatch_deleteOrderRuleOrderType(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			orderRuleOrderTypeResource.
+				deleteOrderRuleOrderTypeBatchHttpResponse(
+					null,
+					JSONUtil.putAll(
+						JSONUtil.put(
+							"externalReferenceCode", () -> externalReferenceCode
+						).put(
+							"orderRuleOrderTypeId", () -> id
+						)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
 	}
 
 	@Test
@@ -245,7 +366,8 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 		page =
 			orderRuleOrderTypeResource.
 				getOrderRuleByExternalReferenceCodeOrderRuleOrderTypesPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -257,6 +379,12 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 			page,
 			testGetOrderRuleByExternalReferenceCodeOrderRuleOrderTypesPage_getExpectedActions(
 				externalReferenceCode));
+
+		orderRuleOrderTypeResource.deleteOrderRuleOrderType(
+			orderRuleOrderType1.getOrderRuleOrderTypeId());
+
+		orderRuleOrderTypeResource.deleteOrderRuleOrderType(
+			orderRuleOrderType2.getOrderRuleOrderTypeId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -276,13 +404,13 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 		String externalReferenceCode =
 			testGetOrderRuleByExternalReferenceCodeOrderRuleOrderTypesPage_getExternalReferenceCode();
 
-		Page<OrderRuleOrderType> orderRuleOrderTypePage =
+		Page<OrderRuleOrderType> orderRuleOrderTypesPage =
 			orderRuleOrderTypeResource.
 				getOrderRuleByExternalReferenceCodeOrderRuleOrderTypesPage(
 					externalReferenceCode, null);
 
 		int totalCount = GetterUtil.getInteger(
-			orderRuleOrderTypePage.getTotalCount());
+			orderRuleOrderTypesPage.getTotalCount());
 
 		OrderRuleOrderType orderRuleOrderType1 =
 			testGetOrderRuleByExternalReferenceCodeOrderRuleOrderTypesPage_addOrderRuleOrderType(
@@ -412,30 +540,6 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 	}
 
 	@Test
-	public void testPostOrderRuleByExternalReferenceCodeOrderRuleOrderType()
-		throws Exception {
-
-		OrderRuleOrderType randomOrderRuleOrderType =
-			randomOrderRuleOrderType();
-
-		OrderRuleOrderType postOrderRuleOrderType =
-			testPostOrderRuleByExternalReferenceCodeOrderRuleOrderType_addOrderRuleOrderType(
-				randomOrderRuleOrderType);
-
-		assertEquals(randomOrderRuleOrderType, postOrderRuleOrderType);
-		assertValid(postOrderRuleOrderType);
-	}
-
-	protected OrderRuleOrderType
-			testPostOrderRuleByExternalReferenceCodeOrderRuleOrderType_addOrderRuleOrderType(
-				OrderRuleOrderType orderRuleOrderType)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetOrderRuleIdOrderRuleOrderTypesPage() throws Exception {
 		Long id = testGetOrderRuleIdOrderRuleOrderTypesPage_getId();
 		Long irrelevantId =
@@ -478,7 +582,7 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 				id, randomOrderRuleOrderType());
 
 		page = orderRuleOrderTypeResource.getOrderRuleIdOrderRuleOrderTypesPage(
-			id, null, Pagination.of(1, 10));
+			id, null, Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -489,6 +593,12 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 		assertValid(
 			page,
 			testGetOrderRuleIdOrderRuleOrderTypesPage_getExpectedActions(id));
+
+		orderRuleOrderTypeResource.deleteOrderRuleOrderType(
+			orderRuleOrderType1.getOrderRuleOrderTypeId());
+
+		orderRuleOrderTypeResource.deleteOrderRuleOrderType(
+			orderRuleOrderType2.getOrderRuleOrderTypeId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -507,12 +617,12 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 
 		Long id = testGetOrderRuleIdOrderRuleOrderTypesPage_getId();
 
-		Page<OrderRuleOrderType> orderRuleOrderTypePage =
+		Page<OrderRuleOrderType> orderRuleOrderTypesPage =
 			orderRuleOrderTypeResource.getOrderRuleIdOrderRuleOrderTypesPage(
 				id, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			orderRuleOrderTypePage.getTotalCount());
+			orderRuleOrderTypesPage.getTotalCount());
 
 		OrderRuleOrderType orderRuleOrderType1 =
 			testGetOrderRuleIdOrderRuleOrderTypesPage_addOrderRuleOrderType(
@@ -636,6 +746,30 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 	}
 
 	@Test
+	public void testPostOrderRuleByExternalReferenceCodeOrderRuleOrderType()
+		throws Exception {
+
+		OrderRuleOrderType randomOrderRuleOrderType =
+			randomOrderRuleOrderType();
+
+		OrderRuleOrderType postOrderRuleOrderType =
+			testPostOrderRuleByExternalReferenceCodeOrderRuleOrderType_addOrderRuleOrderType(
+				randomOrderRuleOrderType);
+
+		assertEquals(randomOrderRuleOrderType, postOrderRuleOrderType);
+		assertValid(postOrderRuleOrderType);
+	}
+
+	protected OrderRuleOrderType
+			testPostOrderRuleByExternalReferenceCodeOrderRuleOrderType_addOrderRuleOrderType(
+				OrderRuleOrderType orderRuleOrderType)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostOrderRuleIdOrderRuleOrderType() throws Exception {
 		OrderRuleOrderType randomOrderRuleOrderType =
 			randomOrderRuleOrderType();
@@ -651,6 +785,66 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 	protected OrderRuleOrderType
 			testPostOrderRuleIdOrderRuleOrderType_addOrderRuleOrderType(
 				OrderRuleOrderType orderRuleOrderType)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		OrderRuleOrderType orderRuleOrderType1 =
+			testBatchEngineDeleteImportTask_addOrderRuleOrderType();
+
+		testBatchEngineDeleteImportTask_deleteOrderRuleOrderType(
+			200, null, orderRuleOrderType1.getOrderRuleOrderTypeId());
+	}
+
+	protected OrderRuleOrderType
+			testBatchEngineDeleteImportTask_addOrderRuleOrderType()
+		throws Exception {
+
+		return testDeleteOrderRuleOrderType_addOrderRuleOrderType();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteOrderRuleOrderType(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.order.dto.v1_0.OrderRuleOrderType",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"orderRuleOrderTypeId", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
+	protected OrderRuleOrderType
+			testGraphQLOrderRuleOrderType_addOrderRuleOrderType()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -741,6 +935,10 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 		throws Exception {
 
 		boolean valid = true;
+
+		if (orderRuleOrderType.getOrderRuleOrderTypeId() == null) {
+			valid = false;
+		}
 
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
@@ -871,6 +1069,8 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("orderRuleOrderTypeId"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1261,7 +1461,9 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1319,7 +1521,30 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 		return randomOrderRuleOrderType();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected OrderRuleOrderTypeResource orderRuleOrderTypeResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1520,10 +1745,13 @@ public abstract class BaseOrderRuleOrderTypeResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseOrderRuleOrderTypeResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.order.resource.v1_0.
 		OrderRuleOrderTypeResource _orderRuleOrderTypeResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:285724189

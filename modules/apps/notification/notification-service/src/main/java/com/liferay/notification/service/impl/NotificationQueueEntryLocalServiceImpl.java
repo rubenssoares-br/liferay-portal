@@ -21,13 +21,15 @@ import com.liferay.notification.model.NotificationTemplateAttachment;
 import com.liferay.notification.service.NotificationQueueEntryAttachmentLocalService;
 import com.liferay.notification.service.NotificationRecipientLocalService;
 import com.liferay.notification.service.NotificationRecipientSettingLocalService;
-import com.liferay.notification.service.NotificationTemplateAttachmentLocalService;
 import com.liferay.notification.service.base.NotificationQueueEntryLocalServiceBaseImpl;
+import com.liferay.notification.service.persistence.NotificationTemplateAttachmentPersistence;
 import com.liferay.notification.type.NotificationType;
 import com.liferay.notification.type.NotificationTypeServiceTracker;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.portal.aop.AopService;
+import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
+import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -127,6 +129,23 @@ public class NotificationQueueEntryLocalServiceImpl
 	}
 
 	@Override
+	public void deleteCompanyNotificationQueueEntries(long companyId)
+		throws PortalException {
+
+		ActionableDynamicQuery actionableDynamicQuery =
+			getActionableDynamicQuery();
+
+		actionableDynamicQuery.setAddCriteriaMethod(
+			dynamicQuery -> dynamicQuery.add(
+				RestrictionsFactoryUtil.eq("companyId", companyId)));
+		actionableDynamicQuery.setPerformActionMethod(
+			(NotificationQueueEntry notificationQueueEntry) ->
+				deleteNotificationQueueEntry(notificationQueueEntry));
+
+		actionableDynamicQuery.performActions();
+	}
+
+	@Override
 	public void deleteNotificationQueueEntries(Date sentDate)
 		throws PortalException {
 
@@ -169,17 +188,19 @@ public class NotificationQueueEntryLocalServiceImpl
 				notificationQueueEntry.getNotificationQueueEntryId());
 
 		NotificationRecipient notificationRecipient =
-			notificationQueueEntry.getNotificationRecipient();
+			notificationQueueEntry.fetchNotificationRecipient();
 
-		_notificationRecipientLocalService.deleteNotificationRecipient(
-			notificationRecipient);
+		if (notificationRecipient != null) {
+			_notificationRecipientLocalService.deleteNotificationRecipient(
+				notificationRecipient);
 
-		for (NotificationRecipientSetting notificationRecipientSetting :
-				notificationRecipient.getNotificationRecipientSettings()) {
+			for (NotificationRecipientSetting notificationRecipientSetting :
+					notificationRecipient.getNotificationRecipientSettings()) {
 
-			_notificationRecipientSettingLocalService.
-				deleteNotificationRecipientSetting(
-					notificationRecipientSetting);
+				_notificationRecipientSettingLocalService.
+					deleteNotificationRecipientSetting(
+						notificationRecipientSetting);
+			}
 		}
 
 		Repository repository = _getRepository(notificationQueueEntry);
@@ -281,8 +302,8 @@ public class NotificationQueueEntryLocalServiceImpl
 		}
 
 		List<NotificationTemplateAttachment> notificationTemplateAttachments =
-			_notificationTemplateAttachmentLocalService.
-				getNotificationTemplateAttachments(
+			_notificationTemplateAttachmentPersistence.
+				findByNotificationTemplateId(
 					notificationTemplate.getNotificationTemplateId());
 
 		if (ListUtil.isEmpty(notificationTemplateAttachments)) {
@@ -398,8 +419,8 @@ public class NotificationQueueEntryLocalServiceImpl
 		_notificationRecipientSettingLocalService;
 
 	@Reference
-	private NotificationTemplateAttachmentLocalService
-		_notificationTemplateAttachmentLocalService;
+	private NotificationTemplateAttachmentPersistence
+		_notificationTemplateAttachmentPersistence;
 
 	@Reference
 	private NotificationTypeServiceTracker _notificationTypeServiceTracker;

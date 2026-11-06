@@ -16,13 +16,14 @@ import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.util.Objects;
+import jakarta.portlet.RenderRequest;
 
-import javax.portlet.RenderRequest;
+import java.util.Objects;
 
 /**
  * @author Eudaldo Alonso
@@ -65,11 +66,7 @@ public class AssetPublisherViewContentDisplayContext {
 	}
 
 	public boolean getPrint() {
-		if (Objects.equals(_getViewMode(), Constants.PRINT)) {
-			return true;
-		}
-
-		return false;
+		return Objects.equals(_getViewMode(), Constants.PRINT);
 	}
 
 	public String getReturnToFullPageURL() {
@@ -88,7 +85,14 @@ public class AssetPublisherViewContentDisplayContext {
 			return false;
 		}
 
-		if (_assetEntry.isVisible() && !_enablePermissions) {
+		if (!_assetEntry.isVisible() && !_isWorkflowAssetPreview()) {
+			SessionErrors.add(
+				_renderRequest, NoSuchModelException.class.getName());
+
+			return false;
+		}
+
+		if (!_enablePermissions) {
 			return true;
 		}
 
@@ -155,6 +159,20 @@ public class AssetPublisherViewContentDisplayContext {
 		_viewMode = ParamUtil.getString(_renderRequest, "viewMode");
 
 		return _viewMode;
+	}
+
+	private boolean _isWorkflowAssetPreview() {
+		if (!GetterUtil.getBoolean(
+				_renderRequest.getAttribute(WebKeys.WORKFLOW_ASSET_PREVIEW))) {
+
+			return false;
+		}
+
+		if (_assetEntry.getEntryId() == _getAssetEntryId()) {
+			return true;
+		}
+
+		return false;
 	}
 
 	private void _setAssetObjects() {

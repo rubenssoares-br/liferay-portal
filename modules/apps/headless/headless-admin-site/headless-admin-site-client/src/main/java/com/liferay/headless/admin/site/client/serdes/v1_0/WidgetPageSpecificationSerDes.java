@@ -9,13 +9,14 @@ import com.liferay.headless.admin.site.client.dto.v1_0.WidgetPageSection;
 import com.liferay.headless.admin.site.client.dto.v1_0.WidgetPageSpecification;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -49,6 +50,16 @@ public class WidgetPageSpecificationSerDes {
 
 		sb.append("{");
 
+		if (widgetPageSpecification.getSettings() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"settings\": ");
+
+			sb.append(String.valueOf(widgetPageSpecification.getSettings()));
+		}
+
 		if (widgetPageSpecification.getWidgetPageSections() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -77,6 +88,30 @@ public class WidgetPageSpecificationSerDes {
 			sb.append("]");
 		}
 
+		if (widgetPageSpecification.getCustomFields() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"customFields\": ");
+
+			sb.append("[");
+
+			for (int i = 0;
+				 i < widgetPageSpecification.getCustomFields().length; i++) {
+
+				sb.append(widgetPageSpecification.getCustomFields()[i]);
+
+				if ((i + 1) <
+						widgetPageSpecification.getCustomFields().length) {
+
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (widgetPageSpecification.getExternalReferenceCode() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -92,14 +127,37 @@ public class WidgetPageSpecificationSerDes {
 			sb.append("\"");
 		}
 
-		if (widgetPageSpecification.getSettings() != null) {
+		if (widgetPageSpecification.
+				getSiteTemplatePageSpecificationExternalReferenceCode() !=
+					null) {
+
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"settings\": ");
+			sb.append(
+				"\"siteTemplatePageSpecificationExternalReferenceCode\": ");
 
-			sb.append(String.valueOf(widgetPageSpecification.getSettings()));
+			sb.append("\"");
+
+			sb.append(
+				_escape(
+					widgetPageSpecification.
+						getSiteTemplatePageSpecificationExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (widgetPageSpecification.getStatus() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"status\": ");
+
+			sb.append("\"");
+			sb.append(widgetPageSpecification.getStatus());
+			sb.append("\"");
 		}
 
 		if (widgetPageSpecification.getType() != null) {
@@ -110,9 +168,7 @@ public class WidgetPageSpecificationSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(widgetPageSpecification.getType());
-
 			sb.append("\"");
 		}
 
@@ -137,6 +193,15 @@ public class WidgetPageSpecificationSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
+		if (widgetPageSpecification.getSettings() == null) {
+			map.put("settings", null);
+		}
+		else {
+			map.put(
+				"settings",
+				String.valueOf(widgetPageSpecification.getSettings()));
+		}
+
 		if (widgetPageSpecification.getWidgetPageSections() == null) {
 			map.put("widgetPageSections", null);
 		}
@@ -145,6 +210,15 @@ public class WidgetPageSpecificationSerDes {
 				"widgetPageSections",
 				String.valueOf(
 					widgetPageSpecification.getWidgetPageSections()));
+		}
+
+		if (widgetPageSpecification.getCustomFields() == null) {
+			map.put("customFields", null);
+		}
+		else {
+			map.put(
+				"customFields",
+				String.valueOf(widgetPageSpecification.getCustomFields()));
 		}
 
 		if (widgetPageSpecification.getExternalReferenceCode() == null) {
@@ -157,13 +231,26 @@ public class WidgetPageSpecificationSerDes {
 					widgetPageSpecification.getExternalReferenceCode()));
 		}
 
-		if (widgetPageSpecification.getSettings() == null) {
-			map.put("settings", null);
+		if (widgetPageSpecification.
+				getSiteTemplatePageSpecificationExternalReferenceCode() ==
+					null) {
+
+			map.put("siteTemplatePageSpecificationExternalReferenceCode", null);
 		}
 		else {
 			map.put(
-				"settings",
-				String.valueOf(widgetPageSpecification.getSettings()));
+				"siteTemplatePageSpecificationExternalReferenceCode",
+				String.valueOf(
+					widgetPageSpecification.
+						getSiteTemplatePageSpecificationExternalReferenceCode()));
+		}
+
+		if (widgetPageSpecification.getStatus() == null) {
+			map.put("status", null);
+		}
+		else {
+			map.put(
+				"status", String.valueOf(widgetPageSpecification.getStatus()));
 		}
 
 		if (widgetPageSpecification.getType() == null) {
@@ -191,7 +278,15 @@ public class WidgetPageSpecificationSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "widgetPageSections")) {
+			if (Objects.equals(jsonParserFieldName, "settings")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "widgetPageSections")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "customFields")) {
 				return false;
 			}
 			else if (Objects.equals(
@@ -199,7 +294,13 @@ public class WidgetPageSpecificationSerDes {
 
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "settings")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"siteTemplatePageSpecificationExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "status")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -214,7 +315,15 @@ public class WidgetPageSpecificationSerDes {
 			WidgetPageSpecification widgetPageSpecification,
 			String jsonParserFieldName, Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "widgetPageSections")) {
+			if (Objects.equals(jsonParserFieldName, "settings")) {
+				if (jsonParserFieldValue != null) {
+					widgetPageSpecification.setSettings(
+						SettingsSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "widgetPageSections")) {
+
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
@@ -232,6 +341,26 @@ public class WidgetPageSpecificationSerDes {
 						widgetPageSectionsArray);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "customFields")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.site.client.custom.field.
+						CustomField[] customFieldsArray = new
+						com.liferay.headless.admin.site.client.custom.field.
+							CustomField[jsonParserFieldValues.length];
+
+					for (int i = 0; i < customFieldsArray.length; i++) {
+						customFieldsArray[i] =
+							com.liferay.headless.admin.site.client.custom.field.
+								CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					widgetPageSpecification.setCustomFields(customFieldsArray);
+				}
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "externalReferenceCode")) {
 
@@ -240,10 +369,21 @@ public class WidgetPageSpecificationSerDes {
 						(String)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "settings")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"siteTemplatePageSpecificationExternalReferenceCode")) {
+
 				if (jsonParserFieldValue != null) {
-					widgetPageSpecification.setSettings(
-						SettingsSerDes.toDTO((String)jsonParserFieldValue));
+					widgetPageSpecification.
+						setSiteTemplatePageSpecificationExternalReferenceCode(
+							(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "status")) {
+				if (jsonParserFieldValue != null) {
+					widgetPageSpecification.setStatus(
+						WidgetPageSpecification.Status.create(
+							(String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -298,6 +438,16 @@ public class WidgetPageSpecificationSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -330,3 +480,4 @@ public class WidgetPageSpecificationSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:58948829

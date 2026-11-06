@@ -55,9 +55,9 @@ public class CommerceOrderTable extends BaseTable<CommerceOrderTable> {
 	public final Column<CommerceOrderTable, Long> commerceAccountId =
 		createColumn(
 			"commerceAccountId", Long.class, Types.BIGINT, Column.FLAG_DEFAULT);
-	public final Column<CommerceOrderTable, Long> commerceCurrencyId =
+	public final Column<CommerceOrderTable, String> commerceCurrencyCode =
 		createColumn(
-			"commerceCurrencyId", Long.class, Types.BIGINT,
+			"commerceCurrencyCode", String.class, Types.VARCHAR,
 			Column.FLAG_DEFAULT);
 	public final Column<CommerceOrderTable, Long> commerceOrderTypeId =
 		createColumn(
@@ -297,3 +297,4 @@ public class CommerceOrderTable extends BaseTable<CommerceOrderTable> {
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1982015541

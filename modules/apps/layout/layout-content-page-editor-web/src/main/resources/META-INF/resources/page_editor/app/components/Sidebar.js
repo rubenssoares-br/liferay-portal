@@ -4,11 +4,7 @@
  */
 
 import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
-import {
-	ReactDOMServer,
-	ReactPortal,
-	useStateSafe,
-} from '@liferay/frontend-js-react-web';
+import {ReactPortal, useStateSafe} from '@liferay/frontend-js-react-web';
 import {Resizer} from '@liferay/layout-js-components-web';
 import classNames from 'classnames';
 import {useId, useSessionState} from 'frontend-js-components-web';
@@ -22,6 +18,7 @@ import MappingSidebar from '../../plugins/mapping/components/MappingSidebar';
 import ContentsSidebar from '../../plugins/page_content/components/ContentsSidebar';
 import PageDesignOptionsSidebar from '../../plugins/page_design_options/components/PageDesignOptionsSidebar';
 import RulesSidebar from '../../plugins/page_rules/components/RulesSidebar';
+import {VIEWPORT_SIZES} from '../config/constants/viewportSizes';
 import {config} from '../config/index';
 import {useSelectItem} from '../contexts/ControlsContext';
 import {useSetOpenShortcutModal} from '../contexts/ShortcutContext';
@@ -53,18 +50,19 @@ function getActiveSidebarPanel({
 	return {sidebarPanel: panel, sidebarPanelId: panel.sidebarPanelId};
 }
 
-const getOpenShortcutModalTooltip = () => (
-	<>
-		<div>{Liferay.Language.get('open-keyboard-shortcuts')}</div>
-		<kbd className="c-kbd c-kbd-dark mt-1">
-			<kbd className="c-kbd">⇧</kbd>
+const getOpenShortcutModalTooltipMarkup = () =>
+	`
+	<div>${Liferay.Language.get('open-keyboard-shortcuts')}</div>
+	<kbd class="c-kbd c-kbd-dark mt-1">
+		<kbd class="c-kbd">⇧</kbd>
 
-			<span className="c-kbd-separator">+</span>
+		<span class="c-kbd-separator">+</span>
 
-			<kbd className="c-kbd">?</kbd>
-		</kbd>
-	</>
-);
+		<kbd class="c-kbd">?</kbd>
+	</kbd>
+`
+		.replaceAll('\n', '')
+		.replaceAll('\t', '');
 
 export default function Sidebar() {
 	const dropClearRef = useDropClear();
@@ -77,11 +75,16 @@ export default function Sidebar() {
 	const sidebarId = useId();
 	const sidebar = useSelector((state) => state.sidebar);
 
+	const selectedViewportSize = useSelector(
+		(state) => state.selectedViewportSize
+	);
+
 	const [sidebarWidth, setSidebarWidth] = useSessionState(
 		`${config.portletNamespace}_sidebar-width`,
 		MIN_SIDEBAR_WIDTH
 	);
 
+	const shouldFocusSidebarContentRef = useRef(false);
 	const sidebarContentRef = useRef();
 	const tabListRef = useRef();
 
@@ -129,6 +132,30 @@ export default function Sidebar() {
 		};
 	}, [sidebarHidden, sidebarOpen, itemConfigurationOpen]);
 
+	useEffect(() => {
+		if (sidebarOpen && shouldFocusSidebarContentRef.current) {
+			shouldFocusSidebarContentRef.current = false;
+
+			sidebarContentRef.current?.focus({preventScroll: true});
+		}
+	}, [sidebarOpen, sidebarPanelId]);
+
+	useEffect(() => {
+		const wrapper = document.getElementById('wrapper');
+
+		if (!wrapper || selectedViewportSize === VIEWPORT_SIZES.desktop) {
+			return;
+		}
+
+		wrapper.classList.add('overflow-hidden');
+
+		return () => {
+			if (wrapper) {
+				wrapper.classList.remove('overflow-hidden');
+			}
+		};
+	}, [selectedViewportSize]);
+
 	const deselectItem = (event) => {
 		if (event.target === event.currentTarget) {
 			selectItem(null);
@@ -152,8 +179,7 @@ export default function Sidebar() {
 		);
 
 		if (open) {
-			sidebarContentRef.current.style.visibility = 'visible';
-			sidebarContentRef.current?.focus({preventScroll: true});
+			shouldFocusSidebarContentRef.current = true;
 		}
 	};
 
@@ -178,7 +204,7 @@ export default function Sidebar() {
 		}
 	};
 
-	const shortcutButtonTitle = getOpenShortcutModalTooltip();
+	const shortcutButtonTitle = getOpenShortcutModalTooltipMarkup();
 
 	return (
 		<ReactPortal className="cadmin">
@@ -235,9 +261,7 @@ export default function Sidebar() {
 						aria-haspopup="dialog"
 						aria-labelledby={shortcutButtonTitleId}
 						className="mt-auto"
-						data-title={ReactDOMServer.renderToString(
-							shortcutButtonTitle
-						)}
+						data-title={shortcutButtonTitle}
 						data-title-set-as-html
 						data-tooltip-align="left"
 						displayType="unstyled"

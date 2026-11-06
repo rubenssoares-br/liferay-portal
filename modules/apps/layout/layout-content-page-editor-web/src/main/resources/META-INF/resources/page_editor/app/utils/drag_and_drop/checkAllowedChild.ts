@@ -19,17 +19,21 @@ import {LAYOUT_DATA_ITEM_TYPES} from '../../config/constants/layoutDataItemTypes
 import {getStepperChild} from '../../utils/getStepperChild';
 import {formIsMapped} from '../formIsMapped';
 import {getFormParent} from '../getFormParent';
+import {getFormStepIndex} from '../getFormStepIndex';
 import getItemWidget from '../getItemWidget';
 import getWidget from '../getWidget';
 import {hasCollectionParent} from '../hasCollectionParent';
-import {hasFormStepParent} from '../hasFormStepParent';
+import isLocalizationSelect from '../isLocalizationSelect';
 import {isMultistepForm} from '../isMultistepForm';
+import isStepper from '../isStepper';
 import {isUnmappedCollection} from '../isUnmappedCollection';
+import {isUnmappedForm} from '../isUnmappedForm';
 
-type DragAndDropItem = LayoutDataItem & {
+export type MovementItem = LayoutDataItem & {
 	fieldTypes: FragmentEntryLink['fieldTypes'];
-	fragmentEntryType: FragmentEntryLink['fragmentEntryType'];
+	fragmentEntryType: FragmentEntryLink['fragmentEntryType'] | null;
 	isWidget: boolean;
+	name: string;
 	portletId?: string;
 };
 
@@ -72,8 +76,19 @@ const LAYOUT_DATA_CHECK_ALLOWED_CHILDREN = {
 					LAYOUT_DATA_ITEM_TYPES.dropZone,
 					LAYOUT_DATA_ITEM_TYPES.row,
 					LAYOUT_DATA_ITEM_TYPES.fragment,
+					LAYOUT_DATA_ITEM_TYPES.formRelationship,
 				].some((type) => type === child.type)
 			: false,
+
+	[LAYOUT_DATA_ITEM_TYPES.formRelationship]: (child: LayoutDataItem) =>
+		[
+			LAYOUT_DATA_ITEM_TYPES.collection,
+			LAYOUT_DATA_ITEM_TYPES.container,
+			LAYOUT_DATA_ITEM_TYPES.dropZone,
+			LAYOUT_DATA_ITEM_TYPES.row,
+			LAYOUT_DATA_ITEM_TYPES.fragment,
+			LAYOUT_DATA_ITEM_TYPES.formRelationship,
+		].some((type) => type === child.type),
 	[LAYOUT_DATA_ITEM_TYPES.formStep]: (child: LayoutDataItem) =>
 		[
 			LAYOUT_DATA_ITEM_TYPES.collection,
@@ -82,6 +97,7 @@ const LAYOUT_DATA_CHECK_ALLOWED_CHILDREN = {
 			LAYOUT_DATA_ITEM_TYPES.row,
 			LAYOUT_DATA_ITEM_TYPES.fragment,
 			LAYOUT_DATA_ITEM_TYPES.form,
+			LAYOUT_DATA_ITEM_TYPES.formRelationship,
 		].some((type) => type === child.type),
 	[LAYOUT_DATA_ITEM_TYPES.formStepContainer]: (child: LayoutDataItem) =>
 		[LAYOUT_DATA_ITEM_TYPES.formStep].some((type) => type === child.type),
@@ -108,35 +124,62 @@ const LAYOUT_DATA_CHECK_ALLOWED_CHILDREN = {
 		].some((type) => type === child.type),
 };
 
+type Result = {
+	reason?:
+		| 'input-outside-form'
+		| 'disabled-part-of-collection'
+		| 'existing-stepper'
+		| 'form-relationship-outside-form'
+		| 'noninstanceable-widget-inside-collection'
+		| 'stepper-outside-form'
+		| 'stepper-multiple-action'
+		| 'targeting-step-container'
+		| 'unmapped-collection'
+		| 'unmapped-form'
+		| 'widget-inside-form';
+	valid: boolean;
+};
+
 /**
  * Checks if the given child can be nested inside given parent
  */
 export default function checkAllowedChild(
-	child: DragAndDropItem,
-	parent: DragAndDropItem,
+	child: MovementItem,
+	parent: MovementItem,
 	layoutData: LayoutData,
 	fragmentEntryLinks: FragmentEntryLinkMap,
-	getWidgets: () => WidgetSet[]
-) {
-	if (isUnmappedCollection(parent) || isUnmappedForm(parent)) {
-		return false;
+	getWidgets: () => WidgetSet[],
+	isMultiple: boolean = false
+): Result {
+	if (isUnmappedCollection(parent)) {
+		return {reason: 'unmapped-collection', valid: false};
+	}
+	else if (parent.type === LAYOUT_DATA_ITEM_TYPES.collection) {
+		return {reason: 'disabled-part-of-collection', valid: false};
 	}
 
-	const isStepper = child.fieldTypes?.includes('stepper');
+	if (isUnmappedForm(parent)) {
+		return {reason: 'unmapped-form', valid: false};
+	}
+
+	if (isMultiple && isStepper(child)) {
+		return {reason: 'stepper-multiple-action', valid: false};
+	}
+
 	const formParent = getFormParent(parent, layoutData);
 
 	if (
-		!isStepper &&
+		!isStepper(child) &&
 		isMultistepForm(formParent) &&
-		!hasFormStepParent(parent, layoutData)
+		getFormStepIndex(parent, layoutData) === null
 	) {
-		return false;
+		return {reason: 'targeting-step-container', valid: false};
 	}
 
 	if (child.type === LAYOUT_DATA_ITEM_TYPES.fragment) {
-		if (isStepper) {
+		if (isStepper(child)) {
 			if (parent.type !== LAYOUT_DATA_ITEM_TYPES.form) {
-				return false;
+				return {reason: 'stepper-outside-form', valid: false};
 			}
 
 			const existingStepper = getStepperChild(
@@ -146,19 +189,12 @@ export default function checkAllowedChild(
 			);
 
 			if (existingStepper && existingStepper.itemId !== child.itemId) {
-				return false;
+				return {reason: 'existing-stepper', valid: false};
 			}
 		}
 		else {
-			if (
-				child.fragmentEntryType === FRAGMENT_ENTRY_TYPES.input &&
-				!formParent
-			) {
-				return false;
-			}
-
 			if (formParent && child.isWidget) {
-				return false;
+				return {reason: 'widget-inside-form', valid: false};
 			}
 
 			if (hasCollectionParent(parent, layoutData) && child.isWidget) {
@@ -174,14 +210,73 @@ export default function checkAllowedChild(
 							widgets
 						);
 
-				return widget?.instanceable;
+				if (!widget?.instanceable) {
+					return {
+						reason: 'noninstanceable-widget-inside-collection',
+						valid: false,
+					};
+				}
 			}
 		}
 	}
 
-	return LAYOUT_DATA_CHECK_ALLOWED_CHILDREN[parent.type](child, parent);
+	if (child.type === 'form-relationship') {
+		if (!formParent) {
+			return {reason: 'form-relationship-outside-form', valid: false};
+		}
+
+		return {valid: true};
+	}
+
+	if (
+		!formParent &&
+		hasInputChildOutsideForm(child, layoutData, fragmentEntryLinks)
+	) {
+		return {reason: 'input-outside-form', valid: false};
+	}
+
+	if (!LAYOUT_DATA_CHECK_ALLOWED_CHILDREN[parent.type](child, parent)) {
+		return {valid: false};
+	}
+
+	return {valid: true};
 }
 
-function isUnmappedForm(item: LayoutDataItem) {
-	return item.type === LAYOUT_DATA_ITEM_TYPES.form && !formIsMapped(item);
+function hasInputChildOutsideForm(
+	child: MovementItem,
+	layoutData: LayoutData,
+	fragmentEntryLinks: FragmentEntryLinkMap
+): boolean {
+	if (
+		child.fragmentEntryType === FRAGMENT_ENTRY_TYPES.input &&
+		!isLocalizationSelect(child)
+	) {
+		return true;
+	}
+
+	const childItem = layoutData.items[child.itemId];
+
+	if (!childItem || childItem.type === LAYOUT_DATA_ITEM_TYPES.form) {
+		return false;
+	}
+
+	if (childItem.type === LAYOUT_DATA_ITEM_TYPES.fragment) {
+		const fragment =
+			fragmentEntryLinks?.[childItem.config.fragmentEntryLinkId!];
+
+		return (
+			fragment.fragmentEntryType === FRAGMENT_ENTRY_TYPES.input &&
+			!isLocalizationSelect(fragment)
+		);
+	}
+
+	return childItem.children?.some((childId) => {
+		const child = layoutData.items[childId];
+
+		return hasInputChildOutsideForm(
+			child as MovementItem,
+			layoutData,
+			fragmentEntryLinks
+		);
+	});
 }

@@ -19,13 +19,12 @@ import java.util.regex.Matcher;
 public class HypersonicSQLTransformerLogic extends BaseSQLTransformerLogic {
 
 	public HypersonicSQLTransformerLogic(DB db) {
-		super(db);
-
 		Function[] functions = {
 			getAggregationFunction(), getBooleanFunction(),
-			getCastClobTextFunction(), getCastLongFunction(),
-			getCastTextFunction(), getDropTableIfExistsTextFunction(),
-			getIntegerDivisionFunction(), getNullDateFunction()
+			getCastClobTextFunction(), getCastDecimalFunction(),
+			getCastLongFunction(), getCastTextFunction(),
+			getDropTableIfExistsTextFunction(), getIntegerDivisionFunction(),
+			getNullDateFunction(), getTruncateTableFunction()
 		};
 
 		if (!db.isSupportsStringCaseSensitiveQuery()) {

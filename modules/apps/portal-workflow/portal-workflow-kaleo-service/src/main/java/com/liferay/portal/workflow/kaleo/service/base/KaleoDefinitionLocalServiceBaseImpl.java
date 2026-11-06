@@ -5,17 +5,22 @@
 
 package com.liferay.portal.workflow.kaleo.service.base;
 
+import com.liferay.exportimport.kernel.lar.ExportImportHelperUtil;
+import com.liferay.exportimport.kernel.lar.ManifestSummary;
+import com.liferay.exportimport.kernel.lar.PortletDataContext;
+import com.liferay.exportimport.kernel.lar.StagedModelDataHandlerUtil;
+import com.liferay.exportimport.kernel.lar.StagedModelType;
 import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdate;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdateFactoryUtil;
+import com.liferay.portal.kernel.dao.jdbc.CurrentConnectionUtil;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DefaultActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQueryFactoryUtil;
+import com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.Projection;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -39,6 +44,8 @@ import com.liferay.portal.workflow.kaleo.service.KaleoDefinitionLocalService;
 import com.liferay.portal.workflow.kaleo.service.persistence.KaleoDefinitionPersistence;
 
 import java.io.Serializable;
+
+import java.sql.Connection;
 
 import java.util.List;
 
@@ -127,11 +134,13 @@ public abstract class KaleoDefinitionLocalServiceBaseImpl
 	 *
 	 * @param kaleoDefinition the kaleo definition
 	 * @return the kaleo definition that was removed
+	 * @throws PortalException
 	 */
 	@Indexable(type = IndexableType.DELETE)
 	@Override
 	public KaleoDefinition deleteKaleoDefinition(
-		KaleoDefinition kaleoDefinition) {
+			KaleoDefinition kaleoDefinition)
+		throws PortalException {
 
 		return kaleoDefinitionPersistence.remove(kaleoDefinition);
 	}
@@ -240,6 +249,20 @@ public abstract class KaleoDefinitionLocalServiceBaseImpl
 		return kaleoDefinitionPersistence.fetchByPrimaryKey(kaleoDefinitionId);
 	}
 
+	/**
+	 * Returns the kaleo definition matching the UUID and group.
+	 *
+	 * @param uuid the kaleo definition's UUID
+	 * @param groupId the primary key of the group
+	 * @return the matching kaleo definition, or <code>null</code> if a matching kaleo definition could not be found
+	 */
+	@Override
+	public KaleoDefinition fetchKaleoDefinitionByUuidAndGroupId(
+		String uuid, long groupId) {
+
+		return kaleoDefinitionPersistence.fetchByUUID_G(uuid, groupId);
+	}
+
 	@Override
 	public KaleoDefinition fetchKaleoDefinitionByExternalReferenceCode(
 		String externalReferenceCode, long companyId) {
@@ -313,6 +336,72 @@ public abstract class KaleoDefinitionLocalServiceBaseImpl
 		actionableDynamicQuery.setPrimaryKeyPropertyName("kaleoDefinitionId");
 	}
 
+	@Override
+	public ExportActionableDynamicQuery getExportActionableDynamicQuery(
+		final PortletDataContext portletDataContext) {
+
+		final ExportActionableDynamicQuery exportActionableDynamicQuery =
+			new ExportActionableDynamicQuery() {
+
+				@Override
+				public long performCount() throws PortalException {
+					ManifestSummary manifestSummary =
+						portletDataContext.getManifestSummary();
+
+					StagedModelType stagedModelType = getStagedModelType();
+
+					long modelAdditionCount = super.performCount();
+
+					manifestSummary.addModelAdditionCount(
+						stagedModelType, modelAdditionCount);
+
+					long modelDeletionCount =
+						ExportImportHelperUtil.getModelDeletionCount(
+							portletDataContext, stagedModelType);
+
+					manifestSummary.addModelDeletionCount(
+						stagedModelType, modelDeletionCount);
+
+					return modelAdditionCount;
+				}
+
+			};
+
+		initActionableDynamicQuery(exportActionableDynamicQuery);
+
+		exportActionableDynamicQuery.setAddCriteriaMethod(
+			new ActionableDynamicQuery.AddCriteriaMethod() {
+
+				@Override
+				public void addCriteria(DynamicQuery dynamicQuery) {
+					portletDataContext.addDateRangeCriteria(
+						dynamicQuery, "modifiedDate");
+				}
+
+			});
+
+		exportActionableDynamicQuery.setCompanyId(
+			portletDataContext.getCompanyId());
+
+		exportActionableDynamicQuery.setPerformActionMethod(
+			new ActionableDynamicQuery.PerformActionMethod<KaleoDefinition>() {
+
+				@Override
+				public void performAction(KaleoDefinition kaleoDefinition)
+					throws PortalException {
+
+					StagedModelDataHandlerUtil.exportStagedModel(
+						portletDataContext, kaleoDefinition);
+				}
+
+			});
+		exportActionableDynamicQuery.setStagedModelType(
+			new StagedModelType(
+				PortalUtil.getClassNameId(KaleoDefinition.class.getName())));
+
+		return exportActionableDynamicQuery;
+	}
+
 	/**
 	 * @throws PortalException
 	 */
@@ -353,6 +442,55 @@ public abstract class KaleoDefinitionLocalServiceBaseImpl
 		throws PortalException {
 
 		return kaleoDefinitionPersistence.findByPrimaryKey(primaryKeyObj);
+	}
+
+	/**
+	 * Returns all the kaleo definitions matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the kaleo definitions
+	 * @param companyId the primary key of the company
+	 * @return the matching kaleo definitions, or an empty list if no matches were found
+	 */
+	@Override
+	public List<KaleoDefinition> getKaleoDefinitionsByUuidAndCompanyId(
+		String uuid, long companyId) {
+
+		return kaleoDefinitionPersistence.findByUuid_C(uuid, companyId);
+	}
+
+	/**
+	 * Returns a range of kaleo definitions matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the kaleo definitions
+	 * @param companyId the primary key of the company
+	 * @param start the lower bound of the range of kaleo definitions
+	 * @param end the upper bound of the range of kaleo definitions (not inclusive)
+	 * @param orderByComparator the comparator to order the results by (optionally <code>null</code>)
+	 * @return the range of matching kaleo definitions, or an empty list if no matches were found
+	 */
+	@Override
+	public List<KaleoDefinition> getKaleoDefinitionsByUuidAndCompanyId(
+		String uuid, long companyId, int start, int end,
+		OrderByComparator<KaleoDefinition> orderByComparator) {
+
+		return kaleoDefinitionPersistence.findByUuid_C(
+			uuid, companyId, start, end, orderByComparator);
+	}
+
+	/**
+	 * Returns the kaleo definition matching the UUID and group.
+	 *
+	 * @param uuid the kaleo definition's UUID
+	 * @param groupId the primary key of the group
+	 * @return the matching kaleo definition
+	 * @throws PortalException if a matching kaleo definition could not be found
+	 */
+	@Override
+	public KaleoDefinition getKaleoDefinitionByUuidAndGroupId(
+			String uuid, long groupId)
+		throws PortalException {
+
+		return kaleoDefinitionPersistence.findByUUID_G(uuid, groupId);
 	}
 
 	/**
@@ -455,18 +593,23 @@ public abstract class KaleoDefinitionLocalServiceBaseImpl
 	 * @param sql the sql query
 	 */
 	protected void runSQL(String sql) {
+		DataSource dataSource = kaleoDefinitionPersistence.getDataSource();
+
+		DB db = DBManagerUtil.getDB();
+
+		Connection currentConnection = CurrentConnectionUtil.getConnection(
+			dataSource);
+
 		try {
-			DataSource dataSource = kaleoDefinitionPersistence.getDataSource();
+			if (currentConnection != null) {
+				db.runSQL(currentConnection, new String[] {sql});
 
-			DB db = DBManagerUtil.getDB();
+				return;
+			}
 
-			sql = db.buildSQL(sql);
-			sql = PortalUtil.transformSQL(sql);
-
-			SqlUpdate sqlUpdate = SqlUpdateFactoryUtil.getSqlUpdate(
-				dataSource, sql);
-
-			sqlUpdate.update();
+			try (Connection connection = dataSource.getConnection()) {
+				db.runSQL(connection, new String[] {sql});
+			}
 		}
 		catch (Exception exception) {
 			throw new SystemException(exception);
@@ -486,3 +629,4 @@ public abstract class KaleoDefinitionLocalServiceBaseImpl
 		KaleoDefinitionLocalServiceBaseImpl.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2146343238

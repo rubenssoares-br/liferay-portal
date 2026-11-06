@@ -9,24 +9,31 @@
 
 <%
 EditSiteTeamAssignmentsUsersDisplayContext editSiteTeamAssignmentsUsersDisplayContext = new EditSiteTeamAssignmentsUsersDisplayContext(request, renderRequest, renderResponse);
+
+EditSiteTeamAssignmentsUsersManagementToolbarDisplayContext editSiteTeamAssignmentsUsersManagementToolbarDisplayContext = new EditSiteTeamAssignmentsUsersManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, editSiteTeamAssignmentsUsersDisplayContext);
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems="<%= editSiteTeamAssignmentsUsersDisplayContext.getNavigationItems() %>"
 />
 
 <clay:management-toolbar
-	managementToolbarDisplayContext="<%= new EditSiteTeamAssignmentsUsersManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, editSiteTeamAssignmentsUsersDisplayContext) %>"
+	managementToolbarDisplayContext="<%= editSiteTeamAssignmentsUsersManagementToolbarDisplayContext %>"
 	propsTransformer="{EditTeamAssignmentsUsersManagementToolbarPropsTransformer} from site-teams-web"
 />
 
 <portlet:actionURL name="deleteTeamUsers" var="deleteTeamUsersURL" />
 
-<aui:form action="<%= deleteTeamUsersURL %>" cssClass="container-fluid container-fluid-max-xl portlet-site-teams-users" method="post" name="fm">
+<aui:form action="<%= deleteTeamUsersURL %>" cssClass="container-fluid portlet-site-teams-users" method="post" name="fm">
 	<aui:input name="tabs1" type="hidden" value="<%= editSiteTeamAssignmentsUsersDisplayContext.getTabs1() %>" />
 	<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
 	<aui:input name="teamId" type="hidden" value="<%= String.valueOf(editSiteTeamAssignmentsUsersDisplayContext.getTeamId()) %>" />
+
+	<clay:alert
+		dismissible="<%= true %>"
+		displayType="info"
+		message="inherited-memberships-from-an-organization-or-a-user-group-are-managed-at-their-source-and-cannot-be-removed-here"
+	/>
 
 	<liferay-ui:search-container
 		id="users"
@@ -39,12 +46,20 @@ EditSiteTeamAssignmentsUsersDisplayContext editSiteTeamAssignmentsUsersDisplayCo
 			modelVar="user2"
 			rowIdProperty="screenName"
 		>
+
+			<%
+			row.setData(
+				HashMapBuilder.<String, Object>put(
+					"actions", editSiteTeamAssignmentsUsersManagementToolbarDisplayContext.getAvailableActions(editSiteTeamAssignmentsUsersDisplayContext.getTeamId(), user2.getUserId())
+				).build());
+			%>
+
 			<c:choose>
 				<c:when test='<%= Objects.equals(editSiteTeamAssignmentsUsersDisplayContext.getDisplayStyle(), "icon") %>'>
 					<liferay-ui:search-container-column-text>
 						<clay:user-card
 							propsTransformer="{UserDropdownDefaultPropsTransformer} from site-teams-web"
-							userCard="<%= new UserUserCard(user2, editSiteTeamAssignmentsUsersDisplayContext.getTeamId(), renderRequest, renderResponse, searchContainer.getRowChecker()) %>"
+							userCard="<%= new UserUserCard(editSiteTeamAssignmentsUsersDisplayContext.isInheritedMember(user2.getUserId()), renderRequest, renderResponse, editSiteTeamAssignmentsUsersDisplayContext.getRowChecker(), editSiteTeamAssignmentsUsersDisplayContext.getTeamId(), user2) %>"
 						/>
 					</liferay-ui:search-container-column-text>
 				</c:when>
@@ -63,6 +78,27 @@ EditSiteTeamAssignmentsUsersDisplayContext editSiteTeamAssignmentsUsersDisplayCo
 						<div class="h6 text-default">
 							<span><%= user2.getScreenName() %></span>
 						</div>
+
+						<c:choose>
+							<c:when test="<%= editSiteTeamAssignmentsUsersDisplayContext.isInheritedMember(user2.getUserId()) %>">
+								<div>
+									<span class="lfr-portal-tooltip" title="<%= HtmlUtil.escape(editSiteTeamAssignmentsUsersDisplayContext.getMembershipLabel(user2.getUserId())) %>">
+										<clay:label
+											displayType="info"
+											label='<%= LanguageUtil.get(request, "inherited") %>'
+										/>
+									</span>
+								</div>
+							</c:when>
+							<c:otherwise>
+								<div>
+									<clay:label
+										displayType="secondary"
+										label='<%= LanguageUtil.get(request, "direct") %>'
+									/>
+								</div>
+							</c:otherwise>
+						</c:choose>
 					</liferay-ui:search-container-column-text>
 
 					<liferay-ui:search-container-column-text>
@@ -90,6 +126,28 @@ EditSiteTeamAssignmentsUsersDisplayContext editSiteTeamAssignmentsUsersDisplayCo
 						name="screen-name"
 						property="screenName"
 					/>
+
+					<liferay-ui:search-container-column-text
+						cssClass="table-cell-expand table-cell-minw-200"
+						name="membership"
+					>
+						<c:choose>
+							<c:when test="<%= editSiteTeamAssignmentsUsersDisplayContext.isInheritedMember(user2.getUserId()) %>">
+								<span class="lfr-portal-tooltip" title="<%= HtmlUtil.escape(editSiteTeamAssignmentsUsersDisplayContext.getMembershipLabel(user2.getUserId())) %>">
+									<clay:label
+										displayType="info"
+										label='<%= LanguageUtil.get(request, "inherited") %>'
+									/>
+								</span>
+							</c:when>
+							<c:otherwise>
+								<clay:label
+									displayType="secondary"
+									label='<%= LanguageUtil.get(request, "direct") %>'
+								/>
+							</c:otherwise>
+						</c:choose>
+					</liferay-ui:search-container-column-text>
 
 					<liferay-ui:search-container-column-text>
 

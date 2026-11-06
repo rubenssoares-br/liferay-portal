@@ -4,15 +4,23 @@
  */
 
 import {
-	addParams,
 	openConfirmModal,
 	openModal,
 	openSelectionModal,
-} from 'frontend-js-web';
+} from 'frontend-js-components-web';
+import {addParams} from 'frontend-js-web';
 
 import openDeleteArticleModal from './modals/openDeleteArticleModal';
 
 const ACTIONS = {
+	addToLaunch({itemData}) {
+		Liferay.fire('addToLaunch', {
+			className: itemData.className,
+			classPK: itemData.classPK,
+			classVersion: itemData.classVersion,
+		});
+	},
+
 	compareVersions({itemData, portletNamespace}) {
 		openSelectionModal({
 			onSelect: (selectedItem) => {
@@ -141,6 +149,10 @@ const ACTIONS = {
 			onConfirm: (isConfirmed) =>
 				isConfirmed && this.send(itemData.publishFolderURL),
 		});
+	},
+
+	revertArticle({itemData}) {
+		this.send(itemData.revertURL);
 	},
 
 	send(url) {

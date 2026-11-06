@@ -5,12 +5,17 @@
 
 package com.liferay.object.info.field.converter;
 
+import com.liferay.dynamic.data.mapping.expression.DDMExpressionFactory;
+import com.liferay.info.constants.InfoDisplayWebKeys;
 import com.liferay.info.field.InfoField;
+import com.liferay.info.field.type.DateInfoFieldType;
+import com.liferay.info.field.type.EmailInfoFieldType;
 import com.liferay.info.field.type.FileInfoFieldType;
 import com.liferay.info.field.type.LongTextInfoFieldType;
 import com.liferay.info.field.type.MultiselectInfoFieldType;
 import com.liferay.info.field.type.NumberInfoFieldType;
 import com.liferay.info.field.type.OptionInfoFieldType;
+import com.liferay.info.field.type.PhoneNumberInfoFieldType;
 import com.liferay.info.field.type.RelationshipInfoFieldType;
 import com.liferay.info.field.type.SelectInfoFieldType;
 import com.liferay.info.field.type.TextInfoFieldType;
@@ -22,13 +27,16 @@ import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.list.type.service.ListTypeEntryLocalService;
 import com.liferay.object.configuration.ObjectConfiguration;
 import com.liferay.object.constants.ObjectFieldConstants;
+import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.constants.ObjectFieldValidationConstants;
+import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.field.setting.util.ObjectFieldSettingUtil;
+import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.info.field.type.util.ObjectFieldInfoFieldTypeUtil;
+import com.liferay.object.info.item.util.ObjectEntryInfoItemUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectField;
-import com.liferay.object.model.ObjectFieldSetting;
 import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.model.ObjectState;
 import com.liferay.object.model.ObjectStateFlow;
@@ -38,32 +46,45 @@ import com.liferay.object.scope.ObjectScopeProvider;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
-import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.service.ObjectStateFlowLocalService;
 import com.liferay.object.service.ObjectStateLocalService;
+import com.liferay.object.system.SystemObjectDefinitionManager;
+import com.liferay.object.system.SystemObjectDefinitionManagerRegistry;
+import com.liferay.petra.function.UnsafeSupplier;
+import com.liferay.petra.function.UnsafeSupplierValue;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.math.BigDecimal;
 
+import java.util.AbstractList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
+import java.util.Set;
 
 /**
  * @author Lourdes Fernández Besada
@@ -71,61 +92,73 @@ import javax.servlet.http.HttpServletRequest;
 public class ObjectFieldInfoFieldConverter {
 
 	public ObjectFieldInfoFieldConverter(
+		DDMExpressionFactory ddmExpressionFactory,
 		ListTypeEntryLocalService listTypeEntryLocalService,
 		ObjectConfiguration objectConfiguration,
 		ObjectDefinitionLocalService objectDefinitionLocalService,
 		ObjectFieldLocalService objectFieldLocalService,
-		ObjectFieldSettingLocalService objectFieldSettingLocalService,
 		ObjectRelationshipLocalService objectRelationshipLocalService,
 		ObjectScopeProviderRegistry objectScopeProviderRegistry,
 		ObjectStateFlowLocalService objectStateFlowLocalService,
 		ObjectStateLocalService objectStateLocalService, Portal portal,
 		RESTContextPathResolverRegistry restContextPathResolverRegistry,
+		SystemObjectDefinitionManagerRegistry
+			systemObjectDefinitionManagerRegistry,
 		UserLocalService userLocalService) {
 
+		_ddmExpressionFactory = ddmExpressionFactory;
 		_listTypeEntryLocalService = listTypeEntryLocalService;
 		_objectConfiguration = objectConfiguration;
 		_objectDefinitionLocalService = objectDefinitionLocalService;
 		_objectFieldLocalService = objectFieldLocalService;
-		_objectFieldSettingLocalService = objectFieldSettingLocalService;
 		_objectRelationshipLocalService = objectRelationshipLocalService;
 		_objectScopeProviderRegistry = objectScopeProviderRegistry;
 		_objectStateFlowLocalService = objectStateFlowLocalService;
 		_objectStateLocalService = objectStateLocalService;
 		_portal = portal;
 		_restContextPathResolverRegistry = restContextPathResolverRegistry;
+		_systemObjectDefinitionManagerRegistry =
+			systemObjectDefinitionManagerRegistry;
 		_userLocalService = userLocalService;
+	}
+
+	public InfoField<?> addRelationshipInfoFieldAttributes(
+		InfoField.FinalStep finalStep, ObjectRelationship objectRelationship) {
+
+		ObjectDefinition relatedObjectDefinition =
+			_fetchRelatedObjectDefinition(objectRelationship);
+
+		return finalStep.attribute(
+			RelationshipInfoFieldType.INHERITANCE, objectRelationship.isEdge()
+		).attribute(
+			RelationshipInfoFieldType.LABEL_FIELD_NAME,
+			_getRelationshipLabelFieldName(relatedObjectDefinition)
+		).attribute(
+			RelationshipInfoFieldType.MULTIPLE,
+			objectRelationship.compareType(
+				ObjectRelationshipConstants.TYPE_MANY_TO_MANY)
+		).attribute(
+			RelationshipInfoFieldType.URL,
+			_getRelationshipURL(relatedObjectDefinition)
+		).attribute(
+			RelationshipInfoFieldType.VALUE_FIELD_NAME, "id"
+		).build();
 	}
 
 	public InfoField<?> getInfoField(
 		boolean editable, String namespace, ObjectField objectField) {
 
 		return _addAttributes(
-			InfoField.builder(
-			).infoFieldType(
-				ObjectFieldInfoFieldTypeUtil.getInfoFieldType(objectField)
-			).namespace(
-				namespace
-			).name(
-				objectField.getName()
-			).editable(
-				editable
-			).labelInfoLocalizedValue(
-				InfoLocalizedValue.<String>builder(
-				).defaultLocale(
-					LocaleUtil.fromLanguageId(
-						objectField.getDefaultLanguageId())
-				).values(
-					objectField.getLabelMap()
-				).build()
-			).readOnly(
-				Objects.equals(
-					objectField.getReadOnly(),
-					ObjectFieldConstants.READ_ONLY_TRUE)
-			).required(
-				objectField.isRequired()
-			),
-			objectField);
+			_getFinalStep(editable, namespace, objectField), objectField);
+	}
+
+	public InfoField<?> getInfoField(
+		boolean editable, String namespace, ObjectField objectField,
+		ObjectRelationship objectRelationship) {
+
+		return addRelationshipInfoFieldAttributes(
+			_getFinalStep(editable, namespace, objectField),
+			objectRelationship);
 	}
 
 	private InfoField<?> _addAttributes(
@@ -147,6 +180,12 @@ public class ObjectFieldInfoFieldConverter {
 		}
 		else if (Objects.equals(
 					objectField.getBusinessType(),
+					ObjectFieldConstants.BUSINESS_TYPE_DATE)) {
+
+			finalStep.attribute(DateInfoFieldType.TIME_ZONE_INDEPENDENT, true);
+		}
+		else if (Objects.equals(
+					objectField.getBusinessType(),
 					ObjectFieldConstants.BUSINESS_TYPE_DECIMAL)) {
 
 			finalStep.attribute(
@@ -154,6 +193,14 @@ public class ObjectFieldInfoFieldConverter {
 			).attribute(
 				NumberInfoFieldType.DECIMAL_PART_MAX_LENGTH, 16
 			);
+		}
+		else if (Objects.equals(
+					objectField.getBusinessType(),
+					ObjectFieldConstants.BUSINESS_TYPE_EMAIL_ADDRESS)) {
+
+			finalStep.attribute(
+				EmailInfoFieldType.PREFERRED_DOMAINS,
+				_getPreferredDomains(objectField));
 		}
 		else if (Objects.equals(
 					objectField.getBusinessType(),
@@ -204,9 +251,8 @@ public class ObjectFieldInfoFieldConverter {
 						objectField.getListTypeDefinitionId()),
 					listTypeEntry -> new OptionInfoFieldType(
 						Objects.equals(
-							ObjectFieldSettingUtil.getDefaultValueAsString(
-								null, objectField,
-								_objectFieldSettingLocalService, null),
+							ObjectFieldSettingUtil.getDefaultValue(
+								null, objectField, null),
 							listTypeEntry.getKey()),
 						new FunctionInfoLocalizedValue<>(
 							listTypeEntry::getName),
@@ -214,11 +260,30 @@ public class ObjectFieldInfoFieldConverter {
 		}
 		else if (Objects.equals(
 					objectField.getBusinessType(),
+					ObjectFieldConstants.BUSINESS_TYPE_PHONE_NUMBER)) {
+
+			finalStep.attribute(
+				PhoneNumberInfoFieldType.COUNTRY,
+				ObjectFieldSettingUtil.getValue(
+					ObjectFieldSettingConstants.NAME_COUNTRY, objectField)
+			).attribute(
+				PhoneNumberInfoFieldType.COUNTRY_SOURCE,
+				ObjectFieldSettingUtil.getValue(
+					ObjectFieldSettingConstants.NAME_COUNTRY_SOURCE,
+					objectField)
+			);
+		}
+		else if (Objects.equals(
+					objectField.getBusinessType(),
 					ObjectFieldConstants.BUSINESS_TYPE_PICKLIST)) {
+
+			ObjectEntry objectEntry = _getObjectEntry(
+				ServiceContextThreadLocal.getServiceContext());
 
 			finalStep.attribute(
 				SelectInfoFieldType.OPTIONS,
-				_getOptionInfoFieldTypes(objectField));
+				new LazyList(
+					() -> _getOptionInfoFieldTypes(objectEntry, objectField)));
 		}
 		else if (Objects.equals(
 					objectField.getBusinessType(),
@@ -244,14 +309,13 @@ public class ObjectFieldInfoFieldConverter {
 					objectField.getBusinessType(),
 					ObjectFieldConstants.BUSINESS_TYPE_RELATIONSHIP)) {
 
-			finalStep.attribute(
-				RelationshipInfoFieldType.LABEL_FIELD_NAME,
-				_getRelationshipLabelFieldName(objectField)
-			).attribute(
-				RelationshipInfoFieldType.URL, _getRelationshipURL(objectField)
-			).attribute(
-				RelationshipInfoFieldType.VALUE_FIELD_NAME, "id"
-			);
+			ObjectRelationship objectRelationship =
+				_objectRelationshipLocalService.
+					fetchObjectRelationshipByObjectFieldId2(
+						objectField.getObjectFieldId());
+
+			return addRelationshipInfoFieldAttributes(
+				finalStep, objectRelationship);
 		}
 		else if (Objects.equals(
 					objectField.getBusinessType(),
@@ -264,38 +328,109 @@ public class ObjectFieldInfoFieldConverter {
 		return finalStep.build();
 	}
 
-	private String _getAcceptedFileExtensions(ObjectField objectField) {
-		ObjectFieldSetting acceptedFileExtensionsObjectFieldSetting =
-			_objectFieldSettingLocalService.fetchObjectFieldSetting(
-				objectField.getObjectFieldId(), "acceptedFileExtensions");
+	private ObjectDefinition _fetchRelatedObjectDefinition(
+		ObjectRelationship objectRelationship) {
 
-		if (acceptedFileExtensionsObjectFieldSetting == null) {
+		if (objectRelationship.compareType(
+				ObjectRelationshipConstants.TYPE_MANY_TO_MANY)) {
+
+			return _objectDefinitionLocalService.fetchObjectDefinition(
+				objectRelationship.getObjectDefinitionId2());
+		}
+
+		return _objectDefinitionLocalService.fetchObjectDefinition(
+			objectRelationship.getObjectDefinitionId1());
+	}
+
+	private User _fetchUser(ServiceContext serviceContext) {
+		ThemeDisplay themeDisplay = serviceContext.getThemeDisplay();
+
+		if (themeDisplay == null) {
+			return _userLocalService.fetchUser(serviceContext.getUserId());
+		}
+
+		User user = themeDisplay.getUser();
+
+		if ((user != null) &&
+			(user.getUserId() == serviceContext.getUserId())) {
+
+			return user;
+		}
+
+		return _userLocalService.fetchUser(serviceContext.getUserId());
+	}
+
+	private String _getAcceptedFileExtensions(ObjectField objectField) {
+		String acceptedFileExtensions = ObjectFieldSettingUtil.getValue(
+			ObjectFieldSettingConstants.NAME_ACCEPTED_FILE_EXTENSIONS,
+			objectField);
+
+		if (acceptedFileExtensions == null) {
 			return StringPool.BLANK;
 		}
 
-		return acceptedFileExtensionsObjectFieldSetting.getValue();
+		return acceptedFileExtensions;
 	}
 
 	private FileInfoFieldType.FileSourceType _getFileSourceType(
 		ObjectField objectField) {
 
-		ObjectFieldSetting objectFieldSetting =
-			_objectFieldSettingLocalService.fetchObjectFieldSetting(
-				objectField.getObjectFieldId(), "fileSource");
-
-		if (objectFieldSetting == null) {
-			return null;
-		}
+		String fileSource = ObjectFieldSettingUtil.getValue(
+			ObjectFieldSettingConstants.NAME_FILE_SOURCE, objectField);
 
 		if (Objects.equals(
-				objectFieldSetting.getValue(), "documentsAndMedia")) {
+				fileSource,
+				ObjectFieldSettingConstants.VALUE_CMS_BASIC_DOCUMENT) ||
+			Objects.equals(
+				fileSource, ObjectFieldSettingConstants.VALUE_DOCS_AND_MEDIA)) {
 
 			return FileInfoFieldType.FileSourceType.DOCUMENTS_AND_MEDIA;
 		}
 		else if (Objects.equals(
-					objectFieldSetting.getValue(), "userComputer")) {
+					fileSource,
+					ObjectFieldSettingConstants.
+						VALUE_USER_COMPUTER_TO_CMS_BASIC_DOCUMENT) ||
+				 Objects.equals(
+					 fileSource,
+					 ObjectFieldSettingConstants.
+						 VALUE_USER_COMPUTER_TO_DOCS_AND_MEDIA)) {
 
 			return FileInfoFieldType.FileSourceType.USER_COMPUTER;
+		}
+
+		return null;
+	}
+
+	private InfoField.FinalStep _getFinalStep(
+		boolean editable, String namespace, ObjectField objectField) {
+
+		return InfoField.builder(
+		).infoFieldType(
+			ObjectFieldInfoFieldTypeUtil.getInfoFieldType(objectField)
+		).namespace(
+			namespace
+		).name(
+			objectField.getName()
+		).editable(
+			editable
+		).labelInfoLocalizedValue(
+			new LazyInfoLocalizedValue(
+				() -> _getLabelInfoLocalizedValue(objectField))
+		).localizable(
+			objectField.isLocalized()
+		).readOnly(
+			_isReadOnly(objectField)
+		).required(
+			objectField.isRequired()
+		);
+	}
+
+	private Group _getGroup(ServiceContext serviceContext) {
+		try {
+			return serviceContext.getScopeGroup();
+		}
+		catch (Exception exception) {
+			_log.error(exception);
 		}
 
 		return null;
@@ -321,41 +456,42 @@ public class ObjectFieldInfoFieldConverter {
 		}
 	}
 
-	private LayoutDisplayPageObjectProvider
-		_getLayoutDisplayPageObjectProvider() {
+	private InfoLocalizedValue<String> _getLabelInfoLocalizedValue(
+		ObjectField objectField) {
 
-		ServiceContext serviceContext =
-			ServiceContextThreadLocal.getServiceContext();
+		Locale defaultLocale = LocaleUtil.fromLanguageId(
+			objectField.getDefaultLanguageId());
 
-		if (serviceContext == null) {
-			return null;
-		}
+		return InfoLocalizedValue.<String>builder(
+		).defaultLocale(
+			defaultLocale
+		).values(
+			objectField.getLabelMap()
+		).value(
+			defaultLocale,
+			objectField.getLabel(objectField.getDefaultLanguageId())
+		).build();
+	}
 
-		HttpServletRequest httpServletRequest = serviceContext.getRequest();
-
-		if (httpServletRequest == null) {
-			return null;
-		}
-
-		return (LayoutDisplayPageObjectProvider<?>)
-			httpServletRequest.getAttribute(
-				LayoutDisplayPageWebKeys.LAYOUT_DISPLAY_PAGE_OBJECT_PROVIDER);
+	private long _getMaxLength(ObjectField objectField, long defaultMaxLength) {
+		return GetterUtil.getLong(
+			ObjectFieldSettingUtil.getValue(
+				ObjectFieldSettingConstants.NAME_MAX_LENGTH, objectField),
+			defaultMaxLength);
 	}
 
 	private long _getMaximumFileSize(ObjectField objectField) {
-		ObjectFieldSetting objectFieldSetting =
-			_objectFieldSettingLocalService.fetchObjectFieldSetting(
-				objectField.getObjectFieldId(), "maximumFileSize");
-
 		long maximumFileSizeForGuestUsers =
 			_objectConfiguration.maximumFileSizeForGuestUsers();
 
-		if (objectFieldSetting == null) {
+		String maximumFileSizeValue = ObjectFieldSettingUtil.getValue(
+			ObjectFieldSettingConstants.NAME_MAX_FILE_SIZE, objectField);
+
+		if (maximumFileSizeValue == null) {
 			return maximumFileSizeForGuestUsers;
 		}
 
-		long maximumFileSize = GetterUtil.getLong(
-			objectFieldSetting.getValue());
+		long maximumFileSize = GetterUtil.getLong(maximumFileSizeValue);
 
 		if ((maximumFileSizeForGuestUsers < maximumFileSize) &&
 			_isGuestUser()) {
@@ -366,24 +502,55 @@ public class ObjectFieldInfoFieldConverter {
 		return maximumFileSize;
 	}
 
-	private long _getMaxLength(ObjectField objectField, long defaultMaxLength) {
-		ObjectFieldSetting objectFieldSetting =
-			_objectFieldSettingLocalService.fetchObjectFieldSetting(
-				objectField.getObjectFieldId(), "maxLength");
-
-		if (objectFieldSetting == null) {
-			return defaultMaxLength;
+	private ObjectEntry _getObjectEntry(ServiceContext serviceContext) {
+		if (serviceContext == null) {
+			return null;
 		}
 
-		return GetterUtil.getLong(
-			objectFieldSetting.getValue(), defaultMaxLength);
+		HttpServletRequest httpServletRequest = serviceContext.getRequest();
+
+		if (httpServletRequest == null) {
+			return null;
+		}
+
+		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider =
+			(LayoutDisplayPageObjectProvider<?>)httpServletRequest.getAttribute(
+				LayoutDisplayPageWebKeys.LAYOUT_DISPLAY_PAGE_OBJECT_PROVIDER);
+
+		if ((layoutDisplayPageObjectProvider == null) ||
+			!(layoutDisplayPageObjectProvider.getDisplayObject() instanceof
+				ObjectEntry)) {
+
+			return null;
+		}
+
+		return (ObjectEntry)layoutDisplayPageObjectProvider.getDisplayObject();
+	}
+
+	private long _getObjectEntryGroupId(ServiceContext serviceContext) {
+		HttpServletRequest httpServletRequest = serviceContext.getRequest();
+
+		if (httpServletRequest == null) {
+			return 0;
+		}
+
+		Object infoItem = httpServletRequest.getAttribute(
+			InfoDisplayWebKeys.INFO_ITEM);
+
+		if (!(infoItem instanceof ObjectEntry)) {
+			return 0;
+		}
+
+		ObjectEntry objectEntry = (ObjectEntry)infoItem;
+
+		return objectEntry.getGroupId();
 	}
 
 	private List<OptionInfoFieldType> _getOptionInfoFieldTypes(
-		ObjectField objectField) {
+		ObjectEntry objectEntry, ObjectField objectField) {
 
-		String defaultValue = ObjectFieldSettingUtil.getDefaultValueAsString(
-			null, objectField, _objectFieldSettingLocalService, null);
+		String defaultValue = String.valueOf(
+			ObjectFieldSettingUtil.getDefaultValue(null, objectField, null));
 
 		if (!objectField.isState()) {
 			return _getOptionInfoFieldTypes(
@@ -394,23 +561,26 @@ public class ObjectFieldInfoFieldConverter {
 
 		String listTypeEntryKey = defaultValue;
 
-		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider =
-			_getLayoutDisplayPageObjectProvider();
-
-		if (layoutDisplayPageObjectProvider != null) {
-			ObjectEntry objectEntry =
-				(ObjectEntry)layoutDisplayPageObjectProvider.getDisplayObject();
-
-			if (objectEntry != null) {
-				listTypeEntryKey = MapUtil.getString(
-					objectEntry.getValues(), objectField.getName(),
-					listTypeEntryKey);
-			}
+		if (objectEntry != null) {
+			listTypeEntryKey = MapUtil.getString(
+				objectEntry.getValues(), objectField.getName(),
+				listTypeEntryKey);
 		}
 
-		ListTypeEntry listTypeEntry =
-			_listTypeEntryLocalService.fetchListTypeEntry(
-				objectField.getListTypeDefinitionId(), listTypeEntryKey);
+		Map<Long, ListTypeEntry> listTypeEntries = new HashMap<>();
+		ListTypeEntry listTypeEntry = null;
+
+		for (ListTypeEntry curListTypeEntry :
+				_listTypeEntryLocalService.getListTypeEntries(
+					objectField.getListTypeDefinitionId())) {
+
+			if (Objects.equals(curListTypeEntry.getKey(), listTypeEntryKey)) {
+				listTypeEntry = curListTypeEntry;
+			}
+
+			listTypeEntries.put(
+				curListTypeEntry.getListTypeEntryId(), curListTypeEntry);
+		}
 
 		if (listTypeEntry == null) {
 			return Collections.emptyList();
@@ -432,9 +602,8 @@ public class ObjectFieldInfoFieldConverter {
 				TransformUtil.transform(
 					_objectStateLocalService.getNextObjectStates(
 						objectState.getObjectStateId()),
-					nextObjectState ->
-						_listTypeEntryLocalService.fetchListTypeEntry(
-							nextObjectState.getListTypeEntryId()))));
+					nextObjectState -> listTypeEntries.get(
+						nextObjectState.getListTypeEntryId()))));
 	}
 
 	private List<OptionInfoFieldType> _getOptionInfoFieldTypes(
@@ -448,15 +617,25 @@ public class ObjectFieldInfoFieldConverter {
 				listTypeEntry.getKey()));
 	}
 
-	private String _getRelationshipLabelFieldName(ObjectField objectField) {
-		ObjectRelationship objectRelationship =
-			_objectRelationshipLocalService.
-				fetchObjectRelationshipByObjectFieldId2(
-					objectField.getObjectFieldId());
+	private List<String> _getPreferredDomains(ObjectField objectField) {
+		if (!GetterUtil.getBoolean(
+				ObjectFieldSettingUtil.getValue(
+					ObjectFieldSettingConstants.NAME_AUTOCOMPLETE_ENABLED,
+					objectField))) {
 
-		ObjectDefinition relatedObjectDefinition =
-			_objectDefinitionLocalService.fetchObjectDefinition(
-				objectRelationship.getObjectDefinitionId1());
+			return Collections.emptyList();
+		}
+
+		return ListUtil.fromArray(
+			StringUtil.split(
+				ObjectFieldSettingUtil.getValue(
+					ObjectFieldSettingConstants.NAME_AUTOCOMPLETE_DOMAINS,
+					objectField),
+				StringPool.COMMA));
+	}
+
+	private String _getRelationshipLabelFieldName(
+		ObjectDefinition relatedObjectDefinition) {
 
 		if (relatedObjectDefinition == null) {
 			return "id";
@@ -479,24 +658,15 @@ public class ObjectFieldInfoFieldConverter {
 		return titleObjectField.getName();
 	}
 
-	private String _getRelationshipURL(ObjectField objectField) {
+	private String _getRelationshipURL(
+		ObjectDefinition relatedObjectDefinition) {
+
 		ServiceContext serviceContext =
 			ServiceContextThreadLocal.getServiceContext();
 
-		if ((serviceContext == null) || (serviceContext.getRequest() == null)) {
-			return StringPool.BLANK;
-		}
+		if ((serviceContext == null) || (serviceContext.getRequest() == null) ||
+			(relatedObjectDefinition == null)) {
 
-		ObjectRelationship objectRelationship =
-			_objectRelationshipLocalService.
-				fetchObjectRelationshipByObjectFieldId2(
-					objectField.getObjectFieldId());
-
-		ObjectDefinition relatedObjectDefinition =
-			_objectDefinitionLocalService.fetchObjectDefinition(
-				objectRelationship.getObjectDefinitionId1());
-
-		if (relatedObjectDefinition == null) {
 			return StringPool.BLANK;
 		}
 
@@ -504,11 +674,45 @@ public class ObjectFieldInfoFieldConverter {
 			_restContextPathResolverRegistry.getRESTContextPathResolver(
 				relatedObjectDefinition.getClassName());
 
-		String restContextPath = restContextPathResolver.getRESTContextPath(
-			_getGroupId(serviceContext.getRequest(), relatedObjectDefinition));
+		String restContextPath = null;
 
-		return _portal.getPortalURL(serviceContext.getRequest()) +
-			_portal.getPathContext() + restContextPath;
+		Group group = _getGroup(serviceContext);
+
+		if ((group != null) && group.isCMS()) {
+			long groupId = _getObjectEntryGroupId(serviceContext);
+
+			restContextPath = restContextPathResolver.getRESTContextPath(
+				groupId);
+		}
+		else {
+			restContextPath = restContextPathResolver.getRESTContextPath(
+				_getGroupId(
+					serviceContext.getRequest(), relatedObjectDefinition));
+		}
+
+		String portalURL =
+			_portal.getPortalURL(serviceContext.getRequest()) +
+				_portal.getPathContext() + restContextPath;
+
+		if (_systemObjectDefinitionManagerRegistry != null) {
+			SystemObjectDefinitionManager systemObjectDefinitionManager =
+				_systemObjectDefinitionManagerRegistry.
+					getSystemObjectDefinitionManager(
+						relatedObjectDefinition.getName());
+
+			if (systemObjectDefinitionManager != null) {
+				String additionalAPIURLParameters =
+					systemObjectDefinitionManager.
+						getAdditionalAPIURLParameters();
+
+				if (Validator.isNotNull(additionalAPIURLParameters)) {
+					return portalURL + StringPool.QUESTION +
+						additionalAPIURLParameters;
+				}
+			}
+		}
+
+		return portalURL;
 	}
 
 	private boolean _isGuestUser() {
@@ -519,7 +723,7 @@ public class ObjectFieldInfoFieldConverter {
 			return true;
 		}
 
-		User user = _userLocalService.fetchUser(serviceContext.getUserId());
+		User user = _fetchUser(serviceContext);
 
 		if ((user == null) || user.isGuestUser()) {
 			return true;
@@ -528,15 +732,41 @@ public class ObjectFieldInfoFieldConverter {
 		return false;
 	}
 
+	private boolean _isReadOnly(ObjectField objectField) {
+		ServiceContext serviceContext =
+			ServiceContextThreadLocal.getServiceContext();
+
+		ObjectEntry objectEntry = _getObjectEntry(serviceContext);
+		User user = ObjectEntryInfoItemUtil.getUser(serviceContext);
+
+		try {
+			if (ObjectFieldUtil.isReadOnly(
+					_ddmExpressionFactory, objectEntry, objectField,
+					(user != null) ? user.getUserId() :
+						PrincipalThreadLocal.getUserId())) {
+
+				return true;
+			}
+
+			return false;
+		}
+		catch (PortalException portalException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(portalException);
+			}
+
+			return false;
+		}
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		ObjectFieldInfoFieldConverter.class);
 
+	private final DDMExpressionFactory _ddmExpressionFactory;
 	private final ListTypeEntryLocalService _listTypeEntryLocalService;
 	private final ObjectConfiguration _objectConfiguration;
 	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
 	private final ObjectFieldLocalService _objectFieldLocalService;
-	private final ObjectFieldSettingLocalService
-		_objectFieldSettingLocalService;
 	private final ObjectRelationshipLocalService
 		_objectRelationshipLocalService;
 	private final ObjectScopeProviderRegistry _objectScopeProviderRegistry;
@@ -545,6 +775,120 @@ public class ObjectFieldInfoFieldConverter {
 	private final Portal _portal;
 	private final RESTContextPathResolverRegistry
 		_restContextPathResolverRegistry;
+	private final SystemObjectDefinitionManagerRegistry
+		_systemObjectDefinitionManagerRegistry;
 	private final UserLocalService _userLocalService;
+
+	private static class LazyInfoLocalizedValue
+		implements InfoLocalizedValue<String> {
+
+		@Override
+		public boolean equals(Object object) {
+			if (this == object) {
+				return true;
+			}
+
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			if (object instanceof
+					LazyInfoLocalizedValue lazyInfoLocalizedValue) {
+
+				return infoLocalizedValue.equals(
+					lazyInfoLocalizedValue._unsafeSupplierValue.getValue());
+			}
+
+			return infoLocalizedValue.equals(object);
+		}
+
+		@Override
+		public Set<Locale> getAvailableLocales() {
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			return infoLocalizedValue.getAvailableLocales();
+		}
+
+		@Override
+		public Locale getDefaultLocale() {
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			return infoLocalizedValue.getDefaultLocale();
+		}
+
+		@Override
+		public String getValue() {
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			return infoLocalizedValue.getValue();
+		}
+
+		@Override
+		public String getValue(Locale locale) {
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			return infoLocalizedValue.getValue(locale);
+		}
+
+		@Override
+		public Map<Locale, String> getValues() {
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			return infoLocalizedValue.getValues();
+		}
+
+		@Override
+		public int hashCode() {
+			InfoLocalizedValue<String> infoLocalizedValue =
+				_unsafeSupplierValue.getValue();
+
+			return infoLocalizedValue.hashCode();
+		}
+
+		private LazyInfoLocalizedValue(
+			UnsafeSupplier<InfoLocalizedValue<String>, RuntimeException>
+				unsafeSupplier) {
+
+			_unsafeSupplierValue = new UnsafeSupplierValue<>(unsafeSupplier);
+		}
+
+		private final UnsafeSupplierValue
+			<InfoLocalizedValue<String>, RuntimeException> _unsafeSupplierValue;
+
+	}
+
+	private static class LazyList extends AbstractList<OptionInfoFieldType> {
+
+		@Override
+		public OptionInfoFieldType get(int index) {
+			List<OptionInfoFieldType> optionInfoFieldTypes =
+				_unsafeSupplierValue.getValue();
+
+			return optionInfoFieldTypes.get(index);
+		}
+
+		@Override
+		public int size() {
+			List<OptionInfoFieldType> optionInfoFieldTypes =
+				_unsafeSupplierValue.getValue();
+
+			return optionInfoFieldTypes.size();
+		}
+
+		private LazyList(
+			UnsafeSupplier<List<OptionInfoFieldType>, RuntimeException>
+				unsafeSupplier) {
+
+			_unsafeSupplierValue = new UnsafeSupplierValue<>(unsafeSupplier);
+		}
+
+		private final UnsafeSupplierValue
+			<List<OptionInfoFieldType>, RuntimeException> _unsafeSupplierValue;
+
+	}
 
 }

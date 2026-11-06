@@ -8,19 +8,20 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.WidgetPageWidgetInstanceSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
  * @generated
  */
 @Generated("")
-public class WidgetPageWidgetInstance implements Cloneable, Serializable {
+public abstract class WidgetPageWidgetInstance
+	implements Cloneable, Serializable {
 
 	public static WidgetPageWidgetInstance toDTO(String json) {
 		return WidgetPageWidgetInstanceSerDes.toDTO(json);
@@ -115,6 +116,33 @@ public class WidgetPageWidgetInstance implements Cloneable, Serializable {
 
 	protected Integer position;
 
+	public Type getType() {
+		return type;
+	}
+
+	public String getTypeAsString() {
+		if (type == null) {
+			return null;
+		}
+
+		return type.toString();
+	}
+
+	public void setType(Type type) {
+		this.type = type;
+	}
+
+	public void setType(UnsafeSupplier<Type, Exception> typeUnsafeSupplier) {
+		try {
+			type = typeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Type type;
+
 	public Map<String, Object> getWidgetConfig() {
 		return widgetConfig;
 	}
@@ -158,18 +186,18 @@ public class WidgetPageWidgetInstance implements Cloneable, Serializable {
 
 	protected String widgetInstanceId;
 
-	public WidgetLookAndFeelConfig[] getWidgetLookAndFeelConfig() {
+	public WidgetLookAndFeelConfig getWidgetLookAndFeelConfig() {
 		return widgetLookAndFeelConfig;
 	}
 
 	public void setWidgetLookAndFeelConfig(
-		WidgetLookAndFeelConfig[] widgetLookAndFeelConfig) {
+		WidgetLookAndFeelConfig widgetLookAndFeelConfig) {
 
 		this.widgetLookAndFeelConfig = widgetLookAndFeelConfig;
 	}
 
 	public void setWidgetLookAndFeelConfig(
-		UnsafeSupplier<WidgetLookAndFeelConfig[], Exception>
+		UnsafeSupplier<WidgetLookAndFeelConfig, Exception>
 			widgetLookAndFeelConfigUnsafeSupplier) {
 
 		try {
@@ -181,7 +209,7 @@ public class WidgetPageWidgetInstance implements Cloneable, Serializable {
 		}
 	}
 
-	protected WidgetLookAndFeelConfig[] widgetLookAndFeelConfig;
+	protected WidgetLookAndFeelConfig widgetLookAndFeelConfig;
 
 	public String getWidgetName() {
 		return widgetName;
@@ -258,4 +286,40 @@ public class WidgetPageWidgetInstance implements Cloneable, Serializable {
 		return WidgetPageWidgetInstanceSerDes.toJSON(this);
 	}
 
+	public static enum Type {
+
+		BASIC_WIDGET_PAGE_WIDGET_INSTANCE("BasicWidgetPageWidgetInstance"),
+		NESTED_APPLICATIONS_WIDGET_PAGE_WIDGET_INSTANCE(
+			"NestedApplicationsWidgetPageWidgetInstance");
+
+		public static Type create(String value) {
+			for (Type type : values()) {
+				if (Objects.equals(type.getValue(), value) ||
+					Objects.equals(type.name(), value)) {
+
+					return type;
+				}
+			}
+
+			return null;
+		}
+
+		public String getValue() {
+			return _value;
+		}
+
+		@Override
+		public String toString() {
+			return _value;
+		}
+
+		private Type(String value) {
+			_value = value;
+		}
+
+		private final String _value;
+
+	}
+
 }
+// LIFERAY-REST-BUILDER-HASH:-1191167134

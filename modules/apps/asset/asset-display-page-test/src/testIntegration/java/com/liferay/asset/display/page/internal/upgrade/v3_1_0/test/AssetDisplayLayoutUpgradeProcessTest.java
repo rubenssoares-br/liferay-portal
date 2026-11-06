@@ -14,9 +14,8 @@ import com.liferay.counter.kernel.service.CounterLocalService;
 import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.test.util.JournalTestUtil;
-import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
-import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.change.tracking.CTModel;
@@ -25,11 +24,10 @@ import com.liferay.portal.kernel.service.change.tracking.CTService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
-import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
@@ -75,7 +73,7 @@ public class AssetDisplayLayoutUpgradeProcessTest
 			_group.getGroupId(),
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
-		_addLayoutPageTemplateEntry(journalArticle.getDDMStructureId());
+		_addLayoutPageTemplateEntry(journalArticle.getDDMStructureKey());
 
 		_addAssetDisplayPageEntry(
 			journalArticle.getResourcePrimKey(), 0,
@@ -92,7 +90,7 @@ public class AssetDisplayLayoutUpgradeProcessTest
 			_group.getGroupId(),
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
-		_addLayoutPageTemplateEntry(journalArticle.getDDMStructureId());
+		_addLayoutPageTemplateEntry(journalArticle.getDDMStructureKey());
 
 		_addAssetDisplayPageEntry(
 			journalArticle.getResourcePrimKey(), 0,
@@ -110,7 +108,7 @@ public class AssetDisplayLayoutUpgradeProcessTest
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_addLayoutPageTemplateEntry(journalArticle.getDDMStructureId());
+			_addLayoutPageTemplateEntry(journalArticle.getDDMStructureKey());
 
 		_addAssetDisplayPageEntry(
 			journalArticle.getResourcePrimKey(),
@@ -134,7 +132,7 @@ public class AssetDisplayLayoutUpgradeProcessTest
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_addLayoutPageTemplateEntry(journalArticle.getDDMStructureId());
+			_addLayoutPageTemplateEntry(journalArticle.getDDMStructureKey());
 
 		_addAssetDisplayPageEntry(
 			journalArticle.getResourcePrimKey(),
@@ -155,7 +153,7 @@ public class AssetDisplayLayoutUpgradeProcessTest
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_addLayoutPageTemplateEntry(journalArticle.getDDMStructureId());
+			_addLayoutPageTemplateEntry(journalArticle.getDDMStructureKey());
 
 		return _addAssetDisplayPageEntry(
 			journalArticle.getResourcePrimKey(),
@@ -209,15 +207,13 @@ public class AssetDisplayLayoutUpgradeProcessTest
 	}
 
 	private LayoutPageTemplateEntry _addLayoutPageTemplateEntry(
-			long ddmStructureId)
+			String ddmStructureKey)
 		throws Exception {
 
-		return _layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
+		return DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+			_group.getGroupId(),
 			_portal.getClassNameId(JournalArticle.class.getName()),
-			ddmStructureId, RandomTestUtil.randomString(),
-			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, false, 0, 0,
-			0, 0, _serviceContext);
+			ddmStructureKey, false, WorkflowConstants.STATUS_APPROVED);
 	}
 
 	private void _assertAssetDisplayPageEntry(long classPK, long plid) {
@@ -247,11 +243,6 @@ public class AssetDisplayLayoutUpgradeProcessTest
 		"com.liferay.asset.display.page.internal.upgrade.v3_1_0." +
 			"AssetDisplayLayoutUpgradeProcess";
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.asset.display.page.internal.upgrade.registry.AssetDisplayPageServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private AssetDisplayPageEntryLocalService
 		_assetDisplayPageEntryLocalService;
@@ -263,15 +254,16 @@ public class AssetDisplayLayoutUpgradeProcessTest
 	private Group _group;
 
 	@Inject
-	private LayoutPageTemplateEntryLocalService
-		_layoutPageTemplateEntryLocalService;
-
-	@Inject
 	private MultiVMPool _multiVMPool;
 
 	@Inject
 	private Portal _portal;
 
 	private ServiceContext _serviceContext;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.asset.display.page.internal.upgrade.registry.AssetDisplayPageServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

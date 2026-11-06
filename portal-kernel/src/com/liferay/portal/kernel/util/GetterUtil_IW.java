@@ -91,6 +91,11 @@ public class GetterUtil_IW {
 		return GetterUtil.get(value, defaultValue);
 	}
 
+	public <T, V> V get(T t, java.util.function.Function<T, V> function,
+		V defaultValue) {
+		return GetterUtil.get(t, function, defaultValue);
+	}
+
 	public boolean getBoolean(java.lang.Object value) {
 		return GetterUtil.getBoolean(value);
 	}
@@ -351,6 +356,12 @@ public class GetterUtil_IW {
 	public java.lang.Object getObject(java.lang.Object value,
 		java.lang.Object defaultValue) {
 		return GetterUtil.getObject(value, defaultValue);
+	}
+
+	public <T, E extends java.lang.Throwable> T getObject(T value,
+		com.liferay.petra.function.UnsafeSupplier<T, E> defaultValueUnsafeSupplier)
+		throws E {
+		return GetterUtil.getObject(value, defaultValueUnsafeSupplier);
 	}
 
 	public short getShort(java.lang.Object value) {

@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("TaxCategory")
+@GraphQLName(
+	description = "Classification used to group products that share the same tax treatment. Records are company-scoped and referenced by pricing and tax engines to resolve the applicable rate. Saving a category triggers a search reindex; deleting one resets the tax-category reference on every product definition that points to it.",
+	value = "TaxCategory"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Classification used to group products that share the same tax treatment. Records are company-scoped and referenced by pricing and tax engines to resolve the applicable rate. Saving a category triggers a search reindex; deleting one resets the tax-category reference on every product definition that points to it.",
+	requiredProperties = {"name"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"name"})
 @XmlRootElement(name = "TaxCategory")
 public class TaxCategory implements Serializable {
 
@@ -53,7 +60,10 @@ public class TaxCategory implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(TaxCategory.class, json);
 	}
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized free-form description shown in the back-office UI. Map keys are locale codes; values are the translated strings.",
+		example = "{en_US=Standard goods, hr_HR=Standardna roba, hu_HU=Általános áru}"
+	)
 	@Valid
 	public Map<String, String> getDescription() {
 		if (_descriptionSupplier != null) {
@@ -89,7 +99,9 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized free-form description shown in the back-office UI. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
@@ -97,7 +109,10 @@ public class TaxCategory implements Serializable {
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "23130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Wire-only site identifier accepted on input but ignored by the server and omitted from responses; tax categories are company-scoped, not site-scoped.",
+		example = "23130"
+	)
 	public Long getGroupId() {
 		if (_groupIdSupplier != null) {
 			groupId = _groupIdSupplier.get();
@@ -131,7 +146,9 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Wire-only site identifier accepted on input but ignored by the server and omitted from responses; tax categories are company-scoped, not site-scoped."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long groupId;
 
@@ -139,7 +156,10 @@ public class TaxCategory implements Serializable {
 	private Supplier<Long> _groupIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Server-assigned identifier. Read-only; set when the record is first persisted.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -171,14 +191,19 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Server-assigned identifier. Read-only; set when the record is first persisted."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized human-readable name shown in the back office and on product wiring. Map keys are locale codes; values are the translated strings. Required on create; the entry for the site-default locale must be non-empty.",
+		example = "{en_US=Standard, hr_HR=Standardno, hu_HU=Általános}"
+	)
 	@Valid
 	public Map<String, String> getName() {
 		if (_nameSupplier != null) {
@@ -213,7 +238,9 @@ public class TaxCategory implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized human-readable name shown in the back office and on product wiring. Map keys are locale codes; values are the translated strings. Required on create; the entry for the site-default locale must be non-empty."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> name;
@@ -301,8 +328,8 @@ public class TaxCategory implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.site.setting.dto.v1_0.TaxCategory",
 		name = "x-class-name"
 	)
@@ -389,6 +416,27 @@ public class TaxCategory implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -397,3 +445,4 @@ public class TaxCategory implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:418196423

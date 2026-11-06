@@ -20,12 +20,24 @@ import com.liferay.journal.model.JournalFolder;
 import com.liferay.journal.service.JournalArticleLocalService;
 import com.liferay.journal.service.JournalFolderLocalService;
 import com.liferay.journal.test.util.JournalTestUtil;
-import com.liferay.object.field.util.ObjectFieldUtil;
+import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
+import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
+import com.liferay.layout.page.template.test.util.LayoutPageTemplateTestUtil;
+import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
+import com.liferay.object.field.builder.TextObjectFieldBuilder;
 import com.liferay.object.model.ObjectDefinition;
-import com.liferay.object.model.ObjectField;
-import com.liferay.object.rest.test.util.ObjectEntryTestUtil;
+import com.liferay.object.model.ObjectRelationship;
+import com.liferay.object.rest.dto.v1_0.ObjectEntry;
+import com.liferay.object.rest.manager.v1_0.ObjectEntryManager;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
+import com.liferay.object.test.util.ObjectRelationshipTestUtil;
 import com.liferay.petra.function.UnsafeTriConsumer;
+import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.json.JSONArray;
@@ -34,12 +46,17 @@ import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.SearchEngine;
 import com.liferay.portal.kernel.search.SearchEngineHelper;
 import com.liferay.portal.kernel.search.highlight.HighlightUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.test.TestInfo;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.FeatureFlagTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.HTTPTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
@@ -51,8 +68,8 @@ import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.version.Version;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.search.engine.ConnectionInformation;
 import com.liferay.portal.search.engine.NodeInformation;
@@ -62,11 +79,18 @@ import com.liferay.portal.search.rest.dto.v1_0.FacetConfiguration;
 import com.liferay.portal.search.rest.dto.v1_0.SearchRequestBody;
 import com.liferay.portal.search.rest.dto.v1_0.SearchResult;
 import com.liferay.portal.search.rest.pagination.SearchPage;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
+import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
+import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
+import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Pagination;
+import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 import com.liferay.search.experiences.model.SXPBlueprint;
 import com.liferay.search.experiences.service.SXPBlueprintLocalService;
+
+import java.io.Serializable;
 
 import java.net.URLEncoder;
 
@@ -91,16 +115,28 @@ import org.apache.commons.lang3.time.DateFormatUtils;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import org.skyscreamer.jsonassert.JSONAssert;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 /**
  * @author Petteri Karttunen
  * @author Almir Ferreira
+ * @author Javier Moral
  */
-@FeatureFlags({"LPD-11232", "LPS-179669"})
 @RunWith(Arquillian.class)
 public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
+
+	@ClassRule
+	@Rule
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@Before
 	@Override
@@ -127,6 +163,7 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	@Override
 	@Test
+	@TestInfo("LPD-105550")
 	public void testGetSearchPage() throws Exception {
 		String scope = String.valueOf(testGroup.getGroupId());
 
@@ -164,6 +201,19 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			(List<com.liferay.portal.search.rest.client.dto.v1_0.SearchResult>)
 				page.getItems());
 		assertValid(page, testGetSearchPage_getExpectedActions());
+
+		LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+			testGroup.getGroupId(),
+			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
+			WorkflowConstants.STATUS_APPROVED);
+		LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+			testGroup.getGroupId(),
+			LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT,
+			WorkflowConstants.STATUS_APPROVED);
+
+		_testGetSearchPageType();
+		_testGetSearchPageTypeFilter();
+		_testGetSearchPageTypeNotIndexed();
 	}
 
 	@Override
@@ -339,6 +389,7 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	@Override
 	@Test
+	@TestInfo("LPD-57341")
 	public void testPostSearchPage() throws Exception {
 		_testPostSearchPageAggregationNameAsFacetName();
 		_testPostSearchPageWithCategoryTreeFacetConfiguration();
@@ -353,10 +404,12 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 		_testPostSearchPageWithGroupERCScope();
 		_testPostSearchPageWithGroupIdScope();
 		_testPostSearchPageWithHighlightConfiguration();
+		_testPostSearchPageWithLocalizedTextObjectField();
 		_testPostSearchPageWithKeywords();
 		_testPostSearchPageWithMultipleGroupIdsScope();
 		_testPostSearchPageWithNestedFacetConfiguration();
 		_testPostSearchPageWithSiteFacetConfiguration();
+		_testPostSearchPageWithStatusFilter();
 		_testPostSearchPageWithTagFacetConfiguration();
 		_testPostSearchPageWithTypeFacetConfiguration();
 		_testPostSearchPageWithUserFacetConfiguration();
@@ -372,15 +425,23 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 	}
 
 	@Override
+	protected String[] getIgnoredEntityFieldNames() {
+		return _IGNORED_ENTITY_FIELD_NAMES;
+	}
+
+	@Override
 	protected com.liferay.portal.search.rest.client.dto.v1_0.SearchResult
 			testGetSearchPage_addSearchResult(
 				com.liferay.portal.search.rest.client.dto.v1_0.SearchResult
 					searchResult)
 		throws Exception {
 
-		JournalTestUtil.addArticle(
+		JournalArticle journalArticle = JournalTestUtil.addArticle(
 			testGroup.getGroupId(), searchResult.getTitle(),
 			searchResult.getDescription());
+
+		searchResult.setDateCreated(journalArticle.getCreateDate());
+		searchResult.setDateModified(journalArticle.getModifiedDate());
 
 		return searchResult;
 	}
@@ -568,7 +629,7 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 					"includes",
 					JSONFactoryUtil.createJSONArray(
 					).put(
-						"fullName"
+						Field.getLocalizedName(_locale, "fullName")
 					)
 				))
 		).put(
@@ -592,6 +653,19 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			StringPool.BLANK,
 			Collections.singletonMap(_locale, RandomTestUtil.randomString()),
 			_serviceContext);
+	}
+
+	private void _assertEmbeddedJSONObject(
+		JSONObject expectedJSONObject, JSONObject jsonObject,
+		LayoutPageTemplateEntry layoutPageTemplateEntry) {
+
+		JSONAssert.assertEquals(
+			expectedJSONObject.put(
+				"key", layoutPageTemplateEntry.getLayoutPageTemplateEntryKey()
+			).put(
+				"name", layoutPageTemplateEntry.getName()
+			).toString(),
+			jsonObject.toString(), JSONCompareMode.LENIENT);
 	}
 
 	private SearchPage<SearchResult> _assertFacetConfiguration(
@@ -675,7 +749,7 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 		return JSONUtil.put(
 			"fields",
 			JSONUtil.put(
-				"fullName",
+				Field.getLocalizedName(_locale, "fullName"),
 				JSONUtil.put(
 					"fragment_size", 100
 				).put(
@@ -698,40 +772,24 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 		);
 	}
 
-	private String _getEndpoint(
-			String entryClassNames, String filterString, String keywords,
-			String nestedFields, String scope)
+	private String _getEndpoint(Map<String, String> parameters)
 		throws Exception {
 
-		String endpoint = _baseURI + "/v1.0/search?";
+		StringBundler sb = new StringBundler((parameters.size() * 4) + 2);
 
-		if (!Validator.isBlank(entryClassNames)) {
-			endpoint +=
-				"&entryClassNames=" +
-					URLEncoder.encode(entryClassNames, StringPool.UTF8);
+		sb.append(_baseURI);
+		sb.append("/v1.0/search?");
+
+		for (Map.Entry<String, String> entry : parameters.entrySet()) {
+			sb.append("&");
+			sb.append(entry.getKey());
+			sb.append("=");
+			sb.append(
+				URLEncoder.encode(
+					GetterUtil.getString(entry.getValue()), StringPool.UTF8));
 		}
 
-		if (!Validator.isBlank(filterString)) {
-			endpoint +=
-				"&filter=" + URLEncoder.encode(filterString, StringPool.UTF8);
-		}
-
-		if (!Validator.isBlank(nestedFields)) {
-			endpoint +=
-				"&nestedFields=" +
-					URLEncoder.encode(nestedFields, StringPool.UTF8);
-		}
-
-		if (!Validator.isBlank(scope)) {
-			endpoint += "&scope=" + URLEncoder.encode(scope, StringPool.UTF8);
-		}
-
-		if (!Validator.isBlank(keywords)) {
-			endpoint +=
-				"&search=" + URLEncoder.encode(keywords, StringPool.UTF8);
-		}
-
-		return endpoint;
+		return sb.toString();
 	}
 
 	private Version _getSearchEngineVersion() {
@@ -790,38 +848,17 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 	}
 
 	private boolean _isSearchEngineElasticsearch() {
-		return Objects.equals(
+		return StringUtil.startsWith(
 			_searchEngineInformation.getVendorString(), "Elasticsearch");
 	}
 
-	private SearchPage<SearchResult> _postSearchPage(String keywords)
-		throws Exception {
-
-		return _postSearchPage(
-			null, null, keywords, null, String.valueOf(testGroup.getGroupId()),
-			new SearchRequestBody());
-	}
-
 	private SearchPage<SearchResult> _postSearchPage(
-			String keywords, String scope)
-		throws Exception {
-
-		return _postSearchPage(
-			null, null, keywords, null, scope, new SearchRequestBody());
-	}
-
-	private SearchPage<SearchResult> _postSearchPage(
-			String entryClassNames, String filterString, String keywords,
-			String nestedFields, String scope,
-			SearchRequestBody searchRequestBody)
+			Map<String, String> parameters, SearchRequestBody searchRequestBody)
 		throws Exception {
 
 		return _toSearchPage(
 			HTTPTestUtil.invokeToJSONObject(
-				searchRequestBody.toString(),
-				_getEndpoint(
-					entryClassNames, filterString, keywords, nestedFields,
-					scope),
+				searchRequestBody.toString(), _getEndpoint(parameters),
 				Http.Method.POST));
 	}
 
@@ -842,8 +879,12 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 		};
 
 		return _postSearchPage(
-			entryClassNames, null, null, null,
-			String.valueOf(testGroup.getGroupId()), searchRequestBody);
+			HashMapBuilder.put(
+				"entryClassNames", entryClassNames
+			).put(
+				"scope", String.valueOf(testGroup.getGroupId())
+			).build(),
+			searchRequestBody);
 	}
 
 	private SearchPage<SearchResult>
@@ -862,7 +903,71 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 		};
 
 		return _postSearchPage(
-			entryClassNames, null, keywords, null, null, searchRequestBody);
+			HashMapBuilder.put(
+				"entryClassNames", entryClassNames
+			).put(
+				"search", keywords
+			).build(),
+			searchRequestBody);
+	}
+
+	private void _testGetSearchPageType() throws Exception {
+		Page<com.liferay.portal.search.rest.client.dto.v1_0.SearchResult> page =
+			searchResultResource.getSearchPage(
+				null, true, LayoutPageTemplateEntry.class.getName(),
+				String.valueOf(testGroup.getGroupId()), null, null, null, null);
+
+		List<String> types = TransformUtil.transform(
+			page.getItems(), searchResult -> searchResult.getType());
+
+		Assert.assertTrue(
+			types.toString(),
+			types.contains(
+				String.valueOf(
+					LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE)));
+		Assert.assertTrue(
+			types.toString(),
+			types.contains(
+				String.valueOf(
+					LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT)));
+		Assert.assertEquals(types.toString(), 2, types.size());
+	}
+
+	private void _testGetSearchPageTypeFilter() throws Exception {
+		Page<com.liferay.portal.search.rest.client.dto.v1_0.SearchResult> page =
+			searchResultResource.getSearchPage(
+				null, true, LayoutPageTemplateEntry.class.getName(),
+				String.valueOf(testGroup.getGroupId()), null,
+				"type eq '" +
+					LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE + "'",
+				null, null);
+
+		List<com.liferay.portal.search.rest.client.dto.v1_0.SearchResult>
+			searchResults = ListUtil.fromCollection(page.getItems());
+
+		Assert.assertEquals(searchResults.toString(), 1, searchResults.size());
+
+		com.liferay.portal.search.rest.client.dto.v1_0.SearchResult
+			searchResult = searchResults.get(0);
+
+		Assert.assertEquals(
+			String.valueOf(LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE),
+			searchResult.getType());
+	}
+
+	private void _testGetSearchPageTypeNotIndexed() throws Exception {
+		Page<com.liferay.portal.search.rest.client.dto.v1_0.SearchResult> page =
+			searchResultResource.getSearchPage(
+				null, true, JournalArticle.class.getName(),
+				String.valueOf(testGroup.getGroupId()), null, null, null, null);
+
+		Assert.assertNotEquals(0, page.getTotalCount());
+
+		for (com.liferay.portal.search.rest.client.dto.v1_0.SearchResult
+				searchResult : page.getItems()) {
+
+			Assert.assertNull(searchResult.getType());
+		}
 	}
 
 	private void _testPostSearchPageAggregationNameAsFacetName()
@@ -983,23 +1088,22 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			return;
 		}
 
-		ObjectField objectField = ObjectFieldUtil.createObjectField(
-			"Text", "String", true, true, null,
-			StringUtil.toLowerCase(RandomTestUtil.randomString()), "test",
-			false);
+		_testPostSearchPageWithEmbeddedNestedFieldsInLayout();
+		_testPostSearchPageWithEmbeddedNestedFieldsInLayoutPageTemplateEntry();
+		_testPostSearchPageWithEmbeddedNestedFieldsInObjectEntry();
+	}
 
-		objectField.setExternalReferenceCode(RandomTestUtil.randomString());
-
-		ObjectDefinition objectDefinition =
-			ObjectDefinitionTestUtil.publishObjectDefinition(
-				Collections.singletonList(objectField));
-
-		ObjectEntryTestUtil.addObjectEntry(
-			objectDefinition, "test", RandomTestUtil.randomString());
+	private void _testPostSearchPageWithEmbeddedNestedFieldsInLayout()
+		throws Exception {
 
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			objectDefinition.getClassName(), null,
-			objectDefinition.getUserName(), "embedded", null,
+			HashMapBuilder.put(
+				"entryClassNames", Layout.class.getName()
+			).put(
+				"nestedFields", "embedded"
+			).put(
+				"search", "home"
+			).build(),
 			new SearchRequestBody());
 
 		Collection<SearchResult> searchResults = searchPage.getItems();
@@ -1007,8 +1111,299 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 		Assert.assertFalse(searchResults.isEmpty());
 
 		for (SearchResult searchResult : searchResults) {
-			Assert.assertNotNull(searchResult.getEmbedded());
+			JSONObject searchResultJSONObject = _jsonFactory.createJSONObject(
+				String.valueOf(searchResult));
+
+			Assert.assertNotNull(
+				JSONUtil.getValue(
+					searchResultJSONObject, "JSONObject/embedded"));
 		}
+	}
+
+	private void _testPostSearchPageWithEmbeddedNestedFieldsInLayoutPageTemplateEntry()
+		throws Exception {
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry1 =
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+				testGroup.getGroupId(),
+				LayoutPageTemplateEntryTypeConstants.BASIC,
+				WorkflowConstants.STATUS_APPROVED);
+		LayoutPageTemplateEntry layoutPageTemplateEntry2 =
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+				testGroup.getGroupId(),
+				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
+				WorkflowConstants.STATUS_APPROVED);
+		LayoutPageTemplateEntry layoutPageTemplateEntry3 =
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+				testGroup.getGroupId(),
+				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT,
+				WorkflowConstants.STATUS_APPROVED);
+		LayoutPageTemplateEntry layoutPageTemplateEntry4 =
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+				testGroup.getGroupId(),
+				LayoutPageTemplateEntryTypeConstants.WIDGET_PAGE,
+				WorkflowConstants.STATUS_APPROVED);
+
+		SearchPage<SearchResult> searchPage = null;
+
+		try (SafeCloseable safeCloseable =
+				FeatureFlagTestUtil.setFeatureFlagsWithSafeCloseable(
+					true, "LPD-35443")) {
+
+			searchPage = _postSearchPage(
+				HashMapBuilder.put(
+					"entryClassNames", LayoutPageTemplateEntry.class.getName()
+				).put(
+					"nestedFields", "embedded"
+				).put(
+					"scope", String.valueOf(testGroup.getGroupId())
+				).build(),
+				new SearchRequestBody() {
+					{
+						attributes = HashMapBuilder.<String, Object>put(
+							"search.empty.search", true
+						).build();
+					}
+				});
+		}
+
+		Map<String, JSONObject> embeddedJSONObjects = JSONUtil.toJSONObjectMap(
+			JSONUtil.toJSONArray(
+				searchPage.getItems(),
+				searchResult -> JSONUtil.getValueAsJSONObject(
+					_jsonFactory.createJSONObject(String.valueOf(searchResult)),
+					"JSONObject/embedded")),
+			"key");
+
+		Assert.assertEquals(
+			embeddedJSONObjects.toString(), 4, embeddedJSONObjects.size());
+
+		_assertEmbeddedJSONObject(
+			JSONUtil.put("type", "ContentPageTemplate"),
+			embeddedJSONObjects.get(
+				layoutPageTemplateEntry1.getLayoutPageTemplateEntryKey()),
+			layoutPageTemplateEntry1);
+		_assertEmbeddedJSONObject(
+			JSONUtil.put(
+				"displayPageTemplateSettings", _jsonFactory.createJSONObject()),
+			embeddedJSONObjects.get(
+				layoutPageTemplateEntry2.getLayoutPageTemplateEntryKey()),
+			layoutPageTemplateEntry2);
+		_assertEmbeddedJSONObject(
+			JSONUtil.put(
+				"keywords", _jsonFactory.createJSONArray()
+			).put(
+				"markedAsDefault", false
+			),
+			embeddedJSONObjects.get(
+				layoutPageTemplateEntry3.getLayoutPageTemplateEntryKey()),
+			layoutPageTemplateEntry3);
+		_assertEmbeddedJSONObject(
+			JSONUtil.put("type", "WidgetPageTemplate"),
+			embeddedJSONObjects.get(
+				layoutPageTemplateEntry4.getLayoutPageTemplateEntryKey()),
+			layoutPageTemplateEntry4);
+	}
+
+	private void _testPostSearchPageWithEmbeddedNestedFieldsInObjectEntry()
+		throws Exception {
+
+		DTOConverterContext dtoConverterContext =
+			new DefaultDTOConverterContext(
+				false, Collections.emptyMap(), _dtoConverterRegistry, null,
+				LocaleUtil.getDefault(), null, TestPropsValues.getUser());
+
+		ObjectDefinition objectDefinition1 =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					new TextObjectFieldBuilder(
+					).indexed(
+						true
+					).indexedAsKeyword(
+						true
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						"testField1"
+					).build()));
+
+		ObjectDefinition objectDefinition2 =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					new TextObjectFieldBuilder(
+					).indexed(
+						true
+					).indexedAsKeyword(
+						true
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						"testField2"
+					).build()));
+
+		ObjectRelationship objectRelationship =
+			ObjectRelationshipTestUtil.addObjectRelationship(
+				_objectRelationshipLocalService, objectDefinition1,
+				objectDefinition2);
+
+		String searchValue = RandomTestUtil.randomString();
+
+		ObjectEntry objectEntry1 = _objectEntryManager.addObjectEntry(
+			dtoConverterContext, objectDefinition1,
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						"testField1", searchValue
+					).build();
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		String relatedValue = RandomTestUtil.randomString();
+
+		ObjectEntry objectEntry2 = _objectEntryManager.addObjectEntry(
+			dtoConverterContext, objectDefinition2,
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						"testField2", relatedValue
+					).build();
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		ObjectRelationshipTestUtil.relateObjectEntries(
+			objectEntry1.getId(), objectEntry2.getId(), objectRelationship,
+			TestPropsValues.getUserId());
+
+		SearchPage<SearchResult> searchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", objectDefinition1.getClassName()
+			).put(
+				"nestedFields", "embedded"
+			).put(
+				"search", searchValue
+			).build(),
+			new SearchRequestBody());
+
+		List<SearchResult> searchResults = ListUtil.fromCollection(
+			searchPage.getItems());
+
+		Assert.assertEquals(searchResults.toString(), 1, searchResults.size());
+
+		SearchResult searchResult = searchResults.get(0);
+
+		JSONObject searchResultJSONObject = _jsonFactory.createJSONObject(
+			String.valueOf(searchResult));
+
+		Assert.assertEquals(
+			searchValue,
+			JSONUtil.getValueAsString(
+				searchResultJSONObject, "JSONObject/embedded",
+				"Object/testField1"));
+
+		Assert.assertNull(
+			JSONUtil.getValue(
+				searchResultJSONObject, "JSONObject/embedded",
+				"JSONArray/" + objectRelationship.getName()));
+
+		searchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", objectDefinition1.getClassName()
+			).put(
+				"nestedFields", "embedded." + objectRelationship.getName()
+			).put(
+				"search", searchValue
+			).build(),
+			new SearchRequestBody());
+
+		searchResults = ListUtil.fromCollection(searchPage.getItems());
+
+		Assert.assertEquals(searchResults.toString(), 1, searchResults.size());
+
+		searchResult = searchResults.get(0);
+
+		searchResultJSONObject = _jsonFactory.createJSONObject(
+			String.valueOf(searchResult));
+
+		Assert.assertNull(
+			JSONUtil.getValue(searchResultJSONObject, "JSONObject/embedded"));
+
+		searchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", objectDefinition1.getClassName()
+			).put(
+				"nestedFields",
+				"embedded,embedded." + objectRelationship.getName()
+			).put(
+				"search", searchValue
+			).build(),
+			new SearchRequestBody());
+
+		searchResults = ListUtil.fromCollection(searchPage.getItems());
+
+		Assert.assertEquals(searchResults.toString(), 1, searchResults.size());
+
+		searchResult = searchResults.get(0);
+
+		searchResultJSONObject = _jsonFactory.createJSONObject(
+			String.valueOf(searchResult));
+
+		Assert.assertEquals(
+			searchValue,
+			JSONUtil.getValueAsString(
+				searchResultJSONObject, "JSONObject/embedded",
+				"Object/testField1"));
+
+		Assert.assertNull(
+			JSONUtil.getValue(
+				searchResultJSONObject, "JSONObject/embedded",
+				"JSONArray/" + objectRelationship.getName()));
+
+		searchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", objectDefinition1.getClassName()
+			).put(
+				"nestedFields",
+				"embedded,embedded." + objectRelationship.getName()
+			).put(
+				"nestedFieldsDepth", "2"
+			).put(
+				"search", searchValue
+			).build(),
+			new SearchRequestBody());
+
+		searchResults = ListUtil.fromCollection(searchPage.getItems());
+
+		Assert.assertEquals(searchResults.toString(), 1, searchResults.size());
+
+		searchResult = searchResults.get(0);
+
+		searchResultJSONObject = _jsonFactory.createJSONObject(
+			String.valueOf(searchResult));
+
+		Assert.assertEquals(
+			searchValue,
+			JSONUtil.getValueAsString(
+				searchResultJSONObject, "JSONObject/embedded",
+				"Object/testField1"));
+
+		Assert.assertEquals(
+			relatedValue,
+			JSONUtil.getValueAsString(
+				searchResultJSONObject, "JSONObject/embedded",
+				"JSONArray/" + objectRelationship.getName(), "JSONObject/0",
+				"Object/testField2"));
+
+		_objectEntryManager.deleteObjectEntry(
+			testCompany.getCompanyId(), dtoConverterContext,
+			objectEntry2.getExternalReferenceCode(), objectDefinition2, null);
+
+		_objectEntryManager.deleteObjectEntry(
+			testCompany.getCompanyId(), dtoConverterContext,
+			objectEntry1.getExternalReferenceCode(), objectDefinition1, null);
 	}
 
 	private void _testPostSearchPageWithEmptyScope() throws Exception {
@@ -1019,10 +1414,13 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			StringUtil.randomString());
 
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			StringBundler.concat(
-				_journalArticle.getTitle(_locale), StringPool.SPACE,
-				journalArticle.getTitle(_locale)),
-			null);
+			HashMapBuilder.put(
+				"search",
+				StringBundler.concat(
+					_journalArticle.getTitle(_locale), StringPool.SPACE,
+					journalArticle.getTitle(_locale))
+			).build(),
+			new SearchRequestBody());
 
 		_assertSearchResultTitles(
 			searchPage, _journalArticle.getTitle(_locale),
@@ -1033,15 +1431,23 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	private void _testPostSearchPageWithFaultyScope() throws Exception {
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			_journalArticle.getArticleId(), "notexistingscope");
+			HashMapBuilder.put(
+				"scope", "notexistingscope"
+			).put(
+				"search", _journalArticle.getArticleId()
+			).build(),
+			new SearchRequestBody());
 
 		_assertSearchResultTitles(searchPage, new String[0]);
 	}
 
 	private void _testPostSearchPageWithFilter() throws Exception {
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			null, "groupIds/any(g:g eq " + testGroup.getGroupId() + ")",
-			_journalArticle.getArticleId(), null, null,
+			HashMapBuilder.put(
+				"filter", "groupIds/any(g:g eq " + testGroup.getGroupId() + ")"
+			).put(
+				"search", _journalArticle.getArticleId()
+			).build(),
 			new SearchRequestBody());
 
 		_assertSearchResultTitles(
@@ -1066,12 +1472,18 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			StringUtil.randomString());
 
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			StringBundler.concat(
-				_journalArticle.getTitle(_locale), StringPool.SPACE,
-				journalArticle.getTitle(_locale)),
-			StringBundler.concat(
-				testGroup.getGroupId(), StringPool.COMMA,
-				group.getExternalReferenceCode()));
+			HashMapBuilder.put(
+				"scope",
+				StringBundler.concat(
+					testGroup.getGroupId(), StringPool.COMMA,
+					group.getExternalReferenceCode())
+			).put(
+				"search",
+				StringBundler.concat(
+					_journalArticle.getTitle(_locale), StringPool.SPACE,
+					journalArticle.getTitle(_locale))
+			).build(),
+			new SearchRequestBody());
 
 		_assertSearchResultTitles(
 			searchPage, _journalArticle.getTitle(_locale),
@@ -1082,8 +1494,12 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	private void _testPostSearchPageWithGroupERCScope() throws Exception {
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			_journalArticle.getArticleId(),
-			String.valueOf(testGroup.getExternalReferenceCode()));
+			HashMapBuilder.put(
+				"scope", String.valueOf(testGroup.getExternalReferenceCode())
+			).put(
+				"search", _journalArticle.getArticleId()
+			).build(),
+			new SearchRequestBody());
 
 		_assertSearchResultTitles(
 			searchPage, _journalArticle.getTitle(_locale));
@@ -1091,8 +1507,12 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	private void _testPostSearchPageWithGroupIdScope() throws Exception {
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			_journalArticle.getArticleId(),
-			String.valueOf(testGroup.getGroupId()));
+			HashMapBuilder.put(
+				"scope", String.valueOf(testGroup.getGroupId())
+			).put(
+				"search", _journalArticle.getArticleId()
+			).build(),
+			new SearchRequestBody());
 
 		_assertSearchResultTitles(
 			searchPage, _journalArticle.getTitle(_locale));
@@ -1125,10 +1545,100 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	private void _testPostSearchPageWithKeywords() throws Exception {
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			_journalArticle.getArticleId());
+			HashMapBuilder.put(
+				"scope", String.valueOf(testGroup.getGroupId())
+			).put(
+				"search", _journalArticle.getArticleId()
+			).build(),
+			new SearchRequestBody());
 
 		Assert.assertEquals(1L, searchPage.getPage());
 		Assert.assertEquals(1L, searchPage.getTotalCount());
+	}
+
+	private void _testPostSearchPageWithLocalizedTextObjectField()
+		throws Exception {
+
+		DTOConverterContext dtoConverterContext =
+			new DefaultDTOConverterContext(
+				false, Collections.emptyMap(), _dtoConverterRegistry, null,
+				LocaleUtil.getDefault(), null, TestPropsValues.getUser());
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition(
+				Collections.singletonList(
+					new TextObjectFieldBuilder(
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).indexed(
+						true
+					).name(
+						"localizedTextObjectFieldName"
+					).localized(
+						true
+					).build()));
+
+		ObjectEntry objectEntry1 = _objectEntryManager.addObjectEntry(
+			dtoConverterContext, objectDefinition,
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						"localizedTextObjectFieldName_i18n",
+						HashMapBuilder.put(
+							"en_US", "Paul"
+						).put(
+							"pt_BR", "Paulo"
+						).build()
+					).build();
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+		ObjectEntry objectEntry2 = _objectEntryManager.addObjectEntry(
+			dtoConverterContext, objectDefinition,
+			new ObjectEntry() {
+				{
+					properties = HashMapBuilder.<String, Object>put(
+						"localizedTextObjectFieldName_i18n",
+						HashMapBuilder.put(
+							"en_US", "Peter"
+						).put(
+							"pt_BR", "Pedro"
+						).build()
+					).build();
+				}
+			},
+			ObjectDefinitionConstants.SCOPE_COMPANY);
+
+		SearchPage<SearchResult> searchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", objectDefinition.getClassName()
+			).put(
+				"nestedFields", "embedded"
+			).put(
+				"scope", "0"
+			).put(
+				"search", "Paul"
+			).build(),
+			new SearchRequestBody());
+
+		List<SearchResult> searchResults = ListUtil.fromCollection(
+			searchPage.getItems());
+
+		String searchResultsString = searchResults.toString();
+
+		Assert.assertEquals(searchResultsString, 1, searchResults.size());
+		Assert.assertTrue(searchResultsString.contains("Paul"));
+		Assert.assertFalse(searchResultsString.contains("Peter"));
+
+		_objectEntryManager.deleteObjectEntry(
+			testCompany.getCompanyId(), dtoConverterContext,
+			objectEntry1.getExternalReferenceCode(), objectDefinition, "0");
+		_objectEntryManager.deleteObjectEntry(
+			testCompany.getCompanyId(), dtoConverterContext,
+			objectEntry2.getExternalReferenceCode(), objectDefinition, "0");
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
 	}
 
 	private void _testPostSearchPageWithMultipleGroupIdsScope()
@@ -1141,11 +1651,18 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			StringUtil.randomString());
 
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			StringBundler.concat(
-				_journalArticle.getTitle(_locale), StringPool.SPACE,
-				journalArticle.getTitle(_locale)),
-			StringBundler.concat(
-				testGroup.getGroupId(), StringPool.COMMA, group.getGroupId()));
+			HashMapBuilder.put(
+				"scope",
+				StringBundler.concat(
+					testGroup.getGroupId(), StringPool.COMMA,
+					group.getGroupId())
+			).put(
+				"search",
+				StringBundler.concat(
+					_journalArticle.getTitle(_locale), StringPool.SPACE,
+					journalArticle.getTitle(_locale))
+			).build(),
+			new SearchRequestBody());
 
 		_assertSearchResultTitles(
 			searchPage, _journalArticle.getTitle(_locale),
@@ -1182,6 +1699,128 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			"nested", "test", "test");
 	}
 
+	private void _testPostSearchPageWithSiteFacetConfiguration()
+		throws Exception {
+
+		_assertFacetConfiguration(
+			true, null, null, "site", testGroup.getGroupId(),
+			String.valueOf(testGroup.getGroupId()));
+	}
+
+	private void _testPostSearchPageWithStatusFilter() throws Exception {
+		_objectDefinition = ObjectDefinitionTestUtil.publishObjectDefinition(
+			Collections.singletonList(
+				new TextObjectFieldBuilder(
+				).labelMap(
+					LocalizedMapUtil.getLocalizedMap(
+						RandomTestUtil.randomString())
+				).name(
+					"name"
+				).build()),
+			ObjectDefinitionConstants.SCOPE_SITE);
+
+		_objectDefinition.setEnableObjectEntryDraft(true);
+
+		_objectDefinition =
+			_objectDefinitionLocalService.updateObjectDefinition(
+				_objectDefinition);
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(testGroup.getGroupId());
+
+		_objectEntryLocalService.addObjectEntry(
+			testGroup.getGroupId(), _user.getUserId(),
+			_objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
+			HashMapBuilder.<String, Serializable>put(
+				"name", StringUtil.randomString()
+			).build(),
+			serviceContext);
+
+		serviceContext.setWorkflowAction(WorkflowConstants.ACTION_SAVE_DRAFT);
+
+		_objectEntryLocalService.addObjectEntry(
+			testGroup.getGroupId(), _user.getUserId(),
+			_objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
+			HashMapBuilder.<String, Serializable>put(
+				"name", StringUtil.randomString()
+			).build(),
+			serviceContext);
+
+		SearchRequestBody searchRequestBody = new SearchRequestBody();
+
+		searchRequestBody.setAttributes(
+			() -> HashMapBuilder.<String, Object>put(
+				"search.empty.search", "true"
+			).build());
+
+		SearchPage<SearchResult> approvedStatusSearchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", _objectDefinition.getClassName()
+			).put(
+				"filter",
+				String.format("status eq %d", WorkflowConstants.STATUS_APPROVED)
+			).build(),
+			searchRequestBody);
+
+		Assert.assertEquals(1, approvedStatusSearchPage.getTotalCount());
+
+		SearchPage<SearchResult> draftSearchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", _objectDefinition.getClassName()
+			).put(
+				"filter",
+				String.format("status eq %d", WorkflowConstants.STATUS_DRAFT)
+			).build(),
+			searchRequestBody);
+
+		Assert.assertEquals(1, draftSearchPage.getTotalCount());
+
+		SearchPage<SearchResult> approvedAndDraftSearchPage = _postSearchPage(
+			HashMapBuilder.put(
+				"entryClassNames", _objectDefinition.getClassName()
+			).put(
+				"filter",
+				String.format(
+					"status in (%d, %d)", WorkflowConstants.STATUS_APPROVED,
+					WorkflowConstants.STATUS_DRAFT)
+			).build(),
+			searchRequestBody);
+
+		Assert.assertEquals(2, approvedAndDraftSearchPage.getTotalCount());
+	}
+
+	private void _testPostSearchPageWithTagFacetConfiguration()
+		throws Exception {
+
+		_assertFacetConfiguration(
+			true, null, null, "tag", _assetTag.getName(), _assetTag.getName());
+	}
+
+	private void _testPostSearchPageWithTypeFacetConfiguration()
+		throws Exception {
+
+		_assertFacetConfiguration(
+			false,
+			StringBundler.concat(
+				JournalArticle.class.getName(), StringPool.COMMA,
+				JournalFolder.class.getName(), StringPool.COMMA,
+				User.class.getName()),
+			null, "type", StringPool.BLANK, JournalArticle.class.getName(),
+			JournalFolder.class.getName(), User.class.getName());
+	}
+
+	private void _testPostSearchPageWithUserFacetConfiguration()
+		throws Exception {
+
+		_assertFacetConfiguration(
+			true, null, null, "user", _user.getUserId(),
+			String.valueOf(_user.getUserId()));
+	}
+
 	private void _testPostSearchPageWithoutHighlightConfiguration()
 		throws Exception {
 
@@ -1214,45 +1853,14 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 					searchResult.getTitle(), _getUserHighlightedFullName())));
 	}
 
-	private void _testPostSearchPageWithSiteFacetConfiguration()
-		throws Exception {
-
-		_assertFacetConfiguration(
-			true, null, null, "site", testGroup.getGroupId(),
-			String.valueOf(testGroup.getGroupId()));
-	}
-
-	private void _testPostSearchPageWithTagFacetConfiguration()
-		throws Exception {
-
-		_assertFacetConfiguration(
-			true, null, null, "tag", _assetTag.getName(), _assetTag.getName());
-	}
-
-	private void _testPostSearchPageWithTypeFacetConfiguration()
-		throws Exception {
-
-		_assertFacetConfiguration(
-			false,
-			StringBundler.concat(
-				JournalArticle.class.getName(), StringPool.COMMA,
-				JournalFolder.class.getName(), StringPool.COMMA,
-				User.class.getName()),
-			null, "type", StringPool.BLANK, JournalArticle.class.getName(),
-			JournalFolder.class.getName(), User.class.getName());
-	}
-
-	private void _testPostSearchPageWithUserFacetConfiguration()
-		throws Exception {
-
-		_assertFacetConfiguration(
-			true, null, null, "user", _user.getUserId(),
-			String.valueOf(_user.getUserId()));
-	}
-
 	private void _testPostSearchPageZeroResults() throws Exception {
 		SearchPage<SearchResult> searchPage = _postSearchPage(
-			"shouldnotmatchanything");
+			HashMapBuilder.put(
+				"scope", String.valueOf(testGroup.getGroupId())
+			).put(
+				"search", "shouldnotmatchanything"
+			).build(),
+			new SearchRequestBody());
 
 		Assert.assertEquals(0L, searchPage.getTotalCount());
 	}
@@ -1271,6 +1879,15 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 			jsonObject.getLong("totalCount"));
 	}
 
+	private static final String[] _IGNORED_ENTITY_FIELD_NAMES = {
+		"cmpAssignTo", "cmpDueDate", "cmpState", "cmsRoot", "cmsSection",
+		"extension", "dateDisplay", "dateExpiration", "datePublish",
+		"dateReview", "dueDate", "folderId",
+		"objectDefinitionExternalReferenceCode",
+		"objectFolderExternalReferenceCode", "rootDescendantNode", "treePath",
+		"type"
+	};
+
 	private AssetCategory _assetCategory;
 
 	@Inject
@@ -1286,6 +1903,10 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 
 	private String _baseURI = "search";
 	private DDMStructure _ddmStructure;
+
+	@Inject
+	private DTOConverterRegistry _dtoConverterRegistry;
+
 	private JournalArticle _journalArticle;
 
 	@Inject
@@ -1298,6 +1919,24 @@ public class SearchResultResourceTest extends BaseSearchResultResourceTestCase {
 	private JSONFactory _jsonFactory;
 
 	private Locale _locale;
+
+	@DeleteAfterTestRun
+	private ObjectDefinition _objectDefinition;
+
+	@Inject
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Inject
+	private ObjectEntryLocalService _objectEntryLocalService;
+
+	@Inject(
+		filter = "object.entry.manager.storage.type=" + ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT
+	)
+	private ObjectEntryManager _objectEntryManager;
+
+	@Inject
+	private ObjectRelationshipLocalService _objectRelationshipLocalService;
+
 	private SearchEngine _searchEngine;
 
 	@Inject

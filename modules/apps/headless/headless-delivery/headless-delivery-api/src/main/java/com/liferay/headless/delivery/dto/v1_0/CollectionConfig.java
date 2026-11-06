@@ -20,22 +20,22 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -43,8 +43,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName("CollectionConfig")
+@io.swagger.v3.oas.annotations.media.Schema(
+	requiredProperties = {"collectionReference", "collectionType"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"collectionReference", "collectionType"})
 @XmlRootElement(name = "CollectionConfig")
 public class CollectionConfig implements Serializable {
 
@@ -56,7 +58,9 @@ public class CollectionConfig implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(CollectionConfig.class, json);
 	}
 
-	@Schema(description = "The page collection's reference.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page collection's reference."
+	)
 	@Valid
 	public Object getCollectionReference() {
 		if (_collectionReferenceSupplier != null) {
@@ -99,10 +103,10 @@ public class CollectionConfig implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _collectionReferenceSupplier;
 
-	@JsonGetter("collectionType")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The page collection's type (Collection, CollectionProvider)."
 	)
+	@JsonGetter("collectionType")
 	@Valid
 	public CollectionType getCollectionType() {
 		if (_collectionTypeSupplier != null) {
@@ -195,19 +199,7 @@ public class CollectionConfig implements Serializable {
 
 			sb.append("\"collectionReference\": ");
 
-			if (collectionReference instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)collectionReference));
-			}
-			else if (collectionReference instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)collectionReference));
-				sb.append("\"");
-			}
-			else {
-				sb.append(collectionReference);
-			}
+			sb.append(_toJSON(collectionReference));
 		}
 
 		CollectionType collectionType = getCollectionType();
@@ -220,9 +212,7 @@ public class CollectionConfig implements Serializable {
 			sb.append("\"collectionType\": ");
 
 			sb.append("\"");
-
 			sb.append(collectionType);
-
 			sb.append("\"");
 		}
 
@@ -231,8 +221,8 @@ public class CollectionConfig implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.CollectionConfig",
 		name = "x-class-name"
 	)
@@ -357,6 +347,27 @@ public class CollectionConfig implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -365,3 +376,4 @@ public class CollectionConfig implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1787656129

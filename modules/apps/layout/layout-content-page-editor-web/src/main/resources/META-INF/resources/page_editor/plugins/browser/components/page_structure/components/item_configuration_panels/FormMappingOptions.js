@@ -6,6 +6,7 @@
 import ClayButton from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import {useControlledState} from '@liferay/layout-js-components-web';
+import classNames from 'classnames';
 import {sub} from 'frontend-js-web';
 import React, {useCallback, useMemo} from 'react';
 
@@ -13,9 +14,17 @@ import {SelectField} from '../../../../../../app/components/fragment_configurati
 import {FORM_MAPPING_SOURCES} from '../../../../../../app/config/constants/formMappingSources';
 import {LAYOUT_TYPES} from '../../../../../../app/config/constants/layoutTypes';
 import {config} from '../../../../../../app/config/index';
-import {useSelector} from '../../../../../../app/contexts/StoreContext';
+import {
+	useDispatch,
+	useSelector,
+	useSelectorRef,
+} from '../../../../../../app/contexts/StoreContext';
 import selectSegmentsExperienceId from '../../../../../../app/selectors/selectSegmentsExperienceId';
+import {findSelectedFormFields} from '../../../../../../app/utils/findSelectedFormFields';
 import {formIsMapped} from '../../../../../../app/utils/formIsMapped';
+import {hasLocalizationSelect} from '../../../../../../app/utils/hasLocalizationSelect';
+import {openAddLocalizationSelect} from '../../../../../../app/utils/openAddLocalizationSelect';
+import MappedFieldLabel from '../../../../../../common/components/MappedFieldLabel';
 import {openInfoFieldSelector} from '../../../../../../common/openInfoFieldSelector';
 
 export default function FormMappingOptions({
@@ -24,6 +33,8 @@ export default function FormMappingOptions({
 	onValueSelect,
 }) {
 	const segmentsExperienceId = useSelector(selectSegmentsExperienceId);
+
+	const dispatch = useDispatch();
 
 	const formTypes = useMemo(() => getTypes(), []);
 
@@ -34,7 +45,15 @@ export default function FormMappingOptions({
 		item.config.classTypeId
 	);
 
+	const fragmentEntryLinksRef = useSelectorRef(
+		(state) => state.fragmentEntryLinks
+	);
+
+	const stateRef = useSelectorRef((state) => state);
+
 	const selectedType = formTypes.find(({value}) => value === classNameId);
+
+	const isMapped = formIsMapped(item);
 
 	const onSelect = useCallback(
 		(classNameId, classTypeId) => {
@@ -63,8 +82,30 @@ export default function FormMappingOptions({
 					formItemId: item.itemId,
 					itemType: type.className,
 					onCancel: resetMapping,
-					onSave: saveMapping,
+					onSave: (fields) => {
+						saveMapping(fields);
+
+						if (
+							fields.some((field) => field.localizable) &&
+							!hasLocalizationSelect(
+								fragmentEntryLinksRef.current
+							)
+						) {
+							openAddLocalizationSelect({
+								dispatch,
+								formId: item.itemId,
+							});
+						}
+					},
 					segmentsExperienceId,
+					selectedFields:
+						classNameId === item.config.classNameId &&
+						classTypeId === item.config.classTypeId
+							? findSelectedFormFields(
+									stateRef.current,
+									item.itemId
+								)
+							: [],
 				});
 			}
 			else {
@@ -73,18 +114,24 @@ export default function FormMappingOptions({
 		},
 		[
 			formTypes,
+			fragmentEntryLinksRef,
+			dispatch,
 			item,
 			onValueSelect,
 			setClassNameId,
 			setClassTypeId,
 			segmentsExperienceId,
+			stateRef,
 		]
 	);
 
 	return (
 		<>
 			<SelectField
-				className="mb-2"
+				className={classNames({
+					'mb-1 page-editor__mapped-field': isMapped,
+					'mb-2': !isMapped,
+				})}
 				field={{
 					hideLabel,
 					label: Liferay.Language.get('content-type'),
@@ -112,7 +159,9 @@ export default function FormMappingOptions({
 				value={classNameId}
 			/>
 
-			{formIsMapped(item) ? (
+			{isMapped ? <MappedFieldLabel className="mb-2" /> : null}
+
+			{isMapped ? (
 				<ClayButton
 					displayType="secondary"
 					onClick={() => onSelect(classNameId, classTypeId)}

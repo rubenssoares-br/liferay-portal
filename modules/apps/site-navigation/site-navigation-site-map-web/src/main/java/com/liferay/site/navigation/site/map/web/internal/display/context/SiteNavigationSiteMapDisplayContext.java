@@ -7,7 +7,7 @@ package com.liferay.site.navigation.site.map.web.internal.display.context;
 
 import com.liferay.item.selector.ItemSelector;
 import com.liferay.item.selector.criteria.UUIDItemSelectorReturnType;
-import com.liferay.layout.item.selector.criterion.LayoutItemSelectorCriterion;
+import com.liferay.layout.item.selector.LayoutItemSelectorCriterion;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
@@ -25,15 +25,18 @@ import com.liferay.portal.kernel.service.permission.LayoutPermissionUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+import com.liferay.portlet.display.template.constants.PortletDisplayTemplateConstants;
 import com.liferay.site.navigation.site.map.web.internal.configuration.SiteNavigationSiteMapPortletInstanceConfiguration;
 
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Juergen Kappler
@@ -63,7 +66,7 @@ public class SiteNavigationSiteMapDisplayContext {
 	public String buildSiteMap() throws Exception {
 		StringBundler sb = new StringBundler();
 
-		_buildSiteMap(
+		_buildSitemap(
 			_themeDisplay.getLayout(), getRootLayouts(), getRootLayout(),
 			isIncludeRootInTree(),
 			_siteNavigationSiteMapPortletInstanceConfiguration.displayDepth(),
@@ -189,10 +192,25 @@ public class SiteNavigationSiteMapDisplayContext {
 	}
 
 	public List<Layout> getRootLayouts() {
+		List<Layout> rootLayouts = new ArrayList<>();
+
+		if (isIncludeRootInTree() &&
+			StringUtil.startsWith(
+				_siteNavigationSiteMapPortletInstanceConfiguration.
+					displayStyle(),
+				PortletDisplayTemplateConstants.DISPLAY_STYLE_PREFIX)) {
+
+			rootLayouts.add(getRootLayout());
+		}
+
 		Layout layout = _themeDisplay.getLayout();
 
-		return LayoutLocalServiceUtil.getLayouts(
-			layout.getGroupId(), layout.isPrivateLayout(), getRootLayoutId());
+		rootLayouts.addAll(
+			LayoutLocalServiceUtil.getLayouts(
+				layout.getGroupId(), layout.isPrivateLayout(),
+				getRootLayoutId()));
+
+		return rootLayouts;
 	}
 
 	public SiteNavigationSiteMapPortletInstanceConfiguration
@@ -257,7 +275,7 @@ public class SiteNavigationSiteMapDisplayContext {
 		sb.append("</a>");
 	}
 
-	private void _buildSiteMap(
+	private void _buildSitemap(
 			Layout layout, List<Layout> layouts, Layout rootLayout,
 			boolean includeRootInTree, int displayDepth,
 			boolean showCurrentPage, boolean useHtmlTitle,
@@ -288,7 +306,7 @@ public class SiteNavigationSiteMapDisplayContext {
 			_buildLayoutView(
 				rootLayout, cssClass, useHtmlTitle, themeDisplay, sb);
 
-			_buildSiteMap(
+			_buildSitemap(
 				layout, layouts, rootLayout, includeRootInTree, displayDepth,
 				showCurrentPage, useHtmlTitle, showHiddenPages, curDepth + 1,
 				themeDisplay, sb);
@@ -297,43 +315,45 @@ public class SiteNavigationSiteMapDisplayContext {
 		}
 		else {
 			for (Layout curLayout : layouts) {
-				if ((showHiddenPages || !curLayout.isHidden()) &&
-					LayoutPermissionUtil.contains(
+				if ((!showHiddenPages && curLayout.isHidden()) ||
+					!LayoutPermissionUtil.contains(
 						themeDisplay.getPermissionChecker(), curLayout,
 						ActionKeys.VIEW)) {
 
-					sb.append("<li>");
-
-					String cssClass = StringPool.BLANK;
-
-					if (curLayout.getPlid() == layout.getPlid()) {
-						cssClass = "current";
-					}
-
-					_buildLayoutView(
-						curLayout, cssClass, useHtmlTitle, themeDisplay, sb);
-
-					if ((displayDepth == 0) || (displayDepth > curDepth)) {
-						if (showHiddenPages) {
-							_buildSiteMap(
-								layout, curLayout.getChildren(), rootLayout,
-								includeRootInTree, displayDepth,
-								showCurrentPage, useHtmlTitle, showHiddenPages,
-								curDepth + 1, themeDisplay, sb);
-						}
-						else {
-							_buildSiteMap(
-								layout,
-								curLayout.getChildren(
-									themeDisplay.getPermissionChecker()),
-								rootLayout, includeRootInTree, displayDepth,
-								showCurrentPage, useHtmlTitle, showHiddenPages,
-								curDepth + 1, themeDisplay, sb);
-						}
-					}
-
-					sb.append("</li>");
+					continue;
 				}
+
+				sb.append("<li>");
+
+				String cssClass = StringPool.BLANK;
+
+				if (curLayout.getPlid() == layout.getPlid()) {
+					cssClass = "current";
+				}
+
+				_buildLayoutView(
+					curLayout, cssClass, useHtmlTitle, themeDisplay, sb);
+
+				if ((displayDepth == 0) || (displayDepth > curDepth)) {
+					if (showHiddenPages) {
+						_buildSitemap(
+							layout, curLayout.getChildren(), rootLayout,
+							includeRootInTree, displayDepth, showCurrentPage,
+							useHtmlTitle, showHiddenPages, curDepth + 1,
+							themeDisplay, sb);
+					}
+					else {
+						_buildSitemap(
+							layout,
+							curLayout.getChildren(
+								themeDisplay.getPermissionChecker()),
+							rootLayout, includeRootInTree, displayDepth,
+							showCurrentPage, useHtmlTitle, showHiddenPages,
+							curDepth + 1, themeDisplay, sb);
+					}
+				}
+
+				sb.append("</li>");
 			}
 		}
 

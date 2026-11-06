@@ -23,6 +23,12 @@
 		</attribute>
 		<attribute>
 			<description></description>
+			<name>closeButtonAriaLabel</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
 			<name>cssClass</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
@@ -103,6 +109,12 @@
 		<attribute>
 			<name>label</name>
 			<required>true</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
+			<name>translucent</name>
+			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<dynamic-attributes>true</dynamic-attributes>
@@ -1225,7 +1237,19 @@
 		<body-content>JSP</body-content>
 		<attribute>
 			<description></description>
+			<name>closeButtonAriaLabel</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
 			<name>cssClass</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
+			<name>dismissible</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
@@ -1959,6 +1983,12 @@
 		</attribute>
 		<attribute>
 			<description></description>
+			<name>cardType</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
 			<name>cssClass</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
@@ -2199,46 +2229,44 @@
 		<tag-class>com.liferay.frontend.taglib.clay.servlet.taglib.ProgressBarTag</tag-class>
 		<body-content>empty</body-content>
 		<attribute>
-			<description></description>
 			<name>containerElement</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<description></description>
 			<name>cssClass</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
-			<description></description>
+			<name>fillBarClassName</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
 			<name>id</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>
 		<attribute>
 			<description></description>
-			<name>maxValue</name>
+			<name>messages</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
+			<type>java.util.Map</type>
 		</attribute>
 		<attribute>
-			<description></description>
-			<name>minValue</name>
-			<required>false</required>
-			<rtexprvalue>true</rtexprvalue>
-		</attribute>
-		<attribute>
-			<description></description>
-			<name>status</name>
-			<required>false</required>
-			<rtexprvalue>true</rtexprvalue>
-		</attribute>
-		<attribute>
-			<description></description>
 			<name>value</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
+			<type>int</type>
+		</attribute>
+		<attribute>
+			<description></description>
+			<name>warn</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+			<type>boolean</type>
 		</attribute>
 		<dynamic-attributes>true</dynamic-attributes>
 	</tag>
@@ -3191,6 +3219,12 @@
 		</attribute>
 		<attribute>
 			<description></description>
+			<name>collapse</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
 			<name>decorated</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
@@ -3203,7 +3237,31 @@
 		</attribute>
 		<attribute>
 			<description></description>
+			<name>displayType</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
 			<name>large</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
+			<name>nestMargins</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
+			<name>size</name>
+			<required>false</required>
+			<rtexprvalue>true</rtexprvalue>
+		</attribute>
+		<attribute>
+			<description></description>
+			<name>stacked</name>
 			<required>false</required>
 			<rtexprvalue>true</rtexprvalue>
 		</attribute>

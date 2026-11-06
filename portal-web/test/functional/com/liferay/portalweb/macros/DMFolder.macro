@@ -151,36 +151,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro assertExpectedFileNames(key_fileName = null) {
-		var tempDir = PropsUtil.get("output.dir.name");
-
-		var fileName = FileUtil.exists("${tempDir}/${key_fileName}");
-
-		if (${fileName} == "false") {
-			fail("Filename "${fileName}" was not expected.");
-		}
-	}
-
-	@summary = "Default summary"
-	macro assertExpectedFileNumber(key_folder = null, expectedFileNumber = null) {
-		var tempDir = PropsUtil.get("output.dir.name");
-
-		var folderPath = ${tempDir};
-
-		if (isSet(key_folder)) {
-			var folderPath = "${folderPath}${key_folder}";
-		}
-
-		var fileList = FileUtil.listFiles(${folderPath});
-
-		var listSize = ListUtil.size(${fileList});
-
-		if (${listSize} != ${expectedFileNumber}) {
-			fail("Number of files on "${key_folder}" differ from expected.");
-		}
-	}
-
-	@summary = "Default summary"
 	macro cannotViewCP(dmFolderName = null) {
 		var key_dmFolderName = ${dmFolderName};
 
@@ -371,15 +341,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro downloadViaEllipsisMenu(dmFolderName = null) {
-		Click(
-			key_rowEntry = ${dmFolderName},
-			locator1 = "Icon#ROW_VERTICAL_ELLIPSIS");
-
-		MenuItem.click(menuItem = "Download");
-	}
-
-	@summary = "Default summary"
 	macro editCP(dmFolderNameEdit = null, dmFolderName = null, dmFolderDescriptionEdit = null) {
 		var key_dmFolderName = ${dmFolderName};
 
@@ -464,7 +425,9 @@ definition {
 	macro gotoPGViaMG(mgFolderName = null) {
 		var key_mgFolderName = ${mgFolderName};
 
-		DMFolder.gotoEntry(dmFolderName = ${mgFolderName});
+		Click(
+			key_text = ${mgFolderName},
+			locator1 = "Link#ANY");
 
 		AssertTextEquals(
 			locator1 = "MediaGallery#BREADCRUMB",
@@ -679,7 +642,7 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro viewDetailsInListView(authorName = null, dmFolderName = null, contextualBreadcrumb = null) {
+	macro viewDetailsInListView(dmFolderName = null, contextualBreadcrumb = null) {
 		var key_dmFolderName = ${dmFolderName};
 
 		AssertTextEquals(
@@ -687,8 +650,6 @@ definition {
 			value1 = ${dmFolderName});
 
 		AssertElementPresent(locator1 = "DocumentsAndMedia#DESCRIPTIVE_LIST_FOLDER_ICON");
-
-		var key_authorName = ${authorName};
 
 		AssertElementPresent(locator1 = "DocumentsAndMedia#DESCRIPTIVE_LIST_FOLDER_AUTHOR_AND_DATE");
 
@@ -743,7 +704,9 @@ definition {
 	macro viewPGViaMG(mgFolderName = null) {
 		var key_mgFolderName = ${mgFolderName};
 
-		DMFolder.gotoEntry(dmFolderName = ${mgFolderName});
+		Click(
+			key_text = ${mgFolderName},
+			locator1 = "Link#ANY");
 
 		AssertTextEquals(
 			locator1 = "MediaGallery#FOLDER_HEADER_TITLE",

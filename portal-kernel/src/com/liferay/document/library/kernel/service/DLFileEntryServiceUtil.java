@@ -136,6 +136,12 @@ public class DLFileEntryServiceUtil {
 		getService().deleteFileVersion(fileEntryId, version);
 	}
 
+	public static DLFileEntry fetchFileEntry(long fileEntryId)
+		throws PortalException {
+
+		return getService().fetchFileEntry(fileEntryId);
+	}
+
 	public static DLFileEntry fetchFileEntry(
 			long groupId, long folderId, String title)
 		throws PortalException {
@@ -483,3 +489,4 @@ public class DLFileEntryServiceUtil {
 	private static volatile DLFileEntryService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1383567555

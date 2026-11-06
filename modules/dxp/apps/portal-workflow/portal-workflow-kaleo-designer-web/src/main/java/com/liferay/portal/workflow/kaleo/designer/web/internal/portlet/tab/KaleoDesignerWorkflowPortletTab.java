@@ -10,6 +10,7 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.resource.bundle.ResourceBundleLoaderUtil;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
@@ -28,11 +29,11 @@ import com.liferay.portal.workflow.kaleo.service.KaleoDefinitionVersionLocalServ
 import com.liferay.portal.workflow.portlet.tab.BaseWorkflowPortletTab;
 import com.liferay.portal.workflow.portlet.tab.WorkflowPortletTab;
 
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -93,8 +94,9 @@ public class KaleoDesignerWorkflowPortletTab extends BaseWorkflowPortletTab {
 		renderRequest.setAttribute(
 			KaleoDesignerWebKeys.KALEO_DESIGNER_DISPLAY_CONTEXT,
 			new KaleoDesignerDisplayContext(
-				_actionExecutorManager, renderRequest,
+				_actionExecutorManager, _groupLocalService,
 				_kaleoDefinitionVersionLocalService, _portletResourcePermission,
+				renderRequest,
 				ResourceBundleLoaderUtil.getPortalResourceBundleLoader(),
 				_scriptManagementConfigurationHelper, _userLocalService));
 
@@ -113,7 +115,7 @@ public class KaleoDesignerWorkflowPortletTab extends BaseWorkflowPortletTab {
 			kaleoDefinitionVersion =
 				_kaleoDefinitionVersionLocalService.
 					fetchLatestKaleoDefinitionVersion(
-						themeDisplay.getCompanyId(), name, null);
+						themeDisplay.getCompanyId(), name);
 		}
 		else {
 			kaleoDefinitionVersion =
@@ -138,6 +140,9 @@ public class KaleoDesignerWorkflowPortletTab extends BaseWorkflowPortletTab {
 
 	@Reference
 	private ActionExecutorManager _actionExecutorManager;
+
+	@Reference
+	private GroupLocalService _groupLocalService;
 
 	@Reference
 	private KaleoDefinitionVersionLocalService

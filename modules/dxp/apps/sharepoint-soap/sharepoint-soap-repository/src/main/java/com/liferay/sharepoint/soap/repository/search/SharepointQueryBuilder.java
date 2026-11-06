@@ -291,13 +291,8 @@ public class SharepointQueryBuilder {
 	protected boolean isServerVersion(
 		SharepointConnection.ServerVersion serverVersion) {
 
-		if (serverVersion.equals(
-				_sharepointConnectionInfo.getServerVersion())) {
-
-			return true;
-		}
-
-		return false;
+		return serverVersion.equals(
+			_sharepointConnectionInfo.getServerVersion());
 	}
 
 	protected boolean isSupportedField(String field) {
@@ -545,9 +540,11 @@ public class SharepointQueryBuilder {
 
 			QueryClause queryClause = traverseQuery(query);
 
-			if (queryClause != null) {
-				queryClauses.add(queryClause);
+			if (queryClause == null) {
+				continue;
 			}
+
+			queryClauses.add(queryClause);
 		}
 
 		return joinBooleanQueryClauses(

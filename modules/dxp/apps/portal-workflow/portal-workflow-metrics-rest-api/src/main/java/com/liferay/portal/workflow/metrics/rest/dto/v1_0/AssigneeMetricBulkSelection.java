@@ -11,28 +11,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rafael Praxedes
@@ -42,6 +43,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "https://schema.org/AssigneeMetricBulkSelection",
 	value = "AssigneeMetricBulkSelection"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "https://schema.org/AssigneeMetricBulkSelection"
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "AssigneeMetricBulkSelection")
@@ -57,7 +61,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 			AssigneeMetricBulkSelection.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getCompleted() {
 		if (_completedSupplier != null) {
 			completed = _completedSupplier.get();
@@ -98,7 +102,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _completedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateEnd() {
 		if (_dateEndSupplier != null) {
 			dateEnd = _dateEndSupplier.get();
@@ -139,7 +143,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateEndSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateStart() {
 		if (_dateStartSupplier != null) {
 			dateStart = _dateStartSupplier.get();
@@ -180,7 +184,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateStartSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long[] getInstanceIds() {
 		if (_instanceIdsSupplier != null) {
 			instanceIds = _instanceIdsSupplier.get();
@@ -221,7 +225,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	@JsonIgnore
 	private Supplier<Long[]> _instanceIdsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getKeywords() {
 		if (_keywordsSupplier != null) {
 			keywords = _keywordsSupplier.get();
@@ -262,7 +266,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keywordsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long[] getRoleIds() {
 		if (_roleIdsSupplier != null) {
 			roleIds = _roleIdsSupplier.get();
@@ -303,7 +307,7 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	@JsonIgnore
 	private Supplier<Long[]> _roleIdsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String[] getTaskNames() {
 		if (_taskNamesSupplier != null) {
 			taskNames = _taskNamesSupplier.get();
@@ -511,8 +515,8 @@ public class AssigneeMetricBulkSelection implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.workflow.metrics.rest.dto.v1_0.AssigneeMetricBulkSelection",
 		name = "x-class-name"
 	)
@@ -599,6 +603,27 @@ public class AssigneeMetricBulkSelection implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -607,3 +632,4 @@ public class AssigneeMetricBulkSelection implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-32929990

@@ -10,10 +10,10 @@ import com.liferay.asset.kernel.model.AssetCategory;
 import com.liferay.asset.kernel.model.AssetRenderer;
 import com.liferay.asset.kernel.model.AssetRendererFactory;
 import com.liferay.asset.kernel.service.AssetCategoryLocalService;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.processor.ImageProcessorUtil;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
-import com.liferay.document.library.util.DLURLHelper;
 import com.liferay.dynamic.data.mapping.form.field.type.constants.DDMFormFieldTypeConstants;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.model.Value;
@@ -67,6 +67,11 @@ import com.liferay.rss.model.SyndLink;
 import com.liferay.rss.model.SyndModelFactory;
 import com.liferay.rss.util.RSSUtil;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+import jakarta.portlet.ResourceURL;
+
 import java.io.Serializable;
 
 import java.util.ArrayList;
@@ -75,11 +80,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
-import javax.portlet.ResourceURL;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -188,19 +188,19 @@ public class JournalRSSHelper {
 				}
 			}
 		}
-		else if (parameters.containsKey("uuid") &&
-				 parameters.containsKey("groupId")) {
+		else {
+			String[] uuids = parameters.get("uuid");
+			String[] groupIds = parameters.get("groupId");
 
-			try {
-				String uuid = parameters.get("uuid")[0];
-				long groupId = GetterUtil.getLong(parameters.get("groupId")[0]);
-
-				fileEntry = _dlAppLocalService.getFileEntryByUuidAndGroupId(
-					uuid, groupId);
-			}
-			catch (Exception exception) {
-				if (_log.isWarnEnabled()) {
-					_log.warn(exception);
+			if ((uuids != null) && (groupIds != null)) {
+				try {
+					fileEntry = _dlAppLocalService.getFileEntryByUuidAndGroupId(
+						uuids[0], GetterUtil.getLong(groupIds[0]));
+				}
+				catch (Exception exception) {
+					if (_log.isWarnEnabled()) {
+						_log.warn(exception);
+					}
 				}
 			}
 		}
@@ -265,19 +265,23 @@ public class JournalRSSHelper {
 			parameters.containsKey("i_id")) {
 
 			try {
+				String[] imageIdStrings = parameters.get("image_id");
+
+				if (imageIdStrings == null) {
+					imageIdStrings = parameters.get("img_id");
+				}
+
+				if (imageIdStrings == null) {
+					imageIdStrings = parameters.get("i_id");
+				}
+
 				long imageId = 0;
 
-				if (parameters.containsKey("image_id")) {
-					imageId = GetterUtil.getLong(parameters.get("image_id")[0]);
-				}
-				else if (parameters.containsKey("img_id")) {
-					imageId = GetterUtil.getLong(parameters.get("img_id")[0]);
-				}
-				else if (parameters.containsKey("i_id")) {
-					imageId = GetterUtil.getLong(parameters.get("i_id")[0]);
+				if (imageIdStrings != null) {
+					imageId = GetterUtil.getLong(imageIdStrings[0]);
 				}
 
-				image = _imageLocalService.getImage(imageId);
+				image = _imageLocalService.fetchImage(imageId);
 			}
 			catch (Exception exception) {
 				if (_log.isWarnEnabled()) {

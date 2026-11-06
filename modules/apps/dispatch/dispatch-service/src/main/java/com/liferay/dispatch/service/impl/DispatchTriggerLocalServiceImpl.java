@@ -17,6 +17,7 @@ import com.liferay.dispatch.internal.helper.DispatchTriggerHelper;
 import com.liferay.dispatch.model.DispatchTrigger;
 import com.liferay.dispatch.service.DispatchLogLocalService;
 import com.liferay.dispatch.service.base.DispatchTriggerLocalServiceBaseImpl;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -200,23 +201,20 @@ public class DispatchTriggerLocalServiceImpl
 	}
 
 	@Override
+	public List<DispatchTrigger> getActiveDispatchTriggers(
+		List<DispatchTaskClusterMode> dispatchTaskClusterModes) {
+
+		return dispatchTriggerPersistence.findByA_DTCM(
+			true,
+			TransformUtil.transformToIntArray(
+				dispatchTaskClusterModes, DispatchTaskClusterMode::getMode));
+	}
+
+	@Override
 	public DispatchTrigger getDispatchTrigger(long dispatchTriggerId)
 		throws PortalException {
 
 		return dispatchTriggerPersistence.findByPrimaryKey(dispatchTriggerId);
-	}
-
-	@Override
-	public List<DispatchTrigger> getDispatchTriggers(boolean active) {
-		return dispatchTriggerPersistence.findByActive(active);
-	}
-
-	@Override
-	public List<DispatchTrigger> getDispatchTriggers(
-		boolean active, DispatchTaskClusterMode dispatchTaskClusterMode) {
-
-		return dispatchTriggerPersistence.findByA_DTCM(
-			active, dispatchTaskClusterMode.getMode());
 	}
 
 	@Override
@@ -243,34 +241,6 @@ public class DispatchTriggerLocalServiceImpl
 
 		return _dispatchTriggerHelper.getNextFireDate(
 			dispatchTrigger, dispatchTaskClusterMode.getStorageType());
-	}
-
-	@Override
-	public Date getPreviousFireDate(long dispatchTriggerId)
-		throws PortalException {
-
-		DispatchTrigger dispatchTrigger =
-			dispatchTriggerPersistence.findByPrimaryKey(dispatchTriggerId);
-
-		DispatchTaskClusterMode dispatchTaskClusterMode =
-			DispatchTaskClusterMode.valueOf(
-				dispatchTrigger.getDispatchTaskClusterMode());
-
-		return _dispatchTriggerHelper.getPreviousFireDate(
-			dispatchTrigger, dispatchTaskClusterMode.getStorageType());
-	}
-
-	@Override
-	public List<DispatchTrigger> getUserDispatchTriggers(
-		long companyId, long userId, int start, int end) {
-
-		return dispatchTriggerPersistence.findByC_U(
-			companyId, userId, start, end);
-	}
-
-	@Override
-	public int getUserDispatchTriggersCount(long companyId, long userId) {
-		return dispatchTriggerPersistence.countByC_U(companyId, userId);
 	}
 
 	@Override

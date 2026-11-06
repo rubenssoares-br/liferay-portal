@@ -9,23 +9,25 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.expando.kernel.model.BaseCustomAttributesDisplay;
 import com.liferay.expando.kernel.model.CustomAttributesDisplay;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 import com.liferay.portal.kernel.service.PortletLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.test.util.PropsTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.MapUtil;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
+
+import jakarta.portlet.Portlet;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import javax.portlet.Portlet;
-
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -48,9 +50,41 @@ public class PortletLocalServiceTest {
 	public static final AggregateTestRule aggregateTestRule =
 		new LiferayIntegrationTestRule();
 
+	@After
+	public void tearDown() throws Exception {
+		for (ServiceRegistration<?> serviceRegistration :
+				_serviceRegistrations) {
+
+			serviceRegistration.unregister();
+		}
+	}
+
 	@Test
-	public void testGetCustomAttributesDisplaysWithCustomAttributesDisplayDisabled() {
-		List<ServiceRegistration<?>> serviceRegistrations = new ArrayList<>();
+	public void testFetchPortletById() throws Exception {
+		Bundle bundle = FrameworkUtil.getBundle(getClass());
+
+		BundleContext bundleContext = bundle.getBundleContext();
+
+		String portletName = RandomTestUtil.randomString();
+
+		_serviceRegistrations.add(
+			bundleContext.registerService(
+				Portlet.class, new TestPortlet(),
+				HashMapDictionaryBuilder.<String, Object>put(
+					"com.liferay.portlet.instanceable", "true"
+				).put(
+					"jakarta.portlet.name", portletName
+				).build()));
+
+		_testFetchPortletById(
+			RandomTestUtil.randomString(), portletName,
+			TestPropsValues.getUserId());
+		_testFetchPortletById(null, portletName, 0);
+	}
+
+	@Test
+	public void testGetCustomAttributesDisplaysWithCustomAttributesDisplayDisabled()
+		throws Exception {
 
 		Bundle bundle = FrameworkUtil.getBundle(getClass());
 
@@ -58,44 +92,44 @@ public class PortletLocalServiceTest {
 
 		TestCustomAttributesDisplay disabledFFCustomAttributesDisplay =
 			new TestCustomAttributesDisplay(RandomTestUtil.randomString());
-
 		String portletName = RandomTestUtil.randomString();
 
-		serviceRegistrations.add(
+		_serviceRegistrations.add(
 			bundleContext.registerService(
 				CustomAttributesDisplay.class,
 				disabledFFCustomAttributesDisplay,
 				MapUtil.singletonDictionary(
-					"javax.portlet.name", portletName)));
+					"jakarta.portlet.name", portletName)));
 
 		String enabledFFKey = RandomTestUtil.randomString();
 
-		PropsTestUtil.setProps(
-			"feature.flag." + enabledFFKey, Boolean.TRUE.toString());
+		PropsUtil.set("feature.flag." + enabledFFKey, "true");
 
 		TestCustomAttributesDisplay enabledFFCustomAttributesDisplay =
 			new TestCustomAttributesDisplay(enabledFFKey);
 
-		serviceRegistrations.add(
+		_serviceRegistrations.add(
 			bundleContext.registerService(
 				CustomAttributesDisplay.class, enabledFFCustomAttributesDisplay,
 				MapUtil.singletonDictionary(
-					"javax.portlet.name", portletName)));
+					"jakarta.portlet.name", portletName)));
 
 		TestCustomAttributesDisplay nullFFCustomAttributesDisplay =
 			new TestCustomAttributesDisplay(null);
 
-		serviceRegistrations.add(
+		_serviceRegistrations.add(
 			bundleContext.registerService(
 				CustomAttributesDisplay.class, nullFFCustomAttributesDisplay,
 				MapUtil.singletonDictionary(
-					"javax.portlet.name", portletName)));
+					"jakarta.portlet.name", portletName)));
 
-		serviceRegistrations.add(
+		_serviceRegistrations.add(
 			bundleContext.registerService(
 				Portlet.class, new TestPortlet(),
 				MapUtil.singletonDictionary(
-					"javax.portlet.name", portletName)));
+					"jakarta.portlet.name", portletName)));
+
+		Thread.sleep(200);
 
 		List<CustomAttributesDisplay> customAttributesDisplays =
 			TransformUtil.transform(
@@ -122,21 +156,57 @@ public class PortletLocalServiceTest {
 		Assert.assertEquals(
 			customAttributesDisplays.toString(), 2,
 			customAttributesDisplays.size());
+	}
 
-		PropsUtil.setProps(_props);
+	private void _testFetchPortletById(
+			String instanceId, String portletName, long userId)
+		throws Exception {
 
-		for (ServiceRegistration<?> serviceRegistration :
-				serviceRegistrations) {
+		String portletId = PortletIdCodec.encode(
+			portletName, userId, instanceId);
 
-			serviceRegistration.unregister();
-		}
+		com.liferay.portal.kernel.model.Portlet portlet1 =
+			_portletLocalService.fetchPortletById(
+				TestPropsValues.getCompanyId(), portletId);
+
+		Assert.assertEquals(instanceId, portlet1.getInstanceId());
+		Assert.assertEquals(portletId, portlet1.getPortletId());
+		Assert.assertEquals(portletName, portlet1.getPortletName());
+		Assert.assertTrue(portlet1.getStaticEnd());
+		Assert.assertFalse(portlet1.getStaticStart());
+		Assert.assertEquals(userId, portlet1.getUserId());
+		Assert.assertEquals(portletId.hashCode(), portlet1.hashCode());
+		Assert.assertTrue(portlet1.isInstanceable());
+		Assert.assertFalse(portlet1.isStatic());
+		Assert.assertTrue(portlet1.isStaticEnd());
+		Assert.assertFalse(portlet1.isStaticStart());
+
+		portlet1.setStatic(true);
+		portlet1.setStaticStart(true);
+
+		Assert.assertFalse(portlet1.getStaticEnd());
+		Assert.assertTrue(portlet1.getStaticStart());
+		Assert.assertTrue(portlet1.isStatic());
+		Assert.assertFalse(portlet1.isStaticEnd());
+		Assert.assertTrue(portlet1.isStaticStart());
+
+		com.liferay.portal.kernel.model.Portlet portlet2 =
+			_portletLocalService.fetchPortletById(
+				TestPropsValues.getCompanyId(), portletId);
+
+		Assert.assertEquals(0, portlet1.compareTo(portlet2));
+		Assert.assertEquals(portlet1, portlet2);
+		Assert.assertEquals(portlet1.hashCode(), portlet2.hashCode());
+
+		Assert.assertFalse(portlet2.isStatic());
+		Assert.assertFalse(portlet2.isStaticStart());
 	}
 
 	@Inject
 	private PortletLocalService _portletLocalService;
 
-	@Inject
-	private Props _props;
+	private final List<ServiceRegistration<?>> _serviceRegistrations =
+		new ArrayList<>();
 
 	private class TestCustomAttributesDisplay
 		extends BaseCustomAttributesDisplay {

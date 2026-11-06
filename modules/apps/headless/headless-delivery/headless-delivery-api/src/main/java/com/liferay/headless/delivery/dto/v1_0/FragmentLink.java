@@ -20,21 +20,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -43,6 +43,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "Represents a fragment link.", value = "FragmentLink"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a fragment link."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "FragmentLink")
@@ -56,7 +59,7 @@ public class FragmentLink implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(FragmentLink.class, json);
 	}
 
-	@Schema(deprecated = true)
+	@io.swagger.v3.oas.annotations.media.Schema(deprecated = true)
 	@Valid
 	public Object getHref() {
 		if (_hrefSupplier != null) {
@@ -97,8 +100,8 @@ public class FragmentLink implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _hrefSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(deprecated = true)
 	@JsonGetter("target")
-	@Schema(deprecated = true)
 	@Valid
 	public Target getTarget() {
 		if (_targetSupplier != null) {
@@ -152,7 +155,9 @@ public class FragmentLink implements Serializable {
 	@JsonIgnore
 	private Supplier<Target> _targetSupplier;
 
-	@Schema(description = "The fragment link's value.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment link's value."
+	)
 	@Valid
 	public FragmentLinkValue getValue() {
 		if (_valueSupplier != null) {
@@ -194,7 +199,9 @@ public class FragmentLink implements Serializable {
 	@JsonIgnore
 	private Supplier<FragmentLinkValue> _valueSupplier;
 
-	@Schema(description = "The localized fragment link's values.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized fragment link's values."
+	)
 	@Valid
 	public Map<String, FragmentLinkValue> getValue_i18n() {
 		if (_value_i18nSupplier != null) {
@@ -273,17 +280,7 @@ public class FragmentLink implements Serializable {
 
 			sb.append("\"href\": ");
 
-			if (href instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)href));
-			}
-			else if (href instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)href));
-				sb.append("\"");
-			}
-			else {
-				sb.append(href);
-			}
+			sb.append(_toJSON(href));
 		}
 
 		Target target = getTarget();
@@ -296,9 +293,7 @@ public class FragmentLink implements Serializable {
 			sb.append("\"target\": ");
 
 			sb.append("\"");
-
 			sb.append(target);
-
 			sb.append("\"");
 		}
 
@@ -331,8 +326,8 @@ public class FragmentLink implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.FragmentLink",
 		name = "x-class-name"
 	)
@@ -457,6 +452,27 @@ public class FragmentLink implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -465,3 +481,4 @@ public class FragmentLink implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:965252068

@@ -8,9 +8,12 @@ package com.liferay.change.tracking.internal.upgrade.registry;
 import com.liferay.change.tracking.internal.upgrade.v2_10_0.CTCollectionUpgradeProcess;
 import com.liferay.change.tracking.internal.upgrade.v2_12_3.CTMessageCompanyIdUpgradeProcess;
 import com.liferay.change.tracking.internal.upgrade.v2_12_4.CTProcessResourceUpgradeProcess;
+import com.liferay.change.tracking.internal.upgrade.v2_14_0.CTConflictCheckerDispatchTriggerUpgradeProcess;
 import com.liferay.change.tracking.internal.upgrade.v2_3_0.UpgradeCompanyId;
 import com.liferay.change.tracking.internal.upgrade.v2_4_0.CTSchemaVersionUpgradeProcess;
 import com.liferay.change.tracking.internal.upgrade.v2_7_0.CTProcessUpgradeProcess;
+import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
+import com.liferay.portal.kernel.model.Release;
 import com.liferay.portal.kernel.service.ResourceLocalService;
 import com.liferay.portal.kernel.upgrade.BaseExternalReferenceCodeUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.BaseUuidUpgradeProcess;
@@ -18,6 +21,7 @@ import com.liferay.portal.kernel.upgrade.DummyUpgradeStep;
 import com.liferay.portal.kernel.upgrade.UpgradeProcessFactory;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -79,8 +83,8 @@ public class ChangeTrackingServiceUpgradeStepRegistrator
 			new BaseUuidUpgradeProcess() {
 
 				@Override
-				protected String[][] getTableAndPrimaryKeyColumnNames() {
-					return new String[][] {{"CTCollection", "ctCollectionId"}};
+				protected String[] getTableNames() {
+					return new String[] {"CTCollection"};
 				}
 
 			});
@@ -90,8 +94,8 @@ public class ChangeTrackingServiceUpgradeStepRegistrator
 			new BaseExternalReferenceCodeUpgradeProcess() {
 
 				@Override
-				protected String[][] getTableAndPrimaryKeyColumnNames() {
-					return new String[][] {{"CTCollection", "ctCollectionId"}};
+				protected String[] getTableNames() {
+					return new String[] {"CTCollection"};
 				}
 
 			});
@@ -110,8 +114,8 @@ public class ChangeTrackingServiceUpgradeStepRegistrator
 			new BaseUuidUpgradeProcess() {
 
 				@Override
-				protected String[][] getTableAndPrimaryKeyColumnNames() {
-					return new String[][] {{"CTEntry", "ctEntryId"}};
+				protected String[] getTableNames() {
+					return new String[] {"CTEntry"};
 				}
 
 			});
@@ -121,8 +125,8 @@ public class ChangeTrackingServiceUpgradeStepRegistrator
 			new BaseExternalReferenceCodeUpgradeProcess() {
 
 				@Override
-				protected String[][] getTableAndPrimaryKeyColumnNames() {
-					return new String[][] {{"CTEntry", "ctEntryId"}};
+				protected String[] getTableNames() {
+					return new String[] {"CTEntry"};
 				}
 
 			});
@@ -138,7 +142,41 @@ public class ChangeTrackingServiceUpgradeStepRegistrator
 		registry.register(
 			"2.12.3", "2.12.4",
 			new CTProcessResourceUpgradeProcess(_resourceLocalService));
+
+		registry.register(
+			"2.12.4", "2.13.0",
+			new com.liferay.change.tracking.internal.upgrade.v2_13_0.
+				SchemaUpgradeProcess());
+
+		registry.register(
+			"2.13.0", "2.13.1",
+			new com.liferay.change.tracking.internal.upgrade.v2_13_1.
+				CTConflictConfigurationUpgradeProcess(
+					_configurationAdmin, _configurationProvider));
+
+		registry.register(
+			"2.13.1", "2.14.0",
+			new CTConflictCheckerDispatchTriggerUpgradeProcess());
+
+		registry.register(
+			"2.14.0", "2.15.0",
+			new com.liferay.change.tracking.internal.upgrade.v2_15_0.
+				CTCollectionUpgradeProcess());
+
+		registry.register(
+			"2.15.0", "3.0.0", UpgradeProcessFactory.dropTables("CTScore"));
 	}
+
+	@Reference
+	private ConfigurationAdmin _configurationAdmin;
+
+	@Reference
+	private ConfigurationProvider _configurationProvider;
+
+	@Reference(
+		target = "(&(release.bundle.symbolic.name=com.liferay.portal.scheduler.quartz)(release.schema.version>=1.0.0))"
+	)
+	private Release _release;
 
 	@Reference
 	private ResourceLocalService _resourceLocalService;

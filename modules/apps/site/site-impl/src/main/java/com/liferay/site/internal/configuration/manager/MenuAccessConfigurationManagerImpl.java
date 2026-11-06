@@ -5,16 +5,24 @@
 
 package com.liferay.site.internal.configuration.manager;
 
+import com.liferay.configuration.admin.util.ConfigurationFilterStringUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.model.Group;
-import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.model.Role;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.site.configuration.MenuAccessConfiguration;
 import com.liferay.site.configuration.manager.MenuAccessConfigurationManager;
 
+import java.util.ArrayList;
+import java.util.Dictionary;
+import java.util.List;
+
+import org.osgi.service.cm.Configuration;
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -26,58 +34,36 @@ public class MenuAccessConfigurationManagerImpl
 	implements MenuAccessConfigurationManager {
 
 	@Override
-	public void addAccessRoleToControlMenu(Role role) throws Exception {
-		for (Group group :
-				_groupLocalService.getGroups(
-					role.getCompanyId(), GroupConstants.ANY_PARENT_GROUP_ID,
-					true)) {
+	public void deleteRoleAccessToControlMenu(Role role) throws Exception {
+		Configuration[] configurations = _configurationAdmin.listConfigurations(
+			ConfigurationFilterStringUtil.getGroupScopedFilterString(
+				role.getCompanyId(), null,
+				MenuAccessConfiguration.class.getName(), null));
 
-			MenuAccessConfiguration menuAccessConfiguration =
-				_configurationProvider.getGroupConfiguration(
-					MenuAccessConfiguration.class, group.getGroupId());
+		if (configurations == null) {
+			return;
+		}
 
-			if (!menuAccessConfiguration.showControlMenuByRole()) {
+		String roleId = String.valueOf(role.getRoleId());
+
+		for (Configuration configuration : configurations) {
+			Dictionary<String, Object> properties =
+				configuration.getProperties();
+
+			String[] accessToControlMenuRoleIds = (String[])properties.get(
+				"accessToControlMenuRoleIds");
+
+			if (!ArrayUtil.contains(accessToControlMenuRoleIds, roleId)) {
 				continue;
 			}
 
-			String roleId = String.valueOf(role.getRoleId());
-			String[] accessToControlMenuRoleIds =
-				menuAccessConfiguration.accessToControlMenuRoleIds();
+			accessToControlMenuRoleIds = ArrayUtil.remove(
+				accessToControlMenuRoleIds, roleId);
 
-			if (!ArrayUtil.contains(accessToControlMenuRoleIds, roleId)) {
-				accessToControlMenuRoleIds = ArrayUtil.append(
-					accessToControlMenuRoleIds, roleId);
+			properties.put(
+				"accessToControlMenuRoleIds", accessToControlMenuRoleIds);
 
-				updateMenuAccessConfiguration(
-					group.getGroupId(), accessToControlMenuRoleIds,
-					menuAccessConfiguration.showControlMenuByRole());
-			}
-		}
-	}
-
-	@Override
-	public void deleteRoleAccessToControlMenu(Role role) throws Exception {
-		for (Group group :
-				_groupLocalService.getGroups(
-					role.getCompanyId(), GroupConstants.ANY_PARENT_GROUP_ID,
-					true)) {
-
-			MenuAccessConfiguration menuAccessConfiguration =
-				_configurationProvider.getGroupConfiguration(
-					MenuAccessConfiguration.class, group.getGroupId());
-
-			String roleId = String.valueOf(role.getRoleId());
-			String[] accessToControlMenuRoleIds =
-				menuAccessConfiguration.accessToControlMenuRoleIds();
-
-			if (ArrayUtil.contains(accessToControlMenuRoleIds, roleId)) {
-				accessToControlMenuRoleIds = ArrayUtil.remove(
-					accessToControlMenuRoleIds, roleId);
-
-				updateMenuAccessConfiguration(
-					group.getGroupId(), accessToControlMenuRoleIds,
-					menuAccessConfiguration.showControlMenuByRole());
-			}
+			configuration.update(properties);
 		}
 	}
 
@@ -85,18 +71,22 @@ public class MenuAccessConfigurationManagerImpl
 	public String[] getAccessToControlMenuRoleIds(long groupId)
 		throws Exception {
 
+		Group group = _groupLocalService.getGroup(groupId);
+
 		MenuAccessConfiguration menuAccessConfiguration =
 			_configurationProvider.getGroupConfiguration(
-				MenuAccessConfiguration.class, groupId);
+				MenuAccessConfiguration.class, group.getCompanyId(), groupId);
 
 		return menuAccessConfiguration.accessToControlMenuRoleIds();
 	}
 
 	@Override
 	public boolean isShowControlMenuByRole(long groupId) throws Exception {
+		Group group = _groupLocalService.getGroup(groupId);
+
 		MenuAccessConfiguration menuAccessConfiguration =
 			_configurationProvider.getGroupConfiguration(
-				MenuAccessConfiguration.class, groupId);
+				MenuAccessConfiguration.class, group.getCompanyId(), groupId);
 
 		return menuAccessConfiguration.showControlMenuByRole();
 	}
@@ -107,8 +97,29 @@ public class MenuAccessConfigurationManagerImpl
 			boolean showControlMenuByRole)
 		throws Exception {
 
+		Group group = _groupLocalService.getGroup(groupId);
+
+		if (accessToControlMenuRoleIds == null) {
+			List<String> accessToControlMenuRoleIdsList = new ArrayList<>();
+
+			Role administratorRole = _roleLocalService.getRole(
+				group.getCompanyId(), RoleConstants.ADMINISTRATOR);
+
+			accessToControlMenuRoleIdsList.add(
+				String.valueOf(administratorRole.getRoleId()));
+
+			Role siteAdministratorRole = _roleLocalService.getRole(
+				group.getCompanyId(), RoleConstants.SITE_ADMINISTRATOR);
+
+			accessToControlMenuRoleIdsList.add(
+				String.valueOf(siteAdministratorRole.getRoleId()));
+
+			accessToControlMenuRoleIds = ArrayUtil.toStringArray(
+				accessToControlMenuRoleIdsList);
+		}
+
 		_configurationProvider.saveGroupConfiguration(
-			MenuAccessConfiguration.class, groupId,
+			MenuAccessConfiguration.class, group.getCompanyId(), groupId,
 			HashMapDictionaryBuilder.<String, Object>put(
 				"accessToControlMenuRoleIds", accessToControlMenuRoleIds
 			).put(
@@ -117,9 +128,15 @@ public class MenuAccessConfigurationManagerImpl
 	}
 
 	@Reference
+	private ConfigurationAdmin _configurationAdmin;
+
+	@Reference
 	private ConfigurationProvider _configurationProvider;
 
 	@Reference
 	private GroupLocalService _groupLocalService;
+
+	@Reference
+	private RoleLocalService _roleLocalService;
 
 }

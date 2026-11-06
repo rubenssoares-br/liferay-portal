@@ -5,48 +5,35 @@
 
 package com.liferay.layout.admin.web.internal.display.context;
 
-import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.processor.PortletRegistry;
-import com.liferay.fragment.service.FragmentEntryLinkLocalServiceUtil;
 import com.liferay.layout.admin.constants.LayoutAdminPortletKeys;
-import com.liferay.layout.page.template.model.LayoutPageTemplateStructure;
-import com.liferay.layout.page.template.model.LayoutPageTemplateStructureRelModel;
-import com.liferay.layout.page.template.service.LayoutPageTemplateStructureLocalServiceUtil;
-import com.liferay.layout.page.template.service.LayoutPageTemplateStructureRelLocalServiceUtil;
-import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.layout.admin.web.internal.util.OrphanPortletsUtil;
 import com.liferay.portal.kernel.dao.search.EmptyOnClickRowChecker;
 import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutConstants;
-import com.liferay.portal.kernel.model.LayoutTypePortlet;
 import com.liferay.portal.kernel.model.Portlet;
-import com.liferay.portal.kernel.model.PortletPreferences;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.SearchDisplayStyleUtil;
 import com.liferay.portal.kernel.portlet.SearchOrderByUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.LayoutLocalServiceUtil;
-import com.liferay.portal.kernel.service.PortletLocalServiceUtil;
-import com.liferay.portal.kernel.service.PortletPreferencesLocalServiceUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
-import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.util.comparator.PortletTitleComparator;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -104,54 +91,9 @@ public class OrphanPortletsDisplayContext {
 	}
 
 	public List<Portlet> getOrphanPortlets(Layout layout) {
-		if (!layout.isSupportsEmbeddedPortlets()) {
-			return Collections.emptyList();
-		}
-
 		ThemeDisplay themeDisplay =
 			(ThemeDisplay)_liferayPortletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
-
-		List<String> explicitlyAddedPortletIds = new ArrayList<>();
-
-		if (layout.isTypeContent()) {
-			explicitlyAddedPortletIds =
-				_getTypeContentExplicitlyAddedPortletIds(layout);
-		}
-		else {
-			LayoutTypePortlet selLayoutTypePortlet =
-				(LayoutTypePortlet)layout.getLayoutType();
-
-			List<Portlet> explicitlyAddedPortlets =
-				selLayoutTypePortlet.getExplicitlyAddedPortlets();
-
-			for (Portlet explicitlyAddedPortlet : explicitlyAddedPortlets) {
-				explicitlyAddedPortletIds.add(
-					explicitlyAddedPortlet.getPortletId());
-			}
-		}
-
-		List<Portlet> orphanPortlets = new ArrayList<>();
-
-		List<PortletPreferences> portletPreferencesList =
-			PortletPreferencesLocalServiceUtil.getPortletPreferences(
-				PortletKeys.PREFS_OWNER_ID_DEFAULT,
-				PortletKeys.PREFS_OWNER_TYPE_LAYOUT, layout.getPlid());
-
-		for (PortletPreferences portletPreferences : portletPreferencesList) {
-			String portletId = portletPreferences.getPortletId();
-
-			Portlet portlet = PortletLocalServiceUtil.getPortletById(
-				themeDisplay.getCompanyId(), portletId);
-
-			if (portlet.isSystem() ||
-				explicitlyAddedPortletIds.contains(portletId)) {
-
-				continue;
-			}
-
-			orphanPortlets.add(portlet);
-		}
 
 		HttpServletRequest httpServletRequest =
 			PortalUtil.getHttpServletRequest(_liferayPortletRequest);
@@ -163,7 +105,7 @@ public class OrphanPortletsDisplayContext {
 		}
 
 		return ListUtil.sort(
-			orphanPortlets,
+			OrphanPortletsUtil.getOrphanPortlets(layout, _portletRegistry),
 			new PortletTitleComparator(
 				httpServletRequest.getServletContext(),
 				themeDisplay.getLocale(), orderByAsc));
@@ -187,7 +129,7 @@ public class OrphanPortletsDisplayContext {
 
 		Layout selLayout = getSelLayout();
 
-		if (!selLayout.isLayoutPrototypeLinkActive()) {
+		if (!selLayout.isPortletLayoutPageTemplateEntryLinkActive()) {
 			orphanPortletsSearchContainer.setRowChecker(
 				new EmptyOnClickRowChecker(_liferayPortletResponse));
 		}
@@ -248,41 +190,6 @@ public class OrphanPortletsDisplayContext {
 		}
 
 		return LanguageUtil.get(httpServletRequest, "active");
-	}
-
-	private List<String> _getTypeContentExplicitlyAddedPortletIds(
-		Layout layout) {
-
-		LayoutPageTemplateStructure layoutPageTemplateStructure =
-			LayoutPageTemplateStructureLocalServiceUtil.
-				fetchLayoutPageTemplateStructure(
-					layout.getGroupId(), layout.getPlid());
-
-		if (layoutPageTemplateStructure == null) {
-			return Collections.emptyList();
-		}
-
-		List<String> layoutPortletIds = new ArrayList<>();
-
-		long[] segmentsExperiencesIds = TransformUtil.transformToLongArray(
-			LayoutPageTemplateStructureRelLocalServiceUtil.
-				getLayoutPageTemplateStructureRels(
-					layoutPageTemplateStructure.
-						getLayoutPageTemplateStructureId()),
-			LayoutPageTemplateStructureRelModel::getSegmentsExperienceId);
-
-		for (FragmentEntryLink fragmentEntryLink :
-				FragmentEntryLinkLocalServiceUtil.
-					getFragmentEntryLinksBySegmentsExperienceId(
-						layout.getGroupId(), segmentsExperiencesIds,
-						layout.getPlid(), false)) {
-
-			layoutPortletIds.addAll(
-				_portletRegistry.getFragmentEntryLinkPortletIds(
-					fragmentEntryLink));
-		}
-
-		return layoutPortletIds;
 	}
 
 	private String _backURL;

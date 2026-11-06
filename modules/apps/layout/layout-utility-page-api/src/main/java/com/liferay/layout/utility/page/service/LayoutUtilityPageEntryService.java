@@ -49,7 +49,7 @@ public interface LayoutUtilityPageEntryService extends BaseService {
 	public LayoutUtilityPageEntry addLayoutUtilityPageEntry(
 			String externalReferenceCode, long groupId, long plid,
 			long previewFileEntryId, boolean defaultLayoutUtilityPageEntry,
-			String name, String type, long masterLayoutPlid,
+			String name, String type, String masterLayoutPageTemplateEntryERC,
 			ServiceContext serviceContext)
 		throws PortalException;
 
@@ -69,6 +69,12 @@ public interface LayoutUtilityPageEntryService extends BaseService {
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public LayoutUtilityPageEntry fetchLayoutUtilityPageEntry(
 		long layoutUtilityPageEntryId);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public LayoutUtilityPageEntry
+			fetchLayoutUtilityPageEntryByExternalReferenceCode(
+				String externalReferenceCode, long groupId)
+		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public LayoutUtilityPageEntry getDefaultLayoutUtilityPageEntry(
@@ -131,11 +137,14 @@ public interface LayoutUtilityPageEntryService extends BaseService {
 		throws PortalException;
 
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, long previewFileEntryId)
+			long layoutUtilityPageEntryId, long previewFileEntryId,
+			ServiceContext serviceContext)
 		throws PortalException;
 
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, String name)
+			long layoutUtilityPageEntryId, String name,
+			ServiceContext serviceContext)
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-132176084

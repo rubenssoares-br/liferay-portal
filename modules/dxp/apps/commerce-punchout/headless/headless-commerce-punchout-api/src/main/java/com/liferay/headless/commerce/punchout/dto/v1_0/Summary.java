@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Jaclyn Ong
@@ -48,7 +49,7 @@ public class Summary implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Summary.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCurrency() {
 		if (_currencySupplier != null) {
 			currency = _currencySupplier.get();
@@ -89,7 +90,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _currencySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getItemsQuantity() {
 		if (_itemsQuantitySupplier != null) {
 			itemsQuantity = _itemsQuantitySupplier.get();
@@ -130,7 +131,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _itemsQuantitySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String[] getShippingDiscountPercentages() {
 		if (_shippingDiscountPercentagesSupplier != null) {
 			shippingDiscountPercentages =
@@ -175,7 +176,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _shippingDiscountPercentagesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getShippingDiscountValue() {
 		if (_shippingDiscountValueSupplier != null) {
 			shippingDiscountValue = _shippingDiscountValueSupplier.get();
@@ -216,7 +217,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _shippingDiscountValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getShippingValue() {
 		if (_shippingValueSupplier != null) {
 			shippingValue = _shippingValueSupplier.get();
@@ -257,7 +258,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _shippingValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getSubtotal() {
 		if (_subtotalSupplier != null) {
 			subtotal = _subtotalSupplier.get();
@@ -298,7 +299,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _subtotalSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String[] getSubtotalDiscountPercentages() {
 		if (_subtotalDiscountPercentagesSupplier != null) {
 			subtotalDiscountPercentages =
@@ -343,7 +344,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _subtotalDiscountPercentagesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getSubtotalDiscountValue() {
 		if (_subtotalDiscountValueSupplier != null) {
 			subtotalDiscountValue = _subtotalDiscountValueSupplier.get();
@@ -384,7 +385,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _subtotalDiscountValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getTaxValue() {
 		if (_taxValueSupplier != null) {
 			taxValue = _taxValueSupplier.get();
@@ -425,7 +426,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _taxValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getTotal() {
 		if (_totalSupplier != null) {
 			total = _totalSupplier.get();
@@ -466,7 +467,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _totalSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String[] getTotalDiscountPercentages() {
 		if (_totalDiscountPercentagesSupplier != null) {
 			totalDiscountPercentages = _totalDiscountPercentagesSupplier.get();
@@ -508,7 +509,7 @@ public class Summary implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _totalDiscountPercentagesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getTotalDiscountValue() {
 		if (_totalDiscountValueSupplier != null) {
 			totalDiscountValue = _totalDiscountValueSupplier.get();
@@ -771,8 +772,8 @@ public class Summary implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.punchout.dto.v1_0.Summary",
 		name = "x-class-name"
 	)
@@ -859,6 +860,27 @@ public class Summary implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -867,3 +889,4 @@ public class Summary implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1187495649

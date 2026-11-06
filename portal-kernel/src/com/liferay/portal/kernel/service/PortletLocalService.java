@@ -30,13 +30,13 @@ import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.OrderByComparator;
 
+import jakarta.servlet.ServletContext;
+
 import java.io.Serializable;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-
-import javax.servlet.ServletContext;
 
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -376,6 +376,8 @@ public interface PortletLocalService
 	@Transactional(enabled = false)
 	public void removeCompanyPortletsPool(long companyId);
 
+	public void removePortletModelResources(long companyId, String portletId);
+
 	public Portlet updatePortlet(
 		long companyId, String portletId, String roles, boolean active);
 
@@ -396,3 +398,4 @@ public interface PortletLocalService
 	public void visitPortlets(long companyId, Consumer<Portlet> consumer);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:705430672

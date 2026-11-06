@@ -34,10 +34,10 @@ import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.portal.upgrade.test.util.UpgradeTestUtil;
 import com.liferay.questions.web.internal.constants.QuestionsPortletKeys;
 
+import jakarta.portlet.PortletPreferences;
+
 import java.util.Collections;
 import java.util.Map;
-
-import javax.portlet.PortletPreferences;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -81,11 +81,6 @@ public class UpgradePortletPreferencesTest {
 	}
 
 	@Test
-	public void testUpgradeWithoutTopicRootId() throws Exception {
-		_testUpgrade(Collections.emptyMap(), Collections.emptyMap());
-	}
-
-	@Test
 	public void testUpgradeWithValidTopicRootId() throws Exception {
 		MBCategory mbCategory = _mbCategoryLocalService.addCategory(
 			RandomTestUtil.randomString(), TestPropsValues.getUserId(),
@@ -96,6 +91,11 @@ public class UpgradePortletPreferencesTest {
 
 		_testUpgrade(
 			mbCategory.getExternalReferenceCode(), mbCategory.getCategoryId());
+	}
+
+	@Test
+	public void testUpgradeWithoutTopicRootId() throws Exception {
+		_testUpgrade(Collections.emptyMap(), Collections.emptyMap());
 	}
 
 	private void _assertPortletPreferences(Map<String, String> expectedMap)
@@ -124,7 +124,7 @@ public class UpgradePortletPreferencesTest {
 			UpgradeProcess[] upgradeProcesses = UpgradeTestUtil.getUpgradeSteps(
 				_upgradeStepRegistrator, new Version(1, 1, 0));
 
-			upgradeProcesses[1].upgrade();
+			upgradeProcesses[0].upgrade();
 
 			_entityCache.clearCache();
 			_multiVMPool.clear();

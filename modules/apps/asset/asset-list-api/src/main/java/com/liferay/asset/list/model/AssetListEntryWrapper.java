@@ -329,6 +329,11 @@ public class AssetListEntryWrapper
 	}
 
 	@Override
+	public String getTypeSettings(String audienceEntryERC) {
+		return model.getTypeSettings(audienceEntryERC);
+	}
+
+	@Override
 	public String getUnambiguousTitle(java.util.Locale locale)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
@@ -600,3 +605,4 @@ public class AssetListEntryWrapper
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:758794307

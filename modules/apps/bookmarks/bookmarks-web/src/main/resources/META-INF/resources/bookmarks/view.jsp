@@ -20,7 +20,7 @@ if (Validator.isNotNull(keywords) && portletTitleBasedNavigation) {
 	portletDisplay.setShowBackIcon(true);
 	portletDisplay.setURLBack(ParamUtil.getString(request, "redirect"));
 
-	renderResponse.setTitle(LanguageUtil.get(resourceBundle, "search"));
+	renderResponse.setTitle(LanguageUtil.get(resourceBundle, "search[noun]"));
 }
 
 boolean defaultFolderView = false;
@@ -77,6 +77,7 @@ BookmarksUtil.addPortletBreadcrumbEntries(folder, request, renderResponse);
 
 	<clay:container-fluid
 		cssClass="container-view sidenav-content"
+		size="xxxl"
 	>
 		<div class="bookmarks-breadcrumb" id="<portlet:namespace />breadcrumbContainer">
 			<c:if test="<%= !bookmarksDisplayContext.isNavigationRecent() && !bookmarksDisplayContext.isNavigationMine() %>">

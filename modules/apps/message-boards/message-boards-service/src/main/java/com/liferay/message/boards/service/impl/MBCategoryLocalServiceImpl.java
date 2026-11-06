@@ -16,6 +16,7 @@ import com.liferay.message.boards.model.impl.MBCategoryImpl;
 import com.liferay.message.boards.service.MBMailingListLocalService;
 import com.liferay.message.boards.service.MBThreadLocalService;
 import com.liferay.message.boards.service.base.MBCategoryLocalServiceBaseImpl;
+import com.liferay.message.boards.service.persistence.MBMailingListPersistence;
 import com.liferay.message.boards.service.persistence.MBMessagePersistence;
 import com.liferay.message.boards.service.persistence.MBThreadPersistence;
 import com.liferay.petra.string.StringPool;
@@ -245,12 +246,14 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 			category.getGroupId(), category.getCategoryId());
 
 		for (MBCategory curCategory : categories) {
-			if (includeTrashedEntries ||
-				!_trashHelper.isInTrashExplicitly(curCategory)) {
+			if (!includeTrashedEntries &&
+				_trashHelper.isInTrashExplicitly(curCategory)) {
 
-				mbCategoryLocalService.deleteCategory(
-					curCategory, includeTrashedEntries);
+				continue;
 			}
+
+			mbCategoryLocalService.deleteCategory(
+				curCategory, includeTrashedEntries);
 		}
 
 		// Threads
@@ -261,9 +264,8 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 
 		// Mailing list
 
-		MBMailingList mbMailingList =
-			_mbMailingListLocalService.fetchCategoryMailingList(
-				category.getGroupId(), category.getCategoryId());
+		MBMailingList mbMailingList = _mbMailingListPersistence.fetchByG_C(
+			category.getGroupId(), category.getCategoryId());
 
 		if (mbMailingList != null) {
 			_mbMailingListLocalService.deleteMailingList(mbMailingList);
@@ -436,15 +438,6 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 	}
 
 	@Override
-	public int getCategoriesAndThreadsCount(long groupId, long categoryId) {
-		QueryDefinition<?> queryDefinition = new QueryDefinition<>(
-			WorkflowConstants.STATUS_ANY);
-
-		return mbCategoryFinder.countC_T_ByG_C(
-			groupId, categoryId, queryDefinition);
-	}
-
-	@Override
 	public int getCategoriesAndThreadsCount(
 		long groupId, long categoryId, int status) {
 
@@ -546,18 +539,6 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 	}
 
 	@Override
-	public List<MBCategory> getCompanyCategories(
-		long companyId, int start, int end) {
-
-		return mbCategoryPersistence.findByCompanyId(companyId, start, end);
-	}
-
-	@Override
-	public int getCompanyCategoriesCount(long companyId) {
-		return mbCategoryPersistence.countByCompanyId(companyId);
-	}
-
-	@Override
 	public MBCategory getMBCategory(long groupId, String friendlyURL)
 		throws PortalException {
 
@@ -582,26 +563,6 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 		}
 
 		return categoryIds;
-	}
-
-	@Override
-	public List<MBCategory> getSubscribedCategories(
-		long groupId, long userId, int start, int end) {
-
-		QueryDefinition<MBCategory> queryDefinition = new QueryDefinition<>(
-			WorkflowConstants.STATUS_ANY, start, end, null);
-
-		return mbCategoryFinder.findC_ByS_G_U_P(
-			groupId, userId, null, queryDefinition);
-	}
-
-	@Override
-	public int getSubscribedCategoriesCount(long groupId, long userId) {
-		QueryDefinition<MBCategory> queryDefinition = new QueryDefinition<>(
-			WorkflowConstants.STATUS_ANY);
-
-		return mbCategoryFinder.countC_ByS_G_U_P(
-			groupId, userId, null, queryDefinition);
 	}
 
 	@Override
@@ -845,9 +806,8 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 
 		// Mailing list
 
-		MBMailingList mailingList =
-			_mbMailingListLocalService.fetchCategoryMailingList(
-				category.getGroupId(), category.getCategoryId());
+		MBMailingList mailingList = _mbMailingListPersistence.fetchByG_C(
+			category.getGroupId(), category.getCategoryId());
 
 		if (mailingList != null) {
 			_mbMailingListLocalService.updateMailingList(
@@ -1224,6 +1184,9 @@ public class MBCategoryLocalServiceImpl extends MBCategoryLocalServiceBaseImpl {
 
 	@Reference
 	private MBMailingListLocalService _mbMailingListLocalService;
+
+	@Reference
+	private MBMailingListPersistence _mbMailingListPersistence;
 
 	@Reference
 	private MBMessagePersistence _mbMessagePersistence;

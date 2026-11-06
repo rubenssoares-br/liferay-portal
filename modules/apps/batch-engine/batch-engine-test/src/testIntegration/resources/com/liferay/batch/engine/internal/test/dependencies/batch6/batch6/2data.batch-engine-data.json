@@ -192,7 +192,7 @@
 			],
 			"objectViews": [
 			],
-			"panelCategoryKey": "applications_menu.applications.content",
+			"panelCategoryKey": "control_panel.object",
 			"parameterRequired": false,
 			"pluralLabel": {
 				"en_US": "Coupons"
@@ -204,7 +204,6 @@
 				"label": "approved",
 				"label_i18n": "Approved"
 			},
-			"system": false,
 			"titleObjectFieldId": 0
 		}
 	]

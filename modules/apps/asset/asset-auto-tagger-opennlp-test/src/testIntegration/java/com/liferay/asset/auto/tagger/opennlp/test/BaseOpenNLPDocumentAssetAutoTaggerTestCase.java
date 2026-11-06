@@ -13,13 +13,18 @@ import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LogEntry;
+import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,6 +105,31 @@ public abstract class BaseOpenNLPDocumentAssetAutoTaggerTestCase {
 	}
 
 	@Test
+	public void testAutoTagsAnAssetReusingNameFinders() throws Exception {
+		testWithOpenNLPDocumentAssetAutoTagProviderEnabled(
+			getClassName(),
+			() -> {
+				getAssetEntry(getTaggableText());
+
+				try (LogCapture logCapture =
+						LoggerTestUtil.configureLog4JLogger(
+							"opennlp.tools.util.XmlUtil",
+							LoggerTestUtil.WARN)) {
+
+					AssetEntry assetEntry = getAssetEntry(getTaggableText());
+
+					Assert.assertTrue(
+						ArrayUtil.isNotEmpty(assetEntry.getTagNames()));
+
+					List<LogEntry> logEntries = logCapture.getLogEntries();
+
+					Assert.assertEquals(
+						logEntries.toString(), 0, logEntries.size());
+				}
+			});
+	}
+
+	@Test
 	public void testDoesNotAutoTagAnAssetWhenNotEnabled() throws Exception {
 		testWithOpenNLPDocumentAssetAutoTagProviderDisabled(
 			() -> {
@@ -145,7 +175,9 @@ public abstract class BaseOpenNLPDocumentAssetAutoTaggerTestCase {
 					_OPEN_NLP_AUTO_TAG_CONFIGURATION_PID,
 					HashMapDictionaryBuilder.<String, Object>put(
 						"enabledClassNames", new String[] {className}
-					).build())) {
+					).build());
+			LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"opennlp.tools.util.XmlUtil", LoggerTestUtil.OFF)) {
 
 			unsafeRunnable.run();
 		}

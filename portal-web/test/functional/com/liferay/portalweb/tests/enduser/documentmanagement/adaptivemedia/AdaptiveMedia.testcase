@@ -63,10 +63,6 @@ definition {
 
 		WebContentNavigator.gotoEditCP(webContentTitle = "Web Content Title");
 
-		SelectFrame.selectFrameNoLoading(
-			key_fieldLabel = "Content",
-			locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
-
 		AdaptiveMedia.viewImageVariantURL(imageName = "high_resolution_photo-jpg");
 	}
 
@@ -100,8 +96,7 @@ definition {
 	@priority = 5
 	@refactordone
 	test CanAddEntryWithHighDensityResolution {
-		ApplicationsMenu.gotoPortlet(
-			category = "Configuration",
+		ApplicationsMenu.gotoRootPortlet(
 			panel = "Control Panel",
 			portlet = "Adaptive Media");
 
@@ -489,8 +484,7 @@ definition {
 			virtualHost = "www.able.com",
 			webId = "www.able.com");
 
-		ApplicationsMenu.gotoPortlet(
-			category = "Configuration",
+		ApplicationsMenu.gotoRootPortlet(
 			panel = "Control Panel",
 			portlet = "Adaptive Media");
 
@@ -506,8 +500,7 @@ definition {
 
 		Navigator.openSpecificURL(url = "http://www.able.com:8080");
 
-		ApplicationsMenu.gotoPortlet(
-			category = "Configuration",
+		ApplicationsMenu.gotoRootPortlet(
 			panel = "Control Panel",
 			portlet = "Adaptive Media");
 
@@ -531,14 +524,14 @@ definition {
 			webContentContent = "Web Content Content",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContentNavigator.openToEditWCInSite(
 			groupName = "Guest",
 			siteURLKey = "guest",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishExistingWCArticleWithPermissions();
 
 		Navigator.gotoPage(pageName = "Home");
 

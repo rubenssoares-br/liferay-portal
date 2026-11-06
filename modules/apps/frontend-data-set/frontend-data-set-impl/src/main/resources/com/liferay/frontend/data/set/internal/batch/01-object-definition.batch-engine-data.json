@@ -5,7 +5,6 @@
 		"parameters": {
 			"containsHeaders": "true",
 			"createStrategy": "UPSERT",
-			"featureFlag": "LPS-164563",
 			"importStrategy": "ON_ERROR_FAIL",
 			"updateStrategy": "UPDATE"
 		},
@@ -13,13 +12,31 @@
 	},
 	"items": [
 		{
+			"className": "com.liferay.object.model.ObjectDefinition#T9Q0",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET",
 			"label": {
 				"en_US": "Data Set"
 			},
-			"modifiable": true,
 			"name": "DataSet",
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -111,6 +128,22 @@
 					"type": "Clob"
 				},
 				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": false,
+					"externalReferenceCode": "HIDE_MANAGEMENT_BAR_IN_EMPTY_STATE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Hide Management Bar in Empty State"
+					},
+					"name": "hideManagementBarInEmptyState",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
+				{
 					"DBType": "Clob",
 					"businessType": "LongText",
 					"externalReferenceCode": "ITEM_ACTIONS_ORDER",
@@ -151,6 +184,21 @@
 					},
 					"name": "listOfItemsPerPage",
 					"required": true,
+					"state": false,
+					"system": true,
+					"type": "String"
+				},
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"externalReferenceCode": "PROPS_TRANSFORMER",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Props Transformer"
+					},
+					"name": "propsTransformer",
+					"required": false,
 					"state": false,
 					"system": true,
 					"type": "String"
@@ -199,6 +247,74 @@
 					"state": false,
 					"system": true,
 					"type": "String"
+				},
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": false,
+					"externalReferenceCode": "SEARCH_AS_YOU_TYPE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Search as You Type"
+					},
+					"localized": false,
+					"name": "searchAsYouType",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": false,
+					"externalReferenceCode": "SEARCH_SUGGESTIONS_ENABLED",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Search Suggestions Enabled"
+					},
+					"localized": false,
+					"name": "searchSuggestionsEnabled",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "SHOW_SEARCH",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Show Search"
+					},
+					"localized": false,
+					"name": "showSearch",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": false,
+					"externalReferenceCode": "SNAPSHOTS_ENABLED",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Snapshots Enabled"
+					},
+					"localized": false,
+					"name": "snapshotsEnabled",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
 				},
 				{
 					"DBType": "Clob",
@@ -390,14 +506,37 @@
 			"titleObjectFieldName": "label"
 		},
 		{
-			"enableLocalization": true,
+			"className": "com.liferay.object.model.ObjectDefinition#V0H2",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_ACTION",
 			"label": {
 				"en_US": "Data Set Action"
 			},
-			"modifiable": true,
 			"name": "DataSetAction",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -561,22 +700,6 @@
 				{
 					"DBType": "String",
 					"businessType": "Text",
-					"externalReferenceCode": "TITLE",
-					"indexed": true,
-					"indexedAsKeyword": false,
-					"label": {
-						"en_US": "Title"
-					},
-					"localized": true,
-					"name": "title",
-					"required": false,
-					"state": false,
-					"system": true,
-					"type": "String"
-				},
-				{
-					"DBType": "String",
-					"businessType": "Text",
 					"externalReferenceCode": "TARGET",
 					"indexed": true,
 					"indexedAsKeyword": false,
@@ -586,6 +709,22 @@
 					"localized": false,
 					"name": "target",
 					"required": true,
+					"state": false,
+					"system": true,
+					"type": "String"
+				},
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"externalReferenceCode": "TITLE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Title"
+					},
+					"localized": true,
+					"name": "title",
+					"required": false,
 					"state": false,
 					"system": true,
 					"type": "String"
@@ -636,13 +775,37 @@
 			"system": true
 		},
 		{
+			"className": "com.liferay.object.model.ObjectDefinition#T6T7",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_CARDS_SECTION",
 			"label": {
 				"en_US": "Data Set Cards Section"
 			},
-			"modifiable": true,
 			"name": "DataSetCardsSection",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -702,14 +865,37 @@
 			"system": true
 		},
 		{
-			"enableLocalization": true,
+			"className": "com.liferay.object.model.ObjectDefinition#K8Y5",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_CLIENT_EXTENSION_FILTER",
 			"label": {
 				"en_US": "Data Set Client Extension Filter"
 			},
-			"modifiable": true,
 			"name": "DataSetClientExtensionFilter",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -772,14 +958,37 @@
 			"system": true
 		},
 		{
-			"enableLocalization": true,
+			"className": "com.liferay.object.model.ObjectDefinition#U0S3",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_DATE_FILTER",
 			"label": {
 				"en_US": "Data Set Date Filter"
 			},
-			"modifiable": true,
 			"name": "DataSetDateFilter",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -874,13 +1083,37 @@
 			"system": true
 		},
 		{
+			"className": "com.liferay.object.model.ObjectDefinition#C0E7",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_LIST_SECTION",
 			"label": {
 				"en_US": "Data Set List Section"
 			},
-			"modifiable": true,
 			"name": "DataSetListSection",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -940,14 +1173,53 @@
 			"system": true
 		},
 		{
-			"enableLocalization": true,
+			"className": "com.liferay.object.model.ObjectDefinition#C1K2",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_SELECTION_FILTER",
 			"label": {
 				"en_US": "Data Set Selection Filter"
 			},
-			"modifiable": true,
 			"name": "DataSetSelectionFilter",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"externalReferenceCode": "ENTITY_FIELD_TYPE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Entity Field Type"
+					},
+					"localized": false,
+					"name": "entityFieldType",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "String"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -1154,14 +1426,37 @@
 			"system": true
 		},
 		{
-			"enableLocalization": true,
+			"className": "com.liferay.object.model.ObjectDefinition#D0O2",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_SORT",
 			"label": {
 				"en_US": "Data Set Sort"
 			},
-			"modifiable": true,
 			"name": "DataSetSort",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "Boolean",
 					"businessType": "Boolean",
@@ -1240,14 +1535,37 @@
 			"system": true
 		},
 		{
-			"enableLocalization": true,
+			"className": "com.liferay.object.model.ObjectDefinition#M0U6",
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_DATA_SET_TABLE_SECTION",
 			"label": {
 				"en_US": "Data Set Table Section"
 			},
-			"modifiable": true,
 			"name": "DataSetTableSection",
+			"objectDefinitionSettings": [
+				{
+					"name": "allowStandaloneObjectEntry",
+					"value": "false"
+				}
+			],
 			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
 				{
 					"DBType": "String",
 					"businessType": "Text",
@@ -1351,6 +1669,143 @@
 			},
 			"portlet": false,
 			"rootObjectDefinitionExternalReferenceCode": "L_DATA_SET",
+			"scope": "company",
+			"status": {
+				"code": 0
+			},
+			"system": true
+		},
+		{
+			"className": "com.liferay.object.model.ObjectDefinition#Z7H2",
+			"externalReferenceCode": "L_DATA_SET_SNAPSHOT",
+			"label": {
+				"en_US": "Data Set Snapshot"
+			},
+			"name": "DataSetSnapshot",
+			"objectFields": [
+				{
+					"DBType": "Boolean",
+					"businessType": "Boolean",
+					"defaultValue": true,
+					"externalReferenceCode": "ACTIVE",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Active"
+					},
+					"localized": false,
+					"name": "active",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Boolean"
+				},
+				{
+					"DBType": "Clob",
+					"businessType": "LongText",
+					"externalReferenceCode": "FDS_NAME",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "FDS Name"
+					},
+					"localized": false,
+					"name": "fdsName",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Clob"
+				},
+				{
+					"DBType": "String",
+					"businessType": "Text",
+					"externalReferenceCode": "LABEL",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Label"
+					},
+					"localized": false,
+					"name": "label",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "String"
+				},
+				{
+					"DBType": "Clob",
+					"businessType": "LongText",
+					"externalReferenceCode": "PORTLET_ID",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Portlet Id"
+					},
+					"name": "portletId",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Clob"
+				},
+				{
+					"DBType": "Clob",
+					"businessType": "LongText",
+					"externalReferenceCode": "VIEW_CONFIG",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "View Config"
+					},
+					"localized": false,
+					"name": "viewConfig",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Clob"
+				}
+			],
+			"panelCategoryKey": "",
+			"pluralLabel": {
+				"en_US": "Data Set Snapshots"
+			},
+			"portlet": false,
+			"scope": "company",
+			"status": {
+				"code": 0
+			},
+			"system": true,
+			"titleObjectFieldName": "label"
+		},
+		{
+			"className": "com.liferay.object.model.ObjectDefinition#U1P7",
+			"externalReferenceCode": "L_DATA_SET_USER_CONFIGURATION",
+			"label": {
+				"en_US": "Data Set User Configuration"
+			},
+			"name": "DataSetUserConfiguration",
+			"objectFields": [
+				{
+					"DBType": "Clob",
+					"businessType": "LongText",
+					"externalReferenceCode": "CONFIGURATION",
+					"indexed": true,
+					"indexedAsKeyword": false,
+					"label": {
+						"en_US": "Configuration"
+					},
+					"localized": false,
+					"name": "configuration",
+					"required": false,
+					"state": false,
+					"system": true,
+					"type": "Clob"
+				}
+			],
+			"panelCategoryKey": "",
+			"pluralLabel": {
+				"en_US": "Data Set User Configurations"
+			},
+			"portlet": false,
 			"scope": "company",
 			"status": {
 				"code": 0

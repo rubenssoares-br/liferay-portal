@@ -296,6 +296,10 @@ public interface KBArticleLocalService
 		long resourcePrimKey, long groupId, int version);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public KBArticle fetchKBArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int version);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public KBArticle fetchKBArticleByUrlTitle(
 		long groupId, long kbFolderId, String urlTitle);
 
@@ -324,6 +328,10 @@ public interface KBArticleLocalService
 		long groupId, String externalReferenceCode);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public KBArticle fetchLatestKBArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int status);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public KBArticle fetchLatestKBArticleByUrlTitle(
 		long groupId, long kbFolderId, String urlTitle, int status);
 
@@ -337,14 +345,6 @@ public interface KBArticleLocalService
 	public List<KBArticle> getAllDescendantKBArticles(
 		long resourcePrimKey, int status,
 		OrderByComparator<KBArticle> orderByComparator);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<KBArticle> getCompanyKBArticles(
-		long companyId, int status, int start, int end,
-		OrderByComparator<KBArticle> orderByComparator);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getCompanyKBArticlesCount(long companyId, int status);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public ExportActionableDynamicQuery getExportActionableDynamicQuery(
@@ -471,13 +471,6 @@ public interface KBArticleLocalService
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getKBArticleVersionsCount(long resourcePrimKey, int status);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<KBArticle> getKBFolderKBArticles(long groupId, long kbFolderId);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getKBFolderKBArticlesCount(
-		long groupId, long kbFolderId, int status);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public KBArticle getLatestKBArticle(long resourcePrimKey)
@@ -675,3 +668,4 @@ public interface KBArticleLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1585801828

@@ -330,7 +330,7 @@ public class CommerceInventoryWarehouseServiceHttp {
 					com.liferay.portal.kernel.util.OrderByComparator
 						<com.liferay.commerce.inventory.model.
 							CommerceInventoryWarehouse> orderByComparator)
-			throws com.liferay.portal.kernel.security.auth.PrincipalException {
+			throws com.liferay.portal.kernel.exception.PortalException {
 
 		try {
 			MethodKey methodKey = new MethodKey(
@@ -348,11 +348,10 @@ public class CommerceInventoryWarehouseServiceHttp {
 			}
 			catch (Exception exception) {
 				if (exception instanceof
-						com.liferay.portal.kernel.security.auth.
-							PrincipalException) {
+						com.liferay.portal.kernel.exception.PortalException) {
 
-					throw (com.liferay.portal.kernel.security.auth.
-						PrincipalException)exception;
+					throw (com.liferay.portal.kernel.exception.PortalException)
+						exception;
 				}
 
 				throw new com.liferay.portal.kernel.exception.SystemException(
@@ -474,8 +473,8 @@ public class CommerceInventoryWarehouseServiceHttp {
 	public static java.util.List
 		<com.liferay.commerce.inventory.model.CommerceInventoryWarehouse>
 				getCommerceInventoryWarehouses(
-					HttpPrincipal httpPrincipal, long companyId, long groupId,
-					boolean active)
+					HttpPrincipal httpPrincipal, long companyId,
+					long accountEntryId, long groupId, boolean active)
 			throws com.liferay.portal.kernel.exception.PortalException {
 
 		try {
@@ -485,7 +484,7 @@ public class CommerceInventoryWarehouseServiceHttp {
 				_getCommerceInventoryWarehousesParameterTypes9);
 
 			MethodHandler methodHandler = new MethodHandler(
-				methodKey, companyId, groupId, active);
+				methodKey, companyId, accountEntryId, groupId, active);
 
 			Object returnObj = null;
 
@@ -881,7 +880,7 @@ public class CommerceInventoryWarehouseServiceHttp {
 		};
 	private static final Class<?>[]
 		_getCommerceInventoryWarehousesParameterTypes9 = new Class[] {
-			long.class, long.class, boolean.class
+			long.class, long.class, long.class, boolean.class
 		};
 	private static final Class<?>[]
 		_getCommerceInventoryWarehousesCountParameterTypes10 = new Class[] {
@@ -915,3 +914,4 @@ public class CommerceInventoryWarehouseServiceHttp {
 			new Class[] {String.class, long.class};
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1758645771

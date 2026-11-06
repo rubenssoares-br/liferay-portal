@@ -11,27 +11,28 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -42,14 +43,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 	description = "A unique reference to an entity which remains constant across environments.",
 	value = "ItemExternalReference"
 )
-@JsonFilter("Liferay.Vulcan")
-@Schema(
+@io.swagger.v3.oas.annotations.media.Schema(
 	description = "A unique reference to an entity which remains constant across environments.",
 	requiredProperties = {"externalReferenceCode"}
 )
+@JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ItemExternalReference")
-public class ItemExternalReference
-	extends CollectionReference implements Serializable {
+public class ItemExternalReference implements Serializable {
 
 	public static ItemExternalReference toDTO(String json) {
 		return ObjectMapperUtil.readValue(ItemExternalReference.class, json);
@@ -60,7 +60,7 @@ public class ItemExternalReference
 			ItemExternalReference.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getClassName() {
 		if (_classNameSupplier != null) {
 			className = _classNameSupplier.get();
@@ -101,7 +101,7 @@ public class ItemExternalReference
 	@JsonIgnore
 	private Supplier<String> _classNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -143,9 +143,9 @@ public class ItemExternalReference
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Scope getScope() {
+	public com.liferay.portal.vulcan.scope.Scope getScope() {
 		if (_scopeSupplier != null) {
 			scope = _scopeSupplier.get();
 
@@ -155,14 +155,17 @@ public class ItemExternalReference
 		return scope;
 	}
 
-	public void setScope(Scope scope) {
+	public void setScope(com.liferay.portal.vulcan.scope.Scope scope) {
 		this.scope = scope;
 
 		_scopeSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setScope(UnsafeSupplier<Scope, Exception> scopeUnsafeSupplier) {
+	public void setScope(
+		UnsafeSupplier<com.liferay.portal.vulcan.scope.Scope, Exception>
+			scopeUnsafeSupplier) {
+
 		_scopeSupplier = () -> {
 			try {
 				return scopeUnsafeSupplier.get();
@@ -178,10 +181,10 @@ public class ItemExternalReference
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Scope scope;
+	protected com.liferay.portal.vulcan.scope.Scope scope;
 
 	@JsonIgnore
-	private Supplier<Scope> _scopeSupplier;
+	private Supplier<com.liferay.portal.vulcan.scope.Scope> _scopeSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -243,7 +246,7 @@ public class ItemExternalReference
 			sb.append("\"");
 		}
 
-		Scope scope = getScope();
+		com.liferay.portal.vulcan.scope.Scope scope = getScope();
 
 		if (scope != null) {
 			if (sb.length() > 1) {
@@ -252,23 +255,7 @@ public class ItemExternalReference
 
 			sb.append("\"scope\": ");
 
-			sb.append(String.valueOf(scope));
-		}
-
-		CollectionType collectionType = getCollectionType();
-
-		if (collectionType != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"collectionType\": ");
-
-			sb.append("\"");
-
-			sb.append(collectionType);
-
-			sb.append("\"");
+			sb.append(scope);
 		}
 
 		sb.append("}");
@@ -276,8 +263,8 @@ public class ItemExternalReference
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.ItemExternalReference",
 		name = "x-class-name"
 	)
@@ -364,6 +351,27 @@ public class ItemExternalReference
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -372,3 +380,4 @@ public class ItemExternalReference
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:947648542

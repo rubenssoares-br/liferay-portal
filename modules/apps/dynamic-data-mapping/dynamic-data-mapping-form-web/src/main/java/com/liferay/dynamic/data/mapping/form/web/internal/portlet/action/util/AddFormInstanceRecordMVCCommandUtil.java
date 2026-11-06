@@ -24,8 +24,12 @@ import com.liferay.dynamic.data.mapping.storage.DDMFormFieldValue;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
+
+import jakarta.portlet.PortletRequest;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,12 +37,57 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import javax.portlet.PortletRequest;
-
 /**
  * @author Leonardo Barros
  */
 public class AddFormInstanceRecordMVCCommandUtil {
+
+	public static void updateInvisibleDDMFormFieldValues(
+		Map<DDMFormEvaluatorFieldContextKey, Map<String, Object>>
+			ddmFormFieldsPropertyChanges,
+		Map<String, List<DDMFormFieldValue>> ddmFormFieldValuesMap,
+		Map<String, List<DDMFormFieldValue>> persistedDDMFormFieldValuesMap) {
+
+		for (Map.Entry<DDMFormEvaluatorFieldContextKey, Map<String, Object>>
+				entry : ddmFormFieldsPropertyChanges.entrySet()) {
+
+			if (MapUtil.getBoolean(entry.getValue(), "visible", true)) {
+				continue;
+			}
+
+			DDMFormEvaluatorFieldContextKey ddmFormEvaluatorFieldContextKey =
+				entry.getKey();
+
+			for (DDMFormFieldValue ddmFormFieldValue :
+					ListUtil.fromCollection(
+						ddmFormFieldValuesMap.get(
+							ddmFormEvaluatorFieldContextKey.getName()))) {
+
+				if (!StringUtil.equals(
+						ddmFormFieldValue.getInstanceId(),
+						ddmFormEvaluatorFieldContextKey.getInstanceId())) {
+
+					continue;
+				}
+
+				for (DDMFormFieldValue persistedDDMFormFieldValue :
+						ListUtil.fromCollection(
+							persistedDDMFormFieldValuesMap.get(
+								ddmFormEvaluatorFieldContextKey.getName()))) {
+
+					if (!StringUtil.equals(
+							ddmFormFieldValue.getInstanceId(),
+							persistedDDMFormFieldValue.getInstanceId())) {
+
+						continue;
+					}
+
+					ddmFormFieldValue.setValue(
+						persistedDDMFormFieldValue.getValue());
+				}
+			}
+		}
+	}
 
 	public static void updateNonevaluableDDMFormFields(
 			Map<String, DDMFormField> ddmFormFieldsMap,

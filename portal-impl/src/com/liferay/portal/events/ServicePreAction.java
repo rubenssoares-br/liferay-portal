@@ -15,12 +15,14 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.image.ImageToolUtil;
 import com.liferay.portal.kernel.cookies.CookiesManagerUtil;
+import com.liferay.portal.kernel.cookies.constants.CookiesConstants;
 import com.liferay.portal.kernel.events.Action;
 import com.liferay.portal.kernel.events.ActionException;
 import com.liferay.portal.kernel.exception.LayoutPermissionException;
 import com.liferay.portal.kernel.exception.NoSuchGroupException;
 import com.liferay.portal.kernel.exception.NoSuchLayoutException;
 import com.liferay.portal.kernel.exception.NoSuchUserException;
+import com.liferay.portal.kernel.frontend.spa.FrontendSPAUtil;
 import com.liferay.portal.kernel.interval.IntervalActionProcessor;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -43,9 +45,11 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.impl.VirtualLayout;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
+import com.liferay.portal.kernel.portlet.PortalPreferences;
 import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portal.kernel.portlet.PortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
+import com.liferay.portal.kernel.security.ChecksumUtil;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
@@ -70,7 +74,6 @@ import com.liferay.portal.kernel.servlet.PortalWebResourcesUtil;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ColorSchemeFactoryUtil;
-import com.liferay.portal.kernel.util.Digester;
 import com.liferay.portal.kernel.util.DigesterUtil;
 import com.liferay.portal.kernel.util.FriendlyURLNormalizerUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -84,6 +87,8 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.SessionParamUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
@@ -95,9 +100,16 @@ import com.liferay.portal.theme.ThemeDisplayFactory;
 import com.liferay.portal.util.LayoutClone;
 import com.liferay.portal.util.LayoutCloneFactory;
 import com.liferay.portal.util.LayoutTypeAccessPolicyTracker;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.sites.kernel.util.SitesUtil;
+
+import jakarta.portlet.PortletMode;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.WindowState;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.io.File;
 import java.io.Serializable;
@@ -112,15 +124,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.portlet.PortletMode;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-import javax.portlet.WindowState;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import org.apache.commons.lang.time.StopWatch;
 
@@ -311,7 +314,7 @@ public class ServicePreAction extends Action {
 				0, StringUtil.split(portletIds), columnId, false);
 		}
 
-		LayoutLocalServiceUtil.updateLayout(
+		LayoutLocalServiceUtil.updateTypeSettings(
 			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
 			layout.getTypeSettings());
 
@@ -398,7 +401,7 @@ public class ServicePreAction extends Action {
 				0, StringUtil.split(portletIds), columnId, false);
 		}
 
-		LayoutLocalServiceUtil.updateLayout(
+		LayoutLocalServiceUtil.updateTypeSettings(
 			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
 			layout.getTypeSettings());
 
@@ -550,9 +553,9 @@ public class ServicePreAction extends Action {
 			_getDefaultVirtualHostLayoutComposite(httpServletRequest);
 
 		defaultLayoutComposite = _getViewableLayoutComposite(
-			httpServletRequest, user, permissionChecker,
+			httpServletRequest, ignoreHiddenLayouts,
 			defaultLayoutComposite.getLayout(),
-			defaultLayoutComposite.getLayouts(), ignoreHiddenLayouts);
+			defaultLayoutComposite.getLayouts(), permissionChecker, true, user);
 
 		if (ListUtil.isNotEmpty(defaultLayoutComposite.getLayouts())) {
 			return defaultLayoutComposite;
@@ -568,9 +571,10 @@ public class ServicePreAction extends Action {
 			}
 
 			defaultLayoutComposite = _getViewableLayoutComposite(
-				httpServletRequest, user, permissionChecker,
+				httpServletRequest, ignoreHiddenLayouts,
 				defaultLayoutComposite.getLayout(),
-				defaultLayoutComposite.getLayouts(), ignoreHiddenLayouts);
+				defaultLayoutComposite.getLayouts(), permissionChecker, true,
+				user);
 
 			if (ListUtil.isNotEmpty(defaultLayoutComposite.getLayouts())) {
 				return defaultLayoutComposite;
@@ -580,9 +584,9 @@ public class ServicePreAction extends Action {
 		defaultLayoutComposite = _getGuestSiteLayoutComposite(user);
 
 		return _getViewableLayoutComposite(
-			httpServletRequest, user, permissionChecker,
+			httpServletRequest, ignoreHiddenLayouts,
 			defaultLayoutComposite.getLayout(),
-			defaultLayoutComposite.getLayouts(), ignoreHiddenLayouts);
+			defaultLayoutComposite.getLayouts(), permissionChecker, true, user);
 	}
 
 	private LayoutComposite _getDefaultVirtualHostLayoutComposite(
@@ -679,9 +683,10 @@ public class ServicePreAction extends Action {
 	}
 
 	private LayoutComposite _getViewableLayoutComposite(
-			HttpServletRequest httpServletRequest, User user,
-			PermissionChecker permissionChecker, Layout layout,
-			List<Layout> layouts, boolean ignoreHiddenLayouts)
+			HttpServletRequest httpServletRequest, boolean ignoreHiddenLayouts,
+			Layout layout, List<Layout> layouts,
+			PermissionChecker permissionChecker, boolean requirePublishedLayout,
+			User user)
 		throws Exception {
 
 		if (ListUtil.isEmpty(layouts)) {
@@ -690,22 +695,29 @@ public class ServicePreAction extends Action {
 
 		boolean hasViewLayoutPermission = false;
 
-		if (_hasAccessPermission(permissionChecker, layout, false)) {
+		if ((!requirePublishedLayout || layout.isPublished()) &&
+			_hasAccessPermission(permissionChecker, layout, false)) {
+
 			hasViewLayoutPermission = true;
 		}
 
 		List<Layout> accessibleLayouts = new ArrayList<>();
+		long plid = layout.getPlid();
 
 		for (Layout curLayout : layouts) {
-			if ((ignoreHiddenLayouts || !curLayout.isHidden()) &&
-				_hasAccessPermission(permissionChecker, curLayout, false)) {
+			if ((!ignoreHiddenLayouts && curLayout.isHidden()) ||
+				!_isAccessible(
+					curLayout, permissionChecker, plid, requirePublishedLayout,
+					hasViewLayoutPermission)) {
 
-				if (accessibleLayouts.isEmpty() && !hasViewLayoutPermission) {
-					layout = curLayout;
-				}
-
-				accessibleLayouts.add(curLayout);
+				continue;
 			}
+
+			if (accessibleLayouts.isEmpty() && !hasViewLayoutPermission) {
+				layout = curLayout;
+			}
+
+			accessibleLayouts.add(curLayout);
 		}
 
 		if (accessibleLayouts.isEmpty()) {
@@ -911,14 +923,14 @@ public class ServicePreAction extends Action {
 
 		Long realUserId = (Long)httpSession.getAttribute(WebKeys.USER_ID);
 
-		if ((realUserId != null) &&
-			(user.getUserId() != realUserId.longValue())) {
-
-			realUser = UserLocalServiceUtil.getUserById(realUserId.longValue());
-		}
-
-		if (!user.isActive() && (realUserId == user.getUserId())) {
-			httpSession.invalidate();
+		if (realUserId != null) {
+			if (user.getUserId() != realUserId.longValue()) {
+				realUser = UserLocalServiceUtil.getUserById(
+					realUserId.longValue());
+			}
+			else if (!user.isActive()) {
+				httpSession.invalidate();
+			}
 		}
 
 		boolean signedIn = !user.isGuestUser();
@@ -950,16 +962,11 @@ public class ServicePreAction extends Action {
 
 		// Cookie support
 
-		try {
-
-			// LEP-4069
-
-			CookiesManagerUtil.validateSupportCookie(httpServletRequest);
-		}
-		catch (Exception exception) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(exception);
-			}
+		if (PropsValues.SESSION_TEST_COOKIE_SUPPORT &&
+			Validator.isNull(
+				CookiesManagerUtil.getCookieValue(
+					CookiesConstants.NAME_COOKIE_SUPPORT, httpServletRequest,
+					false))) {
 
 			CookiesManagerUtil.addSupportCookie(
 				httpServletRequest, httpServletResponse);
@@ -1096,8 +1103,17 @@ public class ServicePreAction extends Action {
 		}
 
 		long doAsGroupId = ParamUtil.getLong(httpServletRequest, "doAsGroupId");
+
 		String doAsUserId = ParamUtil.getString(
 			httpServletRequest, "doAsUserId");
+
+		if (!PropsValues.PORTAL_IMPERSONATION_ENABLE ||
+			!Validator.isHex(doAsUserId) ||
+			!ChecksumUtil.isValid(StringUtil.hexStringToBytes(doAsUserId))) {
+
+			doAsUserId = StringPool.BLANK;
+		}
+
 		String doAsUserLanguageId = ParamUtil.getString(
 			httpServletRequest, "doAsUserLanguageId");
 		Group group = null;
@@ -1212,8 +1228,8 @@ public class ServicePreAction extends Action {
 		}
 		else {
 			viewableLayoutComposite = _getViewableLayoutComposite(
-				httpServletRequest, user, permissionChecker, layout, layouts,
-				false);
+				httpServletRequest, false, layout, layouts, permissionChecker,
+				redirectToDefaultLayout, user);
 		}
 
 		String layoutSetLogo = null;
@@ -1314,9 +1330,15 @@ public class ServicePreAction extends Action {
 			if (signedIn && customizable && customizedView &&
 				hasCustomizeLayoutPermission) {
 
-				layoutTypePortlet.setPortalPreferences(
+				PortalPreferences portalPreferences =
 					PortletPreferencesFactoryUtil.getPortalPreferences(
-						user.getUserId(), true));
+						user.getUserId(), true);
+
+				httpServletRequest.setAttribute(
+					WebKeys.HTTP_SERVLET_REQUEST_PORTAL_PREFERENCES,
+					portalPreferences);
+
+				layoutTypePortlet.setPortalPreferences(portalPreferences);
 			}
 
 			LayoutClone layoutClone = LayoutCloneFactory.getInstance();
@@ -1448,8 +1470,7 @@ public class ServicePreAction extends Action {
 		boolean themeJsBarebone = PropsValues.JAVASCRIPT_BAREBONE_ENABLED;
 
 		if (themeJsBarebone &&
-			(signedIn ||
-			 PropsValues.JAVASCRIPT_SINGLE_PAGE_APPLICATION_ENABLED)) {
+			(signedIn || FrontendSPAUtil.isEnabled(company.getCompanyId()))) {
 
 			themeJsBarebone = false;
 		}
@@ -1530,7 +1551,6 @@ public class ServicePreAction extends Action {
 		themeDisplay.setLocale(locale);
 		themeDisplay.setLookAndFeel(theme, colorScheme);
 		themeDisplay.setPathApplet(contextPath.concat("/applets"));
-		themeDisplay.setPathCms(contextPath.concat("/cms"));
 		themeDisplay.setPathContext(contextPath);
 		themeDisplay.setPathFriendlyURLPrivateGroup(
 			friendlyURLPrivateGroupPath);
@@ -1640,7 +1660,13 @@ public class ServicePreAction extends Action {
 				urlControlPanel, "refererGroupId", refererGroupId);
 		}
 		else if (scopeGroupId > 0) {
-			Layout refererLayout = LayoutLocalServiceUtil.fetchLayout(plid);
+			Layout refererLayout = layout;
+
+			if ((refererLayout == null) ||
+				(refererLayout instanceof VirtualLayout)) {
+
+				refererLayout = LayoutLocalServiceUtil.fetchLayout(plid);
+			}
 
 			if (refererLayout != null) {
 				Group refererLayoutGroup = refererLayout.getGroup();
@@ -1756,7 +1782,9 @@ public class ServicePreAction extends Action {
 			themeDisplay.setShowPageSettingsIcon(false);
 		}
 
-		if ((layout != null) && layout.isLayoutPrototypeLinkActive()) {
+		if ((layout != null) &&
+			layout.isPortletLayoutPageTemplateEntryLinkActive()) {
+
 			themeDisplay.setShowPageCustomizationIcon(false);
 		}
 
@@ -1799,6 +1827,32 @@ public class ServicePreAction extends Action {
 		themeDisplay.setURLSignOut(mainPath.concat(_PATH_PORTAL_LOGOUT));
 
 		return themeDisplay;
+	}
+
+	private boolean _isAccessible(
+			Layout curLayout, PermissionChecker permissionChecker, long plid,
+			boolean requirePublishedLayout, boolean viewLayoutPermission)
+		throws Exception {
+
+		if (curLayout.getPlid() == plid) {
+			if (requirePublishedLayout) {
+				return viewLayoutPermission;
+			}
+
+			if (viewLayoutPermission && curLayout.isPublished()) {
+				return true;
+			}
+
+			return false;
+		}
+
+		if (curLayout.isPublished() &&
+			_hasAccessPermission(permissionChecker, curLayout, false)) {
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -1852,41 +1906,11 @@ public class ServicePreAction extends Action {
 
 		long layoutGroupId = layout.getGroupId();
 
-		Group guestGroup = GroupLocalServiceUtil.getGroup(
-			user.getCompanyId(), GroupConstants.GUEST);
+		Group layoutGroup = GroupLocalServiceUtil.getGroup(layoutGroupId);
 
-		if (layoutGroupId != guestGroup.getGroupId()) {
-			Group layoutGroup = GroupLocalServiceUtil.getGroup(layoutGroupId);
+		if (layoutGroup.isGuest() &&
+			(layoutGroup.getCompanyId() == user.getCompanyId())) {
 
-			UnicodeProperties typeSettingsUnicodeProperties =
-				layoutGroup.getTypeSettingsProperties();
-
-			boolean mergeGuestPublicPages = GetterUtil.getBoolean(
-				typeSettingsUnicodeProperties.getProperty(
-					"mergeGuestPublicPages"));
-
-			if (!mergeGuestPublicPages) {
-				return layouts;
-			}
-
-			List<Layout> guestLayouts = LayoutLocalServiceUtil.getLayouts(
-				guestGroup.getGroupId(), false,
-				LayoutConstants.DEFAULT_PARENT_LAYOUT_ID);
-
-			LayoutComposite viewableLayoutComposite =
-				_getViewableLayoutComposite(
-					httpServletRequest, user, permissionChecker, layout,
-					guestLayouts, false);
-
-			guestLayouts = viewableLayoutComposite.getLayouts();
-
-			if (layouts == null) {
-				return guestLayouts;
-			}
-
-			layouts.addAll(0, guestLayouts);
-		}
-		else {
 			HttpSession httpSession = httpServletRequest.getSession();
 
 			Long previousGroupId = (Long)httpSession.getAttribute(
@@ -1927,8 +1951,8 @@ public class ServicePreAction extends Action {
 
 				LayoutComposite viewableLayoutComposite =
 					_getViewableLayoutComposite(
-						httpServletRequest, user, permissionChecker, layout,
-						previousLayouts, false);
+						httpServletRequest, false, layout, previousLayouts,
+						permissionChecker, false, user);
 
 				previousLayouts = viewableLayoutComposite.getLayouts();
 
@@ -1936,6 +1960,38 @@ public class ServicePreAction extends Action {
 					layouts.addAll(previousLayouts);
 				}
 			}
+		}
+		else {
+			UnicodeProperties typeSettingsUnicodeProperties =
+				layoutGroup.getTypeSettingsProperties();
+
+			boolean mergeGuestPublicPages = GetterUtil.getBoolean(
+				typeSettingsUnicodeProperties.getProperty(
+					"mergeGuestPublicPages"));
+
+			if (!mergeGuestPublicPages) {
+				return layouts;
+			}
+
+			Group guestGroup = GroupLocalServiceUtil.getGroup(
+				user.getCompanyId(), GroupConstants.GUEST);
+
+			List<Layout> guestLayouts = LayoutLocalServiceUtil.getLayouts(
+				guestGroup.getGroupId(), false,
+				LayoutConstants.DEFAULT_PARENT_LAYOUT_ID);
+
+			LayoutComposite viewableLayoutComposite =
+				_getViewableLayoutComposite(
+					httpServletRequest, false, layout, guestLayouts,
+					permissionChecker, false, user);
+
+			guestLayouts = viewableLayoutComposite.getLayouts();
+
+			if (layouts == null) {
+				return guestLayouts;
+			}
+
+			layouts.addAll(0, guestLayouts);
 		}
 
 		return layouts;
@@ -2064,10 +2120,14 @@ public class ServicePreAction extends Action {
 		httpServletResponse.setHeader(
 			"X-Liferay-Request-User",
 			DigesterUtil.digestHex(
-				Digester.MD5, String.valueOf(user.getUserId())));
+				DigesterUtil.MD5, String.valueOf(user.getUserId())));
 	}
 
 	private void _updateUserLayouts(User user) throws Exception {
+		if (user.isLayoutsUpdated()) {
+			return;
+		}
+
 		Boolean hasPowerUserRole = null;
 
 		// Private layouts
@@ -2094,13 +2154,13 @@ public class ServicePreAction extends Action {
 			}
 		}
 
-		Boolean hasPrivateLayouts = null;
+		Integer privateLayoutsCount = null;
 
 		if (addDefaultUserPrivateLayouts) {
-			hasPrivateLayouts = LayoutLocalServiceUtil.hasLayouts(
-				user.getGroup(), true, false);
+			privateLayoutsCount = LayoutLocalServiceUtil.getLayoutsCount(
+				user.getGroupId(), true);
 
-			if (!hasPrivateLayouts) {
+			if (privateLayoutsCount == 0) {
 				_addDefaultUserPrivateLayouts(user);
 			}
 		}
@@ -2124,12 +2184,12 @@ public class ServicePreAction extends Action {
 		}
 
 		if (deleteDefaultUserPrivateLayouts) {
-			if (hasPrivateLayouts == null) {
-				hasPrivateLayouts = LayoutLocalServiceUtil.hasLayouts(
-					user.getGroup(), true, false);
+			if (privateLayoutsCount == null) {
+				privateLayoutsCount = LayoutLocalServiceUtil.getLayoutsCount(
+					user.getGroupId(), true);
 			}
 
-			if (hasPrivateLayouts) {
+			if (privateLayoutsCount > 0) {
 				_deleteDefaultUserPrivateLayouts(user);
 			}
 		}
@@ -2158,13 +2218,13 @@ public class ServicePreAction extends Action {
 			}
 		}
 
-		Boolean hasPublicLayouts = null;
+		Integer publicLayoutsCount = null;
 
 		if (addDefaultUserPublicLayouts) {
-			hasPublicLayouts = LayoutLocalServiceUtil.hasLayouts(
-				user.getGroup(), false, false);
+			publicLayoutsCount = LayoutLocalServiceUtil.getLayoutsCount(
+				user.getGroupId(), false);
 
-			if (!hasPublicLayouts) {
+			if (publicLayoutsCount == 0) {
 				_addDefaultUserPublicLayouts(user);
 			}
 		}
@@ -2188,15 +2248,17 @@ public class ServicePreAction extends Action {
 		}
 
 		if (deleteDefaultUserPublicLayouts) {
-			if (hasPublicLayouts == null) {
-				hasPublicLayouts = LayoutLocalServiceUtil.hasLayouts(
-					user.getGroup(), false, false);
+			if (publicLayoutsCount == null) {
+				publicLayoutsCount = LayoutLocalServiceUtil.getLayoutsCount(
+					user.getGroupId(), false);
 			}
 
-			if (hasPublicLayouts) {
+			if (publicLayoutsCount > 0) {
 				_deleteDefaultUserPublicLayouts(user);
 			}
 		}
+
+		user.setLayoutsUpdated(true);
 	}
 
 	private static final String _PATH_MAIN = PortalUtil.getPathMain();

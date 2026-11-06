@@ -105,6 +105,8 @@ public class RepositoryModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table Repository";
 
+	public static final String ENTITY_ALIAS = "repository";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY repository.repositoryId ASC";
 
@@ -179,7 +181,7 @@ public class RepositoryModelImpl
 	public static final long REPOSITORYID_COLUMN_BITMASK = 64L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.Repository"));
 
 	public RepositoryModelImpl() {
@@ -1279,3 +1281,4 @@ public class RepositoryModelImpl
 	private Repository _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2143426725

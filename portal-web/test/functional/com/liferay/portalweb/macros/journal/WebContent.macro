@@ -8,7 +8,7 @@ definition {
 			webContentContent = ${webContentContent},
 			webContentTitle = ${webContentTitle});
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
@@ -129,7 +129,7 @@ definition {
 			webContentContent = ${webContentContent},
 			webContentTitle = ${webContentTitle});
 
-		Button.clickSaveAsDraft();
+		WebContent.saveAsDraftWithPermissions();
 
 		Alert.viewSuccessMessage();
 	}
@@ -146,14 +146,10 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro addExistingRelatedAssetCP(scopeSite = null, webContentTitle = null, otherSite = null, assetTitle = null, siteName = null, assetType = null) {
+	macro addExistingRelatedAssetCP(webContentTitle = null, assetTitle = null, siteName = null, assetType = null, edit = null) {
 		var key_webContentTitle = ${webContentTitle};
 
-		RelatedAssets.selectAsset(
-			assetTitle = ${assetTitle},
-			assetType = ${assetType},
-			otherSite = ${otherSite},
-			scopeSite = ${scopeSite});
+		RelatedAssets.selectAsset(assetTitle = ${assetTitle});
 
 		SelectFrame(value1 = "relative=top");
 
@@ -173,7 +169,12 @@ definition {
 
 		AssertElementPresent(locator1 = "AssetRelatedAssets#RELATED_ASSETS_TABLE_REMOVE_LINK");
 
-		PortletEntry.publish();
+		if (${edit} == "true") {
+			WebContent.publishExistingWCArticleWithPermissions();
+		}
+		else {
+			WebContent.publishWithPermissions();
+		}
 	}
 
 	@summary = "Default summary"
@@ -201,11 +202,9 @@ definition {
 			content = "Web Content Content",
 			fieldLabel = "Content");
 
-		Button.clickPublish();
+		WebContent.publishWithPermissions();
 
 		AssertElementPresent(locator1 = "Icon#ASTERISK");
-
-		Alert.viewRequestFailedToComplete();
 
 		Panel.expandPanel(panel = "Categorization");
 
@@ -283,23 +282,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro addNullCP(webContentContent = null) {
-		AssertElementNotPresent(locator1 = "TextInput#REQUIRED_ALERT");
-
-		if (isSet(webContentContent)) {
-			CKEditor.addContentInWebContent(
-				content = ${webContentContent},
-				fieldLabel = "Content");
-		}
-
-		Button.clickPublish();
-
-		AssertElementPresent(locator1 = "TextInput#REQUIRED_ALERT");
-
-		AssertTextPresent(value1 = "Please enter a valid title for the default language: en-US");
-	}
-
-	@summary = "Default summary"
 	macro addPGViaAP(webContentTitle = null, webContentContent = null) {
 		AssetPublisherPortlet.addAsset(assetType = "Basic Web Content");
 
@@ -307,7 +289,7 @@ definition {
 			webContentContent = ${webContentContent},
 			webContentTitle = ${webContentTitle});
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WaitForPageLoad();
 
@@ -336,7 +318,7 @@ definition {
 			webContentContent = ${webContentContent},
 			webContentTitle = ${webContentTitle});
 
-		Button.clickPublish();
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
@@ -377,7 +359,7 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro addWithCategoryCP(userSegmentDetailTitle = null, webContentTitle = null, webContentContent = null, vocabularyName = null, categoryName = null) {
+	macro addWithCategoryCP(userSegmentDetailTitle = null, webContentTitle = null, webContentContent = null, vocabularyName = null, categoryName = null, edit = null) {
 		for (var key_panel : list "Basic Information,Default Template,Display Page Template,Featured Image ") {
 			if ((IsElementPresent(locator1 = "Panel#PANEL_EXPANDED")) && (IsVisible(locator1 = "Panel#PANEL_EXPANDED"))) {
 				AssertClick(
@@ -395,7 +377,12 @@ definition {
 			userSegmentDetailTitle = ${userSegmentDetailTitle},
 			vocabularyName = ${vocabularyName});
 
-		PortletEntry.publish();
+		if (${edit} == "true") {
+			WebContent.publishExistingWCArticleWithPermissions();
+		}
+		else {
+			WebContent.publishWithPermissions();
+		}
 	}
 
 	@summary = "Default summary"
@@ -431,7 +418,7 @@ definition {
 
 		SelectFrameTop();
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
@@ -445,11 +432,11 @@ definition {
 			locator1 = "TextInput#INPUT_ID",
 			value1 = ${friendlyURL});
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
-	macro addWithMultipleCategories(allowMultipleCategories = null, webContentTitle = null, webContentContent = null, vocabularyName = null, categoryNameList = null) {
+	macro addWithMultipleCategories(webContentTitle = null, webContentContent = null, vocabularyName = null, categoryNameList = null) {
 		for (var key_panel : list "Basic Information,Default Template,Display Page Template,Featured Image ") {
 			if ((IsElementPresent(locator1 = "Panel#PANEL_EXPANDED")) && (IsVisible(locator1 = "Panel#PANEL_EXPANDED"))) {
 				AssertClick(
@@ -468,14 +455,7 @@ definition {
 			categoryNameList = ${categoryNameList},
 			vocabularyName = ${vocabularyName});
 
-		if (${allowMultipleCategories} == "false") {
-			Button.clickPublish();
-
-			Alert.viewErrorMessage(errorMessage = "You cannot select more than one category for Vocabulary Name.");
-		}
-		else {
-			PortletEntry.publish();
-		}
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
@@ -490,7 +470,7 @@ definition {
 			locator1 = "TextInput#ASSET_PRIORITY",
 			value1 = ${assetPriority});
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
@@ -650,9 +630,13 @@ definition {
 
 			Portlet.expandTree();
 
+			AssertElementPresent(
+				key_nodeName = ${webContentLinkToPage},
+				locator1 = "Treeview#NODE_UNSELECTED_TREEITEM");
+
 			Click(
 				key_nodeName = ${webContentLinkToPage},
-				locator1 = "Treeview#NODE_UNSELECTED");
+				locator1 = "Treeview#NODE_UNSELECTED_TREEITEM");
 
 			SelectFrameTop();
 		}
@@ -691,15 +675,9 @@ definition {
 			}
 
 			if (isSet(source)) {
-				Click(
-					key_fieldFieldLabel = ${webContentRichTextFieldLabel},
-					locator1 = "WCEditWebContent#SOURCE_BUTTON");
-
-				Type.typeCodeMirrorEditorNoError(
-					locator1 = "CKEditor#BODY_FIELD_SOURCE_ON",
-					value1 = ${webContentRichText});
-
-				Click(locator1 = "CKEditor#TOOLBAR_SOURCE_BUTTON");
+				CKEditor.addSourceContent(
+					content = ${webContentRichText},
+					fieldLabel = ${webContentRichTextFieldLabel});
 			}
 			else {
 				CKEditor.addContentInWebContent(
@@ -717,7 +695,9 @@ definition {
 				key_fieldFieldLabel = ${webContentSelectFromListFieldLabel},
 				locator1 = "WCEditWebContent#SELECT_FIELD_TRIGGER");
 
-			DropdownMenuItem.click(menuItem = ${webContentSelectFromList});
+			Click.javaScriptClick(
+				key_menuItem = ${webContentSelectFromList},
+				locator1 = "MenuItem#DROPDOWN_MENU_ITEM");
 		}
 
 		if (isSet(webContentSingleSelection)) {
@@ -869,7 +849,7 @@ definition {
 		}
 
 		if (${saveAsDraft} == "true") {
-			PortletEntry.saveAsDraft();
+			WebContent.saveAsDraftWithPermissions();
 
 			AssertTextEquals(
 				key_status = "Draft",
@@ -898,7 +878,7 @@ definition {
 			AssetCategorization.addTag(tagName = ${tagName});
 		}
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 	}
 
 	@summary = "Default summary"
@@ -907,7 +887,7 @@ definition {
 			webContentContent = ${webContentContent},
 			webContentTitle = ${webContentTitle});
 
-		Button.clickSubmitForWorkflow();
+		WebContent.submitForWorkflowWithPermission();
 
 		Alert.viewSuccessMessage();
 	}
@@ -920,9 +900,7 @@ definition {
 			webContentContent = ${webContentContent},
 			webContentTitle = ${webContentTitle});
 
-		AssertClick(
-			locator1 = "Button#SUBMIT_FOR_WORKFLOW",
-			value1 = "Submit for Workflow");
+		WebContent.submitForWorkflowWithPermission();
 
 		SelectFrame();
 
@@ -1069,18 +1047,20 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro editCP(videoShortcutTitle = null, depotName = null, saveAsDraft = null, webContentContentEdit = null, available = null, webContentImageDescription = null, webContentWebContent = null, navTab = null, embedVideo = null, webContentImage = null, webContentTitleEdit = null, folderName = null) {
+	macro editCP(videoShortcutTitle = null, depotName = null, saveAsDraft = null, webContentContentEdit = null, available = null, webContentImageDescription = null, webContentWebContent = null, navTab = null, embedVideo = null, webContentImage = null, webContentTitleEdit = null, folderName = null, upgradedFieldLabel = null) {
 		WebContent.addCP(webContentTitle = ${webContentTitleEdit});
 
 		if (isSet(webContentContentEdit)) {
-			SelectFrame.selectFrameNoLoading(locator1 = "CKEditor#BODY_FIELD_IFRAME_2");
+			if (${upgradedFieldLabel} == "true") {
+				var contentFieldLabel = "content";
+			}
+			else {
+				var contentFieldLabel = "Content";
+			}
 
-			Type(
-				key_fieldLabel = "Content",
-				locator1 = "CKEditor#BODY",
-				value1 = ${webContentContentEdit});
-
-			SelectFrame(value1 = "relative=top");
+			CKEditor.addContentInWebContent(
+				content = ${webContentContentEdit},
+				fieldLabel = ${contentFieldLabel});
 		}
 
 		if (isSet(webContentWebContent)) {
@@ -1187,7 +1167,7 @@ definition {
 				value1 = "Draft");
 		}
 		else {
-			PortletEntry.publish();
+			WebContent.publishExistingWCArticleWithPermissions();
 
 			LexiconEntry.changeDisplayStyle(displayStyle = "list");
 
@@ -1204,25 +1184,13 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro editDisplayDate(displayDate = null) {
-		Panel.expandPanel(panel = "Schedule");
-
-		Type.clickAtType(
-			locator1 = "TextInput#DISPLAY_DATE",
-			value1 = ${displayDate});
-
-		if (isSet(displayTime)) {
-			var displayTime = StringUtil.removeSpaces(${displayTime});
-
-			Type.sendKeys(
-				locator1 = "TextInput#DISPLAY_DATE_TIME",
-				value1 = ${displayTime});
+	macro editDisplayPage(pageType = null, pageName = null, assetType = null) {
+		if (${assetType} == "Blogs Entry") {
+			Blogs.expandPanel(panel = "Display Page");
 		}
-	}
-
-	@summary = "Default summary"
-	macro editDisplayPage(pageType = null, pageName = null) {
-		Panel.expandPanel(panel = "Display Page");
+		else {
+			Panel.expandPanel(panel = "Display Page");
+		}
 
 		if (!(isSet(displayPageTemplateType))) {
 			var displayPageTemplateType = "Specific";
@@ -1260,18 +1228,26 @@ definition {
 
 				Portlet.expandTree();
 
+				AssertElementPresent(
+					key_nodeName = ${pageName},
+					locator1 = "Treeview#NODE_UNSELECTED_TREEITEM");
+
 				Click(
 					key_nodeName = ${pageName},
-					locator1 = "Treeview#NODE_UNSELECTED");
+					locator1 = "Treeview#NODE_UNSELECTED_TREEITEM");
 			}
 			else if (${pageType} == "Pages") {
 				Navigator.gotoNavItem(navItem = "Pages");
 
 				Portlet.expandTree();
 
+				AssertElementPresent(
+					key_nodeName = ${pageName},
+					locator1 = "Treeview#NODE_UNSELECTED_TREEITEM");
+
 				Click(
 					key_nodeName = ${pageName},
-					locator1 = "Treeview#NODE_UNSELECTED");
+					locator1 = "Treeview#NODE_UNSELECTED_TREEITEM");
 			}
 			else {
 				if (IsElementNotPresent(key_navItem = ${pageType}, locator1 = "NavBar#NAV_ITEM_LINK")) {
@@ -1403,23 +1379,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro editNullCP(webContentContent = null) {
-		AssertElementNotPresent(locator1 = "TextInput#REQUIRED_ALERT");
-
-		WebContent.addCP(webContentTitle = "");
-
-		if (isSet(webContentContent)) {
-			CKEditor.addContentInWebContent(
-				content = ${webContentContent},
-				fieldLabel = "Content");
-		}
-
-		Button.clickPublish();
-
-		AssertElementPresent(locator1 = "TextInput#REQUIRED_ALERT");
-	}
-
-	@summary = "Default summary"
 	macro editViaContentPanel(fieldName = null, webContentTitle = null, saveAsDraft = null, webContentContentEdit = null, webContentSelectWcFile = null, webContentTitleEdit = null) {
 		PageEditor.gotoEllipsisMenuItemInPageContentPanel(
 			itemName = ${webContentTitle},
@@ -1449,8 +1408,8 @@ definition {
 			SelectFrame(value1 = "relative=top");
 		}
 
-		if (${saveAsDraft} == "true") {
-			PortletEntry.saveAsDraft();
+		if (isSet(saveAsDraft) && (${saveAsDraft} == "true")) {
+			WebContent.saveAsDraftWithPermissions();
 
 			AssertTextEquals.assertPartialText(
 				key_status = "Draft",
@@ -1458,7 +1417,7 @@ definition {
 				value1 = "Draft");
 		}
 		else {
-			Button.clickPublish();
+			WebContent.publishExistingWCArticleWithPermissions();
 		}
 	}
 
@@ -1476,7 +1435,7 @@ definition {
 		SelectFrame(value1 = "relative=top");
 
 		if (${saveAsDraft} == "true") {
-			PortletEntry.saveAsDraft();
+			WebContent.saveAsDraftWithPermissions();
 
 			AssertTextEquals.assertPartialText(
 				key_status = "Draft",
@@ -1484,7 +1443,7 @@ definition {
 				value1 = "Draft");
 		}
 		else {
-			PortletEntry.publish();
+			WebContent.publishExistingWCArticleWithPermissions();
 		}
 	}
 
@@ -1520,8 +1479,8 @@ definition {
 			webContentUpload = ${webContentUpload},
 			webContentWebContent = ${webContentWebContent});
 
-		if (${saveAsDraft} == "true") {
-			PortletEntry.saveAsDraft();
+		if (isSet(saveAsDraft) && (${saveAsDraft} == "true")) {
+			WebContent.saveAsDraftWithPermissions();
 
 			AssertTextEquals.assertPartialText(
 				key_status = "Draft",
@@ -1529,7 +1488,7 @@ definition {
 				value1 = "Draft");
 		}
 		else {
-			PortletEntry.publish();
+			WebContent.publishExistingWCArticleWithPermissions();
 		}
 	}
 
@@ -1591,17 +1550,11 @@ definition {
 
 	@summary = "Default summary"
 	macro increaseDisplayDate(minuteIncrease = null) {
-		var displayDate = DateTimeSchedule.getCurrentDisplayDate(field = "display");
-		var currentTime = DateTimeSchedule.getCurrentDisplayTime(field = "display");
-		var displayTime = DateTimeSchedule.increaseDisplayTime(
-			field = "display",
-			minuteIncreaseValue = ${minuteIncrease});
+		var displayDate = DateUtil.getDateOffsetByMinutes(${minuteIncrease}, "yyyy-MM-dd hh:mm a", "UTC");
 
-		WebContent.editDisplayDate(
-			displayDate = ${displayDate},
-			displayTime = ${displayTime});
+		WebContent.scheduleWCArticleWithPermissions(displayDate = ${displayDate});
 
-		echo("Web Content display time increased ${minuteIncrease} minutes, changed from ${currentTime} to ${displayTime}");
+		echo("Web Content display date increased ${minuteIncrease} minutes, changed to ${displayDate}");
 	}
 
 	@summary = "Default summary"
@@ -1734,29 +1687,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro paginateRelatedAssets(webContentTitle = null, itemsPerPage = null, assetType = null) {
-		WebContentNavigator.gotoEditCP(webContentTitle = ${webContentTitle});
-
-		Panel.expandPanel(panel = "Related Assets");
-
-		WaitForLiferayEvent.initializeLiferayEventLog();
-
-		AssertClick(
-			locator1 = "AssetRelatedAssets#RELATED_ASSETS_SELECT",
-			value1 = "Select");
-
-		MenuItem.click(menuItem = ${assetType});
-
-		SelectFrame(locator1 = "IFrame#MODAL_BODY");
-
-		AssertClick.assertPartialTextClickAt(
-			locator1 = "Pagination#ITEMS_PER_PAGE_SELECT",
-			value1 = "20 Entries");
-
-		MenuItem.click(menuItem = ${itemsPerPage});
-	}
-
-	@summary = "Default summary"
 	macro previewDisplayPageTemplate(webContentContent = null) {
 		Panel.expandPanel(panel = "Display Page");
 
@@ -1776,6 +1706,66 @@ definition {
 	}
 
 	@summary = "Default summary"
+	macro publishExistingWCArticleWithPermissions() {
+		Click(locator1 = "WCEditWebContent#PUBLISH_BUTTON");
+
+		WaitForElementPresent.waitForElementPresentNoException(locator1 = "Message#ALERT_DISMISSIBLE");
+	}
+
+	@summary = "Default summary"
+	macro publishWithPermissions(viewableBy = null) {
+		if (isSet(viewableBy)) {
+			Click(locator1 = "WCEditWebContent#PUBLISH_OPTIONS_BUTTON");
+
+			Click(locator1 = "WCEditWebContent#PUBLISH_WITH_PERMISSIONS_BUTTON");
+
+			Select(
+				locator1 = "Select#PERMISSIONS",
+				value1 = ${viewableBy});
+
+			Click(locator1 = "WCEditWebContent#PUBLISH_IN_MODAL");
+		}
+		else {
+			Click(locator1 = "WCEditWebContent#PUBLISH_BUTTON");
+		}
+
+		WaitForElementPresent.waitForElementPresentNoException(locator1 = "Message#ALERT_DISMISSIBLE");
+	}
+
+	@summary = "Default summary"
+	macro publishWithPermissionsLocalized(publish = null, publishOptions = null, publishWithPermissions = null, viewableBy = null) {
+		if (isSet(viewableBy)) {
+			Click(
+				ariaLabel = ${publishOptions},
+				locator1 = "Button#ANY_WITH_ARIA_LABEL");
+
+			Click(
+				key_text = ${publishWithPermissions},
+				locator1 = "WCEditWebContent#DROPDOWN_BUTTON");
+
+			Select(
+				locator1 = "Select#PERMISSIONS",
+				value1 = ${viewableBy});
+
+			Click(
+				key_text = ${publish},
+				locator1 = "WCEditWebContent#BUTTON_IN_MODAL");
+		}
+		else {
+			Button.click(button = ${publish});
+		}
+
+		WaitForElementPresent.waitForElementPresentNoException(locator1 = "Message#ALERT_DISMISSIBLE");
+
+		if (IsElementPresent(locator1 = "Message#WARNING")) {
+			VerifyElementPresent(locator1 = "Message#WARNING");
+		}
+		else {
+			Alert.viewSuccessMessage();
+		}
+	}
+
+	@summary = "Default summary"
 	macro removeDuplicatedFieldsGroup(index = null) {
 		Click(
 			key_class = "delete-button",
@@ -1792,6 +1782,43 @@ definition {
 		Refresh();
 
 		AssertElementNotPresent(locator1 = "AP#ASSET_ABSTRACT_GENERIC");
+	}
+
+	@summary = "Default summary"
+	macro saveAsDraftWithPermissions() {
+		Button.clickSaveAsDraft();
+
+		Click(locator1 = "WCEditWebContent#SAVE_AS_DRAFT_IN_MODAL");
+	}
+
+	@summary = "Default summary"
+	macro scheduleWCArticleWithPermissions(displayDate = null) {
+		Click(locator1 = "WCEditWebContent#PUBLISH_OPTIONS_BUTTON");
+
+		Click(locator1 = "WCEditWebContent#SCHEDULE_PUBLICATION_BUTTON");
+
+		Type.clickAtType(
+			locator1 = "WCEditWebContent#SCHEDULE_DATE",
+			value1 = ${displayDate});
+
+		if (isSet(displayTime)) {
+			var displayTime = StringUtil.removeSpaces(${displayTime});
+
+			Type.sendKeys(
+				locator1 = "TextInput#DISPLAY_DATE_TIME",
+				value1 = ${displayTime});
+		}
+
+		Click(locator1 = "WCEditWebContent#SCHEDULE_IN_MODAL");
+
+		WaitForElementPresent.waitForElementPresentNoException(locator1 = "Message#ALERT_DISMISSIBLE");
+
+		if (IsElementPresent(locator1 = "Message#WARNING")) {
+			VerifyElementPresent(locator1 = "Message#WARNING");
+		}
+		else {
+			Alert.viewSuccessMessage();
+		}
 	}
 
 	@summary = "Default summary"
@@ -1983,6 +2010,40 @@ definition {
 	}
 
 	@summary = "Default summary"
+	macro submitForWorkflow() {
+		Button.clickSubmitForWorkflow();
+
+		WaitForElementPresent.waitForElementPresentNoException(locator1 = "Message#ALERT_DISMISSIBLE");
+	}
+
+	@summary = "Default summary"
+	macro submitForWorkflowWithPermission(viewableBy = null) {
+		if (isSet(viewableBy)) {
+			Click(locator1 = "WCEditWebContent#PUBLISH_OPTIONS_BUTTON");
+
+			Click(locator1 = "WCEditWebContent#SUBMIT_FOR_WORKFLOW_WITH_PERMISSIONS_BUTTON");
+
+			Select(
+				locator1 = "Select#PERMISSIONS",
+				value1 = ${viewableBy});
+
+			Click(locator1 = "WCEditWebContent#SUBMIT_FOR_WORKFLOW_IN_MODAL");
+		}
+		else {
+			Button.clickSubmitForWorkflow();
+		}
+
+		WaitForElementPresent.waitForElementPresentNoException(locator1 = "Message#ALERT_DISMISSIBLE");
+
+		if (IsElementPresent(locator1 = "Message#WARNING")) {
+			VerifyElementPresent(locator1 = "Message#WARNING");
+		}
+		else {
+			Alert.viewSuccessMessage();
+		}
+	}
+
+	@summary = "Default summary"
 	macro subscribeToCurrentFolderCP() {
 		Click.clickAt(locator1 = "Icon#INFO");
 
@@ -2030,23 +2091,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro uploadAudio(navTab = null, dmDocumentURL = null) {
-		Click(locator1 = "CKEditor#TOOLBAR_AUDIO_BUTTON");
-
-		ItemSelector.addAudioFromURL(
-			audioSourceURL = ${dmDocumentURL},
-			navTab = ${navTab});
-
-		SelectFrame.selectFrameNoLoading(
-			key_fieldLabel = "Content",
-			locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
-
-		AssertElementPresent(locator1 = "CKEditor#CONTENT_AUDIO_LINK_IMAGE");
-
-		IFrame.selectTopFrame();
-	}
-
-	@summary = "Default summary"
 	macro uploadVideo(navTab = null, videoShortcutTitle = null, dmDocumentURL = null, videoShortcutPreview = null) {
 		Click(locator1 = "WCEditWebContent#VIDEO_BUTTON");
 
@@ -2080,23 +2124,6 @@ definition {
 		AssertTextEquals(
 			locator1 = "WC#ENTRY_TABLE_WORKFLOW_STATUS",
 			value1 = "APPROVED");
-	}
-
-	@summary = "Default summary"
-	macro viewAvailableLanguages(availableLanguageList = null, unavailableLanguageList = null) {
-		Click(locator1 = "Button#LOCALIZATION_TRANSLATED");
-
-		for (var availableLanguage : list ${availableLanguageList}) {
-			AssertElementPresent(
-				key_locale = ${availableLanguage},
-				locator1 = "Translation#LOCALIZATION_NAME");
-		}
-
-		for (var unavailableLanguage : list ${unavailableLanguageList}) {
-			AssertElementNotPresent(
-				key_locale = ${unavailableLanguage},
-				locator1 = "Translation#LOCALIZATION_NAME");
-		}
 	}
 
 	@summary = "Default summary"
@@ -2216,39 +2243,27 @@ definition {
 			value1 = ${webContentTitle});
 
 		if (${upgradedFieldLabel} == "true") {
-			SelectFrame.selectFrameNoLoading(
-				key_fieldLabel = "content",
-				locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
+			var key_fieldLabel = "content";
 		}
 		else {
-			SelectFrame.selectFrameNoLoading(
-				key_fieldLabel = "Content",
-				locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
+			var key_fieldLabel = "Content";
 		}
 
-		AssertTextEquals(
-			locator1 = "CKEditor#BODY",
-			value1 = ${webContentContent});
-
-		SelectFrame(value1 = "relative=top");
+		CKEditor.assertContentInWebContent(
+			content = ${webContentContent},
+			fieldLabel = ${key_fieldLabel});
 
 		if (isSet(webContentDescription)) {
 			if (isSet(otherLocaleSummary)) {
-				SelectFrame.selectFrameNoLoading(
-					key_fieldLabel = ${otherLocaleSummary},
-					locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
+				var key_fieldLabel = ${otherLocaleSummary};
 			}
 			else {
-				SelectFrame.selectFrameNoLoading(
-					key_fieldLabel = "Description",
-					locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
+				var key_fieldLabel = "Description";
 			}
 
-			AssertTextEquals(
-				locator1 = "CKEditor#BODY",
-				value1 = ${webContentDescription});
-
-			SelectFrameTop(value1 = "relative=top");
+			CKEditor.assertContentInWebContent(
+				content = ${webContentDescription},
+				fieldLabel = ${key_fieldLabel});
 		}
 
 		if (isSet(displayPageTemplateDisabled)) {
@@ -2479,17 +2494,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro viewPaginateRelatedAssets(numberOfPages = null, itemsPerPage = null) {
-		AssertTextEquals.assertPartialText(
-			locator1 = "Pagination#ITEMS_PER_PAGE_SELECT",
-			value1 = ${itemsPerPage});
-
-		AssertTextEquals(
-			locator1 = "Pagination#CURRENT_PAGE_SELECT",
-			value1 = ${numberOfPages});
-	}
-
-	@summary = "Default summary"
 	macro viewPGViaAP(webContentTitle = null, author = null, webContentContent = null) {
 		var key_assetContent = ${webContentContent};
 		var key_assetTitle = ${webContentTitle};
@@ -2610,15 +2614,9 @@ definition {
 			locator1 = "TextInput#TITLE",
 			value1 = ${webContentTitle});
 
-		SelectFrame.selectFrameNoLoading(
-			key_fieldLabel = "Content",
-			locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
-
-		AssertTextEquals(
-			locator1 = "CKEditor#BODY",
-			value1 = ${webContentContent});
-
-		SelectFrameTop();
+		CKEditor.assertContentInWebContent(
+			content = ${webContentContent},
+			fieldLabel = "Content");
 	}
 
 	@summary = "Default summary"
@@ -2795,15 +2793,9 @@ definition {
 			}
 
 			if (isSet(description)) {
-				SelectFrame.selectFrameNoLoading(
-					key_fieldLabel = "Description",
-					locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
-
-				AssertTextEquals(
-					locator1 = "CKEditor#BODY",
-					value1 = ${description});
-
-				SelectFrameTop(value1 = "relative=top");
+				CKEditor.assertContentInWebContent(
+					content = ${description},
+					fieldLabel = "Description");
 			}
 		}
 
@@ -2971,15 +2963,9 @@ definition {
 				var webContentRichTextFieldLabel = "Rich Text";
 			}
 
-			SelectFrame.selectFrameNoLoading(
-				key_fieldLabel = ${webContentRichTextFieldLabel},
-				locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
-
-			AssertTextEquals(
-				locator1 = "CKEditor#BODY",
-				value1 = ${webContentRichText});
-
-			SelectFrameTop();
+			CKEditor.assertContentInWebContent(
+				content = ${webContentRichText},
+				fieldLabel = ${webContentRichTextFieldLabel});
 		}
 
 		if (isSet(webContentSelectFromList)) {
@@ -3074,15 +3060,9 @@ definition {
 			locator1 = "TextInput#TITLE",
 			value1 = ${webContentTitle});
 
-		SelectFrame.selectFrameNoLoading(
-			key_fieldLabel = "Content",
-			locator1 = "CKEditor#BODY_FIELD_IFRAME_WEB_CONTENT_ARTICLE");
-
-		AssertTextEquals(
-			locator1 = "CKEditor#BODY",
-			value1 = ${webContentContent});
-
-		SelectFrameTop();
+		CKEditor.assertContentInWebContent(
+			content = ${webContentContent},
+			fieldLabel = "Content");
 	}
 
 	@summary = "Default summary"

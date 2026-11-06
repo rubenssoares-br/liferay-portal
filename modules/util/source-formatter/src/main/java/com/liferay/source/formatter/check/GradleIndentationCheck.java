@@ -5,10 +5,10 @@
 
 package com.liferay.source.formatter.check;
 
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -69,9 +69,11 @@ public class GradleIndentationCheck extends BaseFileCheck {
 					tabCount = _getTabCount(line, insideQuotes, tabCount);
 				}
 
-				if (line.indexOf(_getQuoteString(line)) != -1) {
-					insideQuotes = !insideQuotes;
+				if (line.indexOf(_getQuoteString(line)) == -1) {
+					continue;
 				}
+
+				insideQuotes = !insideQuotes;
 			}
 		}
 
@@ -109,7 +111,7 @@ public class GradleIndentationCheck extends BaseFileCheck {
 	}
 
 	private String _getQuoteString(String line) {
-		if (line.indexOf("'''") != -1) {
+		if (line.contains("'''")) {
 			return "'''";
 		}
 
@@ -120,7 +122,7 @@ public class GradleIndentationCheck extends BaseFileCheck {
 		String quoteString = _getQuoteString(line);
 		String text = line;
 
-		if (line.indexOf(quoteString) != -1) {
+		if (line.contains(quoteString)) {
 			if (insideQuotes) {
 				int x = quoteString.length();
 

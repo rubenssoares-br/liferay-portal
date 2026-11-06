@@ -77,6 +77,9 @@ public class FragmentCompositionTable
 		createColumn(
 			"previewFileEntryId", Long.class, Types.BIGINT,
 			Column.FLAG_DEFAULT);
+	public final Column<FragmentCompositionTable, Boolean> marketplace =
+		createColumn(
+			"marketplace", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
 	public final Column<FragmentCompositionTable, Date> lastPublishDate =
 		createColumn(
 			"lastPublishDate", Date.class, Types.TIMESTAMP,
@@ -100,3 +103,4 @@ public class FragmentCompositionTable
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1514202498

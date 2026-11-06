@@ -5,21 +5,24 @@
 
 import React from 'react';
 
-import './OrderDetailsHeader.scss';
 import OrderDetailsStatusDescription from './OrderDetailsStatusDescription';
 
+import './OrderDetailsHeader.scss';
+
 type OrderDetailsProps = {
+	beta?: string;
 	className?: string;
 	hasOrderDescription?: string;
 	hasOrderDetails?: boolean;
 	image?: string;
 	name?: string;
-	order?: Cart;
+	order?: PlacedOrder;
 	productOwner?: string;
 	version?: string;
 };
 
 const OrderDetailsHeader: React.FC<OrderDetailsProps> = ({
+	beta,
 	className,
 	hasOrderDescription = false,
 	hasOrderDetails = false,
@@ -34,12 +37,17 @@ const OrderDetailsHeader: React.FC<OrderDetailsProps> = ({
 			<img
 				alt="App Icon"
 				className="order-details-publisher-icon"
+				draggable={false}
 				src={image}
 			/>
 
 			<div className="d-flex flex-column justify-content-between ml-4">
 				<div className="align-items-center d-flex justify-content-start">
 					<h2 className="m-0 text-weight-bold">{name}</h2>
+
+					{beta && (
+						<label className="beta-badge-label ml-2">{beta}</label>
+					)}
 					{version && <p className="ml-2 my-0">v{version}</p>}
 				</div>
 

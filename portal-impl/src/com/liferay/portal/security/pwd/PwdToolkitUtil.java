@@ -9,8 +9,11 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.UserPasswordException;
 import com.liferay.portal.kernel.model.PasswordPolicy;
 import com.liferay.portal.kernel.module.service.Snapshot;
-import com.liferay.portal.kernel.security.ldap.LDAPSettingsUtil;
 import com.liferay.portal.kernel.security.pwd.Toolkit;
+
+import java.nio.charset.StandardCharsets;
+
+import java.security.MessageDigest;
 
 /**
  * @author Brian Wing Shun Chan
@@ -24,15 +27,18 @@ public class PwdToolkitUtil {
 	}
 
 	public static void validate(
-			long companyId, long userId, String password1, String password2,
+			long userId, String password1, String password2,
 			PasswordPolicy passwordPolicy)
 		throws PortalException {
 
-		if (!password1.equals(password2)) {
+		if (!MessageDigest.isEqual(
+				password1.getBytes(StandardCharsets.UTF_8),
+				password2.getBytes(StandardCharsets.UTF_8))) {
+
 			throw new UserPasswordException.MustMatch(userId);
 		}
 
-		if (!LDAPSettingsUtil.isPasswordPolicyEnabled(companyId) &&
+		if ((passwordPolicy != null) &&
 			PwdToolkitUtilThreadLocal.isValidate()) {
 
 			Toolkit toolkit = _toolkitSnapshot.get();

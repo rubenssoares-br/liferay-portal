@@ -24,7 +24,8 @@
 		{
 			"active": true,
 			"conditionExpression": "",
-			"description": "",
+			"description": {
+			},
 			"label": {
 				"en_US": "Action 2"
 			},
@@ -43,7 +44,8 @@
 		{
 			"active": true,
 			"conditionExpression": "",
-			"description": "",
+			"description": {
+			},
 			"label": {
 				"en_US": "Action 3"
 			},
@@ -62,6 +64,23 @@
 	],
 	"objectFields": [
 		{
+			"DBType": "Date",
+			"businessType": "Date",
+			"indexed": false,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "",
+			"label": {
+				"en_US": "Create Date"
+			},
+			"name": "createDate",
+			"objectFieldSettings": [
+			],
+			"required": false,
+			"state": false,
+			"system": true,
+			"type": "Date"
+		},
+		{
 			"DBType": "String",
 			"businessType": "Text",
 			"indexed": false,
@@ -79,21 +98,46 @@
 			"type": "String"
 		},
 		{
-			"DBType": "Date",
-			"businessType": "Date",
+			"DBType": "DateTime",
+			"businessType": "DateTime",
 			"indexed": false,
 			"indexedAsKeyword": false,
 			"indexedLanguageId": "",
 			"label": {
-				"en_US": "Create Date"
+				"en_US": "Display Date"
 			},
-			"name": "createDate",
+			"name": "displayDate",
 			"objectFieldSettings": [
+				{
+					"name": "timeStorage",
+					"value": "convertToUTC"
+				}
 			],
 			"required": false,
 			"state": false,
 			"system": true,
-			"type": "Date"
+			"type": "DateTime"
+		},
+		{
+			"DBType": "DateTime",
+			"businessType": "DateTime",
+			"indexed": false,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "",
+			"label": {
+				"en_US": "Expiration Date"
+			},
+			"name": "expirationDate",
+			"objectFieldSettings": [
+				{
+					"name": "timeStorage",
+					"value": "convertToUTC"
+				}
+			],
+			"required": false,
+			"state": false,
+			"system": true,
+			"type": "DateTime"
 		},
 		{
 			"DBType": "String",
@@ -147,7 +191,28 @@
 			"type": "Date"
 		},
 		{
-			"DBType": "String",
+			"DBType": "DateTime",
+			"businessType": "DateTime",
+			"indexed": false,
+			"indexedAsKeyword": false,
+			"indexedLanguageId": "",
+			"label": {
+				"en_US": "Review Date"
+			},
+			"name": "reviewDate",
+			"objectFieldSettings": [
+				{
+					"name": "timeStorage",
+					"value": "convertToUTC"
+				}
+			],
+			"required": false,
+			"state": false,
+			"system": true,
+			"type": "DateTime"
+		},
+		{
+			"DBType": "Integer",
 			"businessType": "Text",
 			"indexed": false,
 			"indexedAsKeyword": false,
@@ -161,7 +226,7 @@
 			"required": false,
 			"state": false,
 			"system": true,
-			"type": "String"
+			"type": "Integer"
 		},
 		{
 			"DBType": "String",

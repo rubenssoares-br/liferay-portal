@@ -15,19 +15,21 @@ import com.liferay.commerce.discount.CommerceDiscountValue;
 import com.liferay.commerce.frontend.helper.ProductHelper;
 import com.liferay.commerce.frontend.model.PriceModel;
 import com.liferay.commerce.frontend.model.ProductSettingsModel;
-import com.liferay.commerce.model.CPDefinitionInventory;
 import com.liferay.commerce.percentage.PercentageFormatter;
 import com.liferay.commerce.price.CommerceProductPrice;
 import com.liferay.commerce.price.CommerceProductPriceCalculation;
 import com.liferay.commerce.price.CommerceProductPriceRequest;
 import com.liferay.commerce.pricing.constants.CommercePricingConstants;
+import com.liferay.commerce.product.model.CPConfigurationEntry;
+import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.option.CommerceOptionValue;
 import com.liferay.commerce.product.option.CommerceOptionValueHelper;
+import com.liferay.commerce.product.service.CPDefinitionLocalService;
 import com.liferay.commerce.product.service.CPInstanceLocalService;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
-import com.liferay.commerce.service.CPDefinitionInventoryLocalService;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
@@ -35,7 +37,6 @@ import com.liferay.portal.kernel.util.Validator;
 
 import java.math.BigDecimal;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -127,7 +128,8 @@ public class ProductHelperImpl implements ProductHelper {
 	}
 
 	@Override
-	public ProductSettingsModel getProductSettingsModel(long cpDefinitionId)
+	public ProductSettingsModel getProductSettingsModel(
+			long cpDefinitionId, CommerceContext commerceContext)
 		throws PortalException {
 
 		ProductSettingsModel productSettingsModel = new ProductSettingsModel();
@@ -139,17 +141,26 @@ public class ProductHelperImpl implements ProductHelper {
 		BigDecimal multipleQuantity =
 			CPDefinitionInventoryConstants.DEFAULT_MULTIPLE_ORDER_QUANTITY;
 
-		CPDefinitionInventory cpDefinitionInventory =
-			_cpDefinitionInventoryLocalService.
-				fetchCPDefinitionInventoryByCPDefinitionId(cpDefinitionId);
+		CPDefinition cpDefinition = _cpDefinitionLocalService.fetchCPDefinition(
+			cpDefinitionId);
 
-		if (cpDefinitionInventory != null) {
-			minOrderQuantity = cpDefinitionInventory.getMinOrderQuantity();
-			maxOrderQuantity = cpDefinitionInventory.getMaxOrderQuantity();
-			multipleQuantity = cpDefinitionInventory.getMultipleOrderQuantity();
+		if (cpDefinition != null) {
+			CPConfigurationEntry cpConfigurationEntry =
+				cpDefinition.fetchCPConfigurationEntry(
+					commerceContext.getCPConfigurationListId(
+						cpDefinition.getGroupId()));
+
+			if (cpConfigurationEntry == null) {
+				cpConfigurationEntry =
+					cpDefinition.fetchMasterCPConfigurationEntry();
+			}
+
+			minOrderQuantity = cpConfigurationEntry.getMinOrderQuantity();
+			maxOrderQuantity = cpConfigurationEntry.getMaxOrderQuantity();
+			multipleQuantity = cpConfigurationEntry.getMultipleOrderQuantity();
 
 			BigDecimal[] allowedOrderQuantitiesArray =
-				cpDefinitionInventory.getAllowedOrderQuantitiesArray();
+				cpConfigurationEntry.getAllowedOrderQuantitiesArray();
 
 			if ((allowedOrderQuantitiesArray != null) &&
 				(allowedOrderQuantitiesArray.length > 0)) {
@@ -159,11 +170,11 @@ public class ProductHelperImpl implements ProductHelper {
 			}
 
 			productSettingsModel.setBackOrders(
-				cpDefinitionInventory.isBackOrders());
+				cpConfigurationEntry.isBackOrders());
 			productSettingsModel.setLowStockQuantity(
-				cpDefinitionInventory.getMinStockQuantity());
+				cpConfigurationEntry.getMinStockQuantity());
 			productSettingsModel.setShowAvailabilityDot(
-				cpDefinitionInventory.isDisplayAvailability());
+				cpConfigurationEntry.isDisplayAvailability());
 		}
 
 		productSettingsModel.setMinQuantity(minOrderQuantity);
@@ -192,18 +203,16 @@ public class ProductHelperImpl implements ProductHelper {
 			BigDecimal[] discountPercentages, Locale locale)
 		throws PortalException {
 
-		List<String> formattedDiscountPercentages = new ArrayList<>();
+		return TransformUtil.transform(
+			discountPercentages,
+			percentage -> {
+				if (percentage == null) {
+					percentage = BigDecimal.ZERO;
+				}
 
-		for (BigDecimal percentage : discountPercentages) {
-			if (percentage == null) {
-				percentage = BigDecimal.ZERO;
-			}
-
-			formattedDiscountPercentages.add(
-				_commercePriceFormatter.format(percentage, locale));
-		}
-
-		return formattedDiscountPercentages.toArray(new String[0]);
+				return _commercePriceFormatter.format(percentage, locale);
+			},
+			String.class);
 	}
 
 	private PriceModel _getPriceModel(
@@ -255,13 +264,8 @@ public class ProductHelperImpl implements ProductHelper {
 
 		String priceDisplayType = commerceChannel.getPriceDisplayType();
 
-		if (priceDisplayType.equals(
-				CommercePricingConstants.TAX_INCLUDED_IN_PRICE)) {
-
-			return true;
-		}
-
-		return false;
+		return priceDisplayType.equals(
+			CommercePricingConstants.TAX_INCLUDED_IN_PRICE);
 	}
 
 	private PriceModel _updatePriceModelDiscount(
@@ -308,8 +312,7 @@ public class ProductHelperImpl implements ProductHelper {
 	private CommerceProductPriceCalculation _commerceProductPriceCalculation;
 
 	@Reference
-	private CPDefinitionInventoryLocalService
-		_cpDefinitionInventoryLocalService;
+	private CPDefinitionLocalService _cpDefinitionLocalService;
 
 	@Reference
 	private CPInstanceLocalService _cpInstanceLocalService;

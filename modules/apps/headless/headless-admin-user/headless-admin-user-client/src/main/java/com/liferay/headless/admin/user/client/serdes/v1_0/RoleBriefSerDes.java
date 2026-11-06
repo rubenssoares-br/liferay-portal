@@ -8,13 +8,14 @@ package com.liferay.headless.admin.user.client.serdes.v1_0;
 import com.liferay.headless.admin.user.client.dto.v1_0.RoleBrief;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -68,6 +69,20 @@ public class RoleBriefSerDes {
 			sb.append(roleBrief.getId());
 		}
 
+		if (roleBrief.getKey() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"key\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(roleBrief.getKey()));
+
+			sb.append("\"");
+		}
+
 		if (roleBrief.getName() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -90,6 +105,16 @@ public class RoleBriefSerDes {
 			sb.append("\"name_i18n\": ");
 
 			sb.append(_toJSON(roleBrief.getName_i18n()));
+		}
+
+		if (roleBrief.getRoleType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"roleType\": ");
+
+			sb.append(roleBrief.getRoleType());
 		}
 
 		sb.append("}");
@@ -126,6 +151,13 @@ public class RoleBriefSerDes {
 			map.put("id", String.valueOf(roleBrief.getId()));
 		}
 
+		if (roleBrief.getKey() == null) {
+			map.put("key", null);
+		}
+		else {
+			map.put("key", String.valueOf(roleBrief.getKey()));
+		}
+
 		if (roleBrief.getName() == null) {
 			map.put("name", null);
 		}
@@ -138,6 +170,13 @@ public class RoleBriefSerDes {
 		}
 		else {
 			map.put("name_i18n", String.valueOf(roleBrief.getName_i18n()));
+		}
+
+		if (roleBrief.getRoleType() == null) {
+			map.put("roleType", null);
+		}
+		else {
+			map.put("roleType", String.valueOf(roleBrief.getRoleType()));
 		}
 
 		return map;
@@ -163,11 +202,17 @@ public class RoleBriefSerDes {
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "key")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "name")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "name_i18n")) {
 				return true;
+			}
+			else if (Objects.equals(jsonParserFieldName, "roleType")) {
+				return false;
 			}
 
 			return false;
@@ -189,6 +234,11 @@ public class RoleBriefSerDes {
 					roleBrief.setId(Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "key")) {
+				if (jsonParserFieldValue != null) {
+					roleBrief.setKey((String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "name")) {
 				if (jsonParserFieldValue != null) {
 					roleBrief.setName((String)jsonParserFieldValue);
@@ -198,6 +248,12 @@ public class RoleBriefSerDes {
 				if (jsonParserFieldValue != null) {
 					roleBrief.setName_i18n(
 						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "roleType")) {
+				if (jsonParserFieldValue != null) {
+					roleBrief.setRoleType(
+						Integer.valueOf((String)jsonParserFieldValue));
 				}
 			}
 		}
@@ -245,6 +301,16 @@ public class RoleBriefSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -277,3 +343,4 @@ public class RoleBriefSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:163064751

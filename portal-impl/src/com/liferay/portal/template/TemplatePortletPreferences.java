@@ -14,11 +14,11 @@ import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portlet.PortletPreferencesImpl;
 import com.liferay.portlet.PreferencesValueUtil;
 
+import jakarta.portlet.ReadOnlyException;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
-import javax.portlet.ReadOnlyException;
 
 /**
  * @author Brian Wing Shun Chan
@@ -42,12 +42,14 @@ public class TemplatePortletPreferences {
 
 			if (valueObject instanceof Collection) {
 				for (Object value : (Collection)valueObject) {
-					if (value instanceof String) {
-						sb.append("<value>");
-						sb.append(
-							PreferencesValueUtil.toCompactSafe((String)value));
-						sb.append("</value>");
+					if (!(value instanceof String)) {
+						continue;
 					}
+
+					sb.append("<value>");
+					sb.append(
+						PreferencesValueUtil.toCompactSafe((String)value));
+					sb.append("</value>");
 				}
 			}
 			else if (valueObject instanceof String) {

@@ -73,7 +73,7 @@ public class ContactIndexerReindexTest {
 
 		contactIndexerFixture.searchNoOne(user.getUserId(), searchTerm, locale);
 
-		contactIndexerFixture.reindex(contact.getCompanyId());
+		contactIndexerFixture.reindexCompany(contact.getCompanyId());
 
 		contactIndexerFixture.searchOnlyOne(
 			user.getUserId(), searchTerm, locale);
@@ -85,10 +85,8 @@ public class ContactIndexerReindexTest {
 	protected void setUpContactFixture() throws Exception {
 		contactFixture = new ContactFixture(contactLocalService);
 
-		contactFixture.setUp();
-
-		contactFixture.setUser(user);
 		contactFixture.setGroup(group);
+		contactFixture.setUser(user);
 
 		_contacts = contactFixture.getContacts();
 	}

@@ -33,14 +33,14 @@ public class LayoutUtilityPageEntryServiceWrapper
 	public LayoutUtilityPageEntry addLayoutUtilityPageEntry(
 			String externalReferenceCode, long groupId, long plid,
 			long previewFileEntryId, boolean defaultLayoutUtilityPageEntry,
-			String name, String type, long masterLayoutPlid,
+			String name, String type, String masterLayoutPageTemplateEntryERC,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _layoutUtilityPageEntryService.addLayoutUtilityPageEntry(
 			externalReferenceCode, groupId, plid, previewFileEntryId,
-			defaultLayoutUtilityPageEntry, name, type, masterLayoutPlid,
-			serviceContext);
+			defaultLayoutUtilityPageEntry, name, type,
+			masterLayoutPageTemplateEntryERC, serviceContext);
 	}
 
 	@Override
@@ -77,6 +77,17 @@ public class LayoutUtilityPageEntryServiceWrapper
 
 		return _layoutUtilityPageEntryService.fetchLayoutUtilityPageEntry(
 			layoutUtilityPageEntryId);
+	}
+
+	@Override
+	public LayoutUtilityPageEntry
+			fetchLayoutUtilityPageEntryByExternalReferenceCode(
+				String externalReferenceCode, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _layoutUtilityPageEntryService.
+			fetchLayoutUtilityPageEntryByExternalReferenceCode(
+				externalReferenceCode, groupId);
 	}
 
 	@Override
@@ -197,20 +208,22 @@ public class LayoutUtilityPageEntryServiceWrapper
 
 	@Override
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, long previewFileEntryId)
+			long layoutUtilityPageEntryId, long previewFileEntryId,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _layoutUtilityPageEntryService.updateLayoutUtilityPageEntry(
-			layoutUtilityPageEntryId, previewFileEntryId);
+			layoutUtilityPageEntryId, previewFileEntryId, serviceContext);
 	}
 
 	@Override
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, String name)
+			long layoutUtilityPageEntryId, String name,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _layoutUtilityPageEntryService.updateLayoutUtilityPageEntry(
-			layoutUtilityPageEntryId, name);
+			layoutUtilityPageEntryId, name, serviceContext);
 	}
 
 	@Override
@@ -228,3 +241,4 @@ public class LayoutUtilityPageEntryServiceWrapper
 	private LayoutUtilityPageEntryService _layoutUtilityPageEntryService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-507615630

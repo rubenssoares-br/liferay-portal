@@ -19,7 +19,7 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.KeyValuePair;
 import com.liferay.portal.kernel.util.PortalRunMode;
 import com.liferay.portal.kernel.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.util.Locale;
 
@@ -126,8 +126,8 @@ public class EPNManager {
 	private final KeyValuePair[] _keyValuePairs = {
 		new KeyValuePair(
 			"enterprise.search",
-			"dxp/latest/en/using-search/liferay-enterprise-search" +
-				"/activating-liferay-enterprise-search.html")
+			"w/dxp/search/liferay-enterprise-search" +
+				"/deactivating-liferay-enterprise-search")
 	};
 
 	@Reference

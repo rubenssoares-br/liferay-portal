@@ -20,6 +20,9 @@ import com.liferay.headless.admin.site.client.pagination.Pagination;
 import com.liferay.headless.admin.site.client.permission.Permission;
 import com.liferay.headless.admin.site.client.resource.v1_0.DisplayPageTemplateFolderResource;
 import com.liferay.headless.admin.site.client.serdes.v1_0.DisplayPageTemplateFolderSerDes;
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
@@ -31,13 +34,16 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.RoleConstants;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -45,12 +51,15 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,10 +71,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -89,8 +94,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -103,20 +110,45 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 		_displayPageTemplateFolderResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		DisplayPageTemplateFolderResource.Builder builder =
-			DisplayPageTemplateFolderResource.builder();
+		displayPageTemplateFolderResource =
+			DisplayPageTemplateFolderResource.builder(
+			).authentication(
+				_testCompanyAdminUser.getEmailAddress(),
+				PropsValues.DEFAULT_ADMIN_PASSWORD
+			).endpoint(
+				testCompany.getVirtualHostname(),
+				PortalUtil.getPortalServerPort(false), "http"
+			).locale(
+				LocaleUtil.getDefault()
+			).build();
 
-		displayPageTemplateFolderResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
+
+		permissionsDisplayPageTemplateFolderResource =
+			DisplayPageTemplateFolderResource.builder(
+			).authentication(
+				_testCompanyAdminUser.getEmailAddress(),
+				PropsValues.DEFAULT_ADMIN_PASSWORD
+			).endpoint(
+				testCompany.getVirtualHostname(),
+				PortalUtil.getPortalServerPort(false), "http"
+			).locale(
+				LocaleUtil.getDefault()
+			).parameter(
+				"nestedFields", "permissions"
+			).build();
 	}
 
 	@After
@@ -183,7 +215,6 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		DisplayPageTemplateFolder displayPageTemplateFolder =
 			randomDisplayPageTemplateFolder();
 
-		displayPageTemplateFolder.setCreatorExternalReferenceCode(regex);
 		displayPageTemplateFolder.setDescription(regex);
 		displayPageTemplateFolder.setExternalReferenceCode(regex);
 		displayPageTemplateFolder.setKey(regex);
@@ -199,8 +230,6 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 		displayPageTemplateFolder = DisplayPageTemplateFolderSerDes.toDTO(json);
 
-		Assert.assertEquals(
-			regex, displayPageTemplateFolder.getCreatorExternalReferenceCode());
 		Assert.assertEquals(regex, displayPageTemplateFolder.getDescription());
 		Assert.assertEquals(
 			regex, displayPageTemplateFolder.getExternalReferenceCode());
@@ -214,33 +243,189 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage()
+	public void testDeleteDesignLibraryDisplayPageTemplateFolder()
 		throws Exception {
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
-		String irrelevantSiteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getIrrelevantSiteExternalReferenceCode();
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder displayPageTemplateFolder =
+			testDeleteDesignLibraryDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+
+		assertHttpResponseStatusCode(
+			204,
+			displayPageTemplateFolderResource.
+				deleteDesignLibraryDisplayPageTemplateFolderHttpResponse(
+					testDeleteDesignLibraryDisplayPageTemplateFolder_getDesignLibraryExternalReferenceCode(),
+					displayPageTemplateFolder.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			displayPageTemplateFolderResource.
+				getDesignLibraryDisplayPageTemplateFolderHttpResponse(
+					testDeleteDesignLibraryDisplayPageTemplateFolder_getDesignLibraryExternalReferenceCode(),
+					displayPageTemplateFolder.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			displayPageTemplateFolderResource.
+				getDesignLibraryDisplayPageTemplateFolderHttpResponse(
+					testDeleteDesignLibraryDisplayPageTemplateFolder_getDesignLibraryExternalReferenceCode(),
+					"-"));
+	}
+
+	protected DisplayPageTemplateFolder
+			testDeleteDesignLibraryDisplayPageTemplateFolder_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	protected String
+			testDeleteDesignLibraryDisplayPageTemplateFolder_getDesignLibraryExternalReferenceCode()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testDeleteSiteDisplayPageTemplateFolder() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder displayPageTemplateFolder =
+			testDeleteSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+
+		assertHttpResponseStatusCode(
+			204,
+			displayPageTemplateFolderResource.
+				deleteSiteDisplayPageTemplateFolderHttpResponse(
+					testDeleteSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+					displayPageTemplateFolder.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			displayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFolderHttpResponse(
+					testDeleteSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+					displayPageTemplateFolder.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			displayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFolderHttpResponse(
+					testDeleteSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+					"-"));
+	}
+
+	protected DisplayPageTemplateFolder
+			testDeleteSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	protected String
+			testDeleteSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
+	}
+
+	@Test
+	public void testGetDesignLibraryDisplayPageTemplateFolder()
+		throws Exception {
+
+		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
+			testGetDesignLibraryDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder getDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.
+				getDesignLibraryDisplayPageTemplateFolder(
+					testGetDesignLibraryDisplayPageTemplateFolder_getDesignLibraryExternalReferenceCode(),
+					postDisplayPageTemplateFolder.getExternalReferenceCode());
+
+		assertEquals(
+			postDisplayPageTemplateFolder, getDisplayPageTemplateFolder);
+		assertValid(getDisplayPageTemplateFolder);
+	}
+
+	protected DisplayPageTemplateFolder
+			testGetDesignLibraryDisplayPageTemplateFolder_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	protected String
+			testGetDesignLibraryDisplayPageTemplateFolder_getDesignLibraryExternalReferenceCode()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGetDesignLibraryDisplayPageTemplateFolderPermissionsPage()
+		throws Exception {
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
+			testGetDesignLibraryDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
+
+		Page<Permission> page =
+			displayPageTemplateFolderResource.
+				getDesignLibraryDisplayPageTemplateFolderPermissionsPage(
+					null,
+					postDisplayPageTemplateFolder.getExternalReferenceCode(),
+					RoleConstants.GUEST);
+
+		Assert.assertNotNull(page);
+	}
+
+	protected DisplayPageTemplateFolder
+			testGetDesignLibraryDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	@Test
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPage()
+		throws Exception {
+
+		String designLibraryExternalReferenceCode =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getDesignLibraryExternalReferenceCode();
+		String irrelevantDesignLibraryExternalReferenceCode =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getIrrelevantDesignLibraryExternalReferenceCode();
 
 		Page<DisplayPageTemplateFolder> page =
 			displayPageTemplateFolderResource.
-				getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-					siteExternalReferenceCode, null, null, null,
+				getDesignLibraryDisplayPageTemplateFoldersPage(
+					designLibraryExternalReferenceCode, null, null, null,
 					Pagination.of(1, 10), null);
 
 		long totalCount = page.getTotalCount();
 
-		if (irrelevantSiteExternalReferenceCode != null) {
+		if (irrelevantDesignLibraryExternalReferenceCode != null) {
 			DisplayPageTemplateFolder irrelevantDisplayPageTemplateFolder =
-				testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-					irrelevantSiteExternalReferenceCode,
+				testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+					irrelevantDesignLibraryExternalReferenceCode,
 					randomIrrelevantDisplayPageTemplateFolder());
 
 			page =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						irrelevantSiteExternalReferenceCode, null, null, null,
-						Pagination.of(1, (int)totalCount + 1), null);
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						irrelevantDesignLibraryExternalReferenceCode, null,
+						null, null, Pagination.of(1, (int)totalCount + 1),
+						null);
 
 			Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
@@ -249,23 +434,25 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 				(List<DisplayPageTemplateFolder>)page.getItems());
 			assertValid(
 				page,
-				testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getExpectedActions(
-					irrelevantSiteExternalReferenceCode));
+				testGetDesignLibraryDisplayPageTemplateFoldersPage_getExpectedActions(
+					irrelevantDesignLibraryExternalReferenceCode));
 		}
 
 		DisplayPageTemplateFolder displayPageTemplateFolder1 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		DisplayPageTemplateFolder displayPageTemplateFolder2 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		page =
 			displayPageTemplateFolderResource.
-				getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-					siteExternalReferenceCode, null, null, null,
-					Pagination.of(1, 10), null);
+				getDesignLibraryDisplayPageTemplateFoldersPage(
+					designLibraryExternalReferenceCode, null, null, null,
+					Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -277,13 +464,13 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			(List<DisplayPageTemplateFolder>)page.getItems());
 		assertValid(
 			page,
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getExpectedActions(
-				siteExternalReferenceCode));
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getExpectedActions(
+				designLibraryExternalReferenceCode));
 	}
 
 	protected Map<String, Map<String, String>>
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getExpectedActions(
-				String siteExternalReferenceCode)
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getExpectedActions(
+				String designLibraryExternalReferenceCode)
 		throws Exception {
 
 		Map<String, Map<String, String>> expectedActions = new HashMap<>();
@@ -292,7 +479,7 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilterDateTimeEquals()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilterDateTimeEquals()
 		throws Exception {
 
 		List<EntityField> entityFields = getEntityFields(
@@ -302,21 +489,21 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			return;
 		}
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+		String designLibraryExternalReferenceCode =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getDesignLibraryExternalReferenceCode();
 
 		DisplayPageTemplateFolder displayPageTemplateFolder1 =
 			randomDisplayPageTemplateFolder();
 
 		displayPageTemplateFolder1 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, displayPageTemplateFolder1);
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode, displayPageTemplateFolder1);
 
 		for (EntityField entityField : entityFields) {
 			Page<DisplayPageTemplateFolder> page =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null,
 						getFilterString(
 							entityField, "between", displayPageTemplateFolder1),
 						Pagination.of(1, 2), null);
@@ -328,40 +515,39 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilterDoubleEquals()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilterDoubleEquals()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilter(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilter(
 			"eq", EntityField.Type.DOUBLE);
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilterStringContains()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilterStringContains()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilter(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilter(
 			"contains", EntityField.Type.STRING);
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilterStringEquals()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilterStringEquals()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilter(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilter(
 			"eq", EntityField.Type.STRING);
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilterStringStartsWith()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilterStringStartsWith()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilter(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilter(
 			"startswith", EntityField.Type.STRING);
 	}
 
-	protected void
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithFilter(
-				String operator, EntityField.Type type)
+	protected void testGetDesignLibraryDisplayPageTemplateFoldersPageWithFilter(
+			String operator, EntityField.Type type)
 		throws Exception {
 
 		List<EntityField> entityFields = getEntityFields(type);
@@ -370,23 +556,25 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			return;
 		}
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+		String designLibraryExternalReferenceCode =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getDesignLibraryExternalReferenceCode();
 
 		DisplayPageTemplateFolder displayPageTemplateFolder1 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		DisplayPageTemplateFolder displayPageTemplateFolder2 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		for (EntityField entityField : entityFields) {
 			Page<DisplayPageTemplateFolder> page =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null,
 						getFilterString(
 							entityField, operator, displayPageTemplateFolder1),
 						Pagination.of(1, 2), null);
@@ -398,31 +586,35 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithPagination()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithPagination()
 		throws Exception {
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+		String designLibraryExternalReferenceCode =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getDesignLibraryExternalReferenceCode();
 
-		Page<DisplayPageTemplateFolder> displayPageTemplateFolderPage =
+		Page<DisplayPageTemplateFolder> displayPageTemplateFoldersPage =
 			displayPageTemplateFolderResource.
-				getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-					siteExternalReferenceCode, null, null, null, null, null);
+				getDesignLibraryDisplayPageTemplateFoldersPage(
+					designLibraryExternalReferenceCode, null, null, null, null,
+					null);
 
 		int totalCount = GetterUtil.getInteger(
-			displayPageTemplateFolderPage.getTotalCount());
+			displayPageTemplateFoldersPage.getTotalCount());
 
 		DisplayPageTemplateFolder displayPageTemplateFolder1 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		DisplayPageTemplateFolder displayPageTemplateFolder2 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		DisplayPageTemplateFolder displayPageTemplateFolder3 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
-				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode,
+				randomDisplayPageTemplateFolder());
 
 		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
 
@@ -431,8 +623,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		if (totalCount >= (pageSizeLimit - 2)) {
 			Page<DisplayPageTemplateFolder> page1 =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
 							pageSizeLimit),
@@ -446,8 +638,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 			Page<DisplayPageTemplateFolder> page2 =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
 							pageSizeLimit),
@@ -459,8 +651,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 			Page<DisplayPageTemplateFolder> page3 =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
 						Pagination.of(
 							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
 							pageSizeLimit),
@@ -473,8 +665,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		else {
 			Page<DisplayPageTemplateFolder> page1 =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
 						Pagination.of(1, totalCount + 2), null);
 
 			List<DisplayPageTemplateFolder> displayPageTemplateFolders1 =
@@ -486,8 +678,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 			Page<DisplayPageTemplateFolder> page2 =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
 						Pagination.of(2, totalCount + 2), null);
 
 			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
@@ -501,8 +693,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 			Page<DisplayPageTemplateFolder> page3 =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
-						siteExternalReferenceCode, null, null, null,
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
 						Pagination.of(1, (int)totalCount + 3), null);
 
 			assertContains(
@@ -518,10 +710,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSortDateTime()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithSortDateTime()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSort(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithSort(
 			EntityField.Type.DATE_TIME,
 			(entityField, displayPageTemplateFolder1,
 			 displayPageTemplateFolder2) -> {
@@ -533,10 +725,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSortDouble()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithSortDouble()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSort(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithSort(
 			EntityField.Type.DOUBLE,
 			(entityField, displayPageTemplateFolder1,
 			 displayPageTemplateFolder2) -> {
@@ -549,10 +741,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSortInteger()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithSortInteger()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSort(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithSort(
 			EntityField.Type.INTEGER,
 			(entityField, displayPageTemplateFolder1,
 			 displayPageTemplateFolder2) -> {
@@ -565,10 +757,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSortString()
+	public void testGetDesignLibraryDisplayPageTemplateFoldersPageWithSortString()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSort(
+		testGetDesignLibraryDisplayPageTemplateFoldersPageWithSort(
 			EntityField.Type.STRING,
 			(entityField, displayPageTemplateFolder1,
 			 displayPageTemplateFolder2) -> {
@@ -619,12 +811,11 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			});
 	}
 
-	protected void
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPageWithSort(
-				EntityField.Type type,
-				UnsafeTriConsumer
-					<EntityField, DisplayPageTemplateFolder,
-					 DisplayPageTemplateFolder, Exception> unsafeTriConsumer)
+	protected void testGetDesignLibraryDisplayPageTemplateFoldersPageWithSort(
+			EntityField.Type type,
+			UnsafeTriConsumer
+				<EntityField, DisplayPageTemplateFolder,
+				 DisplayPageTemplateFolder, Exception> unsafeTriConsumer)
 		throws Exception {
 
 		List<EntityField> entityFields = getEntityFields(type);
@@ -633,8 +824,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			return;
 		}
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+		String designLibraryExternalReferenceCode =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getDesignLibraryExternalReferenceCode();
 
 		DisplayPageTemplateFolder displayPageTemplateFolder1 =
 			randomDisplayPageTemplateFolder();
@@ -648,22 +839,622 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		}
 
 		displayPageTemplateFolder1 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode, displayPageTemplateFolder1);
+
+		displayPageTemplateFolder2 =
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				designLibraryExternalReferenceCode, displayPageTemplateFolder2);
+
+		Page<DisplayPageTemplateFolder> page =
+			displayPageTemplateFolderResource.
+				getDesignLibraryDisplayPageTemplateFoldersPage(
+					designLibraryExternalReferenceCode, null, null, null, null,
+					null);
+
+		for (EntityField entityField : entityFields) {
+			Page<DisplayPageTemplateFolder> ascPage =
+				displayPageTemplateFolderResource.
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
+						Pagination.of(1, (int)page.getTotalCount() + 1),
+						entityField.getName() + ":asc");
+
+			assertContains(
+				displayPageTemplateFolder1,
+				(List<DisplayPageTemplateFolder>)ascPage.getItems());
+			assertContains(
+				displayPageTemplateFolder2,
+				(List<DisplayPageTemplateFolder>)ascPage.getItems());
+
+			Page<DisplayPageTemplateFolder> descPage =
+				displayPageTemplateFolderResource.
+					getDesignLibraryDisplayPageTemplateFoldersPage(
+						designLibraryExternalReferenceCode, null, null, null,
+						Pagination.of(1, (int)page.getTotalCount() + 1),
+						entityField.getName() + ":desc");
+
+			assertContains(
+				displayPageTemplateFolder2,
+				(List<DisplayPageTemplateFolder>)descPage.getItems());
+			assertContains(
+				displayPageTemplateFolder1,
+				(List<DisplayPageTemplateFolder>)descPage.getItems());
+		}
+	}
+
+	protected DisplayPageTemplateFolder
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				String designLibraryExternalReferenceCode,
+				DisplayPageTemplateFolder displayPageTemplateFolder)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getDesignLibraryExternalReferenceCode()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetDesignLibraryDisplayPageTemplateFoldersPage_getIrrelevantDesignLibraryExternalReferenceCode()
+		throws Exception {
+
+		return null;
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFolder() throws Exception {
+		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
+			testGetSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder getDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.getSiteDisplayPageTemplateFolder(
+				testGetSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+				postDisplayPageTemplateFolder.getExternalReferenceCode());
+
+		assertEquals(
+			postDisplayPageTemplateFolder, getDisplayPageTemplateFolder);
+		assertValid(getDisplayPageTemplateFolder);
+
+		Assert.assertNull(getDisplayPageTemplateFolder.getPermissions());
+
+		getDisplayPageTemplateFolder =
+			permissionsDisplayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFolder(
+					testGetSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+					postDisplayPageTemplateFolder.getExternalReferenceCode());
+
+		Assert.assertNotNull(getDisplayPageTemplateFolder.getPermissions());
+	}
+
+	protected DisplayPageTemplateFolder
+			testGetSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	protected String
+			testGetSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFolderPermissionsPage()
+		throws Exception {
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
+			testGetSiteDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
+
+		Page<Permission> page =
+			displayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFolderPermissionsPage(
+					testGroup.getExternalReferenceCode(),
+					postDisplayPageTemplateFolder.getExternalReferenceCode(),
+					RoleConstants.GUEST);
+
+		Assert.assertNotNull(page);
+	}
+
+	protected DisplayPageTemplateFolder
+			testGetSiteDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPage() throws Exception {
+		String siteExternalReferenceCode =
+			testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+		String irrelevantSiteExternalReferenceCode =
+			testGetSiteDisplayPageTemplateFoldersPage_getIrrelevantSiteExternalReferenceCode();
+
+		Page<DisplayPageTemplateFolder> page =
+			displayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFoldersPage(
+					siteExternalReferenceCode, null, null, null,
+					Pagination.of(1, 10), null);
+
+		long totalCount = page.getTotalCount();
+
+		if (irrelevantSiteExternalReferenceCode != null) {
+			DisplayPageTemplateFolder irrelevantDisplayPageTemplateFolder =
+				testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+					irrelevantSiteExternalReferenceCode,
+					randomIrrelevantDisplayPageTemplateFolder());
+
+			page =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						irrelevantSiteExternalReferenceCode, null, null, null,
+						Pagination.of(1, (int)totalCount + 1), null);
+
+			Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+			assertContains(
+				irrelevantDisplayPageTemplateFolder,
+				(List<DisplayPageTemplateFolder>)page.getItems());
+			assertValid(
+				page,
+				testGetSiteDisplayPageTemplateFoldersPage_getExpectedActions(
+					irrelevantSiteExternalReferenceCode));
+		}
+
+		DisplayPageTemplateFolder displayPageTemplateFolder1 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		DisplayPageTemplateFolder displayPageTemplateFolder2 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		page =
+			displayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFoldersPage(
+					siteExternalReferenceCode, null, null, null,
+					Pagination.of(1, (int)totalCount + 2), null);
+
+		Assert.assertEquals(totalCount + 2, page.getTotalCount());
+
+		assertContains(
+			displayPageTemplateFolder1,
+			(List<DisplayPageTemplateFolder>)page.getItems());
+		assertContains(
+			displayPageTemplateFolder2,
+			(List<DisplayPageTemplateFolder>)page.getItems());
+		assertValid(
+			page,
+			testGetSiteDisplayPageTemplateFoldersPage_getExpectedActions(
+				siteExternalReferenceCode));
+
+		for (DisplayPageTemplateFolder displayPageTemplateFolder :
+				page.getItems()) {
+
+			Assert.assertNull(displayPageTemplateFolder.getPermissions());
+		}
+
+		page =
+			permissionsDisplayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFoldersPage(
+					siteExternalReferenceCode, null, null, null,
+					Pagination.of(1, 10), null);
+
+		for (DisplayPageTemplateFolder displayPageTemplateFolder :
+				page.getItems()) {
+
+			Assert.assertNotNull(displayPageTemplateFolder.getPermissions());
+		}
+	}
+
+	protected Map<String, Map<String, String>>
+			testGetSiteDisplayPageTemplateFoldersPage_getExpectedActions(
+				String siteExternalReferenceCode)
+		throws Exception {
+
+		Map<String, Map<String, String>> expectedActions = new HashMap<>();
+
+		Map createBatchAction = new HashMap<>();
+		createBatchAction.put("method", "POST");
+		createBatchAction.put(
+			"href",
+			("http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/headless-admin-site/v1.0/sites/{siteExternalReferenceCode}/display-page-template-folders/batch").
+					replace(
+						"{siteExternalReferenceCode}",
+						String.valueOf(siteExternalReferenceCode)));
+
+		expectedActions.put("createBatch", createBatchAction);
+
+		return expectedActions;
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithFilterDateTimeEquals()
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(
+			EntityField.Type.DATE_TIME);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		String siteExternalReferenceCode =
+			testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+
+		DisplayPageTemplateFolder displayPageTemplateFolder1 =
+			randomDisplayPageTemplateFolder();
+
+		displayPageTemplateFolder1 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, displayPageTemplateFolder1);
+
+		for (EntityField entityField : entityFields) {
+			Page<DisplayPageTemplateFolder> page =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null,
+						getFilterString(
+							entityField, "between", displayPageTemplateFolder1),
+						Pagination.of(1, 2), null);
+
+			assertEquals(
+				Collections.singletonList(displayPageTemplateFolder1),
+				(List<DisplayPageTemplateFolder>)page.getItems());
+		}
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithFilterDoubleEquals()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithFilter(
+			"eq", EntityField.Type.DOUBLE);
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithFilterStringContains()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithFilter(
+			"contains", EntityField.Type.STRING);
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithFilterStringEquals()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithFilter(
+			"eq", EntityField.Type.STRING);
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithFilterStringStartsWith()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithFilter(
+			"startswith", EntityField.Type.STRING);
+	}
+
+	protected void testGetSiteDisplayPageTemplateFoldersPageWithFilter(
+			String operator, EntityField.Type type)
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(type);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		String siteExternalReferenceCode =
+			testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+
+		DisplayPageTemplateFolder displayPageTemplateFolder1 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder displayPageTemplateFolder2 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		for (EntityField entityField : entityFields) {
+			Page<DisplayPageTemplateFolder> page =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null,
+						getFilterString(
+							entityField, operator, displayPageTemplateFolder1),
+						Pagination.of(1, 2), null);
+
+			assertEquals(
+				Collections.singletonList(displayPageTemplateFolder1),
+				(List<DisplayPageTemplateFolder>)page.getItems());
+		}
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithPagination()
+		throws Exception {
+
+		String siteExternalReferenceCode =
+			testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+
+		Page<DisplayPageTemplateFolder> displayPageTemplateFoldersPage =
+			displayPageTemplateFolderResource.
+				getSiteDisplayPageTemplateFoldersPage(
+					siteExternalReferenceCode, null, null, null, null, null);
+
+		int totalCount = GetterUtil.getInteger(
+			displayPageTemplateFoldersPage.getTotalCount());
+
+		DisplayPageTemplateFolder displayPageTemplateFolder1 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		DisplayPageTemplateFolder displayPageTemplateFolder2 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		DisplayPageTemplateFolder displayPageTemplateFolder3 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+				siteExternalReferenceCode, randomDisplayPageTemplateFolder());
+
+		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
+
+		int pageSizeLimit = 500;
+
+		if (totalCount >= (pageSizeLimit - 2)) {
+			Page<DisplayPageTemplateFolder> page1 =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null, null,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+							pageSizeLimit),
+						null);
+
+			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
+
+			assertContains(
+				displayPageTemplateFolder1,
+				(List<DisplayPageTemplateFolder>)page1.getItems());
+
+			Page<DisplayPageTemplateFolder> page2 =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null, null,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+							pageSizeLimit),
+						null);
+
+			assertContains(
+				displayPageTemplateFolder2,
+				(List<DisplayPageTemplateFolder>)page2.getItems());
+
+			Page<DisplayPageTemplateFolder> page3 =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null, null,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+							pageSizeLimit),
+						null);
+
+			assertContains(
+				displayPageTemplateFolder3,
+				(List<DisplayPageTemplateFolder>)page3.getItems());
+		}
+		else {
+			Page<DisplayPageTemplateFolder> page1 =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null, null,
+						Pagination.of(1, totalCount + 2), null);
+
+			List<DisplayPageTemplateFolder> displayPageTemplateFolders1 =
+				(List<DisplayPageTemplateFolder>)page1.getItems();
+
+			Assert.assertEquals(
+				displayPageTemplateFolders1.toString(), totalCount + 2,
+				displayPageTemplateFolders1.size());
+
+			Page<DisplayPageTemplateFolder> page2 =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null, null,
+						Pagination.of(2, totalCount + 2), null);
+
+			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
+
+			List<DisplayPageTemplateFolder> displayPageTemplateFolders2 =
+				(List<DisplayPageTemplateFolder>)page2.getItems();
+
+			Assert.assertEquals(
+				displayPageTemplateFolders2.toString(), 1,
+				displayPageTemplateFolders2.size());
+
+			Page<DisplayPageTemplateFolder> page3 =
+				displayPageTemplateFolderResource.
+					getSiteDisplayPageTemplateFoldersPage(
+						siteExternalReferenceCode, null, null, null,
+						Pagination.of(1, (int)totalCount + 3), null);
+
+			assertContains(
+				displayPageTemplateFolder1,
+				(List<DisplayPageTemplateFolder>)page3.getItems());
+			assertContains(
+				displayPageTemplateFolder2,
+				(List<DisplayPageTemplateFolder>)page3.getItems());
+			assertContains(
+				displayPageTemplateFolder3,
+				(List<DisplayPageTemplateFolder>)page3.getItems());
+		}
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithSortDateTime()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithSort(
+			EntityField.Type.DATE_TIME,
+			(entityField, displayPageTemplateFolder1,
+			 displayPageTemplateFolder2) -> {
+
+				BeanTestUtil.setProperty(
+					displayPageTemplateFolder1, entityField.getName(),
+					new Date(System.currentTimeMillis() - (2 * Time.MINUTE)));
+			});
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithSortDouble()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithSort(
+			EntityField.Type.DOUBLE,
+			(entityField, displayPageTemplateFolder1,
+			 displayPageTemplateFolder2) -> {
+
+				BeanTestUtil.setProperty(
+					displayPageTemplateFolder1, entityField.getName(), 0.1);
+				BeanTestUtil.setProperty(
+					displayPageTemplateFolder2, entityField.getName(), 0.5);
+			});
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithSortInteger()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithSort(
+			EntityField.Type.INTEGER,
+			(entityField, displayPageTemplateFolder1,
+			 displayPageTemplateFolder2) -> {
+
+				BeanTestUtil.setProperty(
+					displayPageTemplateFolder1, entityField.getName(), 0);
+				BeanTestUtil.setProperty(
+					displayPageTemplateFolder2, entityField.getName(), 1);
+			});
+	}
+
+	@Test
+	public void testGetSiteDisplayPageTemplateFoldersPageWithSortString()
+		throws Exception {
+
+		testGetSiteDisplayPageTemplateFoldersPageWithSort(
+			EntityField.Type.STRING,
+			(entityField, displayPageTemplateFolder1,
+			 displayPageTemplateFolder2) -> {
+
+				Class<?> clazz = displayPageTemplateFolder1.getClass();
+
+				String entityFieldName = entityField.getName();
+
+				Method method = clazz.getMethod(
+					"get" + StringUtil.upperCaseFirstLetter(entityFieldName));
+
+				Class<?> returnType = method.getReturnType();
+
+				if (returnType.isAssignableFrom(Map.class)) {
+					BeanTestUtil.setProperty(
+						displayPageTemplateFolder1, entityFieldName,
+						Collections.singletonMap("Aaa", "Aaa"));
+					BeanTestUtil.setProperty(
+						displayPageTemplateFolder2, entityFieldName,
+						Collections.singletonMap("Bbb", "Bbb"));
+				}
+				else if (entityFieldName.contains("email")) {
+					BeanTestUtil.setProperty(
+						displayPageTemplateFolder1, entityFieldName,
+						"aaa" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()) +
+									"@liferay.com");
+					BeanTestUtil.setProperty(
+						displayPageTemplateFolder2, entityFieldName,
+						"bbb" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()) +
+									"@liferay.com");
+				}
+				else {
+					BeanTestUtil.setProperty(
+						displayPageTemplateFolder1, entityFieldName,
+						"aaa" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()));
+					BeanTestUtil.setProperty(
+						displayPageTemplateFolder2, entityFieldName,
+						"bbb" +
+							StringUtil.toLowerCase(
+								RandomTestUtil.randomString()));
+				}
+			});
+	}
+
+	protected void testGetSiteDisplayPageTemplateFoldersPageWithSort(
+			EntityField.Type type,
+			UnsafeTriConsumer
+				<EntityField, DisplayPageTemplateFolder,
+				 DisplayPageTemplateFolder, Exception> unsafeTriConsumer)
+		throws Exception {
+
+		List<EntityField> entityFields = getEntityFields(type);
+
+		if (entityFields.isEmpty()) {
+			return;
+		}
+
+		String siteExternalReferenceCode =
+			testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode();
+
+		DisplayPageTemplateFolder displayPageTemplateFolder1 =
+			randomDisplayPageTemplateFolder();
+		DisplayPageTemplateFolder displayPageTemplateFolder2 =
+			randomDisplayPageTemplateFolder();
+
+		for (EntityField entityField : entityFields) {
+			unsafeTriConsumer.accept(
+				entityField, displayPageTemplateFolder1,
+				displayPageTemplateFolder2);
+		}
+
+		displayPageTemplateFolder1 =
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
 				siteExternalReferenceCode, displayPageTemplateFolder1);
 
 		displayPageTemplateFolder2 =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
 				siteExternalReferenceCode, displayPageTemplateFolder2);
 
 		Page<DisplayPageTemplateFolder> page =
 			displayPageTemplateFolderResource.
-				getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
+				getSiteDisplayPageTemplateFoldersPage(
 					siteExternalReferenceCode, null, null, null, null, null);
 
 		for (EntityField entityField : entityFields) {
 			Page<DisplayPageTemplateFolder> ascPage =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
+					getSiteDisplayPageTemplateFoldersPage(
 						siteExternalReferenceCode, null, null, null,
 						Pagination.of(1, (int)page.getTotalCount() + 1),
 						entityField.getName() + ":asc");
@@ -677,7 +1468,7 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 			Page<DisplayPageTemplateFolder> descPage =
 				displayPageTemplateFolderResource.
-					getSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage(
+					getSiteDisplayPageTemplateFoldersPage(
 						siteExternalReferenceCode, null, null, null,
 						Pagination.of(1, (int)page.getTotalCount() + 1),
 						entityField.getName() + ":desc");
@@ -692,48 +1483,110 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	protected DisplayPageTemplateFolder
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
+			testGetSiteDisplayPageTemplateFoldersPage_addDisplayPageTemplateFolder(
 				String siteExternalReferenceCode,
 				DisplayPageTemplateFolder displayPageTemplateFolder)
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				siteExternalReferenceCode, displayPageTemplateFolder);
 	}
 
 	protected String
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode()
+			testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode()
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testGroup.getExternalReferenceCode();
 	}
 
 	protected String
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFoldersPage_getIrrelevantSiteExternalReferenceCode()
+			testGetSiteDisplayPageTemplateFoldersPage_getIrrelevantSiteExternalReferenceCode()
 		throws Exception {
 
-		return null;
+		return irrelevantGroup.getExternalReferenceCode();
 	}
 
 	@Test
-	public void testPostSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder()
+	public void testPatchSiteDisplayPageTemplateFolder() throws Exception {
+		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
+			testPatchSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder randomPatchDisplayPageTemplateFolder =
+			randomPatchDisplayPageTemplateFolder();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder patchDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.
+				patchSiteDisplayPageTemplateFolder(
+					null,
+					postDisplayPageTemplateFolder.getExternalReferenceCode(),
+					randomPatchDisplayPageTemplateFolder);
+
+		DisplayPageTemplateFolder expectedPatchDisplayPageTemplateFolder =
+			postDisplayPageTemplateFolder.clone();
+
+		BeanTestUtil.copyProperties(
+			randomPatchDisplayPageTemplateFolder,
+			expectedPatchDisplayPageTemplateFolder);
+
+		DisplayPageTemplateFolder getDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.getSiteDisplayPageTemplateFolder(
+				null,
+				patchDisplayPageTemplateFolder.getExternalReferenceCode());
+
+		assertEquals(
+			expectedPatchDisplayPageTemplateFolder,
+			getDisplayPageTemplateFolder);
+		assertValid(getDisplayPageTemplateFolder);
+	}
+
+	protected DisplayPageTemplateFolder
+			testPatchSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder()
 		throws Exception {
 
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	@Test
+	public void testPostSiteDisplayPageTemplateFolder() throws Exception {
 		DisplayPageTemplateFolder randomDisplayPageTemplateFolder =
 			randomDisplayPageTemplateFolder();
 
 		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
-			testPostSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder_addDisplayPageTemplateFolder(
+			testPostSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder(
 				randomDisplayPageTemplateFolder);
 
 		assertEquals(
 			randomDisplayPageTemplateFolder, postDisplayPageTemplateFolder);
 		assertValid(postDisplayPageTemplateFolder);
+
+		DisplayPageTemplateFolder randomPermissionsDisplayPageTemplateFolder1 =
+			randomPermissionsDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder postPermissionsDisplayPageTemplateFolder1 =
+			testPostSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder(
+				randomPermissionsDisplayPageTemplateFolder1);
+
+		Assert.assertNull(
+			postPermissionsDisplayPageTemplateFolder1.getPermissions());
+
+		DisplayPageTemplateFolder randomPermissionsDisplayPageTemplateFolder2 =
+			randomPermissionsDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder postPermissionsDisplayPageTemplateFolder2 =
+			testPostSiteDisplayPageTemplateFolder_addPermissionsDisplayPageTemplateFolder(
+				randomPermissionsDisplayPageTemplateFolder2);
+
+		Assert.assertNotNull(
+			postPermissionsDisplayPageTemplateFolder2.getPermissions());
 	}
 
 	protected DisplayPageTemplateFolder
-			testPostSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder_addDisplayPageTemplateFolder(
+			testPostSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder(
 				DisplayPageTemplateFolder displayPageTemplateFolder)
 		throws Exception {
 
@@ -741,36 +1594,24 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			"This method needs to be implemented");
 	}
 
-	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage()
-		throws Exception {
-
-		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
-
-		Page<Permission> page =
-			displayPageTemplateFolderResource.
-				getSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage(
-					testGroup.getExternalReferenceCode(), RoleConstants.GUEST);
-
-		Assert.assertNotNull(page);
-	}
-
 	protected DisplayPageTemplateFolder
-			testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
+			testPostSiteDisplayPageTemplateFolder_addPermissionsDisplayPageTemplateFolder(
+				DisplayPageTemplateFolder displayPageTemplateFolder)
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return permissionsDisplayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGetSiteDisplayPageTemplateFoldersPage_getSiteExternalReferenceCode(),
+				displayPageTemplateFolder);
 	}
 
 	@Test
-	public void testPutSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage()
+	public void testPutDesignLibraryDisplayPageTemplateFolderPermissionsPage()
 		throws Exception {
 
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		DisplayPageTemplateFolder displayPageTemplateFolder =
-			testPutSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
+			testPutDesignLibraryDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
 
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
@@ -779,8 +1620,132 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		assertHttpResponseStatusCode(
 			200,
 			displayPageTemplateFolderResource.
-				putSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPageHttpResponse(
-					null,
+				putDesignLibraryDisplayPageTemplateFolderPermissionsPageHttpResponse(
+					null, displayPageTemplateFolder.getExternalReferenceCode(),
+					new Permission[] {
+						new Permission() {
+							{
+								setActionIds(new String[] {"VIEW"});
+								setRoleName(role.getName());
+							}
+						}
+					}));
+
+		assertHttpResponseStatusCode(
+			404,
+			displayPageTemplateFolderResource.
+				putDesignLibraryDisplayPageTemplateFolderPermissionsPageHttpResponse(
+					null, displayPageTemplateFolder.getExternalReferenceCode(),
+					new Permission[] {
+						new Permission() {
+							{
+								setActionIds(new String[] {"-"});
+								setRoleName("-");
+							}
+						}
+					}));
+	}
+
+	protected DisplayPageTemplateFolder
+			testPutDesignLibraryDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	@Test
+	public void testPutSiteDisplayPageTemplateFolder() throws Exception {
+		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
+			testPutSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder randomDisplayPageTemplateFolder =
+			randomDisplayPageTemplateFolder();
+
+		DisplayPageTemplateFolder putDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.putSiteDisplayPageTemplateFolder(
+				testPutSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+				postDisplayPageTemplateFolder.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder);
+
+		assertEquals(
+			randomDisplayPageTemplateFolder, putDisplayPageTemplateFolder);
+		assertValid(putDisplayPageTemplateFolder);
+
+		Assert.assertNull(putDisplayPageTemplateFolder.getPermissions());
+
+		DisplayPageTemplateFolder getDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.getSiteDisplayPageTemplateFolder(
+				testPutSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+				putDisplayPageTemplateFolder.getExternalReferenceCode());
+
+		assertEquals(
+			randomDisplayPageTemplateFolder, getDisplayPageTemplateFolder);
+		assertValid(getDisplayPageTemplateFolder);
+
+		DisplayPageTemplateFolder randomPermissionsDisplayPageTemplateFolder =
+			randomPermissionsDisplayPageTemplateFolder();
+
+		putDisplayPageTemplateFolder =
+			displayPageTemplateFolderResource.putSiteDisplayPageTemplateFolder(
+				testPutSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+				postDisplayPageTemplateFolder.getExternalReferenceCode(),
+				randomPermissionsDisplayPageTemplateFolder);
+
+		assertEquals(
+			randomPermissionsDisplayPageTemplateFolder,
+			putDisplayPageTemplateFolder);
+		assertValid(putDisplayPageTemplateFolder);
+
+		Assert.assertNull(putDisplayPageTemplateFolder.getPermissions());
+
+		putDisplayPageTemplateFolder =
+			permissionsDisplayPageTemplateFolderResource.
+				putSiteDisplayPageTemplateFolder(
+					testPutSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode(),
+					postDisplayPageTemplateFolder.getExternalReferenceCode(),
+					randomPermissionsDisplayPageTemplateFolder);
+
+		Assert.assertNotNull(putDisplayPageTemplateFolder.getPermissions());
+	}
+
+	protected DisplayPageTemplateFolder
+			testPutSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder()
+		throws Exception {
+
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
+	}
+
+	protected String
+			testPutSiteDisplayPageTemplateFolder_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
+	}
+
+	@Test
+	public void testPutSiteDisplayPageTemplateFolderPermissionsPage()
+		throws Exception {
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		DisplayPageTemplateFolder displayPageTemplateFolder =
+			testPutSiteDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
+			RoleConstants.TYPE_REGULAR);
+
+		assertHttpResponseStatusCode(
+			200,
+			displayPageTemplateFolderResource.
+				putSiteDisplayPageTemplateFolderPermissionsPageHttpResponse(
+					testGroup.getExternalReferenceCode(),
+					displayPageTemplateFolder.getExternalReferenceCode(),
 					new Permission[] {
 						new Permission() {
 							{
@@ -793,8 +1758,9 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		assertHttpResponseStatusCode(
 			404,
 			displayPageTemplateFolderResource.
-				putSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPageHttpResponse(
-					null,
+				putSiteDisplayPageTemplateFolderPermissionsPageHttpResponse(
+					testGroup.getExternalReferenceCode(),
+					displayPageTemplateFolder.getExternalReferenceCode(),
 					new Permission[] {
 						new Permission() {
 							{
@@ -806,111 +1772,78 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	}
 
 	protected DisplayPageTemplateFolder
-			testPutSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
+			testPutSiteDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return displayPageTemplateFolderResource.
+			postSiteDisplayPageTemplateFolder(
+				testGroup.getExternalReferenceCode(),
+				randomDisplayPageTemplateFolder());
 	}
 
 	@Test
-	public void testDeleteSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder()
-		throws Exception {
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		DisplayPageTemplateFolder displayPageTemplateFolder1 =
+			testBatchEngineDeleteImportTask_addSiteDisplayPageTemplateFolder();
 
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGraphQLGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder()
-		throws Exception {
-
-		Assert.assertTrue(true);
-	}
-
-	@Test
-	public void testGraphQLGetSiteSiteByExternalReferenceCodeDisplayPageTemplateFolderNotFound()
-		throws Exception {
-
-		Assert.assertTrue(true);
-	}
-
-	@Test
-	public void testPatchSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testPutSiteSiteByExternalReferenceCodeDisplayPageTemplateFolder()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGetSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage()
-		throws Exception {
-
-		DisplayPageTemplateFolder postDisplayPageTemplateFolder =
-			testGetSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
-
-		Page<Permission> page =
-			displayPageTemplateFolderResource.
-				getSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage(
-					testGroup.getExternalReferenceCode(),
-					postDisplayPageTemplateFolder.getExternalReferenceCode(),
-					RoleConstants.GUEST);
-
-		Assert.assertNotNull(page);
-	}
-
-	protected DisplayPageTemplateFolder
-			testGetSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testPutSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage()
-		throws Exception {
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		DisplayPageTemplateFolder displayPageTemplateFolder =
-			testPutSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder();
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
-			RoleConstants.TYPE_REGULAR);
-
-		assertHttpResponseStatusCode(
-			200,
-			displayPageTemplateFolderResource.
-				putSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPageHttpResponse(
-					null, null));
+		testBatchEngineDeleteImportTask_deleteDisplayPageTemplateFolder(
+			200, displayPageTemplateFolder1.getExternalReferenceCode(),
+			"siteExternalReferenceCode", testGroup.getExternalReferenceCode());
 
 		assertHttpResponseStatusCode(
 			404,
 			displayPageTemplateFolderResource.
-				putSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPageHttpResponse(
-					null, null));
+				getSiteDisplayPageTemplateFolderHttpResponse(
+					testBatchEngineDeleteImportTask_getSiteExternalReferenceCode(),
+					displayPageTemplateFolder1.getExternalReferenceCode()));
 	}
 
 	protected DisplayPageTemplateFolder
-			testPutSiteSiteExternalReferenceCodeDisplayPageTemplateFolderPermissionsPage_addDisplayPageTemplateFolder()
+			testBatchEngineDeleteImportTask_addSiteDisplayPageTemplateFolder()
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testDeleteSiteDisplayPageTemplateFolder_addDisplayPageTemplateFolder();
+	}
+
+	protected void
+			testBatchEngineDeleteImportTask_deleteDisplayPageTemplateFolder(
+				int expectedStatusCode, String externalReferenceCode,
+				String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateFolder",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
+	protected String
+			testBatchEngineDeleteImportTask_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
 	}
 
 	@Rule
@@ -1023,21 +1956,16 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
-			if (Objects.equals("creator", additionalAssertFieldName)) {
-				if (displayPageTemplateFolder.getCreator() == null) {
+			if (Objects.equals("actions", additionalAssertFieldName)) {
+				if (displayPageTemplateFolder.getActions() == null) {
 					valid = false;
 				}
 
 				continue;
 			}
 
-			if (Objects.equals(
-					"creatorExternalReferenceCode",
-					additionalAssertFieldName)) {
-
-				if (displayPageTemplateFolder.
-						getCreatorExternalReferenceCode() == null) {
-
+			if (Objects.equals("creator", additionalAssertFieldName)) {
+				if (displayPageTemplateFolder.getCreator() == null) {
 					valid = false;
 				}
 
@@ -1081,6 +2009,19 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			}
 
 			if (Objects.equals(
+					"parentDisplayPageTemplateFolder",
+					additionalAssertFieldName)) {
+
+				if (displayPageTemplateFolder.
+						getParentDisplayPageTemplateFolder() == null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
 					"parentDisplayPageTemplateFolderExternalReferenceCode",
 					additionalAssertFieldName)) {
 
@@ -1088,6 +2029,14 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 						getParentDisplayPageTemplateFolderExternalReferenceCode() ==
 							null) {
 
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("permissions", additionalAssertFieldName)) {
+				if (displayPageTemplateFolder.getPermissions() == null) {
 					valid = false;
 				}
 
@@ -1161,6 +2110,8 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.headless.admin.site.dto.v1_0.
@@ -1223,10 +2174,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
-			if (Objects.equals("creator", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						displayPageTemplateFolder1.getCreator(),
-						displayPageTemplateFolder2.getCreator())) {
+			if (Objects.equals("actions", additionalAssertFieldName)) {
+				if (!equals(
+						(Map)displayPageTemplateFolder1.getActions(),
+						(Map)displayPageTemplateFolder2.getActions())) {
 
 					return false;
 				}
@@ -1234,15 +2185,10 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"creatorExternalReferenceCode",
-					additionalAssertFieldName)) {
-
+			if (Objects.equals("creator", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
-						displayPageTemplateFolder1.
-							getCreatorExternalReferenceCode(),
-						displayPageTemplateFolder2.
-							getCreatorExternalReferenceCode())) {
+						displayPageTemplateFolder1.getCreator(),
+						displayPageTemplateFolder2.getCreator())) {
 
 					return false;
 				}
@@ -1320,6 +2266,22 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			}
 
 			if (Objects.equals(
+					"parentDisplayPageTemplateFolder",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						displayPageTemplateFolder1.
+							getParentDisplayPageTemplateFolder(),
+						displayPageTemplateFolder2.
+							getParentDisplayPageTemplateFolder())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
 					"parentDisplayPageTemplateFolderExternalReferenceCode",
 					additionalAssertFieldName)) {
 
@@ -1328,6 +2290,17 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 							getParentDisplayPageTemplateFolderExternalReferenceCode(),
 						displayPageTemplateFolder2.
 							getParentDisplayPageTemplateFolderExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("permissions", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						displayPageTemplateFolder1.getPermissions(),
+						displayPageTemplateFolder2.getPermissions())) {
 
 					return false;
 				}
@@ -1456,56 +2429,14 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		sb.append(operator);
 		sb.append(" ");
 
-		if (entityFieldName.equals("creator")) {
+		if (entityFieldName.equals("actions")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
 		}
 
-		if (entityFieldName.equals("creatorExternalReferenceCode")) {
-			Object object =
-				displayPageTemplateFolder.getCreatorExternalReferenceCode();
-
-			String value = String.valueOf(object);
-
-			if (operator.equals("contains")) {
-				sb = new StringBundler();
-
-				sb.append("contains(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 2)) {
-					sb.append(value.substring(1, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else if (operator.equals("startswith")) {
-				sb = new StringBundler();
-
-				sb.append("startswith(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 1)) {
-					sb.append(value.substring(0, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else {
-				sb.append("'");
-				sb.append(value);
-				sb.append("'");
-			}
-
-			return sb.toString();
+		if (entityFieldName.equals("creator")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
 		}
 
 		if (entityFieldName.equals("dateCreated")) {
@@ -1517,13 +2448,11 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1534,8 +2463,7 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 				sb.append(" ");
 
 				sb.append(
-					_dateFormat.format(
-						displayPageTemplateFolder.getDateCreated()));
+					_format.format(displayPageTemplateFolder.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -1550,13 +2478,11 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1567,7 +2493,7 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 				sb.append(" ");
 
 				sb.append(
-					_dateFormat.format(
+					_format.format(
 						displayPageTemplateFolder.getDateModified()));
 			}
 
@@ -1759,6 +2685,11 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("parentDisplayPageTemplateFolder")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
 		if (entityFieldName.equals(
 				"parentDisplayPageTemplateFolderExternalReferenceCode")) {
 
@@ -1807,6 +2738,11 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			}
 
 			return sb.toString();
+		}
+
+		if (entityFieldName.equals("permissions")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
 		}
 
 		if (entityFieldName.equals("uuid")) {
@@ -1868,7 +2804,9 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1902,8 +2840,6 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 
 		return new DisplayPageTemplateFolder() {
 			{
-				creatorExternalReferenceCode = StringUtil.toLowerCase(
-					RandomTestUtil.randomString());
 				dateCreated = RandomTestUtil.nextDate();
 				dateModified = RandomTestUtil.nextDate();
 				description = StringUtil.toLowerCase(
@@ -1935,9 +2871,57 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		return randomDisplayPageTemplateFolder();
 	}
 
+	protected DisplayPageTemplateFolder
+			randomPermissionsDisplayPageTemplateFolder()
+		throws Exception {
+
+		DisplayPageTemplateFolder displayPageTemplateFolder =
+			randomDisplayPageTemplateFolder();
+
+		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
+			RoleConstants.TYPE_REGULAR);
+
+		displayPageTemplateFolder.setPermissions(
+			new Permission[] {
+				new Permission() {
+					{
+						setActionIds(new String[] {"VIEW"});
+						setRoleName(role.getName());
+					}
+				}
+			});
+
+		return displayPageTemplateFolder;
+	}
+
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected DisplayPageTemplateFolderResource
 		displayPageTemplateFolderResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
+	protected DisplayPageTemplateFolderResource
+		permissionsDisplayPageTemplateFolderResource;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
 
@@ -2138,10 +3122,13 @@ public abstract class BaseDisplayPageTemplateFolderResourceTestCase {
 		LogFactoryUtil.getLog(
 			BaseDisplayPageTemplateFolderResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.admin.site.resource.v1_0.
 		DisplayPageTemplateFolderResource _displayPageTemplateFolderResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1014546078

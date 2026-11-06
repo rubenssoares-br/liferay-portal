@@ -28,56 +28,6 @@ public class DLAppLocalServiceUtil {
 	 *
 	 * Never modify this class directly. Add custom service methods to <code>com.liferay.portlet.documentlibrary.service.impl.DLAppLocalServiceImpl</code> and rerun ServiceBuilder to regenerate this class.
 	 */
-
-	/**
-	 * Adds a file entry and associated metadata based on a {@link File} object.
-	 *
-	 * <p>
-	 * This method takes two file names, the <code>sourceFileName</code> and the
-	 * <code>title</code>. The <code>sourceFileName</code> corresponds to the
-	 * name of the actual file being uploaded. The <code>title</code>
-	 * corresponds to a name the client wishes to assign this file after it has
-	 * been uploaded to the portal. If it is <code>null</code>, the <code>
-	 * sourceFileName</code> will be used.
-	 * </p>
-	 *
-	 * @param userId the primary key of the file entry's creator/owner
-	 * @param repositoryId the primary key of the repository
-	 * @param folderId the primary key of the file entry's parent folder
-	 * @param sourceFileName the original file's name
-	 * @param mimeType the file's MIME type
-	 * @param title the name to be assigned to the file (optionally
-	 <code>null </code>)
-	 * @param description the file's description
-	 * @param changeLog the file's version change log
-	 * @param file the file's data (optionally <code>null</code>)
-	 * @param serviceContext the service context to be applied. Can set the
-	 asset category IDs, asset tag names, and expando bridge
-	 attributes for the file entry. In a Liferay repository, it
-	 may include:  <ul> <li> fileEntryTypeId - ID for a custom
-	 file entry type </li> <li> fieldsMap - mapping for fields
-	 associated with a custom file entry type </li> </ul>
-	 * @return the file entry
-	 * @throws PortalException if a portal exception occurred
-	 * @deprecated As of Cavanaugh (7.4.x), replaced by {@link
-	 #addFileEntry(String, long, long, long, String, String,
-	 String, String, String, String, File, Date, Date
-	 expirationDate, Date, ServiceContext)}
-	 */
-	@Deprecated
-	public static com.liferay.portal.kernel.repository.model.FileEntry
-			addFileEntry(
-				long userId, long repositoryId, long folderId,
-				String sourceFileName, String mimeType, String title,
-				String description, String changeLog, java.io.File file,
-				com.liferay.portal.kernel.service.ServiceContext serviceContext)
-		throws PortalException {
-
-		return getService().addFileEntry(
-			userId, repositoryId, folderId, sourceFileName, mimeType, title,
-			description, changeLog, file, serviceContext);
-	}
-
 	public static com.liferay.portal.kernel.repository.model.FileEntry
 			addFileEntry(
 				String externalReferenceCode, long userId, long repositoryId,
@@ -308,17 +258,6 @@ public class DLAppLocalServiceUtil {
 			description, serviceContext);
 	}
 
-	/**
-	 * Delete all data associated to the given repository. This method is only
-	 * supported by the Liferay repository.
-	 *
-	 * @param repositoryId the primary key of the data's repository
-	 * @throws PortalException if a portal exception occurred
-	 */
-	public static void deleteAll(long repositoryId) throws PortalException {
-		getService().deleteAll(repositoryId);
-	}
-
 	public static void deleteAllRepositories(long groupId)
 		throws PortalException {
 
@@ -335,14 +274,6 @@ public class DLAppLocalServiceUtil {
 		throws PortalException {
 
 		getService().deleteFileEntry(fileEntryId);
-	}
-
-	public static void deleteFileEntryByExternalReferenceCode(
-			String externalReferenceCode, long groupId)
-		throws PortalException {
-
-		getService().deleteFileEntryByExternalReferenceCode(
-			externalReferenceCode, groupId);
 	}
 
 	/**
@@ -374,19 +305,6 @@ public class DLAppLocalServiceUtil {
 	}
 
 	/**
-	 * Deletes all file shortcuts associated to the file entry. This method is
-	 * only supported by the Liferay repository.
-	 *
-	 * @param toFileEntryId the primary key of the associated file entry
-	 * @throws PortalException if a portal exception occurred
-	 */
-	public static void deleteFileShortcuts(long toFileEntryId)
-		throws PortalException {
-
-		getService().deleteFileShortcuts(toFileEntryId);
-	}
-
-	/**
 	 * Deletes the file version. File versions can only be deleted if it is
 	 * approved and there are other approved file versions available.
 	 *
@@ -409,6 +327,20 @@ public class DLAppLocalServiceUtil {
 		getService().deleteFolder(folderId);
 	}
 
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntry(long fileEntryId)
+		throws PortalException {
+
+		return getService().fetchFileEntry(fileEntryId);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntry(long groupId, long folderId, String title)
+		throws PortalException {
+
+		return getService().fetchFileEntry(groupId, folderId, title);
+	}
+
 	/**
 	 * Returns the document library file entry with the matching external
 	 * reference code and group.
@@ -427,6 +359,22 @@ public class DLAppLocalServiceUtil {
 			groupId, externalReferenceCode);
 	}
 
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByFileName(
+				long groupId, long folderId, String fileName)
+		throws PortalException {
+
+		return getService().fetchFileEntryByFileName(
+			groupId, folderId, fileName);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByUuidAndGroupId(String uuid, long groupId)
+		throws PortalException {
+
+		return getService().fetchFileEntryByUuidAndGroupId(uuid, groupId);
+	}
+
 	public static com.liferay.portal.kernel.repository.model.FileShortcut
 			fetchFileShortcut(long fileShortcutId)
 		throws PortalException {
@@ -441,6 +389,13 @@ public class DLAppLocalServiceUtil {
 
 		return getService().fetchFileShortcutByExternalReferenceCode(
 			externalReferenceCode, groupId);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.Folder fetchFolder(
+			long folderId)
+		throws PortalException {
+
+		return getService().fetchFolder(folderId);
 	}
 
 	public static com.liferay.portal.kernel.repository.model.Folder
@@ -543,15 +498,6 @@ public class DLAppLocalServiceUtil {
 		throws PortalException {
 
 		return getService().getFileShortcut(fileShortcutId);
-	}
-
-	public static com.liferay.portal.kernel.repository.model.FileShortcut
-			getFileShortcutByExternalReferenceCode(
-				String externalReferenceCode, long groupId)
-		throws PortalException {
-
-		return getService().getFileShortcutByExternalReferenceCode(
-			externalReferenceCode, groupId);
 	}
 
 	/**
@@ -660,6 +606,13 @@ public class DLAppLocalServiceUtil {
 			userId, folderId, parentFolderId, serviceContext);
 	}
 
+	public static void subscribeFileEntry(
+			long userId, long groupId, long fileEntryId)
+		throws PortalException {
+
+		getService().subscribeFileEntry(userId, groupId, fileEntryId);
+	}
+
 	/**
 	 * Subscribe the user to changes in documents of the file entry type. This
 	 * method is only supported by the Liferay repository.
@@ -689,6 +642,13 @@ public class DLAppLocalServiceUtil {
 		throws PortalException {
 
 		getService().subscribeFolder(userId, groupId, folderId);
+	}
+
+	public static void unsubscribeFileEntry(
+			long userId, long groupId, long fileEntryId)
+		throws PortalException {
+
+		getService().unsubscribeFileEntry(userId, groupId, fileEntryId);
 	}
 
 	/**
@@ -952,22 +912,6 @@ public class DLAppLocalServiceUtil {
 	}
 
 	/**
-	 * Updates all file shortcuts to the existing file entry to the new file
-	 * entry. This method is only supported by the Liferay repository.
-	 *
-	 * @param oldToFileEntryId the primary key of the old file entry pointed to
-	 * @param newToFileEntryId the primary key of the new file entry to point
-	 to
-	 * @throws PortalException if a portal exception occurred
-	 */
-	public static void updateFileShortcuts(
-			long oldToFileEntryId, long newToFileEntryId)
-		throws PortalException {
-
-		getService().updateFileShortcuts(oldToFileEntryId, newToFileEntryId);
-	}
-
-	/**
 	 * Updates the folder.
 	 *
 	 * @param folderId the primary key of the folder
@@ -1011,3 +955,4 @@ public class DLAppLocalServiceUtil {
 	private static volatile DLAppLocalService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-570262628

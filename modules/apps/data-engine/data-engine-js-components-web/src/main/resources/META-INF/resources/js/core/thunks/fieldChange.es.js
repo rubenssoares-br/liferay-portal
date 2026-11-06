@@ -7,16 +7,26 @@ import {evaluate, mergePages} from '../../utils/evaluation.es';
 import {PagesVisitor} from '../../utils/visitors.es';
 import {EVENT_TYPES} from '../actions/eventTypes.es';
 import {disableSubmitButton} from '../utils/submitButtonController.es';
-
 let REVALIDATE_UPDATES = [];
 
 const skipPageEvaluationFieldNames = ['name', 'requiredErrorMessage'];
 
-const needsPageEvaluation = (fieldName) => {
+const needsPageEvaluation = (
+	containerId,
+	defaultLanguageId,
+	editingLanguageId,
+	fieldName,
+	portletNamespace
+) => {
+	if (containerId === `${portletNamespace}editObjectEntry`) {
+		return editingLanguageId === defaultLanguageId;
+	}
+
 	return !skipPageEvaluationFieldNames.includes(fieldName);
 };
 
 const getEditedPages = ({
+	defaultLanguageId,
 	editingLanguageId,
 	key = 'value',
 	name,
@@ -32,6 +42,33 @@ const getEditedPages = ({
 					return {
 						...field,
 						[key]: value,
+					};
+				}
+
+				// A nonlocalizable field has no value translations, so writing
+				// one under the editing language would make the field look
+				// localized, which hides the translation-is-disabled help icon.
+
+				if (!field.localizable) {
+					return {
+						...field,
+						value,
+					};
+				}
+
+				// The value shown for a locale with no translation of its
+				// own is the default locale's, so compare against that to
+				// avoid recording an edit the user never made.
+
+				const currentValue =
+					field.localizedValue?.[editingLanguageId] ??
+					field.localizedValue?.[defaultLanguageId] ??
+					'';
+
+				if (value === currentValue) {
+					return {
+						...field,
+						value,
 					};
 				}
 
@@ -59,6 +96,7 @@ const getEditedPages = ({
 let lastEditedPages = [];
 
 export default function fieldChange({
+	containerId,
 	defaultLanguageId,
 	editingLanguageId,
 	focusedField,
@@ -76,6 +114,7 @@ export default function fieldChange({
 		const {evaluable, fieldName} = fieldInstance;
 
 		const editedPages = getEditedPages({
+			defaultLanguageId,
 			editingLanguageId,
 			key,
 			name: fieldInstance.name,
@@ -92,11 +131,13 @@ export default function fieldChange({
 
 		if (Liferay.FeatureFlags['LPD-11228']) {
 			if (
-				fieldInstance.type === 'color' ||
-				fieldInstance.type === 'image' ||
-				fieldInstance.type === 'numeric' ||
-				fieldInstance.type === 'rich_text' ||
-				fieldInstance.type === 'text'
+				(fieldInstance.type === 'color' ||
+					fieldInstance.type === 'image' ||
+					fieldInstance.type === 'numeric' ||
+					fieldInstance.type === 'rich_text' ||
+					fieldInstance.type === 'text') &&
+				document.activeElement.name !== 'journal_undo_redo' &&
+				document.body !== document.activeElement
 			) {
 				dispatch({type: EVENT_TYPES.HISTORY.MARK});
 			}
@@ -105,11 +146,22 @@ export default function fieldChange({
 			}
 		}
 
-		if (evaluable && (viewMode || needsPageEvaluation(fieldName))) {
+		if (
+			evaluable &&
+			(viewMode ||
+				needsPageEvaluation(
+					containerId,
+					defaultLanguageId,
+					editingLanguageId,
+					fieldName,
+					portletNamespace
+				))
+		) {
 			try {
 				disableSubmitButton(submitButtonId);
 
 				let evaluatedPages = await evaluate(fieldName, {
+					containerId,
 					defaultLanguageId,
 					editingLanguageId,
 					formId,
@@ -179,6 +231,7 @@ export default function fieldChange({
 			});
 
 			REVALIDATE_UPDATES.push({
+				defaultLanguageId,
 				editingLanguageId,
 				name: fieldInstance.name,
 				value,

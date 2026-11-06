@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductSpecification")
+@GraphQLName(
+	description = "Static product attribute (a specification option value) attached to a product, used for storefront filtering and product-detail rendering.",
+	value = "ProductSpecification"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Static product attribute (a specification option value) attached to a product, used for storefront filtering and product-detail rendering."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ProductSpecification")
 public class ProductSpecification implements Serializable {
@@ -52,7 +59,10 @@ public class ProductSpecification implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "31130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the specification-value binding on the product (FK identifier).",
+		example = "31130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -84,7 +94,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the specification-value binding on the product (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -92,7 +104,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the option category that groups the specification (FK identifier).",
+		example = "30129"
+	)
 	public Long getOptionCategoryId() {
 		if (_optionCategoryIdSupplier != null) {
 			optionCategoryId = _optionCategoryIdSupplier.get();
@@ -126,7 +141,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the option category that groups the specification (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long optionCategoryId;
 
@@ -134,7 +151,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<Long> _optionCategoryIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display priority of this specification within its group; lower values sort first. Sortable via the OData query parameter.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -168,7 +188,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display priority of this specification within its group; lower values sort first. Sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
@@ -176,7 +198,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<Double> _prioritySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent product head (FK identifier).",
+		example = "30129"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -210,14 +235,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent product head (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable key of the specification group the option belongs to. Filterable via the OData query parameter.",
+		example = "general"
+	)
 	public String getSpecificationGroupKey() {
 		if (_specificationGroupKeySupplier != null) {
 			specificationGroupKey = _specificationGroupKeySupplier.get();
@@ -251,14 +281,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Stable key of the specification group the option belongs to. Filterable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String specificationGroupKey;
 
 	@JsonIgnore
 	private Supplier<String> _specificationGroupKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized title of the specification group, resolved for the request locale. Filterable and sortable via the OData query parameters.",
+		example = "General"
+	)
 	public String getSpecificationGroupTitle() {
 		if (_specificationGroupTitleSupplier != null) {
 			specificationGroupTitle = _specificationGroupTitleSupplier.get();
@@ -293,7 +328,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized title of the specification group, resolved for the request locale. Filterable and sortable via the OData query parameters."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String specificationGroupTitle;
 
@@ -301,7 +338,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<String> _specificationGroupTitleSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent specification option (FK identifier).",
+		example = "30129"
+	)
 	public Long getSpecificationId() {
 		if (_specificationIdSupplier != null) {
 			specificationId = _specificationIdSupplier.get();
@@ -335,14 +375,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent specification option (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long specificationId;
 
 	@JsonIgnore
 	private Supplier<Long> _specificationIdSupplier;
 
-	@Schema(example = "specification-key")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable key of the specification option. Filterable via the OData query parameter and matched by the search query parameter.",
+		example = "specification-key"
+	)
 	public String getSpecificationKey() {
 		if (_specificationKeySupplier != null) {
 			specificationKey = _specificationKeySupplier.get();
@@ -376,7 +421,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Stable key of the specification option. Filterable via the OData query parameter and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String specificationKey;
 
@@ -384,7 +431,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<String> _specificationKeySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display priority of the underlying specification option; lower values sort first.",
+		example = "1.1"
+	)
 	public Double getSpecificationPriority() {
 		if (_specificationPrioritySupplier != null) {
 			specificationPriority = _specificationPrioritySupplier.get();
@@ -418,14 +468,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Display priority of the underlying specification option; lower values sort first."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Double specificationPriority;
 
 	@JsonIgnore
 	private Supplier<Double> _specificationPrioritySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized title of the specification option, resolved for the request locale. Filterable, sortable, and matched by the search query parameter.",
+		example = "Color"
+	)
 	public String getSpecificationTitle() {
 		if (_specificationTitleSupplier != null) {
 			specificationTitle = _specificationTitleSupplier.get();
@@ -459,14 +514,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized title of the specification option, resolved for the request locale. Filterable, sortable, and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String specificationTitle;
 
 	@JsonIgnore
 	private Supplier<String> _specificationTitleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized value of the specification, resolved for the request locale. Filterable, sortable, and matched by the search query parameter.",
+		example = "Red"
+	)
 	public String getValue() {
 		if (_valueSupplier != null) {
 			value = _valueSupplier.get();
@@ -500,7 +560,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized value of the specification, resolved for the request locale. Filterable, sortable, and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String value;
 
@@ -692,8 +754,8 @@ public class ProductSpecification implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.ProductSpecification",
 		name = "x-class-name"
 	)
@@ -780,6 +842,27 @@ public class ProductSpecification implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -788,3 +871,4 @@ public class ProductSpecification implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1749258193

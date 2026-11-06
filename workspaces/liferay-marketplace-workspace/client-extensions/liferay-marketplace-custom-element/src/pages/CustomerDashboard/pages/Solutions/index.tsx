@@ -4,11 +4,10 @@
  */
 
 import {useEffect, useMemo, useState} from 'react';
-import {useOutletContext} from 'react-router-dom';
 
 import Page from '../../../../components/Page';
-import {useMarketplaceContext} from '../../../../context/MarketplaceContext';
-import {ORDER_TYPES, ORDER_WORKFLOW_STATUS_CODE} from '../../../../enums/Order';
+import {OrderTypes, OrderWorkflowStatusCode} from '../../../../enums/Order';
+import {useCustomerDashboardOutletContext} from '../../CustomerDashboardOutlet';
 import PurchasedSolutionsTable from '../../components/PurchasedSolutionsTable';
 import {usePurchasedOrders} from '../../usePurchasedOrders';
 
@@ -19,20 +18,16 @@ const Solutions = () => {
 	const [refreshInterval, setRefreshInterval] = useState(
 		DEFAULT_REFRESH_INTERVAL
 	);
-	const {channel} = useMarketplaceContext();
-	const {selectedAccount} = useOutletContext<any>();
-
+	const {selectedAccount} = useCustomerDashboardOutletContext();
 	const {
 		data: placedOrders = {items: []},
 		error,
 		isLoading,
 	} = usePurchasedOrders({
 		accountId: selectedAccount?.id,
-		channelId: channel?.id,
 		orderTypeExternalReferenceCodes: [
-			ORDER_TYPES.SOLUTIONS7,
-			ORDER_TYPES.SOLUTIONS30,
-			ORDER_TYPES.ADDONS,
+			OrderTypes.SOLUTIONS7,
+			OrderTypes.SOLUTIONS30,
 		],
 		page: 1,
 		pageSize: 20,
@@ -47,8 +42,8 @@ const Solutions = () => {
 	useEffect(() => {
 		const isProcessing = orderItems.some(({orderStatusInfo}) =>
 			[
-				ORDER_WORKFLOW_STATUS_CODE.PROCESSING,
-				ORDER_WORKFLOW_STATUS_CODE.ON_HOLD,
+				OrderWorkflowStatusCode.PROCESSING,
+				OrderWorkflowStatusCode.ON_HOLD,
 			].includes(orderStatusInfo.code)
 		);
 

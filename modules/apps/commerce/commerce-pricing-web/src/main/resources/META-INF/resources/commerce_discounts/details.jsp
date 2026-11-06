@@ -49,6 +49,8 @@ boolean hasPermission = commerceDiscountDisplayContext.hasPermission(ActionKeys.
 
 	<aui:model-context bean="<%= commerceDiscount %>" model="<%= CommerceDiscount.class %>" />
 
+	<liferay-ui:error exception="<%= CommerceDiscountAmountException.class %>" message="please-enter-a-valid-amount" />
+
 	<liferay-ui:error exception="<%= CommerceDiscountMaxPriceValueException.class %>">
 		<liferay-ui:message arguments="<%= CommercePriceConstants.PRICE_VALUE_MAX %>" key="price-max-value-is-x" />
 	</liferay-ui:error>
@@ -150,7 +152,7 @@ boolean hasPermission = commerceDiscountDisplayContext.hasPermission(ActionKeys.
 		<div class="col-12 col-xl-4">
 			<commerce-ui:panel
 				bodyClasses="flex-fill"
-				title='<%= LanguageUtil.get(request, "schedule") %>'
+				title='<%= LanguageUtil.get(request, "schedule[noun]") %>'
 			>
 				<liferay-ui:error exception="<%= CommerceDiscountExpirationDateException.class %>" message="please-select-a-valid-expiration-date" />
 

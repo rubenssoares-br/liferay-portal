@@ -16,10 +16,6 @@
 			width: 14rem;
 		}
 
-		&:focus {
-			box-shadow: none !important;
-		}
-
 		&:hover {
 			background-color: rgba(39, 40, 51, 0.03);
 		}
@@ -82,7 +78,7 @@
 			height: 100%;
 
 			.accounts-list {
-				flex-grow: 1;
+				flex-grow: 0.98;
 			}
 
 			.btn-primary {
@@ -98,6 +94,7 @@
 
 			.inline-scroller {
 				height: 100%;
+				max-height: 200px;
 			}
 
 			.item-list-head .btn {
@@ -114,7 +111,13 @@
 
 			.orders-table {
 				a {
+					color: var(--black);
+					cursor: pointer;
 					text-decoration: none;
+
+					&:hover {
+						text-decoration: underline;
+					}
 				}
 
 				tr {
@@ -123,9 +126,16 @@
 				}
 			}
 
-			.item-list-head .btn {
-				left: 0.5rem;
-				position: absolute;
+			.item-list-head {
+				.btn {
+					left: 0.5rem;
+					position: absolute;
+				}
+
+				.text-truncate-inline {
+					max-width: calc(100% - 1rem);
+					padding-left: 1.5rem;
+				}
 			}
 		}
 	}

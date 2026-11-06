@@ -19,7 +19,6 @@ import com.liferay.frontend.data.set.model.FDSActionDropdownItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.DropdownItem;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -42,6 +41,13 @@ import com.liferay.portal.kernel.util.ResourceBundleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletRequest;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -50,14 +56,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.ResourceBundle;
-
-import javax.portlet.PortletRequest;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -74,11 +72,8 @@ public class OrderItemsDataSetFragmentRenderer implements FragmentRenderer {
 	}
 
 	@Override
-	public String getConfiguration(
+	public JSONObject getConfigurationJSONObject(
 		FragmentRendererContext fragmentRendererContext) {
-
-		ResourceBundle resourceBundle = ResourceBundleUtil.getBundle(
-			"content.Language", getClass());
 
 		try {
 			JSONObject jsonObject = _jsonFactory.createJSONObject(
@@ -87,14 +82,15 @@ public class OrderItemsDataSetFragmentRenderer implements FragmentRenderer {
 					"order_items_data_set/dependencies/configuration.json"));
 
 			return _fragmentEntryConfigurationParser.translateConfiguration(
-				jsonObject, resourceBundle);
+				jsonObject,
+				ResourceBundleUtil.getBundle("content.Language", getClass()));
 		}
 		catch (JSONException jsonException) {
 			if (_log.isDebugEnabled()) {
 				_log.debug(jsonException);
 			}
 
-			return StringPool.BLANK;
+			return null;
 		}
 	}
 
@@ -106,11 +102,6 @@ public class OrderItemsDataSetFragmentRenderer implements FragmentRenderer {
 	@Override
 	public String getLabel(Locale locale) {
 		return _language.get(locale, "order-items-data-set");
-	}
-
-	@Override
-	public boolean isSelectable(HttpServletRequest httpServletRequest) {
-		return FeatureFlagManagerUtil.isEnabled("LPD-20379");
 	}
 
 	@Override
@@ -204,8 +195,8 @@ public class OrderItemsDataSetFragmentRenderer implements FragmentRenderer {
 
 		return GetterUtil.getString(
 			_fragmentEntryConfigurationParser.getFieldValue(
-				getConfiguration(fragmentRendererContext),
-				fragmentEntryLink.getEditableValues(),
+				getConfigurationJSONObject(fragmentRendererContext),
+				fragmentEntryLink.getEditableValuesJSONObject(),
 				fragmentRendererContext.getLocale(), name));
 	}
 
@@ -306,41 +297,23 @@ public class OrderItemsDataSetFragmentRenderer implements FragmentRenderer {
 		String layoutMode = ParamUtil.getString(
 			originalHttpServletRequest, "p_l_mode", Constants.VIEW);
 
-		if (layoutMode.equals(Constants.EDIT)) {
-			return true;
-		}
-
-		return false;
+		return layoutMode.equals(Constants.EDIT);
 	}
 
 	private void _printPortletMessageInfo(
-		HttpServletRequest httpServletRequest,
-		HttpServletResponse httpServletResponse) {
+			HttpServletRequest httpServletRequest,
+			HttpServletResponse httpServletResponse)
+		throws IOException {
 
-		try {
-			PrintWriter printWriter = httpServletResponse.getWriter();
+		PrintWriter printWriter = httpServletResponse.getWriter();
 
-			StringBundler sb = new StringBundler(3);
-
-			sb.append("<div class=\"portlet-msg-info\">");
-
-			ThemeDisplay themeDisplay =
-				(ThemeDisplay)httpServletRequest.getAttribute(
-					WebKeys.THEME_DISPLAY);
-
-			sb.append(
-				themeDisplay.translate(
-					"the-order-items-data-set-component-will-be-shown-here"));
-
-			sb.append("</div>");
-
-			printWriter.write(sb.toString());
-		}
-		catch (IOException ioException) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(ioException);
-			}
-		}
+		printWriter.write(
+			StringBundler.concat(
+				"<div class=\"portlet-msg-info\">",
+				_language.get(
+					httpServletRequest,
+					"the-order-items-data-set-component-will-be-shown-here"),
+				"</div>"));
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

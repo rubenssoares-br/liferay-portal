@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductOptionValue")
+@GraphQLName(
+	description = "Selectable value of a product option with an optional price impact and link to a specific SKU variant.",
+	value = "ProductOptionValue"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Selectable value of a product option with an optional price impact and link to a specific SKU variant."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ProductOptionValue")
 public class ProductOptionValue implements Serializable {
@@ -51,7 +58,10 @@ public class ProductOptionValue implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the option-value binding on the product (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -83,14 +93,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the option-value binding on the product (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized informational message displayed next to the value. Read-only.",
+		example = "Only 3 left in stock."
+	)
 	public String getInfoMessage() {
 		if (_infoMessageSupplier != null) {
 			infoMessage = _infoMessageSupplier.get();
@@ -124,14 +139,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized informational message displayed next to the value. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String infoMessage;
 
 	@JsonIgnore
 	private Supplier<String> _infoMessageSupplier;
 
-	@Schema(example = "black")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable key identifying the value within its option.",
+		example = "black"
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -163,14 +183,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Stable key identifying the value within its option."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String key;
 
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized display name of the value, resolved for the request locale. Filterable, sortable, and matched by the search query parameter on the option-value list endpoint.",
+		example = "Red"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -202,14 +227,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized display name of the value, resolved for the request locale. Filterable, sortable, and matched by the search query parameter on the option-value list endpoint."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the value is selected by default when the option is rendered. Read-only.",
+		example = "true"
+	)
 	public Boolean getPreselected() {
 		if (_preselectedSupplier != null) {
 			preselected = _preselectedSupplier.get();
@@ -243,14 +273,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the value is selected by default when the option is rendered. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean preselected;
 
 	@JsonIgnore
 	private Supplier<Boolean> _preselectedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Formatted price delta applied when this value is selected; the sign matches priceType. Read-only.",
+		example = "$10.00"
+	)
 	public String getPrice() {
 		if (_priceSupplier != null) {
 			price = _priceSupplier.get();
@@ -284,14 +319,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Formatted price delta applied when this value is selected; the sign matches priceType. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String price;
 
 	@JsonIgnore
 	private Supplier<String> _priceSupplier;
 
-	@Schema(example = "static")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Pricing strategy applied to the value's price delta. Read-only.",
+		example = "static"
+	)
 	public String getPriceType() {
 		if (_priceTypeSupplier != null) {
 			priceType = _priceTypeSupplier.get();
@@ -325,14 +365,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Pricing strategy applied to the value's price delta. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String priceType;
 
 	@JsonIgnore
 	private Supplier<String> _priceTypeSupplier;
 
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display priority within the option's values; lower values sort first. Sortable via the OData query parameter.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -366,7 +411,9 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display priority within the option's values; lower values sort first. Sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
@@ -374,7 +421,10 @@ public class ProductOptionValue implements Serializable {
 	private Supplier<Double> _prioritySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the owning product option binding (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getProductOptionId() {
 		if (_productOptionIdSupplier != null) {
 			productOptionId = _productOptionIdSupplier.get();
@@ -408,14 +458,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the owning product option binding (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long productOptionId;
 
 	@JsonIgnore
 	private Supplier<Long> _productOptionIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Inventory quantity bound to the value when the option is configured as a SKU contributor. Read-only.",
+		example = "1"
+	)
 	public String getQuantity() {
 		if (_quantitySupplier != null) {
 			quantity = _quantitySupplier.get();
@@ -449,14 +504,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Inventory quantity bound to the value when the option is configured as a SKU contributor. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String quantity;
 
 	@JsonIgnore
 	private Supplier<String> _quantitySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Formatted relative price contribution rendered with the appropriate sign and currency symbol. Read-only.",
+		example = "+$10.00"
+	)
 	public String getRelativePriceFormatted() {
 		if (_relativePriceFormattedSupplier != null) {
 			relativePriceFormatted = _relativePriceFormattedSupplier.get();
@@ -491,14 +551,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Formatted relative price contribution rendered with the appropriate sign and currency symbol. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String relativePriceFormatted;
 
 	@JsonIgnore
 	private Supplier<String> _relativePriceFormattedSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the value can currently be selected given the other selections and stock. Read-only; computed at response time.",
+		example = "true"
+	)
 	public Boolean getSelectable() {
 		if (_selectableSupplier != null) {
 			selectable = _selectableSupplier.get();
@@ -532,14 +597,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the value can currently be selected given the other selections and stock. Read-only; computed at response time."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean selectable;
 
 	@JsonIgnore
 	private Supplier<Boolean> _selectableSupplier;
 
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the SKU bound to this value when the option is a SKU contributor (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getSkuId() {
 		if (_skuIdSupplier != null) {
 			skuId = _skuIdSupplier.get();
@@ -571,14 +641,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the SKU bound to this value when the option is a SKU contributor (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long skuId;
 
 	@JsonIgnore
 	private Supplier<Long> _skuIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Formatted resolved total price for the product when this value is selected. Read-only.",
+		example = "$25.99"
+	)
 	public String getTotalPrice() {
 		if (_totalPriceSupplier != null) {
 			totalPrice = _totalPriceSupplier.get();
@@ -612,14 +687,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Formatted resolved total price for the product when this value is selected. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String totalPrice;
 
 	@JsonIgnore
 	private Supplier<String> _totalPriceSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Key of the unit of measure the value is priced against. Read-only.",
+		example = "EA"
+	)
 	public String getUnitOfMeasureKey() {
 		if (_unitOfMeasureKeySupplier != null) {
 			unitOfMeasureKey = _unitOfMeasureKeySupplier.get();
@@ -653,14 +733,19 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Key of the unit of measure the value is priced against. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String unitOfMeasureKey;
 
 	@JsonIgnore
 	private Supplier<String> _unitOfMeasureKeySupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the value is visible in the storefront. Read-only.",
+		example = "true"
+	)
 	public Boolean getVisible() {
 		if (_visibleSupplier != null) {
 			visible = _visibleSupplier.get();
@@ -694,7 +779,9 @@ public class ProductOptionValue implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the value is visible in the storefront. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean visible;
 
@@ -961,8 +1048,8 @@ public class ProductOptionValue implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.ProductOptionValue",
 		name = "x-class-name"
 	)
@@ -1049,6 +1136,27 @@ public class ProductOptionValue implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1057,3 +1165,4 @@ public class ProductOptionValue implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2096216619

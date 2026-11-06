@@ -116,9 +116,7 @@ public class DefinitionPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		Definition newDefinition = _persistence.create(pk);
+		Definition newDefinition = addDefinition();
 
 		newDefinition.setUuid(RandomTestUtil.randomString());
 
@@ -146,7 +144,9 @@ public class DefinitionPersistenceTest {
 
 		newDefinition.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_definitions.add(_persistence.update(newDefinition));
+		newDefinition = _persistence.update(newDefinition);
+
+		_definitions.add(newDefinition);
 
 		Definition existingDefinition = _persistence.findByPrimaryKey(
 			newDefinition.getPrimaryKey());
@@ -219,13 +219,6 @@ public class DefinitionPersistenceTest {
 		_persistence.countByGroupId(RandomTestUtil.nextLong());
 
 		_persistence.countByGroupId(0L);
-	}
-
-	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
 	}
 
 	@Test
@@ -597,3 +590,4 @@ public class DefinitionPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-992505069

@@ -25,7 +25,6 @@ import com.liferay.portal.vulcan.fields.NestedFieldId;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
@@ -76,7 +75,8 @@ public class ProductSpecificationResourceImpl
 		throws Exception {
 
 		CPDefinition cpDefinition =
-			_cpDefinitionLocalService.fetchCPDefinitionByCProductId(productId);
+			_cpDefinitionLocalService.fetchCPDefinitionByCProductId(
+				productId, true);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
@@ -87,18 +87,18 @@ public class ProductSpecificationResourceImpl
 			cpDefinitionSpecificationOptionValues =
 				_cpDefinitionSpecificationOptionValueLocalService.
 					getCPDefinitionSpecificationOptionValues(
-						cpDefinition.getCPDefinitionId(),
+						cpDefinition.getCPDefinitionId(), true,
 						pagination.getStartPosition(),
 						pagination.getEndPosition(), null);
 
-		int totalItems =
+		int totalCount =
 			_cpDefinitionSpecificationOptionValueLocalService.
 				getCPDefinitionSpecificationOptionValuesCount(
-					cpDefinition.getCPDefinitionId());
+					cpDefinition.getCPDefinitionId(), true);
 
 		return Page.of(
 			_toProductSpecifications(cpDefinitionSpecificationOptionValues),
-			pagination, totalItems);
+			pagination, totalCount);
 	}
 
 	private List<ProductSpecification> _toProductSpecifications(
@@ -106,22 +106,18 @@ public class ProductSpecificationResourceImpl
 				cpDefinitionSpecificationOptionValues)
 		throws Exception {
 
-		List<ProductSpecification> productSpecifications = new ArrayList<>();
-
-		for (CPDefinitionSpecificationOptionValue
-				cpDefinitionSpecificationOptionValue :
-					cpDefinitionSpecificationOptionValues) {
-
-			productSpecifications.add(
+		return transform(
+			cpDefinitionSpecificationOptionValues,
+			cpDefinitionSpecificationOptionValue ->
 				_productSpecificationDTOConverter.toDTO(
 					new DefaultDTOConverterContext(
 						cpDefinitionSpecificationOptionValue.
 							getCPDefinitionSpecificationOptionValueId(),
 						contextAcceptLanguage.getPreferredLocale())));
-		}
-
-		return productSpecifications;
 	}
+
+	@Reference
+	private CProductLocalService _cProductLocalService;
 
 	@Reference
 	private CommerceChannelLocalService _commerceChannelLocalService;
@@ -132,9 +128,6 @@ public class ProductSpecificationResourceImpl
 	@Reference
 	private CPDefinitionSpecificationOptionValueLocalService
 		_cpDefinitionSpecificationOptionValueLocalService;
-
-	@Reference
-	private CProductLocalService _cProductLocalService;
 
 	@Reference(
 		target = "(component.name=com.liferay.headless.commerce.delivery.catalog.internal.dto.v1_0.converter.ProductSpecificationDTOConverter)"

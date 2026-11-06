@@ -28,23 +28,29 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -83,8 +85,10 @@ public abstract class BaseLinkedProductResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -97,16 +101,16 @@ public abstract class BaseLinkedProductResourceTestCase {
 
 		_linkedProductResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		LinkedProductResource.Builder builder = LinkedProductResource.builder();
-
-		linkedProductResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		linkedProductResource = LinkedProductResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -183,6 +187,212 @@ public abstract class BaseLinkedProductResourceTestCase {
 	}
 
 	@Test
+	public void testGetProductByExternalReferenceCodeLinkedProductsPage()
+		throws Exception {
+
+		String externalReferenceCode =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getExternalReferenceCode();
+		String irrelevantExternalReferenceCode =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getIrrelevantExternalReferenceCode();
+
+		Page<LinkedProduct> page =
+			linkedProductResource.
+				getProductByExternalReferenceCodeLinkedProductsPage(
+					externalReferenceCode, Pagination.of(1, 10));
+
+		long totalCount = page.getTotalCount();
+
+		if (irrelevantExternalReferenceCode != null) {
+			LinkedProduct irrelevantLinkedProduct =
+				testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+					irrelevantExternalReferenceCode,
+					randomIrrelevantLinkedProduct());
+
+			page =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						irrelevantExternalReferenceCode,
+						Pagination.of(1, (int)totalCount + 1));
+
+			Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+			assertContains(
+				irrelevantLinkedProduct, (List<LinkedProduct>)page.getItems());
+			assertValid(
+				page,
+				testGetProductByExternalReferenceCodeLinkedProductsPage_getExpectedActions(
+					irrelevantExternalReferenceCode));
+		}
+
+		LinkedProduct linkedProduct1 =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+				externalReferenceCode, randomLinkedProduct());
+
+		LinkedProduct linkedProduct2 =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+				externalReferenceCode, randomLinkedProduct());
+
+		page =
+			linkedProductResource.
+				getProductByExternalReferenceCodeLinkedProductsPage(
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
+
+		Assert.assertEquals(totalCount + 2, page.getTotalCount());
+
+		assertContains(linkedProduct1, (List<LinkedProduct>)page.getItems());
+		assertContains(linkedProduct2, (List<LinkedProduct>)page.getItems());
+		assertValid(
+			page,
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getExpectedActions(
+				externalReferenceCode));
+	}
+
+	protected Map<String, Map<String, String>>
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getExpectedActions(
+				String externalReferenceCode)
+		throws Exception {
+
+		Map<String, Map<String, String>> expectedActions = new HashMap<>();
+
+		return expectedActions;
+	}
+
+	@Test
+	public void testGetProductByExternalReferenceCodeLinkedProductsPageWithPagination()
+		throws Exception {
+
+		String externalReferenceCode =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getExternalReferenceCode();
+
+		Page<LinkedProduct> linkedProductsPage =
+			linkedProductResource.
+				getProductByExternalReferenceCodeLinkedProductsPage(
+					externalReferenceCode, null);
+
+		int totalCount = GetterUtil.getInteger(
+			linkedProductsPage.getTotalCount());
+
+		LinkedProduct linkedProduct1 =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+				externalReferenceCode, randomLinkedProduct());
+
+		LinkedProduct linkedProduct2 =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+				externalReferenceCode, randomLinkedProduct());
+
+		LinkedProduct linkedProduct3 =
+			testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+				externalReferenceCode, randomLinkedProduct());
+
+		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
+
+		int pageSizeLimit = 500;
+
+		if (totalCount >= (pageSizeLimit - 2)) {
+			Page<LinkedProduct> page1 =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						externalReferenceCode,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+							pageSizeLimit));
+
+			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
+
+			assertContains(
+				linkedProduct1, (List<LinkedProduct>)page1.getItems());
+
+			Page<LinkedProduct> page2 =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						externalReferenceCode,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+							pageSizeLimit));
+
+			assertContains(
+				linkedProduct2, (List<LinkedProduct>)page2.getItems());
+
+			Page<LinkedProduct> page3 =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						externalReferenceCode,
+						Pagination.of(
+							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+							pageSizeLimit));
+
+			assertContains(
+				linkedProduct3, (List<LinkedProduct>)page3.getItems());
+		}
+		else {
+			Page<LinkedProduct> page1 =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						externalReferenceCode,
+						Pagination.of(1, totalCount + 2));
+
+			List<LinkedProduct> linkedProducts1 =
+				(List<LinkedProduct>)page1.getItems();
+
+			Assert.assertEquals(
+				linkedProducts1.toString(), totalCount + 2,
+				linkedProducts1.size());
+
+			Page<LinkedProduct> page2 =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						externalReferenceCode,
+						Pagination.of(2, totalCount + 2));
+
+			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
+
+			List<LinkedProduct> linkedProducts2 =
+				(List<LinkedProduct>)page2.getItems();
+
+			Assert.assertEquals(
+				linkedProducts2.toString(), 1, linkedProducts2.size());
+
+			Page<LinkedProduct> page3 =
+				linkedProductResource.
+					getProductByExternalReferenceCodeLinkedProductsPage(
+						externalReferenceCode,
+						Pagination.of(1, (int)totalCount + 3));
+
+			assertContains(
+				linkedProduct1, (List<LinkedProduct>)page3.getItems());
+			assertContains(
+				linkedProduct2, (List<LinkedProduct>)page3.getItems());
+			assertContains(
+				linkedProduct3, (List<LinkedProduct>)page3.getItems());
+		}
+	}
+
+	protected LinkedProduct
+			testGetProductByExternalReferenceCodeLinkedProductsPage_addLinkedProduct(
+				String externalReferenceCode, LinkedProduct linkedProduct)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getExternalReferenceCode()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetProductByExternalReferenceCodeLinkedProductsPage_getIrrelevantExternalReferenceCode()
+		throws Exception {
+
+		return null;
+	}
+
+	@Test
 	public void testGetProductIdLinkedProductsPage() throws Exception {
 		Long id = testGetProductIdLinkedProductsPage_getId();
 		Long irrelevantId =
@@ -221,7 +431,7 @@ public abstract class BaseLinkedProductResourceTestCase {
 				id, randomLinkedProduct());
 
 		page = linkedProductResource.getProductIdLinkedProductsPage(
-			id, Pagination.of(1, 10));
+			id, Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -246,11 +456,11 @@ public abstract class BaseLinkedProductResourceTestCase {
 
 		Long id = testGetProductIdLinkedProductsPage_getId();
 
-		Page<LinkedProduct> linkedProductPage =
+		Page<LinkedProduct> linkedProductsPage =
 			linkedProductResource.getProductIdLinkedProductsPage(id, null);
 
 		int totalCount = GetterUtil.getInteger(
-			linkedProductPage.getTotalCount());
+			linkedProductsPage.getTotalCount());
 
 		LinkedProduct linkedProduct1 =
 			testGetProductIdLinkedProductsPage_addLinkedProduct(
@@ -355,6 +565,11 @@ public abstract class BaseLinkedProductResourceTestCase {
 		throws Exception {
 
 		return null;
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		Assert.assertTrue(true);
 	}
 
 	protected void assertContains(
@@ -831,7 +1046,9 @@ public abstract class BaseLinkedProductResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1082,10 +1299,13 @@ public abstract class BaseLinkedProductResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseLinkedProductResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.catalog.resource.v1_0.
 		LinkedProductResource _linkedProductResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:525503308

@@ -78,6 +78,7 @@ export function updateUsedWidget({item, used = true, widgets}) {
 const normalizeWidget = (widget) => {
 	return {
 		data: {
+			deprecated: widget.deprecated,
 			instanceable: widget.instanceable,
 			portletId: widget.portletId,
 			portletItemId: widget.portletItemId || null,
@@ -182,7 +183,9 @@ const AddPanel = ({
 								{
 									children: contents.map(normalizeContent),
 									collectionId: 'recent-content',
-									label: Liferay.Language.get('recent'),
+									label: Liferay.Language.get(
+										'recent[items]'
+									),
 								},
 							],
 							id: 'content',

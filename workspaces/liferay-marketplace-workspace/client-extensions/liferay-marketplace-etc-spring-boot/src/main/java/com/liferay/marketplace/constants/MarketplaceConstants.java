@@ -5,12 +5,41 @@
 
 package com.liferay.marketplace.constants;
 
+import java.util.Objects;
+
 /**
  * @author Keven Leone
  */
 public class MarketplaceConstants {
 
+	public static final String[] KORONEIKI_AC_ENTITLEMENTS = {
+		"Liferay Analytics Cloud"
+	};
+
+	public static final String[] KORONEIKI_DXP_ENTITLEMENTS = {
+		"DXP", "Liferay SaaS", "Liferay Self-Hosted", "Liferay PaaS"
+	};
+
+	public static final String ORDER_PAYMENT_METHOD_MONEY_ORDER = "money-order";
+
+	public static final String ORDER_PAYMENT_METHOD_MONEY_ORDER_LABEL =
+		"Invoice";
+
+	public static final String ORDER_PAYMENT_METHOD_PAYPAL =
+		"paypal-integration";
+
+	public static final String ORDER_PAYMENT_METHOD_PAYPAL_LABEL = "PayPal";
+
+	public static final int ORDER_PAYMENT_STATUS_AUTHORIZED = 2;
+
+	public static final String ORDER_PAYMENT_STATUS_AUTHORIZED_LABEL =
+		"Authorized";
+
 	public static final int ORDER_PAYMENT_STATUS_COMPLETED = 0;
+
+	public static final int ORDER_PAYMENT_STATUS_NOT_REQUIRED = 23;
+
+	public static final int ORDER_PAYMENT_STATUS_PENDING = 1;
 
 	public static final int ORDER_STATUS_CANCELLED = 8;
 
@@ -39,6 +68,55 @@ public class MarketplaceConstants {
 	public static final int ORDER_STATUS_PROCESSING = 10;
 
 	public static final String ORDER_STATUS_PROCESSING_LABEL = "Processing";
+
+	public static final String PAYMENT_STATUS_COMPLETED_LABEL = "Completed";
+
+	public static final String PAYMENT_STATUS_NOT_REQUIRED_LABEL =
+		"Not Required";
+
+	public static final String PAYMENT_STATUS_PENDING_LABEL = "Pending";
+
+	public static final String PUBSUB_TOPIC_NAME_KORONEIKI_ACCOUNT_CREATE =
+		"koroneiki.account.create";
+
+	public static final String PUBSUB_TOPIC_NAME_KORONEIKI_ACCOUNT_UPDATE =
+		"koroneiki.account.update";
+
+	public static final String
+		PUBSUB_TOPIC_NAME_KORONEIKI_PRODUCT_PURCHASE_CREATE =
+			"koroneiki.productpurchase.create";
+
+	public static String getOrderPaymentMethodLabel(String paymentMethod) {
+		if (Objects.equals(paymentMethod, ORDER_PAYMENT_METHOD_MONEY_ORDER)) {
+			return ORDER_PAYMENT_METHOD_MONEY_ORDER_LABEL;
+		}
+
+		if (Objects.equals(paymentMethod, ORDER_PAYMENT_METHOD_PAYPAL)) {
+			return ORDER_PAYMENT_METHOD_PAYPAL_LABEL;
+		}
+
+		return null;
+	}
+
+	public static String getOrderPaymentStatusLabel(int paymentStatus) {
+		if (paymentStatus == ORDER_PAYMENT_STATUS_AUTHORIZED) {
+			return ORDER_PAYMENT_STATUS_AUTHORIZED_LABEL;
+		}
+
+		if (paymentStatus == ORDER_PAYMENT_STATUS_COMPLETED) {
+			return PAYMENT_STATUS_COMPLETED_LABEL;
+		}
+
+		if (paymentStatus == ORDER_PAYMENT_STATUS_NOT_REQUIRED) {
+			return PAYMENT_STATUS_NOT_REQUIRED_LABEL;
+		}
+
+		if (paymentStatus == ORDER_PAYMENT_STATUS_PENDING) {
+			return PAYMENT_STATUS_PENDING_LABEL;
+		}
+
+		return null;
+	}
 
 	public static String getOrderStatusLabel(int orderStatus) {
 		if (orderStatus == ORDER_STATUS_CANCELLED) {

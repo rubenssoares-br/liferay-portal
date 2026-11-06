@@ -348,6 +348,13 @@ public class KBArticleLocalServiceUtil {
 		return getService().fetchKBArticle(resourcePrimKey, groupId, version);
 	}
 
+	public static KBArticle fetchKBArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int version) {
+
+		return getService().fetchKBArticleByExternalReferenceCode(
+			groupId, externalReferenceCode, version);
+	}
+
 	public static KBArticle fetchKBArticleByUrlTitle(
 		long groupId, long kbFolderId, String urlTitle) {
 
@@ -394,6 +401,13 @@ public class KBArticleLocalServiceUtil {
 			groupId, externalReferenceCode);
 	}
 
+	public static KBArticle fetchLatestKBArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int status) {
+
+		return getService().fetchLatestKBArticleByExternalReferenceCode(
+			groupId, externalReferenceCode, status);
+	}
+
 	public static KBArticle fetchLatestKBArticleByUrlTitle(
 		long groupId, long kbFolderId, String urlTitle, int status) {
 
@@ -419,18 +433,6 @@ public class KBArticleLocalServiceUtil {
 
 		return getService().getAllDescendantKBArticles(
 			resourcePrimKey, status, orderByComparator);
-	}
-
-	public static List<KBArticle> getCompanyKBArticles(
-		long companyId, int status, int start, int end,
-		OrderByComparator<KBArticle> orderByComparator) {
-
-		return getService().getCompanyKBArticles(
-			companyId, status, start, end, orderByComparator);
-	}
-
-	public static int getCompanyKBArticlesCount(long companyId, int status) {
-		return getService().getCompanyKBArticlesCount(companyId, status);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
@@ -609,19 +611,6 @@ public class KBArticleLocalServiceUtil {
 		long resourcePrimKey, int status) {
 
 		return getService().getKBArticleVersionsCount(resourcePrimKey, status);
-	}
-
-	public static List<KBArticle> getKBFolderKBArticles(
-		long groupId, long kbFolderId) {
-
-		return getService().getKBFolderKBArticles(groupId, kbFolderId);
-	}
-
-	public static int getKBFolderKBArticlesCount(
-		long groupId, long kbFolderId, int status) {
-
-		return getService().getKBFolderKBArticlesCount(
-			groupId, kbFolderId, status);
 	}
 
 	public static KBArticle getLatestKBArticle(long resourcePrimKey)
@@ -939,3 +928,4 @@ public class KBArticleLocalServiceUtil {
 			KBArticleLocalServiceUtil.class, KBArticleLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:832520171

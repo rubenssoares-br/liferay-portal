@@ -52,11 +52,11 @@ function getCollectionItem() {
 	};
 }
 
-function getContainer() {
+function getContainer({itemId = IDS.container, children = []} = {}) {
 	return {
-		children: [],
+		children,
 		config: {},
-		itemId: IDS.container,
+		itemId,
 		type: LAYOUT_DATA_ITEM_TYPES.container,
 	};
 }
@@ -144,11 +144,13 @@ describe('checkAllowedChild', () => {
 			const grid = getGrid();
 			const form = getForm({formType: 'multistep'});
 
-			expect(checkAllowedChild(container, form, {}, {}, () => [])).toBe(
+			expect(
+				checkAllowedChild(container, form, {}, {}, () => []).valid
+			).toBe(false);
+
+			expect(checkAllowedChild(grid, form, {}, {}, () => []).valid).toBe(
 				false
 			);
-
-			expect(checkAllowedChild(grid, form, {}, {}, () => [])).toBe(false);
 		});
 
 		it('it is not possible to add standard fragments and inputs to a form if it is multistep', () => {
@@ -156,11 +158,11 @@ describe('checkAllowedChild', () => {
 			const input = getFragment({fragmentEntryType: 'input'});
 			const form = getForm({formType: 'multistep'});
 
-			expect(checkAllowedChild(fragment, form, {}, {}, () => [])).toBe(
-				false
-			);
+			expect(
+				checkAllowedChild(fragment, form, {}, {}, () => []).valid
+			).toBe(false);
 
-			expect(checkAllowedChild(input, form, {}, {}, () => [])).toBe(
+			expect(checkAllowedChild(input, form, {}, {}, () => []).valid).toBe(
 				false
 			);
 		});
@@ -180,10 +182,12 @@ describe('checkAllowedChild', () => {
 
 			expect(
 				checkAllowedChild(fragment, formStep, layoutData, {}, () => [])
+					.valid
 			).toBe(true);
 
 			expect(
 				checkAllowedChild(input, formStep, layoutData, {}, () => [])
+					.valid
 			).toBe(true);
 		});
 
@@ -191,18 +195,18 @@ describe('checkAllowedChild', () => {
 			const fragment = getFragment();
 			const form = getForm();
 
-			expect(checkAllowedChild(fragment, form, {}, {}, () => [])).toBe(
-				true
-			);
+			expect(
+				checkAllowedChild(fragment, form, {}, {}, () => []).valid
+			).toBe(true);
 		});
 
 		it('it is not possible to add widgets to a form', () => {
 			const widget = getFragment({isWidget: true});
 			const form = getForm();
 
-			expect(checkAllowedChild(widget, form, {}, {}, () => [])).toBe(
-				false
-			);
+			expect(
+				checkAllowedChild(widget, form, {}, {}, () => []).valid
+			).toBe(false);
 		});
 	});
 
@@ -214,9 +218,30 @@ describe('checkAllowedChild', () => {
 
 			const container = getContainer();
 
-			expect(checkAllowedChild(input, container, {}, {}, () => [])).toBe(
-				false
-			);
+			const layoutData = {
+				items: {
+					[input.itemId]: input,
+					[IDS.container]: container,
+				},
+			};
+
+			const fragmentEntryLinks = {
+				[input.config.fragmentEntryLinkId]: {
+					fieldTypes: ['text'],
+					fragmentEntryLinkId: input.config.fragmentEntryLinkId,
+					fragmentEntryType: 'input',
+				},
+			};
+
+			expect(
+				checkAllowedChild(
+					input,
+					container,
+					layoutData,
+					fragmentEntryLinks,
+					() => []
+				).valid
+			).toBe(false);
 		});
 
 		it('it is possible to add inputs inside a form', () => {
@@ -226,7 +251,145 @@ describe('checkAllowedChild', () => {
 
 			const form = getForm();
 
-			expect(checkAllowedChild(input, form, {}, {}, () => [])).toBe(true);
+			expect(checkAllowedChild(input, form, {}, {}, () => []).valid).toBe(
+				true
+			);
+		});
+
+		it('it is not possible to move a container with input fragment outside a form', () => {
+			const container = getContainer();
+
+			const existingInput = getFragment({
+				fragmentEntryLinkId: 'input-fragment-id',
+				itemId: 'input-stepper-id',
+				parentId: IDS.container,
+			});
+
+			const innerContainer = getContainer({
+				children: [existingInput.itemId],
+				itemId: 'inner-container-id',
+			});
+
+			const form = getForm({
+				children: [innerContainer.itemId],
+			});
+
+			const layoutData = {
+				items: {
+					[IDS.form]: form,
+					[existingInput.itemId]: existingInput,
+					[IDS.container]: container,
+					[innerContainer.itemId]: innerContainer,
+				},
+			};
+
+			const fragmentEntryLinks = {
+				[existingInput.config.fragmentEntryLinkId]: {
+					fieldTypes: ['text'],
+					fragmentEntryLinkId:
+						existingInput.config.fragmentEntryLinkId,
+					fragmentEntryType: 'input',
+				},
+			};
+
+			expect(
+				checkAllowedChild(
+					innerContainer,
+					container,
+					layoutData,
+					fragmentEntryLinks,
+					() => []
+				).valid
+			).toBe(false);
+		});
+
+		it('it is possible to move a form container with input fragment outside a container', () => {
+			const container = getContainer();
+
+			const existingInput = getFragment({
+				fragmentEntryLinkId: 'input-fragment-id',
+				itemId: 'input-stepper-id',
+				parentId: IDS.container,
+			});
+
+			const form = getForm({
+				children: [existingInput],
+			});
+
+			const layoutData = {
+				items: {
+					[IDS.form]: form,
+					[existingInput.itemId]: existingInput,
+					[IDS.container]: container,
+				},
+			};
+
+			const fragmentEntryLinks = {
+				[existingInput.config.fragmentEntryLinkId]: {
+					fieldTypes: ['text'],
+					fragmentEntryLinkId:
+						existingInput.config.fragmentEntryLinkId,
+					fragmentEntryType: 'input',
+				},
+			};
+
+			expect(
+				checkAllowedChild(
+					form,
+					container,
+					layoutData,
+					fragmentEntryLinks,
+					() => []
+				).valid
+			).toBe(true);
+		});
+
+		it('it is possible to move a container with localizationSelectinput fragment outside a form', () => {
+			const container = getContainer();
+
+			const existingInput = getFragment({
+				fieldTypes: ['localizationSelect'],
+				fragmentEntryLinkId: 'input-fragment-id',
+				itemId: 'input-stepper-id',
+				parentId: IDS.container,
+			});
+
+			const innerContainer = getContainer({
+				children: [existingInput.itemId],
+				itemId: 'inner-container-id',
+			});
+
+			const form = getForm({
+				children: [innerContainer.itemId],
+			});
+
+			const layoutData = {
+				items: {
+					[IDS.form]: form,
+					[existingInput.itemId]: existingInput,
+					[IDS.container]: container,
+					[innerContainer.itemId]: innerContainer,
+				},
+			};
+
+			const fragmentEntryLinks = {
+				[existingInput.config.fragmentEntryLinkId]: {
+					fieldTypes: ['localizationSelect'],
+					fragmentEntryLinkId:
+						existingInput.config.fragmentEntryLinkId,
+					fragmentEntryType: 'input',
+				},
+			};
+
+			expect(
+				checkAllowedChild(
+					innerContainer,
+					container,
+					layoutData,
+					fragmentEntryLinks,
+					() => []
+				).valid
+			).toBe(true);
 		});
 	});
 
@@ -257,7 +420,7 @@ describe('checkAllowedChild', () => {
 			};
 
 			expect(
-				checkAllowedChild(stepper, form, layoutData, {}, () => [])
+				checkAllowedChild(stepper, form, layoutData, {}, () => []).valid
 			).toBe(true);
 
 			expect(
@@ -267,7 +430,7 @@ describe('checkAllowedChild', () => {
 					layoutDataWithMultistep,
 					{},
 					[]
-				)
+				).valid
 			).toBe(true);
 		});
 
@@ -289,6 +452,7 @@ describe('checkAllowedChild', () => {
 
 			expect(
 				checkAllowedChild(stepper, formStep, layoutData, {}, () => [])
+					.valid
 			).toBe(false);
 		});
 
@@ -301,7 +465,7 @@ describe('checkAllowedChild', () => {
 			const container = getContainer();
 
 			expect(
-				checkAllowedChild(stepper, container, {}, {}, () => [])
+				checkAllowedChild(stepper, container, {}, {}, () => []).valid
 			).toBe(false);
 		});
 
@@ -346,7 +510,7 @@ describe('checkAllowedChild', () => {
 					layoutData,
 					fragmentEntryLinks,
 					() => []
-				)
+				).valid
 			).toBe(false);
 		});
 	});
@@ -385,7 +549,7 @@ describe('checkAllowedChild', () => {
 					layoutData,
 					{},
 					() => widgets
-				)
+				).valid
 			).toBe(false);
 		});
 	});

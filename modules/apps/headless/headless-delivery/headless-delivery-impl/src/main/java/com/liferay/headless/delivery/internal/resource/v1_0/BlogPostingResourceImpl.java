@@ -19,7 +19,6 @@ import com.liferay.headless.delivery.dto.v1_0.BlogPosting;
 import com.liferay.headless.delivery.dto.v1_0.Image;
 import com.liferay.headless.delivery.dto.v1_0.Rating;
 import com.liferay.headless.delivery.dto.v1_0.TaxonomyCategoryBrief;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.DisplayPageRendererUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.RatingUtil;
 import com.liferay.headless.delivery.internal.odata.entity.v1_0.BlogPostingEntityModel;
@@ -27,13 +26,14 @@ import com.liferay.headless.delivery.resource.v1_0.BlogPostingResource;
 import com.liferay.info.item.InfoItemServiceRegistry;
 import com.liferay.layout.display.page.LayoutDisplayPageProviderRegistry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryService;
+import com.liferay.layout.util.LayoutServiceContextHelper;
 import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
-import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.servlet.taglib.ui.ImageSelector;
@@ -43,8 +43,8 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityModel;
-import com.liferay.portal.search.expando.ExpandoBridgeIndexer;
 import com.liferay.portal.vulcan.aggregation.Aggregation;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
@@ -54,10 +54,10 @@ import com.liferay.portal.vulcan.util.LocalDateTimeUtil;
 import com.liferay.portal.vulcan.util.SearchUtil;
 import com.liferay.ratings.kernel.service.RatingsEntryLocalService;
 
+import jakarta.ws.rs.core.MultivaluedMap;
+
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
-import javax.ws.rs.core.MultivaluedMap;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -120,10 +120,11 @@ public class BlogPostingResourceImpl extends BaseBlogPostingResourceImpl {
 
 		return DisplayPageRendererUtil.toHTML(
 			BlogsEntry.class.getName(), 0, displayPageKey,
-			blogsEntry.getGroupId(), contextHttpServletRequest,
-			contextHttpServletResponse, blogsEntry, _infoItemServiceRegistry,
-			_layoutDisplayPageProviderRegistry, _layoutLocalService,
-			_layoutPageTemplateEntryService);
+			blogsEntry.getGroupId(), contextHttpServletResponse, blogsEntry,
+			contextAcceptLanguage.getPreferredLocale(), contextUser,
+			_infoItemServiceRegistry, _layoutDisplayPageProviderRegistry,
+			_layoutService, _layoutPageTemplateEntryService,
+			_layoutServiceContextHelper);
 	}
 
 	@Override
@@ -131,8 +132,8 @@ public class BlogPostingResourceImpl extends BaseBlogPostingResourceImpl {
 		return new BlogPostingEntityModel(
 			EntityFieldsUtil.getEntityFields(
 				_portal.getClassNameId(BlogsEntry.class.getName()),
-				contextCompany.getCompanyId(), _expandoBridgeIndexer,
-				_expandoColumnLocalService, _expandoTableLocalService));
+				contextCompany.getCompanyId(), _expandoColumnLocalService,
+				_expandoTableLocalService));
 	}
 
 	@Override
@@ -143,6 +144,15 @@ public class BlogPostingResourceImpl extends BaseBlogPostingResourceImpl {
 		return _toBlogPosting(
 			_blogsEntryService.getBlogsEntryByExternalReferenceCode(
 				siteId, externalReferenceCode));
+	}
+
+	@Override
+	public BlogPosting getSiteBlogPostingByFriendlyUrlPath(
+			Long siteId, String friendlyUrlPath)
+		throws Exception {
+
+		return _toBlogPosting(
+			_blogsEntryService.getEntry(siteId, friendlyUrlPath));
 	}
 
 	@Override
@@ -479,9 +489,6 @@ public class BlogPostingResourceImpl extends BaseBlogPostingResourceImpl {
 	private DTOConverterRegistry _dtoConverterRegistry;
 
 	@Reference
-	private ExpandoBridgeIndexer _expandoBridgeIndexer;
-
-	@Reference
 	private ExpandoColumnLocalService _expandoColumnLocalService;
 
 	@Reference
@@ -495,10 +502,13 @@ public class BlogPostingResourceImpl extends BaseBlogPostingResourceImpl {
 		_layoutDisplayPageProviderRegistry;
 
 	@Reference
-	private LayoutLocalService _layoutLocalService;
+	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;
 
 	@Reference
-	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;
+	private LayoutService _layoutService;
+
+	@Reference
+	private LayoutServiceContextHelper _layoutServiceContextHelper;
 
 	@Reference
 	private Portal _portal;

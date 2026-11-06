@@ -5,33 +5,39 @@
 
 package com.liferay.headless.admin.site.dto.v1_0;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -42,9 +48,28 @@ import javax.xml.bind.annotation.XmlRootElement;
 	description = "A widget instance in a widget page.",
 	value = "WidgetPageWidgetInstance"
 )
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A widget instance in a widget page."
+)
 @JsonFilter("Liferay.Vulcan")
+@JsonSubTypes(
+	{
+		@JsonSubTypes.Type(
+			name = "BasicWidgetPageWidgetInstance",
+			value = BasicWidgetPageWidgetInstance.class
+		),
+		@JsonSubTypes.Type(
+			name = "NestedApplicationsWidgetPageWidgetInstance",
+			value = NestedApplicationsWidgetPageWidgetInstance.class
+		)
+	}
+)
+@JsonTypeInfo(
+	include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
+	use = JsonTypeInfo.Id.NAME, visible = true
+)
 @XmlRootElement(name = "WidgetPageWidgetInstance")
-public class WidgetPageWidgetInstance implements Serializable {
+public abstract class WidgetPageWidgetInstance implements Serializable {
 
 	public static WidgetPageWidgetInstance toDTO(String json) {
 		return ObjectMapperUtil.readValue(WidgetPageWidgetInstance.class, json);
@@ -55,7 +80,9 @@ public class WidgetPageWidgetInstance implements Serializable {
 			WidgetPageWidgetInstance.class, json);
 	}
 
-	@Schema(description = "The external reference code of the widget instance.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The external reference code of the widget instance."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -98,7 +125,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The section's ID of the widget page or the nested application widget instance this widget belongs to."
 	)
 	public String getParentSectionId() {
@@ -143,7 +170,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _parentSectionIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The external reference code of the parent widget instance. Only available if this widget instance is within a nested applications widget instance."
 	)
 	public String getParentWidgetInstanceExternalReferenceCode() {
@@ -195,7 +222,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 	private Supplier<String> _parentWidgetInstanceExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The 0-based position this widget instance occupies with respect to its siblings (0 for first child, 1 for second child, ...). If not specified when creating a widget instance the widget instance will be added at the last valid position."
 	)
 	public Integer getPosition() {
@@ -240,7 +267,59 @@ public class WidgetPageWidgetInstance implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _positionSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema
+	@JsonGetter("type")
+	@Valid
+	public Type getType() {
+		if (_typeSupplier != null) {
+			type = _typeSupplier.get();
+
+			_typeSupplier = null;
+		}
+
+		return type;
+	}
+
+	@JsonIgnore
+	public String getTypeAsString() {
+		Type type = getType();
+
+		if (type == null) {
+			return null;
+		}
+
+		return type.toString();
+	}
+
+	public void setType(Type type) {
+		this.type = type;
+
+		_typeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setType(UnsafeSupplier<Type, Exception> typeUnsafeSupplier) {
+		_typeSupplier = () -> {
+			try {
+				return typeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Type type;
+
+	@JsonIgnore
+	private Supplier<Type> _typeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The configuration keys and values of the widget instance."
 	)
 	@Valid
@@ -287,7 +366,9 @@ public class WidgetPageWidgetInstance implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Object>> _widgetConfigSupplier;
 
-	@Schema(description = "The widget instance's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The widget instance's ID."
+	)
 	public String getWidgetInstanceId() {
 		if (_widgetInstanceIdSupplier != null) {
 			widgetInstanceId = _widgetInstanceIdSupplier.get();
@@ -328,9 +409,11 @@ public class WidgetPageWidgetInstance implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _widgetInstanceIdSupplier;
 
-	@Schema(description = "The widget instance's look and feel configuration.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The widget instance's look and feel configuration."
+	)
 	@Valid
-	public WidgetLookAndFeelConfig[] getWidgetLookAndFeelConfig() {
+	public WidgetLookAndFeelConfig getWidgetLookAndFeelConfig() {
 		if (_widgetLookAndFeelConfigSupplier != null) {
 			widgetLookAndFeelConfig = _widgetLookAndFeelConfigSupplier.get();
 
@@ -341,7 +424,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 	}
 
 	public void setWidgetLookAndFeelConfig(
-		WidgetLookAndFeelConfig[] widgetLookAndFeelConfig) {
+		WidgetLookAndFeelConfig widgetLookAndFeelConfig) {
 
 		this.widgetLookAndFeelConfig = widgetLookAndFeelConfig;
 
@@ -350,7 +433,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 
 	@JsonIgnore
 	public void setWidgetLookAndFeelConfig(
-		UnsafeSupplier<WidgetLookAndFeelConfig[], Exception>
+		UnsafeSupplier<WidgetLookAndFeelConfig, Exception>
 			widgetLookAndFeelConfigUnsafeSupplier) {
 
 		_widgetLookAndFeelConfigSupplier = () -> {
@@ -370,13 +453,14 @@ public class WidgetPageWidgetInstance implements Serializable {
 		description = "The widget instance's look and feel configuration."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected WidgetLookAndFeelConfig[] widgetLookAndFeelConfig;
+	protected WidgetLookAndFeelConfig widgetLookAndFeelConfig;
 
 	@JsonIgnore
-	private Supplier<WidgetLookAndFeelConfig[]>
-		_widgetLookAndFeelConfigSupplier;
+	private Supplier<WidgetLookAndFeelConfig> _widgetLookAndFeelConfigSupplier;
 
-	@Schema(description = "The widget instance's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The widget instance's name."
+	)
 	public String getWidgetName() {
 		if (_widgetNameSupplier != null) {
 			widgetName = _widgetNameSupplier.get();
@@ -417,7 +501,9 @@ public class WidgetPageWidgetInstance implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _widgetNameSupplier;
 
-	@Schema(description = "The widget instance's permissions.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The widget instance's permissions."
+	)
 	@Valid
 	public WidgetPermission[] getWidgetPermissions() {
 		if (_widgetPermissionsSupplier != null) {
@@ -549,6 +635,20 @@ public class WidgetPageWidgetInstance implements Serializable {
 			sb.append(position);
 		}
 
+		Type type = getType();
+
+		if (type != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"type\": ");
+
+			sb.append("\"");
+			sb.append(type);
+			sb.append("\"");
+		}
+
 		Map<String, Object> widgetConfig = getWidgetConfig();
 
 		if (widgetConfig != null) {
@@ -577,7 +677,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 			sb.append("\"");
 		}
 
-		WidgetLookAndFeelConfig[] widgetLookAndFeelConfig =
+		WidgetLookAndFeelConfig widgetLookAndFeelConfig =
 			getWidgetLookAndFeelConfig();
 
 		if (widgetLookAndFeelConfig != null) {
@@ -587,17 +687,7 @@ public class WidgetPageWidgetInstance implements Serializable {
 
 			sb.append("\"widgetLookAndFeelConfig\": ");
 
-			sb.append("[");
-
-			for (int i = 0; i < widgetLookAndFeelConfig.length; i++) {
-				sb.append(String.valueOf(widgetLookAndFeelConfig[i]));
-
-				if ((i + 1) < widgetLookAndFeelConfig.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
+			sb.append(String.valueOf(widgetLookAndFeelConfig));
 		}
 
 		String widgetName = getWidgetName();
@@ -643,12 +733,52 @@ public class WidgetPageWidgetInstance implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.WidgetPageWidgetInstance",
 		name = "x-class-name"
 	)
 	public String xClassName;
+
+	@GraphQLName("Type")
+	public static enum Type {
+
+		BASIC_WIDGET_PAGE_WIDGET_INSTANCE("BasicWidgetPageWidgetInstance"),
+		NESTED_APPLICATIONS_WIDGET_PAGE_WIDGET_INSTANCE(
+			"NestedApplicationsWidgetPageWidgetInstance");
+
+		@JsonCreator
+		public static Type create(String value) {
+			if ((value == null) || value.equals("")) {
+				return null;
+			}
+
+			for (Type type : values()) {
+				if (Objects.equals(type.getValue(), value)) {
+					return type;
+				}
+			}
+
+			throw new IllegalArgumentException("Invalid enum value: " + value);
+		}
+
+		@JsonValue
+		public String getValue() {
+			return _value;
+		}
+
+		@Override
+		public String toString() {
+			return _value;
+		}
+
+		private Type(String value) {
+			_value = value;
+		}
+
+		private final String _value;
+
+	}
 
 	private static String _escape(Object object) {
 		return StringUtil.replace(
@@ -731,6 +861,27 @@ public class WidgetPageWidgetInstance implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -739,3 +890,4 @@ public class WidgetPageWidgetInstance implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1153931280

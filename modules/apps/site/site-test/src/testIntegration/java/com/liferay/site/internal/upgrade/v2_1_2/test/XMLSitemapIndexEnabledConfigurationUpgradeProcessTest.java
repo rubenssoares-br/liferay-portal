@@ -15,6 +15,7 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
@@ -22,7 +23,6 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.portal.upgrade.test.util.UpgradeTestUtil;
-import com.liferay.portal.util.PropsUtil;
 import com.liferay.site.configuration.manager.SitemapConfigurationManager;
 import com.liferay.site.constants.LegacySitemapIndexPropsKeys;
 
@@ -167,7 +167,7 @@ public class XMLSitemapIndexEnabledConfigurationUpgradeProcessTest {
 				_company.getCompanyId()));
 		Assert.assertEquals(
 			expectedXMLSitemapIndexEnabled,
-			_sitemapConfigurationManager.xmlSitemapIndexCompanyEnabled(
+			_sitemapConfigurationManager.isXMLSitemapIndexCompanyEnabled(
 				_company.getCompanyId()));
 	}
 
@@ -194,16 +194,6 @@ public class XMLSitemapIndexEnabledConfigurationUpgradeProcessTest {
 	private static Company _company;
 
 	@Inject
-	private static SitemapConfigurationManager _sitemapConfigurationManager;
-
-	@Inject(
-		filter = "(&(component.name=com.liferay.site.internal.upgrade.registry.SiteServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
-	private static String _xmlSitemapIndexEnabled;
-
-	@Inject
 	private ConfigurationAdmin _configurationAdmin;
 
 	@Inject
@@ -211,5 +201,15 @@ public class XMLSitemapIndexEnabledConfigurationUpgradeProcessTest {
 
 	@Inject
 	private MultiVMPool _multiVMPool;
+
+	@Inject
+	private SitemapConfigurationManager _sitemapConfigurationManager;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.site.internal.upgrade.registry.SiteServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
+
+	private String _xmlSitemapIndexEnabled;
 
 }

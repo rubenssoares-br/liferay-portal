@@ -16,6 +16,7 @@ import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseMVCActionCommand;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.servlet.SessionErrors;
@@ -26,10 +27,10 @@ import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.util.concurrent.Callable;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import java.util.concurrent.Callable;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -39,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
+		"jakarta.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
 		"mvc.command.name=/layout_admin/copy_layout_utility_page_entry"
 	},
 	service = MVCActionCommand.class
@@ -102,8 +103,8 @@ public class CopyLayoutUtilityPageEntryMVCActionCommand
 		Layout targetLayout = _layoutLocalService.getLayout(
 			layoutUtilityPageEntry.getPlid());
 
-		_layoutLocalService.copyLayoutContent(sourceLayout, targetLayout);
-		_layoutLocalService.copyLayoutContent(
+		_layoutService.copyLayoutContent(sourceLayout, targetLayout);
+		_layoutService.copyLayoutContent(
 			sourceLayout, targetLayout.fetchDraftLayout());
 
 		return layoutUtilityPageEntry;
@@ -118,6 +119,9 @@ public class CopyLayoutUtilityPageEntryMVCActionCommand
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;
+
+	@Reference
+	private LayoutService _layoutService;
 
 	@Reference
 	private LayoutUtilityPageEntryLocalService

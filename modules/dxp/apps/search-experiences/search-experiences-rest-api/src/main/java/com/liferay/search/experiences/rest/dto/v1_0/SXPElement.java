@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -54,7 +55,7 @@ public class SXPElement implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(SXPElement.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -97,7 +98,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getCreateDate() {
 		if (_createDateSupplier != null) {
 			createDate = _createDateSupplier.get();
@@ -138,7 +139,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _createDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -179,7 +180,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getDescription_i18n() {
 		if (_description_i18nSupplier != null) {
@@ -222,7 +223,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _description_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ElementDefinition getElementDefinition() {
 		if (_elementDefinitionSupplier != null) {
@@ -265,7 +266,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<ElementDefinition> _elementDefinitionSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(example = "AB-34098-789-N")
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -306,7 +307,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFallbackDescription() {
 		if (_fallbackDescriptionSupplier != null) {
 			fallbackDescription = _fallbackDescriptionSupplier.get();
@@ -347,7 +348,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _fallbackDescriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFallbackTitle() {
 		if (_fallbackTitleSupplier != null) {
 			fallbackTitle = _fallbackTitleSupplier.get();
@@ -388,7 +389,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _fallbackTitleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getHidden() {
 		if (_hiddenSupplier != null) {
 			hidden = _hiddenSupplier.get();
@@ -429,7 +430,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _hiddenSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -468,7 +469,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getModifiedDate() {
 		if (_modifiedDateSupplier != null) {
 			modifiedDate = _modifiedDateSupplier.get();
@@ -509,7 +510,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _modifiedDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getReadOnly() {
 		if (_readOnlySupplier != null) {
 			readOnly = _readOnlySupplier.get();
@@ -550,7 +551,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _readOnlySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getSchemaVersion() {
 		if (_schemaVersionSupplier != null) {
 			schemaVersion = _schemaVersionSupplier.get();
@@ -591,7 +592,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _schemaVersionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTitle() {
 		if (_titleSupplier != null) {
 			title = _titleSupplier.get();
@@ -632,7 +633,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getTitle_i18n() {
 		if (_title_i18nSupplier != null) {
@@ -675,7 +676,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _title_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -714,7 +715,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _typeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getUserName() {
 		if (_userNameSupplier != null) {
 			userName = _userNameSupplier.get();
@@ -755,7 +756,7 @@ public class SXPElement implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _userNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getVersion() {
 		if (_versionSupplier != null) {
 			version = _versionSupplier.get();
@@ -1087,8 +1088,8 @@ public class SXPElement implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.SXPElement",
 		name = "x-class-name"
 	)
@@ -1175,6 +1176,27 @@ public class SXPElement implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1183,3 +1205,4 @@ public class SXPElement implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:917113208

@@ -21,6 +21,10 @@ ObjectAction objectAction = objectDefinitionsActionsDisplayContext.getObjectActi
 		HashMapBuilder.<String, Object>put(
 			"allowScriptContentToBeExecutedOrIncluded", objectDefinitionsActionsDisplayContext.isAllowScriptContentToBeExecutedOrIncluded()
 		).put(
+			"companyAdmin", permissionChecker.isCompanyAdmin()
+		).put(
+			"hasUserNotificationHandler", objectDefinitionsActionsDisplayContext.hasUserNotificationHandler(objectDefinition.getClassName())
+		).put(
 			"isApproved", objectDefinition.isApproved()
 		).put(
 			"objectAction", objectDefinitionsActionsDisplayContext.getObjectActionJSONObject(objectAction)
@@ -34,6 +38,8 @@ ObjectAction objectAction = objectDefinitionsActionsDisplayContext.getObjectActi
 			"objectDefinitionExternalReferenceCode", objectDefinition.getExternalReferenceCode()
 		).put(
 			"objectDefinitionsRelationshipsURL", objectDefinitionsActionsDisplayContext.getObjectDefinitionsRelationshipsURL()
+		).put(
+			"objectFields", objectDefinitionsActionsDisplayContext.getObjectFields()
 		).put(
 			"readOnly", !objectDefinitionsActionsDisplayContext.hasUpdateObjectDefinitionPermission()
 		).put(

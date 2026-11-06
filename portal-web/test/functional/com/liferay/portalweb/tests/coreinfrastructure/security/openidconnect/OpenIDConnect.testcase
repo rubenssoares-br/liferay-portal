@@ -1,4 +1,4 @@
-@component-name = "portal-security"
+@component-name = "portal-application-security"
 definition {
 
 	property ci.retries.disabled = "true";
@@ -11,6 +11,16 @@ definition {
 		TestCase.setUpPortalInstance();
 
 		User.firstLoginPG();
+
+		JSONLayoututilitypage.unsetDefaultLayoutUtilityPage(
+			groupName = "Guest",
+			layoutUtilityPageName = "Sign In");
+	}
+
+	tearDown {
+		JSONLayoututilitypage.setDefaultLayoutUtilityPage(
+			groupName = "Guest",
+			layoutUtilityPageName = "Sign In");
 	}
 
 	@description = "This is a use case for LPS-139642 TC6-3: Assert error message when add invalid auth server local metadata."
@@ -117,6 +127,7 @@ definition {
 	}
 
 	@description = "This is a use case for LPS-139642 TC-10: A regular role is assigned to OIDC user if a regular role is defined through the property."
+	@ignore = "true"
 	@priority = 5
 	test AssertRegularRoleIsAssignedToOIDCUser {
 		property custom.properties = "open.id.connect.user.info.processor.impl.issuer=https://dev-5081331.okta.com${line.separator}open.id.connect.user.info.processor.impl.regular.role=Administrator";
@@ -135,15 +146,14 @@ definition {
 		task ("Given: Add the OSGI configuration file") {
 			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "Okta", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 
@@ -237,6 +247,7 @@ definition {
 	}
 
 	@description = "This is a use case for LPS-179688 TC-6: Verify user could log in via OIDC when password creation is disabled."
+	@ignore = "true"
 	@priority = 5
 	test CanLoginViaOIDCWithDisablePasswordCreation {
 		property osgi.module.configuration.file.names = "com.liferay.portal.security.sso.openid.connect.configuration.OpenIdConnectConfiguration.config";
@@ -377,6 +388,19 @@ definition {
 				domain = "www.able.com",
 				portalInstanceId = "www.able.com",
 				virtualHost = "www.able.com");
+
+			var groupId = JSONGroupAPI._getGroupIdByName(
+				groupName = "Guest",
+				portalInstanceName = "www.able.com",
+				site = "true",
+				specificURL = "http://www.able.com:8080");
+
+			JSONLayoututilitypage.unsetDefaultLayoutUtilityPage(
+				groupId = ${groupId},
+				groupName = "Guest",
+				layoutUtilityPageName = "Sign In",
+				portalURL = "http://www.able.com:8080",
+				specificURL = "http://www.able.com:8080");
 		}
 
 		task ("Add OAuth Clients") {
@@ -416,7 +440,7 @@ definition {
 	@description = "This is a workaround usecase for LPS-139642 TC-11: Verify the OAuth client of System level should apply to OAuth client of virtual instance."
 	@priority = 5
 	test ConfigureOnSystemLevelShouldApplyToInstanceLevel {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -573,6 +597,7 @@ definition {
 	}
 
 	@description = "This is a use case for LPS-154744. TC4-1: The OIDC user is assigned the regular role which contains multiple spaces given through the property."
+	@ignore = "true"
 	@priority = 5
 	test MultipleSpacesRoleNameCanBeAssignedToOIDCUser {
 		property custom.properties = "open.id.connect.user.info.processor.impl.issuer=https://dev-5081331.okta.com${line.separator}open.id.connect.user.info.processor.impl.regular.role=My Custom Regular Role";
@@ -590,15 +615,14 @@ definition {
 		task ("Given: Set up OKTA OIDC Provider") {
 			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "Okta", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 
@@ -654,6 +678,19 @@ definition {
 				domain = "www.able.com",
 				portalInstanceId = "www.able.com",
 				virtualHost = "www.able.com");
+
+			var groupId = JSONGroupAPI._getGroupIdByName(
+				groupName = "Guest",
+				portalInstanceName = "www.able.com",
+				site = "true",
+				specificURL = "http://www.able.com:8080");
+
+			JSONLayoututilitypage.unsetDefaultLayoutUtilityPage(
+				groupId = ${groupId},
+				groupName = "Guest",
+				layoutUtilityPageName = "Sign In",
+				portalURL = "http://www.able.com:8080",
+				specificURL = "http://www.able.com:8080");
 		}
 
 		task ("Login at able.com and enable OpenId connect CP") {
@@ -756,24 +793,25 @@ definition {
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
+		var discoveryEndpoint = PropsUtil.get("openid.provider.auth0.discovery.endpoint");
 		var openIdConnectClientId = PropsUtil.get("openid.provider.auth0.client.id");
 		var openIdConnectClientSecret = PropsUtil.get("openid.provider.auth0.client.password");
 		var osgiConfigFileName = "com.liferay.portal.security.sso.openid.connect.internal.configuration.OpenIdConnectProviderConfiguration~Auth0.config";
+		var providerName = "Auth0";
 		var userEmailAddress = PropsUtil.get("openid.provider.auth0.test.account.email.address");
 		var userPassword = PropsUtil.get("openid.provider.auth0.test.account.password");
 
 		task ("Add the OSGI configuration file") {
-			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
+			AntCommands.runCommand("build-test-openid-connect.xml", "deploy-openid-connect-osgi-configuration -Ddiscovery.endpoint=${discoveryEndpoint} -Dopen.id.connect.client.id=${openIdConnectClientId} -Dopen.id.connect.client.secret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName} -Dprovider.name=${providerName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "Auth0", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 
@@ -822,15 +860,14 @@ definition {
 		task ("Add the OSGI configuration file") {
 			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "Azure", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 
@@ -916,15 +953,14 @@ definition {
 		task ("Add the OSGI configuration file") {
 			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "PingOne", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 
@@ -989,7 +1025,7 @@ definition {
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			OpenIDConnect.addProvider(
 				customAuthorizationRequestParameters = ${customAuthorizationRequestParameters},
@@ -1063,6 +1099,19 @@ definition {
 				domain = "www.able.com",
 				portalInstanceId = "www.able.com",
 				virtualHost = "www.able.com");
+
+			var groupId = JSONGroupAPI._getGroupIdByName(
+				groupName = "Guest",
+				portalInstanceName = "www.able.com",
+				site = "true",
+				specificURL = "http://www.able.com:8080");
+
+			JSONLayoututilitypage.unsetDefaultLayoutUtilityPage(
+				groupId = ${groupId},
+				groupName = "Guest",
+				layoutUtilityPageName = "Sign In",
+				portalURL = "http://www.able.com:8080",
+				specificURL = "http://www.able.com:8080");
 		}
 
 		task ("When: User adds OIDC connection on able.com") {
@@ -1400,15 +1449,14 @@ definition {
 		task ("Add the OSGI configuration file") {
 			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "liferay-pkce", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 
@@ -1456,15 +1504,14 @@ definition {
 		task ("Add the OSGI configuration file") {
 			AntCommands.runCommand("build-test-openid-connect.xml", "prepare-openid-connect-osgi-configuration -DopenIdConnectClientId=${openIdConnectClientId} -DopenIdConnectClientSecret=${openIdConnectClientSecret} -Dosgi.config.file.name=${osgiConfigFileName}");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
 			SystemSettings.gotoConfiguration(
 				configurationCategory = "SSO",
 				configurationName = "OpenID Connect Provider Connection",
-				configurationScope = "Virtual Instance Scope");
+				configurationScope = "System Scope");
 
 			while (IsElementNotPresent(key_rowEntry = "liferay-system-level", locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME")) {
 

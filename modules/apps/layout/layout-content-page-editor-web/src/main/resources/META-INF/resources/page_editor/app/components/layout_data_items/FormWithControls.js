@@ -6,10 +6,11 @@
 import ClayAlert from '@clayui/alert';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import classNames from 'classnames';
-import React from 'react';
+import React, {useEffect} from 'react';
 
 import FormMappingOptions from '../../../plugins/browser/components/page_structure/components/item_configuration_panels/FormMappingOptions';
 import {config} from '../../config';
+import {useSaveFormMappingFields} from '../../contexts/FormDataContext';
 import {useItemLocalConfig} from '../../contexts/LocalConfigContext';
 import {useSelector, useSelectorCallback} from '../../contexts/StoreContext';
 import selectLanguageId from '../../selectors/selectLanguageId';
@@ -44,12 +45,6 @@ function Form({children, item}) {
 
 	const showLoadingState = localConfig.loading;
 
-	const isEmpty = useSelectorCallback(
-		(state) =>
-			isItemEmpty(item, state.layoutData, state.selectedViewportSize),
-		[item]
-	);
-
 	if (showLoadingState) {
 		return <FormLoadingState />;
 	}
@@ -76,13 +71,48 @@ function Form({children, item}) {
 		);
 	}
 
-	const isMapped = formIsMapped(item);
-
-	if (isEmpty || !isMapped) {
-		return <FormEmptyState isMapped={isMapped} item={item} />;
+	if (!formIsMapped(item)) {
+		return <UnmappedForm item={item} />;
 	}
 
+	return <MappedForm item={item}>{children}</MappedForm>;
+}
+
+function MappedForm({children, item}) {
+	const localConfig = useItemLocalConfig(item.itemId);
+
+	const isEmpty = useSelectorCallback(
+		(state) =>
+			isItemEmpty(item, state.layoutData, state.selectedViewportSize),
+		[item]
+	);
+
 	const {showMessagePreview} = localConfig;
+
+	const {classNameId, classTypeId} = item.config;
+
+	const saveFields = useSaveFormMappingFields({classNameId, classTypeId});
+
+	useEffect(() => {
+		saveFields();
+	}, [saveFields]);
+
+	if (isEmpty) {
+		return (
+			<div className="page-editor__no-fragments-state text-center">
+				<img
+					className="page-editor__no-fragments-state__image"
+					src={`${config.imagesPath}/drag_and_drop.svg`}
+				/>
+
+				<p className="page-editor__no-fragments-state__message">
+					{Liferay.Language.get(
+						'drag-and-drop-fragments-or-widgets-here'
+					)}
+				</p>
+			</div>
+		);
+	}
 
 	return (
 		<>
@@ -99,30 +129,13 @@ function Form({children, item}) {
 	);
 }
 
-function FormEmptyState({isMapped, item}) {
+function UnmappedForm({item}) {
 	const saveFormConfig = useSaveFormConfig(item);
 
 	const localConfig = useItemLocalConfig(item.itemId);
 
 	if (localConfig.showMessagePreview) {
 		return <FormSuccessMessage item={item} />;
-	}
-
-	if (isMapped) {
-		return (
-			<div className="page-editor__no-fragments-state text-center">
-				<img
-					className="page-editor__no-fragments-state__image"
-					src={`${config.imagesPath}/drag_and_drop.svg`}
-				/>
-
-				<p className="page-editor__no-fragments-state__message">
-					{Liferay.Language.get(
-						'drag-and-drop-fragments-or-widgets-here'
-					)}
-				</p>
-			</div>
-		);
 	}
 
 	return (

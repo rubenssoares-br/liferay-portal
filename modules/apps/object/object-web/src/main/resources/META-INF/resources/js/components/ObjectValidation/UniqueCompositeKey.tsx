@@ -8,6 +8,7 @@ import {
 	BuilderScreen,
 	Card,
 	MultiSelectItem,
+	MultiSelectItemChild,
 	MultipleSelect,
 	TBuilderScreenItem,
 	stringUtils,
@@ -20,8 +21,6 @@ import {ErrorMessage} from './ErrorMessage';
 import {ObjectValidationErrors} from './useObjectValidationForm';
 
 import './UniqueCompositeKey.scss';
-
-import {MultiSelectItemChild} from '@liferay/object-js-components-web/src/main/resources/META-INF/resources/components/Select/MultipleSelect';
 
 interface isMatchingObjectFieldObjectValidationRuleSettingProps {
 	objectField: ObjectField;
@@ -88,6 +87,7 @@ export function UniqueCompositeKey({
 	const allowedObjectFieldBusinessTypes = [
 		'AutoIncrement',
 		'Integer',
+		'PhoneNumber',
 		'Picklist',
 		'Relationship',
 		'Text',
@@ -115,11 +115,11 @@ export function UniqueCompositeKey({
 					),
 				},
 				getName: ({label, name}: ObjectField) =>
-					stringUtils.getLocalizableLabel(
-						creationLanguageId,
-						label,
-						name
-					),
+					stringUtils.getLocalizableLabel({
+						fallbackLabel: name,
+						fallbackLanguageId: creationLanguageId,
+						labels: label,
+					}),
 				header: Liferay.Language.get(
 					'add-fields-to-unique-composite-key'
 				),
@@ -298,11 +298,12 @@ export function UniqueCompositeKey({
 					);
 
 				if (filteredObjectFieldObjectValidationRuleSetting) {
-					const label = stringUtils.getLocalizableLabel(
-						creationLanguageId,
-						filteredObjectFieldObjectValidationRuleSetting.label,
-						filteredObjectFieldObjectValidationRuleSetting.name
-					);
+					const label = stringUtils.getLocalizableLabel({
+						fallbackLabel:
+							filteredObjectFieldObjectValidationRuleSetting.name,
+						fallbackLanguageId: creationLanguageId,
+						labels: filteredObjectFieldObjectValidationRuleSetting.label,
+					});
 
 					newBuilderScreenItems.push({
 						externalReferenceCode:

@@ -5,8 +5,10 @@
 
 package com.liferay.portal.search.internal.buffer.util;
 
+import com.liferay.petra.concurrent.DefaultNoticeableFuture;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.concurrent.SystemExecutorServiceUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -15,6 +17,7 @@ import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.search.IndexWriterHelper;
 import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.SearchException;
+import com.liferay.portal.kernel.security.auth.CompanyInheritableThreadLocalCallable;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.search.internal.buffer.BufferOverflowThreadLocal;
@@ -24,9 +27,6 @@ import com.liferay.portal.search.internal.buffer.IndexerRequestBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author Michael C. Han
@@ -52,6 +52,11 @@ public class IndexerRequestBufferExecutorUtil {
 			return;
 		}
 
+		ExecutorService executorService =
+			SystemExecutorServiceUtil.getExecutorService();
+
+		long ctCollectionId = CTCollectionThreadLocal.getCTCollectionId();
+
 		ServiceContext serviceContext =
 			ServiceContextThreadLocal.getServiceContext();
 
@@ -61,44 +66,40 @@ public class IndexerRequestBufferExecutorUtil {
 
 		ServiceContext finalServiceContext = serviceContext;
 
-		ExecutorService executorService =
-			SystemExecutorServiceUtil.getExecutorService();
-
 		IndexerRequestBuffer transferCopyIndexerRequestBuffer =
 			indexerRequestBuffer.transferCopy();
 
-		AtomicReference<Future<?>> futureReference = new AtomicReference<>();
+		DefaultNoticeableFuture<Void> defaultNoticeableFuture =
+			new DefaultNoticeableFuture<>(
+				new CompanyInheritableThreadLocalCallable<>(
+					() -> {
+						ServiceContextThreadLocal.pushServiceContext(
+							finalServiceContext);
 
-		FutureTask<?> futureTask = new FutureTask<Void>(
-			() -> {
-				ServiceContextThreadLocal.pushServiceContext(
-					finalServiceContext);
+						try (SafeCloseable safeCloseable1 =
+								CTCollectionThreadLocal.
+									setCTCollectionIdWithSafeCloseable(
+										ctCollectionId);
+							SafeCloseable safeCloseable2 =
+								SearchContext.openBatchMode(false)) {
 
-				try (SafeCloseable safeCloseable = SearchContext.openBatchMode(
-						false)) {
+							_execute(
+								transferCopyIndexerRequestBuffer,
+								transferCopyIndexerRequestBuffer.size(), false);
+						}
+						catch (Exception exception) {
+							_log.error(exception);
+						}
+						finally {
+							ServiceContextThreadLocal.popServiceContext();
+						}
 
-					_execute(
-						transferCopyIndexerRequestBuffer,
-						transferCopyIndexerRequestBuffer.size(), false);
-				}
-				catch (Exception exception) {
-					_log.error(exception);
-				}
-				finally {
-					ServiceContextThreadLocal.popServiceContext();
+						return null;
+					}));
 
-					SearchContext.unregisterBatchModeSyncFuture(
-						futureReference.get());
-				}
+		SearchContext.registerBatchModeSyncFuture(defaultNoticeableFuture);
 
-				return null;
-			});
-
-		futureReference.set(futureTask);
-
-		SearchContext.registerBatchModeSyncFuture(futureTask);
-
-		executorService.execute(futureTask);
+		executorService.execute(defaultNoticeableFuture);
 	}
 
 	private static void _execute(

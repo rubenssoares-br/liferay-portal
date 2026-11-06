@@ -11,9 +11,9 @@ import com.liferay.frontend.taglib.form.navigator.FormNavigatorEntry;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.User;
 
-import java.util.Objects;
+import jakarta.servlet.ServletContext;
 
-import javax.servlet.ServletContext;
+import java.util.Objects;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -64,15 +64,9 @@ public class AssetListFormNavigatorEntry
 	}
 
 	private boolean _isAssetListProviderSelection() {
-		if (Objects.equals(
-				getSelectionStyle(),
-				AssetPublisherSelectionStyleConstants.
-					TYPE_ASSET_LIST_PROVIDER)) {
-
-			return true;
-		}
-
-		return false;
+		return Objects.equals(
+			getSelectionStyle(),
+			AssetPublisherSelectionStyleConstants.TYPE_ASSET_LIST_PROVIDER);
 	}
 
 	@Reference(

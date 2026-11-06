@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Olivér Kecskeméty
@@ -48,7 +49,7 @@ public class QueryAttributes implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(QueryAttributes.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A multi-valued list of strings indicating the names of resource attributes to return in the response, overriding the set of attributes that would be returned by default."
 	)
 	public String[] getAttributes() {
@@ -93,7 +94,7 @@ public class QueryAttributes implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _attributesSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "An integer indicating the desired maximum number of query results per page."
 	)
 	public Integer getCount() {
@@ -138,7 +139,7 @@ public class QueryAttributes implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _countSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A multi-valued list of strings indicating the names of resource attributes to be removed from the default set of attributes to return."
 	)
 	public String[] getExcludedAttributes() {
@@ -183,7 +184,7 @@ public class QueryAttributes implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _excludedAttributesSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The filter string used to request a subset of resources."
 	)
 	public String getFilter() {
@@ -228,7 +229,7 @@ public class QueryAttributes implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _filterSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A string indicating the attribute whose value SHALL be used to order the returned responses."
 	)
 	public String getSortBy() {
@@ -273,7 +274,7 @@ public class QueryAttributes implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _sortBySupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A string indicating the order in which the \"sortBy\" parameter is applied."
 	)
 	public String getSortOrder() {
@@ -318,7 +319,7 @@ public class QueryAttributes implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _sortOrderSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "An integer indicating the 1-based index of the first query result."
 	)
 	public Integer getStartIndex() {
@@ -519,8 +520,8 @@ public class QueryAttributes implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.scim.rest.dto.v1_0.QueryAttributes",
 		name = "x-class-name"
 	)
@@ -607,6 +608,27 @@ public class QueryAttributes implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -615,3 +637,4 @@ public class QueryAttributes implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-431279572

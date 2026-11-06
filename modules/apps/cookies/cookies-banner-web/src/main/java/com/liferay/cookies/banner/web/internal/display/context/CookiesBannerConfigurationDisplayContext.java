@@ -10,7 +10,6 @@ import com.liferay.layout.utility.page.kernel.constants.LayoutUtilityPageEntryCo
 import com.liferay.layout.utility.page.kernel.provider.LayoutUtilityPageEntryLayoutProvider;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.settings.LocalizedValuesMap;
@@ -20,13 +19,10 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eduardo García
@@ -36,17 +32,27 @@ public class CookiesBannerConfigurationDisplayContext
 
 	public CookiesBannerConfigurationDisplayContext(
 		CookiesConfigurationProvider cookiesConfigurationProvider,
+		HttpServletRequest httpServletRequest,
 		LayoutUtilityPageEntryLayoutProvider
-			layoutUtilityPageEntryLayoutProvider,
-		RenderRequest renderRequest, RenderResponse renderResponse) {
+			layoutUtilityPageEntryLayoutProvider) {
 
 		super(
-			cookiesConfigurationProvider, layoutUtilityPageEntryLayoutProvider,
-			renderRequest, renderResponse);
+			cookiesConfigurationProvider, httpServletRequest,
+			layoutUtilityPageEntryLayoutProvider);
 	}
 
 	public Map<String, Object> getContext() {
 		return HashMapBuilder.<String, Object>put(
+			"consentRenewalPeriod", getConsentRenewalPeriod()
+		).put(
+			"consentRenewalPeriodTimeUnit", getConsentRenewalPeriodTimeUnit()
+		).put(
+			"dissentRenewalPeriod", getDissentRenewalPeriod()
+		).put(
+			"dissentRenewalPeriodTimeUnit", getDissentRenewalPeriodTimeUnit()
+		).put(
+			"modifiedDate", getModifiedDate()
+		).put(
 			"optionalConsentCookieTypeNames",
 			getConsentCookieTypeNamesJSONArray(getOptionalConsentCookieTypes())
 		).put(
@@ -65,12 +71,9 @@ public class CookiesBannerConfigurationDisplayContext
 			return cookiePolicyLink;
 		}
 
-		if (!FeatureFlagManagerUtil.isEnabled("LPD-10588")) {
-			return StringPool.POUND;
-		}
-
-		ThemeDisplay themeDisplay = (ThemeDisplay)renderRequest.getAttribute(
-			WebKeys.THEME_DISPLAY);
+		ThemeDisplay themeDisplay =
+			(ThemeDisplay)httpServletRequest.getAttribute(
+				WebKeys.THEME_DISPLAY);
 
 		Layout layout =
 			layoutUtilityPageEntryLayoutProvider.
@@ -107,14 +110,11 @@ public class CookiesBannerConfigurationDisplayContext
 	}
 
 	public boolean isShowButtons() {
-		ThemeDisplay themeDisplay = (ThemeDisplay)renderRequest.getAttribute(
-			WebKeys.THEME_DISPLAY);
+		ThemeDisplay themeDisplay =
+			(ThemeDisplay)httpServletRequest.getAttribute(
+				WebKeys.THEME_DISPLAY);
 
-		if (!themeDisplay.isStatePopUp()) {
-			return true;
-		}
-
-		return false;
+		return !themeDisplay.isStatePopUp();
 	}
 
 }

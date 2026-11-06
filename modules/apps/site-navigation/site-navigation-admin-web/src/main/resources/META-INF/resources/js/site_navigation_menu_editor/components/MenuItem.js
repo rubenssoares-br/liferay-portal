@@ -9,7 +9,8 @@ import ClayIcon from '@clayui/icon';
 import ClayLabel from '@clayui/label';
 import ClayLayout from '@clayui/layout';
 import classNames from 'classnames';
-import {fetch, objectToFormData, openToast, sub} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {fetch, objectToFormData, sub} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useMemo} from 'react';
 
@@ -34,7 +35,7 @@ export function MenuItem({item, onMenuItemRemoved, sidebarPanelRef}) {
 	const setItems = useSetItems();
 	const setSelectedMenuItemId = useSetSelectedMenuItemId();
 	const setSidebarPanelId = useSetSidebarPanelId();
-	const {editSiteNavigationMenuItemParentURL, portletNamespace} =
+	const {editSiteNavigationMenuItemParentURL, portletNamespace, spritemap} =
 		useConstants();
 
 	const items = useItems();
@@ -318,6 +319,20 @@ export function MenuItem({item, onMenuItemRemoved, sidebarPanelRef}) {
 									/>
 								</ClayLayout.ContentCol>
 
+								{item.displayIcon && (
+									<ClayLayout.ContentCol gutters>
+										<ClayIcon
+											className="lfr-portal-tooltip mr-3"
+											spritemap={spritemap}
+											style={{
+												height: '1.5rem',
+												width: '1.5rem',
+											}}
+											symbol={item.displayIcon}
+										/>
+									</ClayLayout.ContentCol>
+								)}
+
 								<ClayLayout.ContentCol expand>
 									<ClayCard.Description
 										displayType="title"
@@ -329,9 +344,7 @@ export function MenuItem({item, onMenuItemRemoved, sidebarPanelRef}) {
 										{item.icon && (
 											<ClayIcon
 												className="lfr-portal-tooltip ml-2 text-warning"
-												data-title={Liferay.Language.get(
-													'this-item-does-not-have-a-display-page'
-												)}
+												data-title={item.iconLabel}
 												symbol={item.icon}
 											/>
 										)}
@@ -442,6 +455,8 @@ export function MenuItem({item, onMenuItemRemoved, sidebarPanelRef}) {
 MenuItem.propTypes = {
 	item: PropTypes.shape({
 		children: PropTypes.array.isRequired,
+		icon: PropTypes.string,
+		iconLabel: PropTypes.string,
 		siteNavigationMenuItemId: PropTypes.string.isRequired,
 		title: PropTypes.string.isRequired,
 		type: PropTypes.string.isRequired,

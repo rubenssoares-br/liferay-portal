@@ -17,7 +17,7 @@ import com.liferay.headless.commerce.admin.shipment.dto.v1_0.Shipment;
 import com.liferay.headless.commerce.admin.shipment.dto.v1_0.ShipmentItem;
 import com.liferay.headless.commerce.admin.shipment.internal.util.v1_0.ShipmentItemUtil;
 import com.liferay.headless.commerce.admin.shipment.resource.v1_0.ShipmentItemResource;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.portal.kernel.util.BigDecimalUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -152,7 +152,7 @@ public class ShipmentItemResourceImpl extends BaseShipmentItemResourceImpl {
 				shipmentItemId);
 
 		_commerceShipmentItemService.updateCommerceShipmentItem(
-			shipmentItemId,
+			commerceShipmentItem.getCommerceShipmentId(), shipmentItemId,
 			ShipmentItemUtil.getCommerceInventoryWarehouseId(
 				_commerceInventoryWarehouseService,
 				contextCompany.getCompanyId(),
@@ -164,6 +164,7 @@ public class ShipmentItemResourceImpl extends BaseShipmentItemResourceImpl {
 
 		if (!Validator.isBlank(shipmentItem.getExternalReferenceCode())) {
 			_commerceShipmentItemService.updateExternalReferenceCode(
+				commerceShipmentItem.getCommerceShipmentId(),
 				commerceShipmentItem.getCommerceShipmentItemId(),
 				shipmentItem.getExternalReferenceCode());
 		}
@@ -188,6 +189,7 @@ public class ShipmentItemResourceImpl extends BaseShipmentItemResourceImpl {
 		}
 
 		_commerceShipmentItemService.updateCommerceShipmentItem(
+			commerceShipmentItem.getCommerceShipmentId(),
 			commerceShipmentItem.getCommerceShipmentItemId(),
 			ShipmentItemUtil.getCommerceInventoryWarehouseId(
 				_commerceInventoryWarehouseService,

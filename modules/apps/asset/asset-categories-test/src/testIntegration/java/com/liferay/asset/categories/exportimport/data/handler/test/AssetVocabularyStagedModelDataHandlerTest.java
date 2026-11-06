@@ -14,6 +14,7 @@ import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
 import com.liferay.exportimport.kernel.lar.StagedModelDataHandlerUtil;
 import com.liferay.exportimport.test.util.lar.BaseStagedModelDataHandlerTestCase;
 import com.liferay.journal.model.JournalArticle;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
@@ -55,12 +56,10 @@ public class AssetVocabularyStagedModelDataHandlerTest
 	public void testAssetVocabularyWithDepotSettingsAreNotLost()
 		throws Exception {
 
-		initExport();
-
 		String classNameIds =
 			_portal.getClassNameId(JournalArticle.class.getName()) + ":-1";
 
-		UnicodeProperties typeSettingsUnicodeProperties =
+		AssetVocabulary importedAssetVocabulary = _getImportedAssetVocabulary(
 			UnicodePropertiesBuilder.create(
 				true
 			).put(
@@ -69,53 +68,15 @@ public class AssetVocabularyStagedModelDataHandlerTest
 				"multivalued", true
 			).put(
 				"selectedClassNameIds", classNameIds
-			).build();
+			).build());
 
-		AssetVocabulary assetVocabulary =
-			_assetVocabularyLocalService.addVocabulary(
-				TestPropsValues.getUserId(), stagingGroup.getGroupId(),
-				RandomTestUtil.randomString(),
-				HashMapBuilder.put(
-					LocaleUtil.getDefault(), RandomTestUtil.randomString()
-				).build(),
-				HashMapBuilder.put(
-					LocaleUtil.getDefault(), RandomTestUtil.randomString()
-				).build(),
-				typeSettingsUnicodeProperties.toString(),
-				ServiceContextTestUtil.getServiceContext(
-					stagingGroup.getGroupId()));
-
-		StagedModelDataHandlerUtil.exportStagedModel(
-			portletDataContext, assetVocabulary);
-
-		initImport();
-
-		StagedModel exportedStagedModel = readExportedStagedModel(
-			assetVocabulary);
-
-		Assert.assertNotNull(exportedStagedModel);
-
-		ExportImportThreadLocal.setPortletImportInProcess(true);
-
-		try {
-			StagedModelDataHandlerUtil.importStagedModel(
-				portletDataContext, exportedStagedModel);
-		}
-		finally {
-			ExportImportThreadLocal.setPortletImportInProcess(false);
-		}
-
-		AssetVocabulary importAssetVocabulary =
-			_assetVocabularyLocalService.fetchAssetVocabularyByUuidAndGroupId(
-				assetVocabulary.getUuid(), liveGroup.getGroupId());
-
-		Assert.assertNotNull(importAssetVocabulary);
+		Assert.assertNotNull(importedAssetVocabulary);
 
 		UnicodeProperties importedTypeSettingsUnicodeProperties =
 			UnicodePropertiesBuilder.create(
 				true
 			).fastLoad(
-				importAssetVocabulary.getSettings()
+				importedAssetVocabulary.getSettings()
 			).build();
 
 		Assert.assertEquals(
@@ -129,6 +90,21 @@ public class AssetVocabularyStagedModelDataHandlerTest
 			importedTypeSettingsUnicodeProperties.get("selectedClassNameIds"));
 	}
 
+	@Test
+	public void testAssetVocabularyWithNonexistentClassNameId()
+		throws Exception {
+
+		Assert.assertNotNull(
+			_getImportedAssetVocabulary(
+				UnicodePropertiesBuilder.create(
+					true
+				).put(
+					"multivalued", true
+				).put(
+					"selectedClassNameIds", RandomTestUtil.randomLong() + ":-1"
+				).build()));
+	}
+
 	@Override
 	protected StagedModel addStagedModel(
 			Group group,
@@ -139,6 +115,16 @@ public class AssetVocabularyStagedModelDataHandlerTest
 			group.getGroupId(),
 			RandomTestUtil.randomString(3) + StringPool.SPACE +
 				RandomTestUtil.randomString(4));
+	}
+
+	@Override
+	protected StagedModel addStagedModelWithExternalReferenceCode(
+			Group group, String externalReferenceCode,
+			Map<String, List<StagedModel>> dependentStagedModelsMap)
+		throws Exception {
+
+		return AssetTestUtil.addVocabulary(
+			externalReferenceCode, group.getGroupId());
 	}
 
 	@Override
@@ -177,6 +163,58 @@ public class AssetVocabularyStagedModelDataHandlerTest
 			importedVocabulary.getDescription(LocaleUtil.getDefault()));
 		Assert.assertEquals(
 			vocabulary.getSettings(), importedVocabulary.getSettings());
+	}
+
+	private AssetVocabulary _addAssetVocabulary(
+			UnicodeProperties typeSettingsUnicodeProperties)
+		throws Exception {
+
+		return _assetVocabularyLocalService.addVocabulary(
+			TestPropsValues.getUserId(), stagingGroup.getGroupId(),
+			RandomTestUtil.randomString(),
+			HashMapBuilder.put(
+				LocaleUtil.getDefault(), RandomTestUtil.randomString()
+			).build(),
+			HashMapBuilder.put(
+				LocaleUtil.getDefault(), RandomTestUtil.randomString()
+			).build(),
+			typeSettingsUnicodeProperties.toString(),
+			ServiceContextTestUtil.getServiceContext(
+				stagingGroup.getGroupId()));
+	}
+
+	private AssetVocabulary _getImportedAssetVocabulary(
+			UnicodeProperties typeSettingsUnicodeProperties)
+		throws Exception {
+
+		initExport();
+
+		AssetVocabulary assetVocabulary = _addAssetVocabulary(
+			typeSettingsUnicodeProperties);
+
+		StagedModelDataHandlerUtil.exportStagedModel(
+			portletDataContext, assetVocabulary);
+
+		try (SafeCloseable safeCloseable = initImportWithSafeCloseable()) {
+			StagedModel exportedStagedModel = readExportedStagedModel(
+				assetVocabulary);
+
+			Assert.assertNotNull(exportedStagedModel);
+
+			ExportImportThreadLocal.setPortletImportInProcess(true);
+
+			try {
+				StagedModelDataHandlerUtil.importStagedModel(
+					portletDataContext, exportedStagedModel);
+			}
+			finally {
+				ExportImportThreadLocal.setPortletImportInProcess(false);
+			}
+
+			return _assetVocabularyLocalService.
+				fetchAssetVocabularyByUuidAndGroupId(
+					assetVocabulary.getUuid(), liveGroup.getGroupId());
+		}
 	}
 
 	@Inject

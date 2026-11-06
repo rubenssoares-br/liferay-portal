@@ -40,9 +40,13 @@ import com.liferay.layout.taglib.internal.servlet.ServletContextUtil;
 import com.liferay.layout.util.CollectionPaginationUtil;
 import com.liferay.layout.util.structure.CollectionStyledLayoutStructureItem;
 import com.liferay.petra.string.CharPool;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.string.StringUtil;
+import com.liferay.portal.kernel.cookies.CookiesManagerUtil;
 import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONException;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -53,13 +57,19 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
+import com.liferay.portal.kernel.util.ScopeUtil;
+import com.liferay.portal.kernel.util.URLCodec;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.segments.SegmentsEntryRetriever;
 import com.liferay.segments.context.RequestContextMapper;
+import com.liferay.segments.model.SegmentsEntry;
 import com.liferay.segments.model.SegmentsExperience;
+import com.liferay.segments.service.SegmentsEntryLocalServiceUtil;
 import com.liferay.segments.service.SegmentsExperienceLocalServiceUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,8 +77,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -123,22 +131,28 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 			return _collectionItemType;
 		}
 
+		String collectionItemType = StringPool.BLANK;
+
 		JSONObject collectionJSONObject =
 			_collectionStyledLayoutStructureItem.getCollectionJSONObject();
 
-		String collectionItemType = StringPool.BLANK;
-
-		if ((collectionJSONObject != null) &&
-			collectionJSONObject.has("itemType")) {
-
+		if (collectionJSONObject != null) {
 			collectionItemType = collectionJSONObject.getString("itemType");
 		}
 
-		if (Objects.equals(
+		if ((collectionJSONObject != null) &&
+			Objects.equals(
 				collectionJSONObject.getString("key"),
 				RepeatableFieldInfoItemCollectionProvider.class.getName())) {
 
 			collectionItemType = RepeatableInfoFieldValue.class.getName();
+		}
+		else {
+			ListObjectReference listObjectReference = getListObjectReference();
+
+			if (listObjectReference != null) {
+				collectionItemType = listObjectReference.getItemType();
+			}
 		}
 
 		_collectionItemType = collectionItemType;
@@ -169,6 +183,7 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 
 		return layoutDisplayPageProviderRegistry.
 			getLayoutDisplayPageProviderByClassName(
+				_themeDisplay.getCompanyId(),
 				InfoSearchClassMapperRegistryUtil.getClassName(
 					listObjectReference.getItemType()));
 	}
@@ -225,6 +240,7 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 
 		_listObjectReference =
 			listObjectReferenceFactory.getListObjectReference(
+				_themeDisplay.getCompanyId(), _themeDisplay.getScopeGroupId(),
 				collectionJSONObject);
 
 		return _listObjectReference;
@@ -368,16 +384,61 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 				(SegmentsEntryLayoutListRetriever<ListObjectReference>)
 					layoutListRetriever;
 
-		if (segmentsEntryLayoutListRetriever.hasSegmentsEntryVariation(
-				listObjectReference, segmentsExperience.getSegmentsEntryId())) {
+		Long groupId = ScopeUtil.getItemGroupId(
+			segmentsExperience.getCompanyId(),
+			segmentsExperience.getSegmentsEntryScopeERC(),
+			segmentsExperience.getGroupId());
 
-			return new long[] {segmentsExperience.getSegmentsEntryId()};
+		if (groupId == null) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(
+					StringBundler.concat(
+						"Unable to resolve group ID for segments experience ",
+						segmentsExperience.getSegmentsExperienceId(),
+						" with segments entry scope external reference code ",
+						segmentsExperience.getSegmentsEntryScopeERC()));
+			}
+		}
+		else {
+			SegmentsEntry segmentsEntry =
+				SegmentsEntryLocalServiceUtil.
+					fetchSegmentsEntryByExternalReferenceCode(
+						segmentsExperience.getSegmentsEntryERC(), groupId);
+
+			if ((segmentsEntry != null) &&
+				segmentsEntryLayoutListRetriever.hasSegmentsEntryVariation(
+					listObjectReference, segmentsEntry.getSegmentsEntryId())) {
+
+				return new long[] {segmentsEntry.getSegmentsEntryId()};
+			}
 		}
 
 		return new long[] {
 			segmentsEntryLayoutListRetriever.getDefaultVariationSegmentsEntryId(
 				listObjectReference)
 		};
+	}
+
+	private String[] _getAudienceEntryERCs() {
+		String cookieValue = CookiesManagerUtil.getCookieValue(
+			"com.liferay.frontend.js.audiences", _httpServletRequest);
+
+		if (Validator.isNull(cookieValue)) {
+			return null;
+		}
+
+		try {
+			return JSONUtil.toStringArray(
+				JSONFactoryUtil.createJSONArray(
+					URLCodec.decodeURL(cookieValue)));
+		}
+		catch (JSONException jsonException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(jsonException);
+			}
+
+			return null;
+		}
 	}
 
 	private int _getCollectionCount() {
@@ -523,21 +584,23 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 			JSONArray targetCollectionsJSONArray =
 				(JSONArray)
 					fragmentEntryConfigurationParser.getConfigurationFieldValue(
-						fragmentEntryLink.getEditableValues(),
+						fragmentEntryLink.getEditableValuesJSONObject(),
 						"targetCollections",
 						FragmentConfigurationFieldDataType.ARRAY);
 
-			if ((targetCollectionsJSONArray != null) &&
-				JSONUtil.hasValue(
+			if ((targetCollectionsJSONArray == null) ||
+				!JSONUtil.hasValue(
 					targetCollectionsJSONArray,
 					_collectionStyledLayoutStructureItem.getItemId())) {
 
-				filterValues.put(
-					parameterName.replaceFirst(
-						FragmentCollectionFilterConstants.FILTER_PREFIX,
-						StringPool.BLANK),
-					entry.getValue());
+				continue;
 			}
+
+			filterValues.put(
+				parameterName.replaceFirst(
+					FragmentCollectionFilterConstants.FILTER_PREFIX,
+					StringPool.BLANK),
+				entry.getValue());
 		}
 
 		return filterValues;
@@ -598,6 +661,8 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 		DefaultLayoutListRetrieverContext defaultLayoutListRetrieverContext =
 			new DefaultLayoutListRetrieverContext();
 
+		defaultLayoutListRetrieverContext.setAudienceEntryERCs(
+			_getAudienceEntryERCs());
 		defaultLayoutListRetrieverContext.setConfiguration(_getConfiguration());
 		defaultLayoutListRetrieverContext.setContextObject(_getContextObject());
 		defaultLayoutListRetrieverContext.setInfoFilters(
@@ -609,6 +674,8 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 				_collectionStyledLayoutStructureItem.getNumberOfItems(),
 				_collectionStyledLayoutStructureItem.getNumberOfItemsPerPage(),
 				_collectionStyledLayoutStructureItem.getPaginationType()));
+		defaultLayoutListRetrieverContext.setScopeGroupId(
+			_themeDisplay.getScopeGroupId());
 		defaultLayoutListRetrieverContext.setSegmentsEntryIds(
 			_getSegmentsEntryIds(layoutListRetriever, listObjectReference));
 
@@ -674,7 +741,7 @@ public class RenderCollectionLayoutStructureItemDisplayContext {
 
 		_segmentsEntryIds = segmentsEntryRetriever.getSegmentsEntryIds(
 			_themeDisplay.getScopeGroupId(), _themeDisplay.getUserId(),
-			requestContextMapper.map(_httpServletRequest), new long[0]);
+			requestContextMapper.map(_httpServletRequest));
 
 		_segmentsEntryIds = _filterSegmentsEntryIds(
 			layoutListRetriever, listObjectReference, _segmentsEntryIds);

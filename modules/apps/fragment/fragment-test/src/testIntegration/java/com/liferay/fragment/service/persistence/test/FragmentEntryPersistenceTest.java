@@ -116,8 +116,6 @@ public class FragmentEntryPersistenceTest {
 
 		FragmentEntry newFragmentEntry = _persistence.create(pk);
 
-		newFragmentEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		newFragmentEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		newFragmentEntry.setUuid(RandomTestUtil.randomString());
@@ -159,6 +157,8 @@ public class FragmentEntryPersistenceTest {
 
 		newFragmentEntry.setPreviewFileEntryId(RandomTestUtil.nextLong());
 
+		newFragmentEntry.setMarketplace(RandomTestUtil.randomBoolean());
+
 		newFragmentEntry.setReadOnly(RandomTestUtil.randomBoolean());
 
 		newFragmentEntry.setType(RandomTestUtil.nextInt());
@@ -175,7 +175,9 @@ public class FragmentEntryPersistenceTest {
 
 		newFragmentEntry.setStatusDate(RandomTestUtil.nextDate());
 
-		_fragmentEntries.add(_persistence.update(newFragmentEntry));
+		newFragmentEntry = _persistence.update(newFragmentEntry);
+
+		_fragmentEntries.add(newFragmentEntry);
 
 		FragmentEntry existingFragmentEntry = _persistence.findByPrimaryKey(
 			newFragmentEntry.getPrimaryKey());
@@ -238,6 +240,9 @@ public class FragmentEntryPersistenceTest {
 			existingFragmentEntry.getPreviewFileEntryId(),
 			newFragmentEntry.getPreviewFileEntryId());
 		Assert.assertEquals(
+			existingFragmentEntry.isMarketplace(),
+			newFragmentEntry.isMarketplace());
+		Assert.assertEquals(
 			existingFragmentEntry.isReadOnly(), newFragmentEntry.isReadOnly());
 		Assert.assertEquals(
 			existingFragmentEntry.getType(), newFragmentEntry.getType());
@@ -268,7 +273,6 @@ public class FragmentEntryPersistenceTest {
 
 		FragmentEntry draftFragmentEntry = _persistence.create(pk);
 
-		draftFragmentEntry.setMvccVersion(fragmentEntry.getMvccVersion());
 		draftFragmentEntry.setCtCollectionId(fragmentEntry.getCtCollectionId());
 		draftFragmentEntry.setUuid(fragmentEntry.getUuid());
 		draftFragmentEntry.setExternalReferenceCode(
@@ -293,6 +297,7 @@ public class FragmentEntryPersistenceTest {
 		draftFragmentEntry.setIcon(fragmentEntry.getIcon());
 		draftFragmentEntry.setPreviewFileEntryId(
 			fragmentEntry.getPreviewFileEntryId());
+		draftFragmentEntry.setMarketplace(fragmentEntry.getMarketplace());
 		draftFragmentEntry.setReadOnly(fragmentEntry.getReadOnly());
 		draftFragmentEntry.setType(fragmentEntry.getType());
 		draftFragmentEntry.setTypeOptions(fragmentEntry.getTypeOptions());
@@ -357,6 +362,8 @@ public class FragmentEntryPersistenceTest {
 			fragmentEntry.getPreviewFileEntryId(),
 			draftFragmentEntry.getPreviewFileEntryId());
 		Assert.assertEquals(
+			fragmentEntry.isMarketplace(), draftFragmentEntry.isMarketplace());
+		Assert.assertEquals(
 			fragmentEntry.isReadOnly(), draftFragmentEntry.isReadOnly());
 		Assert.assertEquals(
 			fragmentEntry.getType(), draftFragmentEntry.getType());
@@ -387,8 +394,6 @@ public class FragmentEntryPersistenceTest {
 		long pk = RandomTestUtil.nextLong();
 
 		FragmentEntry fragmentEntry2 = _persistence.create(pk);
-
-		fragmentEntry2.setMvccVersion(RandomTestUtil.nextLong());
 
 		fragmentEntry2.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -430,6 +435,8 @@ public class FragmentEntryPersistenceTest {
 		fragmentEntry2.setIcon(RandomTestUtil.randomString());
 
 		fragmentEntry2.setPreviewFileEntryId(RandomTestUtil.nextLong());
+
+		fragmentEntry2.setMarketplace(RandomTestUtil.randomBoolean());
 
 		fragmentEntry2.setReadOnly(RandomTestUtil.randomBoolean());
 
@@ -532,21 +539,6 @@ public class FragmentEntryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByGroupId() throws Exception {
-		_persistence.countByGroupId(RandomTestUtil.nextLong());
-
-		_persistence.countByGroupId(0L);
-	}
-
-	@Test
-	public void testCountByGroupId_Head() throws Exception {
-		_persistence.countByGroupId_Head(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
-
-		_persistence.countByGroupId_Head(0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
 	public void testCountByFragmentCollectionId() throws Exception {
 		_persistence.countByFragmentCollectionId(RandomTestUtil.nextLong());
 
@@ -560,21 +552,6 @@ public class FragmentEntryPersistenceTest {
 
 		_persistence.countByFragmentCollectionId_Head(
 			0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
-	public void testCountByType() throws Exception {
-		_persistence.countByType(RandomTestUtil.nextInt());
-
-		_persistence.countByType(0);
-	}
-
-	@Test
-	public void testCountByType_Head() throws Exception {
-		_persistence.countByType_Head(
-			RandomTestUtil.nextInt(), RandomTestUtil.randomBoolean());
-
-		_persistence.countByType_Head(0, RandomTestUtil.randomBoolean());
 	}
 
 	@Test
@@ -779,9 +756,10 @@ public class FragmentEntryPersistenceTest {
 			"userId", true, "userName", true, "createDate", true,
 			"modifiedDate", true, "fragmentCollectionId", true,
 			"fragmentEntryKey", true, "name", true, "cacheable", true, "icon",
-			true, "previewFileEntryId", true, "readOnly", true, "type", true,
-			"lastPublishDate", true, "status", true, "statusByUserId", true,
-			"statusByUserName", true, "statusDate", true);
+			true, "previewFileEntryId", true, "marketplace", true, "readOnly",
+			true, "type", true, "lastPublishDate", true, "status", true,
+			"statusByUserId", true, "statusByUserName", true, "statusDate",
+			true);
 	}
 
 	@Test
@@ -1093,8 +1071,6 @@ public class FragmentEntryPersistenceTest {
 
 		FragmentEntry fragmentEntry = _persistence.create(pk);
 
-		fragmentEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		fragmentEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		fragmentEntry.setUuid(RandomTestUtil.randomString());
@@ -1135,6 +1111,8 @@ public class FragmentEntryPersistenceTest {
 
 		fragmentEntry.setPreviewFileEntryId(RandomTestUtil.nextLong());
 
+		fragmentEntry.setMarketplace(RandomTestUtil.randomBoolean());
+
 		fragmentEntry.setReadOnly(RandomTestUtil.randomBoolean());
 
 		fragmentEntry.setType(RandomTestUtil.nextInt());
@@ -1162,3 +1140,4 @@ public class FragmentEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1636049288

@@ -143,6 +143,15 @@ public class RoleLocalServiceUtil {
 		getService().clearUserRoles(userId);
 	}
 
+	public static Role copyRole(
+			long userId, String name, long sourceRoleId,
+			ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().copyRole(
+			userId, name, sourceRoleId, serviceContext);
+	}
+
 	/**
 	 * @throws PortalException
 	 */
@@ -454,21 +463,21 @@ public class RoleLocalServiceUtil {
 
 	public static List<Role> getGroupRolesAndTeamRoles(
 		long companyId, String name, List<String> excludedNames, String title,
-		String description, int[] types, long excludedTeamRoleId,
-		long teamGroupId, int start, int end) {
+		String description, int[] types, String subtype,
+		long excludedTeamRoleId, long teamGroupId, int start, int end) {
 
 		return getService().getGroupRolesAndTeamRoles(
-			companyId, name, excludedNames, title, description, types,
+			companyId, name, excludedNames, title, description, types, subtype,
 			excludedTeamRoleId, teamGroupId, start, end);
 	}
 
 	public static int getGroupRolesAndTeamRolesCount(
 		long companyId, String name, List<String> excludedNames, String title,
-		String description, int[] types, long excludedTeamRoleId,
-		long teamGroupId) {
+		String description, int[] types, String subtype,
+		long excludedTeamRoleId, long teamGroupId) {
 
 		return getService().getGroupRolesAndTeamRolesCount(
-			companyId, name, excludedNames, title, description, types,
+			companyId, name, excludedNames, title, description, types, subtype,
 			excludedTeamRoleId, teamGroupId);
 	}
 
@@ -481,6 +490,16 @@ public class RoleLocalServiceUtil {
 			getIndexableActionableDynamicQuery() {
 
 		return getService().getIndexableActionableDynamicQuery();
+	}
+
+	public static Role getOrAddEmptyRole(
+			String externalReferenceCode, long companyId, long userId,
+			String className, long classPK, String name, int type)
+		throws PortalException {
+
+		return getService().getOrAddEmptyRole(
+			externalReferenceCode, companyId, userId, className, classPK, name,
+			type);
 	}
 
 	/**
@@ -657,26 +676,6 @@ public class RoleLocalServiceUtil {
 	 */
 	public static int getRolesCount() {
 		return getService().getRolesCount();
-	}
-
-	/**
-	 * Returns all the roles of the subtype.
-	 *
-	 * @param subtype the role's subtype (optionally <code>null</code>)
-	 * @return the roles of the subtype
-	 */
-	public static List<Role> getSubtypeRoles(String subtype) {
-		return getService().getSubtypeRoles(subtype);
-	}
-
-	/**
-	 * Returns the number of roles of the subtype.
-	 *
-	 * @param subtype the role's subtype (optionally <code>null</code>)
-	 * @return the number of roles of the subtype
-	 */
-	public static int getSubtypeRolesCount(String subtype) {
-		return getService().getSubtypeRolesCount(subtype);
 	}
 
 	/**
@@ -1194,6 +1193,20 @@ public class RoleLocalServiceUtil {
 	}
 
 	/**
+	 * Updates the role in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
+	 *
+	 * <p>
+	 * <strong>Important:</strong> Inspect RoleLocalServiceImpl for overloaded versions of the method. If provided, use these entry points to the API, as the implementation logic may require the additional parameters defined there.
+	 * </p>
+	 *
+	 * @param role the role
+	 * @return the role that was updated
+	 */
+	public static Role updateRole(Role role) {
+		return getService().updateRole(role);
+	}
+
+	/**
 	 * Updates the role with the primary key.
 	 *
 	 * @param roleId the primary key of the role
@@ -1209,27 +1222,15 @@ public class RoleLocalServiceUtil {
 	 * @return the role with the primary key
 	 */
 	public static Role updateRole(
-			long roleId, String name, Map<java.util.Locale, String> titleMap,
+			String externalReferenceCode, long roleId, String name,
+			Map<java.util.Locale, String> titleMap,
 			Map<java.util.Locale, String> descriptionMap, String subtype,
 			ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().updateRole(
-			roleId, name, titleMap, descriptionMap, subtype, serviceContext);
-	}
-
-	/**
-	 * Updates the role in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
-	 *
-	 * <p>
-	 * <strong>Important:</strong> Inspect RoleLocalServiceImpl for overloaded versions of the method. If provided, use these entry points to the API, as the implementation logic may require the additional parameters defined there.
-	 * </p>
-	 *
-	 * @param role the role
-	 * @return the role that was updated
-	 */
-	public static Role updateRole(Role role) {
-		return getService().updateRole(role);
+			externalReferenceCode, roleId, name, titleMap, descriptionMap,
+			subtype, serviceContext);
 	}
 
 	public static void validateName(String name) throws PortalException {
@@ -1247,3 +1248,4 @@ public class RoleLocalServiceUtil {
 	private static volatile RoleLocalService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-74004397

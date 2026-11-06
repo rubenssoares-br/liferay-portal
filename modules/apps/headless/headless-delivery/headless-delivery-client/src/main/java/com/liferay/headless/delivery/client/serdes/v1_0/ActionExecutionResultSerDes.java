@@ -8,13 +8,14 @@ package com.liferay.headless.delivery.client.serdes.v1_0;
 import com.liferay.headless.delivery.client.dto.v1_0.ActionExecutionResult;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -54,9 +55,7 @@ public class ActionExecutionResultSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(actionExecutionResult.getType());
-
 			sb.append("\"");
 		}
 
@@ -67,14 +66,7 @@ public class ActionExecutionResultSerDes {
 
 			sb.append("\"value\": ");
 
-			if (actionExecutionResult.getValue() instanceof String) {
-				sb.append("\"");
-				sb.append((String)actionExecutionResult.getValue());
-				sb.append("\"");
-			}
-			else {
-				sb.append(actionExecutionResult.getValue());
-			}
+			sb.append(_toJSON(actionExecutionResult.getValue()));
 		}
 
 		sb.append("}");
@@ -203,6 +195,16 @@ public class ActionExecutionResultSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -235,3 +237,4 @@ public class ActionExecutionResultSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1364235805

@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.order.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.ShippingAddress;
 import com.liferay.headless.commerce.admin.order.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alessio Antonio Rendina
@@ -216,6 +217,20 @@ public class ShippingAddressSerDes {
 			sb.append("\"");
 		}
 
+		if (shippingAddress.getSubtype() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"subtype\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(shippingAddress.getSubtype()));
+
+			sb.append("\"");
+		}
+
 		if (shippingAddress.getZip() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -351,6 +366,13 @@ public class ShippingAddressSerDes {
 			map.put("street3", String.valueOf(shippingAddress.getStreet3()));
 		}
 
+		if (shippingAddress.getSubtype() == null) {
+			map.put("subtype", null);
+		}
+		else {
+			map.put("subtype", String.valueOf(shippingAddress.getSubtype()));
+		}
+
 		if (shippingAddress.getZip() == null) {
 			map.put("zip", null);
 		}
@@ -415,6 +437,9 @@ public class ShippingAddressSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "street3")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "subtype")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "zip")) {
@@ -504,6 +529,11 @@ public class ShippingAddressSerDes {
 					shippingAddress.setStreet3((String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "subtype")) {
+				if (jsonParserFieldValue != null) {
+					shippingAddress.setSubtype((String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "zip")) {
 				if (jsonParserFieldValue != null) {
 					shippingAddress.setZip((String)jsonParserFieldValue);
@@ -554,6 +584,16 @@ public class ShippingAddressSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -586,3 +626,4 @@ public class ShippingAddressSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:418313154

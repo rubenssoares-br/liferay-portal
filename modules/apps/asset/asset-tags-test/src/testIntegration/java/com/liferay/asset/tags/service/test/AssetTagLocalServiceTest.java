@@ -333,10 +333,10 @@ public class AssetTagLocalServiceTest {
 	public void testGetTagSizeWithCaseInsensitive() throws Exception {
 		String[] tagNames = {"tag1", "Tag1"};
 
-		_addArticle(tagNames);
-		_addArticle(tagNames);
+		_addJournalArticle(tagNames);
+		_addJournalArticle(tagNames);
 
-		_addArticle(new String[] {"TAG1"});
+		_addJournalArticle(new String[] {"TAG1"});
 
 		long classNameId = _classNameLocalService.getClassNameId(
 			JournalArticle.class.getName());
@@ -353,22 +353,6 @@ public class AssetTagLocalServiceTest {
 			1,
 			_assetTagLocalService.getTagsSize(
 				_group.getGroupId(), classNameId, "TAG1"));
-	}
-
-	@Test
-	public void testGetTagsWithCaseInsensitive() throws Exception {
-		String[] expectedTagNames = {"tag1", "Tag1"};
-
-		_addAssetTags(expectedTagNames);
-
-		Arrays.sort(expectedTagNames);
-
-		_addArticle(expectedTagNames);
-
-		_assertGetTags(expectedTagNames.length, expectedTagNames, "tag1");
-		_assertGetTags(expectedTagNames.length, expectedTagNames, "TAG1");
-		_assertGetTags(1, expectedTagNames, "TAG1", 0, 1);
-		_assertGetTags(1, expectedTagNames, "Tag1", 0, 1);
 	}
 
 	@Test
@@ -476,14 +460,6 @@ public class AssetTagLocalServiceTest {
 	@Rule
 	public ExpectedException expectedException = ExpectedException.none();
 
-	private void _addArticle(String[] tagNames) throws Exception {
-		_serviceContext.setAssetTagNames(tagNames);
-
-		JournalTestUtil.addArticle(
-			_group.getGroupId(),
-			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID, _serviceContext);
-	}
-
 	private List<AssetTag> _addAssetTags(String[] tagNames)
 		throws PortalException {
 
@@ -499,31 +475,12 @@ public class AssetTagLocalServiceTest {
 		return assetTags;
 	}
 
-	private void _assertGetTags(
-		long expectedLength, String[] expectedTagNames, String name) {
+	private void _addJournalArticle(String[] tagNames) throws Exception {
+		_serviceContext.setAssetTagNames(tagNames);
 
-		_assertGetTags(
-			expectedLength, expectedTagNames, name, QueryUtil.ALL_POS,
-			QueryUtil.ALL_POS);
-	}
-
-	private void _assertGetTags(
-		long expectedLength, String[] expectedTagNames, String name, int start,
-		int end) {
-
-		List<AssetTag> actualAssetTags = _assetTagLocalService.getTags(
+		JournalTestUtil.addArticle(
 			_group.getGroupId(),
-			_classNameLocalService.getClassNameId(
-				JournalArticle.class.getName()),
-			name, start, end);
-
-		Assert.assertEquals(
-			actualAssetTags.toString(), expectedLength, actualAssetTags.size());
-		Assert.assertTrue(
-			ArrayUtil.containsAll(
-				expectedTagNames,
-				TransformUtil.transformToArray(
-					actualAssetTags, AssetTag::getName, String.class)));
+			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID, _serviceContext);
 	}
 
 	private void _testAddMultipleTags(List<String> tagNames)

@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class Range implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Range.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFormat() {
 		if (_formatSupplier != null) {
 			format = _formatSupplier.get();
@@ -92,7 +92,7 @@ public class Range implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _formatSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getGt() {
 		if (_gtSupplier != null) {
@@ -132,7 +132,7 @@ public class Range implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _gtSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getGte() {
 		if (_gteSupplier != null) {
@@ -172,7 +172,7 @@ public class Range implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _gteSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getLt() {
 		if (_ltSupplier != null) {
@@ -212,7 +212,7 @@ public class Range implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _ltSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getLte() {
 		if (_lteSupplier != null) {
@@ -252,7 +252,7 @@ public class Range implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _lteSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getParameterName() {
 		if (_parameterNameSupplier != null) {
 			parameterName = _parameterNameSupplier.get();
@@ -345,17 +345,7 @@ public class Range implements Serializable {
 
 			sb.append("\"gt\": ");
 
-			if (gt instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)gt));
-			}
-			else if (gt instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)gt));
-				sb.append("\"");
-			}
-			else {
-				sb.append(gt);
-			}
+			sb.append(_toJSON(gt));
 		}
 
 		Object gte = getGte();
@@ -367,17 +357,7 @@ public class Range implements Serializable {
 
 			sb.append("\"gte\": ");
 
-			if (gte instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)gte));
-			}
-			else if (gte instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)gte));
-				sb.append("\"");
-			}
-			else {
-				sb.append(gte);
-			}
+			sb.append(_toJSON(gte));
 		}
 
 		Object lt = getLt();
@@ -389,17 +369,7 @@ public class Range implements Serializable {
 
 			sb.append("\"lt\": ");
 
-			if (lt instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)lt));
-			}
-			else if (lt instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)lt));
-				sb.append("\"");
-			}
-			else {
-				sb.append(lt);
-			}
+			sb.append(_toJSON(lt));
 		}
 
 		Object lte = getLte();
@@ -411,17 +381,7 @@ public class Range implements Serializable {
 
 			sb.append("\"lte\": ");
 
-			if (lte instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)lte));
-			}
-			else if (lte instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)lte));
-				sb.append("\"");
-			}
-			else {
-				sb.append(lte);
-			}
+			sb.append(_toJSON(lte));
 		}
 
 		String parameterName = getParameterName();
@@ -445,8 +405,8 @@ public class Range implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Range",
 		name = "x-class-name"
 	)
@@ -533,6 +493,27 @@ public class Range implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -541,3 +522,4 @@ public class Range implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1157888498

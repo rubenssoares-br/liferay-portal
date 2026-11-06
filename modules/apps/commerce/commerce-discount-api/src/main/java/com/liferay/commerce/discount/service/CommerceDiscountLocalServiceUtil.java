@@ -803,13 +803,6 @@ public class CommerceDiscountLocalServiceUtil {
 		return getService().getCommerceDiscountsCount(companyId, couponCode);
 	}
 
-	public static int getCommerceDiscountsCountByPricingClassId(
-		long commercePricingClassId, String title) {
-
-		return getService().getCommerceDiscountsCountByPricingClassId(
-			commercePricingClassId, title);
-	}
-
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
 		getExportActionableDynamicQuery(
 			com.liferay.exportimport.kernel.lar.PortletDataContext
@@ -823,6 +816,14 @@ public class CommerceDiscountLocalServiceUtil {
 			getIndexableActionableDynamicQuery() {
 
 		return getService().getIndexableActionableDynamicQuery();
+	}
+
+	public static CommerceDiscount getOrAddEmptyCommerceDiscount(
+			String externalReferenceCode, long companyId, long userId)
+		throws PortalException {
+
+		return getService().getOrAddEmptyCommerceDiscount(
+			externalReferenceCode, companyId, userId);
 	}
 
 	public static List<CommerceDiscount> getOrderTypeCommerceDiscounts(
@@ -903,13 +904,6 @@ public class CommerceDiscountLocalServiceUtil {
 
 		return getService().incrementCommerceDiscountNumberOfUse(
 			commerceDiscountId);
-	}
-
-	public static List<CommerceDiscount> searchByCommercePricingClassId(
-		long commercePricingClassId, String title, int start, int end) {
-
-		return getService().searchByCommercePricingClassId(
-			commercePricingClassId, title, start, end);
 	}
 
 	public static com.liferay.portal.kernel.search.BaseModelSearchResult
@@ -1173,3 +1167,4 @@ public class CommerceDiscountLocalServiceUtil {
 			CommerceDiscountLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1449901086

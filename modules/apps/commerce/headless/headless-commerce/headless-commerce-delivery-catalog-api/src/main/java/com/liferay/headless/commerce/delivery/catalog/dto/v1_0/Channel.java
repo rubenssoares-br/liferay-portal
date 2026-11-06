@@ -11,35 +11,42 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Channel")
+@GraphQLName(
+	description = "Commerce channel (site or external endpoint) that scopes pricing, currency, inventory, and catalog visibility for the buyer.",
+	value = "Channel"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Commerce channel (site or external endpoint) that scopes pricing, currency, inventory, and catalog visibility for the buyer.",
+	requiredProperties = {"currencyCode", "name", "type"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"currencyCode", "name", "type"})
 @XmlRootElement(name = "Channel")
 public class Channel implements Serializable {
 
@@ -51,7 +58,10 @@ public class Channel implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Channel.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "ISO 4217 currency code used for prices in this channel. Required on create; must reference an active currency configured on the company. Updating this field triggers a reindex.",
+		example = "USD"
+	)
 	public String getCurrencyCode() {
 		if (_currencyCodeSupplier != null) {
 			currencyCode = _currencyCodeSupplier.get();
@@ -85,7 +95,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "ISO 4217 currency code used for prices in this channel. Required on create; must reference an active currency configured on the company. Updating this field triggers a reindex."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String currencyCode;
@@ -93,7 +105,10 @@ public class Channel implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _currencyCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per channel within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -127,14 +142,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per channel within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the commerce channel (FK identifier). Read-only; assigned on create.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -166,14 +186,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the commerce channel (FK identifier). Read-only; assigned on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the channel. Required on create. Updating this field triggers a reindex; filterable, sortable, and matched by the search query parameter.",
+		example = "Storefront Channel"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -205,7 +230,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the channel. Required on create. Updating this field triggers a reindex; filterable, sortable, and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String name;
@@ -213,7 +240,10 @@ public class Channel implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the site the channel is bound to (FK identifier). Filterable via the OData query parameter.",
+		example = "20078"
+	)
 	public Long getSiteGroupId() {
 		if (_siteGroupIdSupplier != null) {
 			siteGroupId = _siteGroupIdSupplier.get();
@@ -247,14 +277,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the site the channel is bound to (FK identifier). Filterable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long siteGroupId;
 
 	@JsonIgnore
 	private Supplier<Long> _siteGroupIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Channel kind discriminator. Required on create. Filterable via the OData query parameter. The built-in value is `site`; additional values may be contributed by custom CommerceChannelType OSGi components and are accepted here as free-form strings.",
+		example = "site"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -286,7 +321,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Channel kind discriminator. Required on create. Filterable via the OData query parameter. The built-in value is `site`; additional values may be contributed by custom CommerceChannelType OSGi components and are accepted here as free-form strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String type;
@@ -414,8 +451,8 @@ public class Channel implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.Channel",
 		name = "x-class-name"
 	)
@@ -502,6 +539,27 @@ public class Channel implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -510,3 +568,4 @@ public class Channel implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1065860656

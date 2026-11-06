@@ -15,6 +15,8 @@ import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
+import java.util.Collections;
+
 /**
  * @author Pedro Leite
  */
@@ -25,45 +27,43 @@ public class ObjectFieldUpgradeProcess extends UpgradeProcess {
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
 				SQLTransformer.transform(
 					StringBundler.concat(
-						"select ObjectField.dbColumnName, ",
-						"ObjectField.dbTableName, ObjectField.localized, ",
-						"ObjectDefinition.dbTableName as ",
-						"objectDefinitionDBTableName from ObjectField inner ",
-						"join ObjectDefinition on ",
-						"ObjectDefinition.objectDefinitionId = ",
-						"ObjectField.objectDefinitionId inner join ",
-						"ObjectFieldSetting on ",
-						"ObjectFieldSetting.objectFieldId = ",
-						"ObjectField.objectFieldId where ",
-						"(ObjectField.businessType = '",
-						ObjectFieldConstants.BUSINESS_TYPE_AUTO_INCREMENT,
-						"') or (ObjectFieldSetting.name = '",
-						ObjectFieldSettingConstants.NAME_UNIQUE_VALUES,
-						"' and ObjectFieldSetting.value = 'true')")));
-			ResultSet resultSet = preparedStatement.executeQuery()) {
+						"select ObjectField.dbColumnName, ObjectField.",
+						"dbTableName, ObjectField.localized, ObjectDefinition.",
+						"dbTableName as objectDefinitionDBTableName from ",
+						"ObjectField inner join ObjectDefinition on ",
+						"ObjectDefinition.objectDefinitionId = ObjectField.",
+						"objectDefinitionId inner join ObjectFieldSetting on ",
+						"ObjectFieldSetting.objectFieldId = ObjectField.",
+						"objectFieldId where (ObjectField.businessType = ?) ",
+						"or (ObjectFieldSetting.name = ? and ",
+						"ObjectFieldSetting.value = 'true')")))) {
 
-			while (resultSet.next()) {
-				String dbColumnName = resultSet.getString("dbColumnName");
-				String dbTableName = resultSet.getString("dbTableName");
-				boolean localized = resultSet.getBoolean("localized");
+			preparedStatement.setString(
+				1, ObjectFieldConstants.BUSINESS_TYPE_AUTO_INCREMENT);
+			preparedStatement.setString(
+				2, ObjectFieldSettingConstants.NAME_UNIQUE_VALUES);
 
-				String[] columnNames = {dbColumnName};
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				while (resultSet.next()) {
+					String dbColumnName = resultSet.getString("dbColumnName");
+					String dbTableName = resultSet.getString("dbTableName");
+					boolean localized = resultSet.getBoolean("localized");
 
-				if (localized) {
-					dbTableName =
-						resultSet.getString("objectDefinitionDBTableName") +
-							"_l";
+					String[] columnNames = {dbColumnName};
 
-					columnNames = new String[] {dbColumnName, "languageId"};
-				}
+					if (localized) {
+						dbTableName =
+							resultSet.getString("objectDefinitionDBTableName") +
+								"_l";
 
-				String indexName = IndexMetadataFactoryUtil.createIndexName(
-					dbTableName, columnNames);
+						columnNames = new String[] {dbColumnName, "languageId"};
+					}
 
-				if (hasIndex(dbTableName, indexName)) {
-					runSQL(
-						StringBundler.concat(
-							"drop index ", indexName, " on ", dbTableName));
+					String indexName = IndexMetadataFactoryUtil.createIndexName(
+						dbTableName, columnNames);
+
+					dropIndexes(
+						Collections.singletonList(indexName), dbTableName);
 				}
 			}
 		}

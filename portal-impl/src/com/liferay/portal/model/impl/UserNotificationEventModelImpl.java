@@ -97,6 +97,8 @@ public class UserNotificationEventModelImpl
 	public static final String TABLE_SQL_DROP =
 		"drop table UserNotificationEvent";
 
+	public static final String ENTITY_ALIAS = "userNotificationEvent";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY userNotificationEvent.timestamp DESC";
 
@@ -182,7 +184,7 @@ public class UserNotificationEventModelImpl
 	public static final long UUID_COLUMN_BITMASK = 256L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.UserNotificationEvent"));
 
 	public UserNotificationEventModelImpl() {
@@ -1135,3 +1137,4 @@ public class UserNotificationEventModelImpl
 	private UserNotificationEvent _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-905995298

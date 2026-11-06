@@ -7,6 +7,7 @@ package com.liferay.portal.kernel.service;
 
 import com.liferay.exportimport.kernel.lar.PortletDataContext;
 import com.liferay.petra.sql.dsl.query.DSLQuery;
+import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
 import com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery;
@@ -198,6 +199,9 @@ public interface ListTypeLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public ListType fetchListType(long listTypeId);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public ListType fetchListType(long companyId, String name, String type);
+
 	/**
 	 * Returns the list type with the matching UUID and company.
 	 *
@@ -230,7 +234,8 @@ public interface ListTypeLocalService
 	public ListType getListType(long listTypeId) throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public ListType getListType(long companyId, String name, String type);
+	public ListType getListType(long companyId, String name, String type)
+		throws PortalException;
 
 	/**
 	 * Returns the list type with the matching UUID and company.
@@ -245,7 +250,8 @@ public interface ListTypeLocalService
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public long getListTypeId(long companyId, String name, String type);
+	public long getListTypeId(long companyId, String name, String type)
+		throws PortalException;
 
 	/**
 	 * Returns a range of all the list types.
@@ -300,11 +306,12 @@ public interface ListTypeLocalService
 	@Indexable(type = IndexableType.REINDEX)
 	public ListType updateListType(ListType listType);
 
-	@Transactional(readOnly = true)
+	@CTAware(onProduction = true)
 	public void validate(long listTypeId, long classNameId, String type)
 		throws PortalException;
 
-	@Transactional(readOnly = true)
+	@CTAware(onProduction = true)
 	public void validate(long listTypeId, String type) throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:200992620

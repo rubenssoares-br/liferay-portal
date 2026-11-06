@@ -236,9 +236,11 @@ public class ExpandoUserFieldExpressionHandler
 				_expandoColumnLocalService.getDefaultTableColumns(
 					CompanyThreadLocal.getCompanyId(), User.class.getName())) {
 
-			if (types.contains(column.getType())) {
-				validExpressions.add(column.getName());
+			if (!types.contains(column.getType())) {
+				continue;
 			}
+
+			validExpressions.add(column.getName());
 		}
 
 		return Collections.unmodifiableList(validExpressions);
@@ -284,7 +286,7 @@ public class ExpandoUserFieldExpressionHandler
 		ExpandoValue expandoValue = null;
 
 		if (!user.isNew()) {
-			expandoValue = _expandoValueLocalService.getValue(
+			expandoValue = _expandoValueLocalService.fetchValue(
 				user.getCompanyId(), User.class.getName(),
 				ExpandoTableConstants.DEFAULT_TABLE_NAME,
 				validUserFieldExpression, user.getUserId());

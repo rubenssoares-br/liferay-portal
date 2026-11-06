@@ -9,7 +9,6 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.User;
@@ -21,34 +20,33 @@ import com.liferay.portal.kernel.service.UserGroupLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
-import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserGroupTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.test.rule.Inject;
+import com.liferay.portal.test.rule.LanguageIds;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 
-import java.util.Arrays;
+import jakarta.portlet.PortletPreferences;
+
+import jakarta.servlet.Servlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
-import javax.portlet.PortletPreferences;
-
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -62,6 +60,10 @@ import org.springframework.mock.web.MockHttpServletRequest;
 /**
  * @author Sergio González
  */
+@LanguageIds(
+	availableLanguageIds = {"en_US", "es_ES", "fr_CA"},
+	defaultLanguageId = "en_US"
+)
 @RunWith(Arquillian.class)
 public class FriendlyURLServletLocalizedFriendlyURLTest {
 
@@ -72,15 +74,6 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_availableLocales = _language.getAvailableLocales();
-		_defaultLocale = LocaleUtil.getDefault();
-
-		CompanyTestUtil.resetCompanyLocales(
-			_portal.getDefaultCompanyId(),
-			Arrays.asList(
-				LocaleUtil.CANADA_FRENCH, LocaleUtil.SPAIN, LocaleUtil.US),
-			LocaleUtil.US);
-
 		_nameMap = HashMapBuilder.put(
 			LocaleUtil.CANADA_FRENCH, "Accueil"
 		).put(
@@ -96,12 +89,6 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		).put(
 			LocaleUtil.US, "/home"
 		).build();
-	}
-
-	@AfterClass
-	public static void tearDownClass() throws Exception {
-		CompanyTestUtil.resetCompanyLocales(
-			_portal.getDefaultCompanyId(), _availableLocales, _defaultLocale);
 	}
 
 	@Before
@@ -175,6 +162,27 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 	}
 
 	@Test
+	public void testIncludeI18nPathCustomLocaleAlgorithm3() throws Exception {
+		int originalLocalePrependFriendlyURLStyle =
+			PropsValues.LOCALE_PREPEND_FRIENDLY_URL_STYLE;
+
+		try {
+			PropsValues.LOCALE_PREPEND_FRIENDLY_URL_STYLE = 3;
+
+			_assertLocalizedSiteLayoutFriendlyURL(
+				_group.getGroupId(),
+				LayoutTestUtil.addTypePortletLayout(
+					_group.getGroupId(), false, _nameMap, _friendlyURLMap),
+				"/inicio", LocaleUtil.BRAZIL, LocaleUtil.BRAZIL, "/inicio",
+				true);
+		}
+		finally {
+			PropsValues.LOCALE_PREPEND_FRIENDLY_URL_STYLE =
+				originalLocalePrependFriendlyURLStyle;
+		}
+	}
+
+	@Test
 	public void testIncludeI18nPathDefaultLocaleAlgorithm0() throws Exception {
 		PortletPreferences portletPreferences = PrefsPropsUtil.getPreferences(
 			_group.getCompanyId());
@@ -222,11 +230,14 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 
 	@Test
 	public void testIncludeI18nPathDefaultLocaleAlgorithm2() throws Exception {
-		int originalLocalePrependFriendlyURLStyle =
-			PropsValues.LOCALE_PREPEND_FRIENDLY_URL_STYLE;
+		PortletPreferences portletPreferences = PrefsPropsUtil.getPreferences(
+			_group.getCompanyId());
 
 		try {
-			PropsValues.LOCALE_PREPEND_FRIENDLY_URL_STYLE = 2;
+			portletPreferences.setValue(
+				PropsKeys.LOCALE_PREPEND_FRIENDLY_URL_STYLE, String.valueOf(2));
+
+			portletPreferences.store();
 
 			_assertLocalizedSiteLayoutFriendlyURL(
 				_group.getGroupId(),
@@ -235,9 +246,125 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 				"/home", LocaleUtil.US, LocaleUtil.US, "/home", true);
 		}
 		finally {
-			PropsValues.LOCALE_PREPEND_FRIENDLY_URL_STYLE =
-				originalLocalePrependFriendlyURLStyle;
+			portletPreferences.reset(
+				PropsKeys.LOCALE_PREPEND_FRIENDLY_URL_STYLE);
 		}
+	}
+
+	@Test
+	public void testIncludeI18nPathDefaultLocaleAlgorithm3() throws Exception {
+		PortletPreferences portletPreferences = PrefsPropsUtil.getPreferences(
+			_group.getCompanyId());
+
+		try {
+			portletPreferences.setValue(
+				PropsKeys.LOCALE_PREPEND_FRIENDLY_URL_STYLE, String.valueOf(3));
+
+			portletPreferences.store();
+
+			_assertLocalizedSiteLayoutFriendlyURL(
+				_group.getGroupId(),
+				LayoutTestUtil.addTypePortletLayout(
+					_group.getGroupId(), false, _nameMap, _friendlyURLMap),
+				"/home", LocaleUtil.US, LocaleUtil.US, "/home", false);
+		}
+		finally {
+			portletPreferences.reset(
+				PropsKeys.LOCALE_PREPEND_FRIENDLY_URL_STYLE);
+		}
+	}
+
+	@Test
+	public void testLocalizedSiteLayoutFriendlyURLWithEncodedLayoutFriendlyURL()
+		throws Exception {
+
+		MockHttpServletRequest mockHttpServletRequest =
+			new MockHttpServletRequest();
+
+		String layoutFriendlyURL = "/test";
+
+		mockHttpServletRequest.setPathInfo(
+			_group.getFriendlyURL() + layoutFriendlyURL);
+		mockHttpServletRequest.setRequestURI(
+			_PUBLIC_GROUP_SERVLET_MAPPING + _group.getFriendlyURL() +
+				layoutFriendlyURL);
+
+		Assert.assertEquals(
+			_PUBLIC_GROUP_SERVLET_MAPPING + _group.getFriendlyURL() +
+				"/t%C3%A9st",
+			ReflectionTestUtil.invoke(
+				_servlet, "_getLocalizedFriendlyURL",
+				new Class<?>[] {
+					HttpServletRequest.class, Layout.class, Locale.class,
+					Locale.class
+				},
+				mockHttpServletRequest,
+				LayoutTestUtil.addTypePortletLayout(
+					_group.getGroupId(), false, _nameMap,
+					HashMapBuilder.put(
+						LocaleUtil.US, "/tést"
+					).build()),
+				LocaleUtil.US, null));
+	}
+
+	@Test
+	public void testLocalizedSiteLayoutFriendlyURLWithEncodedOriginalLayoutFriendlyURL()
+		throws Exception {
+
+		MockHttpServletRequest mockHttpServletRequest =
+			new MockHttpServletRequest();
+
+		mockHttpServletRequest.setRequestURI(
+			_PUBLIC_GROUP_SERVLET_MAPPING + _group.getFriendlyURL() +
+				"/inici%C3%A9");
+
+		Assert.assertEquals(
+			_PUBLIC_GROUP_SERVLET_MAPPING + _group.getFriendlyURL() + "/home",
+			ReflectionTestUtil.invoke(
+				_servlet, "_getLocalizedFriendlyURL",
+				new Class<?>[] {
+					HttpServletRequest.class, Layout.class, Locale.class,
+					Locale.class
+				},
+				mockHttpServletRequest,
+				LayoutTestUtil.addTypePortletLayout(
+					_group.getGroupId(), false, _nameMap,
+					HashMapBuilder.put(
+						LocaleUtil.SPAIN, "/inicié"
+					).put(
+						LocaleUtil.US, "/home"
+					).build()),
+				LocaleUtil.US, LocaleUtil.SPAIN));
+	}
+
+	@Test
+	public void testLocalizedSiteLayoutFriendlyURLWithEncodedRequestURI()
+		throws Exception {
+
+		MockHttpServletRequest mockHttpServletRequest =
+			new MockHttpServletRequest();
+
+		String layoutFriendlyURL = "/tést";
+
+		mockHttpServletRequest.setPathInfo(
+			_group.getFriendlyURL() + layoutFriendlyURL);
+		mockHttpServletRequest.setRequestURI(
+			HttpComponentsUtil.encodePath(
+				_PUBLIC_GROUP_SERVLET_MAPPING + _group.getFriendlyURL() +
+					layoutFriendlyURL));
+
+		Assert.assertEquals(
+			_PUBLIC_GROUP_SERVLET_MAPPING + _group.getFriendlyURL() + "/home",
+			ReflectionTestUtil.invoke(
+				_servlet, "_getLocalizedFriendlyURL",
+				new Class<?>[] {
+					HttpServletRequest.class, Layout.class, Locale.class,
+					Locale.class
+				},
+				mockHttpServletRequest,
+				LayoutTestUtil.addTypePortletLayout(
+					_group.getGroupId(), false, _nameMap, _friendlyURLMap),
+				LocaleUtil.US, null));
 	}
 
 	@Test
@@ -371,7 +498,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.US, null, "/home");
+			true, LocaleUtil.US, null, "/home", false);
 	}
 
 	@Test
@@ -379,7 +506,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.CANADA_FRENCH, null, "/accueil");
+			true, LocaleUtil.CANADA_FRENCH, null, "/accueil", true);
 	}
 
 	@Test
@@ -387,7 +514,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.US, "/-/blogs/one", "/home");
+			true, LocaleUtil.US, "/-/blogs/one", "/home", false);
 	}
 
 	@Test
@@ -395,7 +522,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.CANADA_FRENCH, "/-/blogs/one", "/accueil");
+			true, LocaleUtil.CANADA_FRENCH, "/-/blogs/one", "/accueil", true);
 	}
 
 	@Test
@@ -403,7 +530,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.US, "?param=value", "/home");
+			true, LocaleUtil.US, "?param=value", "/home", false);
 	}
 
 	@Test
@@ -411,7 +538,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.CANADA_FRENCH, "?param=value", "/accueil");
+			true, LocaleUtil.CANADA_FRENCH, "?param=value", "/accueil", true);
 	}
 
 	@Test
@@ -419,7 +546,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.US, "/tags/one", "/home");
+			true, LocaleUtil.US, "/tags/one", "/home", false);
 	}
 
 	@Test
@@ -427,7 +554,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			true, LocaleUtil.CANADA_FRENCH, "/tags/one", "/accueil");
+			true, LocaleUtil.CANADA_FRENCH, "/tags/one", "/accueil", true);
 	}
 
 	@Test
@@ -435,7 +562,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.US, null, "/home");
+			false, LocaleUtil.US, null, "/home", false);
 	}
 
 	@Test
@@ -443,7 +570,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.CANADA_FRENCH, null, "/accueil");
+			false, LocaleUtil.CANADA_FRENCH, null, "/accueil", true);
 	}
 
 	@Test
@@ -451,7 +578,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.US, "/-/blogs/one", "/home");
+			false, LocaleUtil.US, "/-/blogs/one", "/home", false);
 	}
 
 	@Test
@@ -459,7 +586,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.CANADA_FRENCH, "/-/blogs/one", "/accueil");
+			false, LocaleUtil.CANADA_FRENCH, "/-/blogs/one", "/accueil", true);
 	}
 
 	@Test
@@ -467,7 +594,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.US, "?param=value", "/home");
+			false, LocaleUtil.US, "?param=value", "/home", false);
 	}
 
 	@Test
@@ -475,7 +602,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.CANADA_FRENCH, "?param=value", "/accueil");
+			false, LocaleUtil.CANADA_FRENCH, "?param=value", "/accueil", true);
 	}
 
 	@Test
@@ -483,7 +610,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.US, "/tags/one", "/home");
+			false, LocaleUtil.US, "/tags/one", "/home", false);
 	}
 
 	@Test
@@ -491,7 +618,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 		throws Exception {
 
 		_testWronglyLocalizedSiteLayoutFriendlyURL(
-			false, LocaleUtil.CANADA_FRENCH, "/tags/one", "/accueil");
+			false, LocaleUtil.CANADA_FRENCH, "/tags/one", "/accueil", true);
 	}
 
 	@Test
@@ -713,7 +840,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 
 		sb = new StringBundler(includeI18nPath ? 7 : 5);
 
-		if (includeI18nPath) {
+		if (includeI18nPath && !Objects.equals(locale.getLanguage(), "en")) {
 			sb.append(StringPool.SLASH);
 			sb.append(_portal.getI18nPathLanguageId(locale, StringPool.BLANK));
 		}
@@ -840,7 +967,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 
 	private void _testWronglyLocalizedSiteLayoutFriendlyURL(
 			boolean privateLayout, Locale locale, String queryString,
-			String expectedLayoutFriendlyURL)
+			String expectedLayoutFriendlyURL, boolean includeI18nPath)
 		throws Exception {
 
 		String requestedFriendlyURL = "/inicio";
@@ -856,7 +983,7 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 			LayoutTestUtil.addTypePortletLayout(
 				_group.getGroupId(), privateLayout, _nameMap, _friendlyURLMap),
 			requestedFriendlyURL, locale, LocaleUtil.SPAIN,
-			expectedLayoutFriendlyURL, true);
+			expectedLayoutFriendlyURL, includeI18nPath);
 	}
 
 	private void _testWronglyLocalizedVirtualLayoutFriendlyURL(
@@ -901,23 +1028,17 @@ public class FriendlyURLServletLocalizedFriendlyURLTest {
 
 	private static final String _VIRTUAL_HOSTNAME = "test.com";
 
-	private static Set<Locale> _availableLocales;
-	private static Locale _defaultLocale;
 	private static Map<Locale, String> _friendlyURLMap;
-
-	@Inject
-	private static Language _language;
-
 	private static Map<Locale, String> _nameMap;
-
-	@Inject
-	private static Portal _portal;
 
 	@DeleteAfterTestRun
 	private Group _group;
 
 	@Inject
 	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private Portal _portal;
 
 	@Inject(
 		filter = "(&(servlet.type=friendly-url)(servlet.init.private=false))"

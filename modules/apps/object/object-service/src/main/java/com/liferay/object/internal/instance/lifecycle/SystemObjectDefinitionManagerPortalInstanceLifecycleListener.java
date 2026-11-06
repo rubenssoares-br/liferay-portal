@@ -5,8 +5,10 @@
 
 package com.liferay.object.internal.instance.lifecycle;
 
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
-import com.liferay.document.library.util.DLURLHelper;
+import com.liferay.dynamic.data.mapping.expression.DDMExpressionFactory;
+import com.liferay.friendly.url.service.FriendlyURLEntryLocalService;
 import com.liferay.info.collection.provider.InfoCollectionProvider;
 import com.liferay.info.item.field.reader.InfoItemFieldReaderFieldSetProvider;
 import com.liferay.info.item.provider.InfoItemDetailsProvider;
@@ -22,6 +24,7 @@ import com.liferay.list.type.service.ListTypeEntryLocalService;
 import com.liferay.notification.handler.NotificationHandler;
 import com.liferay.notification.term.evaluator.NotificationTermEvaluator;
 import com.liferay.object.configuration.ObjectConfiguration;
+import com.liferay.object.definition.util.ObjectDefinitionUtil;
 import com.liferay.object.info.field.converter.ObjectFieldInfoFieldConverter;
 import com.liferay.object.internal.item.selector.SystemObjectEntryItemSelectorView;
 import com.liferay.object.internal.notification.handler.ObjectDefinitionNotificationHandler;
@@ -36,17 +39,18 @@ import com.liferay.object.internal.system.info.item.provider.SystemObjectEntryIn
 import com.liferay.object.internal.system.info.item.provider.SystemObjectEntryInfoItemObjectProvider;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectFolder;
-import com.liferay.object.related.models.ObjectRelatedModelsProviderRegistrarHelper;
 import com.liferay.object.related.models.ObjectRelatedModelsProviderRegistry;
+import com.liferay.object.related.models.ObjectRelatedModelsProviderRegistryUtil;
 import com.liferay.object.rest.context.path.RESTContextPathResolver;
 import com.liferay.object.rest.context.path.RESTContextPathResolverRegistry;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManagerRegistry;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectActionLocalService;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryFolderLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectEntryService;
 import com.liferay.object.service.ObjectFieldLocalService;
-import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFolderLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.service.ObjectStateFlowLocalService;
@@ -59,7 +63,6 @@ import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerList;
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerListFactory;
 import com.liferay.petra.lang.CentralizedThreadLocal;
 import com.liferay.petra.string.StringBundler;
-import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.instance.lifecycle.BasePortalInstanceLifecycleListener;
 import com.liferay.portal.instance.lifecycle.EveryNodeEveryStartup;
@@ -69,6 +72,7 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Release;
+import com.liferay.portal.kernel.security.permission.InlineSQLHelper;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.ListTypeLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
@@ -126,7 +130,7 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 
 		_bundleContext = bundleContext;
 
-		_openingThreadLocal.set(Boolean.TRUE);
+		_opening.set(Boolean.TRUE);
 
 		_serviceTrackerList = ServiceTrackerListFactory.open(
 			bundleContext, SystemObjectDefinitionManager.class, null,
@@ -148,7 +152,7 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 							"Adding service " + systemObjectDefinitionManager);
 					}
 
-					if (!_openingThreadLocal.get()) {
+					if (!_opening.get()) {
 						_companyLocalService.forEachCompanyId(
 							companyId -> _apply(
 								companyId, systemObjectDefinitionManager));
@@ -177,7 +181,7 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 
 			});
 
-		_openingThreadLocal.set(Boolean.FALSE);
+		_opening.set(Boolean.FALSE);
 	}
 
 	@Deactivate
@@ -212,8 +216,7 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 					systemObjectDefinitionManager.getVersion())) {
 
 				ObjectFolder objectFolder =
-					_objectFolderLocalService.getOrAddDefaultObjectFolder(
-						companyId);
+					_objectFolderLocalService.getDefaultObjectFolder(companyId);
 
 				objectDefinition =
 					_objectDefinitionLocalService.
@@ -222,9 +225,8 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 							systemObjectDefinitionManager);
 			}
 
-			String itemClassName =
-				objectDefinition.getClassName() + StringPool.POUND +
-					objectDefinition.getObjectDefinitionId();
+			String itemClassName = ObjectDefinitionUtil.getItemClassName(
+				objectDefinition);
 
 			_bundleContext.registerService(
 				InfoCollectionProvider.class,
@@ -252,27 +254,28 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 
 			ObjectFieldInfoFieldConverter objectFieldInfoFieldConverter =
 				new ObjectFieldInfoFieldConverter(
-					_listTypeEntryLocalService, _objectConfiguration,
-					_objectDefinitionLocalService, _objectFieldLocalService,
-					_objectFieldSettingLocalService,
-					_objectRelationshipLocalService,
+					_ddmExpressionFactory, _listTypeEntryLocalService,
+					_objectConfiguration, _objectDefinitionLocalService,
+					_objectFieldLocalService, _objectRelationshipLocalService,
 					_objectScopeProviderRegistry, _objectStateFlowLocalService,
 					_objectStateLocalService, _portal,
-					_restContextPathResolverRegistry, _userLocalService);
+					_restContextPathResolverRegistry,
+					_systemObjectDefinitionManagerRegistry, _userLocalService);
 
 			_bundleContext.registerService(
 				InfoItemFieldValuesProvider.class,
 				new SystemObjectEntryInfoItemFieldValuesProvider(
 					_displayPageInfoItemFieldSetProvider, _dlAppLocalService,
 					_dlURLHelper, _dtoConverterRegistry,
-					_extensionProviderRegistry,
+					_extensionProviderRegistry, _friendlyURLEntryLocalService,
 					_infoItemFieldReaderFieldSetProvider, itemClassName,
 					_listTypeEntryLocalService, _objectActionLocalService,
 					objectDefinition, _objectDefinitionLocalService,
 					_objectEntryLocalService, _objectEntryManagerRegistry,
-					objectFieldInfoFieldConverter, _objectFieldLocalService,
-					_objectRelationshipLocalService,
-					_objectScopeProviderRegistry, systemObjectDefinitionManager,
+					_objectEntryService, objectFieldInfoFieldConverter,
+					_objectFieldLocalService, _objectRelationshipLocalService,
+					_objectScopeProviderRegistry, _portal,
+					systemObjectDefinitionManager,
 					_templateInfoItemFieldSetProvider),
 				HashMapDictionaryBuilder.<String, Object>put(
 					"company.id", objectDefinition.getCompanyId()
@@ -286,7 +289,7 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 					_infoItemFieldReaderFieldSetProvider, itemClassName,
 					_objectActionLocalService, objectDefinition,
 					_objectDefinitionLocalService,
-					objectFieldInfoFieldConverter, _objectFieldLocalService,
+					objectFieldInfoFieldConverter,
 					_objectRelationshipLocalService,
 					_templateInfoItemFieldSetProvider),
 				HashMapDictionaryBuilder.<String, Object>put(
@@ -308,7 +311,8 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 				).put(
 					"info.item.identifier",
 					new String[] {
-						"com.liferay.info.item.ClassPKInfoItemIdentifier"
+						"com.liferay.info.item.ClassPKInfoItemIdentifier",
+						"com.liferay.info.item.ERCInfoItemIdentifier"
 					}
 				).put(
 					"item.class.name", itemClassName
@@ -329,7 +333,8 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 				NotificationTermEvaluator.class,
 				new ObjectDefinitionNotificationTermEvaluator(
 					_listTypeLocalService, objectDefinition,
-					_objectDefinitionLocalService, _objectEntryLocalService,
+					_objectDefinitionLocalService,
+					_objectEntryFolderLocalService, _objectEntryLocalService,
 					_objectFieldLocalService, _objectRelationshipLocalService,
 					_userLocalService),
 				HashMapDictionaryBuilder.<String, Object>put(
@@ -356,19 +361,20 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 					"model.class.name", objectDefinition.getClassName()
 				).build());
 
-			_objectRelatedModelsProviderRegistrarHelper.register(
+			ObjectRelatedModelsProviderRegistryUtil.register(
 				_bundleContext, objectDefinition,
 				new SystemObjectMtoMObjectRelatedModelsProviderImpl(
-					objectDefinition, _objectDefinitionLocalService,
-					_objectFieldLocalService, _objectRelationshipLocalService,
+					_inlineSQLHelper, objectDefinition,
+					_objectDefinitionLocalService, _objectFieldLocalService,
+					_objectRelationshipLocalService,
 					systemObjectDefinitionManager,
 					_systemObjectDefinitionManagerRegistry));
-			_objectRelatedModelsProviderRegistrarHelper.register(
+			ObjectRelatedModelsProviderRegistryUtil.register(
 				_bundleContext, objectDefinition,
 				new SystemObject1toMObjectRelatedModelsProviderImpl(
-					objectDefinition, _objectDefinitionLocalService,
-					_objectEntryLocalService, _objectFieldLocalService,
-					_objectRelationshipLocalService,
+					_inlineSQLHelper, objectDefinition,
+					_objectDefinitionLocalService, _objectEntryLocalService,
+					_objectFieldLocalService, _objectRelationshipLocalService,
 					systemObjectDefinitionManager,
 					_systemObjectDefinitionManagerRegistry));
 		}
@@ -380,16 +386,19 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 	private static final Log _log = LogFactoryUtil.getLog(
 		SystemObjectDefinitionManagerPortalInstanceLifecycleListener.class);
 
-	private static final ThreadLocal<Boolean> _openingThreadLocal =
+	private static final ThreadLocal<Boolean> _opening =
 		new CentralizedThreadLocal<>(
 			SystemObjectDefinitionManagerPortalInstanceLifecycleListener.class.
-				getName() + "._openingThreadLocal",
+				getName() + "._opening",
 			() -> Boolean.FALSE);
 
 	private BundleContext _bundleContext;
 
 	@Reference
 	private CompanyLocalService _companyLocalService;
+
+	@Reference
+	private DDMExpressionFactory _ddmExpressionFactory;
 
 	@Reference
 	private DisplayPageInfoItemFieldSetProvider
@@ -408,8 +417,14 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 	private ExtensionProviderRegistry _extensionProviderRegistry;
 
 	@Reference
+	private FriendlyURLEntryLocalService _friendlyURLEntryLocalService;
+
+	@Reference
 	private InfoItemFieldReaderFieldSetProvider
 		_infoItemFieldReaderFieldSetProvider;
+
+	@Reference
+	private InlineSQLHelper _inlineSQLHelper;
 
 	@Reference
 	private ItemSelector _itemSelector;
@@ -433,23 +448,22 @@ public class SystemObjectDefinitionManagerPortalInstanceLifecycleListener
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Reference
+	private ObjectEntryFolderLocalService _objectEntryFolderLocalService;
+
+	@Reference
 	private ObjectEntryLocalService _objectEntryLocalService;
 
 	@Reference
 	private ObjectEntryManagerRegistry _objectEntryManagerRegistry;
 
 	@Reference
+	private ObjectEntryService _objectEntryService;
+
+	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;
 
 	@Reference
-	private ObjectFieldSettingLocalService _objectFieldSettingLocalService;
-
-	@Reference
 	private ObjectFolderLocalService _objectFolderLocalService;
-
-	@Reference
-	private ObjectRelatedModelsProviderRegistrarHelper
-		_objectRelatedModelsProviderRegistrarHelper;
 
 	@Reference
 	private ObjectRelatedModelsProviderRegistry

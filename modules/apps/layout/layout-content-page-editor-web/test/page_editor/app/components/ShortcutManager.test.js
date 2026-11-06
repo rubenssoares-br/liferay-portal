@@ -11,7 +11,7 @@ import ShortcutManager from '../../../../src/main/resources/META-INF/resources/p
 import {LAYOUT_DATA_ITEM_TYPES} from '../../../../src/main/resources/META-INF/resources/page_editor/app/config/constants/layoutDataItemTypes';
 import {
 	ClipboardContextProvider,
-	useSetCopiedItemIds,
+	useSetClipboard,
 } from '../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext';
 import {
 	ControlsProvider,
@@ -23,21 +23,21 @@ import {
 } from '../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ShortcutContext';
 import deleteItem from '../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/deleteItem';
 import duplicateItem from '../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/duplicateItem';
-import pasteItem from '../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItem';
+import pasteItems from '../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItems';
 import updateItemStyle from '../../../../src/main/resources/META-INF/resources/page_editor/app/utils/updateItemStyle';
 import StoreMother from '../../../../src/main/resources/META-INF/resources/page_editor/test_utils/StoreMother';
 
 jest.mock(
 	'../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext',
 	() => {
-		const setCopiedItemIds = jest.fn();
+		const setClipboard = jest.fn();
 
 		return {
 			...jest.requireActual(
 				'../../../../src/main/resources/META-INF/resources/page_editor/app/contexts/ClipboardContext'
 			),
-			useCopiedItemIds: () => ['fragment02'],
-			useSetCopiedItemIds: () => setCopiedItemIds,
+			useClipboard: () => ['fragment02'],
+			useSetClipboard: () => setClipboard,
 		};
 	}
 );
@@ -77,8 +77,10 @@ jest.mock(
 );
 
 jest.mock(
-	'../../../../src/main/resources/META-INF/resources/page_editor/app/utils/canBeCopied',
-	() => jest.fn(() => true)
+	'../../../../src/main/resources/META-INF/resources/page_editor/app/utils/isMovementValid',
+	() => ({
+		isMovementValid: jest.fn(() => true),
+	})
 );
 
 jest.mock(
@@ -97,7 +99,7 @@ jest.mock(
 );
 
 jest.mock(
-	'../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItem',
+	'../../../../src/main/resources/META-INF/resources/page_editor/app/thunks/pasteItems',
 	() => jest.fn()
 );
 
@@ -110,15 +112,19 @@ const DEFAULT_STATE = {
 			container01: {
 				children: ['fragment01'],
 				itemId: 'container01',
+				parentId: 'root01',
 				type: LAYOUT_DATA_ITEM_TYPES.container,
 			},
 			fragment01: {
+				children: [],
+				config: {},
 				itemId: 'fragment01',
 				parentId: 'container01',
 				type: LAYOUT_DATA_ITEM_TYPES.fragment,
 			},
 			fragment02: {
 				itemId: 'fragment02',
+				parentId: 'root01',
 				type: LAYOUT_DATA_ITEM_TYPES.fragment,
 			},
 			root01: {
@@ -193,7 +199,7 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(mockDispatch).toBeCalledWith(
+		expect(mockDispatch).toHaveBeenCalledWith(
 			expect.objectContaining({hidden: true, type: SWITCH_SIDEBAR_PANEL})
 		);
 	});
@@ -223,7 +229,7 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(mockDispatch).toBeCalledWith(
+		expect(mockDispatch).toHaveBeenCalledWith(
 			expect.objectContaining({hidden: false, type: SWITCH_SIDEBAR_PANEL})
 		);
 	});
@@ -249,6 +255,8 @@ describe('ShortcutManager', () => {
 			jest.runAllTimers();
 		});
 
+		jest.useRealTimers();
+
 		screen.getByText('keyboard-shortcuts');
 	});
 
@@ -266,7 +274,7 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(selectItem).toBeCalledWith('container01', {
+		expect(selectItem).toHaveBeenCalledWith('container01', {
 			itemType: 'layoutDataItem',
 			origin: 'layout',
 		});
@@ -287,17 +295,17 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(setEditedNodeId).toBeCalledWith('fragment01');
+		expect(setEditedNodeId).toHaveBeenCalledWith('fragment01');
 	});
 
 	it('calls updateItemStyle when pressing ctrl + H', () => {
-		const newState = {...DEFAULT_STATE};
+		const newState = JSON.parse(JSON.stringify(DEFAULT_STATE));
 
 		newState.layoutData.items.fragment01 = {
 			children: [],
 			config: {
-				fragmentEntryLinkId: 'fragmenEntryLinkId',
-				styles: {diplay: 'none'},
+				fragmentEntryLinkId: 'fragmentEntryLinkId',
+				styles: {display: 'block'},
 			},
 			itemId: 'fragment01',
 		};
@@ -315,7 +323,7 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(updateItemStyle).toBeCalledWith(
+		expect(updateItemStyle).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01'],
 				selectedViewportSize: 'desktop',
@@ -325,10 +333,8 @@ describe('ShortcutManager', () => {
 		);
 	});
 
-	it('sets the item Id and calls deleteItem to be cut when pressing shift + ctrl + X', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
-		const setCopiedItemIds = useSetCopiedItemIds();
+	it('sets the item Id and calls deleteItem to be cut when pressing ctrl + X', () => {
+		const setClipboard = useSetClipboard();
 
 		renderComponent({
 			activeItemIds: ['fragment01'],
@@ -338,25 +344,20 @@ describe('ShortcutManager', () => {
 			new KeyboardEvent('keydown', {
 				code: 'KeyX',
 				ctrlKey: true,
-				shiftKey: true,
 			})
 		);
 
-		expect(deleteItem).toBeCalledWith(
+		expect(deleteItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01'],
 			})
 		);
 
-		expect(setCopiedItemIds).toBeCalledWith(['fragment01']);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
+		expect(setClipboard).toHaveBeenCalledWith(['fragment01']);
 	});
 
 	it('sets the item id to be copied when pressing ctrl + C', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
-		const setCopiedItemIds = useSetCopiedItemIds();
+		const setClipboard = useSetClipboard();
 
 		renderComponent({
 			activeItemIds: ['fragment01'],
@@ -370,14 +371,10 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(setCopiedItemIds).toBeCalledWith(['fragment01']);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
+		expect(setClipboard).toHaveBeenCalledWith(['fragment01']);
 	});
 
-	it('calls pasteItem when pressing ctrl + V', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
+	it('calls pasteItems when pressing ctrl + V', () => {
 		renderComponent({
 			activeItemIds: ['fragment01'],
 		});
@@ -389,19 +386,15 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(pasteItem).toBeCalledWith(
+		expect(pasteItems).toHaveBeenCalledWith(
 			expect.objectContaining({
-				copiedItemIds: ['fragment02'],
+				clipboard: ['fragment02'],
 				parentItemId: 'fragment01',
 			})
 		);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
 	it('item id will be copied to the root because no parents are selected', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
 		renderComponent({
 			activeItemIds: [],
 		});
@@ -414,19 +407,15 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(pasteItem).toBeCalledWith(
+		expect(pasteItems).toHaveBeenCalledWith(
 			expect.objectContaining({
-				copiedItemIds: ['fragment02'],
+				clipboard: ['fragment02'],
 				parentItemId: 'root01',
 			})
 		);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
 	it('cannot paste items because multiple parents are selected', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
 		renderComponent({
 			activeItemIds: ['fragment01', 'fragment02'],
 		});
@@ -439,9 +428,7 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(pasteItem).toBeCalledTimes(0);
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
+		expect(pasteItems).toHaveBeenCalledTimes(0);
 	});
 
 	it('calls duplicateItem when pressing ctrl + alt + D', () => {
@@ -457,7 +444,43 @@ describe('ShortcutManager', () => {
 			})
 		);
 
-		expect(duplicateItem).toBeCalledWith(
+		expect(duplicateItem).toHaveBeenCalledWith(
+			expect.objectContaining({
+				itemIds: ['fragment01'],
+			})
+		);
+	});
+
+	it('calls deleteItem when pressing Backspace', () => {
+		renderComponent({
+			activeItemIds: ['fragment01'],
+		});
+
+		document.body.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				code: 'Backspace',
+			})
+		);
+
+		expect(deleteItem).toHaveBeenCalledWith(
+			expect.objectContaining({
+				itemIds: ['fragment01'],
+			})
+		);
+	});
+
+	it('calls deleteItem when pressing Delete', () => {
+		renderComponent({
+			activeItemIds: ['fragment01'],
+		});
+
+		document.body.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				code: 'Delete',
+			})
+		);
+
+		expect(deleteItem).toHaveBeenCalledWith(
 			expect.objectContaining({
 				itemIds: ['fragment01'],
 			})

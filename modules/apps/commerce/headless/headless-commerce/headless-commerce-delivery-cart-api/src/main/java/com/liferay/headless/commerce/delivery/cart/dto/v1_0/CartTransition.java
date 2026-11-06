@@ -11,31 +11,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("CartTransition")
+@GraphQLName(
+	description = "Workflow or order-status transition available on the cart. Each entry names the transition (a workflow task name or one of request-quote, submit, quick-checkout, checkout), its localized label, whether the transition is currently allowed, and an optional comment captured when the transition is fired.",
+	value = "CartTransition"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Workflow or order-status transition available on the cart. Each entry names the transition (a workflow task name or one of request-quote, submit, quick-checkout, checkout), its localized label, whether the transition is currently allowed, and an optional comment captured when the transition is fired."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "CartTransition")
 public class CartTransition implements Serializable {
@@ -48,7 +55,10 @@ public class CartTransition implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(CartTransition.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent cart (FK identifier). Read-only.",
+		example = "10130"
+	)
 	public Long getCartId() {
 		if (_cartIdSupplier != null) {
 			cartId = _cartIdSupplier.get();
@@ -82,14 +92,19 @@ public class CartTransition implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent cart (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long cartId;
 
 	@JsonIgnore
 	private Supplier<Long> _cartIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Optional comment recorded with the transition -- for example, a reason for a quote request.",
+		example = "Please quote with rush shipping."
+	)
 	public String getComment() {
 		if (_commentSupplier != null) {
 			comment = _commentSupplier.get();
@@ -123,14 +138,19 @@ public class CartTransition implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Optional comment recorded with the transition -- for example, a reason for a quote request."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String comment;
 
 	@JsonIgnore
 	private Supplier<String> _commentSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized label for the transition. Read-only.",
+		example = "Submit"
+	)
 	public String getLabel() {
 		if (_labelSupplier != null) {
 			label = _labelSupplier.get();
@@ -164,14 +184,19 @@ public class CartTransition implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized label for the transition. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String label;
 
 	@JsonIgnore
 	private Supplier<String> _labelSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Transition identifier. Either a workflow task name or one of the order-status transitions: request-quote, submit, quick-checkout, checkout.",
+		example = "submit"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -203,14 +228,19 @@ public class CartTransition implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Transition identifier. Either a workflow task name or one of the order-status transitions: request-quote, submit, quick-checkout, checkout."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the transition is currently allowed against the cart's state. Read-only.",
+		example = "true"
+	)
 	public Boolean getOpen() {
 		if (_openSupplier != null) {
 			open = _openSupplier.get();
@@ -242,14 +272,65 @@ public class CartTransition implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the transition is currently allowed against the cart's state. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean open;
 
 	@JsonIgnore
 	private Supplier<Boolean> _openSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, firing the transition requires an elevated permission -- typically the manage-orders permission on the cart.",
+		example = "false"
+	)
+	public Boolean getRestricted() {
+		if (_restrictedSupplier != null) {
+			restricted = _restrictedSupplier.get();
+
+			_restrictedSupplier = null;
+		}
+
+		return restricted;
+	}
+
+	public void setRestricted(Boolean restricted) {
+		this.restricted = restricted;
+
+		_restrictedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setRestricted(
+		UnsafeSupplier<Boolean, Exception> restrictedUnsafeSupplier) {
+
+		_restrictedSupplier = () -> {
+			try {
+				return restrictedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "When true, firing the transition requires an elevated permission -- typically the manage-orders permission on the cart."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Boolean restricted;
+
+	@JsonIgnore
+	private Supplier<Boolean> _restrictedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the active workflow task when the transition is a workflow transition (FK identifier); 0 when the transition is an order-status transition.",
+		example = "30130"
+	)
 	public Long getWorkflowTaskId() {
 		if (_workflowTaskIdSupplier != null) {
 			workflowTaskId = _workflowTaskIdSupplier.get();
@@ -283,7 +364,9 @@ public class CartTransition implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the active workflow task when the transition is a workflow transition (FK identifier); 0 when the transition is an order-status transition."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long workflowTaskId;
 
@@ -389,6 +472,18 @@ public class CartTransition implements Serializable {
 			sb.append(open);
 		}
 
+		Boolean restricted = getRestricted();
+
+		if (restricted != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"restricted\": ");
+
+			sb.append(restricted);
+		}
+
 		Long workflowTaskId = getWorkflowTaskId();
 
 		if (workflowTaskId != null) {
@@ -406,8 +501,8 @@ public class CartTransition implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.cart.dto.v1_0.CartTransition",
 		name = "x-class-name"
 	)
@@ -494,6 +589,27 @@ public class CartTransition implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -502,3 +618,4 @@ public class CartTransition implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:409983266

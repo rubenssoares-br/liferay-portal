@@ -16,7 +16,13 @@ ConfigurationScopeDisplayContext configurationScopeDisplayContext = Configuratio
 ExtendedObjectClassDefinition.Scope scope = configurationScopeDisplayContext.getScope();
 %>
 
-<div class="sticky-top" style="top: var(--control-menu-container-height);">
+<aui:style type="text/css">
+	.configuration-admin--main {
+		top: var(--control-menu-container-height);
+	}
+</aui:style>
+
+<div class="configuration-admin--main sticky-top">
 	<clay:management-toolbar
 		managementToolbarDisplayContext="<%= new ConfigurationScopeManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, 0) %>"
 	/>
@@ -28,7 +34,7 @@ ExtendedObjectClassDefinition.Scope scope = configurationScopeDisplayContext.get
 
 <clay:container-fluid
 	cssClass="container-view"
-	fullWidth='<%= FeatureFlagManagerUtil.isEnabled("LPS-184404") %>'
+	size="xxxl"
 >
 	<c:if test="<%= scope.equals(ExtendedObjectClassDefinition.Scope.COMPANY) || scope.equals(ExtendedObjectClassDefinition.Scope.SYSTEM) %>">
 
@@ -55,6 +61,8 @@ ExtendedObjectClassDefinition.Scope scope = configurationScopeDisplayContext.get
 	<ul class="list-group <%= configurationCategorySectionDisplays.isEmpty() ? "hide" : StringPool.BLANK %>">
 
 		<%
+		Map<String, ConfigurationCategoryMenuDisplay> configurationCategoryMenuDisplays = configurationEntryRetriever.getConfigurationCategoryMenuDisplays(themeDisplay.getLanguageId(), scope, configurationScopeDisplayContext.getScopePK());
+
 		for (ConfigurationCategorySectionDisplay configurationCategorySectionDisplay : configurationCategorySectionDisplays) {
 		%>
 
@@ -68,7 +76,7 @@ ExtendedObjectClassDefinition.Scope scope = configurationScopeDisplayContext.get
 
 					<%
 					for (ConfigurationCategoryDisplay configurationCategoryDisplay : configurationCategorySectionDisplay.getConfigurationCategoryDisplays()) {
-						ConfigurationCategoryMenuDisplay configurationCategoryMenuDisplay = configurationEntryRetriever.getConfigurationCategoryMenuDisplay(configurationCategoryDisplay.getCategoryKey(), themeDisplay.getLanguageId(), configurationScopeDisplayContext.getScope(), configurationScopeDisplayContext.getScopePK());
+						ConfigurationCategoryMenuDisplay configurationCategoryMenuDisplay = configurationCategoryMenuDisplays.get(configurationCategoryDisplay.getCategoryKey());
 
 						if (configurationCategoryMenuDisplay.isEmpty()) {
 							continue;

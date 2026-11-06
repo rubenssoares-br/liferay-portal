@@ -116,11 +116,7 @@ public class DDMFormInstancePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		DDMFormInstance newDDMFormInstance = _persistence.create(pk);
-
-		newDDMFormInstance.setMvccVersion(RandomTestUtil.nextLong());
+		DDMFormInstance newDDMFormInstance = addDDMFormInstance();
 
 		newDDMFormInstance.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -154,7 +150,9 @@ public class DDMFormInstancePersistenceTest {
 
 		newDDMFormInstance.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_ddmFormInstances.add(_persistence.update(newDDMFormInstance));
+		newDDMFormInstance = _persistence.update(newDDMFormInstance);
+
+		_ddmFormInstances.add(newDDMFormInstance);
 
 		DDMFormInstance existingDDMFormInstance = _persistence.findByPrimaryKey(
 			newDDMFormInstance.getPrimaryKey());
@@ -251,6 +249,13 @@ public class DDMFormInstancePersistenceTest {
 	@Test
 	public void testCountByGroupIdArrayable() throws Exception {
 		_persistence.countByGroupId(new long[] {RandomTestUtil.nextLong(), 0L});
+	}
+
+	@Test
+	public void testCountByStructureId() throws Exception {
+		_persistence.countByStructureId(RandomTestUtil.nextLong());
+
+		_persistence.countByStructureId(0L);
 	}
 
 	@Test
@@ -585,14 +590,18 @@ public class DDMFormInstancePersistenceTest {
 			ReflectionTestUtil.<Long>invoke(
 				ddmFormInstance, "getColumnOriginalValue",
 				new Class<?>[] {String.class}, "groupId"));
+
+		Assert.assertEquals(
+			Long.valueOf(ddmFormInstance.getStructureId()),
+			ReflectionTestUtil.<Long>invoke(
+				ddmFormInstance, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "structureId"));
 	}
 
 	protected DDMFormInstance addDDMFormInstance() throws Exception {
 		long pk = RandomTestUtil.nextLong();
 
 		DDMFormInstance ddmFormInstance = _persistence.create(pk);
-
-		ddmFormInstance.setMvccVersion(RandomTestUtil.nextLong());
 
 		ddmFormInstance.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -637,3 +646,4 @@ public class DDMFormInstancePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:534701473

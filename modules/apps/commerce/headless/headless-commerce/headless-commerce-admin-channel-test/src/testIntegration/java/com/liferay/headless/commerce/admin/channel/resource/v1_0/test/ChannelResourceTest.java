@@ -9,12 +9,15 @@ import com.liferay.account.constants.AccountConstants;
 import com.liferay.account.model.AccountEntry;
 import com.liferay.account.service.AccountEntryLocalService;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.commerce.currency.model.CommerceCurrency;
+import com.liferay.commerce.currency.test.util.CommerceCurrencyTestUtil;
 import com.liferay.commerce.product.constants.CommerceChannelConstants;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.model.CommerceChannelRel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
 import com.liferay.commerce.product.service.CommerceChannelRelLocalService;
 import com.liferay.headless.commerce.admin.channel.client.dto.v1_0.Channel;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.Address;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.AddressLocalService;
@@ -25,6 +28,7 @@ import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 
@@ -44,6 +48,9 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 	@Override
 	public void setUp() throws Exception {
 		super.setUp();
+
+		_commerceCurrency = CommerceCurrencyTestUtil.addCommerceCurrency(
+			testGroup.getCompanyId());
 
 		_user = UserTestUtil.addUser(testCompany);
 
@@ -89,6 +96,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		super.testPutChannel();
 
 		_testPutChannelWithAccountExternalReferenceCode();
+		_testPutChannelWithCommerceChannelSettings();
+		_testPutChannelWithoutSiteGroupId();
 	}
 
 	@Override
@@ -97,11 +106,12 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		super.testPutChannelByExternalReferenceCode();
 
 		_testPutChannelByExternalReferenceCodeWithAccountExternalReferenceCode();
+		_testPutChannelByExternalReferenceCodeWithCommerceChannelSettings();
 	}
 
 	@Override
 	protected String[] getAdditionalAssertFieldNames() {
-		return new String[] {"currencyCode", "name", "type"};
+		return new String[] {"currencyCode", "name", "siteGroupId", "type"};
 	}
 
 	@Override
@@ -109,8 +119,10 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		return new Channel() {
 			{
 				accountId = AccountConstants.ACCOUNT_ENTRY_ID_DEFAULT;
-				currencyCode = StringUtil.toLowerCase(
-					RandomTestUtil.randomString());
+				currencyCode = _commerceCurrency.getCode();
+				currencyExternalReferenceCode =
+					_commerceCurrency.getExternalReferenceCode();
+				currencyId = _commerceCurrency.getCommerceCurrencyId();
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				id = RandomTestUtil.randomLong();
@@ -126,12 +138,15 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		return new Channel() {
 			{
 				accountId = AccountConstants.ACCOUNT_ENTRY_ID_DEFAULT;
-				currencyCode = StringUtil.toLowerCase(
-					RandomTestUtil.randomString());
+				currencyCode = _commerceCurrency.getCode();
+				currencyExternalReferenceCode =
+					_commerceCurrency.getExternalReferenceCode();
+				currencyId = _commerceCurrency.getCommerceCurrencyId();
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				id = RandomTestUtil.randomLong();
 				name = StringUtil.toLowerCase(RandomTestUtil.randomString());
+				siteGroupId = RandomTestUtil.randomLong();
 				type = CommerceChannelConstants.CHANNEL_TYPE_SITE;
 			}
 		};
@@ -195,6 +210,13 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 	}
 
 	@Override
+	protected Channel testGraphQLChannel_addChannel(Channel channel)
+		throws Exception {
+
+		return channelResource.postChannel(channel);
+	}
+
+	@Override
 	protected Channel testGraphQLGetAccountAddressChannelChannel_addChannel()
 		throws Exception {
 
@@ -240,26 +262,32 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		return channelResource.postChannel(randomChannel());
 	}
 
+	private AccountEntry _addAccountEntry(String type) throws Exception {
+		return _accountEntryLocalService.addAccountEntry(
+			StringPool.BLANK, _user.getUserId(), 0,
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(), null,
+			RandomTestUtil.randomString() + "@liferay.com", null,
+			RandomTestUtil.randomString(), type,
+			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+	}
+
 	private long _getCommerceChannelRelId() throws Exception {
 		if (_accountEntry == null) {
-			_accountEntry = _accountEntryLocalService.addAccountEntry(
-				_user.getUserId(), 0, RandomTestUtil.randomString(),
-				RandomTestUtil.randomString(), null,
-				RandomTestUtil.randomString() + "@liferay.com", null,
-				RandomTestUtil.randomString(),
-				AccountConstants.ACCOUNT_ENTRY_TYPE_BUSINESS,
-				WorkflowConstants.STATUS_APPROVED, _serviceContext);
+			_accountEntry = _addAccountEntry(
+				AccountConstants.ACCOUNT_ENTRY_TYPE_BUSINESS);
 		}
 
 		if (_address == null) {
 			_address = _addressLocalService.addAddress(
 				RandomTestUtil.randomString(), _user.getUserId(),
 				AccountEntry.class.getName(), _accountEntry.getAccountEntryId(),
+				0, 0, 0, RandomTestUtil.randomString(),
+				RandomTestUtil.randomString(), false,
+				RandomTestUtil.randomString(), false,
 				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				RandomTestUtil.randomString(), null,
 				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
-				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
-				RandomTestUtil.randomString(), 0, 0, 0, false, false,
-				RandomTestUtil.randomString(), _serviceContext);
+				_serviceContext);
 		}
 
 		Channel channel = channelResource.postChannel(randomChannel());
@@ -282,13 +310,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 
 		Channel randomPatchChannel = randomPatchChannel();
 
-		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
-			RandomTestUtil.randomString() + "@liferay.com", null,
-			RandomTestUtil.randomString(),
-			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+		AccountEntry accountEntry = _addAccountEntry(
+			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER);
 
 		randomPatchChannel.setAccountId(0L);
 		randomPatchChannel.setAccountExternalReferenceCode(
@@ -331,13 +354,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 
 		Channel randomPatchChannel = randomPatchChannel();
 
-		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
-			RandomTestUtil.randomString() + "@liferay.com", null,
-			RandomTestUtil.randomString(),
-			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+		AccountEntry accountEntry = _addAccountEntry(
+			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER);
 
 		randomPatchChannel.setAccountId(0L);
 		randomPatchChannel.setAccountExternalReferenceCode(
@@ -376,13 +394,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 
 		Channel randomChannel = randomChannel();
 
-		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
-			RandomTestUtil.randomString() + "@liferay.com", null,
-			RandomTestUtil.randomString(),
-			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+		AccountEntry accountEntry = _addAccountEntry(
+			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER);
 
 		randomChannel.setAccountId(0L);
 		randomChannel.setAccountExternalReferenceCode(
@@ -410,13 +423,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 
 		Channel randomChannel = randomChannel();
 
-		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
-			RandomTestUtil.randomString() + "@liferay.com", null,
-			RandomTestUtil.randomString(),
-			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+		AccountEntry accountEntry = _addAccountEntry(
+			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER);
 
 		randomChannel.setAccountId(0L);
 		randomChannel.setAccountExternalReferenceCode(
@@ -451,13 +459,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		Channel newChannel =
 			testPutChannelByExternalReferenceCode_createChannel();
 
-		accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
-			RandomTestUtil.randomString() + "@liferay.com", null,
-			RandomTestUtil.randomString(),
-			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+		accountEntry = _addAccountEntry(
+			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER);
 
 		newChannel.setAccountId(0L);
 		newChannel.setAccountExternalReferenceCode(
@@ -494,6 +497,43 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 			putChannel.getExternalReferenceCode());
 	}
 
+	private void _testPutChannelByExternalReferenceCodeWithCommerceChannelSettings()
+		throws Exception {
+
+		Channel postChannel =
+			testPutChannelByExternalReferenceCode_addChannel();
+
+		CommerceChannel commerceChannel =
+			_commerceChannelLocalService.getCommerceChannel(
+				postChannel.getId());
+
+		commerceChannel = _commerceChannelLocalService.updateCommerceChannel(
+			commerceChannel.getCommerceChannelId(),
+			commerceChannel.getAccountEntryId(),
+			commerceChannel.getSiteGroupId(), commerceChannel.getName(),
+			commerceChannel.getType(),
+			UnicodePropertiesBuilder.put(
+				RandomTestUtil.randomString(), RandomTestUtil.randomString()
+			).build(),
+			commerceChannel.getCommerceCurrencyCode(),
+			RandomTestUtil.randomString(), true);
+
+		channelResource.putChannelByExternalReferenceCode(
+			postChannel.getExternalReferenceCode(), randomChannel());
+
+		CommerceChannel putCommerceChannel =
+			_commerceChannelLocalService.getCommerceChannel(
+				postChannel.getId());
+
+		Assert.assertTrue(putCommerceChannel.isDiscountsTargetNetPrice());
+		Assert.assertEquals(
+			commerceChannel.getPriceDisplayType(),
+			putCommerceChannel.getPriceDisplayType());
+		Assert.assertEquals(
+			commerceChannel.getTypeSettings(),
+			putCommerceChannel.getTypeSettings());
+	}
+
 	private void _testPutChannelWithAccountExternalReferenceCode()
 		throws Exception {
 
@@ -501,13 +541,8 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 
 		Channel randomChannel = randomChannel();
 
-		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
-			RandomTestUtil.randomString() + "@liferay.com", null,
-			RandomTestUtil.randomString(),
-			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER,
-			WorkflowConstants.STATUS_APPROVED, _serviceContext);
+		AccountEntry accountEntry = _addAccountEntry(
+			AccountConstants.ACCOUNT_ENTRY_TYPE_SUPPLIER);
 
 		randomChannel.setAccountId(0L);
 		randomChannel.setAccountExternalReferenceCode(
@@ -537,6 +572,52 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 		Assert.assertEquals(
 			accountEntry.getExternalReferenceCode(),
 			getChannel.getAccountExternalReferenceCode());
+	}
+
+	private void _testPutChannelWithCommerceChannelSettings() throws Exception {
+		Channel postChannel = testPutChannel_addChannel();
+
+		CommerceChannel commerceChannel =
+			_commerceChannelLocalService.getCommerceChannel(
+				postChannel.getId());
+
+		commerceChannel = _commerceChannelLocalService.updateCommerceChannel(
+			commerceChannel.getCommerceChannelId(),
+			commerceChannel.getAccountEntryId(),
+			commerceChannel.getSiteGroupId(), commerceChannel.getName(),
+			commerceChannel.getType(),
+			UnicodePropertiesBuilder.put(
+				RandomTestUtil.randomString(), RandomTestUtil.randomString()
+			).build(),
+			commerceChannel.getCommerceCurrencyCode(),
+			RandomTestUtil.randomString(), true);
+
+		channelResource.putChannel(postChannel.getId(), randomChannel());
+
+		CommerceChannel putCommerceChannel =
+			_commerceChannelLocalService.getCommerceChannel(
+				postChannel.getId());
+
+		Assert.assertTrue(putCommerceChannel.isDiscountsTargetNetPrice());
+		Assert.assertEquals(
+			commerceChannel.getPriceDisplayType(),
+			putCommerceChannel.getPriceDisplayType());
+		Assert.assertEquals(
+			commerceChannel.getTypeSettings(),
+			putCommerceChannel.getTypeSettings());
+	}
+
+	private void _testPutChannelWithoutSiteGroupId() throws Exception {
+		Channel postChannel = testPutChannel_addChannel();
+
+		Channel randomChannel = randomChannel();
+
+		randomChannel.setSiteGroupId((Long)null);
+
+		Channel putChannel = channelResource.putChannel(
+			postChannel.getId(), randomChannel);
+
+		Assert.assertEquals(0, GetterUtil.getLong(putChannel.getSiteGroupId()));
 	}
 
 	private Channel _toChannel(CommerceChannel commerceChannel) {
@@ -575,6 +656,7 @@ public class ChannelResourceTest extends BaseChannelResourceTestCase {
 	@Inject
 	private CommerceChannelRelLocalService _commerceChannelRelLocalService;
 
+	private CommerceCurrency _commerceCurrency;
 	private ServiceContext _serviceContext;
 	private User _user;
 

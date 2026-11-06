@@ -3,7 +3,9 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import type {Elements} from 'react-flow-renderer';
+import {isEdge} from 'react-flow-renderer';
+
+import type {Edge, Elements} from 'react-flow-renderer';
 
 export function isIdDuplicated(elements: Elements, id: string) {
 	let duplicated = false;
@@ -17,6 +19,23 @@ export function isIdDuplicated(elements: Elements, id: string) {
 	return duplicated;
 }
 
+export function isTransitionNameDuplicated(
+	elements: Elements,
+	selectedTransition: Edge,
+	transitionName: string
+) {
+	const sameSourceTransitions = elements.filter(
+		(element) =>
+			isEdge(element) &&
+			element.source === selectedTransition.source &&
+			element.id !== selectedTransition.id
+	);
+
+	return sameSourceTransitions.some(
+		(transition) => transition.data.name === transitionName
+	);
+}
+
 export function getModalInfo(itemType: string) {
 	if (itemType === 'actions') {
 		return {
@@ -24,6 +43,22 @@ export function getModalInfo(itemType: string) {
 				'are-you-sure-you-want-to-delete-all-actions-and-their-settings'
 			),
 			title: Liferay.Language.get('delete-actions'),
+		};
+	}
+	if (itemType === 'ai-decision') {
+		return {
+			message: Liferay.Language.get(
+				'are-you-sure-you-want-to-delete-the-selected-ai-decision-node'
+			),
+			title: Liferay.Language.get('delete-ai-decision-node'),
+		};
+	}
+	if (itemType === 'ai-hub-agent') {
+		return {
+			message: Liferay.Language.get(
+				'are-you-sure-you-want-to-delete-the-selected-ai-hub-agent-node'
+			),
+			title: Liferay.Language.get('delete-ai-hub-agent-node'),
 		};
 	}
 	if (itemType === 'assignments') {
@@ -58,6 +93,14 @@ export function getModalInfo(itemType: string) {
 			title: Liferay.Language.get('delete-fork-node'),
 		};
 	}
+	if (itemType === 'http-request') {
+		return {
+			message: Liferay.Language.get(
+				'are-you-sure-you-want-to-delete-the-selected-http-request-node'
+			),
+			title: Liferay.Language.get('delete-http-request-node'),
+		};
+	}
 	if (itemType === 'join') {
 		return {
 			message: Liferay.Language.get(
@@ -74,12 +117,28 @@ export function getModalInfo(itemType: string) {
 			title: Liferay.Language.get('delete-join-xor-node'),
 		};
 	}
+	if (itemType === 'llm') {
+		return {
+			message: Liferay.Language.get(
+				'are-you-sure-you-want-to-delete-the-selected-llm-node'
+			),
+			title: Liferay.Language.get('delete-llm-node'),
+		};
+	}
 	if (itemType === 'notifications') {
 		return {
 			message: Liferay.Language.get(
 				'are-you-sure-you-want-to-delete-all-notifications-and-their-settings'
 			),
 			title: Liferay.Language.get('delete-notifications'),
+		};
+	}
+	if (itemType === 'service') {
+		return {
+			message: Liferay.Language.get(
+				'are-you-sure-you-want-to-delete-the-selected-service-node'
+			),
+			title: Liferay.Language.get('delete-service-node'),
 		};
 	}
 	if (itemType === 'start') {

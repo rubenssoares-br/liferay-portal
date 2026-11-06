@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import React, {useCallback, useContext, useState} from 'react';
+import {ScreenReaderAnnouncer} from '@liferay/layout-js-components-web';
+import React, {useCallback, useContext, useRef, useState} from 'react';
 
 import {TARGET_POSITIONS} from '../utils/drag_and_drop/constants/targetPositions';
 import isItemContainerFlex from '../utils/isItemContainerFlex';
@@ -12,13 +13,11 @@ import {useSelectorRef} from './StoreContext';
 const INITIAL_STATE = {
 	setSources: () => {},
 	setTarget: () => {},
-	setText: () => {},
 	sources: [],
 	target: {
 		itemId: null,
 		position: null,
 	},
-	text: null,
 };
 
 const KeyboardMovementContext = React.createContext(INITIAL_STATE);
@@ -29,7 +28,15 @@ function KeyboardMovementContextProvider({children}) {
 		itemId: null,
 		position: null,
 	});
-	const [text, setText] = useState(null);
+	const screenReaderAnnouncerRef = useRef();
+
+	const setText = useCallback((text) => {
+		const ref = screenReaderAnnouncerRef;
+
+		if (ref.current) {
+			ref.current?.sendMessage(text);
+		}
+	}, []);
 
 	return (
 		<KeyboardMovementContext.Provider
@@ -39,9 +46,13 @@ function KeyboardMovementContextProvider({children}) {
 				setText,
 				sources,
 				target,
-				text,
 			}}
 		>
+			<ScreenReaderAnnouncer
+				aria-live="assertive"
+				ref={screenReaderAnnouncerRef}
+			/>
+
 			{children}
 		</KeyboardMovementContext.Provider>
 	);
@@ -67,6 +78,15 @@ function useMovementTarget() {
 	return useContext(KeyboardMovementContext).target;
 }
 
+function useIsMovementTarget() {
+	const {target} = useContext(KeyboardMovementContext);
+	const layoutDataRef = useSelectorRef((state) => state.layoutData);
+
+	const targetItem = layoutDataRef.current?.items[target.itemId];
+
+	return useCallback((itemId) => itemId === targetItem?.itemId, [targetItem]);
+}
+
 function useMovementTargetPosition() {
 	const {target} = useContext(KeyboardMovementContext);
 	const layoutDataRef = useSelectorRef((state) => state.layoutData);
@@ -81,10 +101,6 @@ function useMovementTargetPosition() {
 	return target.position === TARGET_POSITIONS.BOTTOM
 		? TARGET_POSITIONS.RIGHT
 		: TARGET_POSITIONS.LEFT;
-}
-
-function useMovementText() {
-	return useContext(KeyboardMovementContext).text;
 }
 
 function useSetMovementSources() {
@@ -102,10 +118,10 @@ function useSetMovementText() {
 export {
 	KeyboardMovementContextProvider,
 	useDisableKeyboardMovement,
+	useIsMovementTarget,
 	useMovementSources,
 	useMovementTarget,
 	useMovementTargetPosition,
-	useMovementText,
 	useSetMovementSources,
 	useSetMovementTarget,
 	useSetMovementText,

@@ -8,15 +8,17 @@ import ClayButton from '@clayui/button';
 import EmptyState from '../../../../../../components/EmptyState';
 import Loading from '../../../../../../components/Loading';
 import Table from '../../../../../../components/Table/Table';
-import i18n from '../../../../../../i18n';
+import i18n, {Word} from '../../../../../../i18n';
 
 type DownloadTableProps = {
 	loading: boolean;
+	title?: string;
 	virtualItems: VirtualItem[];
 };
 
 const DownloadTable: React.FC<DownloadTableProps> = ({
 	loading,
+	title,
 	virtualItems,
 }) => {
 	if (loading) {
@@ -37,14 +39,11 @@ const DownloadTable: React.FC<DownloadTableProps> = ({
 		<Table
 			columns={[
 				{
-					key: 'productVersion',
-					render: (productVersion) => productVersion,
-					title: i18n.translate('version'),
-				},
-				{
 					key: 'version',
 					render: (version) => version,
-					title: i18n.translate('supported-version'),
+					title: i18n.translate(
+						(title as Word) || 'supported-version'
+					),
 				},
 				{
 					align: 'right',

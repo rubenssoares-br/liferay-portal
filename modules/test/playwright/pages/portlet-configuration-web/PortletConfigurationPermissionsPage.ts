@@ -27,7 +27,10 @@ export class PortletConfigurationPermissionsPage {
 		this.editPageLink = page.locator(
 			'.control-menu-nav-item .lfr-portal-tooltip[title="Edit"] a'
 		);
-		this.editPageOptionsMenu = page.getByRole('button', {name: 'Options'});
+		this.editPageOptionsMenu = page.getByRole('button', {
+			exact: true,
+			name: 'Options',
+		});
 		this.page = page;
 		this.pageOptionsMenu = page.getByTitle('Open Page Options Menu');
 		this.permissionsFrame = page.frameLocator(
@@ -39,33 +42,24 @@ export class PortletConfigurationPermissionsPage {
 		this.productMenuPage = new ProductMenuPage(page);
 
 		this.clearLink = this.permissionsFrame.getByLabel('Clear');
-		this.ownerRoleCell = this.permissionsFrame.getByRole('cell', {
-			name: 'Owner',
-		});
-		this.resultsBanner =
-			this.permissionsFrame.getByText('Results Found for');
+		this.ownerRoleCell = this.permissionsFrame
+			.getByRole('cell', {
+				name: 'Owner',
+			})
+			.first();
+		this.resultsBanner = this.permissionsFrame.getByText('Found for');
 		this.saveButton = this.permissionsFrame.getByRole('button', {
 			name: 'Save',
 		});
 		this.searchBar = this.permissionsFrame.getByPlaceholder('Search for');
-		this.siteMemberRoleCell = this.permissionsFrame.getByRole('cell', {
-			name: 'Site Member',
-		});
+		this.siteMemberRoleCell = this.permissionsFrame
+			.getByRole('cell', {
+				name: 'Site Member',
+			})
+			.first();
 		this.successMessage = this.permissionsFrame.getByText(
 			'Success:Your request completed successfully.'
 		);
-	}
-
-	async changePagination(startValue: number, endValue: number) {
-		await this.permissionsFrame
-			.getByText(startValue + ' Entries', {exact: true})
-			.click();
-		await this.permissionsFrame
-			.getByRole('option', {name: endValue + ' Entries'})
-			.click();
-		await expect(
-			this.permissionsFrame.getByText('Showing 1 to ' + endValue)
-		).toBeVisible();
 	}
 
 	async goto() {
@@ -78,7 +72,10 @@ export class PortletConfigurationPermissionsPage {
 	async goToEditPagePermissions() {
 		const editPageLink = await this.editPageLink.getAttribute('href');
 		await this.page.goto(editPageLink);
-		await this.editPageOptionsMenu.click();
-		await this.permissionsMenuItem.click();
+
+		await expect(async () => {
+			await this.editPageOptionsMenu.click();
+			await this.permissionsMenuItem.click();
+		}).toPass();
 	}
 }

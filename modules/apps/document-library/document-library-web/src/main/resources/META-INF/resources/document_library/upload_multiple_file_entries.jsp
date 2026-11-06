@@ -33,7 +33,7 @@ if (portletTitleBasedNavigation) {
 }
 %>
 
-<div <%= portletTitleBasedNavigation ? "class=\"container-fluid container-fluid-max-xl container-form-lg\"" : StringPool.BLANK %>>
+<div <%= portletTitleBasedNavigation ? "class=\"container-fluid container-fluid-max-lg container-form-lg\"" : StringPool.BLANK %>>
 	<c:if test="<%= !portletTitleBasedNavigation %>">
 		<liferay-ui:header
 			backURL="<%= redirect %>"
@@ -206,6 +206,12 @@ if (portletTitleBasedNavigation) {
 														item.fileName +
 														')';
 												}
+
+												Liferay.fire('fileEntrySaved', {
+													groupId: Liferay.ThemeDisplay.getScopeGroupId(),
+													fileEntryId: item.fileEntryId,
+													fileName: item.fileName,
+												});
 											}
 											else {
 												cssClass = 'upload-error';

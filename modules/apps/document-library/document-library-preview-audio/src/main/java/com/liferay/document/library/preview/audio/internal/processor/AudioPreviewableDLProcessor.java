@@ -7,6 +7,7 @@ package com.liferay.document.library.preview.audio.internal.processor;
 
 import com.liferay.document.library.kernel.background.task.DLBackgroundTaskExecutorNames;
 import com.liferay.document.library.kernel.exception.NoSuchFileEntryException;
+import com.liferay.document.library.kernel.exception.NoSuchFileException;
 import com.liferay.document.library.kernel.model.DLProcessorConstants;
 import com.liferay.document.library.kernel.processor.AudioProcessor;
 import com.liferay.document.library.kernel.processor.DLProcessor;
@@ -16,25 +17,26 @@ import com.liferay.document.library.preview.processor.BasePreviewableDLProcessor
 import com.liferay.exportimport.kernel.lar.PortletDataContext;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskManager;
+import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskConstants;
 import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskContextMapConstants;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.messaging.DestinationNames;
-import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.model.UserConstants;
 import com.liferay.portal.kernel.repository.event.FileVersionPreviewEventListener;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.repository.model.FileVersion;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 import com.liferay.portal.kernel.xml.Element;
-import com.liferay.portal.util.PropsValues;
 
 import java.io.File;
 import java.io.InputStream;
@@ -80,8 +82,8 @@ public class AudioPreviewableDLProcessor
 						PortalUUIDUtil.generate());
 
 					_backgroundTaskManager.addBackgroundTask(
-						UserConstants.USER_ID_DEFAULT, CompanyConstants.SYSTEM,
-						jobName,
+						UserConstants.USER_ID_DEFAULT,
+						BackgroundTaskConstants.GROUP_ID_DEFAULT, jobName,
 						DLBackgroundTaskExecutorNames.
 							AUDIO_PREVIEW_BACKGROUND_TASK_EXECUTOR,
 						HashMapBuilder.<String, Serializable>put(
@@ -107,12 +109,16 @@ public class AudioPreviewableDLProcessor
 	public InputStream getPreviewAsStream(FileVersion fileVersion, String type)
 		throws Exception {
 
+		_validatePreviewType(type);
+
 		return doGetPreviewAsStream(fileVersion, type);
 	}
 
 	@Override
 	public long getPreviewFileSize(FileVersion fileVersion, String type)
 		throws Exception {
+
+		_validatePreviewType(type);
 
 		return doGetPreviewFileSize(fileVersion, type);
 	}
@@ -239,11 +245,13 @@ public class AudioPreviewableDLProcessor
 			}
 
 			for (String previewType : _PREVIEW_TYPES) {
-				if (previewType.equals("mp3") || previewType.equals("ogg")) {
-					exportPreview(
-						portletDataContext, fileEntry, fileEntryElement,
-						"audio", previewType);
+				if (!previewType.equals("mp3") && !previewType.equals("ogg")) {
+					continue;
 				}
+
+				exportPreview(
+					portletDataContext, fileEntry, fileEntryElement, "audio",
+					previewType);
 			}
 		}
 	}
@@ -278,11 +286,13 @@ public class AudioPreviewableDLProcessor
 		}
 
 		for (String previewType : _PREVIEW_TYPES) {
-			if (previewType.equals("mp3") || previewType.equals("ogg")) {
-				importPreview(
-					portletDataContext, fileEntry, importedFileEntry,
-					fileEntryElement, "audio", previewType);
+			if (!previewType.equals("mp3") && !previewType.equals("ogg")) {
+				continue;
 			}
+
+			importPreview(
+				portletDataContext, fileEntry, importedFileEntry,
+				fileEntryElement, "audio", previewType);
 		}
 	}
 
@@ -444,6 +454,12 @@ public class AudioPreviewableDLProcessor
 		sendGenerationMessage(
 			DestinationNames.DOCUMENT_LIBRARY_AUDIO_PROCESSOR,
 			sourceFileVersion, destinationFileVersion);
+	}
+
+	private void _validatePreviewType(String type) throws Exception {
+		if (!ArrayUtil.contains(_PREVIEW_TYPES, type)) {
+			throw new NoSuchFileException("Invalid preview type " + type);
+		}
 	}
 
 	private static final String[] _PREVIEW_TYPES =

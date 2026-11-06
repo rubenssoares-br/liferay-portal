@@ -16,10 +16,10 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.portlet.PortletPreferences;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.PortletPreferences;
 
 /**
  * @author Alicia García
@@ -52,9 +52,11 @@ public class DDMStructureUtil {
 				DDMStructureLocalServiceUtil.fetchDDMStructure(
 					GetterUtil.getLong(highlightedDDMStructureId));
 
-			if (ddmStructure != null) {
-				highlightedDDMStructures.add(ddmStructure);
+			if (ddmStructure == null) {
+				continue;
 			}
+
+			highlightedDDMStructures.add(ddmStructure);
 		}
 
 		return highlightedDDMStructures;

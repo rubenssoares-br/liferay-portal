@@ -12,7 +12,6 @@ InfoCollectionProviderDisplayContext infoCollectionProviderDisplayContext = (Inf
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems='<%= assetListDisplayContext.getNavigationItems("collection-providers") %>'
 />
 
@@ -40,23 +39,28 @@ InfoCollectionProviderDisplayContext infoCollectionProviderDisplayContext = (Inf
 			>
 				<div class="list-group-title">
 					<%= HtmlUtil.escape(infoCollectionProviderDisplayContext.getTitle(infoCollectionProvider)) %>
-
-					<c:if test="<%= infoCollectionProvider instanceof BetaInfoCollectionProvider %>">
-						<span>
-							<liferay-frontend:feature-indicator
-								type="beta"
-							/>
-						</span>
-					</c:if>
 				</div>
 
 				<div class="list-group-subtext">
 					<liferay-ui:message key="<%= HtmlUtil.escape(infoCollectionProviderDisplayContext.getSubtitle(infoCollectionProvider)) %>" />
 				</div>
+
+				<c:choose>
+					<c:when test="<%= infoCollectionProvider instanceof BetaInfoCollectionProvider %>">
+						<liferay-frontend:feature-indicator
+							type="beta"
+						/>
+					</c:when>
+					<c:when test="<%= infoCollectionProvider instanceof DeprecatedInfoCollectionProvider %>">
+						<liferay-frontend:feature-indicator
+							type="deprecated"
+						/>
+					</c:when>
+				</c:choose>
 			</liferay-ui:search-container-column-text>
 
 			<%
-			InfoCollectionProviderActionDropdownItems infoCollectionProviderActionDropdownItems = new InfoCollectionProviderActionDropdownItems(infoCollectionProvider, liferayPortletRequest, liferayPortletResponse);
+			InfoCollectionProviderActionDropdownItems infoCollectionProviderActionDropdownItems = new InfoCollectionProviderActionDropdownItems(infoCollectionProvider, infoCollectionProviderDisplayContext.getTitle(infoCollectionProvider), liferayPortletRequest, liferayPortletResponse);
 			%>
 
 			<liferay-ui:search-container-column-text>

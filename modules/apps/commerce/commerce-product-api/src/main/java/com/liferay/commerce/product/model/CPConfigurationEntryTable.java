@@ -43,6 +43,8 @@ public class CPConfigurationEntryTable
 		CPConfigurationEntryId = createColumn(
 			"CPConfigurationEntryId", Long.class, Types.BIGINT,
 			Column.FLAG_PRIMARY);
+	public final Column<CPConfigurationEntryTable, Long> groupId = createColumn(
+		"groupId", Long.class, Types.BIGINT, Column.FLAG_DEFAULT);
 	public final Column<CPConfigurationEntryTable, Long> companyId =
 		createColumn(
 			"companyId", Long.class, Types.BIGINT, Column.FLAG_DEFAULT);
@@ -76,6 +78,10 @@ public class CPConfigurationEntryTable
 	public final Column<CPConfigurationEntryTable, Boolean> backOrders =
 		createColumn(
 			"backOrders", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
+	public final Column<CPConfigurationEntryTable, Long>
+		commerceAvailabilityEstimateId = createColumn(
+			"commerceAvailabilityEstimateId", Long.class, Types.BIGINT,
+			Column.FLAG_DEFAULT);
 	public final Column<CPConfigurationEntryTable, String>
 		CPDefinitionInventoryEngine = createColumn(
 			"CPDefinitionInventoryEngine", String.class, Types.VARCHAR,
@@ -132,9 +138,6 @@ public class CPConfigurationEntryTable
 	public final Column<CPConfigurationEntryTable, Boolean> taxExempt =
 		createColumn(
 			"taxExempt", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
-	public final Column<CPConfigurationEntryTable, Boolean> visible =
-		createColumn(
-			"visible", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
 	public final Column<CPConfigurationEntryTable, Double> weight =
 		createColumn("weight", Double.class, Types.DOUBLE, Column.FLAG_DEFAULT);
 	public final Column<CPConfigurationEntryTable, Double> width = createColumn(
@@ -145,3 +148,4 @@ public class CPConfigurationEntryTable
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1771280340

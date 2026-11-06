@@ -5,7 +5,10 @@
 
 package com.liferay.site.configuration.manager;
 
+import com.liferay.object.model.ObjectDefinition;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
+
+import java.util.List;
 
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -17,10 +20,27 @@ public interface SitemapConfigurationManager {
 
 	public Long[] getCompanySitemapGroupIds(long companyId) throws Exception;
 
+	public Long[] getCompanySitemapObjectDefinitionIds(long companyId)
+		throws ConfigurationException;
+
+	public List<ObjectDefinition> getCompanySitemapObjectDefinitions(
+			long companyId)
+		throws ConfigurationException;
+
+	public String getXMLSitemapIndexMode(long companyId)
+		throws ConfigurationException;
+
 	public boolean includeCategoriesCompanyEnabled(long companyId)
 		throws ConfigurationException;
 
 	public boolean includeCategoriesGroupEnabled(long companyId, long groupId)
+		throws ConfigurationException;
+
+	public boolean includeCommerceProductsCompanyEnabled(long companyId)
+		throws ConfigurationException;
+
+	public boolean includeCommerceProductsGroupEnabled(
+			long companyId, long groupId)
 		throws ConfigurationException;
 
 	public boolean includePagesCompanyEnabled(long companyId)
@@ -35,18 +55,32 @@ public interface SitemapConfigurationManager {
 	public boolean includeWebContentGroupEnabled(long companyId, long groupId)
 		throws ConfigurationException;
 
+	public boolean isCachedGenerationCompanyEnabled(long companyId)
+		throws ConfigurationException;
+
+	public boolean isIndexModeAssetTypeCompanyEnabled(long companyId)
+		throws ConfigurationException;
+
+	public boolean isObjectDefinitionCompanyIncluded(
+			long companyId, String objectDefinitionId)
+		throws ConfigurationException;
+
+	public boolean isXMLSitemapIndexCompanyEnabled(long companyId)
+		throws ConfigurationException;
+
 	public void saveSitemapCompanyConfiguration(
-			long companyId, long[] companySitemapGroupIds,
-			boolean includeCategories, boolean includePages,
-			boolean includeWebContent, boolean xmlSitemapIndexEnabled)
+			boolean cachedGenerationEnabled, long companyId,
+			long[] companySitemapGroupIds,
+			long[] companySitemapObjectDefinitionIds, boolean includeCategories,
+			boolean includeCommerceProducts, boolean includePages,
+			boolean includeWebContent, boolean xmlSitemapIndexEnabled,
+			String xmlSitemapIndexMode)
 		throws ConfigurationException;
 
 	public void saveSitemapGroupConfiguration(
-			long groupId, boolean includeCategories, boolean includePages,
+			long groupId, boolean includeCategories,
+			boolean includeCommerceProducts, boolean includePages,
 			boolean includeWebContent)
-		throws ConfigurationException;
-
-	public boolean xmlSitemapIndexCompanyEnabled(long companyId)
 		throws ConfigurationException;
 
 }

@@ -8,13 +8,14 @@ package com.liferay.headless.delivery.client.serdes.v1_0;
 import com.liferay.headless.delivery.client.dto.v1_0.PageCollectionItemDefinition;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -57,20 +58,9 @@ public class PageCollectionItemDefinitionSerDes {
 
 			sb.append("\"collectionItemConfig\": ");
 
-			if (
-					pageCollectionItemDefinition.
-						getCollectionItemConfig() instanceof String) {
-
-				sb.append("\"");
-				sb.append(
-					(String)
-						pageCollectionItemDefinition.getCollectionItemConfig());
-				sb.append("\"");
-			}
-			else {
-				sb.append(
-					pageCollectionItemDefinition.getCollectionItemConfig());
-			}
+			sb.append(
+				_toJSON(
+					pageCollectionItemDefinition.getCollectionItemConfig()));
 		}
 
 		sb.append("}");
@@ -186,6 +176,16 @@ public class PageCollectionItemDefinitionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -218,3 +218,4 @@ public class PageCollectionItemDefinitionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1740049112

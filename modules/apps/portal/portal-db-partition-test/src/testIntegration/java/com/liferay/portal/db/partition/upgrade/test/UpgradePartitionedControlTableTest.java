@@ -69,14 +69,16 @@ public class UpgradePartitionedControlTableTest
 					try (Connection connection = dataSource.getConnection()) {
 						try (PreparedStatement preparedStatement =
 								connection.prepareStatement(
-									"select count(1) from " + TEST_TABLE_NAME);
+									"select count(1) as count from " +
+										TEST_TABLE_NAME);
+
 							ResultSet resultSet =
 								preparedStatement.executeQuery()) {
 
-							int count = 0;
+							long count = 0;
 
 							if (resultSet.next()) {
-								count = resultSet.getInt(1);
+								count = resultSet.getLong("count");
 							}
 
 							Assert.assertEquals(1, count);
@@ -110,6 +112,7 @@ public class UpgradePartitionedControlTableTest
 		DataSource dataSource = InfrastructureUtil.getDataSource();
 
 		try (Connection connection = dataSource.getConnection();
+
 			Statement statement = connection.createStatement()) {
 
 			String defaultSchemaName = dbPartitionDB.getDefaultPartitionName(
@@ -125,9 +128,8 @@ public class UpgradePartitionedControlTableTest
 
 					statement.execute(
 						StringBundler.concat(
-							"create or replace view ",
-							getPartitionName(companyId), StringPool.PERIOD,
-							viewName, " as select * from ", defaultSchemaName,
+							"create or replace view ", viewName,
+							" as select * from ", defaultSchemaName,
 							StringPool.PERIOD, viewName));
 				});
 		}

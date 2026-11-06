@@ -8,11 +8,11 @@ package com.liferay.headless.commerce.delivery.order.client.dto.v1_0;
 import com.liferay.headless.commerce.delivery.order.client.function.UnsafeSupplier;
 import com.liferay.headless.commerce.delivery.order.client.serdes.v1_0.AttachmentBase64SerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Andrea Sbarra
@@ -67,6 +67,48 @@ public class AttachmentBase64 implements Cloneable, Serializable {
 
 	protected String externalReferenceCode;
 
+	public Double getPriority() {
+		return priority;
+	}
+
+	public void setPriority(Double priority) {
+		this.priority = priority;
+	}
+
+	public void setPriority(
+		UnsafeSupplier<Double, Exception> priorityUnsafeSupplier) {
+
+		try {
+			priority = priorityUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Double priority;
+
+	public Boolean getRestricted() {
+		return restricted;
+	}
+
+	public void setRestricted(Boolean restricted) {
+		this.restricted = restricted;
+	}
+
+	public void setRestricted(
+		UnsafeSupplier<Boolean, Exception> restrictedUnsafeSupplier) {
+
+		try {
+			restricted = restrictedUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Boolean restricted;
+
 	public String getTitle() {
 		return title;
 	}
@@ -87,6 +129,25 @@ public class AttachmentBase64 implements Cloneable, Serializable {
 	}
 
 	protected String title;
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public void setType(UnsafeSupplier<String, Exception> typeUnsafeSupplier) {
+		try {
+			type = typeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String type;
 
 	@Override
 	public AttachmentBase64 clone() throws CloneNotSupportedException {
@@ -120,3 +181,4 @@ public class AttachmentBase64 implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1568387266

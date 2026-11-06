@@ -16,6 +16,8 @@ import com.liferay.portal.kernel.cache.SingleVMPool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -25,14 +27,14 @@ import com.maxmind.geoip2.exception.AddressNotFoundException;
 import com.maxmind.geoip2.model.CountryResponse;
 import com.maxmind.geoip2.record.Country;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.File;
 import java.io.IOException;
 
 import java.net.InetAddress;
 
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -114,7 +116,7 @@ public class IPGeocoderImpl implements IPGeocoder {
 
 			Country country = countryResponse.getCountry();
 
-			return country.getIsoCode();
+			return GetterUtil.getString(country.getIsoCode());
 		}
 		catch (AddressNotFoundException addressNotFoundException) {
 			if (_log.isDebugEnabled()) {
@@ -165,13 +167,11 @@ public class IPGeocoderImpl implements IPGeocoder {
 		// gov.uk resolves to 151.101.192.144
 		// state.gov resolves to 34.233.79.178
 
-		HttpServletRequest originalHttpServletRequest =
-			_portal.getOriginalServletRequest(httpServletRequest);
+		String mockIPGeocoderRemoteAddr = ParamUtil.getString(
+			_portal.getOriginalServletRequest(httpServletRequest),
+			"mockIPGeocoderRemoteAddr");
 
-		String mockIPGeocoderRemoteAddr =
-			originalHttpServletRequest.getParameter("mockIPGeocoderRemoteAddr");
-
-		if (mockIPGeocoderRemoteAddr != null) {
+		if (Validator.isIPAddress(mockIPGeocoderRemoteAddr)) {
 			return mockIPGeocoderRemoteAddr;
 		}
 

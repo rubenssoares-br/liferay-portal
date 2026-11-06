@@ -33,39 +33,58 @@ public class SegmentsExperienceServiceUtil {
 	 * Never modify this class directly. Add custom service methods to <code>com.liferay.segments.service.impl.SegmentsExperienceServiceImpl</code> and rerun ServiceBuilder to regenerate this class.
 	 */
 	public static SegmentsExperience addSegmentsExperience(
-			String externalReferenceCode, long groupId, long segmentsEntryId,
-			long plid, Map<java.util.Locale, String> nameMap, boolean active,
+			String externalReferenceCode, long groupId, String segmentsEntryERC,
+			String segmentsEntryScopeERC, long plid,
+			Map<java.util.Locale, String> nameMap, boolean active,
 			com.liferay.portal.kernel.util.UnicodeProperties
 				typeSettingsUnicodeProperties,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addSegmentsExperience(
-			externalReferenceCode, groupId, segmentsEntryId, plid, nameMap,
-			active, typeSettingsUnicodeProperties, serviceContext);
+			externalReferenceCode, groupId, segmentsEntryERC,
+			segmentsEntryScopeERC, plid, nameMap, active,
+			typeSettingsUnicodeProperties, serviceContext);
+	}
+
+	public static SegmentsExperience addSegmentsExperience(
+			String externalReferenceCode, long groupId, String segmentsEntryERC,
+			String segmentsEntryScopeERC, String segmentsExperienceKey,
+			long plid, Map<java.util.Locale, String> nameMap, int priority,
+			boolean active,
+			com.liferay.portal.kernel.util.UnicodeProperties
+				typeSettingsUnicodeProperties,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().addSegmentsExperience(
+			externalReferenceCode, groupId, segmentsEntryERC,
+			segmentsEntryScopeERC, segmentsExperienceKey, plid, nameMap,
+			priority, active, typeSettingsUnicodeProperties, serviceContext);
 	}
 
 	public static SegmentsExperience appendSegmentsExperience(
-			long groupId, long segmentsEntryId, long plid,
-			Map<java.util.Locale, String> nameMap, boolean active,
+			long groupId, String segmentsEntryERC, String segmentsEntryScopeERC,
+			long plid, Map<java.util.Locale, String> nameMap, boolean active,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().appendSegmentsExperience(
-			groupId, segmentsEntryId, plid, nameMap, active, serviceContext);
+			groupId, segmentsEntryERC, segmentsEntryScopeERC, plid, nameMap,
+			active, serviceContext);
 	}
 
 	public static SegmentsExperience appendSegmentsExperience(
-			long groupId, long segmentsEntryId, long plid,
-			Map<java.util.Locale, String> nameMap, boolean active,
+			long groupId, String segmentsEntryERC, String segmentsEntryScopeERC,
+			long plid, Map<java.util.Locale, String> nameMap, boolean active,
 			com.liferay.portal.kernel.util.UnicodeProperties
 				typeSettingsUnicodeProperties,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().appendSegmentsExperience(
-			groupId, segmentsEntryId, plid, nameMap, active,
-			typeSettingsUnicodeProperties, serviceContext);
+			groupId, segmentsEntryERC, segmentsEntryScopeERC, plid, nameMap,
+			active, typeSettingsUnicodeProperties, serviceContext);
 	}
 
 	public static SegmentsExperience deleteSegmentsExperience(
@@ -89,6 +108,15 @@ public class SegmentsExperienceServiceUtil {
 
 		return getService().fetchSegmentsExperience(
 			groupId, segmentsExperienceKey, plid);
+	}
+
+	public static SegmentsExperience
+			fetchSegmentsExperienceByExternalReferenceCode(
+				String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		return getService().fetchSegmentsExperienceByExternalReferenceCode(
+			externalReferenceCode, groupId);
 	}
 
 	/**
@@ -148,31 +176,34 @@ public class SegmentsExperienceServiceUtil {
 	}
 
 	public static SegmentsExperience updateSegmentsExperience(
-			long segmentsExperienceId, long segmentsEntryId,
-			Map<java.util.Locale, String> nameMap, boolean active)
+			long segmentsExperienceId, String segmentsEntryERC,
+			String segmentsEntryScopeERC, Map<java.util.Locale, String> nameMap,
+			boolean active)
 		throws PortalException {
 
 		return getService().updateSegmentsExperience(
-			segmentsExperienceId, segmentsEntryId, nameMap, active);
+			segmentsExperienceId, segmentsEntryERC, segmentsEntryScopeERC,
+			nameMap, active);
 	}
 
 	public static SegmentsExperience updateSegmentsExperience(
-			long segmentsExperienceId, long segmentsEntryId,
-			Map<java.util.Locale, String> nameMap, boolean active,
+			long segmentsExperienceId, String segmentsEntryERC,
+			String segmentsEntryScopeERC, Map<java.util.Locale, String> nameMap,
+			boolean active,
 			com.liferay.portal.kernel.util.UnicodeProperties
 				typeSettingsUnicodeProperties)
 		throws PortalException {
 
 		return getService().updateSegmentsExperience(
-			segmentsExperienceId, segmentsEntryId, nameMap, active,
-			typeSettingsUnicodeProperties);
+			segmentsExperienceId, segmentsEntryERC, segmentsEntryScopeERC,
+			nameMap, active, typeSettingsUnicodeProperties);
 	}
 
-	public static void updateSegmentsExperiencePriority(
+	public static SegmentsExperience updateSegmentsExperiencePriority(
 			long segmentsExperienceId, int newPriority)
 		throws PortalException {
 
-		getService().updateSegmentsExperiencePriority(
+		return getService().updateSegmentsExperiencePriority(
 			segmentsExperienceId, newPriority);
 	}
 
@@ -186,3 +217,4 @@ public class SegmentsExperienceServiceUtil {
 			SegmentsExperienceService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1461678980

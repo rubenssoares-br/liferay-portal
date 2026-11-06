@@ -43,6 +43,10 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.SearchUtil;
 
+import jakarta.validation.ValidationException;
+
+import jakarta.ws.rs.core.MultivaluedMap;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,10 +54,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.validation.ValidationException;
-
-import javax.ws.rs.core.MultivaluedMap;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -72,6 +72,11 @@ public class DataListViewResourceImpl extends BaseDataListViewResourceImpl {
 	@Override
 	public void deleteDataDefinitionDataListView(Long dataDefinitionId)
 		throws Exception {
+
+		DataDefinitionPermissionUtil.check(
+			PermissionThreadLocal.getPermissionChecker(),
+			_ddmStructureLocalService.getStructure(dataDefinitionId),
+			ActionKeys.DELETE);
 
 		for (DEDataListView deDataListView :
 				_deDataListViewLocalService.getDEDataListViews(
@@ -288,14 +293,14 @@ public class DataListViewResourceImpl extends BaseDataListViewResourceImpl {
 							ddmFormField.getProperties(), "ddmStructureId"),
 						ddmFormField.getName());
 
-			if (fieldSetDEDataDefinitionFieldLink == null) {
-				_deDataDefinitionFieldLinkLocalService.
-					addDEDataDefinitionFieldLink(
-						groupId, _getClassNameId(), dataListViewId,
-						MapUtil.getLong(
-							ddmFormField.getProperties(), "ddmStructureId"),
-						ddmFormField.getName());
+			if (fieldSetDEDataDefinitionFieldLink != null) {
+				continue;
 			}
+
+			_deDataDefinitionFieldLinkLocalService.addDEDataDefinitionFieldLink(
+				groupId, _getClassNameId(), dataListViewId,
+				MapUtil.getLong(ddmFormField.getProperties(), "ddmStructureId"),
+				ddmFormField.getName());
 		}
 	}
 
@@ -361,9 +366,9 @@ public class DataListViewResourceImpl extends BaseDataListViewResourceImpl {
 
 		JSONObject jsonObject = _jsonFactory.createJSONObject(json);
 
-		Set<String> keySet = jsonObject.keySet();
+		Set<String> keys = jsonObject.keySet();
 
-		Iterator<String> iterator = keySet.iterator();
+		Iterator<String> iterator = keys.iterator();
 
 		while (iterator.hasNext()) {
 			String key = iterator.next();

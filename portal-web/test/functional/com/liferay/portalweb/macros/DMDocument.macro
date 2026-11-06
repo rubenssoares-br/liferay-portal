@@ -395,83 +395,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro addDocumentTypePG(dateValue = null, dmDocumentTitle = null, dmDocumentFile = null, numericField = null, webcontentField = null, dmDocumentTypeName = null, dmDocumentDescription = null, booleanField = null, selectOption = null, textField = null) {
-		var key_dmDocumentTypeName = ${dmDocumentTypeName};
-
-		Portlet.clickPortletPlusIconPG(portletName = "Documents and Media");
-
-		MenuItem.click(menuItem = ${dmDocumentTypeName});
-
-		DMDocument.editDocument(
-			dmDocumentDescription = ${dmDocumentDescription},
-			dmDocumentFile = ${dmDocumentFile},
-			dmDocumentTitle = ${dmDocumentTitle});
-
-		if (isSet(selectOption)) {
-			Select(
-				locator1 = "DocumentsAndMediaEditCustomDocumentType#SELECT_OPTIONS_SELECT",
-				value1 = ${selectOption});
-		}
-
-		if (isSet(textField)) {
-			var key_fieldName = "Text";
-
-			Type(
-				locator1 = "TextInput#TEXT_SPECIFIC",
-				value1 = ${textField});
-		}
-
-		if (isSet(numericField)) {
-			var key_fieldLabel = "Numeric";
-
-			Type(
-				locator1 = "TextInput#NUMERIC",
-				value1 = ${numericField});
-		}
-
-		if (isSet(dateValue)) {
-			if (!(isSet(dateFieldLabel))) {
-				var dateFieldLabel = "Date";
-			}
-
-			Type(
-				key_fieldFieldLabel = ${dateFieldLabel},
-				locator1 = "WCEditWebContent#DATE_INPUT",
-				value1 = ${dateValue});
-		}
-
-		if (isSet(booleanField)) {
-			var key_fieldName = "Boolean";
-
-			Check(
-				locator1 = "TextInput#DDM",
-				value1 = ${booleanField});
-		}
-
-		if (isSet(webcontentField)) {
-			Click(
-				fieldLabel = "Web Content",
-				locator1 = "Button#BUTTON_LABEL",
-				text = "Select");
-
-			SelectFrame(locator1 = "IFrame#MODAL_BODY");
-
-			AssertClick(
-				key_contentName = ${webcontentField},
-				locator1 = "ItemSelector#SELECT_FILE_WEB_CONTENT",
-				value1 = ${webcontentField});
-
-			SelectFrame(value1 = "relative=top");
-		}
-
-		AssertClick(
-			locator1 = "Button#PUBLISH",
-			value1 = "Publish");
-
-		Alert.viewSuccessMessage();
-	}
-
-	@summary = "Default summary"
 	macro addImageField() {
 		DMNavigator.openToAddDocumentType(siteURLKey = "guest");
 
@@ -679,9 +602,7 @@ definition {
 		}
 
 		if (isSet(dmDocumentRelatedAsset)) {
-			RelatedAssets.selectAsset(
-				assetTitle = ${assetTitle},
-				assetType = ${assetType});
+			RelatedAssets.selectAsset(assetTitle = ${assetTitle});
 		}
 
 		if (isSet(tagNameList)) {
@@ -815,29 +736,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro addRelatedAssetPG(assetTitle = null, assetType = null) {
-		Panel.expandPanel(panel = "Related Assets");
-
-		var key_assetType = ${assetType};
-
-		AssertClick(
-			locator1 = "AssetRelatedAssets#RELATED_ASSETS_SELECT",
-			value1 = "Select");
-
-		MenuItem.click(menuItem = ${assetType});
-
-		var key_assetTitle = ${assetTitle};
-
-		SelectFrame(locator1 = "IFrame#MODAL_BODY");
-
-		AssertClick.assertPartialTextClickAt(
-			locator1 = "AssetRelatedAssets#ASSET_TABLE_CHOOSE",
-			value1 = ${assetType});
-
-		SelectFrame(value1 = "relative=top");
-	}
-
-	@summary = "Default summary"
 	macro addWithWorkflowCP(dmDocumentTitle = null, dmDocumentFile = null, dmDocumentTypeName = null, dmDocumentDescription = null) {
 		DMNavigator.gotoAddDocumentTypeCP(dmDocumentTypeName = ${dmDocumentTypeName});
 
@@ -894,6 +792,17 @@ definition {
 	@summary = "Default summary"
 	macro assertFileNameFromTempFolder(fileName = null) {
 		var tempDir = PropsUtil.get("output.dir.name");
+
+		var downloadedFileCrdownload = FileUtil.exists("${tempDir}/${fileName}.crdownload");
+
+		if (${downloadedFileCrdownload} == "true") {
+			FileUtil.move("${tempDir}/${fileName}.crdownload", "${tempDir}/${fileName}");
+		}
+		else {
+			var files = FileUtil.listFiles(${tempDir});
+
+			echo("files: ${files}");
+		}
 
 		var downloadedFile = FileUtil.exists("${tempDir}/${fileName}");
 
@@ -1312,13 +1221,20 @@ definition {
 		MenuBar.click(menuBar = ${navTab});
 
 		if (isSet(bodyContent)) {
-			SelectFrame.selectFrameNoLoading(locator1 = "CKEditor#BODY_FIELD_IFRAME");
+			if (IsElementPresent(locator1 = "CKEditor#BODY_FIELD_IFRAME")) {
+				SelectFrame.selectFrameNoLoading(locator1 = "CKEditor#BODY_FIELD_IFRAME");
 
-			Type(
-				locator1 = "CKEditor#BODY",
-				value1 = ${bodyContent});
+				Type(
+					locator1 = "CKEditor#BODY",
+					value1 = ${bodyContent});
 
-			SelectFrame(value1 = "relative=top");
+				SelectFrame(value1 = "relative=top");
+			}
+			else {
+				Type(
+					locator1 = "CKEditor#BODY_FIELD_CONTENTEDITABLE",
+					value1 = ${bodyContent});
+			}
 		}
 
 		PortletEntry.save();
@@ -1338,9 +1254,7 @@ definition {
 			locator1 = "TextInput#ANY",
 			value1 = ${copyLimit});
 
-		Button.clickSave();
-
-		Alert.viewSuccessMessage();
+		SystemSettings.saveConfiguration();
 	}
 
 	@summary = "Default summary"
@@ -1427,9 +1341,6 @@ definition {
 			}
 			else if (isSet(copyToStagingSite)) {
 				Alert.viewErrorMessage(errorMessage = "Cannot copy to the live version of a site. Make your changes in staging and publish them to Live afterwards to make them public.");
-			}
-			else if (isSet(copyWithRequiredField)) {
-				Alert.viewErrorMessage(errorMessage = "No value defined for field name");
 			}
 			else if (isSet(copyExceedsSizeLimit)) {
 				Alert.viewErrorMessage(errorMessage = " Item cannot be copied because it exceeds the limit set in the destination site's site settings. The total size of all items to copy must not exceed ${copyExceedsSizeLimit}.");
@@ -2287,7 +2198,13 @@ definition {
 
 		echo("## * Document URL: ${dmDocumentURL}");
 
-		var curl = '''${dmDocumentURL} -I''';
+		// Pass the query string as quoted data: unquoted, its ampersands make
+		// the shell run curl in the background, so its output is not always read
+
+		var dmDocumentBaseURL = StringUtil.extractFirst(${dmDocumentURL}, "?");
+		var dmDocumentQueryString = StringUtil.extractLast(${dmDocumentURL}, "?");
+
+		var curl = '''${dmDocumentBaseURL} -G -d ${dmDocumentQueryString} -D - -o /dev/null''';
 
 		var responseHeader = JSONCurlUtil.post(${curl});
 
@@ -2633,6 +2550,8 @@ definition {
 		MouseOver(
 			key_oldFriendlyURL = ${oldFriendlyURL},
 			locator1 = "DocumentsAndMediaDocument#FRIENDLY_URL_HISTORY_ITEM");
+
+		WaitForVisible(locator1 = "Icon#FRIENDLY_URL_HISTORY_ITEM_RESTORE");
 
 		Click(locator1 = "Icon#FRIENDLY_URL_HISTORY_ITEM_RESTORE");
 
@@ -3203,7 +3122,7 @@ definition {
 		}
 
 		if (${indexNumber} == 2) {
-			Click(locator1 = "Button#DUPLICATE");
+			Button.click(button = "Add Option");
 
 			Type(
 				key_fieldLabel = "Mime Type",
@@ -3273,8 +3192,8 @@ definition {
 		}
 
 		if (isSet(guestWithoutViewPermission)) {
-			if (contains(${responseHeader}, 302)) {
-				echo("The guest user will be redirected to the login page when the user doesn't have view permissions.");
+			if (contains(${responseHeader}, 404)) {
+				echo("The guest user gets a not found response when the user doesn't have view permissions.");
 			}
 			else {
 				fail("FAIL!");
@@ -4079,7 +3998,13 @@ definition {
 			}
 
 			for (var category : list ${category}) {
-				AssertTextEquals(
+
+				// The node was just expanded, so its card body also holds
+				// the extension chips nested underneath it. Match on partial
+				// text to read the category and its item count without
+				// requiring the node to have no children. See LPD-107571.
+
+				AssertTextEquals.assertPartialText(
 					key_nodeName = ${category},
 					locator1 = "Treeview#NODE_ITEM",
 					value1 = ${category});
@@ -4664,8 +4589,8 @@ definition {
 				locator1 = "DocumentsAndMedia#SEARCH_REPOSITORY_TAB",
 				value1 = ${dmRepositoryName});
 
-			if (IsElementNotPresent(locator1 = "DocumentsAndMedia#SEARCH_TITLE")) {
-				Click(locator1 = "Icon#BASIC_SEARCH");
+			while ((IsElementNotPresent(locator1 = "DocumentsAndMedia#SEARCH_TITLE")) && (maxIterations = "5")) {
+				Refresh.pauseRefresh();
 			}
 		}
 

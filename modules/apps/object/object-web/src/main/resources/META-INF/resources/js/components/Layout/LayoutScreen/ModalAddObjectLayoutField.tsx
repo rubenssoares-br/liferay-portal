@@ -8,7 +8,6 @@ import {Option} from '@clayui/core';
 import ClayForm from '@clayui/form';
 import ClayLabel from '@clayui/label';
 import ClayModal from '@clayui/modal';
-import {Observer} from '@clayui/modal/lib/types';
 import {
 	FormError,
 	SingleSelect,
@@ -19,10 +18,11 @@ import {
 import classNames from 'classnames';
 import React, {useMemo, useState} from 'react';
 
-import {defaultLanguageId} from '../../../utils/constants';
 import {TYPES, useLayoutContext} from '../objectLayoutContext';
 
 import './ModalAddObjectLayoutField.scss';
+
+import type {Observer} from '@clayui/modal/src/types';
 
 const objectFieldSizes = [1, 2, 3];
 
@@ -104,11 +104,10 @@ export default function ModalAddObjectLayoutField({
 				if (!inLayout) {
 					availableObjectFields.push({
 						businessType,
-						label: stringUtils.getLocalizableLabel(
-							defaultLanguageId,
-							label,
-							name
-						),
+						label: stringUtils.getLocalizableLabel({
+							fallbackLabel: name,
+							labels: label,
+						}),
 						readOnly,
 						required,
 						value: id,
@@ -158,7 +157,9 @@ export default function ModalAddObjectLayoutField({
 	return (
 		<ClayModal observer={observer}>
 			<ClayForm onSubmit={handleSubmit}>
-				<ClayModal.Header>
+				<ClayModal.Header
+					closeButtonAriaLabel={Liferay.Language.get('close')}
+				>
 					{Liferay.Language.get('add-field')}
 				</ClayModal.Header>
 

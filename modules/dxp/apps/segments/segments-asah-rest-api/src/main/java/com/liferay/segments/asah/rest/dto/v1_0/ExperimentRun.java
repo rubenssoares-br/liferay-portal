@@ -11,29 +11,30 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMax;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -41,8 +42,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName("ExperimentRun")
+@io.swagger.v3.oas.annotations.media.Schema(
+	requiredProperties = {"confidenceLevel", "experimentVariants"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"confidenceLevel", "experimentVariants"})
 @XmlRootElement(name = "ExperimentRun")
 public class ExperimentRun implements Serializable {
 
@@ -56,7 +59,7 @@ public class ExperimentRun implements Serializable {
 
 	@DecimalMax("99")
 	@DecimalMin("80")
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getConfidenceLevel() {
 		if (_confidenceLevelSupplier != null) {
 			confidenceLevel = _confidenceLevelSupplier.get();
@@ -98,7 +101,7 @@ public class ExperimentRun implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _confidenceLevelSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ExperimentVariant[] getExperimentVariants() {
 		if (_experimentVariantsSupplier != null) {
@@ -142,7 +145,7 @@ public class ExperimentRun implements Serializable {
 	@JsonIgnore
 	private Supplier<ExperimentVariant[]> _experimentVariantsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -265,8 +268,8 @@ public class ExperimentRun implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.segments.asah.rest.dto.v1_0.ExperimentRun",
 		name = "x-class-name"
 	)
@@ -353,6 +356,27 @@ public class ExperimentRun implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -361,3 +385,4 @@ public class ExperimentRun implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1514097911

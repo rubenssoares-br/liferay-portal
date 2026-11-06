@@ -16,12 +16,16 @@ import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectFilterLocalService;
+import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -31,8 +35,10 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -74,10 +80,15 @@ public class ObjectFieldUtil {
 			return listTypeDefinition.getListTypeDefinitionId();
 		}
 
-		listTypeDefinition =
-			listTypeDefinitionLocalService.addListTypeDefinition(
-				objectField.getListTypeDefinitionExternalReferenceCode(),
-				userId, GetterUtil.getBoolean(objectField.getSystem()));
+		try (SafeCloseable safeCloseable =
+				LazyReferencingThreadLocal.setEnabledWithSafeCloseable(true)) {
+
+			listTypeDefinition =
+				listTypeDefinitionLocalService.getOrAddEmptyListTypeDefinition(
+					objectField.getListTypeDefinitionExternalReferenceCode(),
+					companyId, userId,
+					GetterUtil.getBoolean(objectField.getSystem()));
+		}
 
 		Map<String, ListTypeEntry> listTypeEntries = new HashMap<>();
 
@@ -107,16 +118,14 @@ public class ObjectFieldUtil {
 
 				String key = objectStateJSONObject.getString("key");
 
-				if (listTypeEntries.containsKey(key)) {
-					listTypeEntries.remove(key);
-
+				if (listTypeEntries.remove(key) != null) {
 					continue;
 				}
 
 				listTypeEntryLocalService.addListTypeEntry(
 					null, userId, listTypeDefinition.getListTypeDefinitionId(),
-					key,
-					Collections.singletonMap(LocaleUtil.getDefault(), key));
+					key, Collections.singletonMap(LocaleUtil.getDefault(), key),
+					listTypeDefinition.isSystem());
 			}
 		}
 
@@ -137,15 +146,14 @@ public class ObjectFieldUtil {
 		String defaultObjectFieldSettingValue = GetterUtil.getString(
 			defaultObjectFieldSettings[0].getValue());
 
-		if (listTypeEntries.containsKey(defaultObjectFieldSettingValue)) {
-			listTypeEntries.remove(defaultObjectFieldSettingValue);
-		}
+		listTypeEntries.remove(defaultObjectFieldSettingValue);
 
 		listTypeEntryLocalService.addListTypeEntry(
 			null, userId, listTypeDefinition.getListTypeDefinitionId(),
 			defaultObjectFieldSettingValue,
 			Collections.singletonMap(
-				LocaleUtil.getDefault(), defaultObjectFieldSettingValue));
+				LocaleUtil.getDefault(), defaultObjectFieldSettingValue),
+			listTypeDefinition.isSystem());
 
 		for (ListTypeEntry listTypeEntry : listTypeEntries.values()) {
 			listTypeEntryLocalService.deleteListTypeEntry(listTypeEntry);
@@ -207,7 +215,7 @@ public class ObjectFieldUtil {
 	}
 
 	public static com.liferay.object.model.ObjectField toObjectField(
-		String defaultLanguageId, boolean enableLocalization,
+		String defaultLanguageId, GroupLocalService groupLocalService,
 		ListTypeDefinitionLocalService listTypeDefinitionLocalService,
 		ObjectField objectField,
 		ObjectFieldLocalService objectFieldLocalService,
@@ -236,6 +244,9 @@ public class ObjectFieldUtil {
 			getDBType(
 				objectField.getDBTypeAsString(),
 				objectField.getTypeAsString()));
+		serviceBuilderObjectField.setDescriptionMap(
+			LocalizedMapUtil.populateLocalizedMap(
+				objectField.getDescription()));
 		serviceBuilderObjectField.setIndexed(
 			GetterUtil.getBoolean(objectField.getIndexed()));
 		serviceBuilderObjectField.setIndexedAsKeyword(
@@ -244,10 +255,9 @@ public class ObjectFieldUtil {
 			objectField.getIndexedLanguageId());
 
 		Map<Locale, String> localizedLabelMap =
-			LocalizedMapUtil.getLocalizedMap(
-				LocalizedMapUtil.populateI18nMap(
-					defaultLanguageId, objectField.getLabel(),
-					objectField.getName()));
+			LocalizedMapUtil.populateLocalizedMap(
+				defaultLanguageId, objectField.getLabel(),
+				objectField.getName());
 
 		if (GetterUtil.getBoolean(objectField.getSystem())) {
 			Locale siteDefaultLocale = LocaleUtil.getSiteDefault();
@@ -263,12 +273,11 @@ public class ObjectFieldUtil {
 		serviceBuilderObjectField.setLabelMap(localizedLabelMap);
 
 		serviceBuilderObjectField.setLocalized(
-			GetterUtil.getBoolean(
-				objectField.getLocalized(), enableLocalization));
+			GetterUtil.getBoolean(objectField.getLocalized()));
 		serviceBuilderObjectField.setName(objectField.getName());
 		serviceBuilderObjectField.setObjectFieldSettings(
 			ObjectFieldSettingUtil.toObjectFieldSettings(
-				listTypeDefinitionId, objectField,
+				groupLocalService, listTypeDefinitionId, objectField,
 				objectFieldSettingLocalService, objectFilterLocalService));
 		serviceBuilderObjectField.setReadOnly(
 			objectField.getReadOnlyAsString());
@@ -287,6 +296,35 @@ public class ObjectFieldUtil {
 		return serviceBuilderObjectField;
 	}
 
+	public static List<com.liferay.object.model.ObjectField> toObjectFields(
+		String defaultLanguageId, GroupLocalService groupLocalService,
+		ListTypeDefinitionLocalService listTypeDefinitionLocalService,
+		ObjectFieldLocalService objectFieldLocalService,
+		ObjectField[] objectFields,
+		ObjectFieldSettingLocalService objectFieldSettingLocalService,
+		ObjectFilterLocalService objectFilterLocalService) {
+
+		if (objectFields == null) {
+			return new ArrayList<>();
+		}
+
+		return TransformUtil.transformToList(
+			objectFields,
+			objectField -> {
+				com.liferay.object.model.ObjectField serviceBuilderObjectField =
+					toObjectField(
+						defaultLanguageId, groupLocalService,
+						listTypeDefinitionLocalService, objectField,
+						objectFieldLocalService, objectFieldSettingLocalService,
+						objectFilterLocalService);
+
+				serviceBuilderObjectField.setObjectFieldId(
+					GetterUtil.getLong(objectField.getId()));
+
+				return serviceBuilderObjectField;
+			});
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		ObjectFieldUtil.class);
 
@@ -296,11 +334,17 @@ public class ObjectFieldUtil {
 		).put(
 			"creator", "author"
 		).put(
+			"displayDate", "display-date"
+		).put(
+			"expirationDate", "expiration-date"
+		).put(
 			"externalReferenceCode", "external-reference-code"
 		).put(
 			"id", "id"
 		).put(
 			"modifiedDate", "modified-date"
+		).put(
+			"reviewDate", "review-date"
 		).put(
 			"status", "status"
 		).build();

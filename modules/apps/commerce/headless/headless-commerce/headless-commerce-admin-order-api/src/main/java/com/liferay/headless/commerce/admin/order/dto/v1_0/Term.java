@@ -11,18 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,22 +39,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("Term")
+@GraphQLName(
+	description = "A reusable commerce term (delivery term or payment term) that can be bound to one or more order types. Carries a localized label and description, a priority for evaluation order, and active or expiration dates.",
+	value = "Term"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A reusable commerce term (delivery term or payment term) that can be bound to one or more order types. Carries a localized label and description, a priority for evaluation order, and active or expiration dates.",
+	requiredProperties = {"name", "type"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"name", "type"})
 @XmlRootElement(name = "Term")
 public class Term implements Serializable {
 
@@ -57,7 +64,9 @@ public class Term implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Term.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -93,14 +102,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the term is evaluated when orders are placed. When false, the term is disabled.",
+		example = "true"
+	)
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -134,14 +148,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the term is evaluated when orders are placed. When false, the term is disabled."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean active;
 
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Creation date and time of the term. Read-only.",
+		example = "2017-07-21"
+	)
 	public Date getCreateDate() {
 		if (_createDateSupplier != null) {
 			createDate = _createDateSupplier.get();
@@ -175,15 +194,18 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Creation date and time of the term. Read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Date createDate;
 
 	@JsonIgnore
 	private Supplier<Date> _createDateSupplier;
 
-	@Schema(
-		example = "{en_US=Term Description US, hr_HR=Term Description HR, hu_HU=Term Description HU}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated descriptions.",
+		example = "{en_US=Payable within 30 days., hr_HR=Term Description HR, hu_HU=Term Description HU}"
 	)
 	@Valid
 	public Map<String, String> getDescription() {
@@ -220,14 +242,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated descriptions."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date and time the term becomes active.",
+		example = "2017-07-21"
+	)
 	public Date getDisplayDate() {
 		if (_displayDateSupplier != null) {
 			displayDate = _displayDateSupplier.get();
@@ -261,14 +288,16 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Date and time the term becomes active.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date displayDate;
 
 	@JsonIgnore
 	private Supplier<Date> _displayDateSupplier;
 
-	@Schema(example = "2017-08-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date and time the term expires.", example = "2017-08-21"
+	)
 	public Date getExpirationDate() {
 		if (_expirationDateSupplier != null) {
 			expirationDate = _expirationDateSupplier.get();
@@ -302,14 +331,17 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Date and time the term expires.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date expirationDate;
 
 	@JsonIgnore
 	private Supplier<Date> _expirationDateSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per term within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -343,7 +375,9 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per term within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -351,7 +385,10 @@ public class Term implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the term (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -383,15 +420,18 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Reference to the term (FK identifier). Read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(
-		example = "{en_US=Term Label US, hr_HR=Term Label HR, hu_HU=Term Label HU}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated labels (display names).",
+		example = "{en_US=Net 30, hr_HR=Term Label HR, hu_HU=Term Label HU}"
 	)
 	@Valid
 	public Map<String, String> getLabel() {
@@ -427,14 +467,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated labels (display names)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> label;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _labelSupplier;
 
-	@Schema(example = "Laptops, Beverages")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-text name identifying the term (for example, Net30, 2/10 Net30).",
+		example = "Net 30"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -466,7 +511,9 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-text name identifying the term (for example, Net30, 2/10 Net30)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String name;
@@ -474,7 +521,10 @@ public class Term implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the term ignores expirationDate and never expires.",
+		example = "false"
+	)
 	public Boolean getNeverExpire() {
 		if (_neverExpireSupplier != null) {
 			neverExpire = _neverExpireSupplier.get();
@@ -508,14 +558,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the term ignores expirationDate and never expires."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean neverExpire;
 
 	@JsonIgnore
 	private Supplier<Boolean> _neverExpireSupplier;
 
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Numeric priority for term evaluation order.",
+		example = "1.0"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -549,14 +604,16 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Numeric priority for term evaluation order.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
 	@JsonIgnore
 	private Supplier<Double> _prioritySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Nested array of TermOrderType objects describing which order types the term applies to."
+	)
 	@Valid
 	public TermOrderType[] getTermOrderType() {
 		if (_termOrderTypeSupplier != null) {
@@ -592,14 +649,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Nested array of TermOrderType objects describing which order types the term applies to."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected TermOrderType[] termOrderType;
 
 	@JsonIgnore
 	private Supplier<TermOrderType[]> _termOrderTypeSupplier;
 
-	@Schema(example = "payment-terms")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Term type identifier (delivery or payment). Free-form string drawn from the configured term-type list.",
+		example = "payment"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -631,7 +693,9 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Term type identifier (delivery or payment). Free-form string drawn from the configured term-type list."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String type;
@@ -639,7 +703,10 @@ public class Term implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema(example = "Payment Terms")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the translated strings.",
+		example = "Payment Terms"
+	)
 	public String getTypeLocalized() {
 		if (_typeLocalizedSupplier != null) {
 			typeLocalized = _typeLocalizedSupplier.get();
@@ -673,14 +740,19 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String typeLocalized;
 
 	@JsonIgnore
 	private Supplier<String> _typeLocalizedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form JSON or text configuration specific to the term type.",
+		example = "daysFromInvoice=30"
+	)
 	public String getTypeSettings() {
 		if (_typeSettingsSupplier != null) {
 			typeSettings = _typeSettingsSupplier.get();
@@ -714,14 +786,16 @@ public class Term implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form JSON or text configuration specific to the term type."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String typeSettings;
 
 	@JsonIgnore
 	private Supplier<String> _typeSettingsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Status getWorkflowStatusInfo() {
 		if (_workflowStatusInfoSupplier != null) {
@@ -1044,8 +1118,8 @@ public class Term implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.order.dto.v1_0.Term",
 		name = "x-class-name"
 	)
@@ -1132,6 +1206,27 @@ public class Term implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1140,3 +1235,4 @@ public class Term implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2002913881

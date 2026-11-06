@@ -37,7 +37,7 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import javax.portlet.Portlet;
+import jakarta.portlet.Portlet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -66,24 +66,6 @@ public class MentionsPortletTest {
 		_group = GroupTestUtil.addGroup();
 
 		_layout = _addLayout(_group.getGroupId(), TestPropsValues.getUserId());
-	}
-
-	@Test
-	public void testServletResponseWithoutQuery() throws Exception {
-		User user = _addUser("example");
-
-		try {
-			JSONArray jsonArray = _getServletResponseJSONArray(null);
-
-			Assert.assertEquals(1, jsonArray.length());
-
-			JSONObject jsonObject = jsonArray.getJSONObject(0);
-
-			Assert.assertEquals("example", jsonObject.getString("screenName"));
-		}
-		finally {
-			_userLocalService.deleteUser(user);
-		}
 	}
 
 	@Test
@@ -151,6 +133,24 @@ public class MentionsPortletTest {
 		JSONArray jsonArray = _getServletResponseJSONArray("");
 
 		Assert.assertEquals(0, jsonArray.length());
+	}
+
+	@Test
+	public void testServletResponseWithoutQuery() throws Exception {
+		User user = _addUser("example");
+
+		try {
+			JSONArray jsonArray = _getServletResponseJSONArray(null);
+
+			Assert.assertEquals(1, jsonArray.length());
+
+			JSONObject jsonObject = jsonArray.getJSONObject(0);
+
+			Assert.assertEquals("example", jsonObject.getString("screenName"));
+		}
+		finally {
+			_userLocalService.deleteUser(user);
+		}
 	}
 
 	private Layout _addLayout(long groupId, long userId) throws Exception {
@@ -243,7 +243,7 @@ public class MentionsPortletTest {
 	@Inject
 	private LayoutLocalService _layoutLocalService;
 
-	@Inject(filter = "javax.portlet.name=" + MentionsPortletKeys.MENTIONS)
+	@Inject(filter = "jakarta.portlet.name=" + MentionsPortletKeys.MENTIONS)
 	private Portlet _portlet;
 
 	@Inject

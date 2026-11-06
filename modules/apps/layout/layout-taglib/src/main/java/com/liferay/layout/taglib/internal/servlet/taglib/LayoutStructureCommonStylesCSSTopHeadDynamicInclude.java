@@ -7,6 +7,7 @@ package com.liferay.layout.taglib.internal.servlet.taglib;
 
 import com.liferay.layout.taglib.internal.util.SegmentsExperienceUtil;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.service.LayoutLocalService;
@@ -18,14 +19,14 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.util.Date;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -33,7 +34,10 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Víctor Galán
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#post",
+	service = DynamicInclude.class
+)
 public class LayoutStructureCommonStylesCSSTopHeadDynamicInclude
 	extends BaseDynamicInclude {
 
@@ -58,8 +62,8 @@ public class LayoutStructureCommonStylesCSSTopHeadDynamicInclude
 
 		Layout layout = themeDisplay.getLayout();
 
-		if (!layout.isTypeAssetDisplay() && !layout.isTypeCollection() &&
-			!layout.isTypeContent() && !layout.isTypeUtility() &&
+		if (!layout.isTypeAssetDisplay() && !layout.isTypeContent() &&
+			!layout.isTypeUtility() &&
 			((layout.getMasterLayoutPlid() == 0) || !layout.isTypePortlet())) {
 
 			return;
@@ -88,17 +92,18 @@ public class LayoutStructureCommonStylesCSSTopHeadDynamicInclude
 			_addModifiedDate(printWriter, masterLayout);
 		}
 
+		long ctCollectionId = CTCollectionThreadLocal.getCTCollectionId();
+
+		if (ctCollectionId != 0) {
+			printWriter.print("&previewCTCollectionId=");
+			printWriter.print(ctCollectionId);
+		}
+
 		printWriter.print(StringPool.QUOTE);
 		printWriter.print(
 			ContentSecurityPolicyNonceProviderUtil.getNonceAttribute(
 				httpServletRequest));
 		printWriter.print(" rel=\"stylesheet\" type=\"text/css\">");
-	}
-
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_head.jsp#post");
 	}
 
 	private void _addModifiedDate(PrintWriter printWriter, Layout layout) {

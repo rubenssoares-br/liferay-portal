@@ -18,6 +18,10 @@ import com.liferay.headless.admin.user.client.http.HttpInvoker;
 import com.liferay.headless.admin.user.client.pagination.Page;
 import com.liferay.headless.admin.user.client.resource.v1_0.WebUrlResource;
 import com.liferay.headless.admin.user.client.serdes.v1_0.WebUrlSerDes;
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
@@ -27,23 +31,47 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,13 +80,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -67,6 +92,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Javier Gamarra
@@ -77,13 +105,17 @@ public abstract class BaseWebUrlResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -96,16 +128,27 @@ public abstract class BaseWebUrlResourceTestCase {
 
 		_webUrlResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		WebUrlResource.Builder builder = WebUrlResource.builder();
-
-		webUrlResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		webUrlResource = WebUrlResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -180,6 +223,280 @@ public abstract class BaseWebUrlResourceTestCase {
 		Assert.assertEquals(regex, webUrl.getExternalReferenceCode());
 		Assert.assertEquals(regex, webUrl.getUrl());
 		Assert.assertEquals(regex, webUrl.getUrlType());
+	}
+
+	@Test
+	public void testDeleteWebUrl() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl webUrl = testDeleteWebUrl_addWebUrl();
+
+		assertHttpResponseStatusCode(
+			204, webUrlResource.deleteWebUrlHttpResponse(webUrl.getId()));
+
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(webUrl.getId()));
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(0L));
+	}
+
+	protected WebUrl testDeleteWebUrl_addWebUrl() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteWebUrl() throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl webUrl1 = testGraphQLDeleteWebUrl_addWebUrl();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteWebUrl",
+						new HashMap<String, Object>() {
+							{
+								put("webUrlId", webUrl1.getId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteWebUrl"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"webUrl",
+					new HashMap<String, Object>() {
+						{
+							put("webUrlId", webUrl1.getId());
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessAdminUser_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl webUrl2 = testGraphQLDeleteWebUrl_addWebUrl();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessAdminUser_v1_0",
+						new GraphQLField(
+							"deleteWebUrl",
+							new HashMap<String, Object>() {
+								{
+									put("webUrlId", webUrl2.getId());
+								}
+							}))),
+				"JSONObject/data", "JSONObject/headlessAdminUser_v1_0",
+				"Object/deleteWebUrl"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessAdminUser_v1_0",
+					new GraphQLField(
+						"webUrl",
+						new HashMap<String, Object>() {
+							{
+								put("webUrlId", webUrl2.getId());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected WebUrl testGraphQLDeleteWebUrl_addWebUrl() throws Exception {
+		return testGraphQLWebUrl_addWebUrl();
+	}
+
+	@Test
+	public void testDeleteWebUrlBatch() throws Exception {
+		WebUrl webUrl1 = testDeleteWebUrlBatch_addWebUrl();
+
+		testDeleteWebUrlBatch_deleteWebUrl(
+			202, webUrl1.getExternalReferenceCode(), null);
+
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(webUrl1.getId()));
+
+		webUrl1 = testDeleteWebUrlBatch_addWebUrl();
+
+		testDeleteWebUrlBatch_deleteWebUrl(202, null, webUrl1.getId());
+
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(webUrl1.getId()));
+
+		webUrl1 = testDeleteWebUrlBatch_addWebUrl();
+		WebUrl webUrl2 = testDeleteWebUrlBatch_addWebUrl();
+
+		testDeleteWebUrlBatch_deleteWebUrl(
+			202, webUrl2.getExternalReferenceCode(), webUrl1.getId());
+
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(webUrl1.getId()));
+		assertHttpResponseStatusCode(
+			200, webUrlResource.getWebUrlHttpResponse(webUrl2.getId()));
+
+		testDeleteWebUrlBatch_deleteWebUrl(
+			202, webUrl2.getExternalReferenceCode(), webUrl1.getId());
+
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(webUrl2.getId()));
+	}
+
+	protected WebUrl testDeleteWebUrlBatch_addWebUrl() throws Exception {
+		return testDeleteWebUrl_addWebUrl();
+	}
+
+	protected void testDeleteWebUrlBatch_deleteWebUrl(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			webUrlResource.deleteWebUrlBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
+	public void testDeleteWebUrlByExternalReferenceCode() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl webUrl = testDeleteWebUrlByExternalReferenceCode_addWebUrl();
+
+		assertHttpResponseStatusCode(
+			204,
+			webUrlResource.deleteWebUrlByExternalReferenceCodeHttpResponse(
+				webUrl.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			webUrlResource.getWebUrlByExternalReferenceCodeHttpResponse(
+				webUrl.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			webUrlResource.getWebUrlByExternalReferenceCodeHttpResponse("-"));
+	}
+
+	protected WebUrl testDeleteWebUrlByExternalReferenceCode_addWebUrl()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteWebUrlByExternalReferenceCode()
+		throws Exception {
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl webUrl1 =
+			testGraphQLDeleteWebUrlByExternalReferenceCode_addWebUrl();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteWebUrlByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" + webUrl1.getExternalReferenceCode() +
+										"\"");
+							}
+						})),
+				"JSONObject/data",
+				"Object/deleteWebUrlByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"webUrlByExternalReferenceCode",
+					new HashMap<String, Object>() {
+						{
+							put(
+								"externalReferenceCode",
+								"\"" + webUrl1.getExternalReferenceCode() +
+									"\"");
+						}
+					},
+					getGraphQLFields())),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessAdminUser_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl webUrl2 =
+			testGraphQLDeleteWebUrlByExternalReferenceCode_addWebUrl();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessAdminUser_v1_0",
+						new GraphQLField(
+							"deleteWebUrlByExternalReferenceCode",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										"\"" +
+											webUrl2.getExternalReferenceCode() +
+												"\"");
+								}
+							}))),
+				"JSONObject/data", "JSONObject/headlessAdminUser_v1_0",
+				"Object/deleteWebUrlByExternalReferenceCode"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessAdminUser_v1_0",
+					new GraphQLField(
+						"webUrlByExternalReferenceCode",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									"\"" + webUrl2.getExternalReferenceCode() +
+										"\"");
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected WebUrl testGraphQLDeleteWebUrlByExternalReferenceCode_addWebUrl()
+		throws Exception {
+
+		return testGraphQLWebUrl_addWebUrl();
 	}
 
 	@Test
@@ -690,31 +1007,300 @@ public abstract class BaseWebUrlResourceTestCase {
 	}
 
 	@Test
-	public void testDeleteWebUrlByExternalReferenceCode() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		WebUrl webUrl = testDeleteWebUrlByExternalReferenceCode_addWebUrl();
+	public void testGetWebUrl() throws Exception {
+		WebUrl postWebUrl = testGetWebUrl_addWebUrl();
 
-		assertHttpResponseStatusCode(
-			204,
-			webUrlResource.deleteWebUrlByExternalReferenceCodeHttpResponse(
-				webUrl.getExternalReferenceCode()));
+		WebUrl getWebUrl = webUrlResource.getWebUrl(postWebUrl.getId());
 
-		assertHttpResponseStatusCode(
-			404,
-			webUrlResource.getWebUrlByExternalReferenceCodeHttpResponse(
-				webUrl.getExternalReferenceCode()));
-
-		assertHttpResponseStatusCode(
-			404,
-			webUrlResource.getWebUrlByExternalReferenceCodeHttpResponse(
-				webUrl.getExternalReferenceCode()));
+		assertEquals(postWebUrl, getWebUrl);
+		assertValid(getWebUrl);
 	}
 
-	protected WebUrl testDeleteWebUrlByExternalReferenceCode_addWebUrl()
-		throws Exception {
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		WebUrl postWebUrl = testGetWebUrl_addWebUrl();
 
+		WebUrl getWebUrl = webUrlResource.getWebUrl(postWebUrl.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany, "com.liferay.headless.admin.user.dto.v1_0.WebUrl"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(postWebUrl.getId());
+
+		assertEquals(getWebUrl, WebUrlSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
+	}
+
+	protected WebUrl testGetWebUrl_addWebUrl() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetWebUrl() throws Exception {
+		WebUrl webUrl = testGraphQLGetWebUrl_addWebUrl();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				webUrl,
+				WebUrlSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"webUrl",
+								new HashMap<String, Object>() {
+									{
+										put("webUrlId", webUrl.getId());
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data", "Object/webUrl"))));
+
+		// Using the namespace headlessAdminUser_v1_0
+
+		Assert.assertTrue(
+			equals(
+				webUrl,
+				WebUrlSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessAdminUser_v1_0",
+								new GraphQLField(
+									"webUrl",
+									new HashMap<String, Object>() {
+										{
+											put("webUrlId", webUrl.getId());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data", "JSONObject/headlessAdminUser_v1_0",
+						"Object/webUrl"))));
+	}
+
+	@Test
+	public void testGraphQLGetWebUrlNotFound() throws Exception {
+		Long irrelevantWebUrlId = RandomTestUtil.randomLong();
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"webUrl",
+						new HashMap<String, Object>() {
+							{
+								put("webUrlId", irrelevantWebUrlId);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessAdminUser_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessAdminUser_v1_0",
+						new GraphQLField(
+							"webUrl",
+							new HashMap<String, Object>() {
+								{
+									put("webUrlId", irrelevantWebUrlId);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected WebUrl testGraphQLGetWebUrl_addWebUrl() throws Exception {
+		return testGraphQLWebUrl_addWebUrl();
 	}
 
 	@Test
@@ -845,6 +1431,31 @@ public abstract class BaseWebUrlResourceTestCase {
 	}
 
 	@Test
+	public void testPatchWebUrl() throws Exception {
+		WebUrl postWebUrl = testPatchWebUrl_addWebUrl();
+
+		WebUrl randomPatchWebUrl = randomPatchWebUrl();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WebUrl patchWebUrl = webUrlResource.patchWebUrl(
+			postWebUrl.getId(), randomPatchWebUrl);
+
+		WebUrl expectedPatchWebUrl = postWebUrl.clone();
+
+		BeanTestUtil.copyProperties(randomPatchWebUrl, expectedPatchWebUrl);
+
+		WebUrl getWebUrl = webUrlResource.getWebUrl(patchWebUrl.getId());
+
+		assertEquals(expectedPatchWebUrl, getWebUrl);
+		assertValid(getWebUrl);
+	}
+
+	protected WebUrl testPatchWebUrl_addWebUrl() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPatchWebUrlByExternalReferenceCode() throws Exception {
 		WebUrl postWebUrl = testPatchWebUrlByExternalReferenceCode_addWebUrl();
 
@@ -873,225 +1484,81 @@ public abstract class BaseWebUrlResourceTestCase {
 	}
 
 	@Test
-	public void testDeleteWebUrl() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		WebUrl webUrl = testDeleteWebUrl_addWebUrl();
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		WebUrl webUrl1 = testBatchEngineDeleteImportTask_addWebUrl();
+
+		testBatchEngineDeleteImportTask_deleteWebUrl(
+			200, webUrl1.getExternalReferenceCode(), null);
 
 		assertHttpResponseStatusCode(
-			204, webUrlResource.deleteWebUrlHttpResponse(webUrl.getId()));
+			404, webUrlResource.getWebUrlHttpResponse(webUrl1.getId()));
+
+		webUrl1 = testBatchEngineDeleteImportTask_addWebUrl();
+
+		testBatchEngineDeleteImportTask_deleteWebUrl(
+			200, null, webUrl1.getId());
 
 		assertHttpResponseStatusCode(
-			404, webUrlResource.getWebUrlHttpResponse(webUrl.getId()));
+			404, webUrlResource.getWebUrlHttpResponse(webUrl1.getId()));
+
+		webUrl1 = testBatchEngineDeleteImportTask_addWebUrl();
+		WebUrl webUrl2 = testBatchEngineDeleteImportTask_addWebUrl();
+
+		testBatchEngineDeleteImportTask_deleteWebUrl(
+			200, webUrl2.getExternalReferenceCode(), webUrl1.getId());
 
 		assertHttpResponseStatusCode(
-			404, webUrlResource.getWebUrlHttpResponse(0L));
+			404, webUrlResource.getWebUrlHttpResponse(webUrl1.getId()));
+		assertHttpResponseStatusCode(
+			200, webUrlResource.getWebUrlHttpResponse(webUrl2.getId()));
+
+		testBatchEngineDeleteImportTask_deleteWebUrl(
+			200, webUrl2.getExternalReferenceCode(), webUrl1.getId());
+
+		assertHttpResponseStatusCode(
+			404, webUrlResource.getWebUrlHttpResponse(webUrl2.getId()));
 	}
 
-	protected WebUrl testDeleteWebUrl_addWebUrl() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+	protected WebUrl testBatchEngineDeleteImportTask_addWebUrl()
+		throws Exception {
+
+		return testDeleteWebUrl_addWebUrl();
 	}
 
-	@Test
-	public void testGraphQLDeleteWebUrl() throws Exception {
+	protected void testBatchEngineDeleteImportTask_deleteWebUrl(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
 
-		// No namespace
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
 
-		WebUrl webUrl1 = testGraphQLDeleteWebUrl_addWebUrl();
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.admin.user.dto.v1_0.WebUrl", null, null,
+				null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
 
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"deleteWebUrl",
-						new HashMap<String, Object>() {
-							{
-								put("webUrlId", webUrl1.getId());
-							}
-						})),
-				"JSONObject/data", "Object/deleteWebUrl"));
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
 
-		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"webUrl",
-					new HashMap<String, Object>() {
-						{
-							put("webUrlId", webUrl1.getId());
-						}
-					},
-					new GraphQLField("id"))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray1.length() > 0);
-
-		// Using the namespace headlessAdminUser_v1_0
-
-		WebUrl webUrl2 = testGraphQLDeleteWebUrl_addWebUrl();
-
-		Assert.assertTrue(
-			JSONUtil.getValueAsBoolean(
-				invokeGraphQLMutation(
-					new GraphQLField(
-						"headlessAdminUser_v1_0",
-						new GraphQLField(
-							"deleteWebUrl",
-							new HashMap<String, Object>() {
-								{
-									put("webUrlId", webUrl2.getId());
-								}
-							}))),
-				"JSONObject/data", "JSONObject/headlessAdminUser_v1_0",
-				"Object/deleteWebUrl"));
-
-		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
-			invokeGraphQLQuery(
-				new GraphQLField(
-					"headlessAdminUser_v1_0",
-					new GraphQLField(
-						"webUrl",
-						new HashMap<String, Object>() {
-							{
-								put("webUrlId", webUrl2.getId());
-							}
-						},
-						new GraphQLField("id")))),
-			"JSONArray/errors");
-
-		Assert.assertTrue(errorsJSONArray2.length() > 0);
-	}
-
-	protected WebUrl testGraphQLDeleteWebUrl_addWebUrl() throws Exception {
-		return testGraphQLWebUrl_addWebUrl();
-	}
-
-	@Test
-	public void testGetWebUrl() throws Exception {
-		WebUrl postWebUrl = testGetWebUrl_addWebUrl();
-
-		WebUrl getWebUrl = webUrlResource.getWebUrl(postWebUrl.getId());
-
-		assertEquals(postWebUrl, getWebUrl);
-		assertValid(getWebUrl);
-	}
-
-	protected WebUrl testGetWebUrl_addWebUrl() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetWebUrl() throws Exception {
-		WebUrl webUrl = testGraphQLGetWebUrl_addWebUrl();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				webUrl,
-				WebUrlSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"webUrl",
-								new HashMap<String, Object>() {
-									{
-										put("webUrlId", webUrl.getId());
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data", "Object/webUrl"))));
-
-		// Using the namespace headlessAdminUser_v1_0
-
-		Assert.assertTrue(
-			equals(
-				webUrl,
-				WebUrlSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessAdminUser_v1_0",
-								new GraphQLField(
-									"webUrl",
-									new HashMap<String, Object>() {
-										{
-											put("webUrlId", webUrl.getId());
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data", "JSONObject/headlessAdminUser_v1_0",
-						"Object/webUrl"))));
-	}
-
-	@Test
-	public void testGraphQLGetWebUrlNotFound() throws Exception {
-		Long irrelevantWebUrlId = RandomTestUtil.randomLong();
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"webUrl",
-						new HashMap<String, Object>() {
-							{
-								put("webUrlId", irrelevantWebUrlId);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessAdminUser_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessAdminUser_v1_0",
-						new GraphQLField(
-							"webUrl",
-							new HashMap<String, Object>() {
-								{
-									put("webUrlId", irrelevantWebUrlId);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected WebUrl testGraphQLGetWebUrl_addWebUrl() throws Exception {
-		return testGraphQLWebUrl_addWebUrl();
-	}
-
-	@Test
-	public void testPatchWebUrl() throws Exception {
-		WebUrl postWebUrl = testPatchWebUrl_addWebUrl();
-
-		WebUrl randomPatchWebUrl = randomPatchWebUrl();
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		WebUrl patchWebUrl = webUrlResource.patchWebUrl(
-			postWebUrl.getId(), randomPatchWebUrl);
-
-		WebUrl expectedPatchWebUrl = postWebUrl.clone();
-
-		BeanTestUtil.copyProperties(randomPatchWebUrl, expectedPatchWebUrl);
-
-		WebUrl getWebUrl = webUrlResource.getWebUrl(patchWebUrl.getId());
-
-		assertEquals(expectedPatchWebUrl, getWebUrl);
-		assertValid(getWebUrl);
-	}
-
-	protected WebUrl testPatchWebUrl_addWebUrl() throws Exception {
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	protected WebUrl testGraphQLWebUrl_addWebUrl() throws Exception {
@@ -1258,6 +1725,10 @@ public abstract class BaseWebUrlResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1634,7 +2105,9 @@ public abstract class BaseWebUrlResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1686,7 +2159,30 @@ public abstract class BaseWebUrlResourceTestCase {
 		return randomWebUrl();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected WebUrlResource webUrlResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1887,10 +2383,35 @@ public abstract class BaseWebUrlResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseWebUrlResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.admin.user.resource.v1_0.WebUrlResource
 		_webUrlResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:647278982

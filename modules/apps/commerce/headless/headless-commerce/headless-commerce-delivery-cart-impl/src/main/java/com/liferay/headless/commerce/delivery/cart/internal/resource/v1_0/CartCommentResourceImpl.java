@@ -12,7 +12,7 @@ import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderNote;
 import com.liferay.commerce.service.CommerceOrderNoteService;
 import com.liferay.commerce.service.CommerceOrderService;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.Cart;
 import com.liferay.headless.commerce.delivery.cart.dto.v1_0.CartComment;
 import com.liferay.headless.commerce.delivery.cart.resource.v1_0.CartCommentResource;
@@ -27,7 +27,6 @@ import com.liferay.portal.vulcan.fields.NestedFieldId;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
@@ -46,6 +45,12 @@ public class CartCommentResourceImpl extends BaseCartCommentResourceImpl {
 
 	@Override
 	public void deleteCartComment(Long commentId) throws Exception {
+		CommerceOrderNote commerceOrderNote =
+			_commerceOrderNoteService.getCommerceOrderNote(commentId);
+
+		_commerceOrderService.getCommerceOrder(
+			commerceOrderNote.getCommerceOrderId());
+
 		_commerceOrderNoteService.deleteCommerceOrderNote(commentId);
 	}
 
@@ -96,6 +101,12 @@ public class CartCommentResourceImpl extends BaseCartCommentResourceImpl {
 
 	@Override
 	public CartComment getCartComment(Long commentId) throws Exception {
+		CommerceOrderNote commerceOrderNote =
+			_commerceOrderNoteService.getCommerceOrderNote(commentId);
+
+		_commerceOrderService.getCommerceOrder(
+			commerceOrderNote.getCommerceOrderId());
+
 		return _toOrderNote(GetterUtil.getLong(commentId));
 	}
 
@@ -244,14 +255,10 @@ public class CartCommentResourceImpl extends BaseCartCommentResourceImpl {
 			List<CommerceOrderNote> commerceOrderNotes)
 		throws Exception {
 
-		List<CartComment> orders = new ArrayList<>();
-
-		for (CommerceOrderNote commerceOrderNote : commerceOrderNotes) {
-			orders.add(
-				_toOrderNote(commerceOrderNote.getCommerceOrderNoteId()));
-		}
-
-		return orders;
+		return transform(
+			commerceOrderNotes,
+			commerceOrderNote -> _toOrderNote(
+				commerceOrderNote.getCommerceOrderNoteId()));
 	}
 
 	@Reference

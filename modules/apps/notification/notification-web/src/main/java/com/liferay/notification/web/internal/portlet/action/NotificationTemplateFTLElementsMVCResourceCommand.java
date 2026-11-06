@@ -14,6 +14,7 @@ import com.liferay.info.item.InfoItemServiceRegistry;
 import com.liferay.info.item.provider.InfoItemFormProvider;
 import com.liferay.notification.constants.NotificationPortletKeys;
 import com.liferay.notification.model.NotificationTemplate;
+import com.liferay.object.definition.util.ObjectDefinitionUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.petra.string.StringBundler;
@@ -35,11 +36,11 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.template.engine.TemplateContextHelper;
 import com.liferay.portlet.display.template.PortletDisplayTemplate;
 
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -49,7 +50,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + NotificationPortletKeys.NOTIFICATION_TEMPLATES,
+		"jakarta.portlet.name=" + NotificationPortletKeys.NOTIFICATION_TEMPLATES,
 		"mvc.command.name=/notification_templates/notification_template_ftl_elements"
 	},
 	service = MVCResourceCommand.class
@@ -90,7 +91,8 @@ public class NotificationTemplateFTLElementsMVCResourceCommand
 
 		InfoItemFormProvider<?> infoItemFormProvider =
 			_infoItemServiceRegistry.getFirstInfoItemService(
-				InfoItemFormProvider.class, objectDefinition.getClassName());
+				InfoItemFormProvider.class,
+				ObjectDefinitionUtil.getItemClassName(objectDefinition));
 
 		InfoForm infoForm = infoItemFormProvider.getInfoForm(
 			StringPool.BLANK, _portal.getScopeGroupId(resourceRequest));
@@ -108,18 +110,19 @@ public class NotificationTemplateFTLElementsMVCResourceCommand
 				new TemplateVariableGroup(infoFieldSet.getLabel(locale));
 
 			for (InfoField<?> infoField : infoFieldSet.getAllInfoFields()) {
-				if (!StringUtil.startsWith(
+				if (StringUtil.startsWith(
 						infoField.getUniqueId(),
 						PortletDisplayTemplate.DISPLAY_STYLE_PREFIX)) {
 
-					InfoFieldType infoFieldType = infoField.getInfoFieldType();
-
-					templateVariableGroup.addFieldVariable(
-						infoField.getLabel(locale), TemplateNode.class,
-						infoField.getUniqueId(), infoField.getLabel(locale),
-						infoFieldType.getName(), infoField.isMultivalued(),
-						null);
+					continue;
 				}
+
+				InfoFieldType infoFieldType = infoField.getInfoFieldType();
+
+				templateVariableGroup.addFieldVariable(
+					infoField.getLabel(locale), TemplateNode.class,
+					infoField.getUniqueId(), infoField.getLabel(locale),
+					infoFieldType.getName(), infoField.isMultivalued(), null);
 			}
 
 			jsonArray.put(
@@ -168,6 +171,11 @@ public class NotificationTemplateFTLElementsMVCResourceCommand
 					String content = (String)jsonObject.get("name");
 
 					if (infoField) {
+						if (content.contains(StringPool.POUND)) {
+							content = StringBundler.concat(
+								".data_model[\"", content, "\"]");
+						}
+
 						content = StringBundler.concat(
 							"${", content, ".getData()}");
 					}

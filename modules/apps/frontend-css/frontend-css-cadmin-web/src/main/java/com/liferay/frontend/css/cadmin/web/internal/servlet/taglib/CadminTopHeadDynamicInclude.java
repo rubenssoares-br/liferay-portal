@@ -13,25 +13,22 @@ import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilder;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilderFactory;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.osgi.framework.BundleContext;
-import org.osgi.service.component.ComponentContext;
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Patrick Yeo
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#pre",
+	service = DynamicInclude.class
+)
 public class CadminTopHeadDynamicInclude extends BaseDynamicInclude {
 
 	@Override
@@ -53,8 +50,8 @@ public class CadminTopHeadDynamicInclude extends BaseDynamicInclude {
 				httpServletRequest);
 
 		printWriter.print(
-			absolutePortalURLBuilder.forBundleStylesheet(
-				_bundleContext.getBundle(), "clay_admin.css"
+			absolutePortalURLBuilder.forWebContextStylesheet(
+				"frontend-css-cadmin-web", "/clay_admin.css"
 			).build());
 
 		printWriter.println("\" id=\"liferayCadminCSS\"");
@@ -62,21 +59,6 @@ public class CadminTopHeadDynamicInclude extends BaseDynamicInclude {
 			ContentSecurityPolicyNonceProviderUtil.getNonceAttribute(
 				httpServletRequest));
 		printWriter.println(" rel=\"stylesheet\" type=\"text/css\" />");
-	}
-
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register("/html/common/themes/top_head.jsp#pre");
-	}
-
-	@Activate
-	@Modified
-	protected void activate(
-			BundleContext bundleContext, ComponentContext componentContext,
-			Map<String, Object> properties)
-		throws Exception {
-
-		_bundleContext = bundleContext;
 	}
 
 	private boolean _isSignedIn() {
@@ -92,7 +74,5 @@ public class CadminTopHeadDynamicInclude extends BaseDynamicInclude {
 
 	@Reference
 	private AbsolutePortalURLBuilderFactory _absolutePortalURLBuilderFactory;
-
-	private volatile BundleContext _bundleContext;
 
 }

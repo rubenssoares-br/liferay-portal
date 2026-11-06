@@ -4,9 +4,10 @@
  */
 
 import React, {useContext, useEffect, useState} from 'react';
-import {isNode} from 'react-flow-renderer';
+import {isEdge, isNode} from 'react-flow-renderer';
 
 import {DefinitionBuilderContext} from '../../../DefinitionBuilderContext';
+import {isAIHubInstance} from '../../../util/isAIHubInstance';
 import {DiagramBuilderContext} from '../../DiagramBuilderContext';
 import {DefinitionInfo} from './DefinitionInfo/DefinitionInfo';
 import SidebarBody from './SidebarBody';
@@ -137,6 +138,58 @@ export const contents = {
 	},
 };
 
+if (Liferay.FeatureFlags['LPD-62272']) {
+	contents['ai-hub-agent'] = {
+		sections: [
+			'nodeInformation',
+			'aiHubAgentDefinition',
+			'connectionTimeout',
+		],
+		showDeleteButton: true,
+		title: Liferay.Language.get('ai-hub-agent'),
+	};
+
+	if (isAIHubInstance()) {
+		contents['ai-decision'] = {
+			sections: [
+				'nodeInformation',
+				'promptSummary',
+				'ragSummary',
+				'toolsSummary',
+			],
+			showDeleteButton: true,
+			title: Liferay.Language.get('ai-decision'),
+		};
+		contents['http-request'] = {
+			sections: [
+				'nodeInformation',
+				'httpEndpoint',
+				'payload',
+				'variables',
+				'connectionTimeout',
+				'authentication',
+			],
+			showDeleteButton: true,
+			title: Liferay.Language.get('http-request'),
+		};
+		contents['llm'] = {
+			sections: [
+				'nodeInformation',
+				'promptSummary',
+				'ragSummary',
+				'toolsSummary',
+			],
+			showDeleteButton: true,
+			title: Liferay.Language.get('llm-node'),
+		};
+		contents['service'] = {
+			sections: ['nodeInformation', 'serviceConfiguration'],
+			showDeleteButton: true,
+			title: Liferay.Language.get('service-node'),
+		};
+	}
+}
+
 const errorsDefaultValues = {
 	id: false,
 	label: false,
@@ -147,9 +200,12 @@ export default function Sidebar() {
 		DefinitionBuilderContext
 	);
 
-	const {selectedItem, setSelectedItem, setSelectedItemNewId} = useContext(
-		DiagramBuilderContext
-	);
+	const {
+		selectedItem,
+		setSelectedItem,
+		setSelectedItemNewId,
+		setSelectedTransitionNewName,
+	} = useContext(DiagramBuilderContext);
 	const [contentName, setContentName] = useState('');
 	const [errors, setErrors] = useState(errorsDefaultValues);
 
@@ -160,6 +216,7 @@ export default function Sidebar() {
 	const defaultBackButton = () => {
 		setSelectedItem(null);
 		setSelectedItemNewId(null);
+		setSelectedTransitionNewName(null);
 		clearErrors();
 	};
 
@@ -190,21 +247,25 @@ export default function Sidebar() {
 	}, [errors]);
 
 	useEffect(() => {
-		setSelectedItemNewId(null);
 		clearErrors();
 
 		let contentKey = '';
 
 		if (selectedItem?.id) {
-			contentKey = isNode(selectedItem)
-				? selectedItem?.type
-				: 'transition';
+			if (isNode(selectedItem)) {
+				setSelectedItemNewId(null);
+				contentKey = selectedItem?.type;
+			}
+			else if (isEdge(selectedItem)) {
+				setSelectedTransitionNewName(null);
+				contentKey = 'transition';
+			}
 		}
 
 		setContentName(contentKey);
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedItem?.id, setSelectedItemNewId]);
+	}, [selectedItem?.id, setSelectedItemNewId, setSelectedTransitionNewName]);
 
 	const content = contents[contentName];
 	const title = content?.title ?? Liferay.Language.get('nodes');

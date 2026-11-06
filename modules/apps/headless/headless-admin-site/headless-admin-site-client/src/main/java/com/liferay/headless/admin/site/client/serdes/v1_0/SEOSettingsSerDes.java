@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.SEOSettings;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -96,14 +97,14 @@ public class SEOSettingsSerDes {
 			sb.append(_toJSON(seoSettings.getSeoKeywords_i18n()));
 		}
 
-		if (seoSettings.getSiteMapSettings() != null) {
+		if (seoSettings.getSitemapSettings() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"siteMapSettings\": ");
+			sb.append("\"sitemapSettings\": ");
 
-			sb.append(String.valueOf(seoSettings.getSiteMapSettings()));
+			sb.append(String.valueOf(seoSettings.getSitemapSettings()));
 		}
 
 		sb.append("}");
@@ -169,13 +170,13 @@ public class SEOSettingsSerDes {
 				String.valueOf(seoSettings.getSeoKeywords_i18n()));
 		}
 
-		if (seoSettings.getSiteMapSettings() == null) {
-			map.put("siteMapSettings", null);
+		if (seoSettings.getSitemapSettings() == null) {
+			map.put("sitemapSettings", null);
 		}
 		else {
 			map.put(
-				"siteMapSettings",
-				String.valueOf(seoSettings.getSiteMapSettings()));
+				"sitemapSettings",
+				String.valueOf(seoSettings.getSitemapSettings()));
 		}
 
 		return map;
@@ -213,7 +214,7 @@ public class SEOSettingsSerDes {
 			else if (Objects.equals(jsonParserFieldName, "seoKeywords_i18n")) {
 				return true;
 			}
-			else if (Objects.equals(jsonParserFieldName, "siteMapSettings")) {
+			else if (Objects.equals(jsonParserFieldName, "sitemapSettings")) {
 				return false;
 			}
 
@@ -257,10 +258,10 @@ public class SEOSettingsSerDes {
 						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "siteMapSettings")) {
+			else if (Objects.equals(jsonParserFieldName, "sitemapSettings")) {
 				if (jsonParserFieldValue != null) {
-					seoSettings.setSiteMapSettings(
-						SiteMapSettingsSerDes.toDTO(
+					seoSettings.setSitemapSettings(
+						SitemapSettingsSerDes.toDTO(
 							(String)jsonParserFieldValue));
 				}
 			}
@@ -309,6 +310,16 @@ public class SEOSettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -341,3 +352,4 @@ public class SEOSettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1080989293

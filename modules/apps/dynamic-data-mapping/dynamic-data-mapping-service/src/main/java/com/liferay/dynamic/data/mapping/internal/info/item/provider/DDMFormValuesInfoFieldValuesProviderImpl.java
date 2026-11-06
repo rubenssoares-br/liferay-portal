@@ -5,8 +5,8 @@
 
 package com.liferay.dynamic.data.mapping.internal.info.item.provider;
 
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.service.DLAppService;
-import com.liferay.document.library.util.DLURLHelper;
 import com.liferay.dynamic.data.mapping.form.field.type.constants.DDMFormFieldTypeConstants;
 import com.liferay.dynamic.data.mapping.info.field.converter.DDMFormFieldInfoFieldConverter;
 import com.liferay.dynamic.data.mapping.info.item.provider.DDMFormValuesInfoFieldValuesProvider;
@@ -85,7 +85,10 @@ public class DDMFormValuesInfoFieldValuesProviderImpl
 			for (DDMFormFieldValue ddmFormFieldValue : ddmFormFieldValues) {
 				if (StringUtil.equals(
 						ddmFormFieldValue.getType(),
-						DDMFormFieldTypeConstants.FIELDSET)) {
+						DDMFormFieldTypeConstants.FIELDSET) ||
+					StringUtil.equals(
+						ddmFormFieldValue.getType(),
+						DDMFormFieldTypeConstants.SEPARATOR)) {
 
 					continue;
 				}

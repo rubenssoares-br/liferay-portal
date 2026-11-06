@@ -6,7 +6,7 @@
 import {DndProvider} from 'react-dnd';
 import {HTML5Backend} from 'react-dnd-html5-backend';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render} from '@testing-library/react';
 import React from 'react';
 
@@ -33,6 +33,9 @@ const renderDragPreview = ({
 	getLabel = (item: DragItem) => item?.name || 'element',
 } = {}) =>
 	render(
+
+		// @ts-ignore
+
 		<DndProvider backend={HTML5Backend}>
 			<DragPreview getIcon={getIcon} getLabel={getLabel}></DragPreview>
 		</DndProvider>

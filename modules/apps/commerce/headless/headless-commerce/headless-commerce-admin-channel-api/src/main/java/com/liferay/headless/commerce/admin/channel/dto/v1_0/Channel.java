@@ -11,36 +11,43 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Channel")
+@GraphQLName(
+	description = "Storefront bound to a Liferay site that pins a currency, account-visibility set, fulfilment rules, and SEO display pages for the products it exposes. Created on POST, updated on PATCH and PUT, and listed by the matching GET endpoint.",
+	value = "Channel"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Storefront bound to a Liferay site that pins a currency, account-visibility set, fulfilment rules, and SEO display pages for the products it exposes. Created on POST, updated on PATCH and PUT, and listed by the matching GET endpoint.",
+	requiredProperties = {"currencyCode", "name", "type"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"currencyCode", "name", "type"})
 @XmlRootElement(name = "Channel")
 public class Channel implements Serializable {
 
@@ -52,7 +59,10 @@ public class Channel implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Channel.class, json);
 	}
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Account by its external reference code (FK alternate key).",
+		example = "AB-34098-789-N"
+	)
 	public String getAccountExternalReferenceCode() {
 		if (_accountExternalReferenceCodeSupplier != null) {
 			accountExternalReferenceCode =
@@ -90,7 +100,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Account by its external reference code (FK alternate key)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String accountExternalReferenceCode;
 
@@ -98,7 +110,10 @@ public class Channel implements Serializable {
 	private Supplier<String> _accountExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Account (FK identifier).",
+		example = "30130"
+	)
 	public Long getAccountId() {
 		if (_accountIdSupplier != null) {
 			accountId = _accountIdSupplier.get();
@@ -132,14 +147,17 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the Account (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long accountId;
 
 	@JsonIgnore
 	private Supplier<Long> _accountIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "ISO 4217 currency code applied to every monetary amount handled by this channel; required on create and must match a currency configured for the company. On PATCH an unrecognized code is ignored and the channel's current currency is preserved; on PUT the code must resolve to an existing currency or the request fails with 404.",
+		example = "USD"
+	)
 	public String getCurrencyCode() {
 		if (_currencyCodeSupplier != null) {
 			currencyCode = _currencyCodeSupplier.get();
@@ -173,7 +191,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "ISO 4217 currency code applied to every monetary amount handled by this channel; required on create and must match a currency configured for the company. On PATCH an unrecognized code is ignored and the channel's current currency is preserved; on PUT the code must resolve to an existing currency or the request fails with 404."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String currencyCode;
@@ -181,7 +201,105 @@ public class Channel implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _currencyCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Currency by its external reference code (FK alternate key).",
+		example = "AB-34098-789-N"
+	)
+	public String getCurrencyExternalReferenceCode() {
+		if (_currencyExternalReferenceCodeSupplier != null) {
+			currencyExternalReferenceCode =
+				_currencyExternalReferenceCodeSupplier.get();
+
+			_currencyExternalReferenceCodeSupplier = null;
+		}
+
+		return currencyExternalReferenceCode;
+	}
+
+	public void setCurrencyExternalReferenceCode(
+		String currencyExternalReferenceCode) {
+
+		this.currencyExternalReferenceCode = currencyExternalReferenceCode;
+
+		_currencyExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCurrencyExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			currencyExternalReferenceCodeUnsafeSupplier) {
+
+		_currencyExternalReferenceCodeSupplier = () -> {
+			try {
+				return currencyExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Reference to the Currency by its external reference code (FK alternate key)."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String currencyExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _currencyExternalReferenceCodeSupplier;
+
+	@DecimalMin("0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Currency (FK identifier).",
+		example = "30130"
+	)
+	public Long getCurrencyId() {
+		if (_currencyIdSupplier != null) {
+			currencyId = _currencyIdSupplier.get();
+
+			_currencyIdSupplier = null;
+		}
+
+		return currencyId;
+	}
+
+	public void setCurrencyId(Long currencyId) {
+		this.currencyId = currencyId;
+
+		_currencyIdSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCurrencyId(
+		UnsafeSupplier<Long, Exception> currencyIdUnsafeSupplier) {
+
+		_currencyIdSupplier = () -> {
+			try {
+				return currencyIdUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "Reference to the Currency (FK identifier).")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Long currencyId;
+
+	@JsonIgnore
+	private Supplier<Long> _currencyIdSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per channel within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -215,14 +333,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per channel within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal long ID of the Channel record; read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -254,14 +377,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Internal long ID of the Channel record; read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Non-localized display name of the channel; required on create and sanitized server-side.",
+		example = "EU Storefront"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -293,7 +421,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Non-localized display name of the channel; required on create and sanitized server-side."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String name;
@@ -301,7 +431,10 @@ public class Channel implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Liferay site that backs this channel (FK identifier); drives content scoping, theme, and language settings.",
+		example = "20121"
+	)
 	public Long getSiteGroupId() {
 		if (_siteGroupIdSupplier != null) {
 			siteGroupId = _siteGroupIdSupplier.get();
@@ -335,14 +468,19 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Liferay site that backs this channel (FK identifier); drives content scoping, theme, and language settings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long siteGroupId;
 
 	@JsonIgnore
 	private Supplier<Long> _siteGroupIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Channel-taxonomy key registered with the server's channel-type SPI; values not registered are rejected with 400. The default deployment registers a single key, `site`, for site-backed storefronts; additional keys may be added by extensions.",
+		example = "site"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -374,7 +512,9 @@ public class Channel implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Channel-taxonomy key registered with the server's channel-type SPI; values not registered are rejected with 400. The default deployment registers a single key, `site`, for site-backed storefronts; additional keys may be added by extensions."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String type;
@@ -451,6 +591,35 @@ public class Channel implements Serializable {
 			sb.append(_escape(currencyCode));
 
 			sb.append("\"");
+		}
+
+		String currencyExternalReferenceCode =
+			getCurrencyExternalReferenceCode();
+
+		if (currencyExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"currencyExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(currencyExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
+		Long currencyId = getCurrencyId();
+
+		if (currencyId != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"currencyId\": ");
+
+			sb.append(currencyId);
 		}
 
 		String externalReferenceCode = getExternalReferenceCode();
@@ -530,8 +699,8 @@ public class Channel implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.channel.dto.v1_0.Channel",
 		name = "x-class-name"
 	)
@@ -618,6 +787,27 @@ public class Channel implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -626,3 +816,4 @@ public class Channel implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:24105531

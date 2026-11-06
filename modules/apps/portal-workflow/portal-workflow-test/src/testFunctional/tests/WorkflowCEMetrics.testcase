@@ -25,13 +25,13 @@ definition {
 	test MetricsUnavailableForCECustomers {
 		property portal.acceptance = "false";
 
-		ApplicationsMenuHelper.openApplicationsMenu();
+		ApplicationsMenu.openApplicationsMenu();
 
 		ApplicationsMenu.gotoPanel(panel = "Applications");
 
 		AssertElementNotPresent(
 			key_category = "Workflow",
-			key_portlet = "Metrics",
+			key_portlet = "Workflow Metrics",
 			locator1 = "ApplicationsMenu#PORTLET");
 	}
 

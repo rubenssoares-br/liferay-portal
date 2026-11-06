@@ -114,8 +114,6 @@ definition {
 			locator1 = "Notifications#NOTIFICATIONS_WORKFLOW_TITLE",
 			value1 = "Test Test has invited you to work on Publication Name 2 as a Editor.");
 
-		PublicationsNavigator.openPublicationsAdmin();
-
 		PublicationsPermissions.assertViewerPermissions(publicationName = "Publication Name 1");
 
 		PublicationsNavigator.openPublicationsAdmin();
@@ -225,6 +223,12 @@ definition {
 				changeTitle = "WC WebContent Title",
 				changeType = "Added",
 				changeUser = "Test Test");
+
+			AssertElementNotPresent(locator1 = "PublicationsChanges#ELLIPSIS_IN_PUBLICATION");
+
+			AssertElementNotPresent(
+				key_rowEntry = "WC WebContent Title",
+				locator1 = "Icon#ROW_VERTICAL_ELLIPSIS");
 		}
 	}
 
@@ -430,7 +434,7 @@ definition {
 
 		PublicationsPermissions.viewPublicationRoleHelpText(
 			publicationRole = "Admin",
-			publicationRoleHelpText = "Administrators can view, edit, publish, and invite other users.");
+			publicationRoleHelpText = "Administrators can view, edit, delete, publish, and invite other users.");
 	}
 
 	@priority = 5
@@ -626,8 +630,6 @@ definition {
 		AssertElementPresent(
 			locator1 = "Notifications#NOTIFICATIONS_WORKFLOW_TITLE",
 			value1 = "Test Test has invited you to work on Publication Name as a Viewer.");
-
-		PublicationsNavigator.openPublicationsAdmin();
 
 		PublicationsPermissions.assertViewerPermissions(publicationName = "Publication Name");
 	}

@@ -4,7 +4,54 @@
  */
 
 import {getSpritemap} from '@liferay/frontend-icons-web';
-import {openSelectionModal} from 'frontend-js-web';
+import {openSelectionModal} from 'frontend-js-components-web';
+import {normalizeFriendlyURL} from 'frontend-js-web';
+
+export function CategoryCPFriendlyURL({portletNamespace}) {
+	const input = document.getElementById(
+		`${portletNamespace}urlTitleMapAsXML`
+	);
+
+	const urlTitles = [
+		document.getElementById(`${portletNamespace}commerceURLTitle`),
+		document.getElementById(`${portletNamespace}siteURLTitle`),
+	].filter(Boolean);
+
+	if (!input || !urlTitles.length) {
+		return;
+	}
+
+	const syncURLTitles = (value) => {
+		for (const urlTitle of urlTitles) {
+			urlTitle.textContent = normalizeFriendlyURL(value);
+		}
+	};
+
+	input.addEventListener('input', () => syncURLTitles(input.value));
+
+	const localeChangedHandler = Liferay.after(
+		'inputLocalized:localeChanged',
+		({item}) => {
+			const languageId = item?.getAttribute('data-value');
+
+			if (!languageId) {
+				return;
+			}
+
+			const languageInput = document.getElementById(
+				`${portletNamespace}urlTitleMapAsXML_${languageId}`
+			);
+
+			syncURLTitles(languageInput ? languageInput.value : '');
+		}
+	);
+
+	return {
+		dispose() {
+			localeChangedHandler.detach();
+		},
+	};
+}
 
 export function EditAssetCategoryCPDisplayLayout({
 	assetCategory,
@@ -121,12 +168,6 @@ export function EditAssetCategoryCPDisplayLayout({
 		`${portletNamespace}categoriesContainer`
 	);
 
-	function handleCloseButtonClick(event) {
-		const button = event.currentTarget;
-
-		categoriesContainer?.removeChild(button.parentElement.parentElement);
-	}
-
 	const classPK = document.getElementById(`${portletNamespace}classPK`);
 
 	const assetCategoryId = assetCategory?.categoryId;
@@ -184,4 +225,12 @@ export function EditAssetCategoryCPDisplayLayout({
 			url: categorySelectorUrl,
 		});
 	});
+
+	function handleCloseButtonClick(event) {
+		const button = event.currentTarget;
+
+		categoriesContainer?.removeChild(button.parentElement.parentElement);
+
+		classPK.value = 0;
+	}
 }

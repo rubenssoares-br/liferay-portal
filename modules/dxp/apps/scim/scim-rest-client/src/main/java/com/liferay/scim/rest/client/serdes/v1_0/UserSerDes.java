@@ -5,17 +5,19 @@
 
 package com.liferay.scim.rest.client.serdes.v1_0;
 
+import com.liferay.scim.rest.client.dto.v1_0.Address;
 import com.liferay.scim.rest.client.dto.v1_0.MultiValuedAttribute;
 import com.liferay.scim.rest.client.dto.v1_0.User;
 import com.liferay.scim.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Olivér Kecskeméty
@@ -65,7 +67,7 @@ public class UserSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < user.getAddresses().length; i++) {
-				sb.append(_toJSON(user.getAddresses()[i]));
+				sb.append(String.valueOf(user.getAddresses()[i]));
 
 				if ((i + 1) < user.getAddresses().length) {
 					sb.append(", ");
@@ -691,7 +693,7 @@ public class UserSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "addresses")) {
-				return true;
+				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "displayName")) {
 				return false;
@@ -784,7 +786,18 @@ public class UserSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "addresses")) {
 				if (jsonParserFieldValue != null) {
-					user.setAddresses((Object[])jsonParserFieldValue);
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					Address[] addressesArray =
+						new Address[jsonParserFieldValues.length];
+
+					for (int i = 0; i < addressesArray.length; i++) {
+						addressesArray[i] = AddressSerDes.toDTO(
+							(String)jsonParserFieldValues[i]);
+					}
+
+					user.setAddresses(addressesArray);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "displayName")) {
@@ -1049,6 +1062,16 @@ public class UserSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -1081,3 +1104,4 @@ public class UserSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-581486507

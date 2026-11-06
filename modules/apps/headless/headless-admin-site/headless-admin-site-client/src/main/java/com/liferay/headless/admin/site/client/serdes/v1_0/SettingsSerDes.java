@@ -9,13 +9,14 @@ import com.liferay.headless.admin.site.client.dto.v1_0.ClientExtension;
 import com.liferay.headless.admin.site.client.dto.v1_0.Settings;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -80,14 +81,7 @@ public class SettingsSerDes {
 
 			sb.append("\"favIcon\": ");
 
-			if (settings.getFavIcon() instanceof String) {
-				sb.append("\"");
-				sb.append((String)settings.getFavIcon());
-				sb.append("\"");
-			}
-			else {
-				sb.append(settings.getFavIcon());
-			}
+			sb.append(String.valueOf(settings.getFavIcon()));
 		}
 
 		if (settings.getGlobalCSSClientExtensions() != null) {
@@ -136,6 +130,16 @@ public class SettingsSerDes {
 			sb.append("]");
 		}
 
+		if (settings.getIconImageURL() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"iconImageURL\": ");
+
+			sb.append(String.valueOf(settings.getIconImageURL()));
+		}
+
 		if (settings.getJavascript() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -150,24 +154,26 @@ public class SettingsSerDes {
 			sb.append("\"");
 		}
 
-		if (settings.getMasterPage() != null) {
+		if (settings.getMasterPageItemExternalReference() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"masterPage\": ");
+			sb.append("\"masterPageItemExternalReference\": ");
 
-			sb.append(String.valueOf(settings.getMasterPage()));
+			sb.append(
+				String.valueOf(settings.getMasterPageItemExternalReference()));
 		}
 
-		if (settings.getStyleBook() != null) {
+		if (settings.getStyleBookItemExternalReference() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"styleBook\": ");
+			sb.append("\"styleBookItemExternalReference\": ");
 
-			sb.append(String.valueOf(settings.getStyleBook()));
+			sb.append(
+				String.valueOf(settings.getStyleBookItemExternalReference()));
 		}
 
 		if (settings.getThemeCSSClientExtension() != null) {
@@ -201,14 +207,7 @@ public class SettingsSerDes {
 
 			sb.append("\"themeSettings\": ");
 
-			if (settings.getThemeSettings() instanceof String) {
-				sb.append("\"");
-				sb.append((String)settings.getThemeSettings());
-				sb.append("\"");
-			}
-			else {
-				sb.append(settings.getThemeSettings());
-			}
+			sb.append(_toJSON(settings.getThemeSettings()));
 		}
 
 		if (settings.getThemeSpritemapClientExtension() != null) {
@@ -281,6 +280,13 @@ public class SettingsSerDes {
 				String.valueOf(settings.getGlobalJSClientExtensions()));
 		}
 
+		if (settings.getIconImageURL() == null) {
+			map.put("iconImageURL", null);
+		}
+		else {
+			map.put("iconImageURL", String.valueOf(settings.getIconImageURL()));
+		}
+
 		if (settings.getJavascript() == null) {
 			map.put("javascript", null);
 		}
@@ -288,18 +294,22 @@ public class SettingsSerDes {
 			map.put("javascript", String.valueOf(settings.getJavascript()));
 		}
 
-		if (settings.getMasterPage() == null) {
-			map.put("masterPage", null);
+		if (settings.getMasterPageItemExternalReference() == null) {
+			map.put("masterPageItemExternalReference", null);
 		}
 		else {
-			map.put("masterPage", String.valueOf(settings.getMasterPage()));
+			map.put(
+				"masterPageItemExternalReference",
+				String.valueOf(settings.getMasterPageItemExternalReference()));
 		}
 
-		if (settings.getStyleBook() == null) {
-			map.put("styleBook", null);
+		if (settings.getStyleBookItemExternalReference() == null) {
+			map.put("styleBookItemExternalReference", null);
 		}
 		else {
-			map.put("styleBook", String.valueOf(settings.getStyleBook()));
+			map.put(
+				"styleBookItemExternalReference",
+				String.valueOf(settings.getStyleBookItemExternalReference()));
 		}
 
 		if (settings.getThemeCSSClientExtension() == null) {
@@ -371,13 +381,22 @@ public class SettingsSerDes {
 
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "iconImageURL")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "javascript")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "masterPage")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"masterPageItemExternalReference")) {
+
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "styleBook")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"styleBookItemExternalReference")) {
+
 				return false;
 			}
 			else if (Objects.equals(
@@ -389,7 +408,7 @@ public class SettingsSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "themeSettings")) {
-				return false;
+				return true;
 			}
 			else if (Objects.equals(
 						jsonParserFieldName, "themeSpritemapClientExtension")) {
@@ -417,7 +436,8 @@ public class SettingsSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "favIcon")) {
 				if (jsonParserFieldValue != null) {
-					settings.setFavIcon((Object)jsonParserFieldValue);
+					settings.setFavIcon(
+						FavIconSerDes.toDTO((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(
@@ -464,21 +484,35 @@ public class SettingsSerDes {
 						globalJSClientExtensionsArray);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "iconImageURL")) {
+				if (jsonParserFieldValue != null) {
+					settings.setIconImageURL(
+						IconImageURLSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "javascript")) {
 				if (jsonParserFieldValue != null) {
 					settings.setJavascript((String)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "masterPage")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"masterPageItemExternalReference")) {
+
 				if (jsonParserFieldValue != null) {
-					settings.setMasterPage(
-						MasterPageSerDes.toDTO((String)jsonParserFieldValue));
+					settings.setMasterPageItemExternalReference(
+						ItemExternalReferenceSerDes.toDTO(
+							(String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "styleBook")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"styleBookItemExternalReference")) {
+
 				if (jsonParserFieldValue != null) {
-					settings.setStyleBook(
-						StyleBookSerDes.toDTO((String)jsonParserFieldValue));
+					settings.setStyleBookItemExternalReference(
+						ItemExternalReferenceSerDes.toDTO(
+							(String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(
@@ -497,7 +531,8 @@ public class SettingsSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "themeSettings")) {
 				if (jsonParserFieldValue != null) {
-					settings.setThemeSettings((Object)jsonParserFieldValue);
+					settings.setThemeSettings(
+						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(
@@ -554,6 +589,16 @@ public class SettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -586,3 +631,4 @@ public class SettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1662307079

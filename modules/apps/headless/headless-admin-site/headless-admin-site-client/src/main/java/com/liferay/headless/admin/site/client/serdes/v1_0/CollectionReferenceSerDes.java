@@ -6,17 +6,19 @@
 package com.liferay.headless.admin.site.client.serdes.v1_0;
 
 import com.liferay.headless.admin.site.client.dto.v1_0.ClassNameReference;
+import com.liferay.headless.admin.site.client.dto.v1_0.CollectionItemExternalReference;
 import com.liferay.headless.admin.site.client.dto.v1_0.CollectionReference;
-import com.liferay.headless.admin.site.client.dto.v1_0.ItemExternalReference;
+import com.liferay.headless.admin.site.client.dto.v1_0.RepeatableFieldsCollectionProviderReference;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -51,13 +53,21 @@ public class CollectionReferenceSerDes {
 			String collectionTypeString = collectionType.toString();
 
 			if (collectionTypeString.equals("Collection")) {
-				return ItemExternalReferenceSerDes.toJSON(
-					(ItemExternalReference)collectionReference);
+				return CollectionItemExternalReferenceSerDes.toJSON(
+					(CollectionItemExternalReference)collectionReference);
 			}
 
 			if (collectionTypeString.equals("CollectionProvider")) {
 				return ClassNameReferenceSerDes.toJSON(
 					(ClassNameReference)collectionReference);
+			}
+
+			if (collectionTypeString.equals(
+					"RepeatableFieldsCollectionProvider")) {
+
+				return RepeatableFieldsCollectionProviderReferenceSerDes.toJSON(
+					(RepeatableFieldsCollectionProviderReference)
+						collectionReference);
 			}
 
 			throw new IllegalArgumentException(
@@ -129,11 +139,18 @@ public class CollectionReferenceSerDes {
 				String collectionTypeString = collectionType.toString();
 
 				if (collectionTypeString.equals("Collection")) {
-					return ItemExternalReference.toDTO(json);
+					return CollectionItemExternalReference.toDTO(json);
 				}
 
 				if (collectionTypeString.equals("CollectionProvider")) {
 					return ClassNameReference.toDTO(json);
+				}
+
+				if (collectionTypeString.equals(
+						"RepeatableFieldsCollectionProvider")) {
+
+					return RepeatableFieldsCollectionProviderReference.toDTO(
+						json);
 				}
 
 				throw new IllegalArgumentException(
@@ -202,6 +219,16 @@ public class CollectionReferenceSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -234,3 +261,4 @@ public class CollectionReferenceSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:651383255

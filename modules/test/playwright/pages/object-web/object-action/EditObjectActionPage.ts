@@ -10,7 +10,12 @@ import {ViewObjectActionsPage} from './ViewObjectActionsPage';
 export class EditObjectActionPage {
 	readonly actionBuilderTab: Locator;
 	readonly actionLabelInput: Locator;
+	readonly basicInfoTab: Locator;
 	readonly checkbox: Locator;
+	readonly descriptionInput: Locator;
+	readonly descriptionLocalizationButton: Locator;
+	readonly enableConditionToggle: Locator;
+	readonly expressionInput: Locator;
 	readonly iframeLocator: FrameLocator;
 	readonly inputNotificationsCombo: Locator;
 	readonly inputThenCombo: Locator;
@@ -28,7 +33,27 @@ export class EditObjectActionPage {
 		this.actionLabelInput = page
 			.frameLocator('iframe')
 			.getByPlaceholder('Text to translate');
+		this.basicInfoTab = page
+			.frameLocator('iframe')
+			.getByRole('tab', {name: 'Basic Info'});
 		this.checkbox = page.frameLocator('iframe').getByRole('checkbox');
+		this.descriptionInput = page
+			.frameLocator('iframe')
+			.getByRole('textbox', {exact: true, name: 'Description'});
+		this.descriptionLocalizationButton = page
+			.frameLocator('iframe')
+			.locator('.input-localized', {
+				has: page
+					.frameLocator('iframe')
+					.locator('#actionDescriptionInput'),
+			})
+			.getByLabel('Open Localizations');
+		this.enableConditionToggle = page
+			.frameLocator('iframe')
+			.getByLabel('Enable Condition');
+		this.expressionInput = page
+			.frameLocator('iframe')
+			.getByPlaceholder('Create an expression.');
 		this.iframeLocator = page.frameLocator('iframe');
 		this.inputNotificationsCombo = page
 			.frameLocator('iframe')
@@ -53,27 +78,21 @@ export class EditObjectActionPage {
 			.getByText(
 				`Send email notifications in the guest user's preferred language.`
 			);
+		this.page = page;
 		this.viewObjectActionsPage = new ViewObjectActionsPage(page);
 	}
 
-	async chooseNotificationOption() {
-		await this.inputThenCombo.click();
-		await this.optionNotification.click();
-	}
-
-	async clickInputNotificationsCombo() {
-		await this.inputNotificationsCombo.click();
-	}
-
-	async openActionBuilderTab() {
-		await this.actionBuilderTab.click();
-	}
-
-	async addNewAction(
-		thenOption: string,
-		whenOption: string,
-		notificationTemplateName?: string
-	) {
+	async addNewAction({
+		expressionBuilderValue,
+		notificationTemplateName,
+		thenOption,
+		whenOption,
+	}: {
+		expressionBuilderValue?: string;
+		notificationTemplateName?: string;
+		thenOption: string;
+		whenOption: string;
+	}) {
 		await this.viewObjectActionsPage.openObjectActionSidePanel();
 
 		await this.actionLabelInput.fill(whenOption);
@@ -84,6 +103,10 @@ export class EditObjectActionPage {
 		await this.iframeLocator
 			.getByRole('option', {name: whenOption})
 			.click();
+
+		if (expressionBuilderValue) {
+			await this.fillExpression(expressionBuilderValue);
+		}
 
 		await this.inputThenCombo.click();
 		await this.iframeLocator
@@ -98,6 +121,40 @@ export class EditObjectActionPage {
 				.click();
 		}
 
-		await this.saveButton.click();
+		await Promise.all([
+			this.page.waitForNavigation(),
+			this.saveButton.click(),
+		]);
+	}
+
+	async chooseNotificationOption() {
+		await this.inputThenCombo.click();
+		await this.optionNotification.click();
+	}
+
+	async clickInputNotificationsCombo() {
+		await this.inputNotificationsCombo.click();
+	}
+
+	async fillExpression(expression: string) {
+		await this.enableConditionToggle.check();
+
+		await this.expressionInput.fill(expression);
+	}
+
+	async openActionBuilderTab() {
+		await this.actionBuilderTab.click();
+	}
+
+	async selectDescriptionLanguage(language: string) {
+		await this.descriptionLocalizationButton.click();
+
+		await this.page
+			.frameLocator('iframe')
+			.getByRole('option', {
+				exact: false,
+				name: `${language} language:`,
+			})
+			.click();
 	}
 }

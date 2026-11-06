@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -40,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "A customized experience for a given page specification.",
 	value = "PageExperience"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A customized experience for a given page specification."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "PageExperience")
@@ -53,7 +57,7 @@ public class PageExperience implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageExperience.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The experience's external reference code, unique per site."
 	)
 	public String getExternalReferenceCode() {
@@ -98,7 +102,9 @@ public class PageExperience implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The experience's key.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The experience's key."
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -137,7 +143,9 @@ public class PageExperience implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(description = "The localized experience's names.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized experience's names."
+	)
 	@Valid
 	public Map<String, String> getName_i18n() {
 		if (_name_i18nSupplier != null) {
@@ -180,7 +188,9 @@ public class PageExperience implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _name_i18nSupplier;
 
-	@Schema(description = "The page elements in the experience.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page elements in the experience."
+	)
 	@Valid
 	public PageElement[] getPageElements() {
 		if (_pageElementsSupplier != null) {
@@ -222,31 +232,38 @@ public class PageExperience implements Serializable {
 	@JsonIgnore
 	private Supplier<PageElement[]> _pageElementsSupplier;
 
-	@Schema(description = "The page rules in the experience.")
-	@Valid
-	public PageRule[] getPageRules() {
-		if (_pageRulesSupplier != null) {
-			pageRules = _pageRulesSupplier.get();
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page specification's external reference code."
+	)
+	public String getPageSpecificationExternalReferenceCode() {
+		if (_pageSpecificationExternalReferenceCodeSupplier != null) {
+			pageSpecificationExternalReferenceCode =
+				_pageSpecificationExternalReferenceCodeSupplier.get();
 
-			_pageRulesSupplier = null;
+			_pageSpecificationExternalReferenceCodeSupplier = null;
 		}
 
-		return pageRules;
+		return pageSpecificationExternalReferenceCode;
 	}
 
-	public void setPageRules(PageRule[] pageRules) {
-		this.pageRules = pageRules;
+	public void setPageSpecificationExternalReferenceCode(
+		String pageSpecificationExternalReferenceCode) {
 
-		_pageRulesSupplier = null;
+		this.pageSpecificationExternalReferenceCode =
+			pageSpecificationExternalReferenceCode;
+
+		_pageSpecificationExternalReferenceCodeSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setPageRules(
-		UnsafeSupplier<PageRule[], Exception> pageRulesUnsafeSupplier) {
+	public void setPageSpecificationExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			pageSpecificationExternalReferenceCodeUnsafeSupplier) {
 
-		_pageRulesSupplier = () -> {
+		_pageSpecificationExternalReferenceCodeSupplier = () -> {
 			try {
-				return pageRulesUnsafeSupplier.get();
+				return pageSpecificationExternalReferenceCodeUnsafeSupplier.
+					get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -257,15 +274,17 @@ public class PageExperience implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The page rules in the experience.")
+	@GraphQLField(
+		description = "The page specification's external reference code."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected PageRule[] pageRules;
+	protected String pageSpecificationExternalReferenceCode;
 
 	@JsonIgnore
-	private Supplier<PageRule[]> _pageRulesSupplier;
+	private Supplier<String> _pageSpecificationExternalReferenceCodeSupplier;
 
-	@Schema(
-		description = "the experience's priority. It must be a unique value within the page specification. The default experience will always be assigned priority 0. A priority higher than 0 will result in an experience being active and a priority lower than 0 will result in an experience being inactive."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The experience's priority. It must be a unique value within the page specification. The default experience is always assigned priority 0; a positive priority results in an active experience and a negative priority results in an inactive one. Only the default experience can be created with priority 0. Supplying priority 0 when updating an experience moves it across the default, so an active experience becomes inactive and an inactive one becomes active. After every create, update, or delete operation, the server compacts the priorities of the remaining experiences into sequential values (1, 2, 3, ... for active experiences and -1, -2, -3, ... for inactive experiences), so the priority returned or persisted may differ from the one supplied in the request."
 	)
 	public Integer getPriority() {
 		if (_prioritySupplier != null) {
@@ -301,7 +320,7 @@ public class PageExperience implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "the experience's priority. It must be a unique value within the page specification. The default experience will always be assigned priority 0. A priority higher than 0 will result in an experience being active and a priority lower than 0 will result in an experience being inactive."
+		description = "The experience's priority. It must be a unique value within the page specification. The default experience is always assigned priority 0; a positive priority results in an active experience and a negative priority results in an inactive one. Only the default experience can be created with priority 0. Supplying priority 0 when updating an experience moves it across the default, so an active experience becomes inactive and an inactive one becomes active. After every create, update, or delete operation, the server compacts the priorities of the remaining experiences into sequential values (1, 2, 3, ... for active experiences and -1, -2, -3, ... for inactive experiences), so the priority returned or persisted may differ from the one supplied in the request."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer priority;
@@ -309,37 +328,79 @@ public class PageExperience implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _prioritySupplier;
 
-	@Schema(
-		description = "A list of external references to the segments the experience is used for."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The segment's item external reference."
 	)
 	@Valid
-	public ItemExternalReference[] getSegmentItemExternalReferences() {
-		if (_segmentItemExternalReferencesSupplier != null) {
-			segmentItemExternalReferences =
-				_segmentItemExternalReferencesSupplier.get();
+	public ItemExternalReference getSegmentItemExternalReference() {
+		if (_segmentItemExternalReferenceSupplier != null) {
+			segmentItemExternalReference =
+				_segmentItemExternalReferenceSupplier.get();
 
-			_segmentItemExternalReferencesSupplier = null;
+			_segmentItemExternalReferenceSupplier = null;
 		}
 
-		return segmentItemExternalReferences;
+		return segmentItemExternalReference;
 	}
 
-	public void setSegmentItemExternalReferences(
-		ItemExternalReference[] segmentItemExternalReferences) {
+	public void setSegmentItemExternalReference(
+		ItemExternalReference segmentItemExternalReference) {
 
-		this.segmentItemExternalReferences = segmentItemExternalReferences;
+		this.segmentItemExternalReference = segmentItemExternalReference;
 
-		_segmentItemExternalReferencesSupplier = null;
+		_segmentItemExternalReferenceSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setSegmentItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			segmentItemExternalReferencesUnsafeSupplier) {
+	public void setSegmentItemExternalReference(
+		UnsafeSupplier<ItemExternalReference, Exception>
+			segmentItemExternalReferenceUnsafeSupplier) {
 
-		_segmentItemExternalReferencesSupplier = () -> {
+		_segmentItemExternalReferenceSupplier = () -> {
 			try {
-				return segmentItemExternalReferencesUnsafeSupplier.get();
+				return segmentItemExternalReferenceUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The segment's item external reference.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected ItemExternalReference segmentItemExternalReference;
+
+	@JsonIgnore
+	private Supplier<ItemExternalReference>
+		_segmentItemExternalReferenceSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A valid external identifier to reference this page experience."
+	)
+	public String getUuid() {
+		if (_uuidSupplier != null) {
+			uuid = _uuidSupplier.get();
+
+			_uuidSupplier = null;
+		}
+
+		return uuid;
+	}
+
+	public void setUuid(String uuid) {
+		this.uuid = uuid;
+
+		_uuidSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setUuid(UnsafeSupplier<String, Exception> uuidUnsafeSupplier) {
+		_uuidSupplier = () -> {
+			try {
+				return uuidUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -351,14 +412,13 @@ public class PageExperience implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "A list of external references to the segments the experience is used for."
+		description = "A valid external identifier to reference this page experience."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference[] segmentItemExternalReferences;
+	protected String uuid;
 
 	@JsonIgnore
-	private Supplier<ItemExternalReference[]>
-		_segmentItemExternalReferencesSupplier;
+	private Supplier<String> _uuidSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -453,26 +513,21 @@ public class PageExperience implements Serializable {
 			sb.append("]");
 		}
 
-		PageRule[] pageRules = getPageRules();
+		String pageSpecificationExternalReferenceCode =
+			getPageSpecificationExternalReferenceCode();
 
-		if (pageRules != null) {
+		if (pageSpecificationExternalReferenceCode != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"pageRules\": ");
+			sb.append("\"pageSpecificationExternalReferenceCode\": ");
 
-			sb.append("[");
+			sb.append("\"");
 
-			for (int i = 0; i < pageRules.length; i++) {
-				sb.append(String.valueOf(pageRules[i]));
+			sb.append(_escape(pageSpecificationExternalReferenceCode));
 
-				if ((i + 1) < pageRules.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
+			sb.append("\"");
 		}
 
 		Integer priority = getPriority();
@@ -487,27 +542,33 @@ public class PageExperience implements Serializable {
 			sb.append(priority);
 		}
 
-		ItemExternalReference[] segmentItemExternalReferences =
-			getSegmentItemExternalReferences();
+		ItemExternalReference segmentItemExternalReference =
+			getSegmentItemExternalReference();
 
-		if (segmentItemExternalReferences != null) {
+		if (segmentItemExternalReference != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"segmentItemExternalReferences\": ");
+			sb.append("\"segmentItemExternalReference\": ");
 
-			sb.append("[");
+			sb.append(String.valueOf(segmentItemExternalReference));
+		}
 
-			for (int i = 0; i < segmentItemExternalReferences.length; i++) {
-				sb.append(String.valueOf(segmentItemExternalReferences[i]));
+		String uuid = getUuid();
 
-				if ((i + 1) < segmentItemExternalReferences.length) {
-					sb.append(", ");
-				}
+		if (uuid != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
 			}
 
-			sb.append("]");
+			sb.append("\"uuid\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(uuid));
+
+			sb.append("\"");
 		}
 
 		sb.append("}");
@@ -515,8 +576,8 @@ public class PageExperience implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.PageExperience",
 		name = "x-class-name"
 	)
@@ -603,6 +664,27 @@ public class PageExperience implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -611,3 +693,4 @@ public class PageExperience implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:489535755

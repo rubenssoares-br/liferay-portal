@@ -69,7 +69,7 @@ public class DDMStructureLayoutCTUpgradeProcessTest
 			RandomTestUtil.randomString());
 
 		DDMStructure ddmStructure = _ddmStructureLocalService.addStructure(
-			TestPropsValues.getUserId(), _group.getGroupId(), 0,
+			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
 			PortalUtil.getClassNameId(DDMFormInstance.class.getName()), null,
 			RandomTestUtil.randomLocaleStringMap(), null, ddmForm,
 			_createDDMFormLayout(ddmForm), StorageType.DEFAULT.toString(),
@@ -107,9 +107,10 @@ public class DDMStructureLayoutCTUpgradeProcessTest
 
 		return _ddmStructureLayoutLocalService.updateStructureLayout(
 			ddmStructureLayout.getStructureLayoutId(),
-			_createDDMFormLayout(
-				DDMFormTestUtil.createDDMForm(RandomTestUtil.randomString())),
-			_serviceContext);
+			ddmStructureLayout.getStructureVersionId(),
+			RandomTestUtil.randomLocaleStringMap(),
+			ddmStructureLayout.getDescriptionMap(),
+			ddmStructureLayout.getDefinition(), _serviceContext);
 	}
 
 	private DDMFormLayout _createDDMFormLayout(DDMForm ddmForm) {
@@ -119,11 +120,6 @@ public class DDMStructureLayoutCTUpgradeProcessTest
 
 		return ddmFormLayout;
 	}
-
-	@Inject(
-		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
 
 	@Inject
 	private DDMStructureLayoutLocalService _ddmStructureLayoutLocalService;
@@ -135,5 +131,10 @@ public class DDMStructureLayoutCTUpgradeProcessTest
 	private Group _group;
 
 	private ServiceContext _serviceContext;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

@@ -8,13 +8,14 @@ package com.liferay.headless.delivery.client.serdes.v1_0;
 import com.liferay.headless.delivery.client.dto.v1_0.FragmentFieldHTML;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -53,14 +54,7 @@ public class FragmentFieldHTMLSerDes {
 
 			sb.append("\"html\": ");
 
-			if (fragmentFieldHTML.getHtml() instanceof String) {
-				sb.append("\"");
-				sb.append((String)fragmentFieldHTML.getHtml());
-				sb.append("\"");
-			}
-			else {
-				sb.append(fragmentFieldHTML.getHtml());
-			}
+			sb.append(_toJSON(fragmentFieldHTML.getHtml()));
 		}
 
 		sb.append("}");
@@ -171,6 +165,16 @@ public class FragmentFieldHTMLSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -203,3 +207,4 @@ public class FragmentFieldHTMLSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1554810514

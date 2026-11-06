@@ -14,40 +14,51 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.math.BigDecimal;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Currency")
+@GraphQLName(
+	description = "Currency definition specifying the formatting, fraction digits, rounding mode, and exchange rate used by catalogs and channels; supports create, read, update, and delete operations from the catalog admin perspective; every write triggers a reindex.",
+	value = "Currency"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Currency definition specifying the formatting, fraction digits, rounding mode, and exchange rate used by catalogs and channels; supports create, read, update, and delete operations from the catalog admin perspective; every write triggers a reindex.",
+	requiredProperties = {"code", "name"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"code", "name"})
 @XmlRootElement(name = "Currency")
 public class Currency implements Serializable {
 
@@ -59,7 +70,10 @@ public class Currency implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Currency.class, json);
 	}
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the currency is selectable for pricing; filterable and sortable through the OData query parameter.",
+		example = "true"
+	)
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -93,14 +107,19 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the currency is selectable for pricing; filterable and sortable through the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean active;
 
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema(example = "USD")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "ISO 4217 currency code; required and rejected when blank; must be unique per company, and a duplicate code in the same company is rejected; filterable and sortable through the OData query parameter.",
+		example = "USD"
+	)
 	public String getCode() {
 		if (_codeSupplier != null) {
 			code = _codeSupplier.get();
@@ -132,7 +151,9 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "ISO 4217 currency code; required and rejected when blank; must be unique per company, and a duplicate code in the same company is rejected; filterable and sortable through the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String code;
@@ -140,7 +161,192 @@ public class Currency implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _codeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "User who created the currency. Read-only; embedded through the `creator` nested field."
+	)
+	@Valid
+	public Creator getCreator() {
+		if (_creatorSupplier != null) {
+			creator = _creatorSupplier.get();
+
+			_creatorSupplier = null;
+		}
+
+		return creator;
+	}
+
+	public void setCreator(Creator creator) {
+		this.creator = creator;
+
+		_creatorSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCreator(
+		UnsafeSupplier<Creator, Exception> creatorUnsafeSupplier) {
+
+		_creatorSupplier = () -> {
+			try {
+				return creatorUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "User who created the currency. Read-only; embedded through the `creator` nested field."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Creator creator;
+
+	@JsonIgnore
+	private Supplier<Creator> _creatorSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Creation timestamp in ISO 8601 (UTC). Read-only; set when the currency is first persisted. Filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
+	public Date getDateCreated() {
+		if (_dateCreatedSupplier != null) {
+			dateCreated = _dateCreatedSupplier.get();
+
+			_dateCreatedSupplier = null;
+		}
+
+		return dateCreated;
+	}
+
+	public void setDateCreated(Date dateCreated) {
+		this.dateCreated = dateCreated;
+
+		_dateCreatedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDateCreated(
+		UnsafeSupplier<Date, Exception> dateCreatedUnsafeSupplier) {
+
+		_dateCreatedSupplier = () -> {
+			try {
+				return dateCreatedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Creation timestamp in ISO 8601 (UTC). Read-only; set when the currency is first persisted. Filterable and sortable via the OData query parameter."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date dateCreated;
+
+	@JsonIgnore
+	private Supplier<Date> _dateCreatedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Last modification timestamp in ISO 8601 (UTC). Read-only; updated on each save. Filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
+	public Date getDateModified() {
+		if (_dateModifiedSupplier != null) {
+			dateModified = _dateModifiedSupplier.get();
+
+			_dateModifiedSupplier = null;
+		}
+
+		return dateModified;
+	}
+
+	public void setDateModified(Date dateModified) {
+		this.dateModified = dateModified;
+
+		_dateModifiedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDateModified(
+		UnsafeSupplier<Date, Exception> dateModifiedUnsafeSupplier) {
+
+		_dateModifiedSupplier = () -> {
+			try {
+				return dateModifiedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Last modification timestamp in ISO 8601 (UTC). Read-only; updated on each save. Filterable and sortable via the OData query parameter."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date dateModified;
+
+	@JsonIgnore
+	private Supplier<Date> _dateModifiedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per currency within the company; defaults to the value of `code` on POST when omitted.",
+		example = "AB-34098-789-N"
+	)
+	public String getExternalReferenceCode() {
+		if (_externalReferenceCodeSupplier != null) {
+			externalReferenceCode = _externalReferenceCodeSupplier.get();
+
+			_externalReferenceCodeSupplier = null;
+		}
+
+		return externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
+
+		_externalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
+		_externalReferenceCodeSupplier = () -> {
+			try {
+				return externalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per currency within the company; defaults to the value of `code` on POST when omitted."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String externalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _externalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text; map keys are locale codes and values are the translated decimal-format patterns; when omitted on create, a standard pattern (###,##0.00) is applied for the user locale.",
 		example = "{en_US=Hand Saw, hr_HR=Product Name HR, hu_HU=Product Name HU}"
 	)
 	@Valid
@@ -178,7 +384,9 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text; map keys are locale codes and values are the translated decimal-format patterns; when omitted on create, a standard pattern (###,##0.00) is applied for the user locale."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> formatPattern;
 
@@ -186,7 +394,9 @@ public class Currency implements Serializable {
 	private Supplier<Map<String, String>> _formatPatternSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Auto-generated currency identifier.", example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -218,7 +428,7 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Auto-generated currency identifier.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -226,7 +436,10 @@ public class Currency implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum decimal places displayed when formatting amounts; defaults to 2 on create when not supplied.",
+		example = "2"
+	)
 	public Integer getMaxFractionDigits() {
 		if (_maxFractionDigitsSupplier != null) {
 			maxFractionDigits = _maxFractionDigitsSupplier.get();
@@ -260,7 +473,9 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Maximum decimal places displayed when formatting amounts; defaults to 2 on create when not supplied."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer maxFractionDigits;
 
@@ -268,7 +483,10 @@ public class Currency implements Serializable {
 	private Supplier<Integer> _maxFractionDigitsSupplier;
 
 	@DecimalMin("0")
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Minimum decimal places displayed when formatting amounts; defaults to 2 on create when not supplied.",
+		example = "2"
+	)
 	public Integer getMinFractionDigits() {
 		if (_minFractionDigitsSupplier != null) {
 			minFractionDigits = _minFractionDigitsSupplier.get();
@@ -302,14 +520,17 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Minimum decimal places displayed when formatting amounts; defaults to 2 on create when not supplied."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer minFractionDigits;
 
 	@JsonIgnore
 	private Supplier<Integer> _minFractionDigitsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text; map keys are locale codes and values are the translated strings; required, and rejected when the entry for the site-default locale is blank; sortable through the OData query parameter.",
 		example = "{en_US=Hand Saw, hr_HR=Product Name HR, hu_HU=Product Name HU}"
 	)
 	@Valid
@@ -346,7 +567,9 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text; map keys are locale codes and values are the translated strings; required, and rejected when the entry for the site-default locale is blank; sortable through the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> name;
@@ -354,7 +577,10 @@ public class Currency implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _nameSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether this is the company's primary currency; when true the rate is forced to 1 and every other currency in the company is automatically switched to non-primary; filterable and sortable through the OData query parameter.",
+		example = "true"
+	)
 	public Boolean getPrimary() {
 		if (_primarySupplier != null) {
 			primary = _primarySupplier.get();
@@ -388,14 +614,19 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether this is the company's primary currency; when true the rate is forced to 1 and every other currency in the company is automatically switched to non-primary; filterable and sortable through the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean primary;
 
 	@JsonIgnore
 	private Supplier<Boolean> _primarySupplier;
 
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Numeric display-order weight used to sort currency selectors, with lower values surfacing first; filterable and sortable through the OData query parameter.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -429,14 +660,19 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Numeric display-order weight used to sort currency selectors, with lower values surfacing first; filterable and sortable through the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
 	@JsonIgnore
 	private Supplier<Double> _prioritySupplier;
 
-	@Schema(example = "33.54")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Exchange rate relative to the company's primary currency; must be strictly greater than zero and is rejected otherwise; reset to 1 when `primary` is true.",
+		example = "33.54"
+	)
 	@Valid
 	public BigDecimal getRate() {
 		if (_rateSupplier != null) {
@@ -471,15 +707,20 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Exchange rate relative to the company's primary currency; must be strictly greater than zero and is rejected otherwise; reset to 1 when `primary` is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal rate;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _rateSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Rounding mode applied when amounts exceed `maxFractionDigits`; allowed values are UP, DOWN, CEILING, FLOOR, HALF_UP, HALF_DOWN, HALF_EVEN, and UNNECESSARY; when omitted on create, defaults to the configured system rounding mode (typically HALF_EVEN).",
+		example = "HALF_EVEN"
+	)
 	@JsonGetter("roundingMode")
-	@Schema(example = "HALF_EVEN")
 	@Valid
 	public RoundingMode getRoundingMode() {
 		if (_roundingModeSupplier != null) {
@@ -525,14 +766,19 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Rounding mode applied when amounts exceed `maxFractionDigits`; allowed values are UP, DOWN, CEILING, FLOOR, HALF_UP, HALF_DOWN, HALF_EVEN, and UNNECESSARY; when omitted on create, defaults to the configured system rounding mode (typically HALF_EVEN)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected RoundingMode roundingMode;
 
 	@JsonIgnore
 	private Supplier<RoundingMode> _roundingModeSupplier;
 
-	@Schema(example = "$")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Currency display symbol shown alongside formatted amounts.",
+		example = "$"
+	)
 	public String getSymbol() {
 		if (_symbolSupplier != null) {
 			symbol = _symbolSupplier.get();
@@ -566,7 +812,9 @@ public class Currency implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Currency display symbol shown alongside formatted amounts."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String symbol;
 
@@ -600,6 +848,9 @@ public class Currency implements Serializable {
 
 		sb.append("{");
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
 		Boolean active = getActive();
 
 		if (active != null) {
@@ -624,6 +875,66 @@ public class Currency implements Serializable {
 			sb.append("\"");
 
 			sb.append(_escape(code));
+
+			sb.append("\"");
+		}
+
+		Creator creator = getCreator();
+
+		if (creator != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(creator));
+		}
+
+		Date dateCreated = getDateCreated();
+
+		if (dateCreated != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateCreated\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(dateCreated));
+
+			sb.append("\"");
+		}
+
+		Date dateModified = getDateModified();
+
+		if (dateModified != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateModified\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(dateModified));
+
+			sb.append("\"");
+		}
+
+		String externalReferenceCode = getExternalReferenceCode();
+
+		if (externalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(externalReferenceCode));
 
 			sb.append("\"");
 		}
@@ -734,9 +1045,7 @@ public class Currency implements Serializable {
 			sb.append("\"roundingMode\": ");
 
 			sb.append("\"");
-
 			sb.append(roundingMode);
-
 			sb.append("\"");
 		}
 
@@ -761,8 +1070,8 @@ public class Currency implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.Currency",
 		name = "x-class-name"
 	)
@@ -889,6 +1198,27 @@ public class Currency implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -897,3 +1227,4 @@ public class Currency implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1909073353

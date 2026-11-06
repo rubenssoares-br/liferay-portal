@@ -10,7 +10,7 @@ import ClayLabel from '@clayui/label';
 import ClayLayout from '@clayui/layout';
 import ClaySticker from '@clayui/sticker';
 import ClayTabs from '@clayui/tabs';
-import {AnalyticsReports} from '@liferay/analytics-reports-js-components-web';
+import {ContentDashboardPerformance} from '@liferay/analytics-reports-js-components-web';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
 import React, {useCallback, useState} from 'react';
@@ -208,20 +208,18 @@ const SidebarPanelInfoView = ({
 							</ClayTabs.Item>
 						)}
 
-						{!!Liferay.FeatureFlags['LPD-28830'] && (
-							<ClayTabs.Item
-								active={activeTabKeyValue === TABS.performance}
-								className="flex-shrink-0"
-								innerProps={{
-									'aria-controls': 'performance',
-								}}
-								onClick={() =>
-									setActiveTabKeyValue(TABS.performance)
-								}
-							>
-								{Liferay.Language.get('performance')}
-							</ClayTabs.Item>
-						)}
+						<ClayTabs.Item
+							active={activeTabKeyValue === TABS.performance}
+							className="flex-shrink-0"
+							innerProps={{
+								'aria-controls': 'performance',
+							}}
+							onClick={() =>
+								setActiveTabKeyValue(TABS.performance)
+							}
+						>
+							{Liferay.Language.get('performance')}
+						</ClayTabs.Item>
 
 						{!!getItemVersionsURL && !hasCategorization && (
 							<ClayTabs.Item
@@ -301,12 +299,12 @@ const SidebarPanelInfoView = ({
 							</ClayTabs.TabPane>
 						)}
 
-						{!!Liferay.FeatureFlags['LPD-28830'] && showTabs && (
+						{showTabs && (
 							<ClayTabs.TabPane
 								aria-labelledby={`tab-${TABS.performance}`}
 								className="flex-shrink-0"
 							>
-								<AnalyticsReports
+								<ContentDashboardPerformance
 									contentPerformanceDataFetchURL={
 										contentPerformanceDataFetchURL
 									}

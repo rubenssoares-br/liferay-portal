@@ -19,6 +19,7 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.portlet.MockActionRequest;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -32,7 +33,6 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.portletmvc4spring.test.mock.web.portlet.MockActionRequest;
 
 import java.util.Date;
 import java.util.List;
@@ -74,37 +74,6 @@ public class LayoutLockManagerTest {
 			Layout.class.getName(), draftLayout.getPlid());
 
 		Assert.assertNotNull(lock);
-	}
-
-	@Test
-	public void testGetLockedLayouts() throws Exception {
-		long[] layoutPlids = {};
-
-		Layout draftLayout1 = _getDraftLayout();
-
-		layoutPlids = ArrayUtil.append(layoutPlids, draftLayout1.getPlid());
-
-		_lockLayout(draftLayout1, _user);
-
-		Layout draftLayout2 = _getDraftLayout();
-
-		layoutPlids = ArrayUtil.append(layoutPlids, draftLayout2.getPlid());
-
-		_lockLayout(draftLayout2, _user);
-
-		LayoutTestUtil.addTypePortletLayout(_group);
-		LayoutTestUtil.addTypeContentLayout(_group);
-
-		List<LockedLayout> lockedLayouts = _layoutLockManager.getLockedLayouts(
-			TestPropsValues.getCompanyId(), _group.getGroupId(),
-			LocaleUtil.getDefault());
-
-		Assert.assertEquals(lockedLayouts.toString(), 2, lockedLayouts.size());
-
-		for (LockedLayout lockedLayout : lockedLayouts) {
-			Assert.assertTrue(
-				ArrayUtil.contains(layoutPlids, lockedLayout.getPlid()));
-		}
 	}
 
 	@Test(expected = LockedLayoutException.class)
@@ -162,6 +131,56 @@ public class LayoutLockManagerTest {
 	}
 
 	@Test
+	public void testGetLockedLayouts() throws Exception {
+		long[] layoutPlids = {};
+
+		Layout draftLayout1 = _getDraftLayout();
+
+		layoutPlids = ArrayUtil.append(layoutPlids, draftLayout1.getPlid());
+
+		_lockLayout(draftLayout1, _user);
+
+		Layout draftLayout2 = _getDraftLayout();
+
+		layoutPlids = ArrayUtil.append(layoutPlids, draftLayout2.getPlid());
+
+		_lockLayout(draftLayout2, _user);
+
+		LayoutTestUtil.addTypePortletLayout(_group);
+		LayoutTestUtil.addTypeContentLayout(_group);
+
+		List<LockedLayout> lockedLayouts = _layoutLockManager.getLockedLayouts(
+			TestPropsValues.getCompanyId(), _group.getGroupId(),
+			LocaleUtil.getDefault());
+
+		Assert.assertEquals(lockedLayouts.toString(), 2, lockedLayouts.size());
+
+		for (LockedLayout lockedLayout : lockedLayouts) {
+			Assert.assertTrue(
+				ArrayUtil.contains(layoutPlids, lockedLayout.getPlid()));
+		}
+	}
+
+	@Test
+	public void testGetLockedLayoutsWithDifferentGroups() throws Exception {
+		Layout draftLayout = _getDraftLayout(_group);
+
+		_lockLayout(draftLayout, _user);
+
+		_lockLayout(_getDraftLayout(GroupTestUtil.addGroup()), _user);
+
+		List<LockedLayout> lockedLayouts = _layoutLockManager.getLockedLayouts(
+			TestPropsValues.getCompanyId(), _group.getGroupId(),
+			LocaleUtil.getDefault());
+
+		Assert.assertEquals(lockedLayouts.toString(), 1, lockedLayouts.size());
+
+		LockedLayout lockedLayout = lockedLayouts.get(0);
+
+		Assert.assertEquals(draftLayout.getPlid(), lockedLayout.getPlid());
+	}
+
+	@Test
 	public void testUnlock() throws Exception {
 		Layout draftLayout = _getDraftLayout();
 
@@ -181,7 +200,11 @@ public class LayoutLockManagerTest {
 	}
 
 	private Layout _getDraftLayout() throws Exception {
-		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
+		return _getDraftLayout(_group);
+	}
+
+	private Layout _getDraftLayout(Group group) throws Exception {
+		Layout layout = LayoutTestUtil.addTypeContentLayout(group);
 
 		Layout draftLayout = layout.fetchDraftLayout();
 

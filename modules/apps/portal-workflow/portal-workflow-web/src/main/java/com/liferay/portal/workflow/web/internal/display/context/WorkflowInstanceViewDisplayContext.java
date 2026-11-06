@@ -183,22 +183,6 @@ public class WorkflowInstanceViewDisplayContext
 		return _orderByType;
 	}
 
-	public List<WorkflowHandler<?>> getSearchableAssetsWorkflowHandlers() {
-		List<WorkflowHandler<?>> searchableAssetsWorkflowHandlers =
-			new ArrayList<>();
-
-		List<WorkflowHandler<?>> workflowHandlers =
-			WorkflowHandlerRegistryUtil.getWorkflowHandlers();
-
-		for (WorkflowHandler<?> workflowHandler : workflowHandlers) {
-			if (workflowHandler.isAssetTypeSearchable()) {
-				searchableAssetsWorkflowHandlers.add(workflowHandler);
-			}
-		}
-
-		return searchableAssetsWorkflowHandlers;
-	}
-
 	public WorkflowInstanceSearch getSearchContainer() throws PortalException {
 		if (Objects.nonNull(_searchContainer)) {
 			return _searchContainer;
@@ -224,6 +208,24 @@ public class WorkflowInstanceViewDisplayContext
 		return _searchContainer;
 	}
 
+	public List<WorkflowHandler<?>> getSearchableAssetsWorkflowHandlers() {
+		List<WorkflowHandler<?>> searchableAssetsWorkflowHandlers =
+			new ArrayList<>();
+
+		List<WorkflowHandler<?>> workflowHandlers =
+			WorkflowHandlerRegistryUtil.getWorkflowHandlers();
+
+		for (WorkflowHandler<?> workflowHandler : workflowHandlers) {
+			if (!workflowHandler.isAssetTypeSearchable()) {
+				continue;
+			}
+
+			searchableAssetsWorkflowHandlers.add(workflowHandler);
+		}
+
+		return searchableAssetsWorkflowHandlers;
+	}
+
 	public String getWorkflowContextEntryClassName(
 		Map<String, Serializable> workflowContext) {
 
@@ -240,35 +242,19 @@ public class WorkflowInstanceViewDisplayContext
 	}
 
 	public boolean isNavigationAll() {
-		if (Objects.equals(getNavigation(), "all")) {
-			return true;
-		}
-
-		return false;
+		return Objects.equals(getNavigation(), "all");
 	}
 
 	public boolean isNavigationCompleted() {
-		if (Objects.equals(getNavigation(), "completed")) {
-			return true;
-		}
-
-		return false;
+		return Objects.equals(getNavigation(), "completed");
 	}
 
 	public boolean isNavigationPending() {
-		if (Objects.equals(getNavigation(), "pending")) {
-			return true;
-		}
-
-		return false;
+		return Objects.equals(getNavigation(), "pending");
 	}
 
 	public boolean isSearch() {
-		if (Validator.isNotNull(getKeywords())) {
-			return true;
-		}
-
-		return false;
+		return Validator.isNotNull(getKeywords());
 	}
 
 	public boolean isShowExtraInfo() {

@@ -111,11 +111,7 @@ public class EmailAddressPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		EmailAddress newEmailAddress = _persistence.create(pk);
-
-		newEmailAddress.setMvccVersion(RandomTestUtil.nextLong());
+		EmailAddress newEmailAddress = addEmailAddress();
 
 		newEmailAddress.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -143,7 +139,9 @@ public class EmailAddressPersistenceTest {
 
 		newEmailAddress.setPrimary(RandomTestUtil.randomBoolean());
 
-		_emailAddresses.add(_persistence.update(newEmailAddress));
+		newEmailAddress = _persistence.update(newEmailAddress);
+
+		_emailAddresses.add(newEmailAddress);
 
 		EmailAddress existingEmailAddress = _persistence.findByPrimaryKey(
 			newEmailAddress.getPrimaryKey());
@@ -225,28 +223,6 @@ public class EmailAddressPersistenceTest {
 		_persistence.countByUuid_C("null", 0L);
 
 		_persistence.countByUuid_C((String)null, 0L);
-	}
-
-	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
-	}
-
-	@Test
-	public void testCountByUserId() throws Exception {
-		_persistence.countByUserId(RandomTestUtil.nextLong());
-
-		_persistence.countByUserId(0L);
-	}
-
-	@Test
-	public void testCountByC_C() throws Exception {
-		_persistence.countByC_C(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByC_C(0L, 0L);
 	}
 
 	@Test
@@ -589,8 +565,6 @@ public class EmailAddressPersistenceTest {
 
 		EmailAddress emailAddress = _persistence.create(pk);
 
-		emailAddress.setMvccVersion(RandomTestUtil.nextLong());
-
 		emailAddress.setCtCollectionId(RandomTestUtil.nextLong());
 
 		emailAddress.setUuid(RandomTestUtil.randomString());
@@ -627,3 +601,4 @@ public class EmailAddressPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:861494353

@@ -56,14 +56,14 @@ public class LayoutUtilityPageEntryLocalServiceUtil {
 	public static LayoutUtilityPageEntry addLayoutUtilityPageEntry(
 			String externalReferenceCode, long userId, long groupId, long plid,
 			long previewFileEntryId, boolean defaultLayoutUtilityPageEntry,
-			String name, String type, long masterLayoutPlid,
+			String name, String type, String masterLayoutPageTemplateEntryERC,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addLayoutUtilityPageEntry(
 			externalReferenceCode, userId, groupId, plid, previewFileEntryId,
-			defaultLayoutUtilityPageEntry, name, type, masterLayoutPlid,
-			serviceContext);
+			defaultLayoutUtilityPageEntry, name, type,
+			masterLayoutPageTemplateEntryERC, serviceContext);
 	}
 
 	public static LayoutUtilityPageEntry copyLayoutUtilityPageEntry(
@@ -512,18 +512,21 @@ public class LayoutUtilityPageEntryLocalServiceUtil {
 	}
 
 	public static LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-		long layoutUtilityPageEntryId, long previewFileEntryId) {
-
-		return getService().updateLayoutUtilityPageEntry(
-			layoutUtilityPageEntryId, previewFileEntryId);
-	}
-
-	public static LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, String name)
+			long layoutUtilityPageEntryId, long previewFileEntryId,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().updateLayoutUtilityPageEntry(
-			layoutUtilityPageEntryId, name);
+			layoutUtilityPageEntryId, previewFileEntryId, serviceContext);
+	}
+
+	public static LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
+			long layoutUtilityPageEntryId, String name,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().updateLayoutUtilityPageEntry(
+			layoutUtilityPageEntryId, name, serviceContext);
 	}
 
 	public static LayoutUtilityPageEntryLocalService getService() {
@@ -536,3 +539,4 @@ public class LayoutUtilityPageEntryLocalServiceUtil {
 			LayoutUtilityPageEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1745766292

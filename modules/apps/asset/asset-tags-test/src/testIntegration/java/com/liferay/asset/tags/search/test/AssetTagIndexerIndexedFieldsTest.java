@@ -7,7 +7,12 @@ package com.liferay.asset.tags.search.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.kernel.model.AssetTag;
+import com.liferay.asset.kernel.model.AssetTagGroupRel;
+import com.liferay.asset.kernel.service.AssetTagGroupRelLocalService;
 import com.liferay.asset.kernel.service.AssetTagLocalService;
+import com.liferay.depot.constants.DepotConstants;
+import com.liferay.depot.model.DepotEntry;
+import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
@@ -21,13 +26,14 @@ import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.rule.SynchronousDestinationTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.search.document.DocumentBuilderFactory;
 import com.liferay.portal.search.filter.ComplexQueryPart;
 import com.liferay.portal.search.filter.ComplexQueryPartBuilderFactory;
 import com.liferay.portal.search.model.uid.UIDFactory;
-import com.liferay.portal.search.query.Queries;
+import com.liferay.portal.search.query.QueriesUtil;
 import com.liferay.portal.search.query.Query;
 import com.liferay.portal.search.searcher.SearchRequestBuilderFactory;
 import com.liferay.portal.search.searcher.Searcher;
@@ -41,6 +47,8 @@ import com.liferay.users.admin.test.util.search.GroupBlueprint;
 import com.liferay.users.admin.test.util.search.GroupSearchFixture;
 import com.liferay.users.admin.test.util.search.UserSearchFixture;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -92,8 +100,7 @@ public class AssetTagIndexerIndexedFieldsTest {
 		_groups = groupSearchFixture.getGroups();
 
 		_indexedFieldsFixture = new IndexedFieldsFixture(
-			resourcePermissionLocalService, searchEngineHelper, uidFactory,
-			documentBuilderFactory);
+			resourcePermissionLocalService, searchEngineHelper, uidFactory);
 
 		_users = userSearchFixture.getUsers();
 	}
@@ -104,6 +111,22 @@ public class AssetTagIndexerIndexedFieldsTest {
 			isNumberSortableImplementedAsDoubleForSearchEngine());
 
 		AssetTag assetTag = _assetTagFixture.createAssetTag();
+
+		DepotEntry depotEntry1 = _addDepotEntry(DepotConstants.TYPE_SPACE);
+		DepotEntry depotEntry2 = _addDepotEntry(DepotConstants.TYPE_SPACE);
+
+		_assetTagGroupRelLocalService.setAssetTagGroupRels(
+			assetTag.getTagId(),
+			new long[] {depotEntry1.getGroupId(), depotEntry2.getGroupId()},
+			DepotConstants.TYPE_SPACE);
+
+		DepotEntry depotEntry3 = _addDepotEntry(DepotConstants.TYPE_PROJECT);
+		DepotEntry depotEntry4 = _addDepotEntry(DepotConstants.TYPE_PROJECT);
+
+		_assetTagGroupRelLocalService.setAssetTagGroupRels(
+			assetTag.getTagId(),
+			new long[] {depotEntry3.getGroupId(), depotEntry4.getGroupId()},
+			DepotConstants.TYPE_PROJECT);
 
 		String searchTerm = String.valueOf(assetTag.getPrimaryKey());
 
@@ -132,7 +155,8 @@ public class AssetTagIndexerIndexedFieldsTest {
 				).modelIndexerClasses(
 					AssetTag.class
 				).addComplexQueryPart(
-					_getComplexQueryPart(_queries.term("entryClassPK", classPK))
+					_getComplexQueryPart(
+						QueriesUtil.term("entryClassPK", classPK))
 				).build()));
 	}
 
@@ -141,18 +165,11 @@ public class AssetTagIndexerIndexedFieldsTest {
 
 		String vendor = searchEngine.getVendor();
 
-		if (vendor.equals("Solr")) {
-			return true;
-		}
-
-		return false;
+		return vendor.equals("Solr");
 	}
 
 	@Inject
 	protected AssetTagLocalService assetTagLocalService;
-
-	@Inject
-	protected DocumentBuilderFactory documentBuilderFactory;
 
 	@Inject(
 		filter = "indexer.class.name=com.liferay.asset.kernel.model.AssetTag"
@@ -166,16 +183,27 @@ public class AssetTagIndexerIndexedFieldsTest {
 	protected SearchEngineHelper searchEngineHelper;
 
 	@Inject
-	protected Searcher searcher;
+	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
 
 	@Inject
-	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
+	protected Searcher searcher;
 
 	@Inject
 	protected UIDFactory uidFactory;
 
 	@Inject
 	protected UserLocalService userLocalService;
+
+	private DepotEntry _addDepotEntry(int depotEntryType) throws Exception {
+		DepotEntry depotEntry = _depotEntryLocalService.addDepotEntry(
+			RandomTestUtil.randomLocaleStringMap(),
+			RandomTestUtil.randomLocaleStringMap(), depotEntryType,
+			ServiceContextTestUtil.getServiceContext());
+
+		_depotEntries.add(depotEntry);
+
+		return depotEntry;
+	}
 
 	private Map<String, String> _expectedFieldValues(AssetTag assetTag)
 		throws Exception {
@@ -208,7 +236,12 @@ public class AssetTagIndexerIndexedFieldsTest {
 		).put(
 			"groupExternalReferenceCode", _group.getExternalReferenceCode()
 		).put(
+			"groupIds", () -> _getGroupIds(assetTag, DepotConstants.TYPE_SPACE)
+		).put(
 			"name_String_sortable", StringUtil.toLowerCase(assetTag.getName())
+		).put(
+			"projectDepotEntryGroupIds",
+			() -> _getGroupIds(assetTag, DepotConstants.TYPE_PROJECT)
 		).put(
 			"scopeGroupExternalReferenceCode", _group.getExternalReferenceCode()
 		).put(
@@ -237,6 +270,18 @@ public class AssetTagIndexerIndexedFieldsTest {
 		).build();
 	}
 
+	private String _getGroupIds(AssetTag assetTag, int depotEntryType) {
+		List<Long> groupIds = ListUtil.toList(
+			_assetTagGroupRelLocalService.
+				getAssetTagGroupRelsByTagIdAndDepotEntryType(
+					assetTag.getTagId(), depotEntryType),
+			AssetTagGroupRel::getGroupId);
+
+		Collections.sort(groupIds);
+
+		return String.valueOf(groupIds);
+	}
+
 	private void _populateDates(AssetTag assetTag, Map<String, String> map) {
 		_indexedFieldsFixture.populateDate(
 			Field.CREATE_DATE, assetTag.getCreateDate(), map);
@@ -254,11 +299,20 @@ public class AssetTagIndexerIndexedFieldsTest {
 
 	private AssetTagFixture _assetTagFixture;
 
+	@Inject
+	private AssetTagGroupRelLocalService _assetTagGroupRelLocalService;
+
 	@DeleteAfterTestRun
 	private List<AssetTag> _assetTags;
 
 	@Inject
 	private ComplexQueryPartBuilderFactory _complexQueryPartBuilderFactory;
+
+	@DeleteAfterTestRun
+	private final List<DepotEntry> _depotEntries = new ArrayList<>();
+
+	@Inject
+	private DepotEntryLocalService _depotEntryLocalService;
 
 	private Group _group;
 
@@ -266,9 +320,6 @@ public class AssetTagIndexerIndexedFieldsTest {
 	private List<Group> _groups;
 
 	private IndexedFieldsFixture _indexedFieldsFixture;
-
-	@Inject
-	private Queries _queries;
 
 	@DeleteAfterTestRun
 	private List<User> _users;

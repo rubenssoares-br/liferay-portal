@@ -25,7 +25,7 @@ AUI.add(
 		const TPL_BLOCK_IMG =
 			'<span>' +
 			'<span class="taglib-text">' +
-			Liferay.Language.get('blocked') +
+			Liferay.Language.get('blocked[user]') +
 			'</span>' +
 			'</span>';
 
@@ -311,7 +311,7 @@ AUI.add(
 										config.baseActionURL,
 										{
 											'entryId': contact.entryId,
-											'javax.portlet.action':
+											'jakarta.portlet.action':
 												'deleteEntry',
 											'p_p_state': 'NORMAL',
 										}

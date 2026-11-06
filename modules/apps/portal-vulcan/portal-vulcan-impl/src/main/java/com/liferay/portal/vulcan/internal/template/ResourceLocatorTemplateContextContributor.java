@@ -15,9 +15,9 @@ import com.liferay.portal.kernel.template.TemplateContextContributor;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.vulcan.resource.locator.ResourceLocatorFactory;
 
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -26,7 +26,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Shuyang Zhou
  */
 @Component(
-	property = "type=" + TemplateContextContributor.TYPE_GLOBAL,
+	property = {
+		"template.context.keys=resourceLocator",
+		"type=" + TemplateContextContributor.TYPE_GLOBAL
+	},
 	service = TemplateContextContributor.class
 )
 public class ResourceLocatorTemplateContextContributor

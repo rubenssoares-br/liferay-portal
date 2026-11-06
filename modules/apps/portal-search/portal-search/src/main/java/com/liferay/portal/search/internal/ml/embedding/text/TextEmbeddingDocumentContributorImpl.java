@@ -5,9 +5,9 @@
 
 package com.liferay.portal.search.internal.ml.embedding.text;
 
+import com.liferay.object.model.ObjectEntry;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -32,6 +32,7 @@ import com.liferay.portal.search.ml.embedding.text.TextEmbeddingRetriever;
 import com.liferay.portal.search.rest.dto.v1_0.EmbeddingProviderConfiguration;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -46,6 +47,7 @@ import org.osgi.service.component.annotations.Reference;
 public class TextEmbeddingDocumentContributorImpl
 	implements TextEmbeddingDocumentContributor {
 
+	@Override
 	public <T extends BaseModel<T>> void contribute(
 		Document document, String languageId, T model, String text) {
 
@@ -77,6 +79,7 @@ public class TextEmbeddingDocumentContributorImpl
 		_addTextEmbeddingField(document, languageId, textEmbedding);
 	}
 
+	@Override
 	public <T extends BaseModel<T>> void contribute(
 		Document document, T model, String text) {
 
@@ -114,6 +117,18 @@ public class TextEmbeddingDocumentContributorImpl
 		}
 	}
 
+	@Override
+	public <T extends BaseModel<T>> List<String> getLanguageIds(T model) {
+		EmbeddingProviderConfiguration embeddingProviderConfiguration =
+			getEmbeddingProviderConfiguration(model);
+
+		if (embeddingProviderConfiguration == null) {
+			return Collections.emptyList();
+		}
+
+		return Arrays.asList(embeddingProviderConfiguration.getLanguageIds());
+	}
+
 	protected <T extends BaseModel<T>> EmbeddingProviderConfiguration
 		getEmbeddingProviderConfiguration(T model) {
 
@@ -123,9 +138,7 @@ public class TextEmbeddingDocumentContributorImpl
 
 		long companyId = _getCompanyId(model);
 
-		if ((companyId == 0) ||
-			!FeatureFlagManagerUtil.isEnabled(companyId, "LPS-122920")) {
-
+		if (companyId == 0) {
 			return null;
 		}
 
@@ -139,6 +152,14 @@ public class TextEmbeddingDocumentContributorImpl
 
 		Class<?> clazz = model.getModelClass();
 
+		String modelClassName = clazz.getName();
+
+		if (model instanceof ObjectEntry) {
+			ObjectEntry objectEntry = (ObjectEntry)model;
+
+			modelClassName = objectEntry.getModelClassName();
+		}
+
 		try {
 			for (String textEmbeddingProviderConfigurationJSON :
 					semanticSearchConfiguration.
@@ -150,7 +171,7 @@ public class TextEmbeddingDocumentContributorImpl
 
 				if (!ArrayUtil.contains(
 						embeddingProviderConfiguration.getModelClassNames(),
-						clazz.getName())) {
+						modelClassName)) {
 
 					continue;
 				}

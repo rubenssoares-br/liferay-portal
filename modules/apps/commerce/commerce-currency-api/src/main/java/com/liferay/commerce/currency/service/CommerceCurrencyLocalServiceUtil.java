@@ -55,17 +55,18 @@ public class CommerceCurrencyLocalServiceUtil {
 	}
 
 	public static CommerceCurrency addCommerceCurrency(
-			long userId, String code, Map<java.util.Locale, String> nameMap,
-			String symbol, java.math.BigDecimal rate,
+			String externalReferenceCode, long userId, String code,
+			Map<java.util.Locale, String> nameMap, String symbol,
+			java.math.BigDecimal rate,
 			Map<java.util.Locale, String> formatPatternMap,
 			int maxFractionDigits, int minFractionDigits, String roundingMode,
 			boolean primary, double priority, boolean active)
 		throws PortalException {
 
 		return getService().addCommerceCurrency(
-			userId, code, nameMap, symbol, rate, formatPatternMap,
-			maxFractionDigits, minFractionDigits, roundingMode, primary,
-			priority, active);
+			externalReferenceCode, userId, code, nameMap, symbol, rate,
+			formatPatternMap, maxFractionDigits, minFractionDigits,
+			roundingMode, primary, priority, active);
 	}
 
 	/**
@@ -229,6 +230,19 @@ public class CommerceCurrencyLocalServiceUtil {
 		return getService().fetchCommerceCurrency(commerceCurrencyId);
 	}
 
+	public static CommerceCurrency fetchCommerceCurrency(
+		long companyId, String code) {
+
+		return getService().fetchCommerceCurrency(companyId, code);
+	}
+
+	public static CommerceCurrency fetchCommerceCurrencyByExternalReferenceCode(
+		String externalReferenceCode, long companyId) {
+
+		return getService().fetchCommerceCurrencyByExternalReferenceCode(
+			externalReferenceCode, companyId);
+	}
+
 	/**
 	 * Returns the commerce currency with the matching UUID and company.
 	 *
@@ -333,6 +347,14 @@ public class CommerceCurrencyLocalServiceUtil {
 		return getService().getCommerceCurrency(companyId, code);
 	}
 
+	public static CommerceCurrency getCommerceCurrencyByExternalReferenceCode(
+			String externalReferenceCode, long companyId)
+		throws PortalException {
+
+		return getService().getCommerceCurrencyByExternalReferenceCode(
+			externalReferenceCode, companyId);
+	}
+
 	/**
 	 * Returns the commerce currency with the matching UUID and company.
 	 *
@@ -362,6 +384,15 @@ public class CommerceCurrencyLocalServiceUtil {
 			getIndexableActionableDynamicQuery() {
 
 		return getService().getIndexableActionableDynamicQuery();
+	}
+
+	public static CommerceCurrency getOrAddEmptyCommerceCurrency(
+			String externalReferenceCode, long companyId, long userId,
+			String code)
+		throws PortalException {
+
+		return getService().getOrAddEmptyCommerceCurrency(
+			externalReferenceCode, companyId, userId, code);
 	}
 
 	/**
@@ -432,8 +463,9 @@ public class CommerceCurrencyLocalServiceUtil {
 	}
 
 	public static CommerceCurrency updateCommerceCurrency(
-			long commerceCurrencyId, Map<java.util.Locale, String> nameMap,
-			String symbol, java.math.BigDecimal rate,
+			String externalReferenceCode, long commerceCurrencyId,
+			Map<java.util.Locale, String> nameMap, String symbol,
+			java.math.BigDecimal rate,
 			Map<java.util.Locale, String> formatPatternMap,
 			int maxFractionDigits, int minFractionDigits, String roundingMode,
 			boolean primary, double priority, boolean active,
@@ -441,9 +473,9 @@ public class CommerceCurrencyLocalServiceUtil {
 		throws PortalException {
 
 		return getService().updateCommerceCurrency(
-			commerceCurrencyId, nameMap, symbol, rate, formatPatternMap,
-			maxFractionDigits, minFractionDigits, roundingMode, primary,
-			priority, active, serviceContext);
+			externalReferenceCode, commerceCurrencyId, nameMap, symbol, rate,
+			formatPatternMap, maxFractionDigits, minFractionDigits,
+			roundingMode, primary, priority, active, serviceContext);
 	}
 
 	public static CommerceCurrency updateCommerceCurrencyRate(
@@ -476,3 +508,4 @@ public class CommerceCurrencyLocalServiceUtil {
 			CommerceCurrencyLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1009874738

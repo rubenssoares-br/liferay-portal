@@ -13,7 +13,6 @@ import com.liferay.object.rest.dto.v1_0.FileEntry;
 import com.liferay.object.rest.dto.v1_0.ListEntry;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
-import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.ListUtil;
@@ -115,8 +114,7 @@ public class APIApplicationOpenApiContributor implements OpenAPIContributor {
 							}
 						});
 					setTitle(apiApplication.getTitle());
-					setVersion(
-						GetterUtil.get(apiApplication.getVersion(), "v1.0"));
+					setVersion(apiApplication.getVersion());
 				}
 			});
 
@@ -177,16 +175,18 @@ public class APIApplicationOpenApiContributor implements OpenAPIContributor {
 
 			APIApplication.Schema responseSchema = endpoint.getResponseSchema();
 
-			if (responseSchema != null) {
-				if (Objects.equals(
-						endpoint.getRetrieveType(),
-						APIApplication.Endpoint.RetrieveType.COLLECTION)) {
+			if (responseSchema == null) {
+				continue;
+			}
 
-					schemasSet.add("Page" + responseSchema.getName());
-				}
-				else {
-					schemasSet.add(responseSchema.getName());
-				}
+			if (Objects.equals(
+					endpoint.getRetrieveType(),
+					APIApplication.Endpoint.RetrieveType.COLLECTION)) {
+
+				schemasSet.add("Page" + responseSchema.getName());
+			}
+			else {
+				schemasSet.add(responseSchema.getName());
 			}
 		}
 
@@ -350,11 +350,13 @@ public class APIApplicationOpenApiContributor implements OpenAPIContributor {
 		).build();
 
 		for (String pageSchemaName : schemas.keySet()) {
-			if (pageSchemaName.startsWith("Page") &&
-				!schemasSet.contains(pageSchemaName)) {
+			if (!pageSchemaName.startsWith("Page") ||
+				schemasSet.contains(pageSchemaName)) {
 
-				schemasMap.remove(pageSchemaName);
+				continue;
 			}
+
+			schemasMap.remove(pageSchemaName);
 		}
 
 		return schemasMap;
@@ -371,10 +373,12 @@ public class APIApplicationOpenApiContributor implements OpenAPIContributor {
 			responseSchemaName = responseSchema.getName();
 		}
 
+		Http.Method method = endpoint.getMethod();
+
 		operation.setOperationId(
 			OpenAPIUtil.getOperationId(
-				endpoint.getMethod(), _formatPath(endpoint),
-				endpoint.getRetrieveType(), responseSchemaName));
+				method, _formatPath(endpoint), endpoint.getRetrieveType(),
+				responseSchemaName));
 
 		List<Parameter> parameters = new ArrayList<>();
 
@@ -392,7 +396,7 @@ public class APIApplicationOpenApiContributor implements OpenAPIContributor {
 				});
 		}
 
-		if (Objects.equals(endpoint.getMethod(), Http.Method.GET)) {
+		if (Objects.equals(method, Http.Method.GET)) {
 			if (Objects.equals(
 					endpoint.getRetrieveType(),
 					APIApplication.Endpoint.RetrieveType.COLLECTION)) {
@@ -548,10 +552,7 @@ public class APIApplicationOpenApiContributor implements OpenAPIContributor {
 		return new PathItem() {
 			{
 				operation(
-					PathItem.HttpMethod.valueOf(
-						endpoint.getMethod(
-						).name()),
-					operation);
+					PathItem.HttpMethod.valueOf(method.name()), operation);
 			}
 		};
 	}

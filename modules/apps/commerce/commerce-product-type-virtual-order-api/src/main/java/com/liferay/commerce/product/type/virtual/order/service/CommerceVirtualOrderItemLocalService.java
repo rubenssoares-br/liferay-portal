@@ -340,6 +340,12 @@ public interface CommerceVirtualOrderItemLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<CommerceVirtualOrderItem>
+			getNoCPDVirtualSettingFileEntryCommerceVirtualOrderItems(
+				long cpdVirtualSettingFileEntryId)
+		throws PortalException;
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -382,3 +388,4 @@ public interface CommerceVirtualOrderItemLocalService
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-434996262

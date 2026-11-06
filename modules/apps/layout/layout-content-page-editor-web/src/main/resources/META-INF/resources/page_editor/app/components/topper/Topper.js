@@ -17,9 +17,11 @@ import {ITEM_ACTIVATION_ORIGINS} from '../../config/constants/itemActivationOrig
 import {LAYOUT_DATA_ITEM_TYPES} from '../../config/constants/layoutDataItemTypes';
 import {config} from '../../config/index';
 import {useSetCollectionActiveItemContext} from '../../contexts/CollectionActiveItemContext';
+import {useIsDisabledCollectionItem} from '../../contexts/CollectionItemContext';
 import {
 	useActivationOrigin,
 	useActiveItemIds,
+	useHighlightedItemIds,
 	useHoverItem,
 	useIsActive,
 	useIsHovered,
@@ -28,6 +30,7 @@ import {
 } from '../../contexts/ControlsContext';
 import {useEditableProcessorUniqueId} from '../../contexts/EditableProcessorContext';
 import {
+	useIsMovementTarget,
 	useMovementSources,
 	useMovementTarget,
 	useMovementTargetPosition,
@@ -49,9 +52,10 @@ import {TARGET_POSITIONS} from '../../utils/drag_and_drop/constants/targetPositi
 import {
 	useDragItem,
 	useDropTarget,
-	useIsDroppable,
 } from '../../utils/drag_and_drop/useDragAndDrop';
-import getNormalizedDragItems from '../../utils/getNormalizedDragItems';
+import isStepper from '../../utils/isStepper';
+import {isUnmappedForm} from '../../utils/isUnmappedForm';
+import toMovementItem from '../../utils/toMovementItem';
 import useDropContainerId from '../../utils/useDropContainerId';
 import TopperItemActions from './TopperItemActions';
 import {TopperLabel} from './TopperLabel';
@@ -102,6 +106,7 @@ function TopperContent({
 	multiSelectType,
 }) {
 	const activeItemIds = useActiveItemIds();
+	const highlightedItemIds = useHighlightedItemIds();
 	const canUpdatePageStructure = useSelector(selectCanUpdatePageStructure);
 	const commentsPanelId = config.sidebarPanelsMap?.comments?.sidebarPanelId;
 	const dispatch = useDispatch();
@@ -109,25 +114,17 @@ function TopperContent({
 	const hoverItem = useHoverItem();
 	const {isOverTarget, targetPosition, targetRef} = useDropTarget(item);
 	const isMultiSelect = activeItemIds.length > 1;
-	const {itemId: keyboardMovementTargetId} = useMovementTarget();
+	const isKeyboardTarget = useIsMovementTarget();
+
 	const keyboardMovementPosition = useMovementTargetPosition();
 	const selectItem = useSelectItem();
 	const topperLabelId = useId();
 
 	const dropContainerId = useDropContainerId();
-	const isDroppable = useIsDroppable();
 	const dropTargetPosition = targetPosition || keyboardMovementPosition;
 
-	const isDropContainer = dropContainerId === item.itemId;
-	const isValidDrop =
-		(isDroppable && isOverTarget) ||
-		keyboardMovementTargetId === item.itemId;
-
-	const isHighlighted =
-		(item.type === LAYOUT_DATA_ITEM_TYPES.row ||
-		item.type === LAYOUT_DATA_ITEM_TYPES.collection
-			? item.children.includes(dropContainerId)
-			: isDropContainer) && isDroppable;
+	const isHighlighted = isItemHighlighted(item, dropContainerId);
+	const isHighlightedFromRule = highlightedItemIds?.includes(item.itemId);
 
 	const selectable =
 		!multiSelectType ||
@@ -145,19 +142,16 @@ function TopperContent({
 		[item]
 	);
 
-	const dragSources = useSelectorCallback(
+	const dragItem = useSelectorCallback(
 		(state) =>
-			getNormalizedDragItems(
-				item,
-				activeItemIds,
+			toMovementItem(
+				item.itemId,
 				state.layoutData,
 				state.fragmentEntryLinks
 			),
-		[item, activeItemIds],
+		[item],
 		deepEqual
 	);
-
-	const lastDragSource = dragSources[dragSources.length - 1];
 
 	const onDragBegin = () => {
 		if (!isActive) {
@@ -168,14 +162,14 @@ function TopperContent({
 	};
 
 	const onDragEnd = (parentItemId, position) => {
-		const thunk = lastDragSource.fieldTypes?.includes('stepper')
+		const thunk = isStepper(dragItem)
 			? moveStepper({
 					itemId: item.itemId,
 					parentItemId,
 					position,
 				})
 			: moveItems({
-					itemIds: dragSources.map((item) => item.itemId),
+					itemIds: activeItemIds,
 					parentItemIds: [parentItemId],
 					positions: [position],
 				});
@@ -184,13 +178,13 @@ function TopperContent({
 	};
 
 	const {handlerRef: itemRef, isDraggingSource: draggingItem} = useDragItem(
-		dragSources,
+		dragItem,
 		onDragEnd,
 		onDragBegin
 	);
 
 	const {handlerRef: topperRef, isDraggingSource: draggingTopper} =
-		useDragItem(dragSources, onDragEnd, onDragBegin);
+		useDragItem(dragItem, onDragEnd, onDragBegin);
 
 	const keyboardMovementSources = useMovementSources();
 	const lastSource =
@@ -199,28 +193,40 @@ function TopperContent({
 	const isDraggingSource =
 		draggingItem || draggingTopper || lastSource?.itemId === item.itemId;
 
+	const isTarget =
+		(isOverTarget || isKeyboardTarget(item.itemId)) &&
+		!(
+			dropTargetPosition === TARGET_POSITIONS.MIDDLE &&
+			(item.type === LAYOUT_DATA_ITEM_TYPES.collection ||
+				isUnmappedForm(item))
+		);
+
 	const {elementRef, isFocusable} = useLayoutKeyboardNavigation(item);
+
+	const isDisabledCollectionItem = useIsDisabledCollectionItem();
+
+	if (isDisabledCollectionItem) {
+		return children;
+	}
 
 	return (
 		<div
 			className={classNames(className, 'page-editor__topper', {
 				'active': isActive,
 				'drag-over-bottom':
-					isValidDrop &&
-					dropTargetPosition === TARGET_POSITIONS.BOTTOM,
+					isTarget && dropTargetPosition === TARGET_POSITIONS.BOTTOM,
 				'drag-over-left':
-					isValidDrop && dropTargetPosition === TARGET_POSITIONS.LEFT,
+					isTarget && dropTargetPosition === TARGET_POSITIONS.LEFT,
 				'drag-over-middle':
-					isValidDrop &&
-					dropTargetPosition === TARGET_POSITIONS.MIDDLE,
+					isTarget && dropTargetPosition === TARGET_POSITIONS.MIDDLE,
 				'drag-over-right':
-					isValidDrop &&
-					dropTargetPosition === TARGET_POSITIONS.RIGHT,
+					isTarget && dropTargetPosition === TARGET_POSITIONS.RIGHT,
 				'drag-over-top':
-					isValidDrop && dropTargetPosition === TARGET_POSITIONS.TOP,
+					isTarget && dropTargetPosition === TARGET_POSITIONS.TOP,
 				'dragged': isDraggingSource,
-				'drop-container': isDropContainer,
+				'drop-container': dropContainerId === item.itemId,
 				'highlighted': isHighlighted,
+				'highlighted-from-rule': isHighlightedFromRule,
 				'hovered': isHovered,
 				'not-allowed': !selectable,
 			})}
@@ -277,9 +283,7 @@ function TopperContent({
 			}}
 			tabIndex={isFocusable ? 0 : -1}
 		>
-			{isActive ||
-			isHighlighted ||
-			(isHovered && Liferay.FeatureFlags['LPD-32075']) ? (
+			{isActive || isHighlighted || isHovered ? (
 				<TopperLabel
 					isDragging={isDraggingSource}
 					isHovered={isHovered && !isActive}
@@ -431,6 +435,24 @@ class TopperErrorBoundary extends React.Component {
 			this.props.children
 		);
 	}
+}
+
+function isItemHighlighted(item, targetId) {
+	if (
+		item.type === LAYOUT_DATA_ITEM_TYPES.row ||
+		item.type === LAYOUT_DATA_ITEM_TYPES.collection
+	) {
+		return item.children.includes(targetId);
+	}
+
+	if (
+		item.type === LAYOUT_DATA_ITEM_TYPES.container ||
+		item.type === LAYOUT_DATA_ITEM_TYPES.form
+	) {
+		return targetId === item.itemId;
+	}
+
+	return false;
 }
 
 function isSelectionAllowed(element) {

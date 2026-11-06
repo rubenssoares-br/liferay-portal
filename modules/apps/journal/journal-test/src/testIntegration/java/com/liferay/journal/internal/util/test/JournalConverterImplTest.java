@@ -152,6 +152,32 @@ public class JournalConverterImplTest {
 	}
 
 	@Test
+	public void testGetContentFromNestedRepeatableFieldSets() throws Exception {
+		DDMStructure ddmStructure = _ddmStructureTestHelper.addStructure(
+			PortalUtil.getClassNameId(JournalArticle.class), null,
+			"Test Structure",
+			jsonDeserialize(
+				read("test-ddm-structure-nested-repeatable-fieldsets.json")),
+			StorageType.DEFAULT.getValue(), DDMStructureConstants.TYPE_DEFAULT);
+
+		String expectedContent = read(
+			"test-journal-content-nested-repeatable-fieldsets.xml");
+
+		Fields fields = _journalConverter.getDDMFields(
+			ddmStructure, expectedContent);
+
+		Field fieldsDisplayField = fields.get(DDM.FIELDS_DISPLAY_NAME);
+
+		fieldsDisplayField.setValue(
+			"RemovedField_INSTANCE_removed," + fieldsDisplayField.getValue());
+
+		Assert.assertEquals(
+			expectedContent,
+			_journalConverter.getContent(
+				ddmStructure, fields, ddmStructure.getGroupId()));
+	}
+
+	@Test
 	public void testGetContentFromTextAreaField() throws Exception {
 		Fields fields = new Fields();
 
@@ -373,8 +399,6 @@ public class JournalConverterImplTest {
 			_ddmStructure.getStructureId(), null, expectedFields, "text",
 			HashMapBuilder.<Locale, List<Serializable>>put(
 				_enLocale, Collections.singletonList("one")
-			).put(
-				_ptLocale, Collections.singletonList("one")
 			).build());
 
 		expectedFields.put(
@@ -403,6 +427,41 @@ public class JournalConverterImplTest {
 		Assert.assertEquals(
 			new Fields(),
 			_journalConverter.getDDMFields(_ddmStructure, StringPool.BLANK));
+	}
+
+	@Test
+	public void testGetFieldsFromRearrangedStructure() throws Exception {
+		DDMStructure ddmStructure = _ddmStructureTestHelper.addStructure(
+			PortalUtil.getClassNameId(JournalArticle.class), null,
+			"Test Structure",
+			jsonDeserialize(read("test-ddm-structure-rearranged-fields.json")),
+			StorageType.DEFAULT.getValue(), DDMStructureConstants.TYPE_DEFAULT);
+
+		Fields expectedFields = new Fields();
+
+		_addField(
+			ddmStructure.getStructureId(), null, expectedFields, "Text0",
+			HashMapBuilder.<Locale, List<Serializable>>put(
+				_enLocale, Collections.singletonList("0")
+			).build());
+		_addField(
+			ddmStructure.getStructureId(), null, expectedFields, "Text1",
+			HashMapBuilder.<Locale, List<Serializable>>put(
+				_enLocale, Collections.singletonList("1")
+			).build());
+
+		expectedFields.put(
+			getFieldsDisplayField(
+				ddmStructure.getStructureId(),
+				"FieldSet0_INSTANCE_Ou1IjCng,Text0_INSTANCE_fYZzWkyv" +
+					",Text1_INSTANCE_iTVc3xgV"));
+
+		String content = read("test-journal-content-rearranged-fields.xml");
+
+		Fields actualFields = _journalConverter.getDDMFields(
+			ddmStructure, content);
+
+		_assertFields(expectedFields, actualFields);
 	}
 
 	@Test
@@ -795,13 +854,14 @@ public class JournalConverterImplTest {
 	}
 
 	private void _assertFields(Fields expectedFields, Fields actualFields) {
-		Assert.assertEquals(
-			expectedFields.getNames(
-			).size(),
-			actualFields.getNames(
-			).size());
+		Set<String> actualFieldsNames = actualFields.getNames();
+		Set<String> expectedFieldsNames = expectedFields.getNames();
 
-		for (String name : expectedFields.getNames()) {
+		Assert.assertEquals(
+			actualFieldsNames.toString(), expectedFieldsNames.size(),
+			actualFieldsNames.size());
+
+		for (String name : expectedFieldsNames) {
 			Assert.assertEquals(
 				expectedFields.getDDMStructureId(),
 				actualFields.getDDMStructureId());
@@ -872,12 +932,6 @@ public class JournalConverterImplTest {
 		return fields;
 	}
 
-	@Inject(filter = "ddm.form.deserializer.type=json")
-	private static DDMFormDeserializer _jsonDDMFormDeserializer;
-
-	@Inject(filter = "ddm.form.deserializer.type=xsd")
-	private static DDMFormDeserializer _xsdDDMFormDeserializer;
-
 	private DDMStructure _ddmStructure;
 	private DDMStructureTestHelper _ddmStructureTestHelper;
 	private Locale _enLocale;
@@ -888,6 +942,12 @@ public class JournalConverterImplTest {
 	@Inject
 	private JournalConverter _journalConverter;
 
+	@Inject(filter = "ddm.form.deserializer.type=json")
+	private DDMFormDeserializer _jsonDDMFormDeserializer;
+
 	private Locale _ptLocale;
+
+	@Inject(filter = "ddm.form.deserializer.type=xsd")
+	private DDMFormDeserializer _xsdDDMFormDeserializer;
 
 }

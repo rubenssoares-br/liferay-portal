@@ -5,7 +5,7 @@
 
 package com.liferay.analytics.reports.rest.client.pagination;
 
-import javax.annotation.Generated;
+import jakarta.annotation.Generated;
 
 /**
  * @author Marcos Martins
@@ -63,3 +63,4 @@ public class Pagination {
 	private final int _pageSize;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1158830992

@@ -6,7 +6,7 @@
 import {getRandomInt} from '../utils/getRandomInt';
 import {ApiHelpers, DataApiHelpers} from './ApiHelpers';
 
-const DEFAULT_SXP_BLUEPRINT_CONFIGURATION = {
+export const DEFAULT_SXP_BLUEPRINT_CONFIGURATION = {
 	advancedConfiguration: {},
 	aggregationConfiguration: {},
 	generalConfiguration: {
@@ -150,6 +150,18 @@ export class SearchExperiencesApiHelper {
 	async deleteSXPElement(id: number | string) {
 		return this.apiHelpers.delete(
 			`${this.apiHelpers.baseUrl}${this.basePath}/sxp-elements/${id}`
+		);
+	}
+
+	/**
+	 * It allows fetching an sxpBlueprint, including its configuration.
+	 *
+	 * @param id the id of the blueprint
+	 */
+
+	async getSXPBlueprint(id: number | string): Promise<SXPBlueprint> {
+		return this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${this.basePath}/sxp-blueprints/${id}`
 		);
 	}
 }

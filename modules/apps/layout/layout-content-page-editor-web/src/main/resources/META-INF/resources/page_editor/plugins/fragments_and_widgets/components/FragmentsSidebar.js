@@ -4,7 +4,9 @@
  */
 
 import {ClayButtonWithIcon} from '@clayui/button';
+import {ClayDropDownWithItems} from '@clayui/drop-down';
 import {
+	MarketplaceButton,
 	SearchForm,
 	SearchResultsMessage,
 	isNullOrUndefined,
@@ -81,6 +83,7 @@ export function normalizeWidget(widget) {
 			portletId: widget.portletId,
 			portletItemId: widget.portletItemId || null,
 		},
+		deprecated: widget.deprecated,
 		disabled: !widget.instanceable && (widget.used || widget.embedded),
 		highlighted: widget.highlighted,
 		icon: widget.instanceable ? 'square-hole-multi' : 'square-hole',
@@ -127,6 +130,7 @@ const normalizeFragmentEntry = (fragmentEntry) => ({
 export default function FragmentsSidebar() {
 	const fragments = useSelector((state) => state.fragments);
 	const widgets = useSelector((state) => state.widgets);
+	const permissions = useSelector((state) => state.permissions);
 
 	const loadWidgets = useLoadWidgets();
 
@@ -153,7 +157,9 @@ export default function FragmentsSidebar() {
 						normalizeFragmentEntry(fragmentEntry)
 					),
 					collectionId: collection.fragmentCollectionId,
+					deprecated: collection.deprecated,
 					label: collection.name,
+					scope: collection.scope,
 				})),
 				id: COLLECTION_IDS.fragments,
 				label: Liferay.Language.get('fragments'),
@@ -223,7 +229,7 @@ export default function FragmentsSidebar() {
 	return (
 		<>
 			<SidebarPanelHeader>
-				{Liferay.Language.get('fragments-and-widgets')}
+				{Liferay.Language.get('components')}
 			</SidebarPanelHeader>
 
 			<SearchResultsMessage numberOfResults={numberOfResults} />
@@ -238,47 +244,89 @@ export default function FragmentsSidebar() {
 						onChange={setSearchValue}
 					/>
 
-					<ClayButtonWithIcon
-						aria-label={Liferay.Language.get('reorder-sets')}
-						borderless
-						className="lfr-portal-tooltip ml-2 mt-0"
-						data-tooltip-align="bottom-right"
-						displayType="secondary"
-						onClick={() => setShowReorderModal(true)}
-						size="sm"
-						symbol="order-arrow"
-						title={Liferay.Language.get('reorder-sets')}
-					/>
+					<div className="d-flex flex-shrink-0">
+						<ClayDropDownWithItems
+							items={[
+								{
+									label: Liferay.Language.get('reorder-sets'),
+									onClick: () => {
+										setShowReorderModal(true);
+									},
+									symbolLeft: 'order-arrow',
+								},
+								{
+									disabled: displayStyleButtonDisabled,
+									label: viewButtonLabel,
+									onClick: () => {
+										setDisplayStyle(
+											displayStyle ===
+												FRAGMENTS_DISPLAY_STYLES.LIST
+												? FRAGMENTS_DISPLAY_STYLES.CARDS
+												: FRAGMENTS_DISPLAY_STYLES.LIST
+										);
+									},
+									symbolLeft:
+										displayStyleButtonDisabled ||
+										displayStyle ===
+											FRAGMENTS_DISPLAY_STYLES.LIST
+											? 'cards2'
+											: 'list',
+								},
+							]}
+							renderMenuOnClick
+							trigger={
+								<ClayButtonWithIcon
+									aria-label={Liferay.Language.get(
+										'components-options'
+									)}
+									className="components-options ml-2"
+									data-tooltip-align="top"
+									displayType="unstyled"
+									size="sm"
+									symbol="ellipsis-v"
+									title={Liferay.Language.get(
+										'components-options'
+									)}
+								/>
+							}
+						/>
 
-					<ClayButtonWithIcon
-						aria-label={viewButtonLabel}
-						borderless
-						className="lfr-portal-tooltip ml-2 mt-0"
-						data-tooltip-align="bottom-right"
-						disabled={displayStyleButtonDisabled}
-						displayType="secondary"
-						onClick={() => {
-							setDisplayStyle(
-								displayStyle === FRAGMENTS_DISPLAY_STYLES.LIST
-									? FRAGMENTS_DISPLAY_STYLES.CARDS
-									: FRAGMENTS_DISPLAY_STYLES.LIST
-							);
-						}}
-						size="sm"
-						symbol={
-							displayStyleButtonDisabled ||
-							displayStyle === FRAGMENTS_DISPLAY_STYLES.LIST
-								? 'cards2'
-								: 'list'
-						}
-						title={viewButtonLabel}
-					/>
+						{permissions.VIEW_MARKETPLACE ? (
+							<MarketplaceButton
+								addFragmentCollectionURL={
+									config.addFragmentCollectionURL
+								}
+								body={Liferay.Language.get(
+									'we-are-excited-to-share-that-marketplace-is-now-part-of-page-builder'
+								)}
+								className="ml-1"
+								fragmentCollections={config.fragmentCollections}
+								fragmentPortletNamespace={
+									config.fragmentPortletNamespace
+								}
+								fragmentsImportURL={config.fragmentsImportURL}
+								heading={Liferay.Language.get(
+									'marketplace-is-now-in-page-builder'
+								)}
+								permissions={{
+									installFreeApps:
+										permissions.INSTALL_FREE_BUNDLED_APPS_MARKETPLACE,
+									manageFragmentsEntries:
+										permissions.MANAGE_FRAGMENT_ENTRIES,
+									purchaseAndInstallPaidApps:
+										permissions.PURCHASE_AND_INSTALL_PAID_APPS_MARKETPLACE,
+								}}
+								portletNamespace={config.portletNamespace}
+							/>
+						) : null}
+					</div>
 				</div>
 
 				{searchValue ? (
 					<SearchResultsPanel
 						filteredTabs={filteredTabs}
 						loading={loadingWidgets}
+						searchValue={searchValue}
 					/>
 				) : (
 					<TabsPanel

@@ -538,14 +538,6 @@ public class ResourcePermissionLocalServiceWrapper
 			getIndexableActionableDynamicQuery();
 	}
 
-	@Override
-	public java.util.Map<String, java.util.List<ResourcePermission>>
-		getIndividualPortletResourcePermissions(long companyId) {
-
-		return _resourcePermissionLocalService.
-			getIndividualPortletResourcePermissions(companyId);
-	}
-
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -625,6 +617,14 @@ public class ResourcePermissionLocalServiceWrapper
 
 	@Override
 	public java.util.List<ResourcePermission> getResourcePermissions(
+		long companyId, String name, int scope) {
+
+		return _resourcePermissionLocalService.getResourcePermissions(
+			companyId, name, scope);
+	}
+
+	@Override
+	public java.util.List<ResourcePermission> getResourcePermissions(
 		long companyId, String name, int scope, long roleId,
 		boolean viewActionId) {
 
@@ -683,24 +683,6 @@ public class ResourcePermissionLocalServiceWrapper
 
 		return _resourcePermissionLocalService.getResourcePermissionsCount(
 			companyId, name, scope, primKey);
-	}
-
-	/**
-	 * Returns the resource permissions that apply to the resource.
-	 *
-	 * @param companyId the primary key of the resource's company
-	 * @param groupId the primary key of the resource's group
-	 * @param name the resource's name, which can be either a class name or a
-	 portlet ID
-	 * @param primKey the primary key of the resource
-	 * @return the resource permissions associated with the resource
-	 */
-	@Override
-	public java.util.List<ResourcePermission> getResourceResourcePermissions(
-		long companyId, long groupId, String name, String primKey) {
-
-		return _resourcePermissionLocalService.getResourceResourcePermissions(
-			companyId, groupId, name, primKey);
 	}
 
 	/**
@@ -1249,3 +1231,4 @@ public class ResourcePermissionLocalServiceWrapper
 	private ResourcePermissionLocalService _resourcePermissionLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:575532694

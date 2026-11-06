@@ -121,6 +121,12 @@ public class RedirectEntryLocalServiceUtil {
 		return getService().deletePersistedModel(persistedModel);
 	}
 
+	public static void deleteRedirectEntries(long groupId)
+		throws PortalException {
+
+		getService().deleteRedirectEntries(groupId);
+	}
+
 	/**
 	 * Deletes the redirect entry with the primary key from the database. Also notifies the appropriate model listeners.
 	 *
@@ -459,3 +465,4 @@ public class RedirectEntryLocalServiceUtil {
 			RedirectEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1930830259

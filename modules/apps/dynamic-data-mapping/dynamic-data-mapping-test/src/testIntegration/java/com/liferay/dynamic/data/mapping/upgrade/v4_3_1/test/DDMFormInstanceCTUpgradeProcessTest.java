@@ -74,6 +74,11 @@ public class DDMFormInstanceCTUpgradeProcessTest
 	}
 
 	@Override
+	protected void deleteCTModel(long primaryKey) throws Exception {
+		_ddmFormInstanceLocalService.deleteFormInstance(primaryKey);
+	}
+
+	@Override
 	protected CTService<?> getCTService() {
 		return _ddmFormInstanceLocalService;
 	}
@@ -99,11 +104,6 @@ public class DDMFormInstanceCTUpgradeProcessTest
 		"com.liferay.dynamic.data.mapping.internal.upgrade.v4_3_1." +
 			"DDMFormInstanceUpgradeProcess";
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@DeleteAfterTestRun
 	private DDMFormInstance _ddmFormInstance;
 
@@ -112,5 +112,10 @@ public class DDMFormInstanceCTUpgradeProcessTest
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

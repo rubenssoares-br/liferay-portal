@@ -19,10 +19,10 @@ import com.liferay.portal.kernel.test.ReloadURLClassLoader;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsUtil;
-import com.liferay.portal.util.PropsValues;
 
 import java.lang.reflect.Constructor;
 
@@ -105,16 +105,9 @@ public class LayoutTypePortletImplStaticPortletsTest
 	}
 
 	private LayoutTypePortlet _reloadLayoutTypePortlet() throws Exception {
-		Class<? extends LayoutTypePortlet> clazz =
-			(Class<LayoutTypePortlet>)layoutTypePortlet.getClass();
+		Class<?> clazz = layoutTypePortlet.getClass();
 
-		ClassLoader classLoader = clazz.getClassLoader();
-
-		Class<?> anonymousInnerClass = classLoader.loadClass(
-			clazz.getName() + "$1");
-
-		ClassLoader reloadURLClassLoader = new ReloadURLClassLoader(
-			clazz, anonymousInnerClass);
+		ClassLoader reloadURLClassLoader = new ReloadURLClassLoader(clazz);
 
 		Class<? extends LayoutTypePortlet> reloadedClass =
 			(Class<? extends LayoutTypePortlet>)reloadURLClassLoader.loadClass(

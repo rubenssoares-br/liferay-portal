@@ -111,7 +111,8 @@ public class LiferayLocalRepository
 			externalReferenceCode, userId, getGroupId(), getRepositoryId(),
 			toFolderId(folderId), sourceFileName, mimeType, title, urlTitle,
 			description, changeLog, fileEntryTypeId, ddmFormValuesMap, file,
-			null, size, null, null, null, serviceContext);
+			null, size, displayDate, expirationDate, reviewDate,
+			serviceContext);
 
 		return new LiferayFileEntry(dlFileEntry);
 	}
@@ -239,6 +240,18 @@ public class LiferayLocalRepository
 		if (dlFolder != null) {
 			dlFolderLocalService.deleteFolder(folderId);
 		}
+	}
+
+	@Override
+	public FileEntry fetchFileEntry(long fileEntryId) throws PortalException {
+		DLFileEntry dlFileEntry = dlFileEntryLocalService.fetchDLFileEntry(
+			fileEntryId);
+
+		if (dlFileEntry == null) {
+			return null;
+		}
+
+		return new LiferayFileEntry(dlFileEntry);
 	}
 
 	@Override
@@ -484,6 +497,16 @@ public class LiferayLocalRepository
 	}
 
 	@Override
+	public FileShortcut getFileShortcutByExternalReferenceCode(
+			String externalReferenceCode)
+		throws PortalException {
+
+		return new LiferayFileShortcut(
+			dlFileShortcutLocalService.getDLFileShortcutByExternalReferenceCode(
+				externalReferenceCode, getGroupId()));
+	}
+
+	@Override
 	public FileVersion getFileVersion(long fileVersionId)
 		throws PortalException {
 
@@ -509,6 +532,15 @@ public class LiferayLocalRepository
 			getGroupId(), toFolderId(parentFolderId), name);
 
 		return new LiferayFolder(dlFolder);
+	}
+
+	@Override
+	public Folder getFolderByExternalReferenceCode(String externalReferenceCode)
+		throws PortalException {
+
+		return new LiferayFolder(
+			dlFolderLocalService.getDLFolderByExternalReferenceCode(
+				externalReferenceCode, getGroupId()));
 	}
 
 	@Override

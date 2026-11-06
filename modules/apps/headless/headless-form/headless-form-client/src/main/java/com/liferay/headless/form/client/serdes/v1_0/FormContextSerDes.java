@@ -10,13 +10,14 @@ import com.liferay.headless.form.client.dto.v1_0.FormFieldValue;
 import com.liferay.headless.form.client.dto.v1_0.FormPageContext;
 import com.liferay.headless.form.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -320,6 +321,16 @@ public class FormContextSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -352,3 +363,4 @@ public class FormContextSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:917866490

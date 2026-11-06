@@ -26,15 +26,15 @@ import com.liferay.portal.kernel.util.SubscriptionSender;
 import com.liferay.subscription.model.Subscription;
 import com.liferay.subscription.web.internal.configuration.SubscriptionConfiguration;
 
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.InternetHeaders;
+
 import java.io.IOException;
 
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.InternetHeaders;
 
 /**
  * @author Alejandro Tardín
@@ -152,7 +152,7 @@ public class UnsubscribeHooks {
 			return _ticketLocalService.addTicket(
 				subscription.getCompanyId(), Subscription.class.getName(),
 				subscription.getSubscriptionId(),
-				TicketConstants.TYPE_SUBSCRIPTION, StringPool.BLANK,
+				TicketConstants.TYPE_SUBSCRIPTION, null, StringPool.BLANK,
 				calendar.getTime(), _subscriptionSender.getServiceContext());
 		}
 

@@ -31,6 +31,18 @@ public class PermissionCheckFinderEntryLocalServiceWrapper
 			permissionCheckFinderEntryLocalService;
 	}
 
+	@Override
+	public com.liferay.portal.tools.service.builder.test.model.
+		PermissionCheckFinderEntry addPermissionCheckFinderEntry(
+				long companyId, long groupId, int integer, String name,
+				String type, long userId)
+			throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _permissionCheckFinderEntryLocalService.
+			addPermissionCheckFinderEntry(
+				companyId, groupId, integer, name, type, userId);
+	}
+
 	/**
 	 * Adds the permission check finder entry to the database. Also notifies the appropriate model listeners.
 	 *
@@ -246,6 +258,24 @@ public class PermissionCheckFinderEntryLocalServiceWrapper
 	}
 
 	@Override
+	public java.util.List
+		<com.liferay.portal.tools.service.builder.test.model.
+			PermissionCheckFinderEntry> filterFindByGroupId(long groupId) {
+
+		return _permissionCheckFinderEntryLocalService.filterFindByGroupId(
+			groupId);
+	}
+
+	@Override
+	public java.util.List
+		<com.liferay.portal.tools.service.builder.test.model.
+			PermissionCheckFinderEntry> filterFindByGroupId(long[] groupIds) {
+
+		return _permissionCheckFinderEntryLocalService.filterFindByGroupId(
+			groupIds);
+	}
+
+	@Override
 	public com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
 		getActionableDynamicQuery() {
 
@@ -376,3 +406,4 @@ public class PermissionCheckFinderEntryLocalServiceWrapper
 		_permissionCheckFinderEntryLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1377971383

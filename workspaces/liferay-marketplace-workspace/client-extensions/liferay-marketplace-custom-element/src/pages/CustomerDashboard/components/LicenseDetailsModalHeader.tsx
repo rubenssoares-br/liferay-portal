@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {getIconUrl} from '../../GetApp/utils/getIcon';
+import {normalizeURLProtocol} from '../../../utils/string';
 import AccountEmailInfo from '../pages/Apps/App/Licenses/CreateLicense/AccountInfo';
 import OrderDetailsHeader from './OrderDetailsHeader';
 
@@ -27,13 +27,16 @@ const LicenseDetailsModalHeader: React.FC<LicenseDetailsModalHeaderProps> = ({
 			<OrderDetailsHeader
 				className="d-flex flex-row justify-content-between mt-3"
 				hasOrderDescription={modalData?.description}
-				image={getIconUrl(product)}
+				image={normalizeURLProtocol(product.urlImage)}
 				name={product?.name}
 				version={modalData?.productVersion}
 			/>
 		</div>
 
-		<AccountEmailInfo userAccount={myUserAccount} />
+		<AccountEmailInfo
+			image={myUserAccount.logoURL}
+			name={myUserAccount.name}
+		/>
 	</div>
 );
 

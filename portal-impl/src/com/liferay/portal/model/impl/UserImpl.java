@@ -51,8 +51,8 @@ import com.liferay.portal.kernel.service.UserGroupLocalServiceUtil;
 import com.liferay.portal.kernel.service.UserGroupRoleLocalServiceUtil;
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
 import com.liferay.portal.kernel.service.WebsiteLocalServiceUtil;
+import com.liferay.portal.kernel.template.TemplateRestricted;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
-import com.liferay.portal.kernel.util.Digester;
 import com.liferay.portal.kernel.util.DigesterUtil;
 import com.liferay.portal.kernel.util.FriendlyURLNormalizerUtil;
 import com.liferay.portal.kernel.util.HtmlUtil;
@@ -62,16 +62,15 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.TimeZoneUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.security.auth.EmailAddressGeneratorFactory;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.users.admin.kernel.util.UserInitialsGeneratorUtil;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -188,6 +187,12 @@ public class UserImpl extends UserBaseImpl {
 		return _contact;
 	}
 
+	@Override
+	@TemplateRestricted
+	public String getDigest() {
+		return super.getDigest();
+	}
+
 	/**
 	 * Returns a digest for the user, incorporating the password.
 	 *
@@ -199,8 +204,8 @@ public class UserImpl extends UserBaseImpl {
 	@Override
 	public String getDigest(String password) {
 		return DigesterUtil.digestHex(
-			Digester.MD5, String.valueOf(getUserId()), Portal.PORTAL_REALM,
-			password);
+			PropsValues.FIPS_ENABLED ? DigesterUtil.SHA_256 : DigesterUtil.MD5,
+			String.valueOf(getUserId()), Portal.PORTAL_REALM, password);
 	}
 
 	/**
@@ -382,17 +387,7 @@ public class UserImpl extends UserBaseImpl {
 	@Override
 	public Group getGroup() {
 		if (_group == null) {
-			if (_groupId == -1) {
-				_group = GroupLocalServiceUtil.fetchUserGroup(
-					getCompanyId(), getUserId());
-
-				if (_group != null) {
-					_groupId = _group.getGroupId();
-				}
-			}
-			else {
-				_group = GroupLocalServiceUtil.fetchGroup(_groupId);
-			}
+			_group = GroupLocalServiceUtil.fetchGroup(getGroupId());
 		}
 
 		return _group;
@@ -406,6 +401,8 @@ public class UserImpl extends UserBaseImpl {
 
 			if (_group != null) {
 				_groupId = _group.getGroupId();
+
+				groupIdUpdateEntityCacheBiConsumer.accept(this, _groupId);
 			}
 		}
 
@@ -482,6 +479,24 @@ public class UserImpl extends UserBaseImpl {
 	}
 
 	@Override
+	@TemplateRestricted
+	public Date getLastFailedLoginDate() {
+		return super.getLastFailedLoginDate();
+	}
+
+	@Override
+	@TemplateRestricted
+	public Date getLastLoginDate() {
+		return super.getLastLoginDate();
+	}
+
+	@Override
+	@TemplateRestricted
+	public String getLastLoginIP() {
+		return super.getLastLoginIP();
+	}
+
+	@Override
 	public Locale getLocale() {
 		return _locale;
 	}
@@ -506,6 +521,18 @@ public class UserImpl extends UserBaseImpl {
 		}
 
 		return login;
+	}
+
+	@Override
+	@TemplateRestricted
+	public Date getLoginDate() {
+		return super.getLoginDate();
+	}
+
+	@Override
+	@TemplateRestricted
+	public String getLoginIP() {
+		return super.getLoginIP();
 	}
 
 	/**
@@ -608,6 +635,18 @@ public class UserImpl extends UserBaseImpl {
 	}
 
 	@Override
+	@TemplateRestricted
+	public String getPassword() {
+		return super.getPassword();
+	}
+
+	@Override
+	@TemplateRestricted
+	public boolean getPasswordEncrypted() {
+		return super.getPasswordEncrypted();
+	}
+
+	@Override
 	public boolean getPasswordModified() {
 		return _passwordModified;
 	}
@@ -616,10 +655,16 @@ public class UserImpl extends UserBaseImpl {
 	public PasswordPolicy getPasswordPolicy() throws PortalException {
 		if (_passwordPolicy == null) {
 			_passwordPolicy =
-				PasswordPolicyLocalServiceUtil.getPasswordPolicyByUser(this);
+				PasswordPolicyLocalServiceUtil.fetchPasswordPolicyByUser(this);
 		}
 
 		return _passwordPolicy;
+	}
+
+	@Override
+	@TemplateRestricted
+	public boolean getPasswordReset() {
+		return super.getPasswordReset();
 	}
 
 	@Override
@@ -650,6 +695,18 @@ public class UserImpl extends UserBaseImpl {
 	@Override
 	public int getPublicLayoutsPageCount() throws PortalException {
 		return LayoutLocalServiceUtil.getLayoutsCount(this, false);
+	}
+
+	@Override
+	@TemplateRestricted
+	public String getReminderQueryAnswer() {
+		return super.getReminderQueryAnswer();
+	}
+
+	@Override
+	@TemplateRestricted
+	public String getReminderQueryQuestion() {
+		return super.getReminderQueryQuestion();
 	}
 
 	@Override
@@ -766,6 +823,16 @@ public class UserImpl extends UserBaseImpl {
 		if (_userGroupIds == null) {
 			_userGroupIds = UserLocalServiceUtil.getUserGroupPrimaryKeys(
 				getUserId());
+
+			try {
+				_userGroups = UserGroupLocalServiceUtil.getUserGroups(
+					_userGroupIds);
+			}
+			catch (PortalException portalException) {
+				_log.error(portalException);
+			}
+
+			userGroupIdsUpdateEntityCacheBiConsumer.accept(this, _userGroupIds);
 		}
 
 		return _userGroupIds;
@@ -778,7 +845,17 @@ public class UserImpl extends UserBaseImpl {
 
 	@Override
 	public List<UserGroup> getUserGroups() {
-		return UserGroupLocalServiceUtil.getUserUserGroups(getUserId());
+		if (_userGroups == null) {
+			try {
+				_userGroups = UserGroupLocalServiceUtil.getUserGroups(
+					getUserGroupIds());
+			}
+			catch (PortalException portalException) {
+				_log.error(portalException);
+			}
+		}
+
+		return _userGroups;
 	}
 
 	@Override
@@ -924,6 +1001,11 @@ public class UserImpl extends UserBaseImpl {
 	}
 
 	@Override
+	public boolean isLayoutsUpdated() {
+		return _layoutsUpdated;
+	}
+
+	@Override
 	public boolean isMale() throws PortalException {
 		return getMale();
 	}
@@ -1006,11 +1088,7 @@ public class UserImpl extends UserBaseImpl {
 			getCompanyId(), PropsKeys.TERMS_OF_USE_REQUIRED,
 			PropsValues.TERMS_OF_USE_REQUIRED);
 
-		if (termsOfUseRequired) {
-			return false;
-		}
-
-		return true;
+		return !termsOfUseRequired;
 	}
 
 	@Override
@@ -1046,14 +1124,16 @@ public class UserImpl extends UserBaseImpl {
 
 	@Override
 	public void setLanguageId(String languageId) {
-		if (isGuestUser()) {
-			_locale = LocaleUtil.fromLanguageId(languageId, false);
-		}
-		else {
-			_locale = LocaleUtil.fromLanguageId(languageId);
-		}
+		_locale = LocaleUtil.fromLanguageId(languageId, false);
 
-		super.setLanguageId(LocaleUtil.toLanguageId(_locale));
+		super.setLanguageId(languageId);
+	}
+
+	@Override
+	public void setLayoutsUpdated(boolean layoutsUpdated) {
+		_layoutsUpdated = layoutsUpdated;
+
+		layoutsUpdatedUpdateEntityCacheBiConsumer.accept(this, layoutsUpdated);
 	}
 
 	@Override
@@ -1097,6 +1177,14 @@ public class UserImpl extends UserBaseImpl {
 	@Override
 	public void setUserGroupIds(long[] userGroupIds) {
 		_userGroupIds = userGroupIds;
+
+		_userGroups = null;
+	}
+
+	@Override
+	@TemplateRestricted
+	public String toString() {
+		return super.toString();
 	}
 
 	protected String getProfileFriendlyURL() {
@@ -1132,20 +1220,20 @@ public class UserImpl extends UserBaseImpl {
 			List<Organization> organizations)
 		throws PortalException {
 
-		List<Organization> parentOrganizations = new ArrayList<>();
+		return TransformUtil.transform(
+			organizations,
+			organization -> {
+				Organization parentOrganization =
+					organization.getParentOrganization();
 
-		for (Organization organization : organizations) {
-			Organization parentOrganization =
-				organization.getParentOrganization();
+				if ((parentOrganization == null) ||
+					organizations.contains(parentOrganization)) {
 
-			if ((parentOrganization != null) &&
-				!organizations.contains(parentOrganization)) {
+					return null;
+				}
 
-				parentOrganizations.add(parentOrganization);
-			}
-		}
-
-		return parentOrganizations;
+				return parentOrganization;
+			});
 	}
 
 	private boolean _isRequirePasswordReset() {
@@ -1172,6 +1260,10 @@ public class UserImpl extends UserBaseImpl {
 	private long _groupId = -1;
 
 	private long[] _groupIds;
+
+	@CacheField(permanent = true, propagateToInterface = true)
+	private boolean _layoutsUpdated;
+
 	private Locale _locale;
 	private long[] _organizationIds;
 	private boolean _passwordModified;
@@ -1180,6 +1272,10 @@ public class UserImpl extends UserBaseImpl {
 	private long[] _roleIds;
 	private long[] _teamIds;
 	private TimeZone _timeZone;
+
+	@CacheField(permanent = true, propagateToInterface = true)
 	private long[] _userGroupIds;
+
+	private List<UserGroup> _userGroups;
 
 }

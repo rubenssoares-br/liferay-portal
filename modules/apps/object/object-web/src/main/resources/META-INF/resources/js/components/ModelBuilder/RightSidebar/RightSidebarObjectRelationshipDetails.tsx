@@ -6,14 +6,15 @@
 import {ClayButtonWithIcon} from '@clayui/button';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import ClayPanel from '@clayui/panel';
-import {API, openToast, stringUtils} from '@liferay/object-js-components-web';
+import {API, stringUtils} from '@liferay/object-js-components-web';
+import {openToast} from 'frontend-js-components-web';
 import {createResourceURL, sub} from 'frontend-js-web';
 import React, {useEffect, useState} from 'react';
 import {isEdge, isNode} from 'react-flow-renderer';
 
-import {defaultLanguageId} from '../../../utils/constants';
 import {EditObjectRelationshipContent} from '../../ObjectRelationship/EditObjectRelationshipContent';
 import {ModalDeleteObjectRelationship} from '../../ObjectRelationship/ModalDeleteObjectRelationship';
+import {checkDisableInheritanceBlocked} from '../../ObjectRelationship/checkDisableInheritanceBlocked';
 import {useObjectRelationshipForm} from '../../ObjectRelationship/useObjectRelationshipForm';
 import {getUpdatedModelBuilderStructurePayload} from '../../ViewObjectDefinitions/objectDefinitionUtil';
 import {useObjectFolderContext} from '../ModelBuilderContext/objectFolderContext';
@@ -36,11 +37,14 @@ export function RightSidebarObjectRelationshipDetails({
 		{
 			baseResourceURL,
 			elements,
+			learnResourceContext,
 			selectedObjectFolder,
 			selectedObjectRelationship,
 		},
 		dispatch,
 	] = useObjectFolderContext();
+
+	const [isCheckingInheritance, setIsCheckingInheritance] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [
 		objectRelationshipParameterRequired,
@@ -51,7 +55,6 @@ export function RightSidebarObjectRelationshipDetails({
 		setObjectRelationshipRestContextPath,
 	] = useState('');
 	const [readOnly, setReadOnly] = useState(true);
-
 	const [showModal, setShowModal] = useState<Partial<ModelBuilderModals>>({
 		deleteObjectRelationship: false,
 	});
@@ -120,13 +123,11 @@ export function RightSidebarObjectRelationshipDetails({
 	}, [selectedObjectRelationship?.id]);
 
 	const onSubmit = async (
-		editedObjectRelationship?: Partial<ObjectRelationship>
+		objectRelationship: Partial<ObjectRelationship> = values
 	) => {
 		const validationErrors = handleValidate();
 
 		if (!Object.keys(validationErrors).length) {
-			const objectRelationship = editedObjectRelationship ?? values;
-
 			try {
 				await API.putObjectRelationship(objectRelationship);
 
@@ -136,11 +137,17 @@ export function RightSidebarObjectRelationshipDetails({
 					},
 					type: TYPES.SET_SHOW_CHANGES_SAVED,
 				});
+
+				openToast({
+					message: Liferay.Language.get(
+						'the-object-relationship-was-updated-successfully'
+					),
+				});
 			}
 			catch (error: unknown) {
 				const {message} = error as Error;
 
-				openToast({message, type: 'danger'});
+				openToast({autoClose: 15000, message, type: 'danger'});
 			}
 
 			if (!objectRelationship || !objectRelationship?.id) {
@@ -160,11 +167,10 @@ export function RightSidebarObjectRelationshipDetails({
 							) {
 								return {
 									...objectRelationshipEdgeData,
-									label: stringUtils.getLocalizableLabel(
-										defaultLanguageId,
-										objectRelationship.label,
-										objectRelationship.name
-									),
+									label: stringUtils.getLocalizableLabel({
+										fallbackLabel: objectRelationship.name,
+										labels: objectRelationship.label,
+									}),
 								};
 							}
 
@@ -199,6 +205,90 @@ export function RightSidebarObjectRelationshipDetails({
 		});
 	};
 
+	const updateModelBuilderRootStructure = async () => {
+		const payload = await getUpdatedModelBuilderStructurePayload(
+			baseResourceURL,
+			selectedObjectFolder.name
+		);
+
+		dispatch({
+			payload: {
+				...payload,
+				dispatch,
+				rightSidebarType: 'objectRelationshipDetails',
+				selectedObjectRelationshipId: selectedObjectRelationship?.id,
+			},
+			type: TYPES.UPDATE_MODEL_BUILDER_STRUCTURE,
+		});
+
+		dispatch({
+			payload: {
+				selectedObjectRelationshipId:
+					selectedObjectRelationship?.id as number,
+			},
+			type: TYPES.SET_SELECTED_OBJECT_RELATIONSHIP_EDGE,
+		});
+	};
+
+	const handleInheritanceCheckboxChange = async ({
+		target,
+	}: React.ChangeEvent<HTMLInputElement>) => {
+		if (target.checked) {
+			setValues({
+				...values,
+				edge: true,
+			});
+
+			await onSubmit({...values, edge: true});
+
+			await updateModelBuilderRootStructure();
+
+			return;
+		}
+
+		setIsCheckingInheritance(true);
+
+		let isBlocked = false;
+
+		try {
+			isBlocked = await checkDisableInheritanceBlocked(values);
+		}
+		catch (error) {
+			openToast({
+				message: Liferay.Language.get('an-unexpected-error-occurred'),
+				type: 'danger',
+			});
+
+			return;
+		}
+		finally {
+			setIsCheckingInheritance(false);
+		}
+
+		const parentWindow = Liferay.Util.getOpener();
+
+		if (isBlocked) {
+			parentWindow.Liferay.fire('openModalDisableInheritance', {
+				isBlocked: true,
+			});
+
+			return;
+		}
+
+		parentWindow.Liferay.fire('openModalDisableInheritance', {
+			handleDisable: async () => {
+				setValues({
+					...values,
+					edge: false,
+				});
+
+				await onSubmit({...values, edge: false});
+
+				await updateModelBuilderRootStructure();
+			},
+		});
+	};
+
 	return (
 		<>
 			<div className="lfr-objects__model-builder-right-sidebar-object-relationship-title-container">
@@ -230,15 +320,21 @@ export function RightSidebarObjectRelationshipDetails({
 			<div className="lfr-objects__model-builder-right-sidebar-object-relationship-content">
 				{!loading && values.objectDefinitionExternalReferenceCode1 ? (
 					<EditObjectRelationshipContent
+						autoSave
 						baseResourceURL={baseResourceURL}
 						containerWrapper={ClayPanel}
 						errors={errors}
 						handleChange={handleChange}
+						inheritanceCheckboxDisabled={isCheckingInheritance}
+						learnResources={learnResourceContext}
 						objectDefinitionExternalReferenceCode={
 							values.objectDefinitionExternalReferenceCode1
 						}
 						objectRelationshipDeletionTypes={
 							objectRelationshipDeletionTypes
+						}
+						onChangeInheritanceCheckbox={
+							handleInheritanceCheckboxChange
 						}
 						onSubmit={onSubmit}
 						parameterRequired={objectRelationshipParameterRequired}

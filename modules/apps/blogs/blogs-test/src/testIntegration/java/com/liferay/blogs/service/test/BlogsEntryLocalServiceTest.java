@@ -6,7 +6,9 @@
 package com.liferay.blogs.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.asset.kernel.exception.AssetCategoryException;
 import com.liferay.asset.kernel.model.AssetCategory;
+import com.liferay.asset.kernel.model.AssetCategoryConstants;
 import com.liferay.asset.kernel.model.AssetVocabulary;
 import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
@@ -30,6 +32,7 @@ import com.liferay.message.boards.model.MBThread;
 import com.liferay.message.boards.service.MBMessageLocalServiceUtil;
 import com.liferay.message.boards.test.util.MBTestUtil;
 import com.liferay.petra.function.UnsafeRunnable;
+import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.test.util.ConfigurationTemporarySwapper;
@@ -37,10 +40,8 @@ import com.liferay.portal.kernel.comment.CommentManagerUtil;
 import com.liferay.portal.kernel.dao.orm.QueryDefinition;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.ModelHintsUtil;
-import com.liferay.portal.kernel.model.Organization;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.module.util.BundleUtil;
 import com.liferay.portal.kernel.portletfilerepository.PortletFileRepositoryUtil;
@@ -54,7 +55,6 @@ import com.liferay.portal.kernel.test.constants.TestDataConstants;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
-import com.liferay.portal.kernel.test.util.OrganizationTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -63,17 +63,19 @@ import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.TempFileEntryUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.mail.MailServiceTestUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.SynchronousMailTestRule;
+import com.liferay.portlet.asset.util.AssetVocabularySettingsHelper;
 import com.liferay.subscription.service.SubscriptionLocalServiceUtil;
 
 import java.io.InputStream;
@@ -372,6 +374,52 @@ public class BlogsEntryLocalServiceTest {
 			});
 	}
 
+	@Test(expected = AssetCategoryException.class)
+	public void testAddEntryWithAssetCategoriesFromNonmultiValuedAssetVocabulary()
+		throws Exception {
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group, _user.getUserId());
+
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			_getAssetVocabularySettingsHelper(
+				false, new long[] {AssetCategoryConstants.ALL_CLASS_NAME_ID},
+				new long[] {AssetCategoryConstants.ALL_CLASS_TYPE_PK},
+				new boolean[] {false}, new boolean[] {false});
+
+		Assert.assertFalse(assetVocabularySettingsHelper.isMultiValued());
+
+		AssetVocabulary assetVocabulary =
+			_assetVocabularyLocalService.addVocabulary(
+				_user.getUserId(), _group.getGroupId(),
+				RandomTestUtil.randomString(),
+				HashMapBuilder.put(
+					LocaleUtil.US, RandomTestUtil.randomString()
+				).build(),
+				null, assetVocabularySettingsHelper.toString(), serviceContext);
+
+		AssetCategory assetCategory1 = _assetCategoryLocalService.addCategory(
+			_user.getUserId(), _group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
+		AssetCategory assetCategory2 = _assetCategoryLocalService.addCategory(
+			_user.getUserId(), _group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
+
+		serviceContext.setAssetCategoryIds(
+			new long[] {
+				assetCategory1.getCategoryId(), assetCategory2.getCategoryId()
+			});
+
+		_blogsEntryLocalService.addEntry(
+			RandomTestUtil.randomString(), _user.getUserId(),
+			StringUtil.randomString(), StringUtil.randomString(),
+			StringUtil.randomString(), StringUtil.randomString(),
+			StringUtil.randomString(), new Date(), true, true, new String[0],
+			null, null, null, serviceContext);
+	}
+
 	@Test
 	public void testAddEntryWithDuplicatedAutogeneratedFriendlyURL()
 		throws Exception {
@@ -396,7 +444,6 @@ public class BlogsEntryLocalServiceTest {
 		Assert.assertEquals("title-1", entry.getUrlTitle());
 	}
 
-	@FeatureFlags("LPD-11147")
 	@Test(expected = DuplicateFriendlyURLEntryException.class)
 	public void testAddEntryWithDuplicatedCategorizedFriendlyURL()
 		throws Exception {
@@ -1036,49 +1083,6 @@ public class BlogsEntryLocalServiceTest {
 	}
 
 	@Test
-	public void testGetGroupsEntries() throws Exception {
-		List<BlogsEntry> groupsEntries =
-			_blogsEntryLocalService.getGroupsEntries(
-				_user.getCompanyId(), _group.getGroupId(), new Date(),
-				_statusInTrashQueryDefinition);
-
-		int initialCount = groupsEntries.size();
-
-		addEntry(false);
-		addEntry(true);
-
-		List<BlogsEntry> groupsEntriesInTrash =
-			_blogsEntryLocalService.getGroupsEntries(
-				_user.getCompanyId(), _group.getGroupId(), new Date(),
-				_statusInTrashQueryDefinition);
-
-		Assert.assertEquals(
-			groupsEntriesInTrash.toString(), initialCount + 1,
-			groupsEntriesInTrash.size());
-
-		for (BlogsEntry groupsEntry : groupsEntriesInTrash) {
-			Assert.assertEquals(
-				"Entry " + groupsEntry.getEntryId() + " is not in trash",
-				WorkflowConstants.STATUS_IN_TRASH, groupsEntry.getStatus());
-			Assert.assertEquals(
-				StringBundler.concat(
-					"Entry belongs to company ", groupsEntry.getCompanyId(),
-					" but should belong to company ", _user.getCompanyId()),
-				_user.getCompanyId(), groupsEntry.getCompanyId());
-		}
-	}
-
-	@Test
-	public void testGetGroupUserEntriesCountInTrash() throws Exception {
-		testGetGroupUserEntriesCount(true);
-	}
-
-	@Test
-	public void testGetGroupUserEntriesCountNotInTrash() throws Exception {
-		testGetGroupUserEntriesCount(false);
-	}
-
-	@Test
 	public void testGetGroupUserEntriesInTrash() throws Exception {
 		testGetGroupUserEntries(true);
 	}
@@ -1089,23 +1093,38 @@ public class BlogsEntryLocalServiceTest {
 	}
 
 	@Test
-	public void testGetOrganizationEntriesCountInTrash() throws Exception {
-		testGetOrganizationEntriesCount(true);
-	}
+	public void testGetGroupsEntries() throws Exception {
+		List<BlogsEntry> initialBlogsEntries =
+			_blogsEntryLocalService.getGroupsEntries(
+				_user.getCompanyId(), _group.getGroupId(), new Date(),
+				_statusInTrashQueryDefinition);
 
-	@Test
-	public void testGetOrganizationEntriesCountNotInTrash() throws Exception {
-		testGetOrganizationEntriesCount(false);
-	}
+		int initialCount = initialBlogsEntries.size();
 
-	@Test
-	public void testGetOrganizationEntriesInTrash() throws Exception {
-		testGetOrganizationEntries(true);
-	}
+		addEntry(false);
+		addEntry(true);
 
-	@Test
-	public void testGetOrganizationEntriesNotInTrash() throws Exception {
-		testGetOrganizationEntries(false);
+		List<BlogsEntry> actualBlogsEntries =
+			_blogsEntryLocalService.getGroupsEntries(
+				_user.getCompanyId(), _group.getGroupId(), new Date(),
+				_statusInTrashQueryDefinition);
+
+		Assert.assertEquals(
+			actualBlogsEntries.toString(), initialCount + 1,
+			actualBlogsEntries.size());
+
+		for (BlogsEntry actualBlogsEntry : actualBlogsEntries) {
+			Assert.assertEquals(
+				"Entry " + actualBlogsEntry.getEntryId() + " is not in trash",
+				WorkflowConstants.STATUS_IN_TRASH,
+				actualBlogsEntry.getStatus());
+			Assert.assertEquals(
+				StringBundler.concat(
+					"Entry belongs to company ",
+					actualBlogsEntry.getCompanyId(),
+					" but should belong to company ", _user.getCompanyId()),
+				_user.getCompanyId(), actualBlogsEntry.getCompanyId());
+		}
 	}
 
 	@Test(expected = EntryTitleException.class)
@@ -1146,87 +1165,6 @@ public class BlogsEntryLocalServiceTest {
 				_user.getUserId());
 
 		Assert.assertEquals(initialCount + 1, actualCount);
-	}
-
-	@Test
-	public void testUnsubscribe() throws Exception {
-		int initialCount =
-			SubscriptionLocalServiceUtil.getUserSubscriptionsCount(
-				_user.getUserId());
-
-		_blogsEntryLocalService.subscribe(
-			_user.getUserId(), _group.getGroupId());
-
-		_blogsEntryLocalService.unsubscribe(
-			_user.getUserId(), _group.getGroupId());
-
-		int actualCount =
-			SubscriptionLocalServiceUtil.getUserSubscriptionsCount(
-				_user.getUserId());
-
-		Assert.assertEquals(initialCount, actualCount);
-	}
-
-	@Test
-	public void testUpdateDraftEntryWithDuplicateURLTitle() throws Exception {
-		String urlTitle = RandomTestUtil.randomString();
-
-		ServiceContext serviceContext =
-			ServiceContextTestUtil.getServiceContext(_group, _user.getUserId());
-
-		_blogsEntryLocalService.addEntry(
-			RandomTestUtil.randomString(), _user.getUserId(),
-			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
-			urlTitle, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), new Date(), false, false, null, null,
-			null, null, serviceContext);
-
-		serviceContext.setWorkflowAction(WorkflowConstants.ACTION_SAVE_DRAFT);
-
-		BlogsEntry entry = _blogsEntryLocalService.addEntry(
-			RandomTestUtil.randomString(), _user.getUserId(),
-			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
-			urlTitle, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), new Date(), false, false, null, null,
-			null, null, serviceContext);
-
-		entry = _blogsEntryLocalService.updateEntry(
-			_user.getUserId(), entry.getEntryId(), entry.getTitle(),
-			entry.getSubtitle(), urlTitle, entry.getDescription(),
-			entry.getContent(), entry.getDisplayDate(), false, false, null,
-			null, null, null, serviceContext);
-
-		Assert.assertNotEquals(urlTitle, entry.getUrlTitle());
-	}
-
-	@Test
-	public void testUpdateEntryResources() throws Exception {
-		BlogsEntry entry = addEntry(false);
-
-		_blogsEntryLocalService.updateEntryResources(
-			entry, new String[] {ActionKeys.ADD_DISCUSSION}, null);
-	}
-
-	@Test
-	public void testUpdateEntryWithURLTitleWithSlashPrefix() throws Exception {
-		ServiceContext serviceContext =
-			ServiceContextTestUtil.getServiceContext(_group, _user.getUserId());
-
-		BlogsEntry entry = _blogsEntryLocalService.addEntry(
-			_user.getUserId(), RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), serviceContext);
-
-		String expectedUrlTitle = entry.getUrlTitle();
-
-		String bakedUrlTitle = "///////" + expectedUrlTitle;
-
-		entry = _blogsEntryLocalService.updateEntry(
-			_user.getUserId(), entry.getEntryId(), entry.getTitle(),
-			entry.getSubtitle(), bakedUrlTitle, entry.getDescription(),
-			entry.getContent(), entry.getDisplayDate(), false, false, null,
-			null, null, null, serviceContext);
-
-		Assert.assertEquals(expectedUrlTitle, entry.getUrlTitle());
 	}
 
 	@Test
@@ -1329,6 +1267,145 @@ public class BlogsEntryLocalServiceTest {
 		Assert.assertTrue(Validator.isNotNull(entry.getUrlTitle()));
 	}
 
+	@Test
+	public void testUnsubscribe() throws Exception {
+		int initialCount =
+			SubscriptionLocalServiceUtil.getUserSubscriptionsCount(
+				_user.getUserId());
+
+		_blogsEntryLocalService.subscribe(
+			_user.getUserId(), _group.getGroupId());
+
+		_blogsEntryLocalService.unsubscribe(
+			_user.getUserId(), _group.getGroupId());
+
+		int actualCount =
+			SubscriptionLocalServiceUtil.getUserSubscriptionsCount(
+				_user.getUserId());
+
+		Assert.assertEquals(initialCount, actualCount);
+	}
+
+	@Test
+	public void testUpdateDraftEntryWithDuplicateURLTitle() throws Exception {
+		String urlTitle = RandomTestUtil.randomString();
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group, _user.getUserId());
+
+		_blogsEntryLocalService.addEntry(
+			RandomTestUtil.randomString(), _user.getUserId(),
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			urlTitle, RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(), new Date(), false, false, null, null,
+			null, null, serviceContext);
+
+		serviceContext.setWorkflowAction(WorkflowConstants.ACTION_SAVE_DRAFT);
+
+		BlogsEntry entry = _blogsEntryLocalService.addEntry(
+			RandomTestUtil.randomString(), _user.getUserId(),
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			urlTitle, RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(), new Date(), false, false, null, null,
+			null, null, serviceContext);
+
+		entry = _blogsEntryLocalService.updateEntry(
+			_user.getUserId(), entry.getEntryId(), entry.getTitle(),
+			entry.getSubtitle(), urlTitle, entry.getDescription(),
+			entry.getContent(), entry.getDisplayDate(), false, false, null,
+			null, null, null, serviceContext);
+
+		Assert.assertNotEquals(urlTitle, entry.getUrlTitle());
+	}
+
+	@Test
+	public void testUpdateEntryResources() throws Exception {
+		BlogsEntry entry = addEntry(false);
+
+		_blogsEntryLocalService.updateEntryResources(
+			entry, new String[] {ActionKeys.ADD_DISCUSSION}, null);
+	}
+
+	@Test(expected = AssetCategoryException.class)
+	public void testUpdateEntryWithAssetCategoriesFromNonmultiValuedAssetVocabulary()
+		throws Exception {
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group, _user.getUserId());
+
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			_getAssetVocabularySettingsHelper(
+				false, new long[] {AssetCategoryConstants.ALL_CLASS_NAME_ID},
+				new long[] {AssetCategoryConstants.ALL_CLASS_TYPE_PK},
+				new boolean[] {false}, new boolean[] {false});
+
+		Assert.assertFalse(assetVocabularySettingsHelper.isMultiValued());
+
+		AssetVocabulary assetVocabulary =
+			_assetVocabularyLocalService.addVocabulary(
+				_user.getUserId(), _group.getGroupId(),
+				RandomTestUtil.randomString(),
+				HashMapBuilder.put(
+					LocaleUtil.US, RandomTestUtil.randomString()
+				).build(),
+				null, assetVocabularySettingsHelper.toString(), serviceContext);
+
+		AssetCategory assetCategory1 = _assetCategoryLocalService.addCategory(
+			_user.getUserId(), _group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
+		AssetCategory assetCategory2 = _assetCategoryLocalService.addCategory(
+			_user.getUserId(), _group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
+
+		serviceContext.setAssetCategoryIds(
+			new long[] {assetCategory1.getCategoryId()});
+
+		BlogsEntry blogsEntry = _blogsEntryLocalService.addEntry(
+			RandomTestUtil.randomString(), _user.getUserId(),
+			StringUtil.randomString(), StringUtil.randomString(),
+			StringUtil.randomString(), StringUtil.randomString(),
+			StringUtil.randomString(), new Date(), true, true, new String[0],
+			null, null, null, serviceContext);
+
+		serviceContext.setAssetCategoryIds(
+			new long[] {
+				assetCategory1.getCategoryId(), assetCategory2.getCategoryId()
+			});
+
+		_blogsEntryLocalService.updateEntry(
+			blogsEntry.getUserId(), blogsEntry.getEntryId(),
+			blogsEntry.getTitle(), blogsEntry.getSubtitle(),
+			blogsEntry.getUrlTitle(), blogsEntry.getDescription(),
+			blogsEntry.getContent(), blogsEntry.getDisplayDate(),
+			blogsEntry.isAllowPingbacks(), blogsEntry.isAllowTrackbacks(),
+			new String[0], blogsEntry.getCoverImageCaption(), null, null,
+			serviceContext);
+	}
+
+	@Test
+	public void testUpdateEntryWithURLTitleWithSlashPrefix() throws Exception {
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(_group, _user.getUserId());
+
+		BlogsEntry entry = _blogsEntryLocalService.addEntry(
+			_user.getUserId(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(), serviceContext);
+
+		String expectedUrlTitle = entry.getUrlTitle();
+
+		String bakedUrlTitle = "///////" + expectedUrlTitle;
+
+		entry = _blogsEntryLocalService.updateEntry(
+			_user.getUserId(), entry.getEntryId(), entry.getTitle(),
+			entry.getSubtitle(), bakedUrlTitle, entry.getDescription(),
+			entry.getContent(), entry.getDisplayDate(), false, false, null,
+			null, null, null, serviceContext);
+
+		Assert.assertEquals(expectedUrlTitle, entry.getUrlTitle());
+	}
+
 	protected BlogsEntry addEntry(boolean statusInTrash) throws Exception {
 		return addEntry(_user.getUserId(), statusInTrash);
 	}
@@ -1368,19 +1445,20 @@ public class BlogsEntryLocalServiceTest {
 	}
 
 	protected void assertBlogsEntriesStatus(
-		List<BlogsEntry> entries, boolean statusInTrash) {
+		List<BlogsEntry> blogsEntries, boolean statusInTrash) {
 
-		for (BlogsEntry entry : entries) {
+		for (BlogsEntry blogsEntry : blogsEntries) {
 			if (statusInTrash) {
 				Assert.assertEquals(
-					"The entry " + entry.getEntryId() + " should be in trash",
-					WorkflowConstants.STATUS_IN_TRASH, entry.getStatus());
+					"The entry " + blogsEntry.getEntryId() +
+						" should be in trash",
+					WorkflowConstants.STATUS_IN_TRASH, blogsEntry.getStatus());
 			}
 			else {
 				Assert.assertNotEquals(
-					"The entry " + entry.getEntryId() +
+					"The entry " + blogsEntry.getEntryId() +
 						" should not be in trash",
-					WorkflowConstants.STATUS_IN_TRASH, entry.getStatus());
+					WorkflowConstants.STATUS_IN_TRASH, blogsEntry.getStatus());
 			}
 		}
 	}
@@ -1411,23 +1489,24 @@ public class BlogsEntryLocalServiceTest {
 			queryDefinition = _statusAnyQueryDefinition;
 		}
 
-		List<BlogsEntry> initialEntries =
+		List<BlogsEntry> initialBlogsEntries =
 			_blogsEntryLocalService.getCompanyEntries(
 				_user.getCompanyId(), new Date(), queryDefinition);
 
-		int initialCount = initialEntries.size();
+		int initialCount = initialBlogsEntries.size();
 
 		addEntry(false);
 		addEntry(true);
 
-		List<BlogsEntry> actualEntries =
+		List<BlogsEntry> actualBlogsEntries =
 			_blogsEntryLocalService.getCompanyEntries(
 				_user.getCompanyId(), new Date(), queryDefinition);
 
 		Assert.assertEquals(
-			actualEntries.toString(), initialCount + 1, actualEntries.size());
+			actualBlogsEntries.toString(), initialCount + 1,
+			actualBlogsEntries.size());
 
-		assertBlogsEntriesStatus(actualEntries, statusInTrash);
+		assertBlogsEntriesStatus(actualBlogsEntries, statusInTrash);
 	}
 
 	protected void testGetCompanyEntriesCount(boolean statusInTrash)
@@ -1463,37 +1542,38 @@ public class BlogsEntryLocalServiceTest {
 			queryDefinition = _statusAnyQueryDefinition;
 		}
 
-		List<BlogsEntry> initialEntries = null;
+		List<BlogsEntry> initialBlogsEntries = null;
 
 		if (displayDate) {
-			initialEntries = _blogsEntryLocalService.getGroupEntries(
+			initialBlogsEntries = _blogsEntryLocalService.getGroupEntries(
 				_group.getGroupId(), new Date(), queryDefinition);
 		}
 		else {
-			initialEntries = _blogsEntryLocalService.getGroupEntries(
+			initialBlogsEntries = _blogsEntryLocalService.getGroupEntries(
 				_group.getGroupId(), queryDefinition);
 		}
 
-		int initialCount = initialEntries.size();
+		int initialCount = initialBlogsEntries.size();
 
 		addEntry(false);
 		addEntry(true);
 
-		List<BlogsEntry> actualEntries = null;
+		List<BlogsEntry> actualBlogsEntries = null;
 
 		if (displayDate) {
-			actualEntries = _blogsEntryLocalService.getGroupEntries(
+			actualBlogsEntries = _blogsEntryLocalService.getGroupEntries(
 				_group.getGroupId(), new Date(), queryDefinition);
 		}
 		else {
-			actualEntries = _blogsEntryLocalService.getGroupEntries(
+			actualBlogsEntries = _blogsEntryLocalService.getGroupEntries(
 				_group.getGroupId(), queryDefinition);
 		}
 
 		Assert.assertEquals(
-			actualEntries.toString(), initialCount + 1, actualEntries.size());
+			actualBlogsEntries.toString(), initialCount + 1,
+			actualBlogsEntries.size());
 
-		assertBlogsEntriesStatus(actualEntries, statusInTrash);
+		assertBlogsEntriesStatus(actualBlogsEntries, statusInTrash);
 	}
 
 	protected void testGetGroupEntriesCount(
@@ -1545,110 +1625,26 @@ public class BlogsEntryLocalServiceTest {
 			queryDefinition = _statusAnyQueryDefinition;
 		}
 
-		List<BlogsEntry> initialEntries =
+		List<BlogsEntry> initialBlogsEntries =
 			_blogsEntryLocalService.getGroupUserEntries(
 				_group.getGroupId(), _user.getUserId(), new Date(),
 				queryDefinition);
 
-		int initialCount = initialEntries.size();
+		int initialCount = initialBlogsEntries.size();
 
 		addEntry(false);
 		addEntry(true);
 
-		List<BlogsEntry> actualEntries =
+		List<BlogsEntry> actualBlogsEntries =
 			_blogsEntryLocalService.getGroupUserEntries(
 				_group.getGroupId(), _user.getUserId(), new Date(),
 				queryDefinition);
 
 		Assert.assertEquals(
-			actualEntries.toString(), initialCount + 1, actualEntries.size());
+			actualBlogsEntries.toString(), initialCount + 1,
+			actualBlogsEntries.size());
 
-		assertBlogsEntriesStatus(actualEntries, statusInTrash);
-	}
-
-	protected void testGetGroupUserEntriesCount(boolean statusInTrash)
-		throws Exception {
-
-		QueryDefinition<BlogsEntry> queryDefinition =
-			_statusInTrashQueryDefinition;
-
-		if (!statusInTrash) {
-			queryDefinition = _statusAnyQueryDefinition;
-		}
-
-		int initialCount = _blogsEntryLocalService.getGroupUserEntriesCount(
-			_group.getGroupId(), _user.getUserId(), new Date(),
-			queryDefinition);
-
-		addEntry(false);
-		addEntry(true);
-
-		int actualCount = _blogsEntryLocalService.getGroupUserEntriesCount(
-			_group.getGroupId(), _user.getUserId(), new Date(),
-			queryDefinition);
-
-		Assert.assertEquals(initialCount + 1, actualCount);
-	}
-
-	protected void testGetOrganizationEntries(boolean statusInTrash)
-		throws Exception {
-
-		QueryDefinition<BlogsEntry> queryDefinition =
-			_statusInTrashQueryDefinition;
-
-		if (!statusInTrash) {
-			queryDefinition = _statusAnyQueryDefinition;
-		}
-
-		_organization = OrganizationTestUtil.addOrganization();
-
-		_organizationUser = UserTestUtil.addOrganizationOwnerUser(
-			_organization);
-
-		List<BlogsEntry> initialEntries =
-			_blogsEntryLocalService.getOrganizationEntries(
-				_organization.getOrganizationId(), new Date(), queryDefinition);
-
-		int initialCount = initialEntries.size();
-
-		addEntry(_organizationUser.getUserId(), false);
-		addEntry(_organizationUser.getUserId(), true);
-
-		List<BlogsEntry> actualEntries =
-			_blogsEntryLocalService.getOrganizationEntries(
-				_organization.getOrganizationId(), new Date(), queryDefinition);
-
-		Assert.assertEquals(
-			actualEntries.toString(), initialCount + 1, actualEntries.size());
-
-		assertBlogsEntriesStatus(actualEntries, statusInTrash);
-	}
-
-	protected void testGetOrganizationEntriesCount(boolean statusInTrash)
-		throws Exception {
-
-		QueryDefinition<BlogsEntry> queryDefinition =
-			_statusInTrashQueryDefinition;
-
-		if (!statusInTrash) {
-			queryDefinition = _statusAnyQueryDefinition;
-		}
-
-		_organization = OrganizationTestUtil.addOrganization();
-
-		_organizationUser = UserTestUtil.addOrganizationOwnerUser(
-			_organization);
-
-		int initialCount = _blogsEntryLocalService.getOrganizationEntriesCount(
-			_organization.getOrganizationId(), new Date(), queryDefinition);
-
-		addEntry(_organizationUser.getUserId(), false);
-		addEntry(_organizationUser.getUserId(), true);
-
-		int actualCount = _blogsEntryLocalService.getOrganizationEntriesCount(
-			_organization.getOrganizationId(), new Date(), queryDefinition);
-
-		Assert.assertEquals(initialCount + 1, actualCount);
+		assertBlogsEntriesStatus(actualBlogsEntries, statusInTrash);
 	}
 
 	private FileEntry _addAttachmentFileEntry(
@@ -1683,6 +1679,20 @@ public class BlogsEntryLocalServiceTest {
 			MBMessageConstants.DEFAULT_PARENT_MESSAGE_ID,
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
 			serviceContext);
+	}
+
+	private AssetVocabularySettingsHelper _getAssetVocabularySettingsHelper(
+		boolean multiValued, long[] classNameIds, long[] classTypePKs,
+		boolean[] depotRequireds, boolean[] requireds) {
+
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			new AssetVocabularySettingsHelper();
+
+		assetVocabularySettingsHelper.setClassNameIdsAndClassTypePKs(
+			classNameIds, classTypePKs, depotRequireds, requireds);
+		assetVocabularySettingsHelper.setMultiValued(multiValued);
+
+		return assetVocabularySettingsHelper;
 	}
 
 	private String _repeat(String string, int times) {
@@ -1733,12 +1743,6 @@ public class BlogsEntryLocalServiceTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
-
-	@DeleteAfterTestRun
-	private Organization _organization;
-
-	@DeleteAfterTestRun
-	private User _organizationUser;
 
 	private final QueryDefinition<BlogsEntry> _statusAnyQueryDefinition =
 		new QueryDefinition<>(

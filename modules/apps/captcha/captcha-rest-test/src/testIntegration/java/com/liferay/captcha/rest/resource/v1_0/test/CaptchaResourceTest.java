@@ -12,10 +12,13 @@ import com.liferay.captcha.rest.client.resource.v1_0.CaptchaResource;
 import com.liferay.portal.kernel.encryptor.EncryptorUtil;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.test.rule.Inject;
 
 import org.junit.Assert;
@@ -34,9 +37,14 @@ public class CaptchaResourceTest extends BaseCaptchaResourceTestCase {
 	public void setUp() throws Exception {
 		super.setUp();
 
-		CaptchaResource.Builder builder = CaptchaResource.builder();
+		Company company = _companyLocalService.getCompany(
+			TestPropsValues.getCompanyId());
 
-		_captchaResource = builder.build();
+		_captchaResource = CaptchaResource.builder(
+		).endpoint(
+			company.getVirtualHostname(), PortalUtil.getPortalServerPort(false),
+			"http"
+		).build();
 	}
 
 	@Override
@@ -47,7 +55,8 @@ public class CaptchaResourceTest extends BaseCaptchaResourceTestCase {
 		Assert.assertNotNull(captcha.getToken());
 
 		JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
-			EncryptorUtil.decrypt(testCompany.getKeyObj(), captcha.getToken()));
+			EncryptorUtil.decryptAuthenticated(
+				testCompany.getKeyObj(), captcha.getToken()));
 
 		Assert.assertNotNull(jsonObject.get("answer"));
 
@@ -80,7 +89,7 @@ public class CaptchaResourceTest extends BaseCaptchaResourceTestCase {
 		String token = _getToken();
 
 		JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
-			EncryptorUtil.decrypt(testCompany.getKeyObj(), token));
+			EncryptorUtil.decryptAuthenticated(testCompany.getKeyObj(), token));
 
 		_assertStatus(token, jsonObject.getString("answer"), 204);
 

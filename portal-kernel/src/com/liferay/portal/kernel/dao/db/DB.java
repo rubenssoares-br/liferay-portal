@@ -6,6 +6,7 @@
 package com.liferay.portal.kernel.dao.db;
 
 import com.liferay.petra.function.UnsafeConsumer;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +38,11 @@ public interface DB {
 	public void addIndexes(
 			Connection connection, List<IndexMetadata> indexMetadatas)
 		throws IOException, SQLException;
+
+	public SafeCloseable addTemporaryIndex(
+			Connection connection, String tableName, boolean unique,
+			String... columnNames)
+		throws Exception;
 
 	public void alterColumnName(
 			Connection connection, String tableName, String oldColumnName,
@@ -68,15 +75,19 @@ public interface DB {
 			Connection connection, String tableName, String newTableName)
 		throws Exception;
 
+	public void dropIndexes(
+			Connection connection, List<String> indexNames, String tableName)
+		throws Exception;
+
 	public List<IndexMetadata> dropIndexes(
 			Connection connection, String tableName, String columnName)
 		throws IOException, SQLException;
 
+	public String getCharacterSet(Connection connection) throws SQLException;
+
 	public DBType getDBType();
 
 	public String getDefaultValue(String columnDef);
-
-	public List<Index> getIndexes(Connection connection) throws SQLException;
 
 	public List<IndexMetadata> getIndexMetadatas(
 			Connection connection, String tableName, String columnName,
@@ -86,6 +97,21 @@ public interface DB {
 	public ResultSet getIndexResultSet(
 			Connection connection, String tableName, boolean onlyUnique)
 		throws SQLException;
+
+	public List<Index> getIndexes(Connection connection) throws SQLException;
+
+	public default List<QueryInfo> getLockedQueryInfos(Connection connection)
+		throws SQLException {
+
+		return Collections.emptyList();
+	}
+
+	public default List<QueryInfo> getLongRunningQueryInfos(
+			Connection connection)
+		throws SQLException {
+
+		return Collections.emptyList();
+	}
 
 	public int getMajorVersion();
 
@@ -120,6 +146,9 @@ public interface DB {
 	public boolean isSupportsAlterColumnName();
 
 	public boolean isSupportsAlterColumnType();
+
+	public boolean isSupportsCharacterSet(Connection connection)
+		throws SQLException;
 
 	public boolean isSupportsDBPartition();
 
@@ -219,5 +248,51 @@ public interface DB {
 			Connection connection, String tableName, String indexesSQL,
 			boolean dropStaleIndexes)
 		throws Exception;
+
+	public void updatePrimaryKey(
+			Connection connection, String tableName,
+			String[] primaryKeyColumnNames)
+		throws Exception;
+
+	public static class QueryInfo {
+
+		public QueryInfo(
+			long duration, String id, String query, String schema,
+			String state) {
+
+			_duration = duration;
+			_id = id;
+			_query = query;
+			_schema = schema;
+			_state = state;
+		}
+
+		public long getDuration() {
+			return _duration;
+		}
+
+		public String getId() {
+			return _id;
+		}
+
+		public String getQuery() {
+			return _query;
+		}
+
+		public String getSchema() {
+			return _schema;
+		}
+
+		public String getState() {
+			return _state;
+		}
+
+		private final long _duration;
+		private final String _id;
+		private final String _query;
+		private final String _schema;
+		private final String _state;
+
+	}
 
 }

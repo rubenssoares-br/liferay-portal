@@ -21,11 +21,13 @@ import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Alessio Antonio Rendina
+ * @deprecated As of Cavanaugh (7.4.x)
  */
 @Component(
 	property = "model.class.name=com.liferay.commerce.notification.model.CommerceNotificationTemplateCommerceAccountGroupRel",
 	service = AopService.class
 )
+@Deprecated
 public class CommerceNotificationTemplateCommerceAccountGroupRelLocalServiceImpl
 	extends CommerceNotificationTemplateCommerceAccountGroupRelLocalServiceBaseImpl {
 
@@ -62,15 +64,6 @@ public class CommerceNotificationTemplateCommerceAccountGroupRelLocalServiceImpl
 
 		return commerceNotificationTemplateCommerceAccountGroupRelPersistence.
 			update(commerceNotificationTemplateCommerceAccountGroupRel);
-	}
-
-	@Override
-	public void
-		deleteCNTemplateCommerceAccountGroupRelsBycommerceAccountGroupId(
-			long commerceAccountGroupId) {
-
-		commerceNotificationTemplateCommerceAccountGroupRelPersistence.
-			removeByCommerceAccountGroupId(commerceAccountGroupId);
 	}
 
 	@Override

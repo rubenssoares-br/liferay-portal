@@ -16,26 +16,27 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -46,21 +47,24 @@ import javax.xml.bind.annotation.XmlRootElement;
 	description = "The settings of the page template.",
 	value = "PageTemplateSettings"
 )
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "The settings of the page template."
+)
 @JsonFilter("Liferay.Vulcan")
 @JsonSubTypes(
 	{
 		@JsonSubTypes.Type(
-			name = "ContentPageTemplate",
+			name = "ContentPageTemplateSettings",
 			value = ContentPageTemplateSettings.class
 		),
 		@JsonSubTypes.Type(
-			name = "WidgetPageTemplate",
+			name = "WidgetPageTemplateSettings",
 			value = WidgetPageTemplateSettings.class
 		)
 	}
 )
 @JsonTypeInfo(
-	include = JsonTypeInfo.As.PROPERTY, property = "type",
+	include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
 	use = JsonTypeInfo.Id.NAME, visible = true
 )
 @XmlRootElement(name = "PageTemplateSettings")
@@ -75,8 +79,8 @@ public abstract class PageTemplateSettings implements Serializable {
 			PageTemplateSettings.class, json);
 	}
 
+	@io.swagger.v3.oas.annotations.media.Schema
 	@JsonGetter("type")
-	@Schema
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -165,9 +169,7 @@ public abstract class PageTemplateSettings implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -176,8 +178,8 @@ public abstract class PageTemplateSettings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.PageTemplateSettings",
 		name = "x-class-name"
 	)
@@ -303,6 +305,27 @@ public abstract class PageTemplateSettings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -311,3 +334,4 @@ public abstract class PageTemplateSettings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:767202698

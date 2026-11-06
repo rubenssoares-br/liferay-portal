@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductAccountGroup")
+@GraphQLName(
+	description = "Association between a product and an account group; admin catalog write view used to manage which account groups can see a product when `productAccountGroupFilter` is enabled on the parent product.",
+	value = "ProductAccountGroup"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Association between a product and an account group; admin catalog write view used to manage which account groups can see a product when `productAccountGroupFilter` is enabled on the parent product."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ProductAccountGroup")
 public class ProductAccountGroup implements Serializable {
@@ -52,7 +59,10 @@ public class ProductAccountGroup implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "31130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier of the account group; required to associate the product with an existing account group.",
+		example = "31130"
+	)
 	public Long getAccountGroupId() {
 		if (_accountGroupIdSupplier != null) {
 			accountGroupId = _accountGroupIdSupplier.get();
@@ -86,14 +96,19 @@ public class ProductAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier of the account group; required to associate the product with an existing account group."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long accountGroupId;
 
 	@JsonIgnore
 	private Supplier<Long> _accountGroupIdSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per product account group within the company; persisted on the underlying account group, not on the relation itself.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -127,7 +142,9 @@ public class ProductAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per product account group within the company; persisted on the underlying account group, not on the relation itself."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -135,7 +152,10 @@ public class ProductAccountGroup implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "31130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Primary key of the row that links the product to the account group.",
+		example = "31130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -167,14 +187,19 @@ public class ProductAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Primary key of the row that links the product to the account group."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "Alessio Antonio Rendina")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the associated account group; read-only.",
+		example = "Alessio Antonio Rendina"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -206,7 +231,9 @@ public class ProductAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the associated account group; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
@@ -301,8 +328,8 @@ public class ProductAccountGroup implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductAccountGroup",
 		name = "x-class-name"
 	)
@@ -389,6 +416,27 @@ public class ProductAccountGroup implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -397,3 +445,4 @@ public class ProductAccountGroup implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:380962118

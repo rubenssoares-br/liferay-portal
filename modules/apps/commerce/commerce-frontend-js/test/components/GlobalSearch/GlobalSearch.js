@@ -5,7 +5,7 @@
 
 import '../../tests_utilities/polyfills';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {fireEvent, render} from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import React from 'react';
@@ -36,14 +36,20 @@ const productsEndpointRegexp = new RegExp(
 
 const query = 'test';
 
-describe.skip('Global Search', () => {
+describe('Global Search', () => {
 	describe('When responses are ok', () => {
 		let renderedComponent;
 
 		beforeEach(() => {
-			fetchMock.mock(accountsEndpointRegexp, (url) => getAccounts(url));
-			fetchMock.mock(cartsEndpointRegexp, (url) => getOrders(url));
-			fetchMock.mock(productsEndpointRegexp, (url) => getProducts(url));
+			fetchMock.mockGlobal();
+
+			fetchMock.route(accountsEndpointRegexp, ({url}) =>
+				getAccounts(url)
+			);
+			fetchMock.route(cartsEndpointRegexp, ({url}) => getOrders(url));
+			fetchMock.route(productsEndpointRegexp, ({url}) =>
+				getProducts(url)
+			);
 
 			renderedComponent = render(
 				<GlobalSearch
@@ -61,7 +67,7 @@ describe.skip('Global Search', () => {
 		});
 
 		afterEach(() => {
-			fetchMock.restore();
+			fetchMock.hardReset();
 		});
 
 		describe('When input is empty', () => {
@@ -158,7 +164,9 @@ describe.skip('Global Search', () => {
 
 					expect(carts.length).toBe(4);
 
-					expect(firstCart.text).toContain(orderTemplate.id);
+					expect(firstCart.text).toContain(
+						orderTemplate.id.toString()
+					);
 
 					expect(firstCart.href).toContain(
 						`/cart-page/${orderTemplate.id}`

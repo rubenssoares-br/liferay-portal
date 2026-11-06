@@ -46,7 +46,7 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portlet.test.MockLiferayPortletContext;
 
-import javax.portlet.Portlet;
+import jakarta.portlet.Portlet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -81,7 +81,7 @@ public class DisplayPageDisplayContextTest {
 		serviceContext.setAddGuestPermissions(false);
 
 		_ddmStructureLocalService.addStructure(
-			TestPropsValues.getUserId(), _group.getGroupId(), 0,
+			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
 			_portal.getClassNameId(JournalArticle.class), null,
 			HashMapBuilder.put(
 				LocaleUtil.getSiteDefault(), RandomTestUtil.randomString()
@@ -89,6 +89,21 @@ public class DisplayPageDisplayContextTest {
 			null, ddmForm, DDMUtil.getDefaultDDMFormLayout(ddmForm),
 			StorageType.DEFAULT.toString(), DDMStructureConstants.TYPE_DEFAULT,
 			serviceContext);
+	}
+
+	@Test
+	@TestInfo("LPS-192722")
+	public void testCannotViewContentTypeAsUserWithViewPermission()
+		throws Exception {
+
+		JSONArray mappingTypesJSONArray = ReflectionTestUtil.invoke(
+			_getDisplayPageDisplayContext(), "getMappingTypesJSONArray",
+			new Class<?>[0]);
+
+		JSONArray mappingSubtypesJSONArray = _getMappingSubtypesJSONArray(
+			mappingTypesJSONArray);
+
+		Assert.assertEquals(2, mappingSubtypesJSONArray.length());
 	}
 
 	@Test
@@ -118,21 +133,6 @@ public class DisplayPageDisplayContextTest {
 			PermissionThreadLocal.setPermissionChecker(
 				originalPermissionChecker);
 		}
-	}
-
-	@Test
-	@TestInfo("LPS-192722")
-	public void testCannotViewContentTypeAsUserWithViewPermission()
-		throws Exception {
-
-		JSONArray mappingTypesJSONArray = ReflectionTestUtil.invoke(
-			_getDisplayPageDisplayContext(), "getMappingTypesJSONArray",
-			new Class<?>[0]);
-
-		JSONArray mappingSubtypesJSONArray = _getMappingSubtypesJSONArray(
-			mappingTypesJSONArray);
-
-		Assert.assertEquals(2, mappingSubtypesJSONArray.length());
 	}
 
 	private Object _getDisplayPageDisplayContext() throws Exception {

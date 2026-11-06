@@ -8,12 +8,12 @@ package com.liferay.headless.commerce.admin.catalog.client.dto.v1_0;
 import com.liferay.headless.commerce.admin.catalog.client.function.UnsafeSupplier;
 import com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0.SkuVirtualSettingsSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -300,6 +300,60 @@ public class SkuVirtualSettings implements Cloneable, Serializable {
 
 	protected Map<String, String> termsOfUseContent;
 
+	public String getTermsOfUseJournalArticleExternalReferenceCode() {
+		return termsOfUseJournalArticleExternalReferenceCode;
+	}
+
+	public void setTermsOfUseJournalArticleExternalReferenceCode(
+		String termsOfUseJournalArticleExternalReferenceCode) {
+
+		this.termsOfUseJournalArticleExternalReferenceCode =
+			termsOfUseJournalArticleExternalReferenceCode;
+	}
+
+	public void setTermsOfUseJournalArticleExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			termsOfUseJournalArticleExternalReferenceCodeUnsafeSupplier) {
+
+		try {
+			termsOfUseJournalArticleExternalReferenceCode =
+				termsOfUseJournalArticleExternalReferenceCodeUnsafeSupplier.
+					get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String termsOfUseJournalArticleExternalReferenceCode;
+
+	public String getTermsOfUseJournalArticleGroupExternalReferenceCode() {
+		return termsOfUseJournalArticleGroupExternalReferenceCode;
+	}
+
+	public void setTermsOfUseJournalArticleGroupExternalReferenceCode(
+		String termsOfUseJournalArticleGroupExternalReferenceCode) {
+
+		this.termsOfUseJournalArticleGroupExternalReferenceCode =
+			termsOfUseJournalArticleGroupExternalReferenceCode;
+	}
+
+	public void setTermsOfUseJournalArticleGroupExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			termsOfUseJournalArticleGroupExternalReferenceCodeUnsafeSupplier) {
+
+		try {
+			termsOfUseJournalArticleGroupExternalReferenceCode =
+				termsOfUseJournalArticleGroupExternalReferenceCodeUnsafeSupplier.
+					get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String termsOfUseJournalArticleGroupExternalReferenceCode;
+
 	public Long getTermsOfUseJournalArticleId() {
 		return termsOfUseJournalArticleId;
 	}
@@ -416,3 +470,4 @@ public class SkuVirtualSettings implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1338672498

@@ -28,15 +28,15 @@ import com.liferay.user.associated.data.web.internal.helper.SelectedUserHelper;
 import com.liferay.user.associated.data.web.internal.helper.UADApplicationSummaryHelper;
 import com.liferay.user.associated.data.web.internal.registry.UADRegistry;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletRequest;
+
 import java.io.Serializable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletRequest;
 
 import org.osgi.service.component.annotations.Reference;
 
@@ -159,10 +159,12 @@ public abstract class BaseUADMVCActionCommand extends BaseMVCActionCommand {
 		Map<String, String[]> parameterMap = actionRequest.getParameterMap();
 
 		for (String key : parameterMap.keySet()) {
-			if (key.startsWith("uadRegistryKey__")) {
-				entityTypes.add(
-					StringUtil.removeSubstring(key, "uadRegistryKey__"));
+			if (!key.startsWith("uadRegistryKey__")) {
+				continue;
 			}
+
+			entityTypes.add(
+				StringUtil.removeSubstring(key, "uadRegistryKey__"));
 		}
 
 		return entityTypes;
@@ -229,10 +231,11 @@ public abstract class BaseUADMVCActionCommand extends BaseMVCActionCommand {
 		Map<Class<?>, String> exceptionMessageMap =
 			uadAnonymizer.getExceptionMessageMap(themeDisplay.getLocale());
 
-		if (exceptionMessageMap.containsKey(exception.getClass())) {
+		String exceptionMessage = exceptionMessageMap.get(exception.getClass());
+
+		if (exceptionMessage != null) {
 			SessionErrors.add(
-				actionRequest, "deleteUADEntityException",
-				exceptionMessageMap.get(exception.getClass()));
+				actionRequest, "deleteUADEntityException", exceptionMessage);
 
 			String redirect = ParamUtil.getString(actionRequest, "redirect");
 

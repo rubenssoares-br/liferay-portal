@@ -119,7 +119,7 @@ public class OrganizationIndexerReindexTest {
 	}
 
 	protected void reindexAllIndexerModels() throws Exception {
-		indexer.reindex(new String[] {String.valueOf(_group.getCompanyId())});
+		indexer.reindexCompany(_group.getCompanyId());
 	}
 
 	protected SearchResponse search(String searchTerm) {
@@ -139,13 +139,13 @@ public class OrganizationIndexerReindexTest {
 	@Inject
 	protected CountryService countryService;
 
+	@Inject
+	protected IndexWriterHelper indexWriterHelper;
+
 	@Inject(
 		filter = "indexer.class.name=com.liferay.portal.kernel.model.Organization"
 	)
 	protected Indexer<Organization> indexer;
-
-	@Inject
-	protected IndexWriterHelper indexWriterHelper;
 
 	@Inject
 	protected Language language;
@@ -166,10 +166,10 @@ public class OrganizationIndexerReindexTest {
 	protected SearchEngineHelper searchEngineHelper;
 
 	@Inject
-	protected Searcher searcher;
+	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
 
 	@Inject
-	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
+	protected Searcher searcher;
 
 	@Inject
 	protected UIDFactory uidFactory;

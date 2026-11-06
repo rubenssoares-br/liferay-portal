@@ -77,7 +77,7 @@ public class SAPEntryModelImpl
 		{"modifiedDate", Types.TIMESTAMP},
 		{"allowedServiceSignatures", Types.VARCHAR},
 		{"defaultSAPEntry", Types.BOOLEAN}, {"enabled", Types.BOOLEAN},
-		{"name", Types.VARCHAR}, {"title", Types.VARCHAR}
+		{"name", Types.VARCHAR}, {"title", Types.CLOB}
 	};
 
 	public static final Map<String, Integer> TABLE_COLUMNS_MAP =
@@ -95,13 +95,17 @@ public class SAPEntryModelImpl
 		TABLE_COLUMNS_MAP.put("defaultSAPEntry", Types.BOOLEAN);
 		TABLE_COLUMNS_MAP.put("enabled", Types.BOOLEAN);
 		TABLE_COLUMNS_MAP.put("name", Types.VARCHAR);
-		TABLE_COLUMNS_MAP.put("title", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("title", Types.CLOB);
 	}
 
 	public static final String TABLE_SQL_CREATE =
-		"create table SAPEntry (uuid_ VARCHAR(75) null,sapEntryId LONG not null primary key,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,allowedServiceSignatures STRING null,defaultSAPEntry BOOLEAN,enabled BOOLEAN,name VARCHAR(75) null,title STRING null)";
+		"create table SAPEntry (uuid_ VARCHAR(75) null,sapEntryId LONG not null primary key,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,allowedServiceSignatures STRING null,defaultSAPEntry BOOLEAN,enabled BOOLEAN,name VARCHAR(75) null,title TEXT null)";
 
 	public static final String TABLE_SQL_DROP = "drop table SAPEntry";
+
+	public static final String ENTITY_ALIAS = "sapEntry";
+
+	public static final String FILTER_PK_COLUMN_NAME = "sapEntryId";
 
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY sapEntry.sapEntryId ASC";
@@ -1185,3 +1189,4 @@ public class SAPEntryModelImpl
 	private SAPEntry _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1351441988

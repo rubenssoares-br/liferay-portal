@@ -13,10 +13,10 @@ import com.liferay.commerce.product.service.CPInstanceService;
 import com.liferay.commerce.shop.by.diagram.model.CSDiagramEntry;
 import com.liferay.commerce.shop.by.diagram.service.CSDiagramEntryService;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.MappedProduct;
-import com.liferay.headless.commerce.admin.catalog.internal.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 
@@ -27,7 +27,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Alessio Antonio Rendina
  */
 @Component(
-	property = "dto.class.name=com.liferay.commerce.shop.by.diagram.model.CSDiagramEntry",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.commerce.shop.by.diagram.model.CSDiagramEntry"
+	},
 	service = DTOConverter.class
 )
 public class MappedProductDTOConverter
@@ -48,7 +51,7 @@ public class MappedProductDTOConverter
 
 		CPDefinition cpDefinition =
 			_cpDefinitionService.fetchCPDefinitionByCProductId(
-				csDiagramEntry.getCProductId());
+				csDiagramEntry.getCProductId(), false);
 
 		return new MappedProduct() {
 			{
@@ -80,6 +83,14 @@ public class MappedProductDTOConverter
 
 						return LanguageUtils.getLanguageIdMap(
 							cpDefinition.getNameMap());
+					});
+				setProductType(
+					() -> {
+						if (cpDefinition == null) {
+							return null;
+						}
+
+						return cpDefinition.getProductTypeName();
 					});
 				setQuantity(csDiagramEntry::getQuantity);
 				setSequence(csDiagramEntry::getSequence);

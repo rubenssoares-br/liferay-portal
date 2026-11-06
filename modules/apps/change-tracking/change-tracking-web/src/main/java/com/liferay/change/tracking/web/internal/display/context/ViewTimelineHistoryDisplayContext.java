@@ -18,12 +18,12 @@ import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
-
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Cheryl Tang
@@ -80,18 +80,15 @@ public class ViewTimelineHistoryDisplayContext {
 				_language.get(_httpServletRequest, "discard"), "get",
 				"view-discard", null),
 			new FDSActionDropdownItem(
-				StringBundler.concat(
-					"javascript:window.open('",
-					PortletURLBuilder.createActionURL(
-						_renderResponse
-					).setActionName(
-						"/change_tracking/checkout_ct_collection"
-					).setRedirect(
-						ParamUtil.getString(_renderRequest, "redirect")
-					).setParameter(
-						"ctCollectionId", "{ctCollectionId}"
-					).buildString(),
-					"', '_top');"),
+				PortletURLBuilder.createActionURL(
+					_renderResponse
+				).setActionName(
+					"/change_tracking/checkout_ct_collection"
+				).setRedirect(
+					"{editURL}"
+				).setParameter(
+					"ctCollectionId", "{ctCollectionId}"
+				).buildString(),
 				"pencil", "edit",
 				_language.format(
 					_httpServletRequest, "edit-in-x",

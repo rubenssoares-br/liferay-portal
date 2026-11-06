@@ -116,11 +116,7 @@ public class APIEndpointRelevantObjectEntryModelListener
 			_objectEntryHelper.getUniqueObjectFieldNames(
 				companyId, (String)values.get("mainObjectDefinitionERC"));
 
-		if (uniqueObjectFields.contains(pathParameter)) {
-			return true;
-		}
-
-		return false;
+		return uniqueObjectFields.contains(pathParameter);
 	}
 
 	private void _validate(ObjectEntry objectEntry) {
@@ -194,17 +190,15 @@ public class APIEndpointRelevantObjectEntryModelListener
 				_objectDefinitionLocalService.getObjectDefinition(
 					objectEntry.getObjectDefinitionId());
 
-			Predicate predicate = _filterFactory.create(
-				filterString, apiEndpointObjectDefinition);
+			int count = _objectEntryLocalService.getValuesListCount(
+				new Long[] {objectEntry.getGroupId()},
+				objectEntry.getCompanyId(), objectEntry.getUserId(),
+				objectEntry.getObjectDefinitionId(),
+				_filterFactory.create(
+					filterString, apiEndpointObjectDefinition),
+				false, null);
 
-			List<Map<String, Serializable>> valuesList =
-				_objectEntryLocalService.getValuesList(
-					objectEntry.getGroupId(), objectEntry.getCompanyId(),
-					objectEntry.getUserId(),
-					objectEntry.getObjectDefinitionId(), null, predicate, null,
-					-1, -1, null);
-
-			if (!valuesList.isEmpty()) {
+			if (count > 0) {
 				throw new ObjectEntryValuesException.InvalidObjectField(
 					null,
 					"There is an API endpoint with the same HTTP method and " +

@@ -5,6 +5,16 @@
 
 package com.liferay.portal.verify.test.util;
 
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.dao.db.DB;
+import com.liferay.portal.kernel.dao.db.DBInspector;
+import com.liferay.portal.kernel.dao.db.DBManagerUtil;
+import com.liferay.portal.kernel.dao.db.DBType;
+import com.liferay.portal.kernel.dao.db.IndexMetadata;
+import com.liferay.portal.kernel.dao.jdbc.DataAccess;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.InfrastructureUtil;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.kernel.util.ProxyUtil;
@@ -17,6 +27,7 @@ import java.lang.reflect.Method;
 
 import java.sql.Connection;
 
+import java.util.Collections;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -65,13 +76,15 @@ public abstract class BaseVerifyProcessTestCase {
 
 				Connection connection = objectValuePair.getKey();
 
-				if (!connection.isClosed()) {
-					if (exception == null) {
-						exception = objectValuePair.getValue();
-					}
-					else {
-						exception.addSuppressed(objectValuePair.getValue());
-					}
+				if (connection.isClosed()) {
+					continue;
+				}
+
+				if (exception == null) {
+					exception = objectValuePair.getValue();
+				}
+				else {
+					exception.addSuppressed(objectValuePair.getValue());
 				}
 			}
 
@@ -81,13 +94,123 @@ public abstract class BaseVerifyProcessTestCase {
 		}
 	}
 
+	protected void addIndex(
+			String indexName, String tableName, boolean unique,
+			String... columnNames)
+		throws Exception {
+
+		DB db = DBManagerUtil.getDB();
+
+		try (Connection connection = DataAccess.getConnection()) {
+			db.addIndexes(
+				connection,
+				Collections.singletonList(
+					new IndexMetadata(
+						indexName, tableName, unique, columnNames)));
+		}
+	}
+
+	protected void alterColumnName(
+			String tableName, String oldColumnName, String newColumnDefinition)
+		throws Exception {
+
+		DB db = DBManagerUtil.getDB();
+
+		try (Connection connection = DataAccess.getConnection()) {
+			db.alterColumnName(
+				connection, tableName, oldColumnName, newColumnDefinition);
+		}
+	}
+
+	protected void alterColumnType(
+			String tableName, String columnName, String columnType)
+		throws Exception {
+
+		DB db = DBManagerUtil.getDB();
+
+		try (Connection connection = DataAccess.getConnection()) {
+			db.alterColumnType(connection, tableName, columnName, columnType);
+		}
+	}
+
 	protected void doVerify() throws VerifyException {
 		VerifyProcess verifyProcess = getVerifyProcess();
 
 		verifyProcess.verify();
 	}
 
+	protected void dropIndex(String indexName, String tableName)
+		throws Exception {
+
+		DB db = DBManagerUtil.getDB();
+
+		try (Connection connection = DataAccess.getConnection()) {
+			db.dropIndexes(
+				connection, Collections.singletonList(indexName), tableName);
+		}
+	}
+
+	protected String getNormalizedName(String name) throws Exception {
+		try (Connection connection = DataAccess.getConnection()) {
+			DBInspector dbInspector = new DBInspector(connection);
+
+			return dbInspector.normalizeName(name);
+		}
+	}
+
 	protected abstract VerifyProcess getVerifyProcess();
+
+	protected void removePrimaryKey(String tableName) throws Exception {
+		DB db = DBManagerUtil.getDB();
+
+		try (Connection connection = DataAccess.getConnection()) {
+			db.removePrimaryKey(connection, tableName);
+		}
+	}
+
+	protected void renameView(String fromViewName, String toViewName)
+		throws Exception {
+
+		try (SafeCloseable safeCloseable =
+				CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+					TestPropsValues.getCompanyId())) {
+
+			DB db = DBManagerUtil.getDB();
+
+			if (db.getDBType() == DBType.MYSQL) {
+				db.runSQL(
+					StringBundler.concat(
+						"rename table ", fromViewName, " to ", toViewName));
+			}
+			else {
+				db.runSQL(
+					StringBundler.concat(
+						"alter view ", fromViewName, " rename to ",
+						toViewName));
+			}
+		}
+	}
+
+	protected void updateIndex(
+			String indexName, String tableName, boolean unique,
+			String... columnNames)
+		throws Exception {
+
+		dropIndex(indexName, tableName);
+
+		addIndex(indexName, tableName, unique, columnNames);
+	}
+
+	protected void updatePrimaryKey(
+			String tableName, String... primaryKeyColumnNames)
+		throws Exception {
+
+		DB db = DBManagerUtil.getDB();
+
+		try (Connection connection = DataAccess.getConnection()) {
+			db.updatePrimaryKey(connection, tableName, primaryKeyColumnNames);
+		}
+	}
 
 	private DataSource _dataSource;
 	private final Queue<ObjectValuePair<Connection, Exception>>

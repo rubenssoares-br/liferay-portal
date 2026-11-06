@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {CountryInfo} from '@liferay/object-js-components-web';
 import {ILearnResourceContext} from 'frontend-js-components-web';
 import {Edge, Elements, Node} from 'react-flow-renderer';
 
@@ -110,6 +111,12 @@ export type TAction =
 				>;
 			};
 			type: TYPES.SET_ELEMENTS;
+	  }
+	| {
+			payload: {
+				updatedHasUnsavedObjectFolderItemPositions: boolean;
+			};
+			type: TYPES.SET_HAS_UNSAVED_OBJECT_FOLDER_ITEM_POSITIONS;
 	  }
 	| {
 			payload: {
@@ -226,6 +233,9 @@ export type TAction =
 
 export type TState = {
 	baseResourceURL: string;
+	ckEditor5Config?: object;
+	countries: CountryInfo[];
+	decimalSeparator: string;
 	deletedObjectDefinition: DeletedObjectDefinition | null;
 	editObjectDefinitionURL: string;
 	elements: Elements<ObjectDefinitionNodeData | ObjectRelationshipEdgeData[]>;
@@ -233,10 +243,15 @@ export type TState = {
 	forbiddenChars: string[];
 	forbiddenLastChars: string[];
 	forbiddenNames: string[];
+	googleMapsAPIKey?: string;
+	hasDepotEntry?: boolean;
+	hasUnsavedObjectFolderItemPositions: boolean;
 	isLoadingObjectFolder: boolean;
 	isRootDescendantNode: boolean;
 	learnResourceContext: ILearnResourceContext;
 	leftSidebarItems: LeftSidebarItem[];
+	mapProviderKey?: string;
+	metadataObjectFieldNames: string[];
 	modelBuilderModals: ModelBuilderModals;
 	movedObjectDefinitionId?: number;
 	nodeHandleConnectable: boolean;
@@ -295,6 +310,7 @@ export interface LeftSidebarObjectDefinitionItem {
 
 export interface ObjectRelationshipEdgeData {
 	defaultLanguageId?: Liferay.Language.Locale;
+	edge: boolean;
 	id: number;
 	label: string;
 	markerEndId: string;

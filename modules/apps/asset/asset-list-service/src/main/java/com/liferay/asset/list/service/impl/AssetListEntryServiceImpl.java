@@ -12,12 +12,16 @@ import com.liferay.portal.aop.AopService;
 import com.liferay.portal.dao.orm.custom.sql.CustomSQL;
 import com.liferay.portal.kernel.dao.orm.WildcardMode;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.jsonwebservice.JSONWebService;
+import com.liferay.portal.kernel.jsonwebservice.JSONWebServiceMode;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
@@ -43,7 +47,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.addAssetEntrySelection(
@@ -58,11 +62,27 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.addAssetEntrySelections(
 			assetListEntryId, assetEntryIds, segmentsEntryId, serviceContext);
+	}
+
+	@JSONWebService(mode = JSONWebServiceMode.IGNORE)
+	@Override
+	public void addAssetEntrySelections(
+			long assetListEntryId, long[] assetEntryIds,
+			String audienceEntryERC, ServiceContext serviceContext)
+		throws PortalException {
+
+		_assetListEntryModelResourcePermission.check(
+			getPermissionChecker(),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
+			ActionKeys.UPDATE);
+
+		assetListEntryLocalService.addAssetEntrySelections(
+			assetListEntryId, assetEntryIds, audienceEntryERC, serviceContext);
 	}
 
 	@Override
@@ -117,11 +137,26 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.deleteAssetEntrySelection(
 			assetListEntryId, segmentsEntryId, position);
+	}
+
+	@JSONWebService(mode = JSONWebServiceMode.IGNORE)
+	@Override
+	public void deleteAssetEntrySelection(
+			long assetListEntryId, String audienceEntryERC, int position)
+		throws PortalException {
+
+		_assetListEntryModelResourcePermission.check(
+			getPermissionChecker(),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
+			ActionKeys.UPDATE);
+
+		assetListEntryLocalService.deleteAssetEntrySelection(
+			assetListEntryId, audienceEntryERC, position);
 	}
 
 	@Override
@@ -130,7 +165,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		for (long assetListEntryId : assetListEntriesIds) {
 			AssetListEntry assetListEntry =
-				assetListEntryLocalService.getAssetListEntry(assetListEntryId);
+				assetListEntryPersistence.findByPrimaryKey(assetListEntryId);
 
 			_assetListEntryModelResourcePermission.check(
 				getPermissionChecker(), assetListEntry, ActionKeys.DELETE);
@@ -144,7 +179,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 		throws PortalException {
 
 		AssetListEntry assetListEntry =
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId);
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId);
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(), assetListEntry, ActionKeys.DELETE);
@@ -159,7 +194,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.deleteAssetListEntry(
@@ -171,7 +206,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 		throws PortalException {
 
 		AssetListEntry assetListEntry =
-			assetListEntryLocalService.fetchAssetListEntry(assetListEntryId);
+			assetListEntryPersistence.fetchByPrimaryKey(assetListEntryId);
 
 		if (assetListEntry != null) {
 			_assetListEntryModelResourcePermission.check(
@@ -186,10 +221,8 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 			String externalReferenceCode, long groupId)
 		throws PortalException {
 
-		AssetListEntry assetListEntry =
-			assetListEntryLocalService.
-				fetchAssetListEntryByExternalReferenceCode(
-					externalReferenceCode, groupId);
+		AssetListEntry assetListEntry = assetListEntryPersistence.fetchByERC_G(
+			externalReferenceCode, groupId);
 
 		if (assetListEntry != null) {
 			_assetListEntryModelResourcePermission.check(
@@ -267,6 +300,10 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 		long[] groupIds, String title, String[] assetEntryTypes, int start,
 		int end, OrderByComparator<AssetListEntry> orderByComparator) {
 
+		if (ArrayUtil.isEmpty(assetEntryTypes)) {
+			return Collections.emptyList();
+		}
+
 		return assetListEntryPersistence.filterFindByG_LikeT_AET(
 			groupIds,
 			_customSQL.keywords(title, false, WildcardMode.SURROUND)[0],
@@ -277,6 +314,10 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 	public List<AssetListEntry> getAssetListEntries(
 		long[] groupIds, String[] assetEntryTypes, int start, int end,
 		OrderByComparator<AssetListEntry> orderByComparator) {
+
+		if (ArrayUtil.isEmpty(assetEntryTypes)) {
+			return Collections.emptyList();
+		}
 
 		return assetListEntryPersistence.filterFindByG_AET(
 			groupIds, assetEntryTypes, start, end, orderByComparator);
@@ -329,6 +370,10 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 	public int getAssetListEntriesCount(
 		long[] groupIds, String title, String[] assetEntryTypes) {
 
+		if (ArrayUtil.isEmpty(assetEntryTypes)) {
+			return 0;
+		}
+
 		return assetListEntryPersistence.filterCountByG_LikeT_AET(
 			groupIds,
 			_customSQL.keywords(title, false, WildcardMode.SURROUND)[0],
@@ -339,6 +384,10 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 	public int getAssetListEntriesCount(
 		long[] groupIds, String[] assetEntryTypes) {
 
+		if (ArrayUtil.isEmpty(assetEntryTypes)) {
+			return 0;
+		}
+
 		return assetListEntryPersistence.filterCountByG_AET(
 			groupIds, assetEntryTypes);
 	}
@@ -348,7 +397,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 		throws PortalException {
 
 		AssetListEntry assetListEntry =
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId);
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId);
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(), assetListEntry, ActionKeys.VIEW);
@@ -361,9 +410,8 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 			long groupId, String assetListEntryKey)
 		throws PortalException {
 
-		AssetListEntry assetListEntry =
-			assetListEntryLocalService.getAssetListEntry(
-				groupId, assetListEntryKey);
+		AssetListEntry assetListEntry = assetListEntryPersistence.findByG_ALEK(
+			groupId, assetListEntryKey);
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(), assetListEntry, ActionKeys.VIEW);
@@ -376,9 +424,8 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 			String externalReferenceCode, long groupId)
 		throws PortalException {
 
-		AssetListEntry assetListEntry =
-			assetListEntryLocalService.getAssetListEntryByExternalReferenceCode(
-				externalReferenceCode, groupId);
+		AssetListEntry assetListEntry = assetListEntryPersistence.findByERC_G(
+			externalReferenceCode, groupId);
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(), assetListEntry, ActionKeys.VIEW);
@@ -391,9 +438,8 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 			String uuid, long groupId)
 		throws PortalException {
 
-		AssetListEntry assetListEntry =
-			assetListEntryLocalService.getAssetListEntryByUuidAndGroupId(
-				uuid, groupId);
+		AssetListEntry assetListEntry = assetListEntryPersistence.findByUUID_G(
+			uuid, groupId);
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(), assetListEntry, ActionKeys.VIEW);
@@ -409,11 +455,27 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.moveAssetEntrySelection(
 			assetListEntryId, segmentsEntryId, position, newPosition);
+	}
+
+	@JSONWebService(mode = JSONWebServiceMode.IGNORE)
+	@Override
+	public void moveAssetEntrySelection(
+			long assetListEntryId, String audienceEntryERC, int position,
+			int newPosition)
+		throws PortalException {
+
+		_assetListEntryModelResourcePermission.check(
+			getPermissionChecker(),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
+			ActionKeys.UPDATE);
+
+		assetListEntryLocalService.moveAssetEntrySelection(
+			assetListEntryId, audienceEntryERC, position, newPosition);
 	}
 
 	@Override
@@ -424,7 +486,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.updateAssetListEntry(
@@ -438,7 +500,7 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		return assetListEntryLocalService.updateAssetListEntry(
@@ -452,11 +514,26 @@ public class AssetListEntryServiceImpl extends AssetListEntryServiceBaseImpl {
 
 		_assetListEntryModelResourcePermission.check(
 			getPermissionChecker(),
-			assetListEntryLocalService.getAssetListEntry(assetListEntryId),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
 			ActionKeys.UPDATE);
 
 		assetListEntryLocalService.updateAssetListEntryTypeSettings(
 			assetListEntryId, segmentsEntryId, typeSettings);
+	}
+
+	@JSONWebService(mode = JSONWebServiceMode.IGNORE)
+	@Override
+	public void updateAssetListEntryTypeSettings(
+			long assetListEntryId, String audienceEntryERC, String typeSettings)
+		throws PortalException {
+
+		_assetListEntryModelResourcePermission.check(
+			getPermissionChecker(),
+			assetListEntryPersistence.findByPrimaryKey(assetListEntryId),
+			ActionKeys.UPDATE);
+
+		assetListEntryLocalService.updateAssetListEntryTypeSettings(
+			assetListEntryId, audienceEntryERC, typeSettings);
 	}
 
 	@Reference(

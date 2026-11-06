@@ -13,6 +13,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.object.admin.rest.client.dto.v1_0.ObjectAction;
 import com.liferay.object.admin.rest.client.http.HttpInvoker;
 import com.liferay.object.admin.rest.client.pagination.Page;
@@ -24,30 +28,56 @@ import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONArray;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,13 +86,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -71,6 +99,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Javier Gamarra
@@ -81,13 +112,17 @@ public abstract class BaseObjectActionResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,16 +135,27 @@ public abstract class BaseObjectActionResourceTestCase {
 
 		_objectActionResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ObjectActionResource.Builder builder = ObjectActionResource.builder();
-
-		objectActionResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		objectActionResource = ObjectActionResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -172,7 +218,6 @@ public abstract class BaseObjectActionResourceTestCase {
 		ObjectAction objectAction = randomObjectAction();
 
 		objectAction.setConditionExpression(regex);
-		objectAction.setDescription(regex);
 		objectAction.setExternalReferenceCode(regex);
 		objectAction.setName(regex);
 		objectAction.setObjectActionExecutorKey(regex);
@@ -185,7 +230,6 @@ public abstract class BaseObjectActionResourceTestCase {
 		objectAction = ObjectActionSerDes.toDTO(json);
 
 		Assert.assertEquals(regex, objectAction.getConditionExpression());
-		Assert.assertEquals(regex, objectAction.getDescription());
 		Assert.assertEquals(regex, objectAction.getExternalReferenceCode());
 		Assert.assertEquals(regex, objectAction.getName());
 		Assert.assertEquals(regex, objectAction.getObjectActionExecutorKey());
@@ -206,7 +250,6 @@ public abstract class BaseObjectActionResourceTestCase {
 			404,
 			objectActionResource.getObjectActionHttpResponse(
 				objectAction.getId()));
-
 		assertHttpResponseStatusCode(
 			404, objectActionResource.getObjectActionHttpResponse(0L));
 	}
@@ -223,6 +266,7 @@ public abstract class BaseObjectActionResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		ObjectAction objectAction1 =
 			testGraphQLDeleteObjectAction_addObjectAction();
 
@@ -247,13 +291,14 @@ public abstract class BaseObjectActionResourceTestCase {
 							put("objectActionId", objectAction1.getId());
 						}
 					},
-					new GraphQLField("id"))),
+					getGraphQLFields())),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray1.length() > 0);
 
 		// Using the namespace objectAdmin_v1_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		ObjectAction objectAction2 =
 			testGraphQLDeleteObjectAction_addObjectAction();
 
@@ -285,7 +330,7 @@ public abstract class BaseObjectActionResourceTestCase {
 								put("objectActionId", objectAction2.getId());
 							}
 						},
-						new GraphQLField("id")))),
+						getGraphQLFields()))),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray2.length() > 0);
@@ -298,6 +343,47 @@ public abstract class BaseObjectActionResourceTestCase {
 	}
 
 	@Test
+	public void testDeleteObjectActionBatch() throws Exception {
+		ObjectAction objectAction1 =
+			testDeleteObjectActionBatch_addObjectAction();
+
+		testDeleteObjectActionBatch_deleteObjectAction(
+			202, null, objectAction1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			objectActionResource.getObjectActionHttpResponse(
+				objectAction1.getId()));
+	}
+
+	protected ObjectAction testDeleteObjectActionBatch_addObjectAction()
+		throws Exception {
+
+		return testDeleteObjectAction_addObjectAction();
+	}
+
+	protected void testDeleteObjectActionBatch_deleteObjectAction(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			objectActionResource.deleteObjectActionBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
 	public void testGetObjectAction() throws Exception {
 		ObjectAction postObjectAction = testGetObjectAction_addObjectAction();
 
@@ -306,6 +392,202 @@ public abstract class BaseObjectActionResourceTestCase {
 
 		assertEquals(postObjectAction, getObjectAction);
 		assertValid(getObjectAction);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		ObjectAction postObjectAction = testGetObjectAction_addObjectAction();
+
+		ObjectAction getObjectAction = objectActionResource.getObjectAction(
+			postObjectAction.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.object.admin.rest.dto.v1_0.ObjectAction"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(postObjectAction.getId());
+
+		assertEquals(
+			getObjectAction, ObjectActionSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
 	}
 
 	protected ObjectAction testGetObjectAction_addObjectAction()
@@ -414,61 +696,6 @@ public abstract class BaseObjectActionResourceTestCase {
 	}
 
 	@Test
-	public void testPatchObjectAction() throws Exception {
-		ObjectAction postObjectAction = testPatchObjectAction_addObjectAction();
-
-		ObjectAction randomPatchObjectAction = randomPatchObjectAction();
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		ObjectAction patchObjectAction = objectActionResource.patchObjectAction(
-			postObjectAction.getId(), randomPatchObjectAction);
-
-		ObjectAction expectedPatchObjectAction = postObjectAction.clone();
-
-		BeanTestUtil.copyProperties(
-			randomPatchObjectAction, expectedPatchObjectAction);
-
-		ObjectAction getObjectAction = objectActionResource.getObjectAction(
-			patchObjectAction.getId());
-
-		assertEquals(expectedPatchObjectAction, getObjectAction);
-		assertValid(getObjectAction);
-	}
-
-	protected ObjectAction testPatchObjectAction_addObjectAction()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testPutObjectAction() throws Exception {
-		ObjectAction postObjectAction = testPutObjectAction_addObjectAction();
-
-		ObjectAction randomObjectAction = randomObjectAction();
-
-		ObjectAction putObjectAction = objectActionResource.putObjectAction(
-			postObjectAction.getId(), randomObjectAction);
-
-		assertEquals(randomObjectAction, putObjectAction);
-		assertValid(putObjectAction);
-
-		ObjectAction getObjectAction = objectActionResource.getObjectAction(
-			putObjectAction.getId());
-
-		assertEquals(randomObjectAction, getObjectAction);
-		assertValid(getObjectAction);
-	}
-
-	protected ObjectAction testPutObjectAction_addObjectAction()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetObjectDefinitionByExternalReferenceCodeObjectActionsPage()
 		throws Exception {
 
@@ -517,7 +744,8 @@ public abstract class BaseObjectActionResourceTestCase {
 		page =
 			objectActionResource.
 				getObjectDefinitionByExternalReferenceCodeObjectActionsPage(
-					externalReferenceCode, null, Pagination.of(1, 10), null);
+					externalReferenceCode, null,
+					Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -550,13 +778,13 @@ public abstract class BaseObjectActionResourceTestCase {
 		String externalReferenceCode =
 			testGetObjectDefinitionByExternalReferenceCodeObjectActionsPage_getExternalReferenceCode();
 
-		Page<ObjectAction> objectActionPage =
+		Page<ObjectAction> objectActionsPage =
 			objectActionResource.
 				getObjectDefinitionByExternalReferenceCodeObjectActionsPage(
 					externalReferenceCode, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			objectActionPage.getTotalCount());
+			objectActionsPage.getTotalCount());
 
 		ObjectAction objectAction1 =
 			testGetObjectDefinitionByExternalReferenceCodeObjectActionsPage_addObjectAction(
@@ -833,22 +1061,111 @@ public abstract class BaseObjectActionResourceTestCase {
 	}
 
 	@Test
-	public void testPostObjectDefinitionByExternalReferenceCodeObjectAction()
+	public void testGraphQLGetObjectDefinitionByExternalReferenceCodeObjectActionsPage()
 		throws Exception {
 
-		ObjectAction randomObjectAction = randomObjectAction();
+		String externalReferenceCode =
+			testGetObjectDefinitionByExternalReferenceCodeObjectActionsPage_getExternalReferenceCode();
 
-		ObjectAction postObjectAction =
-			testPostObjectDefinitionByExternalReferenceCodeObjectAction_addObjectAction(
-				randomObjectAction);
+		GraphQLField graphQLField =
+			testGraphQLGetObjectDefinitionByExternalReferenceCodeObjectActionsPageObjectDefinitionObjectAction_getGraphQLField(
+				externalReferenceCode);
 
-		assertEquals(randomObjectAction, postObjectAction);
-		assertValid(postObjectAction);
+		// No namespace
+
+		JSONObject
+			objectDefinitionByExternalReferenceCodeObjectActionsJSONObject =
+				JSONUtil.getValueAsJSONObject(
+					invokeGraphQLQuery(graphQLField), "JSONObject/data",
+					"JSONObject/objectDefinitionByExternalReferenceCodeObjectActions");
+
+		long totalCount =
+			objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+				getLong("totalCount");
+
+		ObjectAction objectAction1 =
+			testGraphQLGetObjectDefinitionByExternalReferenceCodeObjectActionsPageObjectDefinitionObjectAction_addObjectAction(
+				externalReferenceCode, randomObjectAction());
+
+		ObjectAction objectAction2 =
+			testGraphQLGetObjectDefinitionByExternalReferenceCodeObjectActionsPageObjectDefinitionObjectAction_addObjectAction(
+				externalReferenceCode, randomObjectAction());
+
+		objectDefinitionByExternalReferenceCodeObjectActionsJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(graphQLField), "JSONObject/data",
+				"JSONObject/objectDefinitionByExternalReferenceCodeObjectActions");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+				getLong("totalCount"));
+
+		assertContains(
+			objectAction1,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+						getString("items"))));
+		assertContains(
+			objectAction2,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+						getString("items"))));
+
+		// Using the namespace objectAdmin_v1_0
+
+		objectDefinitionByExternalReferenceCodeObjectActionsJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(
+					new GraphQLField("objectAdmin_v1_0", graphQLField)),
+				"JSONObject/data", "JSONObject/objectAdmin_v1_0",
+				"JSONObject/objectDefinitionByExternalReferenceCodeObjectActions");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+				getLong("totalCount"));
+
+		assertContains(
+			objectAction1,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+						getString("items"))));
+		assertContains(
+			objectAction2,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionByExternalReferenceCodeObjectActionsJSONObject.
+						getString("items"))));
+	}
+
+	protected GraphQLField
+			testGraphQLGetObjectDefinitionByExternalReferenceCodeObjectActionsPageObjectDefinitionObjectAction_getGraphQLField(
+				String externalReferenceCode)
+		throws Exception {
+
+		return new GraphQLField(
+			"objectDefinitionByExternalReferenceCodeObjectActions",
+			new HashMap<String, Object>() {
+				{
+					put(
+						"externalReferenceCode",
+						"\"" + externalReferenceCode + "\"");
+					put("search", null);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
 	}
 
 	protected ObjectAction
-			testPostObjectDefinitionByExternalReferenceCodeObjectAction_addObjectAction(
-				ObjectAction objectAction)
+			testGraphQLGetObjectDefinitionByExternalReferenceCodeObjectActionsPageObjectDefinitionObjectAction_addObjectAction(
+				String externalReferenceCode, ObjectAction objectAction)
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -897,7 +1214,8 @@ public abstract class BaseObjectActionResourceTestCase {
 				objectDefinitionId, randomObjectAction());
 
 		page = objectActionResource.getObjectDefinitionObjectActionsPage(
-			objectDefinitionId, null, Pagination.of(1, 10), null);
+			objectDefinitionId, null, Pagination.of(1, (int)totalCount + 2),
+			null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -924,10 +1242,11 @@ public abstract class BaseObjectActionResourceTestCase {
 		createBatchAction.put("method", "POST");
 		createBatchAction.put(
 			"href",
-			"http://localhost:8080/o/object-admin/v1.0/object-definitions/{objectDefinitionId}/object-actions/batch".
-				replace(
-					"{objectDefinitionId}",
-					String.valueOf(objectDefinitionId)));
+			("http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/object-admin/v1.0/object-definitions/{objectDefinitionId}/object-actions/batch").
+					replace(
+						"{objectDefinitionId}",
+						String.valueOf(objectDefinitionId)));
 
 		expectedActions.put("createBatch", createBatchAction);
 
@@ -941,12 +1260,12 @@ public abstract class BaseObjectActionResourceTestCase {
 		Long objectDefinitionId =
 			testGetObjectDefinitionObjectActionsPage_getObjectDefinitionId();
 
-		Page<ObjectAction> objectActionPage =
+		Page<ObjectAction> objectActionsPage =
 			objectActionResource.getObjectDefinitionObjectActionsPage(
 				objectDefinitionId, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			objectActionPage.getTotalCount());
+			objectActionsPage.getTotalCount());
 
 		ObjectAction objectAction1 =
 			testGetObjectDefinitionObjectActionsPage_addObjectAction(
@@ -1213,6 +1532,175 @@ public abstract class BaseObjectActionResourceTestCase {
 	}
 
 	@Test
+	public void testGraphQLGetObjectDefinitionObjectActionsPage()
+		throws Exception {
+
+		Long objectDefinitionId =
+			testGetObjectDefinitionObjectActionsPage_getObjectDefinitionId();
+
+		GraphQLField graphQLField =
+			testGraphQLGetObjectDefinitionObjectActionsPageObjectDefinitionObjectAction_getGraphQLField(
+				objectDefinitionId);
+
+		// No namespace
+
+		JSONObject objectDefinitionObjectActionsJSONObject =
+			JSONUtil.getValueAsJSONObject(
+				invokeGraphQLQuery(graphQLField), "JSONObject/data",
+				"JSONObject/objectDefinitionObjectActions");
+
+		long totalCount = objectDefinitionObjectActionsJSONObject.getLong(
+			"totalCount");
+
+		ObjectAction objectAction1 =
+			testGraphQLObjectDefinitionObjectAction_addObjectAction(
+				objectDefinitionId, randomObjectAction());
+
+		ObjectAction objectAction2 =
+			testGraphQLObjectDefinitionObjectAction_addObjectAction(
+				objectDefinitionId, randomObjectAction());
+
+		objectDefinitionObjectActionsJSONObject = JSONUtil.getValueAsJSONObject(
+			invokeGraphQLQuery(graphQLField), "JSONObject/data",
+			"JSONObject/objectDefinitionObjectActions");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			objectDefinitionObjectActionsJSONObject.getLong("totalCount"));
+
+		assertContains(
+			objectAction1,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionObjectActionsJSONObject.getString(
+						"items"))));
+		assertContains(
+			objectAction2,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionObjectActionsJSONObject.getString(
+						"items"))));
+
+		// Using the namespace objectAdmin_v1_0
+
+		objectDefinitionObjectActionsJSONObject = JSONUtil.getValueAsJSONObject(
+			invokeGraphQLQuery(
+				new GraphQLField("objectAdmin_v1_0", graphQLField)),
+			"JSONObject/data", "JSONObject/objectAdmin_v1_0",
+			"JSONObject/objectDefinitionObjectActions");
+
+		Assert.assertEquals(
+			totalCount + 2,
+			objectDefinitionObjectActionsJSONObject.getLong("totalCount"));
+
+		assertContains(
+			objectAction1,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionObjectActionsJSONObject.getString(
+						"items"))));
+		assertContains(
+			objectAction2,
+			Arrays.asList(
+				ObjectActionSerDes.toDTOs(
+					objectDefinitionObjectActionsJSONObject.getString(
+						"items"))));
+	}
+
+	protected GraphQLField
+			testGraphQLGetObjectDefinitionObjectActionsPageObjectDefinitionObjectAction_getGraphQLField(
+				Long objectDefinitionId)
+		throws Exception {
+
+		return new GraphQLField(
+			"objectDefinitionObjectActions",
+			new HashMap<String, Object>() {
+				{
+					put("objectDefinitionId", objectDefinitionId);
+					put("search", null);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
+	}
+
+	@Test
+	public void testPatchObjectAction() throws Exception {
+		ObjectAction postObjectAction = testPatchObjectAction_addObjectAction();
+
+		ObjectAction randomPatchObjectAction = randomPatchObjectAction();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		ObjectAction patchObjectAction = objectActionResource.patchObjectAction(
+			postObjectAction.getId(), randomPatchObjectAction);
+
+		ObjectAction expectedPatchObjectAction = postObjectAction.clone();
+
+		BeanTestUtil.copyProperties(
+			randomPatchObjectAction, expectedPatchObjectAction);
+
+		ObjectAction getObjectAction = objectActionResource.getObjectAction(
+			patchObjectAction.getId());
+
+		assertEquals(expectedPatchObjectAction, getObjectAction);
+		assertValid(getObjectAction);
+	}
+
+	protected ObjectAction testPatchObjectAction_addObjectAction()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostObjectDefinitionByExternalReferenceCodeObjectAction()
+		throws Exception {
+
+		ObjectAction randomObjectAction = randomObjectAction();
+
+		ObjectAction postObjectAction =
+			testPostObjectDefinitionByExternalReferenceCodeObjectAction_addObjectAction(
+				randomObjectAction);
+
+		assertEquals(randomObjectAction, postObjectAction);
+		assertValid(postObjectAction);
+	}
+
+	protected ObjectAction
+			testPostObjectDefinitionByExternalReferenceCodeObjectAction_addObjectAction(
+				ObjectAction objectAction)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLPostObjectDefinitionByExternalReferenceCodeObjectAction()
+		throws Exception {
+
+		ObjectAction randomObjectAction = randomObjectAction();
+
+		ObjectAction objectAction =
+			testGraphQLObjectDefinitionObjectAction_addObjectAction(
+				testGraphQLPostObjectDefinitionByExternalReferenceCodeObjectAction_getObjectDefinitionId(),
+				randomObjectAction);
+
+		Assert.assertTrue(equals(randomObjectAction, objectAction));
+	}
+
+	protected Long
+			testGraphQLPostObjectDefinitionByExternalReferenceCodeObjectAction_getObjectDefinitionId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostObjectDefinitionObjectAction() throws Exception {
 		ObjectAction randomObjectAction = randomObjectAction();
 
@@ -1233,11 +1721,250 @@ public abstract class BaseObjectActionResourceTestCase {
 			objectAction);
 	}
 
+	@Test
+	public void testGraphQLPostObjectDefinitionObjectAction() throws Exception {
+		ObjectAction randomObjectAction = randomObjectAction();
+
+		ObjectAction objectAction =
+			testGraphQLObjectDefinitionObjectAction_addObjectAction(
+				testGraphQLPostObjectDefinitionObjectAction_getObjectDefinitionId(),
+				randomObjectAction);
+
+		Assert.assertTrue(equals(randomObjectAction, objectAction));
+	}
+
+	protected Long
+			testGraphQLPostObjectDefinitionObjectAction_getObjectDefinitionId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPutObjectAction() throws Exception {
+		ObjectAction postObjectAction = testPutObjectAction_addObjectAction();
+
+		ObjectAction randomObjectAction = randomObjectAction();
+
+		ObjectAction putObjectAction = objectActionResource.putObjectAction(
+			postObjectAction.getId(), randomObjectAction);
+
+		assertEquals(randomObjectAction, putObjectAction);
+		assertValid(putObjectAction);
+
+		ObjectAction getObjectAction = objectActionResource.getObjectAction(
+			putObjectAction.getId());
+
+		assertEquals(randomObjectAction, getObjectAction);
+		assertValid(getObjectAction);
+	}
+
+	protected ObjectAction testPutObjectAction_addObjectAction()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		ObjectAction objectAction1 =
+			testBatchEngineDeleteImportTask_addObjectAction();
+
+		testBatchEngineDeleteImportTask_deleteObjectAction(
+			200, null, objectAction1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			objectActionResource.getObjectActionHttpResponse(
+				objectAction1.getId()));
+	}
+
+	protected ObjectAction testBatchEngineDeleteImportTask_addObjectAction()
+		throws Exception {
+
+		return testDeleteObjectAction_addObjectAction();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteObjectAction(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.object.admin.rest.dto.v1_0.ObjectAction", null,
+				null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
 	protected ObjectAction testGraphQLObjectAction_addObjectAction()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	protected ObjectAction
+			testGraphQLObjectDefinitionObjectAction_addObjectAction()
+		throws Exception {
+
+		return testGraphQLObjectDefinitionObjectAction_addObjectAction(
+			testGraphQLObjectDefinitionObjectAction_getObjectDefinitionId(),
+			randomObjectAction());
+	}
+
+	protected Long
+			testGraphQLObjectDefinitionObjectAction_getObjectDefinitionId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected ObjectAction
+			testGraphQLObjectDefinitionObjectAction_addObjectAction(
+				Long objectDefinitionId, ObjectAction objectAction)
+		throws Exception {
+
+		JSONDeserializer<ObjectAction> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field :
+				getDeclaredFields(ObjectAction.class)) {
+
+			if (getGraphQLValue(field.get(objectAction)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(objectAction)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createObjectDefinitionObjectAction",
+						new HashMap<String, Object>() {
+							{
+								put("objectDefinitionId", objectDefinitionId);
+								put("objectAction", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data",
+				"JSONObject/createObjectDefinitionObjectAction"),
+			ObjectAction.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(
@@ -1496,6 +2223,10 @@ public abstract class BaseObjectActionResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.object.admin.rest.dto.v1_0.ObjectAction.
@@ -1614,9 +2345,9 @@ public abstract class BaseObjectActionResourceTestCase {
 			}
 
 			if (Objects.equals("description", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						objectAction1.getDescription(),
-						objectAction2.getDescription())) {
+				if (!equals(
+						(Map)objectAction1.getDescription(),
+						(Map)objectAction2.getDescription())) {
 
 					return false;
 				}
@@ -1908,13 +2639,11 @@ public abstract class BaseObjectActionResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1924,7 +2653,7 @@ public abstract class BaseObjectActionResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(objectAction.getDateCreated()));
+				sb.append(_format.format(objectAction.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -1939,13 +2668,11 @@ public abstract class BaseObjectActionResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1955,56 +2682,15 @@ public abstract class BaseObjectActionResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(objectAction.getDateModified()));
+				sb.append(_format.format(objectAction.getDateModified()));
 			}
 
 			return sb.toString();
 		}
 
 		if (entityFieldName.equals("description")) {
-			Object object = objectAction.getDescription();
-
-			String value = String.valueOf(object);
-
-			if (operator.equals("contains")) {
-				sb = new StringBundler();
-
-				sb.append("contains(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 2)) {
-					sb.append(value.substring(1, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else if (operator.equals("startswith")) {
-				sb = new StringBundler();
-
-				sb.append("startswith(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 1)) {
-					sb.append(value.substring(0, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else {
-				sb.append("'");
-				sb.append(value);
-				sb.append("'");
-			}
-
-			return sb.toString();
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
 		}
 
 		if (entityFieldName.equals("errorMessage")) {
@@ -2234,7 +2920,9 @@ public abstract class BaseObjectActionResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2271,8 +2959,6 @@ public abstract class BaseObjectActionResourceTestCase {
 					RandomTestUtil.randomString());
 				dateCreated = RandomTestUtil.nextDate();
 				dateModified = RandomTestUtil.nextDate();
-				description = StringUtil.toLowerCase(
-					RandomTestUtil.randomString());
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				id = RandomTestUtil.randomLong();
@@ -2296,7 +2982,30 @@ public abstract class BaseObjectActionResourceTestCase {
 		return randomObjectAction();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected ObjectActionResource objectActionResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -2497,10 +3206,35 @@ public abstract class BaseObjectActionResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseObjectActionResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.object.admin.rest.resource.v1_0.ObjectActionResource
 		_objectActionResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:-1130922553

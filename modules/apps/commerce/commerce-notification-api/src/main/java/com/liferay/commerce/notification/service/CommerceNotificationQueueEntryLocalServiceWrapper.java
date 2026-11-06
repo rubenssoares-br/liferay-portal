@@ -13,8 +13,10 @@ import com.liferay.portal.kernel.service.persistence.BasePersistence;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationQueueEntryLocalService
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 public class CommerceNotificationQueueEntryLocalServiceWrapper
 	implements CommerceNotificationQueueEntryLocalService,
 			   ServiceWrapper<CommerceNotificationQueueEntryLocalService> {
@@ -133,8 +135,8 @@ public class CommerceNotificationQueueEntryLocalServiceWrapper
 	}
 
 	@Override
-	public void deleteCommerceNotificationQueueEntries(
-		java.util.Date sentDate) {
+	public void deleteCommerceNotificationQueueEntries(java.util.Date sentDate)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		_commerceNotificationQueueEntryLocalService.
 			deleteCommerceNotificationQueueEntries(sentDate);
@@ -548,3 +550,4 @@ public class CommerceNotificationQueueEntryLocalServiceWrapper
 		_commerceNotificationQueueEntryLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1163411780

@@ -238,6 +238,14 @@ public class AssetVocabularyImpl extends AssetVocabularyBaseImpl {
 	}
 
 	@Override
+	public boolean isSystem() {
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			getVocabularySettingsHelper();
+
+		return assetVocabularySettingsHelper.isSystem();
+	}
+
+	@Override
 	public void setSettings(String settings) {
 		_vocabularySettingsHelper = null;
 
@@ -253,6 +261,6 @@ public class AssetVocabularyImpl extends AssetVocabularyBaseImpl {
 		return _vocabularySettingsHelper;
 	}
 
-	private AssetVocabularySettingsHelper _vocabularySettingsHelper;
+	private transient AssetVocabularySettingsHelper _vocabularySettingsHelper;
 
 }

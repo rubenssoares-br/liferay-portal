@@ -22,6 +22,8 @@ if (structure != null) {
 
 String structureKey = BeanParamUtil.getString(structure, request, "structureKey");
 
+JSONObject formBuilderContextJSONObject = ddmFormAdminDisplayContext.getFormBuilderContextJSONObject();
+
 portletDisplay.setShowBackIcon(true);
 portletDisplay.setURLBack(redirect);
 
@@ -35,7 +37,7 @@ renderResponse.setTitle((structure == null) ? LanguageUtil.get(request, "new-ele
 <div class="portlet-forms" id="<portlet:namespace />formContainer">
 	<div class="forms-navigation-bar">
 		<clay:navigation-bar
-			inverted="<%= true %>"
+			cssClass="container-fluid-max-xxxl"
 			navigationItems="<%= ddmFormAdminDisplayContext.getElementSetBuilderNavigationItems() %>"
 		/>
 	</div>
@@ -87,6 +89,8 @@ renderResponse.setTitle((structure == null) ? LanguageUtil.get(request, "new-ele
 					HashMapBuilder.<String, Object>put(
 						"availableLanguageIds", ddmFormAdminDisplayContext.getAvailableLanguageIdsJSONArray()
 					).put(
+						"availableLocales", ddmFormAdminDisplayContext.getAvailableLocalesJSONArray()
+					).put(
 						"context", formBuilderContextJSONObject
 					).put(
 						"dataProviderInstanceParameterSettingsURL", dataProviderInstanceParameterSettingsURL
@@ -109,7 +113,7 @@ renderResponse.setTitle((structure == null) ? LanguageUtil.get(request, "new-ele
 					).put(
 						"portletNamespace", liferayPortletResponse.getNamespace()
 					).put(
-						"redirectURL", HtmlUtil.escape(redirect)
+						"redirectURL", PortalUtil.escapeRedirect(redirect)
 					).put(
 						"spritemap", themeDisplay.getPathThemeSpritemap()
 					).put(

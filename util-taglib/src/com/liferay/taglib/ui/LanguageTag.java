@@ -22,6 +22,13 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.taglib.aui.AUIUtil;
 import com.liferay.taglib.util.IncludeTag;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.jsp.JspWriter;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,13 +38,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.JspWriter;
 
 /**
  * @author Brian Wing Shun Chan
@@ -201,9 +201,11 @@ public class LanguageTag extends IncludeTag {
 		for (Locale locale : locales) {
 			Integer count = counts.get(locale.getLanguage());
 
-			if (count.intValue() != 1) {
-				duplicateLanguages.add(locale.getLanguage());
+			if (count.intValue() == 1) {
+				continue;
 			}
+
+			duplicateLanguages.add(locale.getLanguage());
 		}
 
 		Locale currentLocale = null;
@@ -267,10 +269,10 @@ public class LanguageTag extends IncludeTag {
 
 		PortletRequest portletRequest =
 			(PortletRequest)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_REQUEST);
+				JavaConstants.JAKARTA_PORTLET_REQUEST);
 		PortletResponse portletResponse =
 			(PortletResponse)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_RESPONSE);
+				JavaConstants.JAKARTA_PORTLET_RESPONSE);
 
 		String namespace = AUIUtil.getNamespace(
 			portletRequest, portletResponse);

@@ -384,15 +384,6 @@ public class CommerceShipmentItemLocalServiceUtil {
 			commerceShipmentId, start, end, orderByComparator);
 	}
 
-	public static List<CommerceShipmentItem> getCommerceShipmentItems(
-		long commerceShipmentId, long commerceOrderItemId, int start, int end,
-		OrderByComparator<CommerceShipmentItem> orderByComparator) {
-
-		return getService().getCommerceShipmentItems(
-			commerceShipmentId, commerceOrderItemId, start, end,
-			orderByComparator);
-	}
-
 	public static List<CommerceShipmentItem>
 		getCommerceShipmentItemsByCommerceOrderItemId(
 			long commerceOrderItemId) {
@@ -495,6 +486,13 @@ public class CommerceShipmentItemLocalServiceUtil {
 		return getService().getPersistedModel(primaryKeyObj);
 	}
 
+	public static int getValidCommerceShipmentItemsCount(
+		long commerceShipmentId) {
+
+		return getService().getValidCommerceShipmentItemsCount(
+			commerceShipmentId);
+	}
+
 	/**
 	 * Updates the commerce shipment item in the database or adds it if it does not yet exist. Also notifies the appropriate model listeners.
 	 *
@@ -539,3 +537,4 @@ public class CommerceShipmentItemLocalServiceUtil {
 			CommerceShipmentItemLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1366579811

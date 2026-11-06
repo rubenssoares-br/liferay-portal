@@ -6,6 +6,12 @@
 package com.liferay.layout.page.template.admin.web.internal.importer.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.asset.kernel.model.AssetCategory;
+import com.liferay.asset.kernel.model.AssetEntry;
+import com.liferay.asset.list.constants.AssetListEntryTypeConstants;
+import com.liferay.asset.list.model.AssetListEntry;
+import com.liferay.asset.list.service.AssetListEntryLocalService;
+import com.liferay.asset.publisher.constants.AssetPublisherPortletKeys;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
@@ -23,71 +29,111 @@ import com.liferay.info.field.InfoField;
 import com.liferay.info.form.InfoForm;
 import com.liferay.info.item.InfoItemServiceRegistry;
 import com.liferay.info.item.provider.InfoItemFormProvider;
+import com.liferay.item.selector.criteria.InfoItemItemSelectorReturnType;
+import com.liferay.item.selector.criteria.InfoListItemSelectorReturnType;
 import com.liferay.layout.exporter.LayoutsExporter;
 import com.liferay.layout.importer.LayoutsImportStrategy;
 import com.liferay.layout.importer.LayoutsImporter;
 import com.liferay.layout.importer.LayoutsImporterResultEntry;
+import com.liferay.layout.page.template.admin.web.internal.portlet.constants.LayoutPageTemplateAdminWebPortletKeys;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateCollectionTypeConstants;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateConstants;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateCollection;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.model.LayoutPageTemplateStructure;
+import com.liferay.layout.page.template.model.LayoutPageTemplateStructureRel;
 import com.liferay.layout.page.template.service.LayoutPageTemplateCollectionLocalService;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
 import com.liferay.layout.page.template.service.LayoutPageTemplateStructureLocalService;
+import com.liferay.layout.page.template.service.LayoutPageTemplateStructureRelLocalService;
+import com.liferay.layout.page.template.service.LayoutPageTemplateStructureService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
+import com.liferay.layout.page.template.test.util.LayoutPageTemplateTestUtil;
 import com.liferay.layout.provider.LayoutStructureProvider;
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
+import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.layout.util.structure.ColumnLayoutStructureItem;
 import com.liferay.layout.util.structure.ContainerStyledLayoutStructureItem;
+import com.liferay.layout.util.structure.FormStyledLayoutStructureItem;
 import com.liferay.layout.util.structure.FragmentStyledLayoutStructureItem;
 import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.layout.util.structure.LayoutStructureItem;
 import com.liferay.layout.util.structure.RowStyledLayoutStructureItem;
+import com.liferay.layout.utility.page.model.LayoutUtilityPageEntry;
+import com.liferay.layout.utility.page.service.LayoutUtilityPageEntryLocalService;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
+import com.liferay.portal.kernel.exception.PortletIdException;
+import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
-import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.model.Organization;
+import com.liferay.portal.kernel.model.PortletPreferences;
 import com.liferay.portal.kernel.model.Repository;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
+import com.liferay.portal.kernel.model.role.RoleConstants;
+import com.liferay.portal.kernel.portlet.PortletIdCodec;
+import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portal.kernel.portletfilerepository.PortletFileRepositoryUtil;
 import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.service.permission.PortletPermissionUtil;
 import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.OrganizationTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortletKeys;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.kernel.zip.ZipReader;
+import com.liferay.portal.kernel.zip.ZipReaderFactory;
 import com.liferay.portal.kernel.zip.ZipWriter;
 import com.liferay.portal.kernel.zip.ZipWriterFactory;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.segments.model.SegmentsExperience;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
+import com.liferay.style.book.model.StyleBookEntry;
+import com.liferay.style.book.service.StyleBookEntryLocalService;
 
 import java.io.File;
 import java.io.InputStream;
@@ -99,6 +145,8 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -135,20 +183,184 @@ public class LayoutsImporterTest {
 	}
 
 	@Test
-	public void testImportDisplayPageTemplates() throws Exception {
-		List<LayoutsImporterResultEntry> layoutsImporterResultEntries = null;
+	public void testExportImportLayoutPageTemplateEntryWithCollectionAppliedFiltersFragmentRenderer()
+		throws Exception {
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry = null;
 
 		ServiceContextThreadLocal.pushServiceContext(_serviceContext1);
 
 		try {
-			layoutsImporterResultEntries = _layoutsImporter.importFile(
-				TestPropsValues.getUserId(), _group1.getGroupId(), 0,
-				_getFile(_RESOURCES_PATH_DISPLAY_PAGE_TEMPLATES),
-				LayoutsImportStrategy.DO_NOT_OVERWRITE, true);
+			AssetListEntry assetListEntry =
+				_assetListEntryLocalService.addAssetListEntry(
+					null, TestPropsValues.getUserId(), _group1.getGroupId(),
+					RandomTestUtil.randomString(),
+					AssetListEntryTypeConstants.TYPE_DYNAMIC, _serviceContext1);
+
+			layoutPageTemplateEntry = _addLayoutPageTemplateEntry();
+
+			Layout layout = _layoutLocalService.fetchLayout(
+				layoutPageTemplateEntry.getPlid());
+
+			Layout draftLayout = layout.fetchDraftLayout();
+
+			long defaultSegmentsExperienceId =
+				_segmentsExperienceLocalService.
+					fetchDefaultSegmentsExperienceId(draftLayout.getPlid());
+
+			String itemId = ContentLayoutTestUtil.addCollectionDisplayToLayout(
+				JSONUtil.put(
+					"classNameId", _portal.getClassNameId(AssetListEntry.class)
+				).put(
+					"classPK", assetListEntry.getAssetListEntryId()
+				).put(
+					"itemType", AssetEntry.class.getName()
+				).put(
+					"type", InfoListItemSelectorReturnType.class.getName()
+				),
+				draftLayout, _layoutStructureProvider, null, null, 0,
+				defaultSegmentsExperienceId);
+
+			FragmentEntryLink fragmentEntryLink =
+				_fragmentEntryLinkLocalService.addFragmentEntryLink(
+					null, TestPropsValues.getUserId(), _group1.getGroupId(),
+					null, null, null, defaultSegmentsExperienceId,
+					draftLayout.getPlid(), StringPool.BLANK, StringPool.BLANK,
+					StringPool.BLANK,
+					"com.liferay.fragment.renderer.collection.filter." +
+						"internal.CollectionAppliedFiltersFragmentRenderer",
+					JSONUtil.put(
+						FragmentEntryProcessorConstants.
+							KEY_FREEMARKER_FRAGMENT_ENTRY_PROCESSOR,
+						JSONUtil.put("targetCollections", new String[] {itemId})
+					).toString(),
+					StringPool.BLANK, 0, null, FragmentConstants.TYPE_COMPONENT,
+					_serviceContext1);
+
+			ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
+				fragmentEntryLink, draftLayout, null, 0,
+				defaultSegmentsExperienceId);
+
+			ContentLayoutTestUtil.publishLayout(draftLayout, layout);
 		}
 		finally {
 			ServiceContextThreadLocal.popServiceContext();
 		}
+
+		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
+			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
+			LayoutPageTemplateEntryTypeConstants.BASIC);
+
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
+
+		LayoutsImporterResultEntry layoutsImporterResultEntry =
+			layoutsImporterResultEntries.get(0);
+
+		Assert.assertEquals(
+			LayoutsImporterResultEntry.Status.IMPORTED,
+			layoutsImporterResultEntry.getStatus());
+	}
+
+	@Test
+	@TestInfo("LPD-51823")
+	public void testExportImportLayoutPageTemplateEntryWithImportedMasterLayout()
+		throws Exception {
+
+		LayoutPageTemplateEntry masterLayoutPageTemplateEntry =
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateEntry(
+				_group1.getGroupId(),
+				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT,
+				WorkflowConstants.STATUS_APPROVED);
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group1.getGroupId(),
+				_portal.getClassNameId(AssetCategory.class.getName()), null);
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		ContentLayoutTestUtil.publishLayout(
+			_layoutLocalService.updateMasterLayoutPageTemplateEntryERC(
+				draftLayout.getGroupId(), draftLayout.isPrivateLayout(),
+				draftLayout.getLayoutId(),
+				masterLayoutPageTemplateEntry.getExternalReferenceCode()),
+			layout);
+
+		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
+			new long[] {
+				layoutPageTemplateEntry.getLayoutPageTemplateEntryId(),
+				masterLayoutPageTemplateEntry.getLayoutPageTemplateEntryId()
+			},
+			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE);
+
+		ZipWriter zipWriter = _zipWriterFactory.getZipWriter();
+
+		try (ZipReader zipReader = _zipReaderFactory.getZipReader(file)) {
+			for (String entry : zipReader.getEntries()) {
+				zipWriter.addEntry(entry, zipReader.getEntryAsString(entry));
+			}
+
+			file = _layoutsExporter.exportLayoutPageTemplateEntries(
+				new long[] {
+					masterLayoutPageTemplateEntry.getLayoutPageTemplateEntryId()
+				},
+				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT);
+		}
+
+		try (ZipReader zipReader = _zipReaderFactory.getZipReader(file)) {
+			for (String entry : zipReader.getEntries()) {
+				zipWriter.addEntry(entry, zipReader.getEntryAsString(entry));
+			}
+		}
+
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				zipWriter.getFile(), LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
+
+		Assert.assertEquals(
+			layoutsImporterResultEntries.toString(), 2,
+			layoutsImporterResultEntries.size());
+
+		for (LayoutsImporterResultEntry layoutsImporterResultEntry :
+				layoutsImporterResultEntries) {
+
+			Assert.assertEquals(
+				LayoutsImporterResultEntry.Status.IMPORTED,
+				layoutsImporterResultEntry.getStatus());
+		}
+
+		LayoutPageTemplateEntry importedMasterLayoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.getLayoutPageTemplateEntry(
+				_group2.getGroupId(),
+				masterLayoutPageTemplateEntry.getLayoutPageTemplateEntryKey());
+
+		LayoutPageTemplateEntry importedLayoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.getLayoutPageTemplateEntry(
+				_group2.getGroupId(),
+				layoutPageTemplateEntry.getLayoutPageTemplateEntryKey());
+
+		Layout importedLayoutPageTemplateEntryLayout =
+			_layoutLocalService.getLayout(
+				importedLayoutPageTemplateEntry.getPlid());
+
+		Assert.assertEquals(
+			importedMasterLayoutPageTemplateEntry.getPlid(),
+			importedLayoutPageTemplateEntryLayout.getMasterLayoutPlid());
+	}
+
+	@Test
+	public void testImportDisplayPageTemplates() throws Exception {
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				_getFile(_RESOURCES_PATH_DISPLAY_PAGE_TEMPLATES),
+				LayoutsImportStrategy.DO_NOT_OVERWRITE, 0, _serviceContext1);
 
 		Assert.assertEquals(
 			layoutsImporterResultEntries.toString(), 3,
@@ -189,18 +401,10 @@ public class LayoutsImporterTest {
 
 		_addFragmentEntry(html, key, name, _serviceContext2);
 
-		List<LayoutsImporterResultEntry> layoutsImporterResultEntries = null;
-
-		ServiceContextThreadLocal.pushServiceContext(_serviceContext2);
-
-		try {
-			layoutsImporterResultEntries = _layoutsImporter.importFile(
-				TestPropsValues.getUserId(), _group2.getGroupId(), 0, file,
-				LayoutsImportStrategy.DO_NOT_OVERWRITE, true);
-		}
-		finally {
-			ServiceContextThreadLocal.popServiceContext();
-		}
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
 
 		Assert.assertEquals(
 			layoutsImporterResultEntries.toString(), 1,
@@ -228,7 +432,7 @@ public class LayoutsImporterTest {
 		Assert.assertEquals(
 			CompanyConstants.SYSTEM, fragmentEntry.getCompanyId());
 
-		_addFragmentEntryLink(fragmentEntry, layoutPageTemplateEntry);
+		_addFragmentEntryLinks(layoutPageTemplateEntry, fragmentEntry);
 
 		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
 			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
@@ -272,23 +476,352 @@ public class LayoutsImporterTest {
 		FragmentEntryLink fragmentEntryLink = _addInputFragmentEntryLink(
 			layoutPageTemplateEntry);
 
-		FragmentEntry fragmentEntry = _addFragmentEntry(
-			_fragmentEntryLocalService.getFragmentEntry(
-				fragmentEntryLink.getFragmentEntryId()),
-			_serviceContext2);
+		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
+			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
+			LayoutPageTemplateEntryTypeConstants.BASIC);
+
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				file, LayoutsImportStrategy.OVERWRITE, 0, _serviceContext1);
+
+		_assertLayoutPageTemplateEntry(
+			fragmentEntryLink,
+			_getLayoutPageTemplateEntryKey(layoutsImporterResultEntries));
+	}
+
+	@Test
+	@TestInfo({"LPD-53905", "LPD-57833"})
+	public void testImportLayoutPageTemplateEntryWithItemSelectorTypeFragmentConfigurationField()
+		throws Exception {
+
+		_testImportLayoutPageTemplateEntryWithItemSelectorTypeFragmentConfigurationField(
+			JSONUtil.put(
+				"className", FileEntry.class.getName()
+			).put(
+				"classNameId", _portal.getClassNameId(FileEntry.class.getName())
+			).put(
+				"classTypeId", "0"
+			).put(
+				"itemSubtype", "Basic Document"
+			).put(
+				"itemType", "Document"
+			).put(
+				"title", RandomTestUtil.randomString()
+			).put(
+				"type", InfoItemItemSelectorReturnType.class.getName()
+			));
+
+		_testImportLayoutPageTemplateEntryWithItemSelectorTypeFragmentConfigurationField(
+			_jsonFactory.createJSONObject());
+	}
+
+	@Test
+	@TestInfo("LPD-86505")
+	public void testImportLayoutPageTemplateEntryWithMasterLayoutAndChildLayout()
+		throws Exception {
+
+		_importFile(
+			_getFile(_RESOURCES_PATH_MASTER_PAGES),
+			LayoutsImportStrategy.OVERWRITE,
+			LayoutPageTemplateConstants.
+				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+			_serviceContext1);
+
+		LayoutPageTemplateEntry masterLayoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
+				_group1.getGroupId(),
+				LayoutPageTemplateConstants.
+					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+				"Default Master Page",
+				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT);
+
+		Layout masterPublishedLayout = _layoutLocalService.getLayout(
+			masterLayoutPageTemplateEntry.getPlid());
+
+		Layout masterDraftLayout = masterPublishedLayout.fetchDraftLayout();
+
+		ContentLayoutTestUtil.addPortletToLayout(
+			masterDraftLayout,
+			LayoutPageTemplateAdminWebPortletKeys.
+				LAYOUT_PAGE_TEMPLATE_ADMIN_WEB_NONINSTANCEABLE_TEST_PORTLET);
+
+		ContentLayoutTestUtil.publishLayout(
+			masterDraftLayout, masterPublishedLayout);
+
+		Layout childLayout = LayoutTestUtil.addTypeContentLayout(
+			_group1, false, false,
+			masterLayoutPageTemplateEntry.getExternalReferenceCode());
+
+		PortletPreferencesFactoryUtil.getLayoutPortletSetup(
+			childLayout,
+			LayoutPageTemplateAdminWebPortletKeys.
+				LAYOUT_PAGE_TEMPLATE_ADMIN_WEB_NONINSTANCEABLE_TEST_PORTLET);
+
+		List<PortletPreferences> portletPreferences =
+			_portletPreferencesLocalService.getPortletPreferences(
+				PortletKeys.PREFS_OWNER_ID_DEFAULT,
+				PortletKeys.PREFS_OWNER_TYPE_LAYOUT, childLayout.getPlid());
+
+		Assert.assertEquals(
+			portletPreferences.toString(), 1, portletPreferences.size());
+
+		_importFile(
+			_getFile(_RESOURCES_PATH_MASTER_PAGES),
+			LayoutsImportStrategy.OVERWRITE,
+			LayoutPageTemplateConstants.
+				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+			_serviceContext1);
+
+		portletPreferences =
+			_portletPreferencesLocalService.getPortletPreferences(
+				PortletKeys.PREFS_OWNER_ID_DEFAULT,
+				PortletKeys.PREFS_OWNER_TYPE_LAYOUT, childLayout.getPlid());
+
+		Assert.assertEquals(
+			portletPreferences.toString(), 0, portletPreferences.size());
+	}
+
+	@Test
+	@TestInfo("LPS-106815")
+	public void testImportLayoutPageTemplateEntryWithOrganizationRole()
+		throws Exception {
+
+		Organization organization = OrganizationTestUtil.addOrganization(true);
+
+		Group organizationSite = _groupLocalService.getOrganizationGroup(
+			TestPropsValues.getCompanyId(), organization.getOrganizationId());
+
+		LayoutPageTemplateCollection layoutPageTemplateCollection =
+			_layoutPageTemplateCollectionLocalService.
+				addLayoutPageTemplateCollection(
+					null, _serviceContext1.getUserId(),
+					organizationSite.getGroupId(),
+					LayoutPageTemplateConstants.
+						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
+					LayoutPageTemplateCollectionTypeConstants.BASIC,
+					_serviceContext1);
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
+				null, _serviceContext1.getUserId(),
+				organizationSite.getGroupId(),
+				layoutPageTemplateCollection.
+					getLayoutPageTemplateCollectionId(),
+				null, RandomTestUtil.randomString(),
+				LayoutPageTemplateEntryTypeConstants.BASIC, 0,
+				WorkflowConstants.STATUS_APPROVED, _serviceContext1);
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		JSONObject processAddPortletJSONObject =
+			ContentLayoutTestUtil.addPortletToLayout(
+				draftLayout, AssetPublisherPortletKeys.ASSET_PUBLISHER);
+
+		JSONObject fragmentEntryLinkJSONObject =
+			processAddPortletJSONObject.getJSONObject("fragmentEntryLink");
+
+		JSONObject editableValuesJSONObject =
+			fragmentEntryLinkJSONObject.getJSONObject("editableValues");
+
+		String portletId = PortletIdCodec.encode(
+			editableValuesJSONObject.getString("portletId"),
+			editableValuesJSONObject.getString("instanceId"));
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_ORGANIZATION);
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			TestPropsValues.getCompanyId(),
+			AssetPublisherPortletKeys.ASSET_PUBLISHER,
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			PortletPermissionUtil.getPrimaryKey(
+				draftLayout.getPlid(), portletId),
+			role.getRoleId(), new String[] {ActionKeys.VIEW});
+
+		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
 
 		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
 			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
 			LayoutPageTemplateEntryTypeConstants.BASIC);
 
 		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
-			_layoutsImporter.importFile(
-				TestPropsValues.getUserId(), _group2.getGroupId(), 0, file,
-				LayoutsImportStrategy.DO_NOT_OVERWRITE, true);
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
 
-		_assertLayoutPageTemplateEntry(
-			fragmentEntry, fragmentEntryLink,
-			_getLayoutPageTemplateEntryKey(layoutsImporterResultEntries));
+		LayoutsImporterResultEntry layoutsImporterResultEntry =
+			layoutsImporterResultEntries.get(0);
+
+		Assert.assertEquals(
+			LayoutsImporterResultEntry.Status.IMPORTED,
+			layoutsImporterResultEntry.getStatus());
+
+		Assert.assertArrayEquals(
+			new String[] {
+				"Role with key " + role.getName() +
+					" was ignored because it does not exist."
+			},
+			layoutsImporterResultEntry.getWarningMessages());
+	}
+
+	@Test
+	@TestInfo("LPS-106815")
+	public void testImportLayoutPageTemplateEntryWithRegularRole()
+		throws Exception {
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_addLayoutPageTemplateEntry();
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		JSONObject processAddPortletJSONObject =
+			ContentLayoutTestUtil.addPortletToLayout(
+				draftLayout, AssetPublisherPortletKeys.ASSET_PUBLISHER);
+
+		JSONObject fragmentEntryLinkJSONObject =
+			processAddPortletJSONObject.getJSONObject("fragmentEntryLink");
+
+		JSONObject editableValuesJSONObject =
+			fragmentEntryLinkJSONObject.getJSONObject("editableValues");
+
+		String portletId = PortletIdCodec.encode(
+			editableValuesJSONObject.getString("portletId"),
+			editableValuesJSONObject.getString("instanceId"));
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			TestPropsValues.getCompanyId(),
+			AssetPublisherPortletKeys.ASSET_PUBLISHER,
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			PortletPermissionUtil.getPrimaryKey(
+				draftLayout.getPlid(), portletId),
+			role.getRoleId(), new String[] {ActionKeys.VIEW});
+
+		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
+
+		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
+			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
+			LayoutPageTemplateEntryTypeConstants.BASIC);
+
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
+
+		LayoutsImporterResultEntry layoutsImporterResultEntry =
+			layoutsImporterResultEntries.get(0);
+
+		Assert.assertEquals(
+			LayoutsImporterResultEntry.Status.IMPORTED,
+			layoutsImporterResultEntry.getStatus());
+
+		LayoutPageTemplateEntry importedLayoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
+				_group2.getGroupId(),
+				layoutPageTemplateEntry.getLayoutPageTemplateEntryKey());
+
+		List<FragmentEntryLink> fragmentEntryLinks =
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
+				importedLayoutPageTemplateEntry.getGroupId(),
+				importedLayoutPageTemplateEntry.getPlid());
+
+		Assert.assertEquals(
+			fragmentEntryLinks.toString(), 1, fragmentEntryLinks.size());
+
+		FragmentEntryLink importedFragmentEntryLink = fragmentEntryLinks.get(0);
+
+		JSONObject importedEditableValuesJSONObject =
+			importedFragmentEntryLink.getEditableValuesJSONObject();
+
+		String importedPortletId = PortletIdCodec.encode(
+			importedEditableValuesJSONObject.getString("portletId"),
+			importedEditableValuesJSONObject.getString("instanceId"));
+
+		Assert.assertTrue(
+			_resourcePermissionLocalService.hasResourcePermission(
+				TestPropsValues.getCompanyId(),
+				AssetPublisherPortletKeys.ASSET_PUBLISHER,
+				ResourceConstants.SCOPE_INDIVIDUAL,
+				PortletPermissionUtil.getPrimaryKey(
+					importedLayoutPageTemplateEntry.getPlid(),
+					importedPortletId),
+				role.getRoleId(), ActionKeys.VIEW));
+	}
+
+	@Test
+	@TestInfo({"LPS-107748", "LPS-128399", "LPS-129107"})
+	public void testImportLayoutPageTemplateEntryWithStyleBookAndMissingFragmentEntry()
+		throws Exception {
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_addLayoutPageTemplateEntry();
+
+		FragmentEntry fragmentEntry =
+			_fragmentCollectionContributorRegistry.getFragmentEntry(
+				"BASIC_COMPONENT-heading");
+
+		String fragmentEntryKey = StringUtil.toLowerCase(
+			RandomTestUtil.randomString());
+
+		_addFragmentEntryLinks(
+			layoutPageTemplateEntry, fragmentEntry,
+			_addFragmentEntry(
+				RandomTestUtil.randomString(), fragmentEntryKey,
+				RandomTestUtil.randomString(), _serviceContext1));
+
+		StyleBookEntry styleBookEntry = _addStyleBookEntry(
+			_serviceContext1, RandomTestUtil.randomString());
+
+		_updateLayoutStyleBookEntryERC(
+			layoutPageTemplateEntry, styleBookEntry.getExternalReferenceCode());
+
+		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
+			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
+			LayoutPageTemplateEntryTypeConstants.BASIC);
+
+		StyleBookEntry curStyleBookEntry = _addStyleBookEntry(
+			_serviceContext2, styleBookEntry.getStyleBookEntryKey());
+
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
+
+		Assert.assertEquals(
+			layoutsImporterResultEntries.toString(), 1,
+			layoutsImporterResultEntries.size());
+
+		LayoutsImporterResultEntry layoutsImporterResultEntry =
+			layoutsImporterResultEntries.get(0);
+
+		Assert.assertEquals(
+			LayoutsImporterResultEntry.Status.IMPORTED,
+			layoutsImporterResultEntry.getStatus());
+
+		Assert.assertArrayEquals(
+			new String[] {
+				"Fragment with key " + fragmentEntryKey +
+					" was ignored because it does not exist."
+			},
+			layoutsImporterResultEntry.getWarningMessages());
+
+		LayoutPageTemplateEntry curLayoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
+				_group2.getGroupId(),
+				_getLayoutPageTemplateEntryKey(layoutsImporterResultEntries));
+
+		_assertFragmentEntryLink(fragmentEntry, curLayoutPageTemplateEntry);
+
+		_assertStyleBookEntryERC(
+			curLayoutPageTemplateEntry,
+			curStyleBookEntry.getExternalReferenceCode());
 	}
 
 	@Test
@@ -332,13 +865,191 @@ public class LayoutsImporterTest {
 			fragmentEntry, _serviceContext2);
 
 		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
-			_layoutsImporter.importFile(
-				TestPropsValues.getUserId(), _group2.getGroupId(), 0, file,
-				LayoutsImportStrategy.DO_NOT_OVERWRITE, true);
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
 
 		_assertLayoutPageTemplateEntry(
 			configurationJSONObject, editableValuesJSONObject, curFragmentEntry,
 			_getLayoutPageTemplateEntryKey(layoutsImporterResultEntries));
+	}
+
+	@Test
+	@TestInfo("LPD-51419")
+	public void testImportLayoutWithSegmentExperiencesWithNoninstanceablePortlet()
+		throws Exception {
+
+		Layout layout = LayoutTestUtil.addTypeContentLayout(_group1);
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		ContentLayoutTestUtil.addPortletToLayout(
+			draftLayout,
+			LayoutPageTemplateAdminWebPortletKeys.
+				LAYOUT_PAGE_TEMPLATE_ADMIN_WEB_NONINSTANCEABLE_TEST_PORTLET);
+
+		Assert.assertEquals(
+			1,
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksCountByPlid(
+				draftLayout.getGroupId(), draftLayout.getPlid()));
+
+		LayoutPageTemplateStructure layoutPageTemplateStructure =
+			_layoutPageTemplateStructureLocalService.
+				fetchLayoutPageTemplateStructure(
+					draftLayout.getGroupId(), draftLayout.getPlid());
+
+		LayoutStructure layoutStructure = LayoutStructure.of(
+			layoutPageTemplateStructure.getDefaultSegmentsExperienceData());
+
+		String pageElementJSON = JSONUtil.put(
+			"definition",
+			JSONUtil.put(
+				"widgetInstance",
+				JSONUtil.put(
+					"widgetName",
+					LayoutPageTemplateAdminWebPortletKeys.
+						LAYOUT_PAGE_TEMPLATE_ADMIN_WEB_NONINSTANCEABLE_TEST_PORTLET))
+		).put(
+			"type", "Widget"
+		).toString();
+
+		ServiceContextThreadLocal.pushServiceContext(_serviceContext1);
+
+		try {
+			_layoutsImporter.importPageElement(
+				TestPropsValues.getUserId(), draftLayout, layoutStructure,
+				layoutStructure.getMainItemId(), pageElementJSON, 0, true,
+				_segmentsExperienceLocalService.
+					fetchDefaultSegmentsExperienceId(draftLayout.getPlid()));
+
+			Assert.fail();
+		}
+		catch (PortletIdException portletIdException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(portletIdException);
+			}
+		}
+		finally {
+			ServiceContextThreadLocal.popServiceContext();
+		}
+
+		SegmentsExperience segmentsExperience =
+			_segmentsExperienceLocalService.addSegmentsExperience(
+				null, TestPropsValues.getUserId(), _group1.getGroupId(), null,
+				null, draftLayout.getPlid(),
+				RandomTestUtil.randomLocaleStringMap(), false,
+				new UnicodeProperties(true), _serviceContext1);
+
+		LayoutPageTemplateStructureRel layoutPageTemplateStructureRel =
+			_layoutPageTemplateStructureRelLocalService.
+				fetchLayoutPageTemplateStructureRel(
+					layoutPageTemplateStructure.
+						getLayoutPageTemplateStructureId(),
+					segmentsExperience.getSegmentsExperienceId());
+
+		if (layoutPageTemplateStructureRel == null) {
+			layoutPageTemplateStructureRel =
+				_layoutPageTemplateStructureRelLocalService.
+					addLayoutPageTemplateStructureRel(
+						PrincipalThreadLocal.getUserId(),
+						draftLayout.getGroupId(),
+						layoutPageTemplateStructure.
+							getLayoutPageTemplateStructureId(),
+						segmentsExperience.getSegmentsExperienceId(),
+						StringPool.BLANK, _serviceContext1);
+		}
+
+		layoutStructure = LayoutStructure.of(
+			layoutPageTemplateStructureRel.getData());
+
+		ServiceContextThreadLocal.pushServiceContext(_serviceContext1);
+
+		try {
+			_layoutsImporter.importPageElement(
+				TestPropsValues.getUserId(), draftLayout, layoutStructure,
+				layoutStructure.getMainItemId(), pageElementJSON, 0, true,
+				segmentsExperience.getSegmentsExperienceId());
+		}
+		finally {
+			ServiceContextThreadLocal.popServiceContext();
+		}
+
+		Assert.assertEquals(
+			2,
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksCountByPlid(
+				draftLayout.getGroupId(), draftLayout.getPlid()));
+
+		List<FragmentEntryLink> fragmentEntryLinks =
+			_fragmentEntryLinkLocalService.
+				getFragmentEntryLinksBySegmentsExperienceId(
+					draftLayout.getGroupId(),
+					segmentsExperience.getSegmentsExperienceId(),
+					draftLayout.getPlid());
+
+		Assert.assertEquals(
+			fragmentEntryLinks.toString(), 1, fragmentEntryLinks.size());
+
+		FragmentEntryLink fragmentEntryLink = fragmentEntryLinks.get(0);
+
+		Assert.assertEquals(
+			FragmentConstants.TYPE_PORTLET, fragmentEntryLink.getType());
+
+		JSONObject jsonObject = fragmentEntryLink.getEditableValuesJSONObject();
+
+		Assert.assertEquals(
+			LayoutPageTemplateAdminWebPortletKeys.
+				LAYOUT_PAGE_TEMPLATE_ADMIN_WEB_NONINSTANCEABLE_TEST_PORTLET,
+			jsonObject.getString("portletId"));
+
+		ServiceContextThreadLocal.pushServiceContext(_serviceContext1);
+
+		try {
+			_layoutsImporter.importPageElement(
+				TestPropsValues.getUserId(), draftLayout, layoutStructure,
+				layoutStructure.getMainItemId(), pageElementJSON, 0, true,
+				segmentsExperience.getSegmentsExperienceId());
+
+			Assert.fail();
+		}
+		catch (PortletIdException portletIdException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(portletIdException);
+			}
+		}
+		finally {
+			ServiceContextThreadLocal.popServiceContext();
+		}
+	}
+
+	@Test
+	@TestInfo("LPD-86505")
+	public void testImportUtilityPageEntryIsApprovedAndCanBeSetAsDefault()
+		throws Exception {
+
+		_importFile(
+			_getFile(_RESOURCES_PATH_UTILITY_PAGES),
+			LayoutsImportStrategy.OVERWRITE,
+			LayoutPageTemplateConstants.
+				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+			_serviceContext1);
+
+		LayoutUtilityPageEntry layoutUtilityPageEntry =
+			_layoutUtilityPageEntryLocalService.
+				getLayoutUtilityPageEntryByExternalReferenceCode(
+					"test-default-utility-page", _group1.getGroupId());
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutUtilityPageEntry.getPlid());
+
+		Assert.assertTrue(layout.isPublished());
+
+		layoutUtilityPageEntry =
+			_layoutUtilityPageEntryLocalService.
+				setDefaultLayoutUtilityPageEntry(
+					layoutUtilityPageEntry.getLayoutUtilityPageEntryId());
+
+		Assert.assertTrue(
+			layoutUtilityPageEntry.isDefaultLayoutUtilityPageEntry());
 	}
 
 	@Test
@@ -372,7 +1083,7 @@ public class LayoutsImporterTest {
 				null, TestPropsValues.getUserId(), _group1.getGroupId(),
 				LayoutPageTemplateConstants.
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-				"Child Display Page Collection", StringPool.BLANK,
+				null, "Child Display Page Collection", StringPool.BLANK,
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 				ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
 
@@ -393,7 +1104,7 @@ public class LayoutsImporterTest {
 				null, TestPropsValues.getUserId(), _group1.getGroupId(),
 				LayoutPageTemplateConstants.
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-				"Page Template Set", StringPool.BLANK,
+				null, "Page Template Set", StringPool.BLANK,
 				LayoutPageTemplateEntryTypeConstants.BASIC,
 				ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
 
@@ -409,19 +1120,21 @@ public class LayoutsImporterTest {
 	public void testValidateFileWithDuplicatedBasicLayoutPageTemplateEntry()
 		throws Exception {
 
+		LayoutPageTemplateCollection layoutPageTemplateCollection =
+			LayoutPageTemplateTestUtil.addLayoutPageTemplateCollection(
+				_group1.getGroupId());
+
 		_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-			null, TestPropsValues.getUserId(), _group1.getGroupId(),
-			LayoutPageTemplateConstants.
-				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-			"Page Template", LayoutPageTemplateEntryTypeConstants.BASIC, 0,
-			WorkflowConstants.STATUS_APPROVED,
-			ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
+			null, _serviceContext1.getUserId(), _group1.getGroupId(),
+			layoutPageTemplateCollection.getLayoutPageTemplateCollectionId(),
+			null, "Page Template", LayoutPageTemplateEntryTypeConstants.BASIC,
+			0, WorkflowConstants.STATUS_APPROVED, _serviceContext1);
 
 		Assert.assertFalse(
 			_layoutsImporter.validateFile(
 				_group1.getGroupId(),
-				LayoutPageTemplateConstants.
-					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+				layoutPageTemplateCollection.
+					getLayoutPageTemplateCollectionId(),
 				_getFile(_RESOURCES_PATH_PAGE_TEMPLATES)));
 	}
 
@@ -429,24 +1142,31 @@ public class LayoutsImporterTest {
 	public void testValidateFileWithDuplicatedBasicLayoutPageTemplateEntryInADifferentLayoutPageTemplateCollection()
 		throws Exception {
 
-		_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-			null, TestPropsValues.getUserId(), _group1.getGroupId(),
-			LayoutPageTemplateConstants.
-				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-			"Page Template", LayoutPageTemplateEntryTypeConstants.BASIC, 0,
-			WorkflowConstants.STATUS_APPROVED,
-			ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
-
 		LayoutPageTemplateCollection layoutPageTemplateCollection =
 			_layoutPageTemplateCollectionLocalService.
 				addLayoutPageTemplateCollection(
 					null, TestPropsValues.getUserId(), _group1.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateEntryTypeConstants.BASIC,
-					ServiceContextTestUtil.getServiceContext(
-						_group1.getGroupId()));
+					_serviceContext1);
+
+		_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
+			null, TestPropsValues.getUserId(), _group1.getGroupId(),
+			layoutPageTemplateCollection.getLayoutPageTemplateCollectionId(),
+			null, "Page Template", LayoutPageTemplateEntryTypeConstants.BASIC,
+			0, WorkflowConstants.STATUS_APPROVED, _serviceContext1);
+
+		layoutPageTemplateCollection =
+			_layoutPageTemplateCollectionLocalService.
+				addLayoutPageTemplateCollection(
+					null, TestPropsValues.getUserId(), _group1.getGroupId(),
+					LayoutPageTemplateConstants.
+						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
+					LayoutPageTemplateEntryTypeConstants.BASIC,
+					_serviceContext1);
 
 		Assert.assertTrue(
 			_layoutsImporter.validateFile(
@@ -465,7 +1185,7 @@ public class LayoutsImporterTest {
 				null, TestPropsValues.getUserId(), _group1.getGroupId(),
 				LayoutPageTemplateConstants.
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-				"Display Page Collection", StringPool.BLANK,
+				null, "Display Page Collection", StringPool.BLANK,
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 				ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
 
@@ -487,7 +1207,7 @@ public class LayoutsImporterTest {
 					null, TestPropsValues.getUserId(), _group1.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 					ServiceContextTestUtil.getServiceContext(
 						_group1.getGroupId()));
@@ -497,7 +1217,7 @@ public class LayoutsImporterTest {
 				null, TestPropsValues.getUserId(), _group1.getGroupId(),
 				layoutPageTemplateCollection.
 					getLayoutPageTemplateCollectionId(),
-				"Display Page Collection", StringPool.BLANK,
+				null, "Display Page Collection", StringPool.BLANK,
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 				ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
 
@@ -519,7 +1239,7 @@ public class LayoutsImporterTest {
 					null, TestPropsValues.getUserId(), _group1.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 					ServiceContextTestUtil.getServiceContext(
 						_group1.getGroupId()));
@@ -529,7 +1249,7 @@ public class LayoutsImporterTest {
 				null, TestPropsValues.getUserId(), _group1.getGroupId(),
 				layoutPageTemplateCollection.
 					getLayoutPageTemplateCollectionId(),
-				"Display Page Collection", StringPool.BLANK,
+				null, "Display Page Collection", StringPool.BLANK,
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 				ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
 
@@ -549,10 +1269,9 @@ public class LayoutsImporterTest {
 			null, TestPropsValues.getUserId(), _group1.getGroupId(),
 			LayoutPageTemplateConstants.
 				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-			"Basic Web Content Display Page Template",
+			null, "Basic Web Content Display Page Template",
 			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0,
-			WorkflowConstants.STATUS_APPROVED,
-			ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
+			WorkflowConstants.STATUS_APPROVED, _serviceContext1);
 
 		Assert.assertFalse(
 			_layoutsImporter.validateFile(
@@ -570,7 +1289,7 @@ public class LayoutsImporterTest {
 			null, TestPropsValues.getUserId(), _group1.getGroupId(),
 			LayoutPageTemplateConstants.
 				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-			"Basic Web Content Display Page Template",
+			null, "Basic Web Content Display Page Template",
 			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0,
 			WorkflowConstants.STATUS_APPROVED,
 			ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
@@ -581,7 +1300,7 @@ public class LayoutsImporterTest {
 					null, TestPropsValues.getUserId(), _group1.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE,
 					ServiceContextTestUtil.getServiceContext(
 						_group1.getGroupId()));
@@ -602,7 +1321,7 @@ public class LayoutsImporterTest {
 			null, TestPropsValues.getUserId(), _group1.getGroupId(),
 			LayoutPageTemplateConstants.
 				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-			"Blogs Display Page Template",
+			null, "Blogs Display Page Template",
 			LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0,
 			WorkflowConstants.STATUS_APPROVED,
 			ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
@@ -623,7 +1342,7 @@ public class LayoutsImporterTest {
 			null, TestPropsValues.getUserId(), _group1.getGroupId(),
 			LayoutPageTemplateConstants.
 				PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-			"Default Master Page",
+			null, "Default Master Page",
 			LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT, 0,
 			WorkflowConstants.STATUS_APPROVED,
 			ServiceContextTestUtil.getServiceContext(_group1.getGroupId()));
@@ -652,7 +1371,7 @@ public class LayoutsImporterTest {
 			fragmentEntry.getFragmentEntryKey(), fragmentEntry.getName(),
 			fragmentEntry.getCss(), fragmentEntry.getHtml(),
 			fragmentEntry.getJs(), fragmentEntry.isCacheable(),
-			fragmentEntry.getConfiguration(), null, 0, false,
+			fragmentEntry.getConfiguration(), null, 0, false, false,
 			fragmentEntry.getType(), fragmentEntry.getTypeOptions(),
 			WorkflowConstants.STATUS_APPROVED, serviceContext);
 	}
@@ -674,7 +1393,7 @@ public class LayoutsImporterTest {
 			RandomTestUtil.randomString(), StringPool.BLANK,
 			"<div class=\"fragment_1\"><a href=${configuration.myURL}>" +
 				RandomTestUtil.randomString() + "</a></div>",
-			StringPool.BLANK, false, configuration, null, 0, false,
+			StringPool.BLANK, false, configuration, null, 0, false, false,
 			FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED, serviceContext);
 	}
@@ -693,13 +1412,13 @@ public class LayoutsImporterTest {
 			null, TestPropsValues.getUserId(), serviceContext.getScopeGroupId(),
 			fragmentCollection.getFragmentCollectionId(), key, name,
 			StringPool.BLANK, html, StringPool.BLANK, false, StringPool.BLANK,
-			null, 0, false, FragmentConstants.TYPE_COMPONENT, null,
+			null, 0, false, false, FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED, serviceContext);
 	}
 
-	private void _addFragmentEntryLink(
-			FragmentEntry fragmentEntry,
-			LayoutPageTemplateEntry layoutPageTemplateEntry)
+	private void _addFragmentEntryLinks(
+			LayoutPageTemplateEntry layoutPageTemplateEntry,
+			FragmentEntry... fragmentEntries)
 		throws Exception {
 
 		Layout layout = _layoutLocalService.getLayout(
@@ -707,18 +1426,42 @@ public class LayoutsImporterTest {
 
 		Layout draftLayout = layout.fetchDraftLayout();
 
-		ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
-			null, fragmentEntry.getCss(), fragmentEntry.getConfiguration(),
-			fragmentEntry.getFragmentEntryId(), fragmentEntry.getHtml(),
-			fragmentEntry.getJs(), draftLayout,
-			fragmentEntry.getFragmentEntryKey(),
-			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				draftLayout.getPlid()),
-			fragmentEntry.getType());
+		List<Long> fragmentEntryLinkIds = TransformUtil.transformToList(
+			fragmentEntries,
+			fragmentEntry -> {
+				FragmentEntryLink fragmentEntryLink =
+					ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
+						null, fragmentEntry.getCss(),
+						fragmentEntry.getConfiguration(),
+						fragmentEntry.getExternalReferenceCode(), null,
+						fragmentEntry.getHtml(), fragmentEntry.getJs(),
+						draftLayout, fragmentEntry.getFragmentEntryKey(),
+						_segmentsExperienceLocalService.
+							fetchDefaultSegmentsExperienceId(
+								draftLayout.getPlid()),
+						fragmentEntry.getType());
+
+				return fragmentEntryLink.getFragmentEntryLinkId();
+			});
+
+		LayoutPageTemplateStructure layoutPageTemplateStructure =
+			_layoutPageTemplateStructureLocalService.
+				fetchLayoutPageTemplateStructure(
+					layoutPageTemplateEntry.getGroupId(),
+					layoutPageTemplateEntry.getPlid());
+
+		LayoutStructure layoutStructure = LayoutStructure.of(
+			layoutPageTemplateStructure.getDefaultSegmentsExperienceData());
+
+		Map<Long, LayoutStructureItem> fragmentLayoutStructureItems =
+			layoutStructure.getFragmentLayoutStructureItems();
+
+		Assert.assertTrue(
+			MapUtil.toString(fragmentLayoutStructureItems),
+			fragmentEntryLinkIds.containsAll(
+				fragmentLayoutStructureItems.keySet()));
 
 		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
-
-		_assertFragmentEntryLink(fragmentEntry, layoutPageTemplateEntry);
 	}
 
 	private FragmentEntryLink _addInputFragmentEntryLink(
@@ -735,7 +1478,11 @@ public class LayoutsImporterTest {
 			StringPool.BLANK, _group1.getGroupId());
 
 		List<InfoField<?>> infoFields = ListUtil.filter(
-			infoForm.getAllInfoFields(), InfoField::isEditable);
+			infoForm.getAllInfoFields(),
+			infoField ->
+				infoField.isEditable() &&
+				!StringUtil.equals(
+					infoField.getName(), "externalReferenceCode"));
 
 		Assert.assertEquals(infoFields.toString(), 1, infoFields.size());
 
@@ -769,7 +1516,41 @@ public class LayoutsImporterTest {
 				_jsonFactory.createJSONObject(
 					fragmentEntryLink.getEditableValues())));
 
-		return fragmentEntryLink;
+		LayoutPageTemplateStructure layoutPageTemplateStructure =
+			_layoutPageTemplateStructureLocalService.
+				fetchLayoutPageTemplateStructure(
+					layoutPageTemplateEntry.getGroupId(),
+					layoutPageTemplateEntry.getPlid());
+
+		LayoutStructure layoutStructure = LayoutStructure.of(
+			layoutPageTemplateStructure.getData(
+				fragmentEntryLink.getSegmentsExperienceId()));
+
+		List<FormStyledLayoutStructureItem> formStyledLayoutStructureItems =
+			layoutStructure.getFormStyledLayoutStructureItems();
+
+		FormStyledLayoutStructureItem formStyledLayoutStructureItem =
+			formStyledLayoutStructureItems.get(0);
+
+		_successMessageJSONObject = _getSuccessMessageJSONObject();
+
+		layoutStructure.updateItemConfig(
+			_successMessageJSONObject,
+			formStyledLayoutStructureItem.getItemId());
+
+		_layoutPageTemplateStructureService.
+			updateLayoutPageTemplateStructureData(
+				layoutPageTemplateEntry.getGroupId(),
+				layoutPageTemplateEntry.getPlid(),
+				fragmentEntryLink.getSegmentsExperienceId(),
+				layoutStructure.toString());
+
+		fragmentEntryLinks =
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
+				layoutPageTemplateEntry.getGroupId(),
+				layoutPageTemplateEntry.getPlid());
+
+		return fragmentEntryLinks.get(0);
 	}
 
 	private LayoutPageTemplateEntry _addLayoutPageTemplateEntry()
@@ -781,14 +1562,14 @@ public class LayoutsImporterTest {
 					null, _serviceContext1.getUserId(), _group1.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					_serviceContext1);
 
 		return _layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
 			null, _serviceContext1.getUserId(), _group1.getGroupId(),
 			layoutPageTemplateCollection.getLayoutPageTemplateCollectionId(),
-			RandomTestUtil.randomString(),
+			null, RandomTestUtil.randomString(),
 			LayoutPageTemplateEntryTypeConstants.BASIC, 0,
 			WorkflowConstants.STATUS_APPROVED, _serviceContext1);
 	}
@@ -804,16 +1585,20 @@ public class LayoutsImporterTest {
 			layoutPageTemplateEntry.getPlid());
 
 		Layout draftLayout = layout.fetchDraftLayout();
+
 		long segmentsExperienceId =
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				layout.getPlid());
+				draftLayout.getPlid());
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group1.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(), segmentsExperienceId,
-				draftLayout.getPlid(), fragmentEntry.getCss(),
-				fragmentEntry.getHtml(), fragmentEntry.getConfiguration(),
+				null, TestPropsValues.getUserId(), _group1.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group1.getGroupId()),
+				segmentsExperienceId, draftLayout.getPlid(),
+				fragmentEntry.getCss(), fragmentEntry.getHtml(),
+				fragmentEntry.getConfiguration(),
 				fragmentEntry.getConfiguration(), editableValues,
 				StringPool.BLANK, 0, fragmentEntry.getFragmentEntryKey(),
 				fragmentEntry.getType(), _serviceContext1);
@@ -821,7 +1606,7 @@ public class LayoutsImporterTest {
 		ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
 			fragmentEntryLink, draftLayout, null, 0, segmentsExperienceId);
 
-		ContentLayoutTestUtil.publishLayout(layout.fetchDraftLayout(), layout);
+		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
 
 		return layoutPageTemplateEntry;
 	}
@@ -842,10 +1627,12 @@ public class LayoutsImporterTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group1.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(), defaultSegmentsExperienceId,
-				layoutPageTemplateEntry.getPlid(), StringPool.BLANK, html,
-				StringPool.BLANK,
+				null, TestPropsValues.getUserId(), _group1.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group1.getGroupId()),
+				defaultSegmentsExperienceId, layoutPageTemplateEntry.getPlid(),
+				StringPool.BLANK, html, StringPool.BLANK,
 				_read("export_import_fragment_field_text_config.json"),
 				_read("export_import_fragment_field_text_editable_values.json"),
 				StringPool.BLANK, 0, null, fragmentEntry.getType(),
@@ -853,8 +1640,8 @@ public class LayoutsImporterTest {
 
 		_layoutPageTemplateStructureLocalService.
 			updateLayoutPageTemplateStructureData(
-				_group1.getGroupId(), layoutPageTemplateEntry.getPlid(),
-				defaultSegmentsExperienceId,
+				TestPropsValues.getUserId(), _group1.getGroupId(),
+				layoutPageTemplateEntry.getPlid(), defaultSegmentsExperienceId,
 				StringUtil.replace(
 					_read("export_import_layout_data.json"), "${", "}",
 					HashMapBuilder.put(
@@ -889,7 +1676,61 @@ public class LayoutsImporterTest {
 				ObjectFieldUtil.createObjectField(
 					ObjectFieldConstants.BUSINESS_TYPE_TEXT,
 					ObjectFieldConstants.DB_TYPE_STRING, "myTextField",
-					"myTextField", false)));
+					"myTextField", false)),
+			false);
+	}
+
+	private StyleBookEntry _addStyleBookEntry(
+			ServiceContext serviceContext, String styleBookEntryKey)
+		throws Exception {
+
+		return _styleBookEntryLocalService.addStyleBookEntry(
+			null, TestPropsValues.getUserId(), serviceContext.getScopeGroupId(),
+			false, StringPool.BLANK, StringPool.BLANK,
+			RandomTestUtil.randomString(), styleBookEntryKey,
+			RandomTestUtil.randomString(), serviceContext);
+	}
+
+	private void _assertExportedFileItemSelector(
+			File file, FragmentEntryLink fragmentEntryLink,
+			LayoutPageTemplateEntry layoutPageTemplateEntry)
+		throws Exception {
+
+		JSONObject editablesValuesJSONObject =
+			fragmentEntryLink.getEditableValuesJSONObject();
+
+		JSONObject freeMarkerFragmentEntryProcessorJSONObject =
+			editablesValuesJSONObject.getJSONObject(
+				FragmentEntryProcessorConstants.
+					KEY_FREEMARKER_FRAGMENT_ENTRY_PROCESSOR);
+
+		JSONObject itemSelectorFragmentEntryJSONObject =
+			freeMarkerFragmentEntryProcessorJSONObject.getJSONObject(
+				"itemSelector");
+
+		JSONObject pageDefinitionJSONObject = _getPageDefinitionJSONObject(
+			layoutPageTemplateEntry.getLayoutPageTemplateEntryKey(), file);
+
+		JSONObject pageElementJSONObject =
+			pageDefinitionJSONObject.getJSONObject("pageElement");
+
+		JSONArray pageElementsJSONArray = pageElementJSONObject.getJSONArray(
+			"pageElements");
+
+		JSONObject jsonObject = pageElementsJSONArray.getJSONObject(0);
+
+		JSONObject definitionJSONObject = jsonObject.getJSONObject(
+			"definition");
+
+		JSONObject fragmentConfigJSONObject =
+			definitionJSONObject.getJSONObject("fragmentConfig");
+
+		JSONObject itemSelectorJSONObject =
+			fragmentConfigJSONObject.getJSONObject("itemSelector");
+
+		Assert.assertEquals(
+			itemSelectorFragmentEntryJSONObject.toString(),
+			itemSelectorJSONObject.toString());
 	}
 
 	private void _assertFragmentEntryLink(
@@ -923,13 +1764,13 @@ public class LayoutsImporterTest {
 	}
 
 	private void _assertLayoutPageTemplateEntry(
-			FragmentEntry fragmentEntry, FragmentEntryLink fragmentEntryLink,
+			FragmentEntryLink fragmentEntryLink,
 			String layoutPageTemplateEntryKey)
 		throws Exception {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
-				_group2.getGroupId(), layoutPageTemplateEntryKey);
+				_group1.getGroupId(), layoutPageTemplateEntryKey);
 
 		List<FragmentEntryLink> fragmentEntryLinks =
 			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
@@ -941,10 +1782,6 @@ public class LayoutsImporterTest {
 
 		FragmentEntryLink curFragmentEntryLink = fragmentEntryLinks.get(0);
 
-		Assert.assertEquals(
-			fragmentEntry.getFragmentEntryId(),
-			curFragmentEntryLink.getFragmentEntryId());
-
 		Assert.assertTrue(
 			curFragmentEntryLink.getEditableValues(),
 			JSONUtil.equals(
@@ -952,6 +1789,33 @@ public class LayoutsImporterTest {
 					fragmentEntryLink.getEditableValues()),
 				_jsonFactory.createJSONObject(
 					curFragmentEntryLink.getEditableValues())));
+
+		LayoutPageTemplateStructure layoutPageTemplateStructure =
+			_layoutPageTemplateStructureLocalService.
+				fetchLayoutPageTemplateStructure(
+					layoutPageTemplateEntry.getGroupId(),
+					layoutPageTemplateEntry.getPlid());
+
+		LayoutStructure layoutStructure = LayoutStructure.of(
+			layoutPageTemplateStructure.getData(
+				curFragmentEntryLink.getSegmentsExperienceId()));
+
+		List<FormStyledLayoutStructureItem> formStyledLayoutStructureItems =
+			layoutStructure.getFormStyledLayoutStructureItems();
+
+		FormStyledLayoutStructureItem formStyledLayoutStructureItem =
+			formStyledLayoutStructureItems.get(0);
+
+		JSONObject expectedSuccessMessageJSONObject =
+			_successMessageJSONObject.getJSONObject("successMessage");
+
+		JSONObject actualSuccessMessageJSONObject =
+			formStyledLayoutStructureItem.getSuccessMessageJSONObject();
+
+		Assert.assertTrue(
+			JSONUtil.equals(
+				expectedSuccessMessageJSONObject,
+				actualSuccessMessageJSONObject));
 	}
 
 	private void _assertLayoutPageTemplateEntry(
@@ -975,14 +1839,21 @@ public class LayoutsImporterTest {
 		FragmentEntryLink fragmentEntryLink = fragmentEntryLinks.get(0);
 
 		Assert.assertEquals(
-			fragmentEntry.getFragmentEntryId(),
-			fragmentEntryLink.getFragmentEntryId());
+			fragmentEntry.getExternalReferenceCode(),
+			fragmentEntryLink.getFragmentEntryERC());
+
+		Long groupId = ScopeUtil.getItemGroupId(
+			fragmentEntryLink.getCompanyId(),
+			fragmentEntryLink.getFragmentEntryScopeERC(),
+			fragmentEntryLink.getGroupId());
+
+		Assert.assertEquals(fragmentEntry.getGroupId(), groupId.longValue());
+
 		Assert.assertTrue(
 			fragmentEntryLink.getConfiguration(),
 			JSONUtil.equals(
 				configurationJSONObject,
-				_jsonFactory.createJSONObject(
-					fragmentEntryLink.getConfiguration())));
+				fragmentEntryLink.getConfigurationJSONObject()));
 		Assert.assertTrue(
 			fragmentEntryLink.getEditableValues(),
 			JSONUtil.equals(
@@ -1027,8 +1898,8 @@ public class LayoutsImporterTest {
 		Assert.assertTrue(
 			Validator.isNotNull(fragmentEntryLink.getEditableValues()));
 
-		JSONObject editableValuesJSONObject = _jsonFactory.createJSONObject(
-			fragmentEntryLink.getEditableValues());
+		JSONObject editableValuesJSONObject =
+			fragmentEntryLink.getEditableValuesJSONObject();
 
 		JSONObject editableJSONObject = editableValuesJSONObject.getJSONObject(
 			FragmentEntryProcessorConstants.
@@ -1129,56 +2000,57 @@ public class LayoutsImporterTest {
 			containerStyledLayoutStructureItem,
 			curContainerStyledLayoutStructureItem);
 
-		List<String> containerLayoutStructureItemChildrenItemIds =
-			containerStyledLayoutStructureItem.getChildrenItemIds();
-		List<String> curContainerLayoutStructureItemChildrenItemIds =
-			curContainerStyledLayoutStructureItem.getChildrenItemIds();
-
 		RowStyledLayoutStructureItem rowStyledLayoutStructureItem =
 			(RowStyledLayoutStructureItem)
 				layoutStructure.getLayoutStructureItem(
-					containerLayoutStructureItemChildrenItemIds.get(0));
+					containerStyledLayoutStructureItem.getChildrenItemId(0));
 		RowStyledLayoutStructureItem curRowStyledLayoutStructureItem =
 			(RowStyledLayoutStructureItem)
 				curLayoutStructure.getLayoutStructureItem(
-					curContainerLayoutStructureItemChildrenItemIds.get(0));
+					curContainerStyledLayoutStructureItem.getChildrenItemId(0));
 
 		_validateRowLayoutStructureItem(
 			rowStyledLayoutStructureItem, curRowStyledLayoutStructureItem);
 
-		List<String> rowLayoutStructureItemChildrenItemIds =
-			rowStyledLayoutStructureItem.getChildrenItemIds();
-		List<String> curRowLayoutStructureItemChildrenItemIds =
-			curRowStyledLayoutStructureItem.getChildrenItemIds();
-
 		ColumnLayoutStructureItem columnLayoutStructureItem =
 			(ColumnLayoutStructureItem)layoutStructure.getLayoutStructureItem(
-				rowLayoutStructureItemChildrenItemIds.get(0));
+				rowStyledLayoutStructureItem.getChildrenItemId(0));
 		ColumnLayoutStructureItem curColumnLayoutStructureItem =
 			(ColumnLayoutStructureItem)
 				curLayoutStructure.getLayoutStructureItem(
-					curRowLayoutStructureItemChildrenItemIds.get(0));
+					curRowStyledLayoutStructureItem.getChildrenItemId(0));
 
 		_validateColumnLayoutStructureItem(
 			columnLayoutStructureItem, curColumnLayoutStructureItem);
 
-		List<String> columnLayoutStructureItemChildrenItemIds =
-			columnLayoutStructureItem.getChildrenItemIds();
-		List<String> curColumnLayoutStructureItemChildrenItemIds =
-			curColumnLayoutStructureItem.getChildrenItemIds();
-
 		FragmentStyledLayoutStructureItem fragmentStyledLayoutStructureItem =
 			(FragmentStyledLayoutStructureItem)
 				layoutStructure.getLayoutStructureItem(
-					columnLayoutStructureItemChildrenItemIds.get(0));
+					columnLayoutStructureItem.getChildrenItemId(0));
 		FragmentStyledLayoutStructureItem curFragmentStyledLayoutStructureItem =
 			(FragmentStyledLayoutStructureItem)
 				curLayoutStructure.getLayoutStructureItem(
-					curColumnLayoutStructureItemChildrenItemIds.get(0));
+					curColumnLayoutStructureItem.getChildrenItemId(0));
 
 		_validateFragmentLayoutStructureItem(
 			fragmentStyledLayoutStructureItem,
 			curFragmentStyledLayoutStructureItem);
+	}
+
+	private void _assertStyleBookEntryERC(
+			LayoutPageTemplateEntry layoutPageTemplateEntry,
+			String styleBookEntryERC)
+		throws Exception {
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Assert.assertEquals(styleBookEntryERC, layout.getStyleBookEntryERC());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		Assert.assertEquals(
+			styleBookEntryERC, draftLayout.getStyleBookEntryERC());
 	}
 
 	private ContainerStyledLayoutStructureItem _getContainerLayoutStructureItem(
@@ -1206,12 +2078,14 @@ public class LayoutsImporterTest {
 
 			String path = url.getPath();
 
-			if (!path.endsWith(StringPool.SLASH)) {
-				try (InputStream inputStream = url.openStream()) {
-					zipWriter.addEntry(
-						StringUtil.removeSubstring(url.getPath(), resourcePath),
-						inputStream);
-				}
+			if (path.endsWith(StringPool.SLASH)) {
+				continue;
+			}
+
+			try (InputStream inputStream = url.openStream()) {
+				zipWriter.addEntry(
+					StringUtil.removeSubstring(url.getPath(), resourcePath),
+					inputStream);
 			}
 		}
 
@@ -1254,9 +2128,188 @@ public class LayoutsImporterTest {
 		return layoutStructure.getLayoutStructureItem(childItemId);
 	}
 
+	private JSONObject _getPageDefinitionJSONObject(
+			String layoutPageTemplateEntryKey, File file)
+		throws Exception {
+
+		String fileName =
+			StringPool.SLASH + layoutPageTemplateEntryKey +
+				"/page-definition.json";
+
+		try (ZipFile zipFile = new ZipFile(file)) {
+			Enumeration<? extends ZipEntry> enumeration = zipFile.entries();
+
+			while (enumeration.hasMoreElements()) {
+				ZipEntry zipEntry = enumeration.nextElement();
+
+				if (zipEntry.isDirectory() ||
+					!StringUtil.endsWith(zipEntry.getName(), fileName)) {
+
+					continue;
+				}
+
+				return _jsonFactory.createJSONObject(
+					StringUtil.read(zipFile.getInputStream(zipEntry)));
+			}
+		}
+
+		return null;
+	}
+
+	private JSONObject _getSuccessMessageJSONObject() throws Exception {
+		JSONObject notificationTextJSONObject = JSONUtil.put(
+			String.valueOf(LocaleUtil.US), RandomTestUtil.randomString());
+
+		JSONObject successMessageJSONObject = JSONUtil.put(
+			"notificationText", notificationTextJSONObject);
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_addLayoutPageTemplateEntry();
+
+		successMessageJSONObject.put(
+			"displayPage",
+			LayoutPageTemplateEntry.class.getSimpleName() +
+				StringPool.UNDERLINE +
+					layoutPageTemplateEntry.getLayoutPageTemplateEntryId()
+		).put(
+			"showNotification", true
+		).put(
+			"type", "displayPage"
+		);
+
+		return JSONUtil.put("successMessage", successMessageJSONObject);
+	}
+
+	private List<LayoutsImporterResultEntry> _importFile(
+			File file, LayoutsImportStrategy layoutsImportStrategy,
+			long layoutPageTemplateCollectionId, ServiceContext serviceContext)
+		throws Exception {
+
+		ServiceContextThreadLocal.pushServiceContext(serviceContext);
+
+		try {
+			return _layoutsImporter.importFile(
+				TestPropsValues.getUserId(), serviceContext.getScopeGroupId(),
+				layoutPageTemplateCollectionId, file, layoutsImportStrategy,
+				true);
+		}
+		finally {
+			ServiceContextThreadLocal.popServiceContext();
+		}
+	}
+
 	private String _read(String fileName) throws Exception {
 		return new String(
 			FileUtil.getBytes(getClass(), "dependencies/" + fileName));
+	}
+
+	private void
+			_testImportLayoutPageTemplateEntryWithItemSelectorTypeFragmentConfigurationField(
+				JSONObject freeMarkerFragmentEntryProcessorJSONObject)
+		throws Exception {
+
+		JSONObject configurationJSONObject = JSONUtil.put(
+			"fieldSets",
+			JSONUtil.put(
+				JSONUtil.put(
+					"fields",
+					JSONUtil.put(
+						JSONUtil.put(
+							"label", RandomTestUtil.randomString()
+						).put(
+							"name", "itemSelector"
+						).put(
+							"type", "itemSelector"
+						).put(
+							"typeOptions",
+							JSONUtil.put("enableSelectTemplate", Boolean.FALSE)
+						)))));
+
+		FragmentEntry fragmentEntry = _addFragmentEntry(
+			configurationJSONObject.toString(), RandomTestUtil.randomString(),
+			_serviceContext1);
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_addLayoutPageTemplateEntry();
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		long segmentsExperienceId =
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				draftLayout.getPlid());
+
+		FragmentEntryLink fragmentEntryLink =
+			_fragmentEntryLinkLocalService.addFragmentEntryLink(
+				null, TestPropsValues.getUserId(), _group1.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group1.getGroupId()),
+				segmentsExperienceId, draftLayout.getPlid(),
+				fragmentEntry.getCss(), fragmentEntry.getHtml(),
+				fragmentEntry.getConfiguration(),
+				fragmentEntry.getConfiguration(),
+				JSONUtil.put(
+					FragmentEntryProcessorConstants.
+						KEY_FREEMARKER_FRAGMENT_ENTRY_PROCESSOR,
+					JSONUtil.put(
+						"itemSelector",
+						freeMarkerFragmentEntryProcessorJSONObject)
+				).toString(),
+				StringPool.BLANK, 0, fragmentEntry.getFragmentEntryKey(),
+				fragmentEntry.getType(), _serviceContext1);
+
+		ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
+			fragmentEntryLink, draftLayout, null, 0, segmentsExperienceId);
+
+		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
+
+		File file = _layoutsExporter.exportLayoutPageTemplateEntries(
+			new long[] {layoutPageTemplateEntry.getLayoutPageTemplateEntryId()},
+			LayoutPageTemplateEntryTypeConstants.BASIC);
+
+		_assertExportedFileItemSelector(
+			file, fragmentEntryLink, layoutPageTemplateEntry);
+
+		FragmentEntry curFragmentEntry = _addFragmentEntry(
+			fragmentEntry, _serviceContext2);
+
+		List<LayoutsImporterResultEntry> layoutsImporterResultEntries =
+			_importFile(
+				file, LayoutsImportStrategy.DO_NOT_OVERWRITE, 0,
+				_serviceContext2);
+
+		_assertLayoutPageTemplateEntry(
+			configurationJSONObject,
+			JSONUtil.put(
+				FragmentEntryProcessorConstants.
+					KEY_FREEMARKER_FRAGMENT_ENTRY_PROCESSOR,
+				JSONUtil.put(
+					"itemSelector",
+					freeMarkerFragmentEntryProcessorJSONObject)),
+			curFragmentEntry,
+			_getLayoutPageTemplateEntryKey(layoutsImporterResultEntries));
+	}
+
+	private void _updateLayoutStyleBookEntryERC(
+			LayoutPageTemplateEntry layoutPageTemplateEntry,
+			String styleBookEntryERC)
+		throws Exception {
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		ContentLayoutTestUtil.publishLayout(
+			_layoutLocalService.updateStyleBookEntry(
+				draftLayout.getGroupId(), draftLayout.isPrivateLayout(),
+				draftLayout.getLayoutId(), styleBookEntryERC, null),
+			layout);
+
+		_assertStyleBookEntryERC(layoutPageTemplateEntry, styleBookEntryERC);
 	}
 
 	private void _validateColumnLayoutStructureItem(
@@ -1338,15 +2391,10 @@ public class LayoutsImporterTest {
 			_fragmentEntryLinkLocalService.getFragmentEntryLink(
 				actualFragmentEntryLinkId);
 
-		String expectedEditableValues =
-			expectedFragmentEntryLink.getEditableValues();
-		String actualEditableValues =
-			actualFragmentEntryLink.getEditableValues();
-
 		JSONObject expectedEditableValuesJSONObject =
-			JSONFactoryUtil.createJSONObject(expectedEditableValues);
+			expectedFragmentEntryLink.getEditableValuesJSONObject();
 		JSONObject actualEditableValuesJSONObject =
-			JSONFactoryUtil.createJSONObject(actualEditableValues);
+			actualFragmentEntryLink.getEditableValuesJSONObject();
 
 		JSONObject expectedBackgroundImageFragmentEntryProcessorJSONObject =
 			expectedEditableValuesJSONObject.getJSONObject(
@@ -1454,6 +2502,16 @@ public class LayoutsImporterTest {
 		"com/liferay/layout/page/template/admin/web/internal/importer/test" +
 			"/dependencies/page-templates";
 
+	private static final String _RESOURCES_PATH_UTILITY_PAGES =
+		"com/liferay/layout/page/template/admin/web/internal/importer/test" +
+			"/dependencies/utility-pages";
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		LayoutsImporterTest.class);
+
+	@Inject
+	private AssetListEntryLocalService _assetListEntryLocalService;
+
 	@Inject
 	private CTCollectionLocalService _ctCollectionLocalService;
 
@@ -1480,6 +2538,9 @@ public class LayoutsImporterTest {
 	private Group _group2;
 
 	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
 	private InfoItemServiceRegistry _infoItemServiceRegistry;
 
 	@Inject
@@ -1501,22 +2562,48 @@ public class LayoutsImporterTest {
 		_layoutPageTemplateStructureLocalService;
 
 	@Inject
+	private LayoutPageTemplateStructureRelLocalService
+		_layoutPageTemplateStructureRelLocalService;
+
+	@Inject
+	private LayoutPageTemplateStructureService
+		_layoutPageTemplateStructureService;
+
+	@Inject
+	private LayoutStructureProvider _layoutStructureProvider;
+
+	@Inject
+	private LayoutUtilityPageEntryLocalService
+		_layoutUtilityPageEntryLocalService;
+
+	@Inject
 	private LayoutsExporter _layoutsExporter;
 
 	@Inject
 	private LayoutsImporter _layoutsImporter;
 
 	@Inject
-	private LayoutStructureProvider _layoutStructureProvider;
+	private Portal _portal;
 
 	@Inject
-	private Portal _portal;
+	private PortletPreferencesLocalService _portletPreferencesLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
 
 	@Inject
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
 
 	private ServiceContext _serviceContext1;
 	private ServiceContext _serviceContext2;
+
+	@Inject
+	private StyleBookEntryLocalService _styleBookEntryLocalService;
+
+	private JSONObject _successMessageJSONObject;
+
+	@Inject
+	private ZipReaderFactory _zipReaderFactory;
 
 	@Inject
 	private ZipWriterFactory _zipWriterFactory;

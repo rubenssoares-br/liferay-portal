@@ -5,6 +5,7 @@
 
 package com.liferay.headless.delivery.internal.graphql.query.v1_0;
 
+import com.liferay.headless.delivery.dto.v1_0.AssetEntry;
 import com.liferay.headless.delivery.dto.v1_0.BlogPosting;
 import com.liferay.headless.delivery.dto.v1_0.BlogPostingImage;
 import com.liferay.headless.delivery.dto.v1_0.Comment;
@@ -34,6 +35,7 @@ import com.liferay.headless.delivery.dto.v1_0.StructuredContentFolder;
 import com.liferay.headless.delivery.dto.v1_0.WikiNode;
 import com.liferay.headless.delivery.dto.v1_0.WikiPage;
 import com.liferay.headless.delivery.dto.v1_0.WikiPageAttachment;
+import com.liferay.headless.delivery.resource.v1_0.AssetEntryResource;
 import com.liferay.headless.delivery.resource.v1_0.BlogPostingImageResource;
 import com.liferay.headless.delivery.resource.v1_0.BlogPostingResource;
 import com.liferay.headless.delivery.resource.v1_0.CommentResource;
@@ -63,9 +65,9 @@ import com.liferay.headless.delivery.resource.v1_0.WikiPageAttachmentResource;
 import com.liferay.headless.delivery.resource.v1_0.WikiPageResource;
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
-import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
 import com.liferay.portal.vulcan.aggregation.Aggregation;
@@ -76,19 +78,19 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLTypeExtension;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.ws.rs.core.UriInfo;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-
-import javax.annotation.Generated;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import javax.validation.constraints.NotEmpty;
-
-import javax.ws.rs.core.UriInfo;
 
 import org.osgi.service.component.ComponentServiceObjects;
 
@@ -98,6 +100,14 @@ import org.osgi.service.component.ComponentServiceObjects;
  */
 @Generated("")
 public class Query {
+
+	public static void setAssetEntryResourceComponentServiceObjects(
+		ComponentServiceObjects<AssetEntryResource>
+			assetEntryResourceComponentServiceObjects) {
+
+		_assetEntryResourceComponentServiceObjects =
+			assetEntryResourceComponentServiceObjects;
+	}
 
 	public static void setBlogPostingResourceComponentServiceObjects(
 		ComponentServiceObjects<BlogPostingResource>
@@ -321,6 +331,35 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetEntries(filter: ___, groupIds: ___, page: ___, pageSize: ___, search: ___, showNonindexable: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the asset entries in the given groups, across one or more class names, mirroring the legacy asset browser item selector search. Results can be paginated, filtered, searched, and sorted."
+	)
+	public AssetEntryPage assetEntries(
+			@GraphQLName("groupIds") Long[] groupIds,
+			@GraphQLName("search") String search,
+			@GraphQLName("showNonindexable") Boolean showNonindexable,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_assetEntryResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			assetEntryResource -> new AssetEntryPage(
+				assetEntryResource.getAssetEntriesPage(
+					groupIds, search, showNonindexable,
+					_filterBiFunction.apply(assetEntryResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(assetEntryResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPosting(blogPostingId: ___){actions, aggregateRating, alternativeHeadline, articleBody, creator, customFields, dateCreated, dateModified, datePublished, description, encodingFormat, externalReferenceCode, friendlyUrlPath, headline, id, image, keywords, numberOfComments, relatedContents, renderedContents, siteId, taxonomyCategoryBriefs, taxonomyCategoryIds, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the blog post.")
@@ -398,6 +437,65 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, aggregateRating, alternativeHeadline, articleBody, creator, customFields, dateCreated, dateModified, datePublished, description, encodingFormat, externalReferenceCode, friendlyUrlPath, headline, id, image, keywords, numberOfComments, relatedContents, renderedContents, siteId, taxonomyCategoryBriefs, taxonomyCategoryIds, viewableBy}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's blog post by external reference code."
+	)
+	public BlogPosting blogPostingByExternalReferenceCode(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("externalReferenceCode") String externalReferenceCode)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_blogPostingResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			blogPostingResource ->
+				blogPostingResource.getSiteBlogPostingByExternalReferenceCode(
+					Long.valueOf(siteKey), externalReferenceCode));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingByFriendlyUrlPath(friendlyUrlPath: ___, siteKey: ___){actions, aggregateRating, alternativeHeadline, articleBody, creator, customFields, dateCreated, dateModified, datePublished, description, encodingFormat, externalReferenceCode, friendlyUrlPath, headline, id, image, keywords, numberOfComments, relatedContents, renderedContents, siteId, taxonomyCategoryBriefs, taxonomyCategoryIds, viewableBy}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public BlogPosting blogPostingByFriendlyUrlPath(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("friendlyUrlPath") String friendlyUrlPath)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_blogPostingResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			blogPostingResource ->
+				blogPostingResource.getSiteBlogPostingByFriendlyUrlPath(
+					Long.valueOf(siteKey), friendlyUrlPath));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteBlogPostingPermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public BlogPostingPage siteBlogPostingPermissions(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("roleNames") String roleNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_blogPostingResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			blogPostingResource -> new BlogPostingPage(
+				blogPostingResource.getSiteBlogPostingPermissionsPage(
+					Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostings(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -429,46 +527,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, aggregateRating, alternativeHeadline, articleBody, creator, customFields, dateCreated, dateModified, datePublished, description, encodingFormat, externalReferenceCode, friendlyUrlPath, headline, id, image, keywords, numberOfComments, relatedContents, renderedContents, siteId, taxonomyCategoryBriefs, taxonomyCategoryIds, viewableBy}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the site's blog post by external reference code."
-	)
-	public BlogPosting blogPostingByExternalReferenceCode(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("externalReferenceCode") String externalReferenceCode)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_blogPostingResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			blogPostingResource ->
-				blogPostingResource.getSiteBlogPostingByExternalReferenceCode(
-					Long.valueOf(siteKey), externalReferenceCode));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteBlogPostingPermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public BlogPostingPage siteBlogPostingPermissions(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_blogPostingResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			blogPostingResource -> new BlogPostingPage(
-				blogPostingResource.getSiteBlogPostingPermissionsPage(
-					Long.valueOf(siteKey), roleNames)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingImage(blogPostingImageId: ___){contentUrl, contentValue, encodingFormat, externalReferenceCode, fileExtension, id, sizeInBytes, title, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -484,6 +542,28 @@ public class Query {
 			blogPostingImageResource ->
 				blogPostingImageResource.getBlogPostingImage(
 					blogPostingImageId));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingImageByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){contentUrl, contentValue, encodingFormat, externalReferenceCode, fileExtension, id, sizeInBytes, title, viewableBy}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's blog post image by external reference code. The binary image is returned as a relative URL to the image itself."
+	)
+	public BlogPostingImage blogPostingImageByExternalReferenceCode(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("externalReferenceCode") String externalReferenceCode)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_blogPostingImageResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			blogPostingImageResource ->
+				blogPostingImageResource.
+					getSiteBlogPostingImageByExternalReferenceCode(
+						Long.valueOf(siteKey), externalReferenceCode));
 	}
 
 	/**
@@ -522,28 +602,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingImageByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){contentUrl, contentValue, encodingFormat, externalReferenceCode, fileExtension, id, sizeInBytes, title, viewableBy}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the site's blog post image by external reference code. The binary image is returned as a relative URL to the image itself."
-	)
-	public BlogPostingImage blogPostingImageByExternalReferenceCode(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("externalReferenceCode") String externalReferenceCode)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_blogPostingImageResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			blogPostingImageResource ->
-				blogPostingImageResource.
-					getSiteBlogPostingImageByExternalReferenceCode(
-						Long.valueOf(siteKey), externalReferenceCode));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingComments(aggregation: ___, blogPostingId: ___, filter: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -574,7 +632,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {comment(commentId: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentId, text}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {comment(commentId: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentExternalReferenceCode, parentCommentId, text}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the comment.")
 	public Comment comment(@GraphQLName("commentId") Long commentId)
@@ -649,7 +707,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingByExternalReferenceCodeBlogPostingExternalReferenceCodeCommentByExternalReferenceCode(blogPostingExternalReferenceCode: ___, externalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentId, text}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {blogPostingByExternalReferenceCodeBlogPostingExternalReferenceCodeCommentByExternalReferenceCode(blogPostingExternalReferenceCode: ___, externalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentExternalReferenceCode, parentCommentId, text}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the blog posting's comment by blog posting's and comment's external reference codes."
@@ -676,7 +734,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {commentByExternalReferenceCodeParentCommentExternalReferenceCodeCommentByExternalReferenceCode(externalReferenceCode: ___, parentCommentExternalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentId, text}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {commentByExternalReferenceCodeParentCommentExternalReferenceCodeCommentByExternalReferenceCode(externalReferenceCode: ___, parentCommentExternalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentExternalReferenceCode, parentCommentId, text}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the parent comment's comment by its parent comment's and comment's external reference codes."
@@ -704,7 +762,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentByExternalReferenceCodeDocumentExternalReferenceCodeCommentByExternalReferenceCode(documentExternalReferenceCode: ___, externalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentId, text}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentByExternalReferenceCodeDocumentExternalReferenceCodeCommentByExternalReferenceCode(documentExternalReferenceCode: ___, externalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentExternalReferenceCode, parentCommentId, text}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the document's comment by document's and comment's external reference codes."
@@ -731,7 +789,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentByExternalReferenceCodeStructuredContentExternalReferenceCodeCommentByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___, structuredContentExternalReferenceCode: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentId, text}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentByExternalReferenceCodeStructuredContentExternalReferenceCodeCommentByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___, structuredContentExternalReferenceCode: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, numberOfComments, parentCommentExternalReferenceCode, parentCommentId, text}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the structured content's comment by structured content's and comment's external reference codes."
@@ -919,29 +977,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentSetProviderByKeyContentSetElements(key: ___, page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public ContentSetElementPage contentSetProviderByKeyContentSetElements(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("key") String key,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_contentSetElementResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			contentSetElementResource -> new ContentSetElementPage(
-				contentSetElementResource.
-					getSiteContentSetProviderByKeyContentSetElementsPage(
-						Long.valueOf(siteKey), key,
-						Pagination.of(page, pageSize))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentSetByKeyContentSetElements(key: ___, page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -992,6 +1027,50 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentSetProviderByKeyContentSetElements(key: ___, page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@com.liferay.portal.vulcan.feature.flag.FeatureFlag("LPD-32867")
+	@GraphQLField
+	public ContentSetElementPage contentSetProviderByKeyContentSetElements(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("key") String key,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_contentSetElementResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			contentSetElementResource -> new ContentSetElementPage(
+				contentSetElementResource.
+					getSiteContentSetProviderByKeyContentSetElementsPage(
+						Long.valueOf(siteKey), key,
+						Pagination.of(page, pageSize))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryContentStructurePermissions(assetLibraryId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public ContentStructurePage assetLibraryContentStructurePermissions(
+			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
+			@GraphQLName("roleNames") String roleNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_contentStructureResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			contentStructureResource -> new ContentStructurePage(
+				contentStructureResource.
+					getAssetLibraryContentStructurePermissionsPage(
+						Long.valueOf(assetLibraryId), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryContentStructures(aggregation: ___, assetLibraryId: ___, filter: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
@@ -1018,26 +1097,6 @@ public class Query {
 					Pagination.of(page, pageSize),
 					_sortsBiFunction.apply(
 						contentStructureResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryContentStructurePermissions(assetLibraryId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public ContentStructurePage assetLibraryContentStructurePermissions(
-			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_contentStructureResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			contentStructureResource -> new ContentStructurePage(
-				contentStructureResource.
-					getAssetLibraryContentStructurePermissionsPage(
-						Long.valueOf(assetLibraryId), roleNames)));
 	}
 
 	/**
@@ -1080,6 +1139,25 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteContentStructurePermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public ContentStructurePage siteContentStructurePermissions(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("roleNames") String roleNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_contentStructureResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			contentStructureResource -> new ContentStructurePage(
+				contentStructureResource.getSiteContentStructurePermissionsPage(
+					Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentStructures(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -1108,25 +1186,6 @@ public class Query {
 					Pagination.of(page, pageSize),
 					_sortsBiFunction.apply(
 						contentStructureResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteContentStructurePermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public ContentStructurePage siteContentStructurePermissions(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_contentStructureResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			contentStructureResource -> new ContentStructurePage(
-				contentStructureResource.getSiteContentStructurePermissionsPage(
-					Long.valueOf(siteKey), roleNames)));
 	}
 
 	/**
@@ -1163,6 +1222,25 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentTemplate(contentTemplateId: ___, siteKey: ___){actions, assetLibraryKey, availableLanguages, contentStructureId, creator, dateCreated, dateModified, description, description_i18n, id, name, name_i18n, programmingLanguage, siteId, templateScript}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public ContentTemplate contentTemplate(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("contentTemplateId") String contentTemplateId)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_contentTemplateResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			contentTemplateResource ->
+				contentTemplateResource.getSiteContentTemplate(
+					Long.valueOf(siteKey), contentTemplateId));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentTemplates(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
@@ -1194,56 +1272,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentTemplate(contentTemplateId: ___, siteKey: ___){actions, assetLibraryKey, availableLanguages, contentStructureId, creator, dateCreated, dateModified, description, description_i18n, id, name, name_i18n, programmingLanguage, siteId, templateScript}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public ContentTemplate contentTemplate(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("contentTemplateId") String contentTemplateId)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_contentTemplateResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			contentTemplateResource ->
-				contentTemplateResource.getSiteContentTemplate(
-					Long.valueOf(siteKey), contentTemplateId));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocuments(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public DocumentPage assetLibraryDocuments(
-			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_documentResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			documentResource -> new DocumentPage(
-				documentResource.getAssetLibraryDocumentsPage(
-					Long.valueOf(assetLibraryId), flatten, search,
-					_aggregationBiFunction.apply(
-						documentResource, aggregations),
-					_filterBiFunction.apply(documentResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(documentResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentByExternalReferenceCode(assetLibraryId: ___, externalReferenceCode: ___){actions, adaptedImages, aggregateRating, assetLibraryKey, contentUrl, contentValue, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, documentFolderExternalReferenceCode, documentFolderId, documentType, encodingFormat, externalReferenceCode, fileExtension, fileName, friendlyUrlPath, id, keywords, numberOfComments, relatedContents, renderedContents, siteId, sizeInBytes, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentByExternalReferenceCode(assetLibraryId: ___, externalReferenceCode: ___){actions, adaptedImages, aggregateRating, assetLibraryKey, contentUrl, contentValue, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, documentFolderExternalReferenceCode, documentFolderId, documentType, encodingFormat, externalReferenceCode, fileExtension, fileName, friendlyUrlPath, id, keywords, numberOfComments, permissions, relatedContents, renderedContents, siteId, sizeInBytes, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the asset library's document by external reference code."
@@ -1283,6 +1312,36 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocuments(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public DocumentPage assetLibraryDocuments(
+			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentResource -> new DocumentPage(
+				documentResource.getAssetLibraryDocumentsPage(
+					Long.valueOf(assetLibraryId), flatten, search,
+					_aggregationBiFunction.apply(
+						documentResource, aggregations),
+					_filterBiFunction.apply(documentResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(documentResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentsRatedByMe(assetLibraryId: ___, page: ___, pageSize: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the documents rated by the user.")
@@ -1299,6 +1358,21 @@ public class Query {
 				documentResource.getAssetLibraryDocumentsRatedByMePage(
 					Long.valueOf(assetLibraryId),
 					Pagination.of(page, pageSize))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {document(documentId: ___){actions, adaptedImages, aggregateRating, assetLibraryKey, contentUrl, contentValue, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, documentFolderExternalReferenceCode, documentFolderId, documentType, encodingFormat, externalReferenceCode, fileExtension, fileName, friendlyUrlPath, id, keywords, numberOfComments, permissions, relatedContents, renderedContents, siteId, sizeInBytes, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(description = "Retrieves the document.")
+	public Document document(@GraphQLName("documentId") Long documentId)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentResource -> documentResource.getDocument(documentId));
 	}
 
 	/**
@@ -1331,21 +1405,6 @@ public class Query {
 					_filterBiFunction.apply(documentResource, filterString),
 					Pagination.of(page, pageSize),
 					_sortsBiFunction.apply(documentResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {document(documentId: ___){actions, adaptedImages, aggregateRating, assetLibraryKey, contentUrl, contentValue, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, documentFolderExternalReferenceCode, documentFolderId, documentType, encodingFormat, externalReferenceCode, fileExtension, fileName, friendlyUrlPath, id, keywords, numberOfComments, relatedContents, renderedContents, siteId, sizeInBytes, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(description = "Retrieves the document.")
-	public Document document(@GraphQLName("documentId") Long documentId)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_documentResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			documentResource -> documentResource.getDocument(documentId));
 	}
 
 	/**
@@ -1408,39 +1467,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documents(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the documents in the site's root folder. Results can be paginated, filtered, searched, flattened, and sorted."
-	)
-	public DocumentPage documents(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_documentResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			documentResource -> new DocumentPage(
-				documentResource.getSiteDocumentsPage(
-					Long.valueOf(siteKey), flatten, search,
-					_aggregationBiFunction.apply(
-						documentResource, aggregations),
-					_filterBiFunction.apply(documentResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(documentResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, adaptedImages, aggregateRating, assetLibraryKey, contentUrl, contentValue, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, documentFolderExternalReferenceCode, documentFolderId, documentType, encodingFormat, externalReferenceCode, fileExtension, fileName, friendlyUrlPath, id, keywords, numberOfComments, relatedContents, renderedContents, siteId, sizeInBytes, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, adaptedImages, aggregateRating, assetLibraryKey, contentUrl, contentValue, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, documentFolderExternalReferenceCode, documentFolderId, documentType, encodingFormat, externalReferenceCode, fileExtension, fileName, friendlyUrlPath, id, keywords, numberOfComments, permissions, relatedContents, renderedContents, siteId, sizeInBytes, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the site's document by external reference code."
@@ -1475,6 +1502,38 @@ public class Query {
 			documentResource -> new DocumentPage(
 				documentResource.getSiteDocumentPermissionsPage(
 					Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documents(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the documents in the site's root folder. Results can be paginated, filtered, searched, flattened, and sorted."
+	)
+	public DocumentPage documents(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentResource -> new DocumentPage(
+				documentResource.getSiteDocumentsPage(
+					Long.valueOf(siteKey), flatten, search,
+					_aggregationBiFunction.apply(
+						documentResource, aggregations),
+					_filterBiFunction.apply(documentResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(documentResource, sortsString))));
 	}
 
 	/**
@@ -1593,6 +1652,26 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentFolderPermissions(assetLibraryId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public DocumentFolderPage assetLibraryDocumentFolderPermissions(
+			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
+			@GraphQLName("roleNames") String roleNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentFolderResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentFolderResource -> new DocumentFolderPage(
+				documentFolderResource.
+					getAssetLibraryDocumentFolderPermissionsPage(
+						Long.valueOf(assetLibraryId), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentFolders(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
@@ -1625,26 +1704,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentFolderPermissions(assetLibraryId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public DocumentFolderPage assetLibraryDocumentFolderPermissions(
-			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_documentFolderResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			documentFolderResource -> new DocumentFolderPage(
-				documentFolderResource.
-					getAssetLibraryDocumentFolderPermissionsPage(
-						Long.valueOf(assetLibraryId), roleNames)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentFoldersRatedByMe(assetLibraryId: ___, page: ___, pageSize: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -1669,7 +1728,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentFolder(documentFolderId: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfDocumentFolders, numberOfDocuments, parentDocumentFolderId, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentFolder(documentFolderId: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfDocumentFolders, numberOfDocuments, parentDocumentFolderId, permissions, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the document folder.")
 	public DocumentFolder documentFolder(
@@ -1681,6 +1740,40 @@ public class Query {
 			this::_populateResourceContext,
 			documentFolderResource -> documentFolderResource.getDocumentFolder(
 				documentFolderId));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentFolderDocumentFolders(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, parentDocumentFolderId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the folder's subfolders. Results can be paginated, filtered, searched, and sorted."
+	)
+	public DocumentFolderPage documentFolderDocumentFolders(
+			@GraphQLName("parentDocumentFolderId") Long parentDocumentFolderId,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentFolderResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentFolderResource -> new DocumentFolderPage(
+				documentFolderResource.getDocumentFolderDocumentFoldersPage(
+					parentDocumentFolderId, flatten, search,
+					_aggregationBiFunction.apply(
+						documentFolderResource, aggregations),
+					_filterBiFunction.apply(
+						documentFolderResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						documentFolderResource, sortsString))));
 	}
 
 	/**
@@ -1723,35 +1816,20 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentFolderDocumentFolders(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, parentDocumentFolderId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteDocumentFolderPermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField(
-		description = "Retrieves the folder's subfolders. Results can be paginated, filtered, searched, and sorted."
-	)
-	public DocumentFolderPage documentFolderDocumentFolders(
-			@GraphQLName("parentDocumentFolderId") Long parentDocumentFolderId,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
+	@GraphQLField
+	public DocumentFolderPage siteDocumentFolderPermissions(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("roleNames") String roleNames)
 		throws Exception {
 
 		return _applyComponentServiceObjects(
 			_documentFolderResourceComponentServiceObjects,
 			this::_populateResourceContext,
 			documentFolderResource -> new DocumentFolderPage(
-				documentFolderResource.getDocumentFolderDocumentFoldersPage(
-					parentDocumentFolderId, flatten, search,
-					_aggregationBiFunction.apply(
-						documentFolderResource, aggregations),
-					_filterBiFunction.apply(
-						documentFolderResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(
-						documentFolderResource, sortsString))));
+				documentFolderResource.getSiteDocumentFolderPermissionsPage(
+					Long.valueOf(siteKey), roleNames)));
 	}
 
 	/**
@@ -1791,25 +1869,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteDocumentFolderPermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public DocumentFolderPage siteDocumentFolderPermissions(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_documentFolderResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			documentFolderResource -> new DocumentFolderPage(
-				documentFolderResource.getSiteDocumentFolderPermissionsPage(
-					Long.valueOf(siteKey), roleNames)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentFoldersRatedByMe(page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -1832,7 +1891,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentsFolderByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfDocumentFolders, numberOfDocuments, parentDocumentFolderId, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentsFolderByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfDocumentFolders, numberOfDocuments, parentDocumentFolderId, permissions, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
 		description = "Retrieves the site's document folder by external reference code."
@@ -1849,6 +1908,30 @@ public class Query {
 				documentFolderResource.
 					getSiteDocumentsFolderByExternalReferenceCode(
 						Long.valueOf(siteKey), externalReferenceCode));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryDocumentMetadataSetByExternalReferenceCode(assetLibraryId: ___, externalReferenceCode: ___){actions, assetLibraryKey, availableLanguages, dataDefinitionFields, dataLayout, dateCreated, dateModified, description, description_i18n, externalReferenceCode, id, name, name_i18n, siteId}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the asset library's Document Metadata Set by external reference code."
+	)
+	public DocumentMetadataSet
+			assetLibraryDocumentMetadataSetByExternalReferenceCode(
+				@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
+				@GraphQLName("externalReferenceCode") String
+					externalReferenceCode)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentMetadataSetResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentMetadataSetResource ->
+				documentMetadataSetResource.
+					getAssetLibraryDocumentMetadataSetByExternalReferenceCode(
+						Long.valueOf(assetLibraryId), externalReferenceCode));
 	}
 
 	/**
@@ -1876,7 +1959,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentMetadataSet(documentMetadataSetId: ___){actions, assetLibraryKey, availableLanguages, dataDefinitionFields, dataLayout, dateCreated, dateModified, description, description_i18n, id, name, name_i18n, siteId}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentMetadataSet(documentMetadataSetId: ___){actions, assetLibraryKey, availableLanguages, dataDefinitionFields, dataLayout, dateCreated, dateModified, description, description_i18n, externalReferenceCode, id, name, name_i18n, siteId}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the document metadata set.")
 	public DocumentMetadataSet documentMetadataSet(
@@ -1889,6 +1972,28 @@ public class Query {
 			documentMetadataSetResource ->
 				documentMetadataSetResource.getDocumentMetadataSet(
 					documentMetadataSetId));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentMetadataSetByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, assetLibraryKey, availableLanguages, dataDefinitionFields, dataLayout, dateCreated, dateModified, description, description_i18n, externalReferenceCode, id, name, name_i18n, siteId}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's Document Metadata Set by external reference code."
+	)
+	public DocumentMetadataSet documentMetadataSetByExternalReferenceCode(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("externalReferenceCode") String externalReferenceCode)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentMetadataSetResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentMetadataSetResource ->
+				documentMetadataSetResource.
+					getSiteDocumentMetadataSetByExternalReferenceCode(
+						Long.valueOf(siteKey), externalReferenceCode));
 	}
 
 	/**
@@ -1953,26 +2058,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentShortcuts(page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public DocumentShortcutPage documentShortcuts(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_documentShortcutResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			documentShortcutResource -> new DocumentShortcutPage(
-				documentShortcutResource.getSiteDocumentShortcutsPage(
-					Long.valueOf(siteKey), Pagination.of(page, pageSize))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentShortcutByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, assetLibraryKey, dateCreated, dateModified, externalReferenceCode, folderId, id, siteId, targetDocumentId, title, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -1995,6 +2080,26 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {documentShortcuts(page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public DocumentShortcutPage documentShortcuts(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_documentShortcutResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			documentShortcutResource -> new DocumentShortcutPage(
+				documentShortcutResource.getSiteDocumentShortcutsPage(
+					Long.valueOf(siteKey), Pagination.of(page, pageSize))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseArticle(knowledgeBaseArticleId: ___){actions, aggregateRating, articleBody, creator, customFields, dateCreated, dateModified, datePublished, description, encodingFormat, externalReferenceCode, friendlyUrlPath, id, keywords, numberOfAttachments, numberOfKnowledgeBaseArticles, parentKnowledgeBaseArticleId, parentKnowledgeBaseFolder, parentKnowledgeBaseFolderId, relatedContents, siteId, subscribed, taxonomyCategoryBriefs, taxonomyCategoryIds, title, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the knowledge base article.")
@@ -2008,6 +2113,42 @@ public class Query {
 			knowledgeBaseArticleResource ->
 				knowledgeBaseArticleResource.getKnowledgeBaseArticle(
 					knowledgeBaseArticleId));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseArticleKnowledgeBaseArticles(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, parentKnowledgeBaseArticleId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the parent knowledge base article's child knowledge base articles. Results can be paginated, filtered, searched, and sorted."
+	)
+	public KnowledgeBaseArticlePage knowledgeBaseArticleKnowledgeBaseArticles(
+			@GraphQLName("parentKnowledgeBaseArticleId") Long
+				parentKnowledgeBaseArticleId,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_knowledgeBaseArticleResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
+				knowledgeBaseArticleResource.
+					getKnowledgeBaseArticleKnowledgeBaseArticlesPage(
+						parentKnowledgeBaseArticleId, flatten, search,
+						_aggregationBiFunction.apply(
+							knowledgeBaseArticleResource, aggregations),
+						_filterBiFunction.apply(
+							knowledgeBaseArticleResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(
+							knowledgeBaseArticleResource, sortsString))));
 	}
 
 	/**
@@ -2053,42 +2194,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseArticleKnowledgeBaseArticles(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, parentKnowledgeBaseArticleId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the parent knowledge base article's child knowledge base articles. Results can be paginated, filtered, searched, and sorted."
-	)
-	public KnowledgeBaseArticlePage knowledgeBaseArticleKnowledgeBaseArticles(
-			@GraphQLName("parentKnowledgeBaseArticleId") Long
-				parentKnowledgeBaseArticleId,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_knowledgeBaseArticleResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
-				knowledgeBaseArticleResource.
-					getKnowledgeBaseArticleKnowledgeBaseArticlesPage(
-						parentKnowledgeBaseArticleId, flatten, search,
-						_aggregationBiFunction.apply(
-							knowledgeBaseArticleResource, aggregations),
-						_filterBiFunction.apply(
-							knowledgeBaseArticleResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(
-							knowledgeBaseArticleResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseFolderKnowledgeBaseArticles(aggregation: ___, filter: ___, flatten: ___, knowledgeBaseFolderId: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -2119,40 +2224,6 @@ public class Query {
 						Pagination.of(page, pageSize),
 						_sortsBiFunction.apply(
 							knowledgeBaseArticleResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseArticles(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the site's knowledge base articles. Results can be paginated, filtered, searched, flattened, and sorted."
-	)
-	public KnowledgeBaseArticlePage knowledgeBaseArticles(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_knowledgeBaseArticleResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
-				knowledgeBaseArticleResource.getSiteKnowledgeBaseArticlesPage(
-					Long.valueOf(siteKey), flatten, search,
-					_aggregationBiFunction.apply(
-						knowledgeBaseArticleResource, aggregations),
-					_filterBiFunction.apply(
-						knowledgeBaseArticleResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(
-						knowledgeBaseArticleResource, sortsString))));
 	}
 
 	/**
@@ -2195,6 +2266,40 @@ public class Query {
 				knowledgeBaseArticleResource.
 					getSiteKnowledgeBaseArticlePermissionsPage(
 						Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseArticles(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's knowledge base articles. Results can be paginated, filtered, searched, flattened, and sorted."
+	)
+	public KnowledgeBaseArticlePage knowledgeBaseArticles(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_knowledgeBaseArticleResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
+				knowledgeBaseArticleResource.getSiteKnowledgeBaseArticlesPage(
+					Long.valueOf(siteKey), flatten, search,
+					_aggregationBiFunction.apply(
+						knowledgeBaseArticleResource, aggregations),
+					_filterBiFunction.apply(
+						knowledgeBaseArticleResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						knowledgeBaseArticleResource, sortsString))));
 	}
 
 	/**
@@ -2288,26 +2393,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseFolderPermissions(knowledgeBaseFolderId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public KnowledgeBaseFolderPage knowledgeBaseFolderPermissions(
-			@GraphQLName("knowledgeBaseFolderId") Long knowledgeBaseFolderId,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_knowledgeBaseFolderResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			knowledgeBaseFolderResource -> new KnowledgeBaseFolderPage(
-				knowledgeBaseFolderResource.
-					getKnowledgeBaseFolderPermissionsPage(
-						knowledgeBaseFolderId, roleNames)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseFolderKnowledgeBaseFolders(page: ___, pageSize: ___, parentKnowledgeBaseFolderId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -2333,23 +2418,21 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseFolders(page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseFolderPermissions(knowledgeBaseFolderId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField(
-		description = "Retrieves the site's knowledge base folders. Results can be paginated."
-	)
-	public KnowledgeBaseFolderPage knowledgeBaseFolders(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page)
+	@GraphQLField
+	public KnowledgeBaseFolderPage knowledgeBaseFolderPermissions(
+			@GraphQLName("knowledgeBaseFolderId") Long knowledgeBaseFolderId,
+			@GraphQLName("roleNames") String roleNames)
 		throws Exception {
 
 		return _applyComponentServiceObjects(
 			_knowledgeBaseFolderResourceComponentServiceObjects,
 			this::_populateResourceContext,
 			knowledgeBaseFolderResource -> new KnowledgeBaseFolderPage(
-				knowledgeBaseFolderResource.getSiteKnowledgeBaseFoldersPage(
-					Long.valueOf(siteKey), Pagination.of(page, pageSize))));
+				knowledgeBaseFolderResource.
+					getKnowledgeBaseFolderPermissionsPage(
+						knowledgeBaseFolderId, roleNames)));
 	}
 
 	/**
@@ -2392,6 +2475,28 @@ public class Query {
 				knowledgeBaseFolderResource.
 					getSiteKnowledgeBaseFolderPermissionsPage(
 						Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {knowledgeBaseFolders(page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's knowledge base folders. Results can be paginated."
+	)
+	public KnowledgeBaseFolderPage knowledgeBaseFolders(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_knowledgeBaseFolderResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			knowledgeBaseFolderResource -> new KnowledgeBaseFolderPage(
+				knowledgeBaseFolderResource.getSiteKnowledgeBaseFoldersPage(
+					Long.valueOf(siteKey), Pagination.of(page, pageSize))));
 	}
 
 	/**
@@ -2541,6 +2646,42 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardMessageMessageBoardMessages(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, parentMessageBoardMessageId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the parent message board message's child messages. Results can be paginated, filtered, searched, and sorted."
+	)
+	public MessageBoardMessagePage messageBoardMessageMessageBoardMessages(
+			@GraphQLName("parentMessageBoardMessageId") Long
+				parentMessageBoardMessageId,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_messageBoardMessageResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			messageBoardMessageResource -> new MessageBoardMessagePage(
+				messageBoardMessageResource.
+					getMessageBoardMessageMessageBoardMessagesPage(
+						parentMessageBoardMessageId, flatten, search,
+						_aggregationBiFunction.apply(
+							messageBoardMessageResource, aggregations),
+						_filterBiFunction.apply(
+							messageBoardMessageResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(
+							messageBoardMessageResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardMessageMyRating(messageBoardMessageId: ___){actions, bestRating, creator, dateCreated, dateModified, id, ratingValue, worstRating}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the message board message's rating.")
@@ -2579,42 +2720,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardMessageMessageBoardMessages(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, parentMessageBoardMessageId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the parent message board message's child messages. Results can be paginated, filtered, searched, and sorted."
-	)
-	public MessageBoardMessagePage messageBoardMessageMessageBoardMessages(
-			@GraphQLName("parentMessageBoardMessageId") Long
-				parentMessageBoardMessageId,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_messageBoardMessageResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			messageBoardMessageResource -> new MessageBoardMessagePage(
-				messageBoardMessageResource.
-					getMessageBoardMessageMessageBoardMessagesPage(
-						parentMessageBoardMessageId, flatten, search,
-						_aggregationBiFunction.apply(
-							messageBoardMessageResource, aggregations),
-						_filterBiFunction.apply(
-							messageBoardMessageResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(
-							messageBoardMessageResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardThreadMessageBoardMessages(aggregation: ___, filter: ___, messageBoardThreadId: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -2644,38 +2749,6 @@ public class Query {
 						Pagination.of(page, pageSize),
 						_sortsBiFunction.apply(
 							messageBoardMessageResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardMessages(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(description = "Retrieves the site's message board messages.")
-	public MessageBoardMessagePage messageBoardMessages(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_messageBoardMessageResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			messageBoardMessageResource -> new MessageBoardMessagePage(
-				messageBoardMessageResource.getSiteMessageBoardMessagesPage(
-					Long.valueOf(siteKey), flatten, search,
-					_aggregationBiFunction.apply(
-						messageBoardMessageResource, aggregations),
-					_filterBiFunction.apply(
-						messageBoardMessageResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(
-						messageBoardMessageResource, sortsString))));
 	}
 
 	/**
@@ -2743,6 +2816,38 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardMessages(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(description = "Retrieves the site's message board messages.")
+	public MessageBoardMessagePage messageBoardMessages(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_messageBoardMessageResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			messageBoardMessageResource -> new MessageBoardMessagePage(
+				messageBoardMessageResource.getSiteMessageBoardMessagesPage(
+					Long.valueOf(siteKey), flatten, search,
+					_aggregationBiFunction.apply(
+						messageBoardMessageResource, aggregations),
+					_filterBiFunction.apply(
+						messageBoardMessageResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						messageBoardMessageResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {userMessageBoardMessagesActivity(page: ___, pageSize: ___, siteKey: ___, userId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -2786,26 +2891,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardSectionPermissions(messageBoardSectionId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public MessageBoardSectionPage messageBoardSectionPermissions(
-			@GraphQLName("messageBoardSectionId") Long messageBoardSectionId,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_messageBoardSectionResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			messageBoardSectionResource -> new MessageBoardSectionPage(
-				messageBoardSectionResource.
-					getMessageBoardSectionPermissionsPage(
-						messageBoardSectionId, roleNames)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardSectionMessageBoardSections(aggregation: ___, filter: ___, page: ___, pageSize: ___, parentMessageBoardSectionId: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -2841,6 +2926,26 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardSectionPermissions(messageBoardSectionId: ___, roleNames: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public MessageBoardSectionPage messageBoardSectionPermissions(
+			@GraphQLName("messageBoardSectionId") Long messageBoardSectionId,
+			@GraphQLName("roleNames") String roleNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_messageBoardSectionResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			messageBoardSectionResource -> new MessageBoardSectionPage(
+				messageBoardSectionResource.
+					getMessageBoardSectionPermissionsPage(
+						messageBoardSectionId, roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardSectionByFriendlyUrlPath(friendlyUrlPath: ___, siteKey: ___){actions, creator, customFields, dateCreated, dateModified, description, friendlyUrlPath, id, numberOfMessageBoardSections, numberOfMessageBoardThreads, parentMessageBoardSectionId, siteId, subscribed, title, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
@@ -2856,6 +2961,26 @@ public class Query {
 				messageBoardSectionResource.
 					getSiteMessageBoardSectionByFriendlyUrlPath(
 						Long.valueOf(siteKey), friendlyUrlPath));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteMessageBoardSectionPermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public MessageBoardSectionPage siteMessageBoardSectionPermissions(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("roleNames") String roleNames)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_messageBoardSectionResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			messageBoardSectionResource -> new MessageBoardSectionPage(
+				messageBoardSectionResource.
+					getSiteMessageBoardSectionPermissionsPage(
+						Long.valueOf(siteKey), roleNames)));
 	}
 
 	/**
@@ -2895,26 +3020,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {siteMessageBoardSectionPermissions(roleNames: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public MessageBoardSectionPage siteMessageBoardSectionPermissions(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("roleNames") String roleNames)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_messageBoardSectionResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			messageBoardSectionResource -> new MessageBoardSectionPage(
-				messageBoardSectionResource.
-					getSiteMessageBoardSectionPermissionsPage(
-						Long.valueOf(siteKey), roleNames)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardSectionMessageBoardThreads(aggregation: ___, filter: ___, messageBoardSectionId: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -2944,32 +3049,6 @@ public class Query {
 						Pagination.of(page, pageSize),
 						_sortsBiFunction.apply(
 							messageBoardThreadResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardThreadsRanked(dateCreated: ___, dateModified: ___, messageBoardSectionId: ___, page: ___, pageSize: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public MessageBoardThreadPage messageBoardThreadsRanked(
-			@GraphQLName("dateCreated") Date dateCreated,
-			@GraphQLName("dateModified") Date dateModified,
-			@GraphQLName("messageBoardSectionId") Long messageBoardSectionId,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_messageBoardThreadResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			messageBoardThreadResource -> new MessageBoardThreadPage(
-				messageBoardThreadResource.getMessageBoardThreadsRankedPage(
-					dateCreated, dateModified, messageBoardSectionId,
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(
-						messageBoardThreadResource, sortsString))));
 	}
 
 	/**
@@ -3030,17 +3109,13 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardThreads(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardThreadsRanked(dateCreated: ___, dateModified: ___, messageBoardSectionId: ___, page: ___, pageSize: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField(
-		description = "Retrieves the site's message board threads. Results can be paginated, filtered, searched, flattened, and sorted."
-	)
-	public MessageBoardThreadPage messageBoardThreads(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
+	@GraphQLField
+	public MessageBoardThreadPage messageBoardThreadsRanked(
+			@GraphQLName("dateCreated") Date dateCreated,
+			@GraphQLName("dateModified") Date dateModified,
+			@GraphQLName("messageBoardSectionId") Long messageBoardSectionId,
 			@GraphQLName("pageSize") int pageSize,
 			@GraphQLName("page") int page,
 			@GraphQLName("sort") String sortsString)
@@ -3050,12 +3125,8 @@ public class Query {
 			_messageBoardThreadResourceComponentServiceObjects,
 			this::_populateResourceContext,
 			messageBoardThreadResource -> new MessageBoardThreadPage(
-				messageBoardThreadResource.getSiteMessageBoardThreadsPage(
-					Long.valueOf(siteKey), flatten, search,
-					_aggregationBiFunction.apply(
-						messageBoardThreadResource, aggregations),
-					_filterBiFunction.apply(
-						messageBoardThreadResource, filterString),
+				messageBoardThreadResource.getMessageBoardThreadsRankedPage(
+					dateCreated, dateModified, messageBoardSectionId,
 					Pagination.of(page, pageSize),
 					_sortsBiFunction.apply(
 						messageBoardThreadResource, sortsString))));
@@ -3104,7 +3175,41 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {navigationMenu(navigationMenuId: ___){actions, creator, dateCreated, dateModified, id, name, navigationMenuItems, navigationType, siteId}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {messageBoardThreads(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's message board threads. Results can be paginated, filtered, searched, flattened, and sorted."
+	)
+	public MessageBoardThreadPage messageBoardThreads(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_messageBoardThreadResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			messageBoardThreadResource -> new MessageBoardThreadPage(
+				messageBoardThreadResource.getSiteMessageBoardThreadsPage(
+					Long.valueOf(siteKey), flatten, search,
+					_aggregationBiFunction.apply(
+						messageBoardThreadResource, aggregations),
+					_filterBiFunction.apply(
+						messageBoardThreadResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						messageBoardThreadResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {navigationMenu(navigationMenuId: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, name, navigationMenuItems, navigationType, permissions, siteId}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
 	public NavigationMenu navigationMenu(
@@ -3140,21 +3245,23 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {navigationMenus(page: ___, pageSize: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {navigationMenuByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, externalReferenceCode, id, name, navigationMenuItems, navigationType, permissions, siteId}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField
-	public NavigationMenuPage navigationMenus(
+	@GraphQLField(
+		description = "Retrieves the navigation menu by external reference code."
+	)
+	public NavigationMenu navigationMenuByExternalReferenceCode(
 			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page)
+			@GraphQLName("externalReferenceCode") String externalReferenceCode)
 		throws Exception {
 
 		return _applyComponentServiceObjects(
 			_navigationMenuResourceComponentServiceObjects,
 			this::_populateResourceContext,
-			navigationMenuResource -> new NavigationMenuPage(
-				navigationMenuResource.getSiteNavigationMenusPage(
-					Long.valueOf(siteKey), Pagination.of(page, pageSize))));
+			navigationMenuResource ->
+				navigationMenuResource.
+					getSiteNavigationMenuByExternalReferenceCode(
+						Long.valueOf(siteKey), externalReferenceCode));
 	}
 
 	/**
@@ -3179,13 +3286,12 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {sitePages(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {navigationMenus(filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField(description = "Retrieves the public pages of the site")
-	public SitePagePage sitePages(
+	@GraphQLField
+	public NavigationMenuPage navigationMenus(
 			@GraphQLName("siteKey") @NotEmpty String siteKey,
 			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
 			@GraphQLName("filter") String filterString,
 			@GraphQLName("pageSize") int pageSize,
 			@GraphQLName("page") int page,
@@ -3193,16 +3299,16 @@ public class Query {
 		throws Exception {
 
 		return _applyComponentServiceObjects(
-			_sitePageResourceComponentServiceObjects,
+			_navigationMenuResourceComponentServiceObjects,
 			this::_populateResourceContext,
-			sitePageResource -> new SitePagePage(
-				sitePageResource.getSiteSitePagesPage(
+			navigationMenuResource -> new NavigationMenuPage(
+				navigationMenuResource.getSiteNavigationMenusPage(
 					Long.valueOf(siteKey), search,
-					_aggregationBiFunction.apply(
-						sitePageResource, aggregations),
-					_filterBiFunction.apply(sitePageResource, filterString),
+					_filterBiFunction.apply(
+						navigationMenuResource, filterString),
 					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(sitePageResource, sortsString))));
+					_sortsBiFunction.apply(
+						navigationMenuResource, sortsString))));
 	}
 
 	/**
@@ -3221,25 +3327,6 @@ public class Query {
 			this::_populateResourceContext,
 			sitePageResource -> sitePageResource.getSiteSitePage(
 				Long.valueOf(siteKey), friendlyUrlPath));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {sitePagesExperiences(friendlyUrlPath: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(description = "Retrieves the experiences of a given Page")
-	public SitePagePage sitePagesExperiences(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("friendlyUrlPath") String friendlyUrlPath)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_sitePageResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			sitePageResource -> new SitePagePage(
-				sitePageResource.getSiteSitePagesExperiencesPage(
-					Long.valueOf(siteKey), friendlyUrlPath)));
 	}
 
 	/**
@@ -3310,12 +3397,30 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryStructuredContents(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {sitePagesExperiences(friendlyUrlPath: ___, siteKey: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField
-	public StructuredContentPage assetLibraryStructuredContents(
-			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
-			@GraphQLName("flatten") Boolean flatten,
+	@GraphQLField(description = "Retrieves the experiences of a given Page")
+	public SitePagePage sitePagesExperiences(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("friendlyUrlPath") String friendlyUrlPath)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_sitePageResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			sitePageResource -> new SitePagePage(
+				sitePageResource.getSiteSitePagesExperiencesPage(
+					Long.valueOf(siteKey), friendlyUrlPath)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {sitePages(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(description = "Retrieves the public pages of the site")
+	public SitePagePage sitePages(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
 			@GraphQLName("search") String search,
 			@GraphQLName("aggregation") List<String> aggregations,
 			@GraphQLName("filter") String filterString,
@@ -3325,18 +3430,16 @@ public class Query {
 		throws Exception {
 
 		return _applyComponentServiceObjects(
-			_structuredContentResourceComponentServiceObjects,
+			_sitePageResourceComponentServiceObjects,
 			this::_populateResourceContext,
-			structuredContentResource -> new StructuredContentPage(
-				structuredContentResource.getAssetLibraryStructuredContentsPage(
-					Long.valueOf(assetLibraryId), flatten, search,
+			sitePageResource -> new SitePagePage(
+				sitePageResource.getSiteSitePagesPage(
+					Long.valueOf(siteKey), search,
 					_aggregationBiFunction.apply(
-						structuredContentResource, aggregations),
-					_filterBiFunction.apply(
-						structuredContentResource, filterString),
+						sitePageResource, aggregations),
+					_filterBiFunction.apply(sitePageResource, filterString),
 					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(
-						structuredContentResource, sortsString))));
+					_sortsBiFunction.apply(sitePageResource, sortsString))));
 	}
 
 	/**
@@ -3384,6 +3487,38 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryStructuredContents(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public StructuredContentPage assetLibraryStructuredContents(
+			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_structuredContentResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			structuredContentResource -> new StructuredContentPage(
+				structuredContentResource.getAssetLibraryStructuredContentsPage(
+					Long.valueOf(assetLibraryId), flatten, search,
+					_aggregationBiFunction.apply(
+						structuredContentResource, aggregations),
+					_filterBiFunction.apply(
+						structuredContentResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						structuredContentResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {contentStructureStructuredContents(aggregation: ___, contentStructureId: ___, filter: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -3413,40 +3548,6 @@ public class Query {
 						Pagination.of(page, pageSize),
 						_sortsBiFunction.apply(
 							structuredContentResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContents(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the site's structured content. Results can be paginated, filtered, searched, flattened, and sorted."
-	)
-	public StructuredContentPage structuredContents(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_structuredContentResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			structuredContentResource -> new StructuredContentPage(
-				structuredContentResource.getSiteStructuredContentsPage(
-					Long.valueOf(siteKey), flatten, search,
-					_aggregationBiFunction.apply(
-						structuredContentResource, aggregations),
-					_filterBiFunction.apply(
-						structuredContentResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(
-						structuredContentResource, sortsString))));
 	}
 
 	/**
@@ -3534,6 +3635,58 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContents(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's structured content. Results can be paginated, filtered, searched, flattened, and sorted."
+	)
+	public StructuredContentPage structuredContents(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_structuredContentResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			structuredContentResource -> new StructuredContentPage(
+				structuredContentResource.getSiteStructuredContentsPage(
+					Long.valueOf(siteKey), flatten, search,
+					_aggregationBiFunction.apply(
+						structuredContentResource, aggregations),
+					_filterBiFunction.apply(
+						structuredContentResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						structuredContentResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContent(structuredContentId: ___){actions, aggregateRating, assetLibraryKey, availableLanguages, contentFields, contentStructureId, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, description_i18n, externalReferenceCode, friendlyUrlPath, friendlyUrlPath_i18n, id, key, keywords, neverExpire, numberOfComments, permissions, priority, relatedContents, renderedContents, siteId, structuredContentFolderId, subscribed, taxonomyCategoryBriefs, taxonomyCategoryIds, title, title_i18n, uuid, viewableBy}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(description = "Retrieves the structured content via its ID.")
+	public StructuredContent structuredContent(
+			@GraphQLName("structuredContentId") Long structuredContentId)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_structuredContentResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			structuredContentResource ->
+				structuredContentResource.getStructuredContent(
+					structuredContentId));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentFolderStructuredContents(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___, structuredContentFolderId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -3565,24 +3718,6 @@ public class Query {
 						Pagination.of(page, pageSize),
 						_sortsBiFunction.apply(
 							structuredContentResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContent(structuredContentId: ___){actions, aggregateRating, assetLibraryKey, availableLanguages, contentFields, contentStructureId, creator, customFields, dateCreated, dateExpired, dateModified, datePublished, description, description_i18n, externalReferenceCode, friendlyUrlPath, friendlyUrlPath_i18n, id, key, keywords, neverExpire, numberOfComments, permissions, priority, relatedContents, renderedContents, siteId, structuredContentFolderId, subscribed, taxonomyCategoryBriefs, taxonomyCategoryIds, title, title_i18n, uuid, viewableBy}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(description = "Retrieves the structured content via its ID.")
-	public StructuredContent structuredContent(
-			@GraphQLName("structuredContentId") Long structuredContentId)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_structuredContentResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			structuredContentResource ->
-				structuredContentResource.getStructuredContent(
-					structuredContentId));
 	}
 
 	/**
@@ -3669,39 +3804,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryStructuredContentFolders(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public StructuredContentFolderPage assetLibraryStructuredContentFolders(
-			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
-			@GraphQLName("flatten") Boolean flatten,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_structuredContentFolderResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			structuredContentFolderResource -> new StructuredContentFolderPage(
-				structuredContentFolderResource.
-					getAssetLibraryStructuredContentFoldersPage(
-						Long.valueOf(assetLibraryId), flatten, search,
-						_aggregationBiFunction.apply(
-							structuredContentFolderResource, aggregations),
-						_filterBiFunction.apply(
-							structuredContentFolderResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(
-							structuredContentFolderResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryStructuredContentFolderByExternalReferenceCode(assetLibraryId: ___, externalReferenceCode: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfStructuredContentFolders, numberOfStructuredContents, parentStructuredContentFolderId, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -3747,13 +3849,11 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentFolders(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {assetLibraryStructuredContentFolders(aggregation: ___, assetLibraryId: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
-	@GraphQLField(
-		description = "Retrieves the site's structured content folders. Results can be paginated, filtered, searched, flattened, and sorted."
-	)
-	public StructuredContentFolderPage structuredContentFolders(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
+	@GraphQLField
+	public StructuredContentFolderPage assetLibraryStructuredContentFolders(
+			@GraphQLName("assetLibraryId") @NotEmpty String assetLibraryId,
 			@GraphQLName("flatten") Boolean flatten,
 			@GraphQLName("search") String search,
 			@GraphQLName("aggregation") List<String> aggregations,
@@ -3768,8 +3868,8 @@ public class Query {
 			this::_populateResourceContext,
 			structuredContentFolderResource -> new StructuredContentFolderPage(
 				structuredContentFolderResource.
-					getSiteStructuredContentFoldersPage(
-						Long.valueOf(siteKey), flatten, search,
+					getAssetLibraryStructuredContentFoldersPage(
+						Long.valueOf(assetLibraryId), flatten, search,
 						_aggregationBiFunction.apply(
 							structuredContentFolderResource, aggregations),
 						_filterBiFunction.apply(
@@ -3819,6 +3919,60 @@ public class Query {
 				structuredContentFolderResource.
 					getSiteStructuredContentFolderPermissionsPage(
 						Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentFolders(aggregation: ___, filter: ___, flatten: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the site's structured content folders. Results can be paginated, filtered, searched, flattened, and sorted."
+	)
+	public StructuredContentFolderPage structuredContentFolders(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("flatten") Boolean flatten,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_structuredContentFolderResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			structuredContentFolderResource -> new StructuredContentFolderPage(
+				structuredContentFolderResource.
+					getSiteStructuredContentFoldersPage(
+						Long.valueOf(siteKey), flatten, search,
+						_aggregationBiFunction.apply(
+							structuredContentFolderResource, aggregations),
+						_filterBiFunction.apply(
+							structuredContentFolderResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(
+							structuredContentFolderResource, sortsString))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentFolder(structuredContentFolderId: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfStructuredContentFolders, numberOfStructuredContents, parentStructuredContentFolderId, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(description = "Retrieves the structured content folder.")
+	public StructuredContentFolder structuredContentFolder(
+			@GraphQLName("structuredContentFolderId") Long
+				structuredContentFolderId)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_structuredContentFolderResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			structuredContentFolderResource ->
+				structuredContentFolderResource.getStructuredContentFolder(
+					structuredContentFolderId));
 	}
 
 	/**
@@ -3881,56 +4035,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {structuredContentFolder(structuredContentFolderId: ___){actions, assetLibraryKey, creator, customFields, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfStructuredContentFolders, numberOfStructuredContents, parentStructuredContentFolderId, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(description = "Retrieves the structured content folder.")
-	public StructuredContentFolder structuredContentFolder(
-			@GraphQLName("structuredContentFolderId") Long
-				structuredContentFolderId)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_structuredContentFolderResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			structuredContentFolderResource ->
-				structuredContentFolderResource.getStructuredContentFolder(
-					structuredContentFolderId));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {wikiNodes(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the wiki node's of a site. Results can be paginated, filtered, searched, and sorted."
-	)
-	public WikiNodePage wikiNodes(
-			@GraphQLName("siteKey") @NotEmpty String siteKey,
-			@GraphQLName("search") String search,
-			@GraphQLName("aggregation") List<String> aggregations,
-			@GraphQLName("filter") String filterString,
-			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page,
-			@GraphQLName("sort") String sortsString)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_wikiNodeResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			wikiNodeResource -> new WikiNodePage(
-				wikiNodeResource.getSiteWikiNodesPage(
-					Long.valueOf(siteKey), search,
-					_aggregationBiFunction.apply(
-						wikiNodeResource, aggregations),
-					_filterBiFunction.apply(wikiNodeResource, filterString),
-					Pagination.of(page, pageSize),
-					_sortsBiFunction.apply(wikiNodeResource, sortsString))));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {wikiNodeByExternalReferenceCode(externalReferenceCode: ___, siteKey: ___){actions, creator, dateCreated, dateModified, description, externalReferenceCode, id, name, numberOfWikiPages, siteId, subscribed, viewableBy}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(
@@ -3966,6 +4070,37 @@ public class Query {
 			wikiNodeResource -> new WikiNodePage(
 				wikiNodeResource.getSiteWikiNodePermissionsPage(
 					Long.valueOf(siteKey), roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {wikiNodes(aggregation: ___, filter: ___, page: ___, pageSize: ___, search: ___, siteKey: ___, sorts: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the wiki node's of a site. Results can be paginated, filtered, searched, and sorted."
+	)
+	public WikiNodePage wikiNodes(
+			@GraphQLName("siteKey") @NotEmpty String siteKey,
+			@GraphQLName("search") String search,
+			@GraphQLName("aggregation") List<String> aggregations,
+			@GraphQLName("filter") String filterString,
+			@GraphQLName("pageSize") int pageSize,
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_wikiNodeResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			wikiNodeResource -> new WikiNodePage(
+				wikiNodeResource.getSiteWikiNodesPage(
+					Long.valueOf(siteKey), search,
+					_aggregationBiFunction.apply(
+						wikiNodeResource, aggregations),
+					_filterBiFunction.apply(wikiNodeResource, filterString),
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(wikiNodeResource, sortsString))));
 	}
 
 	/**
@@ -4057,25 +4192,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {wikiPageWikiPages(parentWikiPageId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField(
-		description = "Retrieves the child wiki page's of a wiki page."
-	)
-	public WikiPagePage wikiPageWikiPages(
-			@GraphQLName("parentWikiPageId") Long parentWikiPageId)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_wikiPageResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			wikiPageResource -> new WikiPagePage(
-				wikiPageResource.getWikiPageWikiPagesPage(parentWikiPageId)));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {wikiPage(wikiPageId: ___){actions, aggregateRating, content, creator, customFields, dateCreated, dateModified, description, encodingFormat, externalReferenceCode, headline, id, keywords, numberOfAttachments, numberOfWikiPages, parentWikiPageId, relatedContents, siteId, subscribed, taxonomyCategoryBriefs, taxonomyCategoryIds, viewableBy, wikiNodeId}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField(description = "Retrieves the wiki page")
@@ -4105,6 +4221,25 @@ public class Query {
 			wikiPageResource -> new WikiPagePage(
 				wikiPageResource.getWikiPagePermissionsPage(
 					wikiPageId, roleNames)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {wikiPageWikiPages(parentWikiPageId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField(
+		description = "Retrieves the child wiki page's of a wiki page."
+	)
+	public WikiPagePage wikiPageWikiPages(
+			@GraphQLName("parentWikiPageId") Long parentWikiPageId)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_wikiPageResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			wikiPageResource -> new WikiPagePage(
+				wikiPageResource.getWikiPageWikiPagesPage(parentWikiPageId)));
 	}
 
 	/**
@@ -4170,6 +4305,29 @@ public class Query {
 					wikiPageId)));
 	}
 
+	@GraphQLTypeExtension(StructuredContent.class)
+	public class GetContentStructureTypeExtension {
+
+		public GetContentStructureTypeExtension(
+			StructuredContent structuredContent) {
+
+			_structuredContent = structuredContent;
+		}
+
+		@GraphQLField(description = "Retrieves the content structure.")
+		public ContentStructure contentStructure() throws Exception {
+			return _applyComponentServiceObjects(
+				_contentStructureResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				contentStructureResource ->
+					contentStructureResource.getContentStructure(
+						_structuredContent.getContentStructureId()));
+		}
+
+		private StructuredContent _structuredContent;
+
+	}
+
 	@GraphQLTypeExtension(Document.class)
 	public class GetDocumentFolderTypeExtension {
 
@@ -4214,77 +4372,292 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(Document.class)
-	public class GetDocumentMyRatingTypeExtension {
+	@GraphQLTypeExtension(MessageBoardMessage.class)
+	public class GetMessageBoardThreadTypeExtension {
 
-		public GetDocumentMyRatingTypeExtension(Document document) {
-			_document = document;
+		public GetMessageBoardThreadTypeExtension(
+			MessageBoardMessage messageBoardMessage) {
+
+			_messageBoardMessage = messageBoardMessage;
 		}
 
-		@GraphQLField(description = "Retrieves the document's rating.")
-		public Rating myRating() throws Exception {
+		@GraphQLField(description = "Retrieves the message board thread.")
+		public MessageBoardThread messageBoardThread() throws Exception {
 			return _applyComponentServiceObjects(
-				_documentResourceComponentServiceObjects,
+				_messageBoardThreadResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				documentResource -> documentResource.getDocumentMyRating(
-					_document.getId()));
+				messageBoardThreadResource ->
+					messageBoardThreadResource.getMessageBoardThread(
+						_messageBoardMessage.getMessageBoardThreadId()));
 		}
 
-		private Document _document;
+		private MessageBoardMessage _messageBoardMessage;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContent.class)
+	public class GetStructuredContentFolderTypeExtension {
+
+		public GetStructuredContentFolderTypeExtension(
+			StructuredContent structuredContent) {
+
+			_structuredContent = structuredContent;
+		}
+
+		@GraphQLField(description = "Retrieves the structured content folder.")
+		public StructuredContentFolder folder() throws Exception {
+			return _applyComponentServiceObjects(
+				_structuredContentFolderResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentFolderResource ->
+					structuredContentFolderResource.getStructuredContentFolder(
+						_structuredContent.getStructuredContentFolderId()));
+		}
+
+		private StructuredContent _structuredContent;
 
 	}
 
 	@GraphQLTypeExtension(WikiPage.class)
-	public class GetWikiPagePermissionsPageTypeExtension {
+	public class GetWikiNodeTypeExtension {
 
-		public GetWikiPagePermissionsPageTypeExtension(WikiPage wikiPage) {
+		public GetWikiNodeTypeExtension(WikiPage wikiPage) {
 			_wikiPage = wikiPage;
 		}
 
-		@GraphQLField
-		public WikiPagePage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
+		@GraphQLField(description = "Retrieves the wiki node")
+		public WikiNode wikiNode() throws Exception {
 			return _applyComponentServiceObjects(
-				_wikiPageResourceComponentServiceObjects,
+				_wikiNodeResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				wikiPageResource -> new WikiPagePage(
-					wikiPageResource.getWikiPagePermissionsPage(
-						_wikiPage.getId(), roleNames)));
+				wikiNodeResource -> wikiNodeResource.getWikiNode(
+					_wikiPage.getWikiNodeId()));
 		}
 
 		private WikiPage _wikiPage;
 
 	}
 
-	@GraphQLTypeExtension(MessageBoardMessage.class)
-	public class
-		GetMessageBoardMessageMessageBoardAttachmentsPageTypeExtension {
+	@GraphQLTypeExtension(BlogPosting.class)
+	public class GetBlogPostingMyRatingTypeExtension {
 
-		public GetMessageBoardMessageMessageBoardAttachmentsPageTypeExtension(
-			MessageBoardMessage messageBoardMessage) {
-
-			_messageBoardMessage = messageBoardMessage;
+		public GetBlogPostingMyRatingTypeExtension(BlogPosting blogPosting) {
+			_blogPosting = blogPosting;
 		}
 
 		@GraphQLField(
-			description = "Retrieves the message board message's attachments."
+			description = "Retrieves the blog post rating of the user who authenticated the request."
 		)
-		public MessageBoardAttachmentPage messageBoardAttachments()
+		public Rating myRating() throws Exception {
+			return _applyComponentServiceObjects(
+				_blogPostingResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				blogPostingResource ->
+					blogPostingResource.getBlogPostingMyRating(
+						_blogPosting.getId()));
+		}
+
+		private BlogPosting _blogPosting;
+
+	}
+
+	@GraphQLTypeExtension(BlogPosting.class)
+	public class GetBlogPostingPermissionsPageTypeExtension {
+
+		public GetBlogPostingPermissionsPageTypeExtension(
+			BlogPosting blogPosting) {
+
+			_blogPosting = blogPosting;
+		}
+
+		@GraphQLField
+		public BlogPostingPage permissions(
+				@GraphQLName("roleNames") String roleNames)
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_messageBoardAttachmentResourceComponentServiceObjects,
+				_blogPostingResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				messageBoardAttachmentResource ->
-					new MessageBoardAttachmentPage(
-						messageBoardAttachmentResource.
-							getMessageBoardMessageMessageBoardAttachmentsPage(
-								_messageBoardMessage.getId())));
+				blogPostingResource -> new BlogPostingPage(
+					blogPostingResource.getBlogPostingPermissionsPage(
+						_blogPosting.getId(), roleNames)));
 		}
 
-		private MessageBoardMessage _messageBoardMessage;
+		private BlogPosting _blogPosting;
+
+	}
+
+	@GraphQLTypeExtension(BlogPosting.class)
+	public class GetBlogPostingCommentsPageTypeExtension {
+
+		public GetBlogPostingCommentsPageTypeExtension(
+			BlogPosting blogPosting) {
+
+			_blogPosting = blogPosting;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the blog post's comments in a list. Results can be paginated, filtered, searched, and sorted."
+		)
+		public CommentPage comments(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_commentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				commentResource -> new CommentPage(
+					commentResource.getBlogPostingCommentsPage(
+						_blogPosting.getId(), search,
+						_aggregationBiFunction.apply(
+							commentResource, aggregations),
+						_filterBiFunction.apply(commentResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(commentResource, sortsString))));
+		}
+
+		private BlogPosting _blogPosting;
+
+	}
+
+	@GraphQLTypeExtension(Comment.class)
+	public class GetCommentCommentsPageTypeExtension {
+
+		public GetCommentCommentsPageTypeExtension(Comment comment) {
+			_comment = comment;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the parent comment's child comments. Results can be paginated, filtered, searched, and sorted."
+		)
+		public CommentPage comments(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_commentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				commentResource -> new CommentPage(
+					commentResource.getCommentCommentsPage(
+						_comment.getId(), search,
+						_aggregationBiFunction.apply(
+							commentResource, aggregations),
+						_filterBiFunction.apply(commentResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(commentResource, sortsString))));
+		}
+
+		private Comment _comment;
+
+	}
+
+	@GraphQLTypeExtension(Document.class)
+	public class GetDocumentCommentsPageTypeExtension {
+
+		public GetDocumentCommentsPageTypeExtension(Document document) {
+			_document = document;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the document's comments. Results can be paginated, filtered, searched, and sorted."
+		)
+		public CommentPage comments(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_commentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				commentResource -> new CommentPage(
+					commentResource.getDocumentCommentsPage(
+						_document.getId(), search,
+						_aggregationBiFunction.apply(
+							commentResource, aggregations),
+						_filterBiFunction.apply(commentResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(commentResource, sortsString))));
+		}
+
+		private Document _document;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContent.class)
+	public class GetStructuredContentCommentsPageTypeExtension {
+
+		public GetStructuredContentCommentsPageTypeExtension(
+			StructuredContent structuredContent) {
+
+			_structuredContent = structuredContent;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the structured content's comments. Results can be paginated, filtered, searched, and sorted."
+		)
+		public CommentPage comments(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_commentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				commentResource -> new CommentPage(
+					commentResource.getStructuredContentCommentsPage(
+						_structuredContent.getId(), search,
+						_aggregationBiFunction.apply(
+							commentResource, aggregations),
+						_filterBiFunction.apply(commentResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(commentResource, sortsString))));
+		}
+
+		private StructuredContent _structuredContent;
+
+	}
+
+	@GraphQLTypeExtension(ContentStructure.class)
+	public class GetContentStructurePermissionsPageTypeExtension {
+
+		public GetContentStructurePermissionsPageTypeExtension(
+			ContentStructure contentStructure) {
+
+			_contentStructure = contentStructure;
+		}
+
+		@GraphQLField
+		public ContentStructurePage permissions(
+				@GraphQLName("roleNames") String roleNames)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_contentStructureResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				contentStructureResource -> new ContentStructurePage(
+					contentStructureResource.getContentStructurePermissionsPage(
+						_contentStructure.getId(), roleNames)));
+		}
+
+		private ContentStructure _contentStructure;
 
 	}
 
@@ -4328,147 +4701,23 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(StructuredContentFolder.class)
-	public class GetStructuredContentFolderPermissionsPageTypeExtension {
+	@GraphQLTypeExtension(Document.class)
+	public class GetDocumentMyRatingTypeExtension {
 
-		public GetStructuredContentFolderPermissionsPageTypeExtension(
-			StructuredContentFolder structuredContentFolder) {
-
-			_structuredContentFolder = structuredContentFolder;
+		public GetDocumentMyRatingTypeExtension(Document document) {
+			_document = document;
 		}
 
-		@GraphQLField
-		public StructuredContentFolderPage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
+		@GraphQLField(description = "Retrieves the document's rating.")
+		public Rating myRating() throws Exception {
 			return _applyComponentServiceObjects(
-				_structuredContentFolderResourceComponentServiceObjects,
+				_documentResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				structuredContentFolderResource ->
-					new StructuredContentFolderPage(
-						structuredContentFolderResource.
-							getStructuredContentFolderPermissionsPage(
-								_structuredContentFolder.getId(), roleNames)));
+				documentResource -> documentResource.getDocumentMyRating(
+					_document.getId()));
 		}
 
-		private StructuredContentFolder _structuredContentFolder;
-
-	}
-
-	@GraphQLTypeExtension(WikiPage.class)
-	public class GetWikiPageWikiPageAttachmentsPageTypeExtension {
-
-		public GetWikiPageWikiPageAttachmentsPageTypeExtension(
-			WikiPage wikiPage) {
-
-			_wikiPage = wikiPage;
-		}
-
-		@GraphQLField(description = "Retrieves the wiki page's attachments.")
-		public WikiPageAttachmentPage wikiPageAttachments() throws Exception {
-			return _applyComponentServiceObjects(
-				_wikiPageAttachmentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				wikiPageAttachmentResource -> new WikiPageAttachmentPage(
-					wikiPageAttachmentResource.
-						getWikiPageWikiPageAttachmentsPage(_wikiPage.getId())));
-		}
-
-		private WikiPage _wikiPage;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContent.class)
-	public class
-		GetStructuredContentRenderedContentContentTemplateTypeExtension {
-
-		public GetStructuredContentRenderedContentContentTemplateTypeExtension(
-			StructuredContent structuredContent) {
-
-			_structuredContent = structuredContent;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the structured content's rendered template (the result of applying the structure's values to a template)."
-		)
-		public String renderedContentContentTemplate(
-				@GraphQLName("contentTemplateId") String contentTemplateId)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_structuredContentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				structuredContentResource ->
-					structuredContentResource.
-						getStructuredContentRenderedContentContentTemplate(
-							_structuredContent.getId(), contentTemplateId));
-		}
-
-		private StructuredContent _structuredContent;
-
-	}
-
-	@GraphQLTypeExtension(WikiNode.class)
-	public class GetWikiNodeWikiPagesPageTypeExtension {
-
-		public GetWikiNodeWikiPagesPageTypeExtension(WikiNode wikiNode) {
-			_wikiNode = wikiNode;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the wiki page's of a node. Results can be paginated, filtered, searched, and sorted."
-		)
-		public WikiPagePage wikiPages(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_wikiPageResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				wikiPageResource -> new WikiPagePage(
-					wikiPageResource.getWikiNodeWikiPagesPage(
-						_wikiNode.getId(), search,
-						_aggregationBiFunction.apply(
-							wikiPageResource, aggregations),
-						_filterBiFunction.apply(wikiPageResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(
-							wikiPageResource, sortsString))));
-		}
-
-		private WikiNode _wikiNode;
-
-	}
-
-	@GraphQLTypeExtension(BlogPosting.class)
-	public class GetBlogPostingPermissionsPageTypeExtension {
-
-		public GetBlogPostingPermissionsPageTypeExtension(
-			BlogPosting blogPosting) {
-
-			_blogPosting = blogPosting;
-		}
-
-		@GraphQLField
-		public BlogPostingPage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_blogPostingResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				blogPostingResource -> new BlogPostingPage(
-					blogPostingResource.getBlogPostingPermissionsPage(
-						_blogPosting.getId(), roleNames)));
-		}
-
-		private BlogPosting _blogPosting;
+		private Document _document;
 
 	}
 
@@ -4513,158 +4762,6 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(KnowledgeBaseFolder.class)
-	public class GetKnowledgeBaseFolderKnowledgeBaseArticlesPageTypeExtension {
-
-		public GetKnowledgeBaseFolderKnowledgeBaseArticlesPageTypeExtension(
-			KnowledgeBaseFolder knowledgeBaseFolder) {
-
-			_knowledgeBaseFolder = knowledgeBaseFolder;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the folder's knowledge base articles. Results can be paginated, filtered, searched, flattened, and sorted."
-		)
-		public KnowledgeBaseArticlePage knowledgeBaseArticles(
-				@GraphQLName("flatten") Boolean flatten,
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_knowledgeBaseArticleResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
-					knowledgeBaseArticleResource.
-						getKnowledgeBaseFolderKnowledgeBaseArticlesPage(
-							_knowledgeBaseFolder.getId(), flatten, search,
-							_aggregationBiFunction.apply(
-								knowledgeBaseArticleResource, aggregations),
-							_filterBiFunction.apply(
-								knowledgeBaseArticleResource, filterString),
-							Pagination.of(page, pageSize),
-							_sortsBiFunction.apply(
-								knowledgeBaseArticleResource, sortsString))));
-		}
-
-		private KnowledgeBaseFolder _knowledgeBaseFolder;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContent.class)
-	public class GetStructuredContentMyRatingTypeExtension {
-
-		public GetStructuredContentMyRatingTypeExtension(
-			StructuredContent structuredContent) {
-
-			_structuredContent = structuredContent;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the structured content's rating."
-		)
-		public Rating myRating() throws Exception {
-			return _applyComponentServiceObjects(
-				_structuredContentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				structuredContentResource ->
-					structuredContentResource.getStructuredContentMyRating(
-						_structuredContent.getId()));
-		}
-
-		private StructuredContent _structuredContent;
-
-	}
-
-	@GraphQLTypeExtension(KnowledgeBaseArticle.class)
-	public class
-		GetKnowledgeBaseArticleKnowledgeBaseAttachmentsPageTypeExtension {
-
-		public GetKnowledgeBaseArticleKnowledgeBaseAttachmentsPageTypeExtension(
-			KnowledgeBaseArticle knowledgeBaseArticle) {
-
-			_knowledgeBaseArticle = knowledgeBaseArticle;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the knowledge base article's attachments."
-		)
-		public KnowledgeBaseAttachmentPage knowledgeBaseAttachments()
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_knowledgeBaseAttachmentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				knowledgeBaseAttachmentResource ->
-					new KnowledgeBaseAttachmentPage(
-						knowledgeBaseAttachmentResource.
-							getKnowledgeBaseArticleKnowledgeBaseAttachmentsPage(
-								_knowledgeBaseArticle.getId())));
-		}
-
-		private KnowledgeBaseArticle _knowledgeBaseArticle;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContent.class)
-	public class
-		GetStructuredContentRenderedContentByDisplayPageDisplayPageKeyTypeExtension {
-
-		public GetStructuredContentRenderedContentByDisplayPageDisplayPageKeyTypeExtension(
-			StructuredContent structuredContent) {
-
-			_structuredContent = structuredContent;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the structured content's rendered display page"
-		)
-		public String renderedContentByDisplayPageDisplayPageKey(
-				@GraphQLName("displayPageKey") String displayPageKey)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_structuredContentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				structuredContentResource ->
-					structuredContentResource.
-						getStructuredContentRenderedContentByDisplayPageDisplayPageKey(
-							_structuredContent.getId(), displayPageKey));
-		}
-
-		private StructuredContent _structuredContent;
-
-	}
-
-	@GraphQLTypeExtension(MessageBoardMessage.class)
-	public class GetMessageBoardMessageMyRatingTypeExtension {
-
-		public GetMessageBoardMessageMyRatingTypeExtension(
-			MessageBoardMessage messageBoardMessage) {
-
-			_messageBoardMessage = messageBoardMessage;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the message board message's rating."
-		)
-		public Rating myRating() throws Exception {
-			return _applyComponentServiceObjects(
-				_messageBoardMessageResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				messageBoardMessageResource ->
-					messageBoardMessageResource.getMessageBoardMessageMyRating(
-						_messageBoardMessage.getId()));
-		}
-
-		private MessageBoardMessage _messageBoardMessage;
-
-	}
-
 	@GraphQLTypeExtension(DocumentFolder.class)
 	public class GetDocumentFolderMyRatingTypeExtension {
 
@@ -4685,215 +4782,6 @@ public class Query {
 		}
 
 		private DocumentFolder _documentFolder;
-
-	}
-
-	@GraphQLTypeExtension(Comment.class)
-	public class GetCommentCommentsPageTypeExtension {
-
-		public GetCommentCommentsPageTypeExtension(Comment comment) {
-			_comment = comment;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the parent comment's child comments. Results can be paginated, filtered, searched, and sorted."
-		)
-		public CommentPage comments(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_commentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				commentResource -> new CommentPage(
-					commentResource.getCommentCommentsPage(
-						_comment.getId(), search,
-						_aggregationBiFunction.apply(
-							commentResource, aggregations),
-						_filterBiFunction.apply(commentResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(commentResource, sortsString))));
-		}
-
-		private Comment _comment;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContent.class)
-	public class GetContentStructureTypeExtension {
-
-		public GetContentStructureTypeExtension(
-			StructuredContent structuredContent) {
-
-			_structuredContent = structuredContent;
-		}
-
-		@GraphQLField(description = "Retrieves the content structure.")
-		public ContentStructure contentStructure() throws Exception {
-			return _applyComponentServiceObjects(
-				_contentStructureResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				contentStructureResource ->
-					contentStructureResource.getContentStructure(
-						_structuredContent.getContentStructureId()));
-		}
-
-		private StructuredContent _structuredContent;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContent.class)
-	public class GetStructuredContentFolderTypeExtension {
-
-		public GetStructuredContentFolderTypeExtension(
-			StructuredContent structuredContent) {
-
-			_structuredContent = structuredContent;
-		}
-
-		@GraphQLField(description = "Retrieves the structured content folder.")
-		public StructuredContentFolder folder() throws Exception {
-			return _applyComponentServiceObjects(
-				_structuredContentFolderResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				structuredContentFolderResource ->
-					structuredContentFolderResource.getStructuredContentFolder(
-						_structuredContent.getStructuredContentFolderId()));
-		}
-
-		private StructuredContent _structuredContent;
-
-	}
-
-	@GraphQLTypeExtension(MessageBoardMessage.class)
-	public class GetMessageBoardMessagePermissionsPageTypeExtension {
-
-		public GetMessageBoardMessagePermissionsPageTypeExtension(
-			MessageBoardMessage messageBoardMessage) {
-
-			_messageBoardMessage = messageBoardMessage;
-		}
-
-		@GraphQLField
-		public MessageBoardMessagePage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_messageBoardMessageResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				messageBoardMessageResource -> new MessageBoardMessagePage(
-					messageBoardMessageResource.
-						getMessageBoardMessagePermissionsPage(
-							_messageBoardMessage.getId(), roleNames)));
-		}
-
-		private MessageBoardMessage _messageBoardMessage;
-
-	}
-
-	@GraphQLTypeExtension(KnowledgeBaseArticle.class)
-	public class GetKnowledgeBaseArticlePermissionsPageTypeExtension {
-
-		public GetKnowledgeBaseArticlePermissionsPageTypeExtension(
-			KnowledgeBaseArticle knowledgeBaseArticle) {
-
-			_knowledgeBaseArticle = knowledgeBaseArticle;
-		}
-
-		@GraphQLField
-		public KnowledgeBaseArticlePage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_knowledgeBaseArticleResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
-					knowledgeBaseArticleResource.
-						getKnowledgeBaseArticlePermissionsPage(
-							_knowledgeBaseArticle.getId(), roleNames)));
-		}
-
-		private KnowledgeBaseArticle _knowledgeBaseArticle;
-
-	}
-
-	@GraphQLTypeExtension(DocumentFolder.class)
-	public class GetDocumentFolderPermissionsPageTypeExtension {
-
-		public GetDocumentFolderPermissionsPageTypeExtension(
-			DocumentFolder documentFolder) {
-
-			_documentFolder = documentFolder;
-		}
-
-		@GraphQLField
-		public DocumentFolderPage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_documentFolderResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				documentFolderResource -> new DocumentFolderPage(
-					documentFolderResource.getDocumentFolderPermissionsPage(
-						_documentFolder.getId(), roleNames)));
-		}
-
-		private DocumentFolder _documentFolder;
-
-	}
-
-	@GraphQLTypeExtension(KnowledgeBaseFolder.class)
-	public class GetKnowledgeBaseFolderPermissionsPageTypeExtension {
-
-		public GetKnowledgeBaseFolderPermissionsPageTypeExtension(
-			KnowledgeBaseFolder knowledgeBaseFolder) {
-
-			_knowledgeBaseFolder = knowledgeBaseFolder;
-		}
-
-		@GraphQLField
-		public KnowledgeBaseFolderPage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_knowledgeBaseFolderResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				knowledgeBaseFolderResource -> new KnowledgeBaseFolderPage(
-					knowledgeBaseFolderResource.
-						getKnowledgeBaseFolderPermissionsPage(
-							_knowledgeBaseFolder.getId(), roleNames)));
-		}
-
-		private KnowledgeBaseFolder _knowledgeBaseFolder;
-
-	}
-
-	@GraphQLTypeExtension(WikiPage.class)
-	public class GetWikiNodeTypeExtension {
-
-		public GetWikiNodeTypeExtension(WikiPage wikiPage) {
-			_wikiPage = wikiPage;
-		}
-
-		@GraphQLField(description = "Retrieves the wiki node")
-		public WikiNode wikiNode() throws Exception {
-			return _applyComponentServiceObjects(
-				_wikiNodeResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				wikiNodeResource -> wikiNodeResource.getWikiNode(
-					_wikiPage.getWikiNodeId()));
-		}
-
-		private WikiPage _wikiPage;
 
 	}
 
@@ -4939,111 +4827,128 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(MessageBoardThread.class)
-	public class GetMessageBoardThreadMessageBoardAttachmentsPageTypeExtension {
+	@GraphQLTypeExtension(KnowledgeBaseArticle.class)
+	public class GetKnowledgeBaseArticleMyRatingTypeExtension {
 
-		public GetMessageBoardThreadMessageBoardAttachmentsPageTypeExtension(
-			MessageBoardThread messageBoardThread) {
+		public GetKnowledgeBaseArticleMyRatingTypeExtension(
+			KnowledgeBaseArticle knowledgeBaseArticle) {
 
-			_messageBoardThread = messageBoardThread;
+			_knowledgeBaseArticle = knowledgeBaseArticle;
 		}
 
 		@GraphQLField(
-			description = "Retrieves the message board thread's attachments."
+			description = "Retrieves the knowledge base article's rating."
 		)
-		public MessageBoardAttachmentPage messageBoardAttachments()
-			throws Exception {
-
+		public Rating myRating() throws Exception {
 			return _applyComponentServiceObjects(
-				_messageBoardAttachmentResourceComponentServiceObjects,
+				_knowledgeBaseArticleResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				messageBoardAttachmentResource ->
-					new MessageBoardAttachmentPage(
-						messageBoardAttachmentResource.
-							getMessageBoardThreadMessageBoardAttachmentsPage(
-								_messageBoardThread.getId())));
+				knowledgeBaseArticleResource ->
+					knowledgeBaseArticleResource.
+						getKnowledgeBaseArticleMyRating(
+							_knowledgeBaseArticle.getId()));
 		}
 
-		private MessageBoardThread _messageBoardThread;
+		private KnowledgeBaseArticle _knowledgeBaseArticle;
 
 	}
 
-	@GraphQLTypeExtension(NavigationMenu.class)
-	public class GetNavigationMenuPermissionsPageTypeExtension {
+	@GraphQLTypeExtension(KnowledgeBaseArticle.class)
+	public class GetKnowledgeBaseArticlePermissionsPageTypeExtension {
 
-		public GetNavigationMenuPermissionsPageTypeExtension(
-			NavigationMenu navigationMenu) {
+		public GetKnowledgeBaseArticlePermissionsPageTypeExtension(
+			KnowledgeBaseArticle knowledgeBaseArticle) {
 
-			_navigationMenu = navigationMenu;
+			_knowledgeBaseArticle = knowledgeBaseArticle;
 		}
 
 		@GraphQLField
-		public NavigationMenuPage permissions(
+		public KnowledgeBaseArticlePage permissions(
 				@GraphQLName("roleNames") String roleNames)
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_navigationMenuResourceComponentServiceObjects,
+				_knowledgeBaseArticleResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				navigationMenuResource -> new NavigationMenuPage(
-					navigationMenuResource.getNavigationMenuPermissionsPage(
-						_navigationMenu.getId(), roleNames)));
+				knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
+					knowledgeBaseArticleResource.
+						getKnowledgeBaseArticlePermissionsPage(
+							_knowledgeBaseArticle.getId(), roleNames)));
 		}
 
-		private NavigationMenu _navigationMenu;
+		private KnowledgeBaseArticle _knowledgeBaseArticle;
 
 	}
 
-	@GraphQLTypeExtension(MessageBoardSection.class)
-	public class GetMessageBoardSectionPermissionsPageTypeExtension {
+	@GraphQLTypeExtension(KnowledgeBaseFolder.class)
+	public class GetKnowledgeBaseFolderKnowledgeBaseArticlesPageTypeExtension {
 
-		public GetMessageBoardSectionPermissionsPageTypeExtension(
-			MessageBoardSection messageBoardSection) {
+		public GetKnowledgeBaseFolderKnowledgeBaseArticlesPageTypeExtension(
+			KnowledgeBaseFolder knowledgeBaseFolder) {
 
-			_messageBoardSection = messageBoardSection;
+			_knowledgeBaseFolder = knowledgeBaseFolder;
 		}
 
-		@GraphQLField
-		public MessageBoardSectionPage permissions(
-				@GraphQLName("roleNames") String roleNames)
+		@GraphQLField(
+			description = "Retrieves the folder's knowledge base articles. Results can be paginated, filtered, searched, flattened, and sorted."
+		)
+		public KnowledgeBaseArticlePage knowledgeBaseArticles(
+				@GraphQLName("flatten") Boolean flatten,
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_messageBoardSectionResourceComponentServiceObjects,
+				_knowledgeBaseArticleResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				messageBoardSectionResource -> new MessageBoardSectionPage(
-					messageBoardSectionResource.
-						getMessageBoardSectionPermissionsPage(
-							_messageBoardSection.getId(), roleNames)));
+				knowledgeBaseArticleResource -> new KnowledgeBaseArticlePage(
+					knowledgeBaseArticleResource.
+						getKnowledgeBaseFolderKnowledgeBaseArticlesPage(
+							_knowledgeBaseFolder.getId(), flatten, search,
+							_aggregationBiFunction.apply(
+								knowledgeBaseArticleResource, aggregations),
+							_filterBiFunction.apply(
+								knowledgeBaseArticleResource, filterString),
+							Pagination.of(page, pageSize),
+							_sortsBiFunction.apply(
+								knowledgeBaseArticleResource, sortsString))));
 		}
 
-		private MessageBoardSection _messageBoardSection;
+		private KnowledgeBaseFolder _knowledgeBaseFolder;
 
 	}
 
-	@GraphQLTypeExtension(ContentStructure.class)
-	public class GetContentStructurePermissionsPageTypeExtension {
+	@GraphQLTypeExtension(KnowledgeBaseArticle.class)
+	public class
+		GetKnowledgeBaseArticleKnowledgeBaseAttachmentsPageTypeExtension {
 
-		public GetContentStructurePermissionsPageTypeExtension(
-			ContentStructure contentStructure) {
+		public GetKnowledgeBaseArticleKnowledgeBaseAttachmentsPageTypeExtension(
+			KnowledgeBaseArticle knowledgeBaseArticle) {
 
-			_contentStructure = contentStructure;
+			_knowledgeBaseArticle = knowledgeBaseArticle;
 		}
 
-		@GraphQLField
-		public ContentStructurePage permissions(
-				@GraphQLName("roleNames") String roleNames)
+		@GraphQLField(
+			description = "Retrieves the knowledge base article's attachments."
+		)
+		public KnowledgeBaseAttachmentPage knowledgeBaseAttachments()
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_contentStructureResourceComponentServiceObjects,
+				_knowledgeBaseAttachmentResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				contentStructureResource -> new ContentStructurePage(
-					contentStructureResource.getContentStructurePermissionsPage(
-						_contentStructure.getId(), roleNames)));
+				knowledgeBaseAttachmentResource ->
+					new KnowledgeBaseAttachmentPage(
+						knowledgeBaseAttachmentResource.
+							getKnowledgeBaseArticleKnowledgeBaseAttachmentsPage(
+								_knowledgeBaseArticle.getId())));
 		}
 
-		private ContentStructure _contentStructure;
+		private KnowledgeBaseArticle _knowledgeBaseArticle;
 
 	}
 
@@ -5078,366 +4983,89 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(ContentStructure.class)
-	public class GetContentStructureStructuredContentsPageTypeExtension {
+	@GraphQLTypeExtension(KnowledgeBaseFolder.class)
+	public class GetKnowledgeBaseFolderPermissionsPageTypeExtension {
 
-		public GetContentStructureStructuredContentsPageTypeExtension(
-			ContentStructure contentStructure) {
+		public GetKnowledgeBaseFolderPermissionsPageTypeExtension(
+			KnowledgeBaseFolder knowledgeBaseFolder) {
 
-			_contentStructure = contentStructure;
+			_knowledgeBaseFolder = knowledgeBaseFolder;
 		}
 
-		@GraphQLField(
-			description = "Retrieves a list of the content structure's structured content. Results can be paginated, filtered, searched, and sorted."
-		)
-		public StructuredContentPage structuredContents(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
+		@GraphQLField
+		public KnowledgeBaseFolderPage permissions(
+				@GraphQLName("roleNames") String roleNames)
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_structuredContentResourceComponentServiceObjects,
+				_knowledgeBaseFolderResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				structuredContentResource -> new StructuredContentPage(
-					structuredContentResource.
-						getContentStructureStructuredContentsPage(
-							_contentStructure.getId(), search,
-							_aggregationBiFunction.apply(
-								structuredContentResource, aggregations),
-							_filterBiFunction.apply(
-								structuredContentResource, filterString),
-							Pagination.of(page, pageSize),
-							_sortsBiFunction.apply(
-								structuredContentResource, sortsString))));
+				knowledgeBaseFolderResource -> new KnowledgeBaseFolderPage(
+					knowledgeBaseFolderResource.
+						getKnowledgeBaseFolderPermissionsPage(
+							_knowledgeBaseFolder.getId(), roleNames)));
 		}
 
-		private ContentStructure _contentStructure;
-
-	}
-
-	@GraphQLTypeExtension(BlogPosting.class)
-	public class GetBlogPostingCommentsPageTypeExtension {
-
-		public GetBlogPostingCommentsPageTypeExtension(
-			BlogPosting blogPosting) {
-
-			_blogPosting = blogPosting;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the blog post's comments in a list. Results can be paginated, filtered, searched, and sorted."
-		)
-		public CommentPage comments(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_commentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				commentResource -> new CommentPage(
-					commentResource.getBlogPostingCommentsPage(
-						_blogPosting.getId(), search,
-						_aggregationBiFunction.apply(
-							commentResource, aggregations),
-						_filterBiFunction.apply(commentResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(commentResource, sortsString))));
-		}
-
-		private BlogPosting _blogPosting;
-
-	}
-
-	@GraphQLTypeExtension(WikiPage.class)
-	public class GetWikiPageWikiPagesPageTypeExtension {
-
-		public GetWikiPageWikiPagesPageTypeExtension(WikiPage wikiPage) {
-			_wikiPage = wikiPage;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the child wiki page's of a wiki page."
-		)
-		public WikiPagePage wikiPages() throws Exception {
-			return _applyComponentServiceObjects(
-				_wikiPageResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				wikiPageResource -> new WikiPagePage(
-					wikiPageResource.getWikiPageWikiPagesPage(
-						_wikiPage.getId())));
-		}
-
-		private WikiPage _wikiPage;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContent.class)
-	public class GetStructuredContentCommentsPageTypeExtension {
-
-		public GetStructuredContentCommentsPageTypeExtension(
-			StructuredContent structuredContent) {
-
-			_structuredContent = structuredContent;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the structured content's comments. Results can be paginated, filtered, searched, and sorted."
-		)
-		public CommentPage comments(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_commentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				commentResource -> new CommentPage(
-					commentResource.getStructuredContentCommentsPage(
-						_structuredContent.getId(), search,
-						_aggregationBiFunction.apply(
-							commentResource, aggregations),
-						_filterBiFunction.apply(commentResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(commentResource, sortsString))));
-		}
-
-		private StructuredContent _structuredContent;
-
-	}
-
-	@GraphQLTypeExtension(KnowledgeBaseArticle.class)
-	public class GetKnowledgeBaseArticleMyRatingTypeExtension {
-
-		public GetKnowledgeBaseArticleMyRatingTypeExtension(
-			KnowledgeBaseArticle knowledgeBaseArticle) {
-
-			_knowledgeBaseArticle = knowledgeBaseArticle;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the knowledge base article's rating."
-		)
-		public Rating myRating() throws Exception {
-			return _applyComponentServiceObjects(
-				_knowledgeBaseArticleResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				knowledgeBaseArticleResource ->
-					knowledgeBaseArticleResource.
-						getKnowledgeBaseArticleMyRating(
-							_knowledgeBaseArticle.getId()));
-		}
-
-		private KnowledgeBaseArticle _knowledgeBaseArticle;
+		private KnowledgeBaseFolder _knowledgeBaseFolder;
 
 	}
 
 	@GraphQLTypeExtension(MessageBoardMessage.class)
-	public class GetMessageBoardThreadTypeExtension {
+	public class
+		GetMessageBoardMessageMessageBoardAttachmentsPageTypeExtension {
 
-		public GetMessageBoardThreadTypeExtension(
+		public GetMessageBoardMessageMessageBoardAttachmentsPageTypeExtension(
 			MessageBoardMessage messageBoardMessage) {
 
 			_messageBoardMessage = messageBoardMessage;
 		}
 
-		@GraphQLField(description = "Retrieves the message board thread.")
-		public MessageBoardThread messageBoardThread() throws Exception {
+		@GraphQLField(
+			description = "Retrieves the message board message's attachments."
+		)
+		public MessageBoardAttachmentPage messageBoardAttachments()
+			throws Exception {
+
 			return _applyComponentServiceObjects(
-				_messageBoardThreadResourceComponentServiceObjects,
+				_messageBoardAttachmentResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				messageBoardThreadResource ->
-					messageBoardThreadResource.getMessageBoardThread(
-						_messageBoardMessage.getMessageBoardThreadId()));
+				messageBoardAttachmentResource ->
+					new MessageBoardAttachmentPage(
+						messageBoardAttachmentResource.
+							getMessageBoardMessageMessageBoardAttachmentsPage(
+								_messageBoardMessage.getId())));
 		}
 
 		private MessageBoardMessage _messageBoardMessage;
 
 	}
 
-	@GraphQLTypeExtension(BlogPosting.class)
-	public class GetBlogPostingMyRatingTypeExtension {
-
-		public GetBlogPostingMyRatingTypeExtension(BlogPosting blogPosting) {
-			_blogPosting = blogPosting;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the blog post rating of the user who authenticated the request."
-		)
-		public Rating myRating() throws Exception {
-			return _applyComponentServiceObjects(
-				_blogPostingResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				blogPostingResource ->
-					blogPostingResource.getBlogPostingMyRating(
-						_blogPosting.getId()));
-		}
-
-		private BlogPosting _blogPosting;
-
-	}
-
-	@GraphQLTypeExtension(Document.class)
-	public class GetDocumentCommentsPageTypeExtension {
-
-		public GetDocumentCommentsPageTypeExtension(Document document) {
-			_document = document;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the document's comments. Results can be paginated, filtered, searched, and sorted."
-		)
-		public CommentPage comments(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_commentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				commentResource -> new CommentPage(
-					commentResource.getDocumentCommentsPage(
-						_document.getId(), search,
-						_aggregationBiFunction.apply(
-							commentResource, aggregations),
-						_filterBiFunction.apply(commentResource, filterString),
-						Pagination.of(page, pageSize),
-						_sortsBiFunction.apply(commentResource, sortsString))));
-		}
-
-		private Document _document;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContentFolder.class)
-	public class GetStructuredContentFolderStructuredContentsPageTypeExtension {
-
-		public GetStructuredContentFolderStructuredContentsPageTypeExtension(
-			StructuredContentFolder structuredContentFolder) {
-
-			_structuredContentFolder = structuredContentFolder;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the folder's structured content. Results can be paginated, filtered, searched, and sorted."
-		)
-		public StructuredContentPage structuredContents(
-				@GraphQLName("flatten") Boolean flatten,
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_structuredContentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				structuredContentResource -> new StructuredContentPage(
-					structuredContentResource.
-						getStructuredContentFolderStructuredContentsPage(
-							_structuredContentFolder.getId(), flatten, search,
-							_aggregationBiFunction.apply(
-								structuredContentResource, aggregations),
-							_filterBiFunction.apply(
-								structuredContentResource, filterString),
-							Pagination.of(page, pageSize),
-							_sortsBiFunction.apply(
-								structuredContentResource, sortsString))));
-		}
-
-		private StructuredContentFolder _structuredContentFolder;
-
-	}
-
 	@GraphQLTypeExtension(MessageBoardThread.class)
-	public class GetMessageBoardThreadPermissionsPageTypeExtension {
+	public class GetMessageBoardThreadMessageBoardAttachmentsPageTypeExtension {
 
-		public GetMessageBoardThreadPermissionsPageTypeExtension(
+		public GetMessageBoardThreadMessageBoardAttachmentsPageTypeExtension(
 			MessageBoardThread messageBoardThread) {
 
 			_messageBoardThread = messageBoardThread;
 		}
 
-		@GraphQLField
-		public MessageBoardThreadPage permissions(
-				@GraphQLName("roleNames") String roleNames)
+		@GraphQLField(
+			description = "Retrieves the message board thread's attachments."
+		)
+		public MessageBoardAttachmentPage messageBoardAttachments()
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_messageBoardThreadResourceComponentServiceObjects,
+				_messageBoardAttachmentResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				messageBoardThreadResource -> new MessageBoardThreadPage(
-					messageBoardThreadResource.
-						getMessageBoardThreadPermissionsPage(
-							_messageBoardThread.getId(), roleNames)));
+				messageBoardAttachmentResource ->
+					new MessageBoardAttachmentPage(
+						messageBoardAttachmentResource.
+							getMessageBoardThreadMessageBoardAttachmentsPage(
+								_messageBoardThread.getId())));
 		}
 
 		private MessageBoardThread _messageBoardThread;
-
-	}
-
-	@GraphQLTypeExtension(StructuredContentFolder.class)
-	public class
-		GetStructuredContentFolderStructuredContentFoldersPageTypeExtension {
-
-		public GetStructuredContentFolderStructuredContentFoldersPageTypeExtension(
-			StructuredContentFolder structuredContentFolder) {
-
-			_structuredContentFolder = structuredContentFolder;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the parent structured content folder's subfolders. Results can be paginated, filtered, searched, and sorted."
-		)
-		public StructuredContentFolderPage structuredContentFolders(
-				@GraphQLName("search") String search,
-				@GraphQLName("aggregation") List<String> aggregations,
-				@GraphQLName("filter") String filterString,
-				@GraphQLName("pageSize") int pageSize,
-				@GraphQLName("page") int page,
-				@GraphQLName("sort") String sortsString)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_structuredContentFolderResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				structuredContentFolderResource ->
-					new StructuredContentFolderPage(
-						structuredContentFolderResource.
-							getStructuredContentFolderStructuredContentFoldersPage(
-								_structuredContentFolder.getId(), search,
-								_aggregationBiFunction.apply(
-									structuredContentFolderResource,
-									aggregations),
-								_filterBiFunction.apply(
-									structuredContentFolderResource,
-									filterString),
-								Pagination.of(page, pageSize),
-								_sortsBiFunction.apply(
-									structuredContentFolderResource,
-									sortsString))));
-		}
-
-		private StructuredContentFolder _structuredContentFolder;
 
 	}
 
@@ -5483,6 +5111,99 @@ public class Query {
 
 	}
 
+	@GraphQLTypeExtension(MessageBoardMessage.class)
+	public class GetMessageBoardMessageMyRatingTypeExtension {
+
+		public GetMessageBoardMessageMyRatingTypeExtension(
+			MessageBoardMessage messageBoardMessage) {
+
+			_messageBoardMessage = messageBoardMessage;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the message board message's rating."
+		)
+		public Rating myRating() throws Exception {
+			return _applyComponentServiceObjects(
+				_messageBoardMessageResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				messageBoardMessageResource ->
+					messageBoardMessageResource.getMessageBoardMessageMyRating(
+						_messageBoardMessage.getId()));
+		}
+
+		private MessageBoardMessage _messageBoardMessage;
+
+	}
+
+	@GraphQLTypeExtension(MessageBoardMessage.class)
+	public class GetMessageBoardMessagePermissionsPageTypeExtension {
+
+		public GetMessageBoardMessagePermissionsPageTypeExtension(
+			MessageBoardMessage messageBoardMessage) {
+
+			_messageBoardMessage = messageBoardMessage;
+		}
+
+		@GraphQLField
+		public MessageBoardMessagePage permissions(
+				@GraphQLName("roleNames") String roleNames)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_messageBoardMessageResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				messageBoardMessageResource -> new MessageBoardMessagePage(
+					messageBoardMessageResource.
+						getMessageBoardMessagePermissionsPage(
+							_messageBoardMessage.getId(), roleNames)));
+		}
+
+		private MessageBoardMessage _messageBoardMessage;
+
+	}
+
+	@GraphQLTypeExtension(MessageBoardThread.class)
+	public class GetMessageBoardThreadMessageBoardMessagesPageTypeExtension {
+
+		public GetMessageBoardThreadMessageBoardMessagesPageTypeExtension(
+			MessageBoardThread messageBoardThread) {
+
+			_messageBoardThread = messageBoardThread;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the message board thread's messages. Results can be paginated, filtered, searched, and sorted."
+		)
+		public MessageBoardMessagePage messageBoardMessages(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_messageBoardMessageResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				messageBoardMessageResource -> new MessageBoardMessagePage(
+					messageBoardMessageResource.
+						getMessageBoardThreadMessageBoardMessagesPage(
+							_messageBoardThread.getId(), search,
+							_aggregationBiFunction.apply(
+								messageBoardMessageResource, aggregations),
+							_filterBiFunction.apply(
+								messageBoardMessageResource, filterString),
+							Pagination.of(page, pageSize),
+							_sortsBiFunction.apply(
+								messageBoardMessageResource, sortsString))));
+		}
+
+		private MessageBoardThread _messageBoardThread;
+
+	}
+
 	@GraphQLTypeExtension(MessageBoardSection.class)
 	public class GetMessageBoardSectionMessageBoardSectionsPageTypeExtension {
 
@@ -5524,87 +5245,30 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(WikiNode.class)
-	public class GetWikiNodePermissionsPageTypeExtension {
+	@GraphQLTypeExtension(MessageBoardSection.class)
+	public class GetMessageBoardSectionPermissionsPageTypeExtension {
 
-		public GetWikiNodePermissionsPageTypeExtension(WikiNode wikiNode) {
-			_wikiNode = wikiNode;
+		public GetMessageBoardSectionPermissionsPageTypeExtension(
+			MessageBoardSection messageBoardSection) {
+
+			_messageBoardSection = messageBoardSection;
 		}
 
 		@GraphQLField
-		public WikiNodePage permissions(
+		public MessageBoardSectionPage permissions(
 				@GraphQLName("roleNames") String roleNames)
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_wikiNodeResourceComponentServiceObjects,
+				_messageBoardSectionResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				wikiNodeResource -> new WikiNodePage(
-					wikiNodeResource.getWikiNodePermissionsPage(
-						_wikiNode.getId(), roleNames)));
+				messageBoardSectionResource -> new MessageBoardSectionPage(
+					messageBoardSectionResource.
+						getMessageBoardSectionPermissionsPage(
+							_messageBoardSection.getId(), roleNames)));
 		}
 
-		private WikiNode _wikiNode;
-
-	}
-
-	@GraphQLTypeExtension(Document.class)
-	public class
-		GetDocumentRenderedContentByDisplayPageDisplayPageKeyTypeExtension {
-
-		public GetDocumentRenderedContentByDisplayPageDisplayPageKeyTypeExtension(
-			Document document) {
-
-			_document = document;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the document's rendered display page"
-		)
-		public String renderedContentByDisplayPageDisplayPageKey(
-				@GraphQLName("displayPageKey") String displayPageKey)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_documentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				documentResource ->
-					documentResource.
-						getDocumentRenderedContentByDisplayPageDisplayPageKey(
-							_document.getId(), displayPageKey));
-		}
-
-		private Document _document;
-
-	}
-
-	@GraphQLTypeExtension(BlogPosting.class)
-	public class
-		GetBlogPostingRenderedContentByDisplayPageDisplayPageKeyTypeExtension {
-
-		public GetBlogPostingRenderedContentByDisplayPageDisplayPageKeyTypeExtension(
-			BlogPosting blogPosting) {
-
-			_blogPosting = blogPosting;
-		}
-
-		@GraphQLField(
-			description = "Retrieves the blog post's rendered display page"
-		)
-		public String renderedContentByDisplayPageDisplayPageKey(
-				@GraphQLName("displayPageKey") String displayPageKey)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_blogPostingResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				blogPostingResource ->
-					blogPostingResource.
-						getBlogPostingRenderedContentByDisplayPageDisplayPageKey(
-							_blogPosting.getId(), displayPageKey));
-		}
-
-		private BlogPosting _blogPosting;
+		private MessageBoardSection _messageBoardSection;
 
 	}
 
@@ -5674,43 +5338,46 @@ public class Query {
 
 	}
 
-	@GraphQLTypeExtension(Document.class)
-	public class GetDocumentPermissionsPageTypeExtension {
-
-		public GetDocumentPermissionsPageTypeExtension(Document document) {
-			_document = document;
-		}
-
-		@GraphQLField
-		public DocumentPage permissions(
-				@GraphQLName("roleNames") String roleNames)
-			throws Exception {
-
-			return _applyComponentServiceObjects(
-				_documentResourceComponentServiceObjects,
-				Query.this::_populateResourceContext,
-				documentResource -> new DocumentPage(
-					documentResource.getDocumentPermissionsPage(
-						_document.getId(), roleNames)));
-		}
-
-		private Document _document;
-
-	}
-
 	@GraphQLTypeExtension(MessageBoardThread.class)
-	public class GetMessageBoardThreadMessageBoardMessagesPageTypeExtension {
+	public class GetMessageBoardThreadPermissionsPageTypeExtension {
 
-		public GetMessageBoardThreadMessageBoardMessagesPageTypeExtension(
+		public GetMessageBoardThreadPermissionsPageTypeExtension(
 			MessageBoardThread messageBoardThread) {
 
 			_messageBoardThread = messageBoardThread;
 		}
 
+		@GraphQLField
+		public MessageBoardThreadPage permissions(
+				@GraphQLName("roleNames") String roleNames)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_messageBoardThreadResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				messageBoardThreadResource -> new MessageBoardThreadPage(
+					messageBoardThreadResource.
+						getMessageBoardThreadPermissionsPage(
+							_messageBoardThread.getId(), roleNames)));
+		}
+
+		private MessageBoardThread _messageBoardThread;
+
+	}
+
+	@GraphQLTypeExtension(ContentStructure.class)
+	public class GetContentStructureStructuredContentsPageTypeExtension {
+
+		public GetContentStructureStructuredContentsPageTypeExtension(
+			ContentStructure contentStructure) {
+
+			_contentStructure = contentStructure;
+		}
+
 		@GraphQLField(
-			description = "Retrieves the message board thread's messages. Results can be paginated, filtered, searched, and sorted."
+			description = "Retrieves a list of the content structure's structured content. Results can be paginated, filtered, searched, and sorted."
 		)
-		public MessageBoardMessagePage messageBoardMessages(
+		public StructuredContentPage structuredContents(
 				@GraphQLName("search") String search,
 				@GraphQLName("aggregation") List<String> aggregations,
 				@GraphQLName("filter") String filterString,
@@ -5720,22 +5387,452 @@ public class Query {
 			throws Exception {
 
 			return _applyComponentServiceObjects(
-				_messageBoardMessageResourceComponentServiceObjects,
+				_structuredContentResourceComponentServiceObjects,
 				Query.this::_populateResourceContext,
-				messageBoardMessageResource -> new MessageBoardMessagePage(
-					messageBoardMessageResource.
-						getMessageBoardThreadMessageBoardMessagesPage(
-							_messageBoardThread.getId(), search,
+				structuredContentResource -> new StructuredContentPage(
+					structuredContentResource.
+						getContentStructureStructuredContentsPage(
+							_contentStructure.getId(), search,
 							_aggregationBiFunction.apply(
-								messageBoardMessageResource, aggregations),
+								structuredContentResource, aggregations),
 							_filterBiFunction.apply(
-								messageBoardMessageResource, filterString),
+								structuredContentResource, filterString),
 							Pagination.of(page, pageSize),
 							_sortsBiFunction.apply(
-								messageBoardMessageResource, sortsString))));
+								structuredContentResource, sortsString))));
 		}
 
-		private MessageBoardThread _messageBoardThread;
+		private ContentStructure _contentStructure;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContentFolder.class)
+	public class GetStructuredContentFolderStructuredContentsPageTypeExtension {
+
+		public GetStructuredContentFolderStructuredContentsPageTypeExtension(
+			StructuredContentFolder structuredContentFolder) {
+
+			_structuredContentFolder = structuredContentFolder;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the folder's structured content. Results can be paginated, filtered, searched, and sorted."
+		)
+		public StructuredContentPage structuredContents(
+				@GraphQLName("flatten") Boolean flatten,
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_structuredContentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentResource -> new StructuredContentPage(
+					structuredContentResource.
+						getStructuredContentFolderStructuredContentsPage(
+							_structuredContentFolder.getId(), flatten, search,
+							_aggregationBiFunction.apply(
+								structuredContentResource, aggregations),
+							_filterBiFunction.apply(
+								structuredContentResource, filterString),
+							Pagination.of(page, pageSize),
+							_sortsBiFunction.apply(
+								structuredContentResource, sortsString))));
+		}
+
+		private StructuredContentFolder _structuredContentFolder;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContent.class)
+	public class GetStructuredContentMyRatingTypeExtension {
+
+		public GetStructuredContentMyRatingTypeExtension(
+			StructuredContent structuredContent) {
+
+			_structuredContent = structuredContent;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the structured content's rating."
+		)
+		public Rating myRating() throws Exception {
+			return _applyComponentServiceObjects(
+				_structuredContentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentResource ->
+					structuredContentResource.getStructuredContentMyRating(
+						_structuredContent.getId()));
+		}
+
+		private StructuredContent _structuredContent;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContentFolder.class)
+	public class GetStructuredContentFolderPermissionsPageTypeExtension {
+
+		public GetStructuredContentFolderPermissionsPageTypeExtension(
+			StructuredContentFolder structuredContentFolder) {
+
+			_structuredContentFolder = structuredContentFolder;
+		}
+
+		@GraphQLField
+		public StructuredContentFolderPage permissions(
+				@GraphQLName("roleNames") String roleNames)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_structuredContentFolderResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentFolderResource ->
+					new StructuredContentFolderPage(
+						structuredContentFolderResource.
+							getStructuredContentFolderPermissionsPage(
+								_structuredContentFolder.getId(), roleNames)));
+		}
+
+		private StructuredContentFolder _structuredContentFolder;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContentFolder.class)
+	public class
+		GetStructuredContentFolderStructuredContentFoldersPageTypeExtension {
+
+		public GetStructuredContentFolderStructuredContentFoldersPageTypeExtension(
+			StructuredContentFolder structuredContentFolder) {
+
+			_structuredContentFolder = structuredContentFolder;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the parent structured content folder's subfolders. Results can be paginated, filtered, searched, and sorted."
+		)
+		public StructuredContentFolderPage structuredContentFolders(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_structuredContentFolderResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentFolderResource ->
+					new StructuredContentFolderPage(
+						structuredContentFolderResource.
+							getStructuredContentFolderStructuredContentFoldersPage(
+								_structuredContentFolder.getId(), search,
+								_aggregationBiFunction.apply(
+									structuredContentFolderResource,
+									aggregations),
+								_filterBiFunction.apply(
+									structuredContentFolderResource,
+									filterString),
+								Pagination.of(page, pageSize),
+								_sortsBiFunction.apply(
+									structuredContentFolderResource,
+									sortsString))));
+		}
+
+		private StructuredContentFolder _structuredContentFolder;
+
+	}
+
+	@GraphQLTypeExtension(WikiNode.class)
+	public class GetWikiNodePermissionsPageTypeExtension {
+
+		public GetWikiNodePermissionsPageTypeExtension(WikiNode wikiNode) {
+			_wikiNode = wikiNode;
+		}
+
+		@GraphQLField
+		public WikiNodePage permissions(
+				@GraphQLName("roleNames") String roleNames)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_wikiNodeResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				wikiNodeResource -> new WikiNodePage(
+					wikiNodeResource.getWikiNodePermissionsPage(
+						_wikiNode.getId(), roleNames)));
+		}
+
+		private WikiNode _wikiNode;
+
+	}
+
+	@GraphQLTypeExtension(WikiNode.class)
+	public class GetWikiNodeWikiPagesPageTypeExtension {
+
+		public GetWikiNodeWikiPagesPageTypeExtension(WikiNode wikiNode) {
+			_wikiNode = wikiNode;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the wiki page's of a node. Results can be paginated, filtered, searched, and sorted."
+		)
+		public WikiPagePage wikiPages(
+				@GraphQLName("search") String search,
+				@GraphQLName("aggregation") List<String> aggregations,
+				@GraphQLName("filter") String filterString,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_wikiPageResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				wikiPageResource -> new WikiPagePage(
+					wikiPageResource.getWikiNodeWikiPagesPage(
+						_wikiNode.getId(), search,
+						_aggregationBiFunction.apply(
+							wikiPageResource, aggregations),
+						_filterBiFunction.apply(wikiPageResource, filterString),
+						Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(
+							wikiPageResource, sortsString))));
+		}
+
+		private WikiNode _wikiNode;
+
+	}
+
+	@GraphQLTypeExtension(WikiPage.class)
+	public class GetWikiPagePermissionsPageTypeExtension {
+
+		public GetWikiPagePermissionsPageTypeExtension(WikiPage wikiPage) {
+			_wikiPage = wikiPage;
+		}
+
+		@GraphQLField
+		public WikiPagePage permissions(
+				@GraphQLName("roleNames") String roleNames)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_wikiPageResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				wikiPageResource -> new WikiPagePage(
+					wikiPageResource.getWikiPagePermissionsPage(
+						_wikiPage.getId(), roleNames)));
+		}
+
+		private WikiPage _wikiPage;
+
+	}
+
+	@GraphQLTypeExtension(WikiPage.class)
+	public class GetWikiPageWikiPagesPageTypeExtension {
+
+		public GetWikiPageWikiPagesPageTypeExtension(WikiPage wikiPage) {
+			_wikiPage = wikiPage;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the child wiki page's of a wiki page."
+		)
+		public WikiPagePage wikiPages() throws Exception {
+			return _applyComponentServiceObjects(
+				_wikiPageResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				wikiPageResource -> new WikiPagePage(
+					wikiPageResource.getWikiPageWikiPagesPage(
+						_wikiPage.getId())));
+		}
+
+		private WikiPage _wikiPage;
+
+	}
+
+	@GraphQLTypeExtension(WikiPage.class)
+	public class GetWikiPageWikiPageAttachmentsPageTypeExtension {
+
+		public GetWikiPageWikiPageAttachmentsPageTypeExtension(
+			WikiPage wikiPage) {
+
+			_wikiPage = wikiPage;
+		}
+
+		@GraphQLField(description = "Retrieves the wiki page's attachments.")
+		public WikiPageAttachmentPage wikiPageAttachments() throws Exception {
+			return _applyComponentServiceObjects(
+				_wikiPageAttachmentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				wikiPageAttachmentResource -> new WikiPageAttachmentPage(
+					wikiPageAttachmentResource.
+						getWikiPageWikiPageAttachmentsPage(_wikiPage.getId())));
+		}
+
+		private WikiPage _wikiPage;
+
+	}
+
+	@GraphQLTypeExtension(BlogPosting.class)
+	public class
+		GetBlogPostingRenderedContentByDisplayPageDisplayPageKeyTypeExtension {
+
+		public GetBlogPostingRenderedContentByDisplayPageDisplayPageKeyTypeExtension(
+			BlogPosting blogPosting) {
+
+			_blogPosting = blogPosting;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the blog post's rendered display page"
+		)
+		public String renderedContentByDisplayPageDisplayPageKey(
+				@GraphQLName("displayPageKey") String displayPageKey)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_blogPostingResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				blogPostingResource ->
+					blogPostingResource.
+						getBlogPostingRenderedContentByDisplayPageDisplayPageKey(
+							_blogPosting.getId(), displayPageKey));
+		}
+
+		private BlogPosting _blogPosting;
+
+	}
+
+	@GraphQLTypeExtension(Document.class)
+	public class
+		GetDocumentRenderedContentByDisplayPageDisplayPageKeyTypeExtension {
+
+		public GetDocumentRenderedContentByDisplayPageDisplayPageKeyTypeExtension(
+			Document document) {
+
+			_document = document;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the document's rendered display page"
+		)
+		public String renderedContentByDisplayPageDisplayPageKey(
+				@GraphQLName("displayPageKey") String displayPageKey)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_documentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				documentResource ->
+					documentResource.
+						getDocumentRenderedContentByDisplayPageDisplayPageKey(
+							_document.getId(), displayPageKey));
+		}
+
+		private Document _document;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContent.class)
+	public class
+		GetStructuredContentRenderedContentByDisplayPageDisplayPageKeyTypeExtension {
+
+		public GetStructuredContentRenderedContentByDisplayPageDisplayPageKeyTypeExtension(
+			StructuredContent structuredContent) {
+
+			_structuredContent = structuredContent;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the structured content's rendered display page"
+		)
+		public String renderedContentByDisplayPageDisplayPageKey(
+				@GraphQLName("displayPageKey") String displayPageKey)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_structuredContentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentResource ->
+					structuredContentResource.
+						getStructuredContentRenderedContentByDisplayPageDisplayPageKey(
+							_structuredContent.getId(), displayPageKey));
+		}
+
+		private StructuredContent _structuredContent;
+
+	}
+
+	@GraphQLTypeExtension(StructuredContent.class)
+	public class
+		GetStructuredContentRenderedContentContentTemplateTypeExtension {
+
+		public GetStructuredContentRenderedContentContentTemplateTypeExtension(
+			StructuredContent structuredContent) {
+
+			_structuredContent = structuredContent;
+		}
+
+		@GraphQLField(
+			description = "Retrieves the structured content's rendered template (the result of applying the structure's values to a template)."
+		)
+		public String renderedContentContentTemplate(
+				@GraphQLName("contentTemplateId") String contentTemplateId)
+			throws Exception {
+
+			return _applyComponentServiceObjects(
+				_structuredContentResourceComponentServiceObjects,
+				Query.this::_populateResourceContext,
+				structuredContentResource ->
+					structuredContentResource.
+						getStructuredContentRenderedContentContentTemplate(
+							_structuredContent.getId(), contentTemplateId));
+		}
+
+		private StructuredContent _structuredContent;
+
+	}
+
+	@GraphQLName("AssetEntryPage")
+	public class AssetEntryPage {
+
+		public AssetEntryPage(Page assetEntryPage) {
+			actions = assetEntryPage.getActions();
+
+			facets = assetEntryPage.getFacets();
+
+			items = assetEntryPage.getItems();
+			lastPage = assetEntryPage.getLastPage();
+			page = assetEntryPage.getPage();
+			pageSize = assetEntryPage.getPageSize();
+			totalCount = assetEntryPage.getTotalCount();
+		}
+
+		@GraphQLField
+		protected Map<String, Map<String, String>> actions;
+
+		@GraphQLField
+		protected List<Facet> facets;
+
+		@GraphQLField
+		protected java.util.Collection<AssetEntry> items;
+
+		@GraphQLField
+		protected long lastPage;
+
+		@GraphQLField
+		protected long page;
+
+		@GraphQLField
+		protected long pageSize;
+
+		@GraphQLField
+		protected long totalCount;
 
 	}
 
@@ -7011,6 +7108,23 @@ public class Query {
 		}
 	}
 
+	private void _populateResourceContext(AssetEntryResource assetEntryResource)
+		throws Exception {
+
+		assetEntryResource.setContextAcceptLanguage(_acceptLanguage);
+		assetEntryResource.setContextCompany(_company);
+		assetEntryResource.setContextHttpServletRequest(_httpServletRequest);
+		assetEntryResource.setContextHttpServletResponse(_httpServletResponse);
+		assetEntryResource.setContextUriInfo(_uriInfo);
+		assetEntryResource.setContextUser(_user);
+		assetEntryResource.setGroupLocalService(_groupLocalService);
+		assetEntryResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		assetEntryResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
+		assetEntryResource.setRoleLocalService(_roleLocalService);
+	}
+
 	private void _populateResourceContext(
 			BlogPostingResource blogPostingResource)
 		throws Exception {
@@ -7022,6 +7136,10 @@ public class Query {
 		blogPostingResource.setContextUriInfo(_uriInfo);
 		blogPostingResource.setContextUser(_user);
 		blogPostingResource.setGroupLocalService(_groupLocalService);
+		blogPostingResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		blogPostingResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		blogPostingResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7038,6 +7156,10 @@ public class Query {
 		blogPostingImageResource.setContextUriInfo(_uriInfo);
 		blogPostingImageResource.setContextUser(_user);
 		blogPostingImageResource.setGroupLocalService(_groupLocalService);
+		blogPostingImageResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		blogPostingImageResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		blogPostingImageResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7051,6 +7173,10 @@ public class Query {
 		commentResource.setContextUriInfo(_uriInfo);
 		commentResource.setContextUser(_user);
 		commentResource.setGroupLocalService(_groupLocalService);
+		commentResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		commentResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		commentResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7067,6 +7193,10 @@ public class Query {
 		contentElementResource.setContextUriInfo(_uriInfo);
 		contentElementResource.setContextUser(_user);
 		contentElementResource.setGroupLocalService(_groupLocalService);
+		contentElementResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		contentElementResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		contentElementResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7083,6 +7213,10 @@ public class Query {
 		contentSetElementResource.setContextUriInfo(_uriInfo);
 		contentSetElementResource.setContextUser(_user);
 		contentSetElementResource.setGroupLocalService(_groupLocalService);
+		contentSetElementResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		contentSetElementResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		contentSetElementResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7099,6 +7233,10 @@ public class Query {
 		contentStructureResource.setContextUriInfo(_uriInfo);
 		contentStructureResource.setContextUser(_user);
 		contentStructureResource.setGroupLocalService(_groupLocalService);
+		contentStructureResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		contentStructureResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		contentStructureResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7115,6 +7253,10 @@ public class Query {
 		contentTemplateResource.setContextUriInfo(_uriInfo);
 		contentTemplateResource.setContextUser(_user);
 		contentTemplateResource.setGroupLocalService(_groupLocalService);
+		contentTemplateResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		contentTemplateResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		contentTemplateResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7128,6 +7270,10 @@ public class Query {
 		documentResource.setContextUriInfo(_uriInfo);
 		documentResource.setContextUser(_user);
 		documentResource.setGroupLocalService(_groupLocalService);
+		documentResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		documentResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		documentResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7147,6 +7293,10 @@ public class Query {
 		documentDataDefinitionTypeResource.setContextUser(_user);
 		documentDataDefinitionTypeResource.setGroupLocalService(
 			_groupLocalService);
+		documentDataDefinitionTypeResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		documentDataDefinitionTypeResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		documentDataDefinitionTypeResource.setRoleLocalService(
 			_roleLocalService);
 	}
@@ -7164,6 +7314,10 @@ public class Query {
 		documentFolderResource.setContextUriInfo(_uriInfo);
 		documentFolderResource.setContextUser(_user);
 		documentFolderResource.setGroupLocalService(_groupLocalService);
+		documentFolderResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		documentFolderResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		documentFolderResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7180,6 +7334,10 @@ public class Query {
 		documentMetadataSetResource.setContextUriInfo(_uriInfo);
 		documentMetadataSetResource.setContextUser(_user);
 		documentMetadataSetResource.setGroupLocalService(_groupLocalService);
+		documentMetadataSetResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		documentMetadataSetResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		documentMetadataSetResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7196,6 +7354,10 @@ public class Query {
 		documentShortcutResource.setContextUriInfo(_uriInfo);
 		documentShortcutResource.setContextUser(_user);
 		documentShortcutResource.setGroupLocalService(_groupLocalService);
+		documentShortcutResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		documentShortcutResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		documentShortcutResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7212,6 +7374,10 @@ public class Query {
 		knowledgeBaseArticleResource.setContextUriInfo(_uriInfo);
 		knowledgeBaseArticleResource.setContextUser(_user);
 		knowledgeBaseArticleResource.setGroupLocalService(_groupLocalService);
+		knowledgeBaseArticleResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		knowledgeBaseArticleResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		knowledgeBaseArticleResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7230,6 +7396,10 @@ public class Query {
 		knowledgeBaseAttachmentResource.setContextUser(_user);
 		knowledgeBaseAttachmentResource.setGroupLocalService(
 			_groupLocalService);
+		knowledgeBaseAttachmentResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		knowledgeBaseAttachmentResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		knowledgeBaseAttachmentResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7246,6 +7416,10 @@ public class Query {
 		knowledgeBaseFolderResource.setContextUriInfo(_uriInfo);
 		knowledgeBaseFolderResource.setContextUser(_user);
 		knowledgeBaseFolderResource.setGroupLocalService(_groupLocalService);
+		knowledgeBaseFolderResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		knowledgeBaseFolderResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		knowledgeBaseFolderResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7259,6 +7433,10 @@ public class Query {
 		languageResource.setContextUriInfo(_uriInfo);
 		languageResource.setContextUser(_user);
 		languageResource.setGroupLocalService(_groupLocalService);
+		languageResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		languageResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		languageResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7276,6 +7454,10 @@ public class Query {
 		messageBoardAttachmentResource.setContextUriInfo(_uriInfo);
 		messageBoardAttachmentResource.setContextUser(_user);
 		messageBoardAttachmentResource.setGroupLocalService(_groupLocalService);
+		messageBoardAttachmentResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		messageBoardAttachmentResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		messageBoardAttachmentResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7292,6 +7474,10 @@ public class Query {
 		messageBoardMessageResource.setContextUriInfo(_uriInfo);
 		messageBoardMessageResource.setContextUser(_user);
 		messageBoardMessageResource.setGroupLocalService(_groupLocalService);
+		messageBoardMessageResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		messageBoardMessageResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		messageBoardMessageResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7308,6 +7494,10 @@ public class Query {
 		messageBoardSectionResource.setContextUriInfo(_uriInfo);
 		messageBoardSectionResource.setContextUser(_user);
 		messageBoardSectionResource.setGroupLocalService(_groupLocalService);
+		messageBoardSectionResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		messageBoardSectionResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		messageBoardSectionResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7324,6 +7514,10 @@ public class Query {
 		messageBoardThreadResource.setContextUriInfo(_uriInfo);
 		messageBoardThreadResource.setContextUser(_user);
 		messageBoardThreadResource.setGroupLocalService(_groupLocalService);
+		messageBoardThreadResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		messageBoardThreadResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		messageBoardThreadResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7340,6 +7534,10 @@ public class Query {
 		navigationMenuResource.setContextUriInfo(_uriInfo);
 		navigationMenuResource.setContextUser(_user);
 		navigationMenuResource.setGroupLocalService(_groupLocalService);
+		navigationMenuResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		navigationMenuResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		navigationMenuResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7353,6 +7551,10 @@ public class Query {
 		sitePageResource.setContextUriInfo(_uriInfo);
 		sitePageResource.setContextUser(_user);
 		sitePageResource.setGroupLocalService(_groupLocalService);
+		sitePageResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		sitePageResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		sitePageResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7369,6 +7571,10 @@ public class Query {
 		structuredContentResource.setContextUriInfo(_uriInfo);
 		structuredContentResource.setContextUser(_user);
 		structuredContentResource.setGroupLocalService(_groupLocalService);
+		structuredContentResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		structuredContentResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		structuredContentResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7387,6 +7593,10 @@ public class Query {
 		structuredContentFolderResource.setContextUser(_user);
 		structuredContentFolderResource.setGroupLocalService(
 			_groupLocalService);
+		structuredContentFolderResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		structuredContentFolderResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		structuredContentFolderResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7400,6 +7610,10 @@ public class Query {
 		wikiNodeResource.setContextUriInfo(_uriInfo);
 		wikiNodeResource.setContextUser(_user);
 		wikiNodeResource.setGroupLocalService(_groupLocalService);
+		wikiNodeResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		wikiNodeResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		wikiNodeResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7413,6 +7627,10 @@ public class Query {
 		wikiPageResource.setContextUriInfo(_uriInfo);
 		wikiPageResource.setContextUser(_user);
 		wikiPageResource.setGroupLocalService(_groupLocalService);
+		wikiPageResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		wikiPageResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		wikiPageResource.setRoleLocalService(_roleLocalService);
 	}
 
@@ -7429,9 +7647,15 @@ public class Query {
 		wikiPageAttachmentResource.setContextUriInfo(_uriInfo);
 		wikiPageAttachmentResource.setContextUser(_user);
 		wikiPageAttachmentResource.setGroupLocalService(_groupLocalService);
+		wikiPageAttachmentResource.setResourceActionLocalService(
+			_resourceActionLocalService);
+		wikiPageAttachmentResource.setResourcePermissionLocalService(
+			_resourcePermissionLocalService);
 		wikiPageAttachmentResource.setRoleLocalService(_roleLocalService);
 	}
 
+	private static ComponentServiceObjects<AssetEntryResource>
+		_assetEntryResourceComponentServiceObjects;
 	private static ComponentServiceObjects<BlogPostingResource>
 		_blogPostingResourceComponentServiceObjects;
 	private static ComponentServiceObjects<BlogPostingImageResource>
@@ -7491,13 +7715,19 @@ public class Query {
 	private BiFunction<Object, List<String>, Aggregation>
 		_aggregationBiFunction;
 	private com.liferay.portal.kernel.model.Company _company;
-	private BiFunction<Object, String, Filter> _filterBiFunction;
+	private BiFunction
+		<Object, String, com.liferay.portal.kernel.search.filter.Filter>
+			_filterBiFunction;
 	private GroupLocalService _groupLocalService;
 	private HttpServletRequest _httpServletRequest;
 	private HttpServletResponse _httpServletResponse;
+	private ResourceActionLocalService _resourceActionLocalService;
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
 	private RoleLocalService _roleLocalService;
-	private BiFunction<Object, String, Sort[]> _sortsBiFunction;
+	private BiFunction<Object, String, com.liferay.portal.kernel.search.Sort[]>
+		_sortsBiFunction;
 	private UriInfo _uriInfo;
 	private com.liferay.portal.kernel.model.User _user;
 
 }
+// LIFERAY-REST-BUILDER-HASH:961325294

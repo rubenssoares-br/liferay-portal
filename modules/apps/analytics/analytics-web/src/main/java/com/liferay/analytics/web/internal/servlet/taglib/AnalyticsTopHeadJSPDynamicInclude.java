@@ -10,6 +10,7 @@ import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.analytics.web.internal.constants.AnalyticsWebKeys;
 import com.liferay.cookies.configuration.CookiesConfigurationProvider;
 import com.liferay.cookies.configuration.CookiesPreferenceHandlingConfiguration;
+import com.liferay.portal.kernel.cookies.CookiesManager;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -25,17 +26,19 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 
 import java.util.Map;
 import java.util.Objects;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -43,7 +46,10 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Marcellus Tavares
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#post",
+	service = DynamicInclude.class
+)
 public class AnalyticsTopHeadJSPDynamicInclude extends BaseJSPDynamicInclude {
 
 	@Override
@@ -84,19 +90,22 @@ public class AnalyticsTopHeadJSPDynamicInclude extends BaseJSPDynamicInclude {
 		httpServletRequest.setAttribute(
 			AnalyticsWebKeys.ANALYTICS_CLIENT_CONFIG,
 			_serialize(
-				HashMapBuilder.put(
-					"dataSourceId",
-					analyticsConfiguration.liferayAnalyticsDataSourceId()
-				).put(
-					"endpointUrl",
-					analyticsConfiguration.liferayAnalyticsEndpointURL()
-				).put(
-					"projectId",
-					analyticsConfiguration.liferayAnalyticsProjectId()
-				).build()));
-		httpServletRequest.setAttribute(
-			AnalyticsWebKeys.ANALYTICS_CLIENT_GROUP_IDS,
-			_serialize(analyticsConfiguration.syncedGroupIds()));
+				_getAnalyticsCloudClientConfig(
+					analyticsConfiguration, themeDisplay)));
+
+		if (GetterUtil.getBoolean(
+				PropsUtil.get(PropsKeys.ANALYTICS_CLOUD_MOCK_ENABLED))) {
+
+			httpServletRequest.setAttribute(
+				AnalyticsWebKeys.ANALYTICS_CLIENT_GROUP_IDS,
+				_serialize(new Long[] {themeDisplay.getScopeGroupId()}));
+		}
+		else {
+			httpServletRequest.setAttribute(
+				AnalyticsWebKeys.ANALYTICS_CLIENT_GROUP_IDS,
+				_serialize(analyticsConfiguration.syncedGroupIds()));
+		}
+
 		httpServletRequest.setAttribute(
 			AnalyticsWebKeys.ANALYTICS_COOKIES_EXPLICIT_CONSENT_MODE,
 			_isCookiesExplicitConsentMode(themeDisplay));
@@ -107,15 +116,11 @@ public class AnalyticsTopHeadJSPDynamicInclude extends BaseJSPDynamicInclude {
 			AnalyticsWebKeys.ANALYTICS_CLIENT_READABLE_CONTENT,
 			Boolean.toString(layout.isTypeAssetDisplay()));
 
+		httpServletRequest.setAttribute(
+			AnalyticsWebKeys.ANALYTICS_EXTERNAL_REFERENCE_CODE,
+			layout.getExternalReferenceCode());
+
 		super.include(httpServletRequest, httpServletResponse, key);
-	}
-
-	@Override
-	public void register(
-		DynamicInclude.DynamicIncludeRegistry dynamicIncludeRegistry) {
-
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_head.jsp#post");
 	}
 
 	@Override
@@ -126,6 +131,53 @@ public class AnalyticsTopHeadJSPDynamicInclude extends BaseJSPDynamicInclude {
 	@Override
 	protected Log getLog() {
 		return _log;
+	}
+
+	private Map<String, String> _getAnalyticsCloudClientConfig(
+		AnalyticsConfiguration analyticsConfiguration,
+		ThemeDisplay themeDisplay) {
+
+		if (GetterUtil.getBoolean(
+				PropsUtil.get(PropsKeys.ANALYTICS_CLOUD_MOCK_ENABLED))) {
+
+			return HashMapBuilder.put(
+				"endpointUrl", "/o/mock/osb-asah-publisher"
+			).build();
+		}
+
+		return HashMapBuilder.put(
+			"cookieDomain", () -> _getCookieDomain(themeDisplay)
+		).put(
+			"dataSourceId",
+			analyticsConfiguration.liferayAnalyticsDataSourceId()
+		).put(
+			"endpointUrl", analyticsConfiguration.liferayAnalyticsEndpointURL()
+		).put(
+			"faroBackendUrl",
+			analyticsConfiguration.liferayAnalyticsFaroBackendURL()
+		).put(
+			"projectId", analyticsConfiguration.liferayAnalyticsProjectId()
+		).build();
+	}
+
+	private String _getCookieDomain(ThemeDisplay themeDisplay) {
+		try {
+			String cookieDomain = _cookiesManager.getDomain(
+				themeDisplay.getServerName());
+
+			if (Validator.isNotNull(cookieDomain) &&
+				!Validator.isIPAddress(cookieDomain)) {
+
+				return cookieDomain;
+			}
+		}
+		catch (IllegalArgumentException illegalArgumentException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(illegalArgumentException);
+			}
+		}
+
+		return null;
 	}
 
 	private String _getLiferayAnalyticsChannelId(
@@ -152,6 +204,12 @@ public class AnalyticsTopHeadJSPDynamicInclude extends BaseJSPDynamicInclude {
 	private boolean _isAnalyticsTrackingEnabled(
 		AnalyticsConfiguration analyticsConfiguration,
 		HttpServletRequest httpServletRequest, ThemeDisplay themeDisplay) {
+
+		if (GetterUtil.getBoolean(
+				PropsUtil.get(PropsKeys.ANALYTICS_CLOUD_MOCK_ENABLED))) {
+
+			return true;
+		}
 
 		Layout layout = themeDisplay.getLayout();
 
@@ -241,6 +299,9 @@ public class AnalyticsTopHeadJSPDynamicInclude extends BaseJSPDynamicInclude {
 
 	@Reference
 	private CookiesConfigurationProvider _cookiesConfigurationProvider;
+
+	@Reference
+	private CookiesManager _cookiesManager;
 
 	@Reference
 	private GroupLocalService _groupLocalService;

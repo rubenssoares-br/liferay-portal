@@ -53,22 +53,25 @@ public class PortletPreferencesUpgradeProcess extends UpgradeProcess {
 				StringBundler.concat(
 					"select Layout.plid, Group_.groupKey from Layout inner ",
 					"join Group_ on Layout.groupId = Group_.groupId where ",
-					"Layout.type_ = '", LayoutConstants.TYPE_CONTROL_PANEL,
-					"'"));
-			ResultSet resultSet = preparedStatement.executeQuery()) {
+					"Layout.type_ = ?"))) {
 
-			while (resultSet.next()) {
-				String groupKey = resultSet.getString("groupKey");
+			preparedStatement.setString(1, LayoutConstants.TYPE_CONTROL_PANEL);
 
-				long plid = resultSet.getLong("plid");
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				while (resultSet.next()) {
+					String groupKey = resultSet.getString("groupKey");
 
-				Layout layout = _layoutLocalService.getLayout(plid);
+					long plid = resultSet.getLong("plid");
 
-				if (groupKey.equals(GroupConstants.CONTROL_PANEL)) {
-					_companyControlPanelPlids.put(layout.getCompanyId(), plid);
-				}
-				else {
-					_groupControlPanelPlids.put(layout.getGroupId(), plid);
+					Layout layout = _layoutLocalService.getLayout(plid);
+
+					if (groupKey.equals(GroupConstants.CONTROL_PANEL)) {
+						_companyControlPanelPlids.put(
+							layout.getCompanyId(), plid);
+					}
+					else {
+						_groupControlPanelPlids.put(layout.getGroupId(), plid);
+					}
 				}
 			}
 		}
@@ -105,7 +108,9 @@ public class PortletPreferencesUpgradeProcess extends UpgradeProcess {
 			preparedStatement.setString(1, namespace);
 			preparedStatement.setLong(2, groupId);
 			preparedStatement.setLong(
-				3, _companyControlPanelPlids.get(companyId));
+				3,
+				_companyControlPanelPlids.getOrDefault(
+					companyId, LayoutConstants.DEFAULT_PLID));
 
 			ResultSet resultSet = preparedStatement.executeQuery();
 
@@ -158,9 +163,11 @@ public class PortletPreferencesUpgradeProcess extends UpgradeProcess {
 					List<Long> layoutPortletPreferencesIds = new ArrayList<>();
 
 					long companyControlPanelPlid =
-						_companyControlPanelPlids.get(companyId);
-					long groupControlPanelPlid = _groupControlPanelPlids.get(
-						groupId);
+						_companyControlPanelPlids.getOrDefault(
+							companyId, LayoutConstants.DEFAULT_PLID);
+					long groupControlPanelPlid =
+						_groupControlPanelPlids.getOrDefault(
+							groupId, LayoutConstants.DEFAULT_PLID);
 					long layoutPlid = classPK;
 
 					for (Map.Entry<Long, Long> entry :

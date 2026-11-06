@@ -14,9 +14,9 @@ import com.liferay.portal.search.sort.Sorts;
 import com.liferay.portal.search.tuning.rankings.index.RankingBuilderFactory;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-import javax.portlet.RenderURL;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+import jakarta.portlet.RenderURL;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -55,8 +55,6 @@ public class ViewResultRankingsMVCRenderCommandTest
 		ReflectionTestUtil.setFieldValue(
 			_viewResultRankingsMVCRenderCommand, "portal", portal);
 		ReflectionTestUtil.setFieldValue(
-			_viewResultRankingsMVCRenderCommand, "queries", queries);
-		ReflectionTestUtil.setFieldValue(
 			_viewResultRankingsMVCRenderCommand, "rankingIndexNameBuilder",
 			rankingIndexNameBuilder);
 		ReflectionTestUtil.setFieldValue(
@@ -79,8 +77,6 @@ public class ViewResultRankingsMVCRenderCommandTest
 		setUpLanguageUtil("");
 		setUpPortal();
 		setUpPortalUtil();
-		setUpPropsUtil();
-		setUpQuery();
 		setUpRankingIndexNameBuilder();
 		setUpRenderResponse(_renderResponse);
 		setUpSearchEngineAdapter(Mockito.mock(SearchHits.class));

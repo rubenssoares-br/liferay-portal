@@ -26,7 +26,9 @@ public class FragmentEntryLinkUpgradeProcess extends UpgradeProcess {
 		try (PreparedStatement preparedStatement1 = connection.prepareStatement(
 				"select ctCollectionId, fragmentEntryLinkId, editableValues " +
 					"from FragmentEntryLink");
+
 			ResultSet resultSet = preparedStatement1.executeQuery();
+
 			PreparedStatement preparedStatement2 =
 				AutoBatchPreparedStatementUtil.autoBatch(
 					connection,
@@ -65,11 +67,13 @@ public class FragmentEntryLinkUpgradeProcess extends UpgradeProcess {
 					editableValuesJSONObject.getJSONObject(
 						fragmentEntryProcessorKey);
 
-				if ((fragmentEntryProcessorJSONObject != null) &&
-					(fragmentEntryProcessorJSONObject.length() == 0)) {
+				if ((fragmentEntryProcessorJSONObject == null) ||
+					(fragmentEntryProcessorJSONObject.length() != 0)) {
 
-					editableValuesJSONObject.remove(fragmentEntryProcessorKey);
+					continue;
 				}
+
+				editableValuesJSONObject.remove(fragmentEntryProcessorKey);
 			}
 
 			return editableValuesJSONObject.toString();

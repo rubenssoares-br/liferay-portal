@@ -13,18 +13,14 @@ import com.liferay.portal.kernel.dao.orm.ProjectionFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.Session;
-import com.liferay.portal.kernel.security.permission.InlineSQLHelperUtil;
-import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.util.IntegerWrapper;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.OrderByComparatorFactoryUtil;
 import com.liferay.portal.kernel.util.Time;
-import com.liferay.portal.security.permission.SimplePermissionChecker;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PersistenceTestRule;
 import com.liferay.portal.test.rule.TransactionalTestRule;
@@ -116,11 +112,7 @@ public class SavedContentEntryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		SavedContentEntry newSavedContentEntry = _persistence.create(pk);
-
-		newSavedContentEntry.setMvccVersion(RandomTestUtil.nextLong());
+		SavedContentEntry newSavedContentEntry = addSavedContentEntry();
 
 		newSavedContentEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -142,7 +134,9 @@ public class SavedContentEntryPersistenceTest {
 
 		newSavedContentEntry.setClassPK(RandomTestUtil.nextLong());
 
-		_savedContentEntries.add(_persistence.update(newSavedContentEntry));
+		newSavedContentEntry = _persistence.update(newSavedContentEntry);
+
+		_savedContentEntries.add(newSavedContentEntry);
 
 		SavedContentEntry existingSavedContentEntry =
 			_persistence.findByPrimaryKey(newSavedContentEntry.getPrimaryKey());
@@ -213,13 +207,6 @@ public class SavedContentEntryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByGroupId() throws Exception {
-		_persistence.countByGroupId(RandomTestUtil.nextLong());
-
-		_persistence.countByGroupId(0L);
-	}
-
-	@Test
 	public void testCountByUserId() throws Exception {
 		_persistence.countByUserId(RandomTestUtil.nextLong());
 
@@ -240,14 +227,6 @@ public class SavedContentEntryPersistenceTest {
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
 
 		_persistence.countByG_CN(0L, 0L);
-	}
-
-	@Test
-	public void testCountByU_C() throws Exception {
-		_persistence.countByU_C(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByU_C(0L, 0L);
 	}
 
 	@Test
@@ -315,30 +294,6 @@ public class SavedContentEntryPersistenceTest {
 	public void testFindAll() throws Exception {
 		_persistence.findAll(
 			QueryUtil.ALL_POS, QueryUtil.ALL_POS, getOrderByComparator());
-	}
-
-	@Test
-	public void testFilterFindByGroupId() throws Exception {
-		PermissionThreadLocal.setPermissionChecker(
-			new SimplePermissionChecker() {
-				{
-					init(TestPropsValues.getUser());
-				}
-
-				@Override
-				public boolean isCompanyAdmin(long companyId) {
-					return false;
-				}
-
-			});
-
-		Assert.assertTrue(InlineSQLHelperUtil.isEnabled(0));
-
-		_persistence.filterFindByGroupId(
-			0, QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
-
-		_persistence.filterFindByGroupId(
-			0, QueryUtil.ALL_POS, QueryUtil.ALL_POS, getOrderByComparator());
 	}
 
 	protected OrderByComparator<SavedContentEntry> getOrderByComparator() {
@@ -681,8 +636,6 @@ public class SavedContentEntryPersistenceTest {
 
 		SavedContentEntry savedContentEntry = _persistence.create(pk);
 
-		savedContentEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		savedContentEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		savedContentEntry.setUuid(RandomTestUtil.randomString());
@@ -714,3 +667,4 @@ public class SavedContentEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:441422435

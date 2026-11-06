@@ -20,6 +20,7 @@ import com.liferay.dynamic.data.mapping.service.DDMStructureLayoutLocalService;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalService;
 import com.liferay.dynamic.data.mapping.service.DDMStructureVersionLocalService;
 import com.liferay.dynamic.data.mapping.service.DDMTemplateLocalService;
+import com.liferay.exportimport.constants.ExportImportConstants;
 import com.liferay.exportimport.kernel.lar.BasePortletDataHandler;
 import com.liferay.exportimport.kernel.lar.ExportImportDateUtil;
 import com.liferay.exportimport.kernel.lar.ExportImportHelper;
@@ -64,12 +65,12 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.xml.Element;
 
+import jakarta.portlet.PortletPreferences;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.PortletPreferences;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -115,7 +116,7 @@ import org.osgi.service.component.annotations.Reference;
 @Component(
 	configurationPid = "com.liferay.journal.configuration.JournalServiceConfiguration",
 	property = {
-		"javax.portlet.name=" + JournalPortletKeys.JOURNAL,
+		"jakarta.portlet.name=" + JournalPortletKeys.JOURNAL,
 		"schema.version=" + JournalPortletDataHandler.SCHEMA_VERSION
 	},
 	service = PortletDataHandler.class
@@ -148,6 +149,11 @@ public class JournalPortletDataHandler extends BasePortletDataHandler {
 	@Override
 	public String getSchemaVersion() {
 		return SCHEMA_VERSION;
+	}
+
+	@Override
+	public String getSectionKey() {
+		return ExportImportConstants.SECTION_KEY_CONTENT_AND_DATA;
 	}
 
 	@Override
@@ -188,8 +194,7 @@ public class JournalPortletDataHandler extends BasePortletDataHandler {
 			new StagedModelType(JournalArticle.class, DDMStructure.class),
 			new StagedModelType(JournalFeed.class),
 			new StagedModelType(JournalFolder.class));
-
-		setExportControls(
+		setExportPortletDataHandlerControls(
 			new PortletDataHandlerBoolean(
 				NAMESPACE, "web-content", true, false,
 				new PortletDataHandlerControl[] {
@@ -219,7 +224,8 @@ public class JournalPortletDataHandler extends BasePortletDataHandler {
 			new PortletDataHandlerBoolean(
 				NAMESPACE, "folders", true, false, null,
 				JournalFolder.class.getName()));
-		setStagingControls(getExportControls());
+		setStagingPortletDataHandlerControls(
+			getExportPortletDataHandlerControls());
 	}
 
 	@Override
@@ -444,12 +450,14 @@ public class JournalPortletDataHandler extends BasePortletDataHandler {
 				String className = articleElement.attributeValue(
 					"attached-class-name");
 
-				if (Validator.isNotNull(className) &&
-					className.equals(DDMStructure.class.getName())) {
+				if (Validator.isNull(className) ||
+					!className.equals(DDMStructure.class.getName())) {
 
-					StagedModelDataHandlerUtil.importStagedModel(
-						portletDataContext, articleElement);
+					continue;
 				}
+
+				StagedModelDataHandlerUtil.importStagedModel(
+					portletDataContext, articleElement);
 			}
 		}
 
@@ -471,22 +479,24 @@ public class JournalPortletDataHandler extends BasePortletDataHandler {
 					portletDataContext, articleElement);
 			}
 
-			Map<String, String> postProcessArticleUuids =
+			Map<String, String> postProcessStagedModelPaths =
 				(Map<String, String>)portletDataContext.getNewPrimaryKeysMap(
-					JournalArticle.class + ".postProcessArticleUuid");
+					JournalArticle.class + ".postProcessStagedModelPath");
 
 			Collection<String> articleModelPaths =
-				postProcessArticleUuids.values();
+				postProcessStagedModelPaths.values();
 
 			articleModelPaths.forEach(portletDataContext::removePrimaryKey);
 
 			for (Element articleElement : articleElements) {
 				String uuid = articleElement.attributeValue("uuid");
 
-				if (postProcessArticleUuids.remove(uuid) != null) {
-					StagedModelDataHandlerUtil.importStagedModel(
-						portletDataContext, articleElement);
+				if (postProcessStagedModelPaths.remove(uuid) == null) {
+					continue;
 				}
+
+				StagedModelDataHandlerUtil.importStagedModel(
+					portletDataContext, articleElement);
 			}
 
 			_journalContent.clearCache();
@@ -751,15 +761,17 @@ public class JournalPortletDataHandler extends BasePortletDataHandler {
 						(DDMTemplate)stagedModelRepository.getStagedModel(
 							changesetEntry.getClassPK());
 
-					if (Objects.equals(
+					if (!Objects.equals(
 							ddmTemplate.getClassNameId(),
-							stagedModelType.getReferrerClassNameId()) &&
-						Objects.equals(
+							stagedModelType.getReferrerClassNameId()) ||
+						!Objects.equals(
 							ddmTemplate.getResourceClassNameId(),
 							journalArticleClassNameId)) {
 
-						modelAdditionCount++;
+						continue;
 					}
+
+					modelAdditionCount++;
 				}
 			}
 

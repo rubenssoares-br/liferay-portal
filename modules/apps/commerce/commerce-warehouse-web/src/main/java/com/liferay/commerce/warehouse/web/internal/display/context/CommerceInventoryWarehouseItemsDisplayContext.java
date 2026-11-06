@@ -25,15 +25,15 @@ import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.math.BigDecimal;
 
 import java.util.Arrays;
 import java.util.List;
-
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Andrea Di Giorgi
@@ -84,25 +84,6 @@ public class CommerceInventoryWarehouseItemsDisplayContext {
 		).buildString();
 	}
 
-	public CommerceInventoryWarehouseItem getCommerceInventoryWarehouseItem(
-			CommerceInventoryWarehouse commerceInventoryWarehouse,
-			String unitOfMeasureKey)
-		throws PortalException {
-
-		CPInstance cpInstance = getCPInstance();
-
-		return _commerceInventoryWarehouseItemService.
-			fetchCommerceInventoryWarehouseItem(
-				commerceInventoryWarehouse.getCommerceInventoryWarehouseId(),
-				cpInstance.getSku(), unitOfMeasureKey);
-	}
-
-	public List<CommerceInventoryWarehouse> getCommerceInventoryWarehouses()
-		throws PortalException {
-
-		return _getCommerceInventoryWarehouses();
-	}
-
 	public CPInstance getCPInstance() throws PortalException {
 		if (_cpInstance == null) {
 			long cpInstanceId = ParamUtil.getLong(
@@ -131,6 +112,25 @@ public class CommerceInventoryWarehouseItemsDisplayContext {
 		return cpInstanceUnitOfMeasureKeys;
 	}
 
+	public CommerceInventoryWarehouseItem getCommerceInventoryWarehouseItem(
+			CommerceInventoryWarehouse commerceInventoryWarehouse,
+			String unitOfMeasureKey)
+		throws PortalException {
+
+		CPInstance cpInstance = getCPInstance();
+
+		return _commerceInventoryWarehouseItemService.
+			fetchCommerceInventoryWarehouseItem(
+				commerceInventoryWarehouse.getCommerceInventoryWarehouseId(),
+				cpInstance.getSku(), unitOfMeasureKey);
+	}
+
+	public List<CommerceInventoryWarehouse> getCommerceInventoryWarehouses()
+		throws PortalException {
+
+		return _getCommerceInventoryWarehouses();
+	}
+
 	public String getFormattedQuantity(
 		CommerceInventoryWarehouseItem commerceInventoryWarehouseItem) {
 
@@ -144,7 +144,26 @@ public class CommerceInventoryWarehouseItemsDisplayContext {
 			commerceInventoryWarehouseItem.getSku(),
 			commerceInventoryWarehouseItem.getUnitOfMeasureKey());
 
-		return formattedQuantity.toString();
+		return formattedQuantity.toPlainString();
+	}
+
+	public String getFormattedReservedQuantity(
+		CommerceInventoryWarehouseItem commerceInventoryWarehouseItem) {
+
+		if ((commerceInventoryWarehouseItem == null) ||
+			(commerceInventoryWarehouseItem.getReservedQuantity() == null)) {
+
+			return StringPool.BLANK;
+		}
+
+		BigDecimal formattedReservedQuantity =
+			_commerceQuantityFormatter.format(
+				_cpRequestHelper.getCompanyId(),
+				commerceInventoryWarehouseItem.getReservedQuantity(),
+				commerceInventoryWarehouseItem.getSku(),
+				commerceInventoryWarehouseItem.getUnitOfMeasureKey());
+
+		return formattedReservedQuantity.toPlainString();
 	}
 
 	public String getUpdateCommerceInventoryWarehouseItemTaglibOnClick(
@@ -183,9 +202,9 @@ public class CommerceInventoryWarehouseItemsDisplayContext {
 
 	private final CommerceInventoryWarehouseItemService
 		_commerceInventoryWarehouseItemService;
-	private List<CommerceInventoryWarehouse> _commerceInventoryWarehouses;
 	private final CommerceInventoryWarehouseService
 		_commerceInventoryWarehouseService;
+	private List<CommerceInventoryWarehouse> _commerceInventoryWarehouses;
 	private final CommerceQuantityFormatter _commerceQuantityFormatter;
 	private CPInstance _cpInstance;
 	private final CPInstanceService _cpInstanceService;

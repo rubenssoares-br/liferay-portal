@@ -7,6 +7,9 @@ package com.liferay.portal.dao.db;
 
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
@@ -21,20 +24,20 @@ import com.liferay.portal.kernel.dao.db.Index;
 import com.liferay.portal.kernel.dao.db.IndexMetadata;
 import com.liferay.portal.kernel.dao.db.IndexMetadataFactoryUtil;
 import com.liferay.portal.kernel.dao.jdbc.DataAccess;
-import com.liferay.portal.kernel.db.partition.DBPartition;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.module.framework.ThrowableCollector;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.LoggingTimer;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -43,12 +46,14 @@ import java.io.InputStream;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -126,9 +132,40 @@ public abstract class BaseDB implements DB {
 			}
 
 			runSQL(
+				connection,
 				_applyMaxStringIndexLengthLimitation(
 					indexMetadata.getCreateSQL(columnSizes)));
 		}
+	}
+
+	public SafeCloseable addTemporaryIndex(
+			Connection connection, String tableName, boolean unique,
+			String... columnNames)
+		throws Exception {
+
+		String indexName = "IX_TEMP_" + _tempIndexCounter.incrementAndGet();
+
+		IndexMetadata indexMetadata = new IndexMetadata(
+			indexName, tableName, unique, columnNames);
+
+		try (LoggingTimer loggingTimer = new LoggingTimer(tableName)) {
+			addIndexes(
+				connection, new ArrayList<>(Arrays.asList(indexMetadata)));
+		}
+
+		return () -> {
+			try {
+				runSQL(connection, indexMetadata.getDropSQL());
+			}
+			catch (Exception exception) {
+				if (_log.isWarnEnabled()) {
+					_log.warn(
+						StringBundler.concat(
+							"Unable to drop temporary index ", indexName,
+							" on ", tableName, exception));
+				}
+			}
+		};
 	}
 
 	@Override
@@ -242,11 +279,13 @@ public abstract class BaseDB implements DB {
 			sb.append(".");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(" from ");
@@ -269,9 +308,11 @@ public abstract class BaseDB implements DB {
 			sb.append(".");
 			sb.append(columnNamesMap.get(primaryKeyColumnName));
 
-			if (i < (primaryKeyColumnNames.length - 1)) {
-				sb.append(" and ");
+			if (i >= (primaryKeyColumnNames.length - 1)) {
+				continue;
 			}
+
+			sb.append(" and ");
 		}
 
 		sb.append(" where ");
@@ -280,7 +321,7 @@ public abstract class BaseDB implements DB {
 		sb.append(columnNamesMap.get(primaryKeyColumnNames[0]));
 		sb.append(" IS NULL");
 
-		runSQL(sb.toString());
+		runSQL(connection, sb.toString());
 	}
 
 	@Override
@@ -316,6 +357,32 @@ public abstract class BaseDB implements DB {
 	}
 
 	@Override
+	public void dropIndexes(
+			Connection connection, List<String> indexNames, String tableName)
+		throws Exception {
+
+		DBInspector dbInspector = new DBInspector(connection);
+
+		for (String indexName : indexNames) {
+			if (_log.isInfoEnabled()) {
+				_log.info(
+					String.format(
+						"Dropping index %s from table %s", indexName,
+						tableName));
+			}
+
+			if (!dbInspector.hasIndex(tableName, indexName)) {
+				continue;
+			}
+
+			runSQL(
+				connection,
+				StringBundler.concat(
+					"drop index ", indexName, " on ", tableName));
+		}
+	}
+
+	@Override
 	public List<IndexMetadata> dropIndexes(
 			Connection connection, String tableName, String columnName)
 		throws IOException, SQLException {
@@ -348,14 +415,6 @@ public abstract class BaseDB implements DB {
 		}
 
 		return StringUtil.trim(columnDef);
-	}
-
-	@Override
-	public List<Index> getIndexes(Connection connection) throws SQLException {
-		return TransformUtil.transform(
-			getIndexMetadatas(connection, null, null, false),
-			index -> new Index(
-				index.getIndexName(), index.getTableName(), index.isUnique()));
 	}
 
 	@Override
@@ -485,6 +544,32 @@ public abstract class BaseDB implements DB {
 	}
 
 	@Override
+	public List<Index> getIndexes(Connection connection) throws SQLException {
+		return TransformUtil.transform(
+			getIndexMetadatas(connection, null, null, false),
+			index -> new Index(
+				index.getIndexName(), index.getTableName(), index.isUnique()));
+	}
+
+	@Override
+	public List<QueryInfo> getLockedQueryInfos(Connection connection)
+		throws SQLException {
+
+		return getQueryInfos(
+			connection, getLockedQueryInfosSQL(),
+			PropsValues.UPGRADE_QUERY_MONITOR_LOCK_THRESHOLD);
+	}
+
+	@Override
+	public List<QueryInfo> getLongRunningQueryInfos(Connection connection)
+		throws SQLException {
+
+		return getQueryInfos(
+			connection, getLongRunningQueryInfosSQL(),
+			PropsValues.UPGRADE_QUERY_MONITOR_LONG_RUNNING_THRESHOLD);
+	}
+
+	@Override
 	public int getMajorVersion() {
 		return _majorVersion;
 	}
@@ -609,6 +694,7 @@ public abstract class BaseDB implements DB {
 			tableName, databaseMetaData);
 
 		runSQL(
+			connection,
 			StringBundler.concat(
 				"alter table ", normalizedTableName, " drop primary key"));
 	}
@@ -942,6 +1028,61 @@ public abstract class BaseDB implements DB {
 			validIndexNames);
 	}
 
+	public void updatePrimaryKey(
+			Connection connection, String tableName,
+			String[] primaryKeyColumnNames)
+		throws Exception {
+
+		if (_isSkipIndexOperation(connection, tableName)) {
+			return;
+		}
+
+		DBInspector dbInspector = new DBInspector(connection);
+
+		if (!dbInspector.hasTable(tableName)) {
+			return;
+		}
+
+		for (String columnName : primaryKeyColumnNames) {
+			if (dbInspector.hasColumn(tableName, columnName)) {
+				continue;
+			}
+
+			if (StringUtil.equalsIgnoreCase(columnName, "ctCollectionId")) {
+				primaryKeyColumnNames = ArrayUtil.filter(
+					primaryKeyColumnNames,
+					name -> !StringUtil.equalsIgnoreCase(
+						name, "ctCollectionId"));
+			}
+			else {
+				if (_log.isDebugEnabled()) {
+					_log.debug(
+						StringBundler.concat(
+							"Unable to recreate primary key for table ",
+							tableName, " because column ", columnName,
+							" does not exist"));
+				}
+
+				return;
+			}
+		}
+
+		String[] actualPrimaryKeyColumns = getPrimaryKeyColumnNames(
+			connection, tableName);
+
+		if (ArrayUtil.equalsIgnoreCase(
+				actualPrimaryKeyColumns, primaryKeyColumnNames)) {
+
+			return;
+		}
+
+		if (ArrayUtil.isNotEmpty(actualPrimaryKeyColumns)) {
+			removePrimaryKey(connection, tableName);
+		}
+
+		addPrimaryKey(connection, tableName, primaryKeyColumnNames);
+	}
+
 	protected BaseDB(DBType dbType, int majorVersion, int minorVersion) {
 		_dbType = dbType;
 		_majorVersion = majorVersion;
@@ -1017,7 +1158,7 @@ public abstract class BaseDB implements DB {
 
 		sb.append(")");
 
-		runSQL(sb.toString());
+		runSQL(connection, sb.toString());
 	}
 
 	protected String[] buildColumnNameTokens(String line) {
@@ -1147,11 +1288,13 @@ public abstract class BaseDB implements DB {
 			sb.append("new.");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(")");
@@ -1195,11 +1338,13 @@ public abstract class BaseDB implements DB {
 			sb.append("new.");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(" where ");
@@ -1393,6 +1538,51 @@ public abstract class BaseDB implements DB {
 		return indexColumnName;
 	}
 
+	protected String getLockedQueryInfosSQL() {
+		return null;
+	}
+
+	protected String getLongRunningQueryInfosSQL() {
+		return null;
+	}
+
+	protected List<QueryInfo> getQueryInfos(
+			Connection connection, String sql, long threshold)
+		throws SQLException {
+
+		if (sql == null) {
+			return Collections.emptyList();
+		}
+
+		List<QueryInfo> queryInfos = new ArrayList<>();
+
+		try (PreparedStatement preparedStatement = connection.prepareStatement(
+				sql)) {
+
+			preparedStatement.setLong(1, threshold);
+
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				while (resultSet.next()) {
+					String query = resultSet.getString("query");
+
+					if (query == null) {
+						continue;
+					}
+
+					long duration = resultSet.getLong("duration");
+					String id = resultSet.getString("id");
+					String schema = resultSet.getString("schema_");
+					String state = resultSet.getString("state");
+
+					queryInfos.add(
+						new QueryInfo(duration, id, query, schema, state));
+				}
+			}
+		}
+
+		return queryInfos;
+	}
+
 	protected String getRenameTableSQL(
 		String oldTableName, String newTableName) {
 
@@ -1514,6 +1704,8 @@ public abstract class BaseDB implements DB {
 
 			String sql = null;
 
+			ThrowableCollector throwableCollector = new ThrowableCollector();
+
 			while ((sql = unsyncBufferedReader.readLine()) != null) {
 				if (Validator.isNull(sql)) {
 					continue;
@@ -1536,12 +1728,21 @@ public abstract class BaseDB implements DB {
 				try {
 					runSQL(connection, sql);
 				}
+				catch (SQLException sqlException) {
+					if (_log.isDebugEnabled()) {
+						_log.debug(sqlException.getMessage() + ": " + sql);
+					}
+
+					throwableCollector.collect(sqlException);
+				}
 				catch (Exception exception) {
 					if (_log.isWarnEnabled()) {
 						_log.warn(exception.getMessage() + ": " + sql);
 					}
 				}
 			}
+
+			throwableCollector.rethrow();
 		}
 	}
 
@@ -1622,7 +1823,7 @@ public abstract class BaseDB implements DB {
 	private boolean _isSkipIndexOperation(
 		Connection connection, String tableName) {
 
-		if (!DBPartition.isPartitionEnabled() ||
+		if (!PropsValues.DATABASE_PARTITION_ENABLED ||
 			(CompanyThreadLocal.getNonsystemCompanyId() ==
 				PortalInstancePool.getDefaultCompanyId())) {
 
@@ -1645,7 +1846,8 @@ public abstract class BaseDB implements DB {
 	private static final Pattern _sqlTypeDecimalDigitsPattern = Pattern.compile(
 		"^\\w+(?:\\(\\d+,\\s(\\d+)\\))", Pattern.CASE_INSENSITIVE);
 	private static final Pattern _sqlTypeSizePattern = Pattern.compile(
-		"^\\w+(?:\\((\\d+).*\\))", Pattern.CASE_INSENSITIVE);
+		"^\\w+\\((\\d+)(?:[,\\s].*)?\\)$", Pattern.CASE_INSENSITIVE);
+	private static final AtomicLong _tempIndexCounter = new AtomicLong(0);
 	private static final Pattern _templatePattern;
 
 	static {
@@ -1692,8 +1894,8 @@ public abstract class BaseDB implements DB {
 	private final int _majorVersion;
 	private final int _minorVersion;
 	private final Map<String, Integer> _sqlTypeDecimalDigits = new HashMap<>();
-	private final Map<String, Integer> _sqlTypes = new HashMap<>();
 	private final Map<String, Integer> _sqlTypeSizes = new HashMap<>();
+	private final Map<String, Integer> _sqlTypes = new HashMap<>();
 	private boolean _supportsStringCaseSensitiveQuery = true;
 	private final Map<String, String> _templates = new HashMap<>();
 

@@ -514,6 +514,22 @@ definition {
 	}
 
 	@summary = "Default summary"
+	macro enableScopeConfiguration() {
+		ApplicationsMenu.gotoRootPortlet(
+			panel = "Control Panel",
+			portlet = "Instance Settings");
+
+		SystemSettings.gotoConfiguration(
+			configurationCategory = "Feature Flags",
+			configurationName = "Deprecation",
+			configurationScope = "Virtual Instance Scope");
+
+		FeatureFlag.enableFeatureFlag(featureFlag = "LPD-11131");
+
+		Navigator.openURL();
+	}
+
+	@summary = "Default summary"
 	macro expandTree() {
 		WaitForVisible(locator1 = "Treeview#NODE_LIST");
 
@@ -588,7 +604,7 @@ definition {
 
 	@summary = "Default summary"
 	macro selectScope(scope = null) {
-		Navigator.gotoNavTab(navTab = "Scope");
+		Click(locator1 = "Configuration#NAVIGATION_SCOPE");
 
 		Select(
 			locator1 = "Select#SCOPE",
@@ -794,9 +810,9 @@ definition {
 
 	@summary = "Default summary"
 	macro viewNoPortletsPresentCP(portlet = null, panel = null, category = null) {
-		ApplicationsMenuHelper.openApplicationsMenu();
+		ApplicationsMenu.openApplicationsMenu();
 
-		Navigator.gotoNavTab(navTab = ${panel});
+		ApplicationsMenu.gotoPanel(panel = ${panel});
 
 		AssertElementNotPresent(
 			key_category = ${category},
@@ -840,18 +856,6 @@ definition {
 		AssertTextEquals(
 			locator1 = "Message#INFO_MAIN_CONTENT",
 			value1 = "This portlet could not be found. Please redeploy it or remove it from the page.");
-	}
-
-	@summary = "Default summary"
-	macro viewPortletOptions(optionsName = null) {
-		MouseOver.mouseOverNotVisible(locator1 = "Portlet#OPTIONS_ICON");
-
-		Click(locator1 = "Portlet#OPTIONS_ICON");
-
-		AssertTextEquals(
-			key_menuItem = ${optionsName},
-			locator1 = "MenuItem#ANY_MENU_ITEM",
-			value1 = ${optionsName});
 	}
 
 	@summary = "Default summary"

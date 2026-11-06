@@ -9,10 +9,9 @@ import aQute.bnd.annotation.metatype.Meta;
 
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
 import com.liferay.analytics.settings.rest.constants.FieldAccountConstants;
-import com.liferay.analytics.settings.rest.constants.FieldOrderConstants;
 import com.liferay.analytics.settings.rest.constants.FieldPeopleConstants;
-import com.liferay.analytics.settings.rest.constants.FieldProductConstants;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
@@ -20,8 +19,8 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.GroupConstants;
+import com.liferay.portal.kernel.model.Organization;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
-import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.settings.SettingsDescriptor;
 import com.liferay.portal.kernel.settings.SettingsLocatorHelper;
@@ -29,7 +28,7 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HashMapDictionary;
-import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.Validator;
@@ -45,12 +44,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
 
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -64,21 +61,20 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 	public void deleteCompanyConfiguration(long companyId)
 		throws ConfigurationException {
 
-		List<Group> groups = ListUtil.concat(
-			_groupLocalService.getGroups(
-				companyId, GroupConstants.ANY_PARENT_GROUP_ID, true),
-			_groupLocalService.getGroups(
-				companyId, _CLASS_NAME_COMMERCE_CHANNEL, 0));
+		List<Group> groups = _groupLocalService.getGroups(
+			companyId, GroupConstants.ANY_PARENT_GROUP_ID, true);
 
 		for (Group group : groups) {
 			UnicodeProperties typeSettingsUnicodeProperties =
 				group.getTypeSettingsProperties();
 
-			if (typeSettingsUnicodeProperties.remove("analyticsChannelId") !=
+			if (typeSettingsUnicodeProperties.remove("analyticsChannelId") ==
 					null) {
 
-				_groupLocalService.updateGroup(group);
+				continue;
 			}
+
+			_groupLocalService.updateGroup(group);
 		}
 
 		_configurationProvider.deleteCompanyConfiguration(
@@ -94,39 +90,28 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 	}
 
 	@Override
-	public Long[] getCommerceChannelIds(
-			String analyticsChannelId, long companyId)
-		throws Exception {
-
-		AnalyticsConfiguration analyticsConfiguration =
-			getAnalyticsConfiguration(companyId);
-
-		List<Long> commerceChannelIds = new ArrayList<>();
-
-		for (String commerceChannelId :
-				analyticsConfiguration.syncedCommerceChannelIds()) {
-
-			Group group = _groupLocalService.fetchGroup(
-				companyId, _commerceChannelClassNameIdSupplier.get(),
-				GetterUtil.getLong(commerceChannelId));
-
-			if (group == null) {
-				continue;
-			}
-
-			UnicodeProperties typeSettingsUnicodeProperties =
-				group.getTypeSettingsProperties();
-
-			if (Objects.equals(
-					analyticsChannelId,
-					typeSettingsUnicodeProperties.getProperty(
-						"analyticsChannelId"))) {
-
-				commerceChannelIds.add(GetterUtil.getLong(commerceChannelId));
-			}
+	public long[] getCommerceChannelIds(long companyId, long[] groupIds) {
+		if (groupIds.length == 0) {
+			return new long[0];
 		}
 
-		return commerceChannelIds.toArray(new Long[0]);
+		return TransformUtil.transformToLongArray(
+			_groupLocalService.getGroups(
+				companyId, "com.liferay.commerce.product.model.CommerceChannel",
+				0),
+			group -> {
+				UnicodeProperties typeSettingsUnicodeProperties =
+					group.getTypeSettingsProperties();
+
+				long groupId = GetterUtil.getLong(
+					typeSettingsUnicodeProperties.getProperty("siteGroupId"));
+
+				if (ArrayUtil.contains(groupIds, groupId)) {
+					return group.getClassPK();
+				}
+
+				return null;
+			});
 	}
 
 	@Override
@@ -143,19 +128,27 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 				GetterUtil.getLong(groupId));
 
 			if (group == null) {
-				continue;
+				group = _groupLocalService.fetchGroup(
+					companyId, PortalUtil.getClassNameId(Organization.class),
+					GetterUtil.getLong(groupId));
+
+				if (group == null) {
+					continue;
+				}
 			}
 
 			UnicodeProperties typeSettingsUnicodeProperties =
 				group.getTypeSettingsProperties();
 
-			if (Objects.equals(
+			if (!Objects.equals(
 					analyticsChannelId,
 					typeSettingsUnicodeProperties.getProperty(
 						"analyticsChannelId"))) {
 
-				groupIds.add(GetterUtil.getLong(groupId));
+				continue;
 			}
+
+			groupIds.add(GetterUtil.getLong(groupId));
 		}
 
 		return groupIds.toArray(new Long[0]);
@@ -247,42 +240,6 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 	}
 
 	@Override
-	public String[] updateCommerceChannelIds(
-			String analyticsChannelId, long companyId,
-			Long[] dataSourceCommerceChannelIds)
-		throws Exception {
-
-		_updateTypeSetting(
-			analyticsChannelId, _commerceChannelClassNameIdSupplier.get(),
-			companyId, dataSourceCommerceChannelIds, false);
-
-		AnalyticsConfiguration analyticsConfiguration =
-			getAnalyticsConfiguration(companyId);
-
-		Set<String> commerceChannelIds = SetUtil.fromArray(
-			analyticsConfiguration.syncedCommerceChannelIds());
-
-		for (Long dataSourceCommerceChannelId : dataSourceCommerceChannelIds) {
-			commerceChannelIds.add(String.valueOf(dataSourceCommerceChannelId));
-		}
-
-		Long[] removeCommerceChannelIds = ArrayUtil.filter(
-			getCommerceChannelIds(analyticsChannelId, companyId),
-			commerceChannelId -> !ArrayUtil.contains(
-				dataSourceCommerceChannelIds, commerceChannelId));
-
-		_updateTypeSetting(
-			analyticsChannelId, _commerceChannelClassNameIdSupplier.get(),
-			companyId, removeCommerceChannelIds, true);
-
-		return ArrayUtil.filter(
-			commerceChannelIds.toArray(new String[0]),
-			commerceChannelId -> !ArrayUtil.contains(
-				removeCommerceChannelIds,
-				GetterUtil.getLong(commerceChannelId)));
-	}
-
-	@Override
 	public void updateCompanyConfiguration(
 			long companyId, Map<String, Object> properties)
 		throws Exception {
@@ -304,9 +261,11 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 		Set<String> allKeys = settingsDescriptor.getAllKeys();
 
 		for (Map.Entry<String, Object> entry : properties.entrySet()) {
-			if (allKeys.contains(entry.getKey())) {
-				configurationProperties.put(entry.getKey(), entry.getValue());
+			if (!allKeys.contains(entry.getKey())) {
+				continue;
 			}
+
+			configurationProperties.put(entry.getKey(), entry.getValue());
 		}
 
 		for (String multiValuedKey : settingsDescriptor.getMultiValuedKeys()) {
@@ -332,9 +291,7 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 			String analyticsChannelId, long companyId, Long[] dataSourceSiteIds)
 		throws Exception {
 
-		_updateTypeSetting(
-			analyticsChannelId, _groupClassNameIdSupplier.get(), companyId,
-			dataSourceSiteIds, false);
+		_updateTypeSetting(analyticsChannelId, dataSourceSiteIds, false);
 
 		AnalyticsConfiguration analyticsConfiguration =
 			getAnalyticsConfiguration(companyId);
@@ -350,24 +307,12 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 			getSiteIds(analyticsChannelId, companyId),
 			siteId -> !ArrayUtil.contains(dataSourceSiteIds, siteId));
 
-		_updateTypeSetting(
-			analyticsChannelId, _groupClassNameIdSupplier.get(), companyId,
-			removeSiteIds, true);
+		_updateTypeSetting(analyticsChannelId, removeSiteIds, true);
 
 		return ArrayUtil.filter(
 			siteIds.toArray(new String[0]),
 			siteId -> !ArrayUtil.contains(
 				removeSiteIds, GetterUtil.getLong(siteId)));
-	}
-
-	@Activate
-	protected void activate(Map<String, Object> properties) {
-		_commerceChannelClassNameIdSupplier =
-			_classNameLocalService.getClassNameIdSupplier(
-				_CLASS_NAME_COMMERCE_CHANNEL);
-		_groupClassNameIdSupplier =
-			_classNameLocalService.getClassNameIdSupplier(
-				Group.class.getName());
 	}
 
 	private String _getConfigurationPid() {
@@ -425,13 +370,11 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 	}
 
 	private <T> void _updateTypeSetting(
-			String analyticsChannelId, long classNameId, long companyId,
-			T[] classPKs, boolean remove)
-		throws Exception {
+		String analyticsChannelId, T[] groupIds, boolean remove) {
 
-		for (T classPK : classPKs) {
+		for (T groupId : groupIds) {
 			Group group = _groupLocalService.fetchGroup(
-				companyId, classNameId, GetterUtil.getLong(classPK));
+				GetterUtil.getLong(groupId));
 
 			if (group == null) {
 				continue;
@@ -466,43 +409,22 @@ public class AnalyticsSettingsManagerImpl implements AnalyticsSettingsManager {
 		}
 	}
 
-	private static final String _CLASS_NAME_COMMERCE_CHANNEL =
-		"com.liferay.commerce.product.model.CommerceChannel";
-
 	private static final Log _log = LogFactoryUtil.getLog(
 		AnalyticsSettingsManagerImpl.class);
 
 	private static final Map<String, String[]> _defaults = HashMapBuilder.put(
 		"syncedAccountFieldNames", FieldAccountConstants.FIELD_ACCOUNT_DEFAULTS
 	).put(
-		"syncedCategoryFieldNames", FieldProductConstants.FIELD_CATEGORY_NAMES
-	).put(
 		"syncedContactFieldNames", FieldPeopleConstants.FIELD_CONTACT_DEFAULTS
-	).put(
-		"syncedOrderFieldNames", FieldOrderConstants.FIELD_ORDER_NAMES
-	).put(
-		"syncedOrderItemFieldNames", FieldOrderConstants.FIELD_ORDER_ITEM_NAMES
-	).put(
-		"syncedProductChannelFieldNames",
-		FieldProductConstants.FIELD_PRODUCT_CHANNEL_NAMES
-	).put(
-		"syncedProductFieldNames", FieldProductConstants.FIELD_PRODUCT_NAMES
 	).put(
 		"syncedUserFieldNames", FieldPeopleConstants.FIELD_USER_DEFAULTS
 	).build();
-
-	@Reference
-	private ClassNameLocalService _classNameLocalService;
-
-	private Supplier<Long> _commerceChannelClassNameIdSupplier;
 
 	@Reference
 	private ConfigurationAdmin _configurationAdmin;
 
 	@Reference
 	private ConfigurationProvider _configurationProvider;
-
-	private Supplier<Long> _groupClassNameIdSupplier;
 
 	@Reference
 	private GroupLocalService _groupLocalService;

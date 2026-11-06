@@ -15,34 +15,67 @@ String collapseSwitchId = Validator.isNotNull(collapseSwitchName) ? collapseSwit
 	<c:if test="<%= Validator.isNotNull(actionLabel) || Validator.isNotNull(actionIcon) || Validator.isNotNull(title) %>">
 		<div class="align-items-center card-header d-flex h4 justify-content-between py-3">
 			<%= HtmlUtil.escape(title) %>
-
-			<c:if test="<%= Validator.isNotNull(actionTargetId) %>">
-				<aui:script>
-					var link = document.getElementById('<%= HtmlUtil.escapeJS(linkId) %>');
-
-					if (link) {
-						link.addEventListener('click', (e) => {
-							e.preventDefault();
-							Liferay.fire('open-modal', {
-								id: '<%= HtmlUtil.escapeJS(actionTargetId) %>',
-							});
-						});
-					}
-				</aui:script>
+			<c:if test="<%= Validator.isNotNull(secondaryActionIcon) || Validator.isNotNull(secondaryActionLabel) %>">
+			<span>
 			</c:if>
 
 			<c:choose>
 				<c:when test="<%= Validator.isNotNull(actionLabel) %>">
+					<c:if test="<%= Validator.isNotNull(secondaryActionIcon) || Validator.isNotNull(secondaryActionLabel) %>">
+						<clay:link
+							cssClass="pr-2"
+							href='<%= Validator.isNotNull(secondaryActionURL) ? secondaryActionURL : "#" %>'
+							id="<%= secondaryLinkId %>"
+							label="<%= HtmlUtil.escape(secondaryActionLabel) %>"
+						/>
+					</c:if>
+
+					<%
+					String href = Validator.isNotNull(actionURL) ? actionURL : "#";
+					%>
+
+					<c:if test="<%= actionContext != null %>">
+
+						<%
+						href = "#";
+						%>
+
+						<liferay-frontend:component
+							context='<%=
+								HashMapBuilder.<String, Object>put(
+									"title", title
+								).put(
+									"url", actionURL
+								).putAll(
+									actionContext
+								).put(
+									"linkId", linkId
+								).build()
+							%>'
+							module="{ModalActionContextHandler} from commerce-frontend-taglib"
+						/>
+					</c:if>
+
 					<clay:link
-						href='<%= (Validator.isNotNull(actionUrl) && Validator.isNull(actionTargetId)) ? actionUrl : "#" %>'
-						id="<%= HtmlUtil.escape(linkId) %>"
+						href="<%= href %>"
+						id="<%= linkId %>"
 						label="<%= HtmlUtil.escape(actionLabel) %>"
 					/>
 				</c:when>
 				<c:when test="<%= Validator.isNotNull(actionIcon) %>">
+
+				<c:if test="<%= Validator.isNotNull(secondaryActionIcon) || Validator.isNotNull(secondaryActionLabel) %>">
+						<clay:link
+							cssClass="btn btn-monospaced btn-primary btn-sm text-white"
+							href='<%= Validator.isNotNull(secondaryActionURL) ? secondaryActionURL : "#" %>'
+							icon="<%= HtmlUtil.escapeAttribute(secondaryActionIcon) %>"
+							id="<%= HtmlUtil.escape(secondaryLinkId) %>"
+						/>
+					</c:if>
+
 					<clay:link
 						cssClass="btn btn-monospaced btn-primary btn-sm text-white"
-						href='<%= (Validator.isNotNull(actionUrl) && Validator.isNull(actionTargetId)) ? actionUrl : "#" %>'
+						href='<%= (Validator.isNotNull(actionURL) && Validator.isNull(actionTargetId)) ? actionURL : "#" %>'
 						icon="<%= HtmlUtil.escapeAttribute(actionIcon) %>"
 						id="<%= HtmlUtil.escape(linkId) %>"
 					/>
@@ -116,8 +149,24 @@ String collapseSwitchId = Validator.isNotNull(collapseSwitchName) ? collapseSwit
 					</span>
 				</c:when>
 			</c:choose>
+
+			<c:if test="<%= Validator.isNotNull(secondaryActionIcon) || Validator.isNotNull(secondaryActionLabel) %>">
+			</span>
+			</c:if>
 		</div>
 	</c:if>
 
 	<div class="collapse<%= collapsed ? StringPool.BLANK : " show" %>" id="<%= randomNamespace %>collapse">
 		<div class="card-body<%= Validator.isNotNull(bodyClasses) ? StringPool.SPACE + bodyClasses : StringPool.BLANK %>">
+			<c:if test="<%= Validator.isNotNull(secondaryActionIcon) || Validator.isNotNull(secondaryActionLabel) %>">
+				<liferay-frontend:component
+					context='<%=
+						HashMapBuilder.<String, Object>put(
+							"actionURL", secondaryActionURL
+						).put(
+							"linkId", secondaryLinkId
+						).build()
+					%>'
+					module="{confirmationModal} from commerce-frontend-taglib"
+				/>
+			</c:if>

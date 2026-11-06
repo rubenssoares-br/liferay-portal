@@ -18,7 +18,6 @@ import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.TransactionConfig;
 import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
-import com.liferay.portal.kernel.util.HashMapDictionary;
 import com.liferay.portal.spring.transaction.DefaultTransactionExecutor;
 import com.liferay.portal.test.rule.ExpectedDBType;
 import com.liferay.portal.test.rule.ExpectedLog;
@@ -38,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.hibernate.engine.jdbc.batch.internal.BatchingBatch;
 import org.hibernate.engine.jdbc.spi.SqlExceptionHelper;
 
 import org.junit.Assert;
@@ -132,24 +130,9 @@ public class RedirectNotFoundEntryLocalServiceTest {
 						expectedDBType = ExpectedDBType.SQLSERVER,
 						expectedLog = "Cannot insert duplicate key row",
 						expectedType = ExpectedType.PREFIX
-					),
-					@ExpectedLog(
-						expectedDBType = ExpectedDBType.SYBASE,
-						expectedLog = "Attempt to insert duplicate key row",
-						expectedType = ExpectedType.CONTAINS
 					)
 				},
 				level = "ERROR", loggerClass = SqlExceptionHelper.class
-			),
-			@ExpectedLogs(
-				expectedLogs = {
-					@ExpectedLog(
-						expectedDBType = ExpectedDBType.NONE,
-						expectedLog = "HHH000315: Exception executing batch [java.sql.BatchUpdateException",
-						expectedType = ExpectedType.PREFIX
-					)
-				},
-				level = "ERROR", loggerClass = BatchingBatch.class
 			)
 		}
 	)
@@ -415,7 +398,7 @@ public class RedirectNotFoundEntryLocalServiceTest {
 					private boolean _executed;
 
 				},
-				new HashMapDictionary<>());
+				null);
 
 		return serviceRegistration::unregister;
 	}

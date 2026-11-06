@@ -1,4 +1,4 @@
-@component-name = "portal-bpm-ee"
+@component-name = "portal-bpm"
 definition {
 
 	property portal.release = "true";
@@ -13,6 +13,8 @@ definition {
 		TestCase.setUpPortalInstance();
 
 		User.firstLoginPG();
+
+		KaleoFormsAdmin.enableKaleoFormsConfiguration(toggleValue = "Disabled");
 
 		Navigator.openURL();
 
@@ -94,6 +96,8 @@ definition {
 			JSONUser.tearDownNonAdminUsers();
 
 			Role.tearDownCP();
+
+			KaleoFormsAdmin.enableKaleoFormsConfiguration(toggleValue = "Enabled");
 		}
 	}
 

@@ -116,14 +116,13 @@ public class JournalFeedModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table JournalFeed";
 
+	public static final String ENTITY_ALIAS = "journalFeed";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY journalFeed.feedId ASC";
 
 	public static final String ORDER_BY_SQL =
 		" ORDER BY JournalFeed.feedId ASC";
-
-	public static final String ORDER_BY_SQL_INLINE_DISTINCT =
-		" ORDER BY journalFeed.feedId ASC";
 
 	public static final String DATA_SOURCE = "liferayDataSource";
 
@@ -1508,3 +1507,4 @@ public class JournalFeedModelImpl
 	private JournalFeed _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1479720580

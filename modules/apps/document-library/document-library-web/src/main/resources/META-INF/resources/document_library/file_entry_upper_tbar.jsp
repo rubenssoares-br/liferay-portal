@@ -15,7 +15,9 @@ FileVersion fileVersion = dlViewFileEntryDisplayContext.getFileVersion();
 %>
 
 <nav class="component-tbar subnav-tbar-light tbar upper-tbar" role="navigation">
-	<clay:container-fluid>
+	<clay:container-fluid
+		fullWidth="<%= true %>"
+	>
 		<ul class="tbar-nav">
 			<li class="tbar-item tbar-item-expand">
 				<div class="tbar-section text-left">
@@ -64,6 +66,7 @@ FileVersion fileVersion = dlViewFileEntryDisplayContext.getFileVersion();
 			<c:if test="<%= dlViewFileEntryDisplayContext.isDownloadLinkVisible() %>">
 				<li class="d-none d-sm-flex tbar-item">
 					<clay:link
+						data-analytics-external-reference-code="<%= fileEntry.getExternalReferenceCode() %>"
 						data-analytics-file-entry-id="<%= fileEntry.getFileEntryId() %>"
 						data-analytics-file-entry-title="<%= fileEntry.getTitle() %>"
 						data-analytics-file-entry-version="<%= fileEntry.getVersion() %>"

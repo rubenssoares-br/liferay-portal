@@ -24,7 +24,6 @@ renderResponse.setTitle(article.getTitle(locale));
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems="<%= journalHistoryDisplayContext.getNavigationItems() %>"
 />
 
@@ -182,3 +181,12 @@ renderResponse.setTitle(article.getTitle(locale));
 		/>
 	</liferay-ui:search-container>
 </aui:form>
+
+<c:if test='<%= FeatureFlagManagerUtil.isEnabled(themeDisplay.getCompanyId(), "LPD-72278") %>'>
+	<div id="<portlet:namespace />addToLaunchModal">
+		<react:component
+			componentId="addToLaunchModal"
+			module="{AddToLaunchModal} from launch-web"
+		/>
+	</div>
+</c:if>

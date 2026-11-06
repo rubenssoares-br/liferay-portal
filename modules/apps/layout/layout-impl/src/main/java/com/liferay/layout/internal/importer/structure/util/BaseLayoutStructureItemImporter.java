@@ -17,6 +17,9 @@ import com.liferay.info.search.InfoSearchClassMapperRegistry;
 import com.liferay.layout.internal.importer.LayoutStructureItemImporterContext;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalServiceUtil;
+import com.liferay.layout.page.template.util.LayoutPageTemplateEntryUtil;
+import com.liferay.object.model.ObjectEntry;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
@@ -105,6 +108,63 @@ public abstract class BaseLayoutStructureItemImporter {
 			groupId, privatePage, friendlyURL);
 
 		return _getLayoutJSONObject("friendlyURL", friendlyURL, layout);
+	}
+
+	public JSONObject toDisplayPageFormSubmissionResultJSONObject(
+		Map<String, Object> formSuccessSubmissionResultMap,
+		LayoutStructureItemImporterContext layoutStructureItemImporterContext) {
+
+		if (GetterUtil.getBoolean(
+				formSuccessSubmissionResultMap.get("defaultDisplayPage"))) {
+
+			return _getDefaultDisplayPageJSONObject();
+		}
+
+		Map<String, Object> mapping =
+			(Map<String, Object>)formSuccessSubmissionResultMap.get("mapping");
+
+		Map<String, Object> itemReferenceMap = (Map<String, Object>)mapping.get(
+			"itemReference");
+
+		if (MapUtil.isEmpty(itemReferenceMap)) {
+			return _getDefaultDisplayPageJSONObject();
+		}
+
+		String externalReferenceCode = null;
+
+		List<Map<String, String>> fields =
+			(List<Map<String, String>>)itemReferenceMap.get("fields");
+
+		for (Map<String, String> field : fields) {
+			if (Objects.equals(
+					field.get("fieldName"), "externalReferenceCode")) {
+
+				externalReferenceCode = field.get("fieldValue");
+
+				break;
+			}
+		}
+
+		Layout layout = layoutStructureItemImporterContext.getLayout();
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			LayoutPageTemplateEntryLocalServiceUtil.
+				fetchLayoutPageTemplateEntryByExternalReferenceCode(
+					externalReferenceCode, layout.getGroupId());
+
+		if (layoutPageTemplateEntry != null) {
+			return JSONUtil.put(
+				"displayPage",
+				StringBundler.concat(
+					LayoutPageTemplateEntry.class.getSimpleName(),
+					StringPool.UNDERLINE,
+					layoutPageTemplateEntry.getLayoutPageTemplateEntryId())
+			).put(
+				"type", "displayPage"
+			);
+		}
+
+		return _getDefaultDisplayPageJSONObject();
 	}
 
 	protected Map<String, Object> getDefinitionMap(Object definition)
@@ -273,15 +333,15 @@ public abstract class BaseLayoutStructureItemImporter {
 				() -> {
 					Object hidden = fragmentViewportStyle.get("hidden");
 
-					if (hidden != null) {
-						if (GetterUtil.getBoolean(hidden)) {
-							return "none";
-						}
-
-						return "block";
+					if (hidden == null) {
+						return null;
 					}
 
-					return null;
+					if (GetterUtil.getBoolean(hidden)) {
+						return "none";
+					}
+
+					return "block";
 				}
 			).put(
 				"fontFamily", fragmentViewportStyle.get("fontFamily")
@@ -342,44 +402,38 @@ public abstract class BaseLayoutStructureItemImporter {
 
 		jsonObject.put("backgroundColor", styles.get("backgroundColor"));
 
-		if (styles.containsKey("backgroundFragmentImage") ||
-			styles.containsKey("backgroundImage")) {
+		Map<String, Object> childStyleMap = (Map<String, Object>)styles.get(
+			"backgroundFragmentImage");
 
+		if (MapUtil.isEmpty(childStyleMap)) {
+			childStyleMap = (Map<String, Object>)styles.get("backgroundImage");
+		}
+
+		if (MapUtil.isNotEmpty(childStyleMap)) {
 			JSONObject backgroundImageJSONObject =
 				JSONFactoryUtil.createJSONObject();
 
-			Map<String, Object> childStyleMap = (Map<String, Object>)styles.get(
-				"backgroundFragmentImage");
+			Map<String, Object> titleMap =
+				(Map<String, Object>)childStyleMap.get("title");
 
-			if (MapUtil.isEmpty(childStyleMap)) {
-				childStyleMap = (Map<String, Object>)styles.get(
-					"backgroundImage");
+			if (titleMap != null) {
+				backgroundImageJSONObject.put(
+					"title", getLocalizedValue(titleMap));
 			}
 
-			if (MapUtil.isNotEmpty(childStyleMap)) {
-				Map<String, Object> titleMap =
-					(Map<String, Object>)childStyleMap.get("title");
+			Map<String, Object> urlMap = (Map<String, Object>)childStyleMap.get(
+				"url");
 
-				if (titleMap != null) {
-					backgroundImageJSONObject.put(
-						"title", getLocalizedValue(titleMap));
-				}
+			if (urlMap != null) {
+				backgroundImageJSONObject.put("url", getLocalizedValue(urlMap));
 
-				Map<String, Object> urlMap =
-					(Map<String, Object>)childStyleMap.get("url");
-
-				if (urlMap != null) {
-					backgroundImageJSONObject.put(
-						"url", getLocalizedValue(urlMap));
-
-					processMapping(
-						backgroundImageJSONObject,
-						layoutStructureItemImporterContext,
-						(Map<String, Object>)urlMap.get("mapping"));
-				}
-
-				jsonObject.put("backgroundImage", backgroundImageJSONObject);
+				processMapping(
+					backgroundImageJSONObject,
+					layoutStructureItemImporterContext,
+					(Map<String, Object>)urlMap.get("mapping"));
 			}
+
+			jsonObject.put("backgroundImage", backgroundImageJSONObject);
 		}
 
 		Object borderColor = styles.get("borderColor");
@@ -404,8 +458,11 @@ public abstract class BaseLayoutStructureItemImporter {
 
 		if (Validator.isNull(textAlign)) {
 			for (String alignKey : _ALIGN_KEYS) {
-				if (styles.containsKey(alignKey)) {
-					textAlign = GetterUtil.getString(styles.get(alignKey));
+				Map.Entry<String, Object> alignEntry = MapUtil.getEntry(
+					styles, alignKey);
+
+				if (alignEntry != null) {
+					textAlign = GetterUtil.getString(alignEntry.getValue());
 
 					break;
 				}
@@ -470,6 +527,14 @@ public abstract class BaseLayoutStructureItemImporter {
 			"textColor", textColor
 		).put(
 			"width", styles.get("width")
+		);
+	}
+
+	private JSONObject _getDefaultDisplayPageJSONObject() {
+		return JSONUtil.put(
+			"displayPage", ObjectEntry.class.getSimpleName() + "_displayPageURL"
+		).put(
+			"type", "displayPage"
 		);
 	}
 
@@ -549,7 +614,7 @@ public abstract class BaseLayoutStructureItemImporter {
 			infoItemServiceRegistry.getFirstInfoItemService(
 				InfoItemFormProvider.class,
 				infoSearchClassMapperRegistry.getClassName(
-					PortalUtil.getClassName(
+					PortalUtil.fetchClassName(
 						layoutPageTemplateEntry.getClassNameId())));
 
 		if (infoItemFormProvider == null) {
@@ -558,7 +623,9 @@ public abstract class BaseLayoutStructureItemImporter {
 
 		try {
 			InfoForm infoForm = infoItemFormProvider.getInfoForm(
-				String.valueOf(layoutPageTemplateEntry.getClassTypeId()),
+				String.valueOf(
+					LayoutPageTemplateEntryUtil.getClassTypeId(
+						layoutPageTemplateEntry)),
 				layout.getGroupId());
 
 			InfoField<?> infoField = infoForm.getInfoField(fieldKey);

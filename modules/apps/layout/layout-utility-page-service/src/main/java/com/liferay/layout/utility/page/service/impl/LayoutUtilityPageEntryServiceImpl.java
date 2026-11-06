@@ -40,7 +40,7 @@ public class LayoutUtilityPageEntryServiceImpl
 	public LayoutUtilityPageEntry addLayoutUtilityPageEntry(
 			String externalReferenceCode, long groupId, long plid,
 			long previewFileEntryId, boolean defaultLayoutUtilityPageEntry,
-			String name, String type, long masterLayoutPlid,
+			String name, String type, String masterLayoutPageTemplateEntryERC,
 			ServiceContext serviceContext)
 		throws PortalException {
 
@@ -51,7 +51,7 @@ public class LayoutUtilityPageEntryServiceImpl
 		return layoutUtilityPageEntryLocalService.addLayoutUtilityPageEntry(
 			externalReferenceCode, getUserId(), groupId, plid,
 			previewFileEntryId, defaultLayoutUtilityPageEntry, name, type,
-			masterLayoutPlid, serviceContext);
+			masterLayoutPageTemplateEntryERC, serviceContext);
 	}
 
 	@Override
@@ -64,6 +64,10 @@ public class LayoutUtilityPageEntryServiceImpl
 			getPermissionChecker(), groupId,
 			LayoutUtilityPageActionKeys.ADD_LAYOUT_UTILITY_PAGE_ENTRY);
 
+		_layoutUtilityPageEntryModelResourcePermission.check(
+			getPermissionChecker(), sourceLayoutUtilityPageEntryId,
+			ActionKeys.VIEW);
+
 		return layoutUtilityPageEntryLocalService.copyLayoutUtilityPageEntry(
 			getUserId(), groupId, sourceLayoutUtilityPageEntryId,
 			serviceContext);
@@ -75,7 +79,7 @@ public class LayoutUtilityPageEntryServiceImpl
 		throws PortalException {
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			layoutUtilityPageEntryLocalService.getLayoutUtilityPageEntry(
+			layoutUtilityPageEntryPersistence.findByPrimaryKey(
 				layoutUtilityPageEntryId);
 
 		_layoutUtilityPageEntryModelResourcePermission.check(
@@ -99,9 +103,8 @@ public class LayoutUtilityPageEntryServiceImpl
 		throws PortalException {
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			layoutUtilityPageEntryLocalService.
-				getLayoutUtilityPageEntryByExternalReferenceCode(
-					externalReferenceCode, groupId);
+			layoutUtilityPageEntryPersistence.findByERC_G(
+				externalReferenceCode, groupId);
 
 		_layoutUtilityPageEntryModelResourcePermission.check(
 			getPermissionChecker(), layoutUtilityPageEntry, ActionKeys.DELETE);
@@ -114,8 +117,18 @@ public class LayoutUtilityPageEntryServiceImpl
 	public LayoutUtilityPageEntry fetchLayoutUtilityPageEntry(
 		long layoutUtilityPageEntryId) {
 
-		return layoutUtilityPageEntryLocalService.fetchLayoutUtilityPageEntry(
+		return layoutUtilityPageEntryPersistence.fetchByPrimaryKey(
 			layoutUtilityPageEntryId);
+	}
+
+	@Override
+	public LayoutUtilityPageEntry
+			fetchLayoutUtilityPageEntryByExternalReferenceCode(
+				String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		return layoutUtilityPageEntryPersistence.fetchByERC_G(
+			externalReferenceCode, groupId);
 	}
 
 	@Override
@@ -123,8 +136,8 @@ public class LayoutUtilityPageEntryServiceImpl
 			long groupId, String type)
 		throws PortalException {
 
-		return layoutUtilityPageEntryLocalService.
-			getDefaultLayoutUtilityPageEntry(groupId, type);
+		return layoutUtilityPageEntryPersistence.findByG_D_T_First(
+			groupId, true, type, null);
 	}
 
 	@Override
@@ -199,9 +212,8 @@ public class LayoutUtilityPageEntryServiceImpl
 				String externalReferenceCode, long groupId)
 		throws PortalException {
 
-		return layoutUtilityPageEntryLocalService.
-			getLayoutUtilityPageEntryByExternalReferenceCode(
-				externalReferenceCode, groupId);
+		return layoutUtilityPageEntryPersistence.findByERC_G(
+			externalReferenceCode, groupId);
 	}
 
 	@Override
@@ -210,7 +222,7 @@ public class LayoutUtilityPageEntryServiceImpl
 		throws PortalException {
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			layoutUtilityPageEntryLocalService.getLayoutUtilityPageEntry(
+			layoutUtilityPageEntryPersistence.findByPrimaryKey(
 				layoutUtilityPageEntryId);
 
 		GroupPermissionUtil.check(
@@ -232,7 +244,7 @@ public class LayoutUtilityPageEntryServiceImpl
 		throws PortalException {
 
 		LayoutUtilityPageEntry layoutUtilityPageEntry =
-			layoutUtilityPageEntryLocalService.getLayoutUtilityPageEntry(
+			layoutUtilityPageEntryPersistence.findByPrimaryKey(
 				layoutUtilityPageEntryId);
 
 		GroupPermissionUtil.check(
@@ -256,7 +268,8 @@ public class LayoutUtilityPageEntryServiceImpl
 
 	@Override
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, long previewFileEntryId)
+			long layoutUtilityPageEntryId, long previewFileEntryId,
+			ServiceContext serviceContext)
 		throws PortalException {
 
 		_layoutUtilityPageEntryModelResourcePermission.check(
@@ -264,12 +277,13 @@ public class LayoutUtilityPageEntryServiceImpl
 			ActionKeys.UPDATE);
 
 		return layoutUtilityPageEntryLocalService.updateLayoutUtilityPageEntry(
-			layoutUtilityPageEntryId, previewFileEntryId);
+			layoutUtilityPageEntryId, previewFileEntryId, serviceContext);
 	}
 
 	@Override
 	public LayoutUtilityPageEntry updateLayoutUtilityPageEntry(
-			long layoutUtilityPageEntryId, String name)
+			long layoutUtilityPageEntryId, String name,
+			ServiceContext serviceContext)
 		throws PortalException {
 
 		_layoutUtilityPageEntryModelResourcePermission.check(
@@ -277,7 +291,7 @@ public class LayoutUtilityPageEntryServiceImpl
 			ActionKeys.UPDATE);
 
 		return layoutUtilityPageEntryLocalService.updateLayoutUtilityPageEntry(
-			layoutUtilityPageEntryId, name);
+			layoutUtilityPageEntryId, name, serviceContext);
 	}
 
 	@Reference

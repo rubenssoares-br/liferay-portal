@@ -15,6 +15,7 @@ import com.liferay.commerce.product.type.virtual.exception.CPDefinitionVirtualSe
 import com.liferay.commerce.product.type.virtual.exception.CPDefinitionVirtualSettingTermsOfUseArticleResourcePKException;
 import com.liferay.commerce.product.type.virtual.exception.CPDefinitionVirtualSettingTermsOfUseContentException;
 import com.liferay.commerce.product.type.virtual.exception.CPDefinitionVirtualSettingTermsOfUseException;
+import com.liferay.commerce.product.type.virtual.model.CPDVirtualSettingFileEntry;
 import com.liferay.commerce.product.type.virtual.model.CPDefinitionVirtualSetting;
 import com.liferay.commerce.product.type.virtual.service.CPDVirtualSettingFileEntryLocalService;
 import com.liferay.commerce.product.type.virtual.service.base.CPDefinitionVirtualSettingLocalServiceBaseImpl;
@@ -129,8 +130,7 @@ public class CPDefinitionVirtualSettingLocalServiceImpl
 			_cpDefinitionLocalService.isVersionable(classPK)) {
 
 			CPDefinition newCPDefinition =
-				_cpDefinitionLocalService.copyCPDefinition(
-					cpDefinitionVirtualSetting.getClassPK());
+				_cpDefinitionLocalService.copyCPDefinition(classPK);
 
 			classPK = newCPDefinition.getCPDefinitionId();
 		}
@@ -195,9 +195,10 @@ public class CPDefinitionVirtualSettingLocalServiceImpl
 		long cpDefinitionId, long newCPDefinitionId) {
 
 		CPDefinitionVirtualSetting cpDefinitionVirtualSetting =
-			cpDefinitionVirtualSettingLocalService.
-				fetchCPDefinitionVirtualSetting(
-					CPDefinition.class.getName(), cpDefinitionId);
+			cpDefinitionVirtualSettingPersistence.fetchByC_C(
+				_classNameLocalService.getClassNameId(
+					CPDefinition.class.getName()),
+				cpDefinitionId);
 
 		if (cpDefinitionVirtualSetting != null) {
 			CPDefinitionVirtualSetting newCPDefinitionVirtualSetting =
@@ -210,6 +211,30 @@ public class CPDefinitionVirtualSettingLocalServiceImpl
 
 			cpDefinitionVirtualSettingLocalService.
 				addCPDefinitionVirtualSetting(newCPDefinitionVirtualSetting);
+
+			for (CPDVirtualSettingFileEntry cpdVirtualSettingFileEntry :
+					_cpdVirtualSettingFileEntryLocalService.
+						getCPDVirtualSettingFileEntries(
+							cpDefinitionVirtualSetting.
+								getCPDefinitionVirtualSettingId())) {
+
+				CPDVirtualSettingFileEntry newCPDVirtualSettingFileEntry =
+					(CPDVirtualSettingFileEntry)
+						cpdVirtualSettingFileEntry.clone();
+
+				newCPDVirtualSettingFileEntry.setUuid(
+					PortalUUIDUtil.generate());
+				newCPDVirtualSettingFileEntry.
+					setCPDefinitionVirtualSettingFileEntryId(
+						counterLocalService.increment());
+				newCPDVirtualSettingFileEntry.setCPDefinitionVirtualSettingId(
+					newCPDefinitionVirtualSetting.
+						getCPDefinitionVirtualSettingId());
+
+				_cpdVirtualSettingFileEntryLocalService.
+					addCPDVirtualSettingFileEntry(
+						newCPDVirtualSettingFileEntry);
+			}
 		}
 	}
 
@@ -279,9 +304,10 @@ public class CPDefinitionVirtualSettingLocalServiceImpl
 
 	@Override
 	public CPDefinitionVirtualSetting getCPDefinitionVirtualSetting(
-		String className, long classPK) {
+			String className, long classPK)
+		throws PortalException {
 
-		return cpDefinitionVirtualSettingPersistence.fetchByC_C(
+		return cpDefinitionVirtualSettingPersistence.findByC_C(
 			_classNameLocalService.getClassNameId(className), classPK);
 	}
 
@@ -477,9 +503,11 @@ public class CPDefinitionVirtualSettingLocalServiceImpl
 				for (Map.Entry<Locale, String> entry :
 						termsOfUseContentMap.entrySet()) {
 
-					if (Validator.isNotNull(entry.getValue())) {
-						empty = false;
+					if (Validator.isNull(entry.getValue())) {
+						continue;
 					}
+
+					empty = false;
 				}
 
 				if (empty) {
@@ -496,11 +524,11 @@ public class CPDefinitionVirtualSettingLocalServiceImpl
 	private CPDefinitionLocalService _cpDefinitionLocalService;
 
 	@Reference
-	private CPDVirtualSettingFileEntryLocalService
-		_cpdVirtualSettingFileEntryLocalService;
+	private CPInstanceLocalService _cpInstanceLocalService;
 
 	@Reference
-	private CPInstanceLocalService _cpInstanceLocalService;
+	private CPDVirtualSettingFileEntryLocalService
+		_cpdVirtualSettingFileEntryLocalService;
 
 	@Reference
 	private DLAppLocalService _dlAppLocalService;

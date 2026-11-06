@@ -9,6 +9,7 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.layout.display.page.LayoutDisplayPageObjectProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProviderRegistry;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.field.builder.TextObjectFieldBuilder;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
@@ -17,7 +18,6 @@ import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.portlet.constants.FriendlyURLResolverConstants;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -50,9 +50,7 @@ public class ObjectEntryLayoutDisplayPageProviderTest {
 		new LiferayIntegrationTestRule();
 
 	@Test
-	public void testGetObjectEntryLayoutDisplayPageObjectProvider()
-		throws Exception {
-
+	public void testGetLayoutDisplayPageObjectProvider() throws Exception {
 		String objectFieldName = StringUtil.randomId();
 
 		ObjectDefinition objectDefinition1 = _publishCustomObjectDefinition(
@@ -65,8 +63,10 @@ public class ObjectEntryLayoutDisplayPageProviderTest {
 				).build()));
 
 		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
-			TestPropsValues.getUserId(), 0,
+			0, TestPropsValues.getUserId(),
 			objectDefinition1.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
 			HashMapBuilder.<String, Serializable>put(
 				objectFieldName, StringUtil.randomId()
 			).build(),
@@ -83,8 +83,9 @@ public class ObjectEntryLayoutDisplayPageProviderTest {
 
 		LayoutDisplayPageProvider<?> layoutDisplayPageProvider =
 			_layoutDisplayPageProviderRegistry.
-				getLayoutDisplayPageProviderByURLSeparator(
-					FriendlyURLResolverConstants.URL_SEPARATOR_OBJECT_ENTRY);
+				getLayoutDisplayPageProviderByClassName(
+					objectDefinition2.getCompanyId(),
+					objectDefinition2.getClassName());
 
 		Assert.assertEquals(
 			objectDefinition2.getClassName(),

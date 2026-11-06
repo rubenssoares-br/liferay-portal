@@ -22,8 +22,8 @@ export class DocumentLibraryEditFilePage {
 	readonly saveButton: Locator;
 	readonly scheduleButton: Locator;
 	readonly selectForUpdateButton: Locator;
+	readonly submitForWorkflowButton: Locator;
 	readonly titleSelector: Locator;
-
 	constructor(page: Page) {
 		this.page = page;
 
@@ -31,7 +31,9 @@ export class DocumentLibraryEditFilePage {
 			'#_com_liferay_document_library_web_portlet_DLAdminPortlet_description'
 		);
 		this.documentLibraryPage = new DocumentLibraryPage(page);
-		this.permissionViewSelector = page.getByLabel('Viewable by');
+		this.permissionViewSelector = page.getByLabel(
+			'Viewable and Downloadable By'
+		);
 		this.publishButton = page.getByRole('button', {
 			exact: true,
 			name: 'Publish',
@@ -40,6 +42,9 @@ export class DocumentLibraryEditFilePage {
 		this.saveButton = page.getByRole('button', {exact: true, name: 'Save'});
 		this.scheduleButton = page.getByRole('button', {name: 'Schedule'});
 		this.selectForUpdateButton = page.getByLabel('Upload', {exact: true});
+		this.submitForWorkflowButton = page.getByRole('button', {
+			name: 'Submit for Workflow',
+		});
 		this.titleSelector = page.getByLabel('Title');
 	}
 
@@ -186,13 +191,16 @@ export class DocumentLibraryEditFilePage {
 		await this.publishButton.click();
 	}
 
-	async publishNewFileWithScheduleDate(
+	async goToPublishNewFileWithScheduleDate(
 		scheduleDate: string,
 		title: string,
 		siteUrl?: Site['friendlyUrlPath']
 	) {
 		await this.goto(siteUrl);
+		await this.publishNewFileWithScheduleDate(scheduleDate, title);
+	}
 
+	async publishNewFileWithScheduleDate(scheduleDate: string, title: string) {
 		await this.titleSelector.fill(title);
 
 		const isClosed =
@@ -231,25 +239,27 @@ export class DocumentLibraryEditFilePage {
 
 		await fieldset.getByRole('button', {name: 'Select'}).click();
 
-		const selectDisplayPageModal = await this.page.frameLocator(
+		const selectDisplayPageModal = this.page.frameLocator(
 			'iframe[title*="Select Page"]'
 		);
 
-		await this.page
-			.locator('.modal-title', {
-				hasText: 'Select Page',
-			})
-			.waitFor({
-				state: 'visible',
-			});
+		await selectDisplayPageModal
+			.locator('.card-type-asset')
+			.filter({hasText: displayPageName})
+			.click({trial: true});
 
 		await clickAndExpectToBeHidden({
 			target: this.page.locator('.modal-title', {
 				hasText: 'Select Page',
 			}),
-			trigger: selectDisplayPageModal.getByLabel(
-				'Select ' + displayPageName
-			),
+			trigger: selectDisplayPageModal
+				.locator('.card-type-asset')
+				.filter({hasText: displayPageName}),
 		});
+	}
+
+	async submitWorkflowForBasicFileEntry(title: string) {
+		await this.titleSelector.fill(title);
+		await this.submitForWorkflowButton.click();
 	}
 }

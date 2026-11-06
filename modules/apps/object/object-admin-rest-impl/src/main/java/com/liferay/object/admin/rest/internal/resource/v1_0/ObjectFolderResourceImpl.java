@@ -19,7 +19,6 @@ import com.liferay.object.admin.rest.resource.v1_0.ObjectDefinitionResource;
 import com.liferay.object.admin.rest.resource.v1_0.ObjectFolderResource;
 import com.liferay.object.constants.ObjectActionKeys;
 import com.liferay.object.constants.ObjectConstants;
-import com.liferay.object.constants.ObjectFolderConstants;
 import com.liferay.object.exception.ObjectFolderItemObjectDefinitionIdException;
 import com.liferay.object.service.ObjectActionLocalService;
 import com.liferay.object.service.ObjectDefinitionLocalService;
@@ -37,9 +36,15 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.PermissionService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
@@ -142,7 +147,7 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 		com.liferay.object.model.ObjectFolder serviceBuilderObjectFolder =
 			_objectFolderService.addObjectFolder(
 				objectFolder.getExternalReferenceCode(),
-				LocalizedMapUtil.getLocalizedMap(objectFolder.getLabel()),
+				LocalizedMapUtil.populateLocalizedMap(objectFolder.getLabel()),
 				objectFolder.getName());
 
 		_addObjectFolderResources(
@@ -162,7 +167,7 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 		com.liferay.object.model.ObjectFolder serviceBuilderObjectFolder =
 			_objectFolderService.updateObjectFolder(
 				objectFolder.getExternalReferenceCode(), objectFolderId,
-				LocalizedMapUtil.getLocalizedMap(objectFolder.getLabel()));
+				LocalizedMapUtil.populateLocalizedMap(objectFolder.getLabel()));
 
 		_addObjectFolderResources(
 			objectFolder.getExternalReferenceCode(), objectFolderId,
@@ -287,9 +292,13 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 				continue;
 			}
 
-			_objectDefinitionLocalService.updateObjectFolderId(
-				serviceBuilderObjectDefinition.getObjectDefinitionId(),
-				objectFolderId);
+			if (serviceBuilderObjectDefinition.isLinkedToObjectFolder(
+					objectFolderId)) {
+
+				_objectDefinitionLocalService.updateObjectFolderId(
+					serviceBuilderObjectDefinition.getObjectDefinitionId(),
+					objectFolderId);
+			}
 
 			_objectFolderItemLocalService.updateObjectFolderItem(
 				serviceBuilderObjectDefinition.getObjectDefinitionId(),
@@ -300,27 +309,28 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 				serviceBuilderObjectDefinition.getObjectDefinitionId());
 		}
 
-		com.liferay.object.model.ObjectFolder
-			defaultServiceBuilderObjectFolder =
-				_objectFolderService.getObjectFolderByExternalReferenceCode(
-					ObjectFolderConstants.EXTERNAL_REFERENCE_CODE_DEFAULT,
-					contextCompany.getCompanyId());
+		if (!objectFolderItems.isEmpty()) {
+			com.liferay.object.model.ObjectFolder
+				defaultServiceBuilderObjectFolder =
+					_objectFolderLocalService.getDefaultObjectFolder(
+						contextCompany.getCompanyId());
 
-		for (Long objectDefinitionId : serviceBuilderObjectDefinitionIds) {
-			com.liferay.object.model.ObjectDefinition
-				serviceBuilderObjectDefinition =
-					_objectDefinitionLocalService.fetchObjectDefinition(
-						objectDefinitionId);
+			for (Long objectDefinitionId : serviceBuilderObjectDefinitionIds) {
+				com.liferay.object.model.ObjectDefinition
+					serviceBuilderObjectDefinition =
+						_objectDefinitionLocalService.fetchObjectDefinition(
+							objectDefinitionId);
 
-			if (serviceBuilderObjectDefinition.isLinkedToObjectFolder(
-					objectFolderId)) {
+				if (serviceBuilderObjectDefinition.isLinkedToObjectFolder(
+						objectFolderId)) {
 
-				continue;
+					continue;
+				}
+
+				_objectDefinitionLocalService.updateObjectFolderId(
+					objectDefinitionId,
+					defaultServiceBuilderObjectFolder.getObjectFolderId());
 			}
-
-			_objectDefinitionLocalService.updateObjectFolderId(
-				objectDefinitionId,
-				defaultServiceBuilderObjectFolder.getObjectFolderId());
 		}
 
 		objectFolderItems.removeAll(unlinkedObjectFolderItems);
@@ -442,6 +452,7 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 						}
 
 						return ObjectDefinitionUtil.toObjectDefinition(
+							_groupLocalService,
 							contextAcceptLanguage.getPreferredLocale(),
 							_notificationTemplateLocalService,
 							_objectActionLocalService,
@@ -453,8 +464,12 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 							_objectValidationRuleDTOConverter,
 							_objectValidationRuleLocalService,
 							_objectViewDTOConverter, _objectViewLocalService,
+							_permissionService, _portal,
+							_resourceActionLocalService,
 							serviceBuilderObjectDefinition,
-							_systemObjectDefinitionManagerRegistry);
+							_systemObjectDefinitionManagerRegistry, contextUser,
+							_userLocalService,
+							_workflowDefinitionLinkLocalService);
 					});
 				setObjectDefinitionExternalReferenceCode(
 					serviceBuilderObjectDefinition::getExternalReferenceCode);
@@ -466,6 +481,9 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		ObjectFolderResourceImpl.class);
+
+	@Reference
+	private GroupLocalService _groupLocalService;
 
 	@Reference
 	private NotificationTemplateLocalService _notificationTemplateLocalService;
@@ -527,7 +545,23 @@ public class ObjectFolderResourceImpl extends BaseObjectFolderResourceImpl {
 	private ObjectViewLocalService _objectViewLocalService;
 
 	@Reference
+	private PermissionService _permissionService;
+
+	@Reference
+	private Portal _portal;
+
+	@Reference
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Reference
 	private SystemObjectDefinitionManagerRegistry
 		_systemObjectDefinitionManagerRegistry;
+
+	@Reference
+	private UserLocalService _userLocalService;
+
+	@Reference
+	private WorkflowDefinitionLinkLocalService
+		_workflowDefinitionLinkLocalService;
 
 }

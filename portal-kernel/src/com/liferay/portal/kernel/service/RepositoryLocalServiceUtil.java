@@ -314,6 +314,10 @@ public class RepositoryLocalServiceUtil {
 		return getService().getRepositories(start, end);
 	}
 
+	public static List<Repository> getRepositories(String portletId) {
+		return getService().getRepositories(portletId);
+	}
+
 	/**
 	 * Returns all the repositories matching the UUID and company.
 	 *
@@ -410,6 +414,10 @@ public class RepositoryLocalServiceUtil {
 		return getService().getTypeSettingsProperties(repositoryId);
 	}
 
+	public static boolean isHidden(long repositoryId) throws PortalException {
+		return getService().isHidden(repositoryId);
+	}
+
 	public static void updateRepository(
 			long repositoryId, String name, String description)
 		throws PortalException {
@@ -452,3 +460,4 @@ public class RepositoryLocalServiceUtil {
 	private static volatile RepositoryLocalService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:374552720

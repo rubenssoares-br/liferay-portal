@@ -20,8 +20,7 @@ import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdate;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdateFactoryUtil;
+import com.liferay.portal.kernel.dao.jdbc.CurrentConnectionUtil;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DefaultActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
@@ -49,6 +48,8 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PortalUtil;
 
 import java.io.Serializable;
+
+import java.sql.Connection;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -555,6 +556,19 @@ public abstract class FriendlyURLEntryLocalServiceBaseImpl
 	}
 
 	@Override
+	public FriendlyURLEntryLocalization addFriendlyURLEntryLocalization(
+			FriendlyURLEntry friendlyURLEntry, String languageId,
+			String urlTitle)
+		throws PortalException {
+
+		friendlyURLEntry = friendlyURLEntryPersistence.findByPrimaryKey(
+			friendlyURLEntry.getPrimaryKey());
+
+		return _updateFriendlyURLEntryLocalization(
+			friendlyURLEntry, null, languageId, urlTitle);
+	}
+
+	@Override
 	public FriendlyURLEntryLocalization fetchFriendlyURLEntryLocalization(
 		long friendlyURLEntryId, String languageId) {
 
@@ -651,6 +665,8 @@ public abstract class FriendlyURLEntryLocalServiceBaseImpl
 					friendlyURLEntry.getCompanyId());
 				friendlyURLEntryLocalization.setClassNameId(
 					friendlyURLEntry.getClassNameId());
+				friendlyURLEntryLocalization.setParentClassPK(
+					friendlyURLEntry.getParentClassPK());
 				friendlyURLEntryLocalization.setClassPK(
 					friendlyURLEntry.getClassPK());
 
@@ -686,6 +702,8 @@ public abstract class FriendlyURLEntryLocalServiceBaseImpl
 				friendlyURLEntry.getCompanyId());
 			friendlyURLEntryLocalization.setClassNameId(
 				friendlyURLEntry.getClassNameId());
+			friendlyURLEntryLocalization.setParentClassPK(
+				friendlyURLEntry.getParentClassPK());
 			friendlyURLEntryLocalization.setClassPK(
 				friendlyURLEntry.getClassPK());
 
@@ -727,6 +745,8 @@ public abstract class FriendlyURLEntryLocalServiceBaseImpl
 			friendlyURLEntry.getCompanyId());
 		friendlyURLEntryLocalization.setClassNameId(
 			friendlyURLEntry.getClassNameId());
+		friendlyURLEntryLocalization.setParentClassPK(
+			friendlyURLEntry.getParentClassPK());
 		friendlyURLEntryLocalization.setClassPK(friendlyURLEntry.getClassPK());
 
 		friendlyURLEntryLocalization.setUrlTitle(urlTitle);
@@ -791,18 +811,23 @@ public abstract class FriendlyURLEntryLocalServiceBaseImpl
 	 * @param sql the sql query
 	 */
 	protected void runSQL(String sql) {
+		DataSource dataSource = friendlyURLEntryPersistence.getDataSource();
+
+		DB db = DBManagerUtil.getDB();
+
+		Connection currentConnection = CurrentConnectionUtil.getConnection(
+			dataSource);
+
 		try {
-			DataSource dataSource = friendlyURLEntryPersistence.getDataSource();
+			if (currentConnection != null) {
+				db.runSQL(currentConnection, new String[] {sql});
 
-			DB db = DBManagerUtil.getDB();
+				return;
+			}
 
-			sql = db.buildSQL(sql);
-			sql = PortalUtil.transformSQL(sql);
-
-			SqlUpdate sqlUpdate = SqlUpdateFactoryUtil.getSqlUpdate(
-				dataSource, sql);
-
-			sqlUpdate.update();
+			try (Connection connection = dataSource.getConnection()) {
+				db.runSQL(connection, new String[] {sql});
+			}
 		}
 		catch (Exception exception) {
 			throw new SystemException(exception);
@@ -826,3 +851,4 @@ public abstract class FriendlyURLEntryLocalServiceBaseImpl
 		FriendlyURLEntryLocalServiceBaseImpl.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1197516012

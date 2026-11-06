@@ -118,11 +118,7 @@ public class CommerceOrderPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		CommerceOrder newCommerceOrder = _persistence.create(pk);
-
-		newCommerceOrder.setMvccVersion(RandomTestUtil.nextLong());
+		CommerceOrder newCommerceOrder = addCommerceOrder();
 
 		newCommerceOrder.setUuid(RandomTestUtil.randomString());
 
@@ -145,7 +141,7 @@ public class CommerceOrderPersistenceTest {
 
 		newCommerceOrder.setCommerceAccountId(RandomTestUtil.nextLong());
 
-		newCommerceOrder.setCommerceCurrencyId(RandomTestUtil.nextLong());
+		newCommerceOrder.setCommerceCurrencyCode(RandomTestUtil.randomString());
 
 		newCommerceOrder.setCommerceOrderTypeId(RandomTestUtil.nextLong());
 
@@ -320,7 +316,9 @@ public class CommerceOrderPersistenceTest {
 
 		newCommerceOrder.setStatusDate(RandomTestUtil.nextDate());
 
-		_commerceOrders.add(_persistence.update(newCommerceOrder));
+		newCommerceOrder = _persistence.update(newCommerceOrder);
+
+		_commerceOrders.add(newCommerceOrder);
 
 		CommerceOrder existingCommerceOrder = _persistence.findByPrimaryKey(
 			newCommerceOrder.getPrimaryKey());
@@ -359,8 +357,8 @@ public class CommerceOrderPersistenceTest {
 			existingCommerceOrder.getCommerceAccountId(),
 			newCommerceOrder.getCommerceAccountId());
 		Assert.assertEquals(
-			existingCommerceOrder.getCommerceCurrencyId(),
-			newCommerceOrder.getCommerceCurrencyId());
+			existingCommerceOrder.getCommerceCurrencyCode(),
+			newCommerceOrder.getCommerceCurrencyCode());
 		Assert.assertEquals(
 			existingCommerceOrder.getCommerceOrderTypeId(),
 			newCommerceOrder.getCommerceOrderTypeId());
@@ -669,15 +667,6 @@ public class CommerceOrderPersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_CP() throws Exception {
-		_persistence.countByG_CP(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_CP(0L, "null");
-
-		_persistence.countByG_CP(0L, (String)null);
-	}
-
-	@Test
 	public void testCountByG_U_O() throws Exception {
 		_persistence.countByG_U_O(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
@@ -693,15 +682,6 @@ public class CommerceOrderPersistenceTest {
 			RandomTestUtil.nextInt());
 
 		_persistence.countByG_C_O(0L, 0L, 0);
-	}
-
-	@Test
-	public void testCountByU_LtC_O() throws Exception {
-		_persistence.countByU_LtC_O(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextDate(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByU_LtC_O(0L, RandomTestUtil.nextDate(), 0);
 	}
 
 	@Test
@@ -775,7 +755,7 @@ public class CommerceOrderPersistenceTest {
 			"externalReferenceCode", true, "commerceOrderId", true, "groupId",
 			true, "companyId", true, "userId", true, "userName", true,
 			"createDate", true, "modifiedDate", true, "billingAddressId", true,
-			"commerceAccountId", true, "commerceCurrencyId", true,
+			"commerceAccountId", true, "commerceCurrencyCode", true,
 			"commerceOrderTypeId", true, "commerceShippingMethodId", true,
 			"deliveryCommerceTermEntryId", true, "paymentCommerceTermEntryId",
 			true, "shippingAddressId", true, "advanceStatus", true,
@@ -1111,8 +1091,6 @@ public class CommerceOrderPersistenceTest {
 
 		CommerceOrder commerceOrder = _persistence.create(pk);
 
-		commerceOrder.setMvccVersion(RandomTestUtil.nextLong());
-
 		commerceOrder.setUuid(RandomTestUtil.randomString());
 
 		commerceOrder.setExternalReferenceCode(RandomTestUtil.randomString());
@@ -1133,7 +1111,7 @@ public class CommerceOrderPersistenceTest {
 
 		commerceOrder.setCommerceAccountId(RandomTestUtil.nextLong());
 
-		commerceOrder.setCommerceCurrencyId(RandomTestUtil.nextLong());
+		commerceOrder.setCommerceCurrencyCode(RandomTestUtil.randomString());
 
 		commerceOrder.setCommerceOrderTypeId(RandomTestUtil.nextLong());
 
@@ -1315,3 +1293,4 @@ public class CommerceOrderPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-274051066

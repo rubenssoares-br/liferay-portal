@@ -7,9 +7,9 @@ package com.liferay.data.engine.rest.client.problem;
 
 import com.liferay.data.engine.rest.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Jeyvison Nascimento
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1343067960

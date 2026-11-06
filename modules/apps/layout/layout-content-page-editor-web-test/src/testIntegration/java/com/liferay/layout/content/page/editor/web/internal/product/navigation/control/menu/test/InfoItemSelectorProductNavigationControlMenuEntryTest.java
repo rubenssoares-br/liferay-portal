@@ -9,6 +9,7 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
@@ -33,7 +34,7 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.product.navigation.control.menu.ProductNavigationControlMenuEntry;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -66,13 +67,10 @@ public class InfoItemSelectorProductNavigationControlMenuEntryTest {
 	@Test
 	public void testIsShowForAssetDisplayLayout() throws Exception {
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, _group.getCreatorUserId(), _group.getGroupId(), 0,
-				_portal.getClassNameId(FileEntry.class.getName()), 0,
-				RandomTestUtil.randomString(),
-				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0,
-				0, 0, 0,
-				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(),
+				_portal.getClassNameId(FileEntry.class.getName()), null, true,
+				WorkflowConstants.STATUS_APPROVED);
 
 		Assert.assertTrue(
 			_productNavigationControlMenuEntry.isShow(
@@ -88,7 +86,7 @@ public class InfoItemSelectorProductNavigationControlMenuEntryTest {
 
 		LayoutPageTemplateEntry masterLayoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
+				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, null,
 				RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT, 0,
 				WorkflowConstants.STATUS_APPROVED,
@@ -96,8 +94,8 @@ public class InfoItemSelectorProductNavigationControlMenuEntryTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, _group.getCreatorUserId(), _group.getGroupId(), 0,
-				_portal.getClassNameId(FileEntry.class.getName()), 0,
+				null, _group.getCreatorUserId(), _group.getGroupId(), 0, null,
+				_portal.getClassNameId(FileEntry.class.getName()), null,
 				RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0,
 				0, masterLayoutPageTemplateEntry.getPlid(), 0,
@@ -125,7 +123,6 @@ public class InfoItemSelectorProductNavigationControlMenuEntryTest {
 		MockHttpServletRequest mockHttpServletRequest =
 			new MockHttpServletRequest();
 
-		mockHttpServletRequest.setParameter("p_l_mode", Constants.EDIT);
 		mockHttpServletRequest.setAttribute(WebKeys.LAYOUT, layout);
 
 		ThemeDisplay themeDisplay = new ThemeDisplay();
@@ -141,6 +138,8 @@ public class InfoItemSelectorProductNavigationControlMenuEntryTest {
 
 		mockHttpServletRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, themeDisplay);
+
+		mockHttpServletRequest.setParameter("p_l_mode", Constants.EDIT);
 
 		return mockHttpServletRequest;
 	}

@@ -57,6 +57,12 @@ import com.liferay.portal.search.web.internal.result.display.context.SearchResul
 import com.liferay.portal.search.web.internal.util.SearchStringUtil;
 import com.liferay.portal.search.web.internal.util.SearchUtil;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
@@ -72,12 +78,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
@@ -89,11 +89,9 @@ public class SearchResultSummaryDisplayContextBuilder {
 
 	public SearchResultSummaryDisplayContext build() throws Exception {
 		try {
-			if (_documentBuilderFactory != null) {
-				_document = _documentBuilderFactory.builder(
-					_legacyDocument
-				).build();
-			}
+			_document = DocumentBuilderFactory.builder(
+				_legacyDocument
+			).build();
 
 			String entryClassName = _getFieldValueString(
 				Field.ENTRY_CLASS_NAME);
@@ -160,26 +158,10 @@ public class SearchResultSummaryDisplayContextBuilder {
 		return this;
 	}
 
-	public SearchResultSummaryDisplayContextBuilder setCurrentURL(
-		String currentURL) {
-
-		_currentURL = currentURL;
-
-		return this;
-	}
-
 	public SearchResultSummaryDisplayContextBuilder setDocument(
 		com.liferay.portal.kernel.search.Document document) {
 
 		_legacyDocument = document;
-
-		return this;
-	}
-
-	public SearchResultSummaryDisplayContextBuilder setDocumentBuilderFactory(
-		DocumentBuilderFactory documentBuilderFactory) {
-
-		_documentBuilderFactory = documentBuilderFactory;
 
 		return this;
 	}
@@ -470,7 +452,7 @@ public class SearchResultSummaryDisplayContextBuilder {
 
 		return SearchUtil.getSearchResultViewURL(
 			_renderRequest, _renderResponse, className, classPK,
-			_searchResultPreferences.isViewInContext(), _currentURL);
+			_searchResultPreferences.isViewInContext());
 	}
 
 	protected Summary getSummary(
@@ -932,9 +914,13 @@ public class SearchResultSummaryDisplayContextBuilder {
 			ClassName className = _classNameLocalService.getClassName(
 				classNameId);
 
-			_buildViewURL(
-				className.getClassName(), classPK,
-				searchResultSummaryDisplayContext);
+			if (getAssetRendererFactoryByClassName(className.getClassName()) !=
+					null) {
+
+				_buildViewURL(
+					className.getClassName(), classPK,
+					searchResultSummaryDisplayContext);
+			}
 		}
 	}
 
@@ -1140,9 +1126,7 @@ public class SearchResultSummaryDisplayContextBuilder {
 	private AssetEntryLocalService _assetEntryLocalService;
 	private AssetRendererFactoryLookup _assetRendererFactoryLookup;
 	private ClassNameLocalService _classNameLocalService;
-	private String _currentURL;
 	private Document _document;
-	private DocumentBuilderFactory _documentBuilderFactory;
 	private FastDateFormatFactory _fastDateFormatFactory;
 	private GroupLocalService _groupLocalService;
 	private boolean _highlightEnabled;

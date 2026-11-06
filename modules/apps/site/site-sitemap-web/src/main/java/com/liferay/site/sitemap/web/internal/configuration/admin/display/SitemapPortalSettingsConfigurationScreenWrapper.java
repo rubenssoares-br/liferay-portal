@@ -17,16 +17,18 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.settings.configuration.admin.display.PortalSettingsConfigurationScreenContributor;
 import com.liferay.portal.settings.configuration.admin.display.PortalSettingsConfigurationScreenFactory;
 import com.liferay.site.configuration.manager.SitemapConfigurationManager;
+import com.liferay.site.manager.SitemapManager;
 import com.liferay.site.sitemap.web.internal.display.context.SitemapCompanyConfigurationDisplayContext;
+import com.liferay.site.storage.helper.SitemapStorageHelper;
+
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Locale;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -65,6 +67,12 @@ public class SitemapPortalSettingsConfigurationScreenWrapper
 
 	@Reference
 	private SitemapConfigurationManager _sitemapConfigurationManager;
+
+	@Reference
+	private SitemapManager _sitemapManager;
+
+	@Reference
+	private SitemapStorageHelper _sitemapStorageHelper;
 
 	private class SitemapPortalSettingsConfigurationScreenContributor
 		implements PortalSettingsConfigurationScreenContributor {
@@ -118,11 +126,12 @@ public class SitemapPortalSettingsConfigurationScreenWrapper
 					_groupLocalService, _itemSelector,
 					_portal.getLiferayPortletRequest(
 						(PortletRequest)httpServletRequest.getAttribute(
-							JavaConstants.JAVAX_PORTLET_REQUEST)),
+							JavaConstants.JAKARTA_PORTLET_REQUEST)),
 					_portal.getLiferayPortletResponse(
 						(PortletResponse)httpServletRequest.getAttribute(
-							JavaConstants.JAVAX_PORTLET_RESPONSE)),
-					_sitemapConfigurationManager,
+							JavaConstants.JAKARTA_PORTLET_RESPONSE)),
+					_sitemapConfigurationManager, _sitemapManager,
+					_sitemapStorageHelper,
 					(ThemeDisplay)httpServletRequest.getAttribute(
 						WebKeys.THEME_DISPLAY)));
 		}

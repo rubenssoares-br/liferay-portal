@@ -89,9 +89,7 @@ definition {
 
 	@summary = "Default summary"
 	macro gotoSelectCategory() {
-		IFrame.selectCategoryFrame();
-
-		Portlet.expandTree();
+		AssertVisible(locator1 = "Modal#BODY");
 	}
 
 	@summary = "Default summary"
@@ -136,6 +134,13 @@ definition {
 	@summary = "Default summary"
 	macro selectCategories(modalTitle = null, categoryNameList = null) {
 		AssetCategorization.gotoSelectCategory();
+
+		// Some category selectors, such as the web content filter, render
+		// the tree inside an item selector iframe.
+
+		if (IsElementPresent(locator1 = "IFrame#MODAL_BODY")) {
+			SelectFrame(locator1 = "IFrame#MODAL_BODY");
+		}
 
 		Portlet.expandTree();
 
@@ -250,6 +255,15 @@ definition {
 	}
 
 	@summary = "Default summary"
+	macro viewBlogsNoVocabularyField(vocabularyName = null) {
+		Blogs.expandPanel(panel = "Categorization");
+
+		AssertElementNotPresent(
+			key_vocabularyName = ${vocabularyName},
+			locator1 = "AssetCategorization#CATEGORIES_FIELD");
+	}
+
+	@summary = "Default summary"
 	macro viewCategory(categoryName = null) {
 		AssertTextEquals(
 			key_categoryName = ${categoryName},
@@ -265,7 +279,7 @@ definition {
 			key_vocabularyName = ${vocabularyName},
 			locator1 = "AssetCategorization#CATEGORY_SELECT");
 
-		IFrame.selectCategoryFrame();
+		AssertVisible(locator1 = "Modal#BODY");
 
 		AssertElementNotPresent(locator1 = "Button#PLUS");
 	}

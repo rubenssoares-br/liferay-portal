@@ -5,12 +5,17 @@
 
 import {JSXElementConstructor} from 'react';
 
-type LocalizedValue<T> = Liferay.Language.LocalizedValue<T>;
+export enum EActionTarget {
+	ASYNC = 'async',
+	HEADLESS = 'headless',
+	LINK = 'link',
+	MODAL = 'modal',
+	SIDEPANEL = 'sidePanel',
+}
 
-export enum EFilterType {
-	CLIENT_EXTENSION = 'CLIENT_EXTENSION',
-	DATE_RANGE = 'DATE_RANGE',
-	SELECTION = 'SELECTION',
+export enum EActionType {
+	CREATION = 'creation',
+	ITEM = 'item',
 }
 
 export enum EFieldFormat {
@@ -22,16 +27,53 @@ export enum EFieldFormat {
 
 export enum EFieldType {
 	ARRAY = 'array',
+	BOOLEAN = 'boolean',
+	COLLECTION_INTEGER = 'collection-integer',
+	COLLECTION_STRING = 'collection-string',
+	DATE = 'date',
+	DATE_TIME = 'date_time',
+	ID = 'id',
 	INTEGER = 'integer',
 	OBJECT = 'object',
 	STRING = 'string',
 }
 
+export enum EFilterType {
+	CLIENT_EXTENSION = 'CLIENT_EXTENSION',
+	DATE_RANGE = 'DATE_RANGE',
+	SELECTION = 'SELECTION',
+}
+
 export enum ESelectionFilterSourceType {
+	ITEM_PROXY = 'ITEM_PROXY',
 	OBJECT_PICKLIST = 'OBJECT_PICKLIST',
 	API_REST_APPLICATION = 'API_REST_APPLICATION',
 }
 
+export interface IProperty {
+	$ref?: string;
+	allOf?: IProperty[];
+	format?: EFieldFormat;
+	items?: IProperty;
+	type?: EFieldType;
+	['x-parent-map']?: string;
+}
+
+export interface IProperties {
+	[key: string]: IProperty;
+}
+
+export interface IFilterable {
+	[key: string]: IProperty;
+}
+
+export interface ISchemas {
+	[key: string]: {
+		'properties': IProperties;
+		'type': string;
+		'x-filterable'?: IFilterable;
+	};
+}
 export interface IBaseVisualizationMode<Mode extends string> {
 	label: string;
 	mode: Mode;
@@ -40,10 +82,10 @@ export interface IBaseVisualizationMode<Mode extends string> {
 }
 
 export interface ICards extends IBaseVisualizationMode<'cards'> {}
-export interface IList extends IBaseVisualizationMode<'list'> {}
-export interface ITable extends IBaseVisualizationMode<'table'> {}
 
-export type TVisualizationMode = ICards | IList | ITable;
+export interface IClientExtensionFilter extends IFilter {
+	clientExtensionEntryERC: string;
+}
 
 export interface IDataSet {
 	actions: {
@@ -56,6 +98,7 @@ export interface IDataSet {
 			method: string;
 		};
 	};
+	active: boolean;
 	additionalAPIURLParameters?: string;
 	creationActionsOrder?: string;
 	defaultItemsPerPage: number;
@@ -63,6 +106,7 @@ export interface IDataSet {
 	description?: string;
 	externalReferenceCode: string;
 	filtersOrder?: string;
+	hideManagementBarInEmptyState?: boolean;
 	id: string;
 	itemActionsOrder?: string;
 	label: string;
@@ -70,12 +114,34 @@ export interface IDataSet {
 	restApplication: string;
 	restEndpoint: string;
 	restSchema: string;
+	searchAsYouType?: boolean;
+	searchSuggestionsEnabled?: boolean;
+	showSearch: boolean;
+	snapshotsEnabled: boolean;
 	sortsOrder?: string;
 	tableSectionsOrder?: string;
 }
 
+export interface IDataSetTableSection extends IOrderable {
+	contextPath: string;
+	externalReferenceCode: string;
+	fieldName: string;
+	label: string;
+	label_i18n: TLocalizedValue<string>;
+	renderer: string;
+	rendererLabel?: string;
+	sortable: boolean;
+	type: string;
+}
+
+export interface IDateFilter extends IFilter {
+	from: string;
+	to: string;
+}
+
 export interface IField {
 	children?: Array<IField>;
+	entityFieldType?: EFieldType;
 	format?: EFieldFormat;
 	id?: string;
 	label?: string;
@@ -84,18 +150,6 @@ export interface IField {
 	sortable?: boolean;
 	type?: string;
 	visible?: boolean;
-}
-
-export interface IDataSetTableSection extends IOrderable {
-	contextPath: string;
-	externalReferenceCode: string;
-	fieldName: string;
-	label: string;
-	label_i18n: LocalizedValue<string>;
-	renderer: string;
-	rendererLabel?: string;
-	sortable: boolean;
-	type: string;
 }
 
 export interface IFieldTreeItem extends IField {
@@ -108,13 +162,14 @@ export interface IFieldTreeItem extends IField {
 }
 
 export interface IFilter extends IOrderable {
+	entityFieldType: EFieldType;
 	fieldName: string;
 	filterType?: EFilterType;
 	include?: boolean;
 	itemKey?: string;
 	itemLabel?: string;
 	label: string;
-	label_i18n: LocalizedValue<string>;
+	label_i18n: TLocalizedValue<string>;
 	multiple?: boolean;
 	preselectedValues?: any;
 	restApplication?: string;
@@ -131,20 +186,38 @@ export interface IFilterTypeProps {
 		Header: JSXElementConstructor<any>;
 	};
 	availableFieldsFilter: (field: IField) => boolean;
-	displayType: string;
+	displayType: (filter?: IFilter) => string;
 	fdsViewRelationship: string;
-	fdsViewRelationshipId: string;
 	label: string;
-	url: string;
 }
 
-export interface IClientExtensionFilter extends IFilter {
-	clientExtensionEntryERC: string;
+export interface IList extends IBaseVisualizationMode<'list'> {}
+
+export interface IListTypeEntry {
+	externalReferenceCode: string;
+	id: number;
+	key: string;
+	name: string;
+	name_i18n: {
+		[key: string]: string;
+	};
 }
 
-export interface IDateFilter extends IFilter {
-	from: string;
-	to: string;
+export interface IOrderable {
+	active: boolean;
+	dateCreated: string;
+	externalReferenceCode: string;
+	id: number;
+}
+
+export interface IPickList {
+	externalReferenceCode: string;
+	id: string;
+	listTypeEntries: IListTypeEntry[];
+	name: string;
+	name_i18n: {
+		[key: string]: string;
+	};
 }
 
 export interface ISelectionFilter extends IFilter {
@@ -160,27 +233,21 @@ export interface ISelectionFilter extends IFilter {
 	sourceType: ESelectionFilterSourceType;
 }
 
-export interface IOrderable {
-	dateCreated: string;
-	id: number;
+export interface ISystemDataSet {
+	additionalAPIURLParameters: string;
+	defaultItemsPerPage: number;
+	description: string;
+	imported: boolean;
+	name: string;
+	restApplication: string;
+	restEndpoint: string;
+	restSchema: string;
+	symbol: string;
+	title: string;
 }
 
-export interface IPickList {
-	externalReferenceCode: string;
-	id: string;
-	listTypeEntries: IListTypeEntry[];
-	name: string;
-	name_i18n: {
-		[key: string]: string;
-	};
-}
+export interface ITable extends IBaseVisualizationMode<'table'> {}
 
-export interface IListTypeEntry {
-	externalReferenceCode: string;
-	id: number;
-	key: string;
-	name: string;
-	name_i18n: {
-		[key: string]: string;
-	};
-}
+type TLocalizedValue<T> = Liferay.Language.LocalizedValue<T>;
+
+export type TVisualizationMode = ICards | IList | ITable;

@@ -55,12 +55,13 @@ public class ChangesetEntryLocalServiceUtil {
 	}
 
 	public static ChangesetEntry addChangesetEntry(
-			long userId, long changesetCollectionId, long classNameId,
-			long classPK)
+			long userId, long changesetCollectionId,
+			String classExternalReferenceCode, long classNameId, long classPK)
 		throws PortalException {
 
 		return getService().addChangesetEntry(
-			userId, changesetCollectionId, classNameId, classPK);
+			userId, changesetCollectionId, classExternalReferenceCode,
+			classNameId, classPK);
 	}
 
 	/**
@@ -236,12 +237,30 @@ public class ChangesetEntryLocalServiceUtil {
 			changesetCollectionId, classNameId, classPK);
 	}
 
+	public static ChangesetEntry fetchChangesetEntry(
+		long changesetCollectionId, String classExternalReferenceCode,
+		long classNameId) {
+
+		return getService().fetchChangesetEntry(
+			changesetCollectionId, classExternalReferenceCode, classNameId);
+	}
+
 	public static ChangesetEntry fetchOrAddChangesetEntry(
 			long changesetCollectionId, long classNameId, long classPK)
 		throws PortalException {
 
 		return getService().fetchOrAddChangesetEntry(
 			changesetCollectionId, classNameId, classPK);
+	}
+
+	public static ChangesetEntry fetchOrAddChangesetEntry(
+			long changesetCollectionId, String classExternalReferenceCode,
+			long classNameId, long classPK)
+		throws PortalException {
+
+		return getService().fetchOrAddChangesetEntry(
+			changesetCollectionId, classExternalReferenceCode, classNameId,
+			classPK);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
@@ -281,10 +300,6 @@ public class ChangesetEntryLocalServiceUtil {
 		return getService().getChangesetEntriesCount();
 	}
 
-	public static long getChangesetEntriesCount(long changesetCollectionId) {
-		return getService().getChangesetEntriesCount(changesetCollectionId);
-	}
-
 	public static long getChangesetEntriesCount(
 		long changesetCollectionId, long classNameId) {
 
@@ -310,14 +325,6 @@ public class ChangesetEntryLocalServiceUtil {
 		throws PortalException {
 
 		return getService().getChangesetEntry(changesetEntryId);
-	}
-
-	public static ChangesetEntry getChangesetEntry(
-			long changesetCollectionId, long classNameId, long classPK)
-		throws com.liferay.changeset.exception.NoSuchEntryException {
-
-		return getService().getChangesetEntry(
-			changesetCollectionId, classNameId, classPK);
 	}
 
 	public static
@@ -371,3 +378,4 @@ public class ChangesetEntryLocalServiceUtil {
 			ChangesetEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-183084480

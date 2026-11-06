@@ -19,7 +19,6 @@ import com.liferay.info.pagination.InfoPage;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.events.ServicePreAction;
 import com.liferay.portal.events.ThemeServicePreAction;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.servlet.DummyHttpServletResponse;
@@ -31,14 +30,14 @@ import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
+import com.liferay.segments.SegmentsEntryRetriever;
 import com.liferay.segments.context.RequestContextMapper;
-import com.liferay.segments.provider.SegmentsEntryProviderRegistry;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -111,10 +110,6 @@ public class ContentSetElementResourceImpl
 				Long siteId, String key, Pagination pagination)
 		throws Exception {
 
-		if (!FeatureFlagManagerUtil.isEnabled("LPD-32867")) {
-			throw new UnsupportedOperationException();
-		}
-
 		InfoCollectionProvider<?> infoCollectionProvider =
 			_infoItemServiceRegistry.getInfoItemService(
 				InfoCollectionProvider.class, key);
@@ -160,12 +155,9 @@ public class ContentSetElementResourceImpl
 			AssetListEntry assetListEntry, Pagination pagination)
 		throws Exception {
 
-		long[] segmentsEntryIds =
-			_segmentsEntryProviderRegistry.getSegmentsEntryIds(
-				assetListEntry.getGroupId(), contextUser.getModelClassName(),
-				contextUser.getPrimaryKey(),
-				_requestContextMapper.map(contextHttpServletRequest),
-				new long[0]);
+		long[] segmentsEntryIds = _segmentsEntryRetriever.getSegmentsEntryIds(
+			assetListEntry.getGroupId(), contextUser.getUserId(),
+			_requestContextMapper.map(contextHttpServletRequest));
 
 		InfoPage<AssetEntry> infoPage =
 			_assetListAssetEntryProvider.getAssetEntriesInfoPage(
@@ -278,6 +270,6 @@ public class ContentSetElementResourceImpl
 	private RequestContextMapper _requestContextMapper;
 
 	@Reference
-	private SegmentsEntryProviderRegistry _segmentsEntryProviderRegistry;
+	private SegmentsEntryRetriever _segmentsEntryRetriever;
 
 }

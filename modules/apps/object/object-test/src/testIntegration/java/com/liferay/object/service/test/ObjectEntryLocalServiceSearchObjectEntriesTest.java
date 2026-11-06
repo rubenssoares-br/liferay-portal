@@ -7,7 +7,10 @@ package com.liferay.object.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
+import com.liferay.document.library.test.util.DLTestUtil;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
+import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.field.builder.AttachmentObjectFieldBuilder;
 import com.liferay.object.field.builder.ObjectFieldBuilder;
 import com.liferay.object.field.builder.TextObjectFieldBuilder;
@@ -22,6 +25,7 @@ import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.search.BaseModelSearchResult;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -86,9 +90,16 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 				"alpha"
 			).objectFieldSettings(
 				Arrays.asList(
-					_createObjectFieldSetting("acceptedFileExtensions", "txt"),
-					_createObjectFieldSetting("fileSource", "userComputer"),
-					_createObjectFieldSetting("maximumFileSize", "100"))
+					_createObjectFieldSetting(
+						ObjectFieldSettingConstants.
+							NAME_ACCEPTED_FILE_EXTENSIONS,
+						"txt"),
+					_createObjectFieldSetting(
+						ObjectFieldSettingConstants.NAME_FILE_SOURCE,
+						ObjectFieldSettingConstants.
+							VALUE_USER_COMPUTER_TO_DOCS_AND_MEDIA),
+					_createObjectFieldSetting(
+						ObjectFieldSettingConstants.NAME_MAX_FILE_SIZE, "100"))
 			).build());
 		_testAttachment(
 			attachmentObjectFieldBuilder.indexedAsKeyword(
@@ -473,6 +484,62 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 	}
 
 	@Test
+	public void testSearchByFileExtension() throws Exception {
+		_addObjectDefinition(
+			new AttachmentObjectFieldBuilder(
+			).indexed(
+				true
+			).labelMap(
+				LocalizedMapUtil.getLocalizedMap("Upload")
+			).name(
+				"upload"
+			).objectFieldSettings(
+				Arrays.asList(
+					_createObjectFieldSetting(
+						ObjectFieldSettingConstants.
+							NAME_ACCEPTED_FILE_EXTENSIONS,
+						"jpg, txt"),
+					_createObjectFieldSetting(
+						ObjectFieldSettingConstants.NAME_FILE_SOURCE,
+						ObjectFieldSettingConstants.
+							VALUE_USER_COMPUTER_TO_DOCS_AND_MEDIA),
+					_createObjectFieldSetting(
+						ObjectFieldSettingConstants.NAME_MAX_FILE_SIZE, "100"))
+			).build());
+
+		FileEntry jpgFileEntry = TempFileEntryUtil.addTempFileEntry(
+			TestPropsValues.getGroupId(), TestPropsValues.getUserId(),
+			_objectDefinition.getPortletId(),
+			TempFileEntryUtil.getTempFileName(
+				RandomTestUtil.randomString() + ".jpg"),
+			FileUtil.createTempFile(DLTestUtil.getImageBytes("jpg")),
+			ContentTypes.IMAGE_JPEG);
+
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"upload", jpgFileEntry.getFileEntryId()
+			).build());
+
+		FileEntry txtFileEntry = TempFileEntryUtil.addTempFileEntry(
+			TestPropsValues.getGroupId(), TestPropsValues.getUserId(),
+			_objectDefinition.getPortletId(),
+			TempFileEntryUtil.getTempFileName(
+				RandomTestUtil.randomString() + ".txt"),
+			FileUtil.createTempFile(DLTestUtil.randomTextFileBytes()),
+			ContentTypes.TEXT_PLAIN);
+
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"upload", txtFileEntry.getFileEntryId()
+			).build());
+
+		_assertKeywords("JPG", 1);
+		_assertKeywords("TXT", 1);
+		_assertKeywords("jpg", 1);
+		_assertKeywords("txt", 1);
+	}
+
+	@Test
 	public void testSearchByTitleValue() throws Exception {
 		_addObjectDefinition(
 			ObjectFieldUtil.createObjectField(
@@ -497,6 +564,49 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 	}
 
 	@Test
+	public void testSearchWithDoubleQuotes() throws Exception {
+		_addObjectDefinition(
+			ObjectFieldUtil.createObjectField(
+				ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+				ObjectFieldConstants.DB_TYPE_STRING, true, false, null, "Alpha",
+				"alpha", false));
+
+		String string1 = RandomTestUtil.randomString();
+		String string2 = RandomTestUtil.randomString();
+
+		String text = string1 + StringPool.SPACE + string2;
+
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"alpha", string1
+			).build());
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"alpha", string1 + RandomTestUtil.randomString()
+			).build());
+
+		_assertKeywords(StringPool.QUOTE + string1 + StringPool.QUOTE, 1);
+
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"alpha", string2
+			).build());
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"alpha", string2 + RandomTestUtil.randomString()
+			).build());
+
+		_assertKeywords(StringPool.QUOTE + string2 + StringPool.QUOTE, 1);
+
+		_addObjectEntry(
+			HashMapBuilder.<String, Serializable>put(
+				"alpha", text
+			).build());
+
+		_assertKeywords(StringPool.QUOTE + text + StringPool.QUOTE, 1);
+	}
+
+	@Test
 	public void testString() throws Exception {
 		_testCharacterDataType(
 			ObjectFieldConstants.BUSINESS_TYPE_TEXT,
@@ -516,7 +626,7 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 		throws Exception {
 
 		_objectDefinition = ObjectDefinitionTestUtil.addCustomObjectDefinition(
-			false, Arrays.asList(objectField));
+			Arrays.asList(objectField));
 
 		_objectDefinition.setTitleObjectFieldId(_getTitleObjectFieldId());
 
@@ -534,9 +644,10 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 		throws Exception {
 
 		return _objectEntryLocalService.addObjectEntry(
-			TestPropsValues.getUserId(), 0,
-			_objectDefinition.getObjectDefinitionId(), values,
-			ServiceContextTestUtil.getServiceContext());
+			0, TestPropsValues.getUserId(),
+			_objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null, values, ServiceContextTestUtil.getServiceContext());
 	}
 
 	private void _assertKeywords(String keywords, int count) throws Exception {
@@ -587,11 +698,13 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 
 		_addObjectDefinition(objectField);
 
+		String content = RandomTestUtil.randomString();
+
 		FileEntry fileEntry = TempFileEntryUtil.addTempFileEntry(
 			TestPropsValues.getGroupId(), TestPropsValues.getUserId(),
 			_objectDefinition.getPortletId(),
 			TempFileEntryUtil.getTempFileName("document.txt"),
-			FileUtil.createTempFile(RandomTestUtil.randomBytes()),
+			FileUtil.createTempFile(content.getBytes()),
 			ContentTypes.TEXT_PLAIN);
 
 		_addObjectEntry(
@@ -607,9 +720,11 @@ public class ObjectEntryLocalServiceSearchObjectEntriesTest {
 				"document.tx", objectField.isIndexedAsKeyword() ? 1 : 0);
 			_assertKeywords("document.txt", 1);
 			_assertKeywords("ocument.txt", 0);
+			_assertKeywords(content, objectField.isIndexedAsKeyword() ? 0 : 1);
 		}
 		else {
 			_assertKeywords("document.txt", 0);
+			_assertKeywords(content, 0);
 		}
 	}
 

@@ -1,4 +1,4 @@
-@component-name = "portal-security"
+@component-name = "portal-application-security"
 definition {
 
 	property ci.retries.disabled = "true";
@@ -15,6 +15,10 @@ definition {
 		TestCase.setUpPortalInstance();
 
 		User.firstLoginPG();
+
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
+		}
 	}
 
 	@description = "LPS-133646 and LPS-133653 TC-1: Verify that information is present in the logs after enabling log context & Incoming X-Request-ID."
@@ -208,7 +212,7 @@ definition {
 	@description = "This is a use case for LPS-140258. TC-1: Assert that sessionId is not present in the audit log context."
 	@priority = 5
 	test AssertSessionIdIsNotPresentInAuditLogContext {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -236,7 +240,7 @@ definition {
 	@description = "This is a use case for LPS-140258. TC-2: Assert that sessionId is not present in the Audit Log portlet's UI."
 	@priority = 5
 	test AssertSessionIdIsNotPresentInAuditLogPortlet {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 

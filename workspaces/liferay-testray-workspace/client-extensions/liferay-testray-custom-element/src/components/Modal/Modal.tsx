@@ -6,6 +6,8 @@
 import ClayModal from '@clayui/modal';
 import React, {ReactElement, ReactNode} from 'react';
 
+import {Liferay} from '../../services/liferay';
+
 type ModalProps = {
 	children: ReactNode;
 	className?: string;
@@ -34,7 +36,9 @@ const Modal: React.FC<ModalProps> = ({
 
 	return (
 		<ClayModal observer={observer} size={size}>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				<ClayModal.Title>{title}</ClayModal.Title>
 			</ClayModal.Header>
 

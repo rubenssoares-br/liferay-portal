@@ -3,9 +3,16 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+type AssetDisplayPageEntry = {
+	assetDisplayPageEntryId: string;
+	groupId: string;
+};
+
 type AssetListEntry = {
 	assetListEntryId: string;
+	externalReferenceCode: string;
 	groupId: string;
+	title: string;
 };
 
 type CollectionConfig = {
@@ -52,6 +59,8 @@ type FormConfig = {
 
 type Layout = {
 	companyId: string;
+	draftLayout?: Layout;
+	externalReferenceCode: string;
 	friendlyURL: string;
 	friendlyUrlPath: string;
 	groupId: string;
@@ -71,9 +80,15 @@ type Layout = {
 };
 
 type LayoutPageTemplateEntry = {
+	externalReferenceCode: string;
 	groupId: string;
 	layoutPageTemplateEntryId: string;
 	plid: string;
+};
+
+type LayoutPageTemplateCollection = {
+	groupId: string;
+	layoutPageTemplateCollectionId: string;
 };
 
 type PageDefinition = {
@@ -82,6 +97,18 @@ type PageDefinition = {
 
 type PageElement = {
 	definition?: {
+		backgroundImage?: {
+			title?: {value: string};
+			url?: {
+				mapping?: {
+					itemReference?: {
+						className: string;
+						classPK: string;
+					};
+				};
+				value?: string;
+			};
+		};
 		collectionConfig?: CollectionConfig;
 		collectionViewports?: Array<CollectionViewport>;
 		cssClasses?: string[];
@@ -103,6 +130,11 @@ type PageElement = {
 			widgetConfig?: Record<string, any>;
 			widgetName: string;
 		};
+		widgetInstances?: Array<{
+			widgetConfig?: Record<string, any>;
+			widgetInstanceId?: string;
+			widgetName: string;
+		}>;
 	};
 	id: string;
 	pageElements?: PageElement[];

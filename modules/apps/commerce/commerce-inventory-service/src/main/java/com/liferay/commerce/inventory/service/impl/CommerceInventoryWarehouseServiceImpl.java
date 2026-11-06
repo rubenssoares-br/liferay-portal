@@ -11,7 +11,6 @@ import com.liferay.commerce.inventory.service.base.CommerceInventoryWarehouseSer
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
@@ -82,8 +81,8 @@ public class CommerceInventoryWarehouseServiceImpl
 		throws PortalException {
 
 		CommerceInventoryWarehouse commerceInventoryWarehouse =
-			commerceInventoryWarehouseLocalService.
-				fetchCommerceInventoryWarehouse(commerceInventoryWarehouseId);
+			commerceInventoryWarehousePersistence.fetchByPrimaryKey(
+				commerceInventoryWarehouseId);
 
 		if (commerceInventoryWarehouse != null) {
 			_commerceInventoryWarehouseModelResourcePermission.check(
@@ -101,9 +100,8 @@ public class CommerceInventoryWarehouseServiceImpl
 		throws PortalException {
 
 		CommerceInventoryWarehouse commerceInventoryWarehouse =
-			commerceInventoryWarehouseLocalService.
-				fetchCommerceInventoryWarehouseByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			commerceInventoryWarehousePersistence.fetchByERC_C(
+				externalReferenceCode, companyId);
 
 		if (commerceInventoryWarehouse != null) {
 			_commerceInventoryWarehouseModelResourcePermission.check(
@@ -138,19 +136,26 @@ public class CommerceInventoryWarehouseServiceImpl
 			getPermissionChecker(), commerceInventoryWarehouseId,
 			ActionKeys.VIEW);
 
-		return commerceInventoryWarehouseLocalService.
-			getCommerceInventoryWarehouse(commerceInventoryWarehouseId);
+		return commerceInventoryWarehousePersistence.findByPrimaryKey(
+			commerceInventoryWarehouseId);
 	}
 
 	@Override
 	public List<CommerceInventoryWarehouse> getCommerceInventoryWarehouses(
 			long companyId, boolean active, int start, int end,
 			OrderByComparator<CommerceInventoryWarehouse> orderByComparator)
-		throws PrincipalException {
+		throws PortalException {
 
-		return commerceInventoryWarehouseLocalService.
-			getCommerceInventoryWarehouses(
-				companyId, active, start, end, orderByComparator);
+		PortletResourcePermission portletResourcePermission =
+			_commerceInventoryWarehouseModelResourcePermission.
+				getPortletResourcePermission();
+
+		portletResourcePermission.check(
+			getPermissionChecker(), null,
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
+
+		return commerceInventoryWarehousePersistence.filterFindByC_A(
+			companyId, active, start, end, orderByComparator);
 	}
 
 	@Override
@@ -166,12 +171,11 @@ public class CommerceInventoryWarehouseServiceImpl
 
 		portletResourcePermission.check(
 			getPermissionChecker(), null,
-			CommerceInventoryActionKeys.MANAGE_INVENTORY);
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
-		return commerceInventoryWarehouseLocalService.
-			getCommerceInventoryWarehouses(
-				companyId, active, commerceCountryCode, start, end,
-				orderByComparator);
+		return commerceInventoryWarehousePersistence.findByC_A_C(
+			companyId, active, commerceCountryCode, start, end,
+			orderByComparator);
 	}
 
 	@Override
@@ -186,7 +190,7 @@ public class CommerceInventoryWarehouseServiceImpl
 
 		portletResourcePermission.check(
 			getPermissionChecker(), null,
-			CommerceInventoryActionKeys.MANAGE_INVENTORY);
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
 		return commerceInventoryWarehouseLocalService.
 			getCommerceInventoryWarehouses(
@@ -195,7 +199,7 @@ public class CommerceInventoryWarehouseServiceImpl
 
 	@Override
 	public List<CommerceInventoryWarehouse> getCommerceInventoryWarehouses(
-			long companyId, long groupId, boolean active)
+			long companyId, long accountEntryId, long groupId, boolean active)
 		throws PortalException {
 
 		PortletResourcePermission portletResourcePermission =
@@ -204,10 +208,11 @@ public class CommerceInventoryWarehouseServiceImpl
 
 		portletResourcePermission.check(
 			getPermissionChecker(), null,
-			CommerceInventoryActionKeys.MANAGE_INVENTORY);
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
 		return commerceInventoryWarehouseLocalService.
-			getCommerceInventoryWarehouses(companyId, groupId, active);
+			getCommerceInventoryWarehouses(
+				companyId, accountEntryId, groupId, active);
 	}
 
 	@Override
@@ -220,10 +225,10 @@ public class CommerceInventoryWarehouseServiceImpl
 
 		portletResourcePermission.check(
 			getPermissionChecker(), null,
-			CommerceInventoryActionKeys.MANAGE_INVENTORY);
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
-		return commerceInventoryWarehouseLocalService.
-			getCommerceInventoryWarehousesCount(companyId);
+		return commerceInventoryWarehousePersistence.countByCompanyId(
+			companyId);
 	}
 
 	@Override
@@ -237,7 +242,7 @@ public class CommerceInventoryWarehouseServiceImpl
 
 		portletResourcePermission.check(
 			getPermissionChecker(), null,
-			CommerceInventoryActionKeys.MANAGE_INVENTORY);
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
 		return commerceInventoryWarehouseLocalService.
 			getCommerceInventoryWarehousesCount(
@@ -249,6 +254,14 @@ public class CommerceInventoryWarehouseServiceImpl
 			long companyId, Boolean active, String commerceCountryCode,
 			String keywords, int start, int end, Sort sort)
 		throws PortalException {
+
+		PortletResourcePermission portletResourcePermission =
+			_commerceInventoryWarehouseModelResourcePermission.
+				getPortletResourcePermission();
+
+		portletResourcePermission.check(
+			getPermissionChecker(), null,
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
 		return commerceInventoryWarehouseLocalService.search(
 			companyId, active, commerceCountryCode, keywords, start, end, sort);
@@ -266,7 +279,7 @@ public class CommerceInventoryWarehouseServiceImpl
 
 		portletResourcePermission.check(
 			getPermissionChecker(), null,
-			CommerceInventoryActionKeys.MANAGE_INVENTORY);
+			CommerceInventoryActionKeys.VIEW_INVENTORIES);
 
 		return commerceInventoryWarehouseLocalService.
 			searchCommerceInventoryWarehousesCount(

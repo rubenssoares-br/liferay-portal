@@ -14,6 +14,7 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.orm.QueryDefinition;
+import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
@@ -30,12 +31,13 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.servlet.taglib.ui.ImageSelector;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HtmlParser;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.rss.export.RSSExporter;
 import com.liferay.rss.model.SyndContent;
 import com.liferay.rss.model.SyndEntry;
@@ -213,9 +215,8 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 			long groupId, String externalReferenceCode)
 		throws PortalException {
 
-		BlogsEntry entry =
-			blogsEntryLocalService.getBlogsEntryByExternalReferenceCode(
-				externalReferenceCode, groupId);
+		BlogsEntry entry = blogsEntryPersistence.findByERC_G(
+			externalReferenceCode, groupId);
 
 		_blogsEntryModelResourcePermission.check(
 			getPermissionChecker(), entry, ActionKeys.VIEW);
@@ -228,7 +229,7 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 			long companyId, Date displayDate, int status, int max)
 		throws PortalException {
 
-		List<BlogsEntry> entries = new ArrayList<>();
+		List<BlogsEntry> blogsEntries1 = new ArrayList<>();
 
 		boolean listNotExhausted = true;
 
@@ -239,31 +240,33 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 			queryDefinition.setStatus(WorkflowConstants.STATUS_IN_TRASH, true);
 		}
 
-		while ((entries.size() < max) && listNotExhausted) {
+		while ((blogsEntries1.size() < max) && listNotExhausted) {
 			queryDefinition.setEnd(queryDefinition.getStart() + max);
 
-			List<BlogsEntry> entryList =
+			List<BlogsEntry> blogsEntries2 =
 				blogsEntryLocalService.getCompanyEntries(
 					companyId, displayDate, queryDefinition);
 
 			queryDefinition.setStart(queryDefinition.getStart() + max);
 
-			listNotExhausted = entryList.size() == max;
+			listNotExhausted = blogsEntries2.size() == max;
 
-			for (BlogsEntry entry : entryList) {
-				if (entries.size() >= max) {
+			for (BlogsEntry blogsEntry : blogsEntries2) {
+				if (blogsEntries1.size() >= max) {
 					break;
 				}
 
-				if (_blogsEntryModelResourcePermission.contains(
-						getPermissionChecker(), entry, ActionKeys.VIEW)) {
+				if (!_blogsEntryModelResourcePermission.contains(
+						getPermissionChecker(), blogsEntry, ActionKeys.VIEW)) {
 
-					entries.add(entry);
+					continue;
 				}
+
+				blogsEntries1.add(blogsEntry);
 			}
 		}
 
-		return entries;
+		return blogsEntries1;
 	}
 
 	@Override
@@ -294,17 +297,18 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 		_blogsEntryModelResourcePermission.check(
 			getPermissionChecker(), entry, ActionKeys.VIEW);
 
-		BlogsEntry[] entries =
-			blogsEntryPersistence.filterFindByG_D_S_PrevAndNext(
-				entryId, entry.getGroupId(), entry.getDisplayDate(),
-				WorkflowConstants.STATUS_APPROVED,
-				EntryIdComparator.getInstance(true));
+		BlogsEntry[] entries = ListUtil.getPreviousAndNext(
+			blogsEntryPersistence.filterFindByG_D_S(
+				entry.getGroupId(), entry.getDisplayDate(),
+				WorkflowConstants.STATUS_APPROVED, QueryUtil.ALL_POS,
+				QueryUtil.ALL_POS, EntryIdComparator.getInstance(true)),
+			entry::equals, BlogsEntry[]::new);
 
 		if (entries[0] == null) {
-			entries[0] = blogsEntryPersistence.fetchByG_LtD_S_Last(
+			entries[0] = blogsEntryPersistence.fetchByG_LtD_S_First(
 				entry.getGroupId(), entry.getDisplayDate(),
 				WorkflowConstants.STATUS_APPROVED,
-				EntryDisplayDateComparator.getInstance(true));
+				EntryDisplayDateComparator.getInstance(false));
 
 			if ((entries[0] != null) &&
 				!_blogsEntryModelResourcePermission.contains(
@@ -333,7 +337,7 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 
 	@Override
 	public BlogsEntry getEntry(long entryId) throws PortalException {
-		BlogsEntry entry = blogsEntryLocalService.getEntry(entryId);
+		BlogsEntry entry = blogsEntryPersistence.findByPrimaryKey(entryId);
 
 		_blogsEntryModelResourcePermission.check(
 			getPermissionChecker(), entry, ActionKeys.VIEW);
@@ -450,49 +454,6 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 	}
 
 	@Override
-	public List<BlogsEntry> getGroupsEntries(
-			long companyId, long groupId, Date displayDate, int status, int max)
-		throws PortalException {
-
-		List<BlogsEntry> entries = new ArrayList<>();
-
-		boolean listNotExhausted = true;
-
-		QueryDefinition<BlogsEntry> queryDefinition = new QueryDefinition<>(
-			status, false, 0, 0, EntryDisplayDateComparator.getInstance(false));
-
-		if (status == WorkflowConstants.STATUS_ANY) {
-			queryDefinition.setStatus(WorkflowConstants.STATUS_IN_TRASH, true);
-		}
-
-		while ((entries.size() < max) && listNotExhausted) {
-			queryDefinition.setEnd(queryDefinition.getStart() + max);
-
-			List<BlogsEntry> entryList =
-				blogsEntryLocalService.getGroupsEntries(
-					companyId, groupId, displayDate, queryDefinition);
-
-			queryDefinition.setStart(queryDefinition.getStart() + max);
-
-			listNotExhausted = entryList.size() == max;
-
-			for (BlogsEntry entry : entryList) {
-				if (entries.size() >= max) {
-					break;
-				}
-
-				if (_blogsEntryModelResourcePermission.contains(
-						getPermissionChecker(), entry, ActionKeys.VIEW)) {
-
-					entries.add(entry);
-				}
-			}
-		}
-
-		return entries;
-	}
-
-	@Override
 	public List<BlogsEntry> getGroupUserEntries(
 		long groupId, long userId, int status, int start, int end,
 		OrderByComparator<BlogsEntry> orderByComparator) {
@@ -536,11 +497,11 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 	}
 
 	@Override
-	public List<BlogsEntry> getOrganizationEntries(
-			long organizationId, Date displayDate, int status, int max)
+	public List<BlogsEntry> getGroupsEntries(
+			long companyId, long groupId, Date displayDate, int status, int max)
 		throws PortalException {
 
-		List<BlogsEntry> entries = new ArrayList<>();
+		List<BlogsEntry> blogsEntries1 = new ArrayList<>();
 
 		boolean listNotExhausted = true;
 
@@ -551,30 +512,78 @@ public class BlogsEntryServiceImpl extends BlogsEntryServiceBaseImpl {
 			queryDefinition.setStatus(WorkflowConstants.STATUS_IN_TRASH, true);
 		}
 
-		while ((entries.size() < max) && listNotExhausted) {
+		while ((blogsEntries1.size() < max) && listNotExhausted) {
 			queryDefinition.setEnd(queryDefinition.getStart() + max);
 
-			List<BlogsEntry> entryList = blogsEntryFinder.findByOrganizationId(
-				organizationId, displayDate, queryDefinition);
+			List<BlogsEntry> blogsEntries2 =
+				blogsEntryLocalService.getGroupsEntries(
+					companyId, groupId, displayDate, queryDefinition);
 
 			queryDefinition.setStart(queryDefinition.getStart() + max);
 
-			listNotExhausted = entryList.size() == max;
+			listNotExhausted = blogsEntries2.size() == max;
 
-			for (BlogsEntry entry : entryList) {
-				if (entries.size() >= max) {
+			for (BlogsEntry blogsEntry : blogsEntries2) {
+				if (blogsEntries1.size() >= max) {
 					break;
 				}
 
-				if (_blogsEntryModelResourcePermission.contains(
-						getPermissionChecker(), entry, ActionKeys.VIEW)) {
+				if (!_blogsEntryModelResourcePermission.contains(
+						getPermissionChecker(), blogsEntry, ActionKeys.VIEW)) {
 
-					entries.add(entry);
+					continue;
 				}
+
+				blogsEntries1.add(blogsEntry);
 			}
 		}
 
-		return entries;
+		return blogsEntries1;
+	}
+
+	@Override
+	public List<BlogsEntry> getOrganizationEntries(
+			long organizationId, Date displayDate, int status, int max)
+		throws PortalException {
+
+		List<BlogsEntry> blogsEntries1 = new ArrayList<>();
+
+		boolean listNotExhausted = true;
+
+		QueryDefinition<BlogsEntry> queryDefinition = new QueryDefinition<>(
+			status, false, 0, 0, EntryDisplayDateComparator.getInstance(false));
+
+		if (status == WorkflowConstants.STATUS_ANY) {
+			queryDefinition.setStatus(WorkflowConstants.STATUS_IN_TRASH, true);
+		}
+
+		while ((blogsEntries1.size() < max) && listNotExhausted) {
+			queryDefinition.setEnd(queryDefinition.getStart() + max);
+
+			List<BlogsEntry> blogsEntries2 =
+				blogsEntryFinder.findByOrganizationId(
+					organizationId, displayDate, queryDefinition);
+
+			queryDefinition.setStart(queryDefinition.getStart() + max);
+
+			listNotExhausted = blogsEntries2.size() == max;
+
+			for (BlogsEntry blogsEntry : blogsEntries2) {
+				if (blogsEntries1.size() >= max) {
+					break;
+				}
+
+				if (!_blogsEntryModelResourcePermission.contains(
+						getPermissionChecker(), blogsEntry, ActionKeys.VIEW)) {
+
+					continue;
+				}
+
+				blogsEntries1.add(blogsEntry);
+			}
+		}
+
+		return blogsEntries1;
 	}
 
 	@Override

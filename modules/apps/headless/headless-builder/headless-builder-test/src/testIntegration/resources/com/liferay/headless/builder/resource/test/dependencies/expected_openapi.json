@@ -1,6 +1,16 @@
 {
 	"components": {
 		"schemas": {
+			"AddedSchemaName": {
+				"description": "description",
+				"properties": {
+					"addedTextProperty": {
+						"description": "description",
+						"type": "string"
+					}
+				},
+				"type": "object"
+			},
 			"Facet": {
 				"properties": {
 					"facetCriteria": {
@@ -29,11 +39,23 @@
 			},
 			"FileEntry": {
 				"properties": {
+					"alternativeText": {
+						"readOnly": true,
+						"type": "string"
+					},
+					"extension": {
+						"readOnly": true,
+						"type": "string"
+					},
 					"externalReferenceCode": {
 						"type": "string"
 					},
 					"fileBase64": {
 						"description": "optional field with the content of the document in Base64, can be embedded with nestedFields (the format of the nested field must be `<attachment field name>.fileBase64`)",
+						"type": "string"
+					},
+					"fileURL": {
+						"description": "optional field that specifies the source of the file to be downloaded, can be embedded with nestedFields (the format of the nested field must be `<attachment field name>.fileURL`)",
 						"type": "string"
 					},
 					"folder": {
@@ -46,11 +68,38 @@
 					"link": {
 						"$ref": "#/components/schemas/Link"
 					},
+					"metadata": {
+						"additionalProperties": {
+							"description": "optional field that specifies the metadata of the file, can be embedded with nestedFields (the format of the nested field must be `<attachment field name>.metadata`)",
+							"type": "object"
+						},
+						"description": "optional field that specifies the metadata of the file, can be embedded with nestedFields (the format of the nested field must be `<attachment field name>.metadata`)",
+						"readOnly": true,
+						"type": "object"
+					},
+					"mimeType": {
+						"readOnly": true,
+						"type": "string"
+					},
 					"name": {
+						"type": "string"
+					},
+					"previewURL": {
+						"description": "optional field that specifies the preview URL of the file to be used, can be embedded with nestedFields (the format of the nested field must be `<attachment field name>.previewURL`)",
+						"readOnly": true,
 						"type": "string"
 					},
 					"scope": {
 						"$ref": "#/components/schemas/Scope"
+					},
+					"size": {
+						"readOnly": true,
+						"type": "string"
+					},
+					"thumbnailURL": {
+						"description": "optional field that specifies the thumbnail of the file to be used, can be embedded with nestedFields (the format of the nested field must be `<attachment field name>.thumbnailURL`)",
+						"readOnly": true,
+						"type": "string"
 					},
 					"x-class-name": {
 						"default": "com.liferay.object.rest.dto.v1_0.FileEntry",
@@ -97,7 +146,6 @@
 						"type": "string"
 					}
 				},
-				"readOnly": true,
 				"type": "object",
 				"xml": {
 					"name": "Link"
@@ -128,6 +176,48 @@
 				"xml": {
 					"name": "ListEntry"
 				}
+			},
+			"PageAddedSchemaName": {
+				"properties": {
+					"actions": {
+						"additionalProperties": {
+							"additionalProperties": {
+								"type": "string"
+							},
+							"type": "object"
+						},
+						"type": "object"
+					},
+					"facets": {
+						"items": {
+							"$ref": "#/components/schemas/Facet"
+						},
+						"type": "array"
+					},
+					"items": {
+						"items": {
+							"$ref": "#/components/schemas/AddedSchemaName"
+						},
+						"type": "array"
+					},
+					"lastPage": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"page": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"pageSize": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"totalCount": {
+						"format": "int64",
+						"type": "integer"
+					}
+				},
+				"type": "object"
 			},
 			"PageSchemaName": {
 				"properties": {
@@ -213,46 +303,6 @@
 				},
 				"type": "object"
 			},
-			"RecordSchemaName": {
-				"description": "description",
-				"properties": {
-					"recordProperty1": {
-						"description": "description",
-						"type": "object"
-					},
-					"recordProperty2": {
-						"description": "description",
-						"properties": {
-							"recordProperty3": {
-								"description": "description",
-								"type": "object"
-							},
-							"textProperty": {
-								"description": "description",
-								"type": "string"
-							}
-						},
-						"type": "object"
-					},
-					"recordProperty4": {
-						"description": "description",
-						"properties": {
-							"recordProperty5": {
-								"description": "description",
-								"properties": {
-									"longTextProperty": {
-										"description": "description",
-										"type": "string"
-									}
-								},
-								"type": "object"
-							}
-						},
-						"type": "object"
-					}
-				},
-				"type": "object"
-			},
 			"SchemaName": {
 				"description": "description",
 				"properties": {
@@ -325,17 +375,28 @@
 			"Scope": {
 				"properties": {
 					"externalReferenceCode": {
+						"description": "The scope's external reference code.",
+						"type": "string"
+					},
+					"key": {
+						"description": "The scope's identifier.",
+						"type": "string"
+					},
+					"label": {
+						"description": "The scope's name.",
 						"type": "string"
 					},
 					"type": {
+						"description": "The scope's type.",
 						"enum": [
 							"AssetLibrary",
-							"Site"
+							"Site",
+							"Space"
 						],
 						"type": "string"
 					},
 					"x-class-name": {
-						"default": "com.liferay.object.rest.dto.v1_0.Scope",
+						"default": "com.liferay.portal.vulcan.scope.Scope",
 						"readOnly": true,
 						"type": "string"
 					}
@@ -374,6 +435,46 @@
 					}
 				},
 				"type": "object"
+			},
+			"UpdatedRecordSchemaName": {
+				"description": "updated description",
+				"properties": {
+					"recordProperty1": {
+						"description": "description",
+						"type": "object"
+					},
+					"recordProperty2": {
+						"description": "description",
+						"properties": {
+							"recordProperty3": {
+								"description": "description",
+								"type": "object"
+							},
+							"textProperty": {
+								"description": "description",
+								"type": "string"
+							}
+						},
+						"type": "object"
+					},
+					"recordProperty4": {
+						"description": "description",
+						"properties": {
+							"recordProperty5": {
+								"description": "description",
+								"properties": {
+									"longTextProperty": {
+										"description": "description",
+										"type": "string"
+									}
+								},
+								"type": "object"
+							}
+						},
+						"type": "object"
+					}
+				},
+				"type": "object"
 			}
 		}
 	},
@@ -388,6 +489,101 @@
 	},
 	"openapi": "3.0.1",
 	"paths": {
+		"/added-path": {
+			"get": {
+				"operationId": "getAddedPathPage",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "filter",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "sort",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageAddedSchemaName"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageAddedSchemaName"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"AddedSchemaName"
+				]
+			}
+		},
+		"/company-scoped-no-schema": {
+			"get": {
+				"operationId": "getCompanyScopedNoSchemaPage",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "filter",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "sort",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"description": "default response"
+					}
+				}
+			}
+		},
 		"/openapi.{type}": {
 			"get": {
 				"operationId": "getOpenAPI",
@@ -397,6 +593,7 @@
 						"name": "type",
 						"required": true,
 						"schema": {
+							"pattern": "json|yaml",
 							"type": "string"
 						}
 					}
@@ -735,7 +932,7 @@
 	},
 	"servers": [
 		{
-			"url": "http://localhost:8080/o/${BASE_URL}/"
+			"url": "http://localhost:${PORT}/o/${BASE_URL}/"
 		}
 	]
 }

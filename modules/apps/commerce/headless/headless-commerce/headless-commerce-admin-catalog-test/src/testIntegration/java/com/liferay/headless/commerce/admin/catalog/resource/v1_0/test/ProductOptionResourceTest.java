@@ -6,23 +6,40 @@
 package com.liferay.headless.commerce.admin.catalog.resource.v1_0.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.commerce.product.configuration.CProductVersionConfiguration;
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.model.CPOption;
 import com.liferay.commerce.product.model.CProduct;
+import com.liferay.commerce.product.model.CommerceCatalog;
+import com.liferay.commerce.product.service.CPDefinitionLocalService;
+import com.liferay.commerce.product.service.CPDefinitionOptionRelLocalService;
+import com.liferay.commerce.product.service.CPOptionLocalService;
 import com.liferay.commerce.product.test.util.CPTestUtil;
+import com.liferay.exportimport.test.util.LazyReferencingTestUtil;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductOption;
 import com.liferay.headless.commerce.admin.catalog.client.pagination.Page;
+import com.liferay.headless.commerce.admin.catalog.client.problem.Problem;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
+import com.liferay.portal.kernel.dao.orm.QueryUtil;
+import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityField;
+import com.liferay.portal.test.rule.Inject;
 
 import java.math.BigDecimal;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -127,6 +144,9 @@ public class ProductOptionResourceTest
 		assertEquals(randomProductOption, postProductOption);
 		assertValid(postProductOption);
 
+		_testPostProductIdProductOptionsPageProductVersioning();
+		_testPostProductIdProductOptionsPageWithLazyReferencingDisabled();
+		_testPostProductIdProductOptionsPageWithLazyReferencingEnabled();
 		_testPostProductIdProductOptionsPageWithOptionExternalReferenceCode();
 	}
 
@@ -249,16 +269,27 @@ public class ProductOptionResourceTest
 		Collection<ProductOption> productOptions) {
 
 		for (ProductOption productOption : productOptions) {
-			long optionId = productOption.getOptionId();
+			ProductOption curProductOption = _productOptions.putIfAbsent(
+				productOption.getOptionId(), productOption);
 
-			if (!_productOptions.containsKey(optionId)) {
-				_productOptions.put(optionId, productOption);
-
+			if (curProductOption == null) {
 				return productOption;
 			}
 		}
 
 		return null;
+	}
+
+	private ProductOption _randomProductOptionWithEmptyOption()
+		throws Exception {
+
+		ProductOption productOption = randomProductOption();
+
+		productOption.setOptionExternalReferenceCode(
+			StringUtil.toLowerCase(RandomTestUtil.randomString()));
+		productOption.setOptionId(0L);
+
+		return productOption;
 	}
 
 	private void _testPatchProductOptionWithOptionExternalReferenceCode()
@@ -323,6 +354,179 @@ public class ProductOptionResourceTest
 			postProductOption.getOptionExternalReferenceCode());
 	}
 
+	private void _testPostProductIdProductOptionsPageProductVersioning()
+		throws Exception {
+
+		try (CompanyConfigurationTemporarySwapper
+				companyConfigurationTemporarySwapper =
+					new CompanyConfigurationTemporarySwapper(
+						testCompany.getCompanyId(),
+						CProductVersionConfiguration.class.getName(),
+						HashMapDictionaryBuilder.<String, Object>put(
+							"enabled", true
+						).build())) {
+
+			CommerceCatalog commerceCatalog =
+				CPTestUtil.getSystemCommerceCatalog(testCompany.getCompanyId());
+
+			CPDefinition cpDefinition1 = CPTestUtil.addCPDefinitionFromCatalog(
+				commerceCatalog.getGroupId(), "simple", null, null, true, true,
+				WorkflowConstants.STATUS_APPROVED,
+				ServiceContextTestUtil.getServiceContext(
+					commerceCatalog.getGroupId()));
+
+			_cpDefinitions.add(cpDefinition1);
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_APPROVED));
+
+			Assert.assertEquals(
+				0,
+				_cpDefinitionOptionRelLocalService.
+					getCPDefinitionOptionRelsCount(
+						cpDefinition1.getCPDefinitionId()));
+
+			CPOption cpOption1 = CPTestUtil.addCPOption(
+				commerceCatalog.getGroupId(), true);
+
+			ProductOption productOption1 = randomProductOption();
+
+			productOption1.setKey(cpOption1.getKey());
+
+			productOptionResource.postProductIdProductOptionsPage(
+				cpDefinition1.getCProductId(),
+				new ProductOption[] {productOption1});
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_APPROVED));
+
+			Assert.assertEquals(
+				0,
+				_cpDefinitionOptionRelLocalService.
+					getCPDefinitionOptionRelsCount(
+						cpDefinition1.getCPDefinitionId()));
+
+			List<CPDefinition> cpDefinitions =
+				_cpDefinitionLocalService.getCProductCPDefinitions(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT, QueryUtil.ALL_POS,
+					QueryUtil.ALL_POS);
+
+			Assert.assertEquals(
+				cpDefinitions.toString(), 1, cpDefinitions.size());
+
+			CPDefinition cpDefinition2 = cpDefinitions.get(0);
+
+			_cpDefinitions.add(cpDefinition2);
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionOptionRelLocalService.
+					getCPDefinitionOptionRelsCount(
+						cpDefinition2.getCPDefinitionId()));
+
+			CPOption cpOption2 = CPTestUtil.addCPOption(
+				commerceCatalog.getGroupId(), true);
+
+			ProductOption productOption2 = randomProductOption();
+
+			productOption2.setKey(cpOption2.getKey());
+
+			productOptionResource.postProductIdProductOptionsPage(
+				cpDefinition1.getCProductId(),
+				new ProductOption[] {productOption1, productOption2});
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_APPROVED));
+
+			Assert.assertEquals(
+				1,
+				_cpDefinitionLocalService.getCProductCPDefinitionsCount(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT));
+
+			CPDefinition cpDefinition3 =
+				_cpDefinitionLocalService.fetchCPDefinitionByCProductId(
+					cpDefinition1.getCProductId(),
+					WorkflowConstants.STATUS_DRAFT);
+
+			Assert.assertEquals(
+				cpDefinition2.getCPDefinitionId(),
+				cpDefinition3.getCPDefinitionId());
+
+			Assert.assertEquals(
+				2,
+				_cpDefinitionOptionRelLocalService.
+					getCPDefinitionOptionRelsCount(
+						cpDefinition3.getCPDefinitionId()));
+		}
+	}
+
+	private void _testPostProductIdProductOptionsPageWithLazyReferencingDisabled()
+		throws Exception {
+
+		try {
+			productOptionResource.postProductIdProductOptionsPage(
+				_cProduct.getCProductId(),
+				new ProductOption[] {_randomProductOptionWithEmptyOption()});
+
+			Assert.fail();
+		}
+		catch (Problem.ProblemException problemException) {
+			Problem problem = problemException.getProblem();
+
+			Assert.assertEquals("NOT_FOUND", problem.getStatus());
+		}
+	}
+
+	private void _testPostProductIdProductOptionsPageWithLazyReferencingEnabled()
+		throws Exception {
+
+		Page<ProductOption> productOptionPage = null;
+
+		ProductOption productOption = _randomProductOptionWithEmptyOption();
+
+		try (SafeCloseable safeCloseable =
+				LazyReferencingTestUtil.setLazyReferencingWithSafeCloseable(
+					true)) {
+
+			productOptionPage =
+				productOptionResource.postProductIdProductOptionsPage(
+					_cProduct.getCProductId(),
+					new ProductOption[] {productOption});
+		}
+
+		CPOption cpOption =
+			_cpOptionLocalService.getCPOptionByExternalReferenceCode(
+				productOption.getOptionExternalReferenceCode(),
+				testCompany.getCompanyId());
+
+		Assert.assertEquals(
+			productOption.getName(),
+			LanguageUtils.getLanguageIdMap(cpOption.getNameMap()));
+		Assert.assertEquals(
+			WorkflowConstants.STATUS_EMPTY, cpOption.getStatus());
+
+		ProductOption postProductOption = _getLastProductOption(
+			productOptionPage.getItems());
+
+		Assert.assertEquals(
+			cpOption.getCPOptionId(),
+			GetterUtil.getLong(postProductOption.getOptionId()));
+		Assert.assertEquals(
+			productOption.getOptionExternalReferenceCode(),
+			postProductOption.getOptionExternalReferenceCode());
+	}
+
 	private void _testPostProductIdProductOptionsPageWithOptionExternalReferenceCode()
 		throws Exception {
 
@@ -351,9 +555,24 @@ public class ProductOptionResourceTest
 			postProductOption.getOptionExternalReferenceCode());
 	}
 
-	private CPDefinition _cpDefinition;
-	private CPInstance _cpInstance;
 	private CProduct _cProduct;
+	private CPDefinition _cpDefinition;
+
+	@Inject
+	private CPDefinitionLocalService _cpDefinitionLocalService;
+
+	@Inject
+	private CPDefinitionOptionRelLocalService
+		_cpDefinitionOptionRelLocalService;
+
+	@DeleteAfterTestRun
+	private List<CPDefinition> _cpDefinitions = new ArrayList<>();
+
+	private CPInstance _cpInstance;
+
+	@Inject
+	private CPOptionLocalService _cpOptionLocalService;
+
 	private final Map<Long, ProductOption> _productOptions = new HashMap<>();
 
 }

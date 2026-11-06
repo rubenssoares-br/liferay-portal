@@ -8,13 +8,13 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.DisplayPageTemplateSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -26,6 +26,28 @@ public class DisplayPageTemplate implements Cloneable, Serializable {
 	public static DisplayPageTemplate toDTO(String json) {
 		return DisplayPageTemplateSerDes.toDTO(json);
 	}
+
+	public Map<String, Map<String, String>> getActions() {
+		return actions;
+	}
+
+	public void setActions(Map<String, Map<String, String>> actions) {
+		this.actions = actions;
+	}
+
+	public void setActions(
+		UnsafeSupplier<Map<String, Map<String, String>>, Exception>
+			actionsUnsafeSupplier) {
+
+		try {
+			actions = actionsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Map<String, Map<String, String>> actions;
 
 	public ClassSubtypeReference getContentTypeReference() {
 		return contentTypeReference;
@@ -71,31 +93,6 @@ public class DisplayPageTemplate implements Cloneable, Serializable {
 	}
 
 	protected Creator creator;
-
-	public String getCreatorExternalReferenceCode() {
-		return creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		String creatorExternalReferenceCode) {
-
-		this.creatorExternalReferenceCode = creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			creatorExternalReferenceCodeUnsafeSupplier) {
-
-		try {
-			creatorExternalReferenceCode =
-				creatorExternalReferenceCodeUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected String creatorExternalReferenceCode;
 
 	public Date getDateCreated() {
 		return dateCreated;
@@ -205,6 +202,28 @@ public class DisplayPageTemplate implements Cloneable, Serializable {
 	}
 
 	protected String externalReferenceCode;
+
+	public FriendlyUrlHistory getFriendlyUrlHistory() {
+		return friendlyUrlHistory;
+	}
+
+	public void setFriendlyUrlHistory(FriendlyUrlHistory friendlyUrlHistory) {
+		this.friendlyUrlHistory = friendlyUrlHistory;
+	}
+
+	public void setFriendlyUrlHistory(
+		UnsafeSupplier<FriendlyUrlHistory, Exception>
+			friendlyUrlHistoryUnsafeSupplier) {
+
+		try {
+			friendlyUrlHistory = friendlyUrlHistoryUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected FriendlyUrlHistory friendlyUrlHistory;
 
 	public Map<String, String> getFriendlyUrlPath_i18n() {
 		return friendlyUrlPath_i18n;
@@ -333,27 +352,58 @@ public class DisplayPageTemplate implements Cloneable, Serializable {
 
 	protected DisplayPageTemplateFolder parentFolder;
 
-	public ItemExternalReference getThumbnail() {
-		return thumbnail;
+	public com.liferay.headless.admin.site.client.permission.Permission[]
+		getPermissions() {
+
+		return permissions;
 	}
 
-	public void setThumbnail(ItemExternalReference thumbnail) {
-		this.thumbnail = thumbnail;
+	public void setPermissions(
+		com.liferay.headless.admin.site.client.permission.Permission[]
+			permissions) {
+
+		this.permissions = permissions;
 	}
 
-	public void setThumbnail(
-		UnsafeSupplier<ItemExternalReference, Exception>
-			thumbnailUnsafeSupplier) {
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.headless.admin.site.client.permission.Permission[],
+			 Exception> permissionsUnsafeSupplier) {
 
 		try {
-			thumbnail = thumbnailUnsafeSupplier.get();
+			permissions = permissionsUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected ItemExternalReference thumbnail;
+	protected com.liferay.headless.admin.site.client.permission.Permission[]
+		permissions;
+
+	public ThumbnailURLReference getThumbnailURLReference() {
+		return thumbnailURLReference;
+	}
+
+	public void setThumbnailURLReference(
+		ThumbnailURLReference thumbnailURLReference) {
+
+		this.thumbnailURLReference = thumbnailURLReference;
+	}
+
+	public void setThumbnailURLReference(
+		UnsafeSupplier<ThumbnailURLReference, Exception>
+			thumbnailURLReferenceUnsafeSupplier) {
+
+		try {
+			thumbnailURLReference = thumbnailURLReferenceUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected ThumbnailURLReference thumbnailURLReference;
 
 	public String getUuid() {
 		return uuid;
@@ -406,3 +456,4 @@ public class DisplayPageTemplate implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-747269028
