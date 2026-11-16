@@ -1,4 +1,4 @@
-@component-name = "data-engine"
+@component-name = "portal-bpm"
 definition {
 
 	property portal.release = "true";
@@ -29,7 +29,7 @@ definition {
 	@description = "This is a test for LRQA-66585. This test validates the creation, edition and persistence of fields with Options on the Web Content Admin."
 	@priority = 5
 	test AddAndEditTranslatedFieldsWithOptions {
-		property custom.properties = "feature.flag.LPD-11228=true${line.separator}feature.flag.LPD-15596=true";
+		property custom.properties = "feature.flag.LPD-11228=true";
 		property portal.acceptance = "true";
 
 		NavItem.gotoStructures();
@@ -236,20 +236,6 @@ definition {
 
 		PortletEntry.publish();
 
-		AssertClick(
-			buttonName = "Publish With Permissions",
-			locator1 = "WCEditWebContent#PUBLISH_WITH_PERMISSIONS_BUTTON",
-			value1 = "Publish With Permissions");
-
-		WaitForElementPresent(
-			locator1 = "Modal#SELECT_WITH_LABEL",
-			selectLabel = "Viewable by");
-
-		AssertClick(
-			buttonName = "Publish",
-			locator1 = "Modal#PRIMARY_BUTTON",
-			value1 = "Publish");
-
 		WebContent.viewWithStructureCP(
 			webContentMultipleSelection = "Option 1 - edited",
 			webContentMultipleSelectionFieldLabel = "Multiple Selection - edited",
@@ -304,11 +290,6 @@ definition {
 			webContentMultipleSelectionFieldLabel = "Multiple Selection - pt-BR edited");
 
 		PortletEntry.publish();
-
-		AssertClick(
-			buttonName = "Publish",
-			locator1 = "WCEditWebContent#PUBLISH_BUTTON",
-			value1 = "Publish");
 
 		WebContent.viewWithStructureCP(
 			webContentMultipleSelection = "Option 3 - edited",
@@ -380,7 +361,7 @@ definition {
 
 		DataEngine.addRepeatableField(fieldLabel = "Grupo de Campos");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContentNavigator.gotoEditCP(webContentTitle = "WC Title");
 
@@ -561,7 +542,7 @@ definition {
 			webContentText = "This is a Text field",
 			webContentTitle = "Web Content Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContentNavigator.gotoEditCP(webContentTitle = "Web Content Title");
 
@@ -624,7 +605,7 @@ definition {
 			webContentText = "Este é um campo de texto",
 			webContentTitle = "Título do conteúdo da web");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContentNavigator.gotoEditCP(webContentTitle = "Web Content Title");
 
@@ -800,7 +781,7 @@ definition {
 			webContentTextFieldLabel = "Text Japan",
 			webContentTitle = "WC Structure Title Japan");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContent.viewWithStructureCP(
 			webContentNumeric = 123,
@@ -923,7 +904,7 @@ definition {
 			webContentText = "Este é um campo de texto",
 			webContentTitle = "Título do Web Content");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContent.viewWithStructureCP(
 			webContentColor = 000000,
@@ -984,7 +965,7 @@ definition {
 			webContentText = "frFR Text",
 			webContentTitle = "WC WebContent frFR");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContent.viewWithStructureCP(
 			webContentRichText = "English Rich Text",
@@ -1021,7 +1002,7 @@ definition {
 	@description = "This test ensures Web Content translations persists."
 	@priority = 5
 	test TranslationsRemainsUponSavingWebContent {
-		property custom.properties = "feature.flag.LPD-11228=true${line.separator}feature.flag.LPD-15596=true";
+		property custom.properties = "feature.flag.LPD-11228=true";
 		property portal.acceptance = "true";
 
 		NavItem.gotoStructures();
@@ -1066,20 +1047,6 @@ definition {
 			webContentRichTextFieldLabel = "Second Rich Text");
 
 		PortletEntry.publish();
-
-		AssertClick(
-			buttonName = "Publish With Permissions",
-			locator1 = "WCEditWebContent#PUBLISH_WITH_PERMISSIONS_BUTTON",
-			value1 = "Publish With Permissions");
-
-		WaitForElementPresent(
-			locator1 = "Modal#SELECT_WITH_LABEL",
-			selectLabel = "Viewable by");
-
-		AssertClick(
-			buttonName = "Publish",
-			locator1 = "Modal#PRIMARY_BUTTON",
-			value1 = "Publish");
 
 		WebContent.viewWithStructureCP(
 			webContentRichText = "This is the first Rich Text field",

@@ -116,11 +116,7 @@ public class AssetListEntryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		AssetListEntry newAssetListEntry = _persistence.create(pk);
-
-		newAssetListEntry.setMvccVersion(RandomTestUtil.nextLong());
+		AssetListEntry newAssetListEntry = addAssetListEntry();
 
 		newAssetListEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -153,7 +149,9 @@ public class AssetListEntryPersistenceTest {
 
 		newAssetListEntry.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_assetListEntries.add(_persistence.update(newAssetListEntry));
+		newAssetListEntry = _persistence.update(newAssetListEntry);
+
+		_assetListEntries.add(newAssetListEntry);
 
 		AssetListEntry existingAssetListEntry = _persistence.findByPrimaryKey(
 			newAssetListEntry.getPrimaryKey());
@@ -300,14 +298,6 @@ public class AssetListEntryPersistenceTest {
 		_persistence.countByG_LikeT(
 			new long[] {RandomTestUtil.nextLong(), 0L},
 			RandomTestUtil.randomString());
-	}
-
-	@Test
-	public void testCountByG_TY() throws Exception {
-		_persistence.countByG_TY(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByG_TY(0L, 0);
 	}
 
 	@Test
@@ -764,8 +754,6 @@ public class AssetListEntryPersistenceTest {
 
 		AssetListEntry assetListEntry = _persistence.create(pk);
 
-		assetListEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		assetListEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		assetListEntry.setUuid(RandomTestUtil.randomString());
@@ -807,3 +795,4 @@ public class AssetListEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1021977032

@@ -27,18 +27,31 @@ import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.renderer.DefaultFragmentRendererContext;
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.fragment.renderer.FragmentRendererContext;
+import com.liferay.fragment.renderer.FragmentRendererController;
 import com.liferay.fragment.service.FragmentEntryLinkLocalService;
 import com.liferay.fragment.service.FragmentEntryLocalService;
 import com.liferay.fragment.test.util.FragmentTestUtil;
+import com.liferay.info.exception.InfoFormValidationException;
+import com.liferay.info.field.InfoField;
+import com.liferay.info.field.type.OptionInfoFieldType;
+import com.liferay.info.field.type.SelectInfoFieldType;
+import com.liferay.info.form.InfoForm;
+import com.liferay.info.localized.InfoLocalizedValue;
 import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.test.util.JournalTestUtil;
+import com.liferay.layout.constants.LayoutWebKeys;
 import com.liferay.layout.test.util.LayoutTestUtil;
+import com.liferay.layout.util.structure.FormStyledLayoutStructureItem;
+import com.liferay.layout.util.structure.LayoutStructure;
+import com.liferay.layout.util.structure.LayoutStructureItem;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
+import com.liferay.portal.kernel.exception.InfoFormException;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -48,6 +61,7 @@ import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -61,9 +75,12 @@ import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.DateUtil;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.HtmlUtil;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -75,10 +92,10 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.HashMap;
 import java.util.Locale;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -126,6 +143,37 @@ public class FragmentEntryFragmentRendererTest {
 	}
 
 	@Test
+	@TestInfo("LPS-146373")
+	public void testAddMappedFragmentEntryLinkWithPrefixURL() throws Exception {
+		FragmentEntryLink fragmentEntryLink = _addHeadingFragmentEntryLink(
+			JSONUtil.put(
+				"element-text",
+				JSONUtil.put(
+					"config",
+					JSONUtil.put(
+						"href",
+						JSONUtil.put(
+							LocaleUtil.toLanguageId(
+								LocaleUtil.getSiteDefault()),
+							"test@liferay.com")
+					).put(
+						"mapperType", "link"
+					).put(
+						"prefix", "mailto:"
+					)
+				).put(
+					"defaultValue", "Heading Example"
+				)));
+
+		MockHttpServletResponse mockHttpServletResponse =
+			_renderFragmentEntryLink(fragmentEntryLink);
+
+		String content = mockHttpServletResponse.getContentAsString();
+
+		Assert.assertTrue(content.contains("mailto:test@liferay.com"));
+	}
+
+	@Test
 	public void testAddMappedFragmentEntryLinkWithURL() throws Exception {
 		FragmentEntryLink fragmentEntryLink = _addHeadingFragmentEntryLink(
 			JSONUtil.put(
@@ -140,6 +188,8 @@ public class FragmentEntryFragmentRendererTest {
 							"https://liferay.com")
 					).put(
 						"mapperType", "link"
+					).put(
+						"target", "_blank"
 					)
 				).put(
 					"defaultValue", "Heading Example"
@@ -151,6 +201,8 @@ public class FragmentEntryFragmentRendererTest {
 		String content = mockHttpServletResponse.getContentAsString();
 
 		Assert.assertTrue(content.contains("https://liferay.com"));
+		Assert.assertTrue(
+			content.contains("rel=\"noopener noreferrer\" target=\"_blank\""));
 	}
 
 	@Test
@@ -159,8 +211,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -173,6 +227,21 @@ public class FragmentEntryFragmentRendererTest {
 			fragmentEntryLink, _locale);
 
 		Assert.assertTrue(content.contains(fragmentEntry.getHtml()));
+
+		fragmentEntryLink =
+			_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
+				fragmentEntryLink.getFragmentEntryLinkId());
+
+		Assert.assertTrue(fragmentEntryLink.isCacheable());
+
+		_fragmentEntryLocalService.updateFragmentEntry(
+			fragmentEntry.getFragmentEntryId(), false);
+
+		fragmentEntryLink =
+			_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
+				fragmentEntryLink.getFragmentEntryLinkId());
+
+		Assert.assertFalse(fragmentEntryLink.isCacheable());
 	}
 
 	@Test
@@ -183,8 +252,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -231,8 +302,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), _read("configuration.json"), null,
@@ -255,6 +328,25 @@ public class FragmentEntryFragmentRendererTest {
 
 		Assert.assertTrue(content.contains("\"buttonSize\":\"nm\""));
 		Assert.assertTrue(content.contains("\"buttonType\":\"primary\""));
+
+		DefaultFragmentRendererContext defaultFragmentRendererContext =
+			new DefaultFragmentRendererContext(fragmentEntryLink);
+
+		defaultFragmentRendererContext.setLocale(LocaleUtil.SPAIN);
+
+		JSONObject translatedConfigurationJSONObject =
+			_fragmentRendererController.getConfigurationJSONObject(
+				defaultFragmentRendererContext);
+
+		JSONObject configurationJSONObject = JSONFactoryUtil.createJSONObject(
+			fragmentEntryLink.getConfiguration());
+
+		Assert.assertNotEquals(
+			configurationJSONObject.toString(),
+			translatedConfigurationJSONObject.toString());
+		Assert.assertEquals(
+			configurationJSONObject.toString(),
+			String.valueOf(fragmentEntryLink.getConfigurationJSONObject()));
 	}
 
 	@Test
@@ -263,8 +355,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -276,17 +370,16 @@ public class FragmentEntryFragmentRendererTest {
 
 		defaultFragmentRendererContext.setLocale(LocaleUtil.US);
 
-		HttpServletRequest mockHttpServletRequest =
-			new MockHttpServletRequest();
+		HttpServletRequest httpServletRequest = new MockHttpServletRequest();
 
-		mockHttpServletRequest.setAttribute(
-			WebKeys.THEME_DISPLAY, _getThemeDisplay(mockHttpServletRequest));
+		httpServletRequest.setAttribute(
+			WebKeys.THEME_DISPLAY, _getThemeDisplay(httpServletRequest));
 
 		MockHttpServletResponse mockHttpServletResponse =
 			new MockHttpServletResponse();
 
 		_fragmentRenderer.render(
-			defaultFragmentRendererContext, mockHttpServletRequest,
+			defaultFragmentRendererContext, httpServletRequest,
 			mockHttpServletResponse);
 
 		String content = mockHttpServletResponse.getContentAsString();
@@ -305,7 +398,7 @@ public class FragmentEntryFragmentRendererTest {
 			mockHttpServletResponse = new MockHttpServletResponse();
 
 			_fragmentRenderer.render(
-				defaultFragmentRendererContext, mockHttpServletRequest,
+				defaultFragmentRendererContext, httpServletRequest,
 				mockHttpServletResponse);
 
 			content = mockHttpServletResponse.getContentAsString();
@@ -399,8 +492,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -422,8 +517,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -431,6 +528,105 @@ public class FragmentEntryFragmentRendererTest {
 				_serviceContext);
 
 		_testRenderWithNonce(fragmentEntryLink, RandomTestUtil.randomString());
+	}
+
+	@Test
+	@TestInfo("LPD-112147")
+	public void testRenderWithSelectInfoFieldType() throws Exception {
+		FragmentEntry fragmentEntry =
+			_fragmentCollectionContributorRegistry.getFragmentEntry(
+				"INPUTS-select-from-list");
+		String inputFieldId = RandomTestUtil.randomString();
+
+		FragmentEntryLink fragmentEntryLink =
+			_fragmentEntryLinkLocalService.addFragmentEntryLink(
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(), null,
+				_defaultSegmentsExperienceId, _layout.getPlid(),
+				fragmentEntry.getCss(), fragmentEntry.getHtml(),
+				fragmentEntry.getJs(), fragmentEntry.getConfiguration(),
+				JSONUtil.put(
+					FragmentEntryProcessorConstants.
+						KEY_FREEMARKER_FRAGMENT_ENTRY_PROCESSOR,
+					JSONUtil.put("inputFieldId", inputFieldId)
+				).toString(),
+				StringPool.BLANK, 0, fragmentEntry.getFragmentEntryKey(),
+				fragmentEntry.getType(), _serviceContext);
+
+		String html =
+			"\"><img onerror=alert(1) src=x></script><script>alert(2)</script>";
+
+		InfoField<?> infoField = InfoField.builder(
+		).infoFieldType(
+			SelectInfoFieldType.INSTANCE
+		).namespace(
+			StringPool.BLANK
+		).name(
+			inputFieldId
+		).attribute(
+			SelectInfoFieldType.OPTIONS,
+			ListUtil.fromArray(
+				new OptionInfoFieldType(
+					true, InfoLocalizedValue.singleValue(html),
+					RandomTestUtil.randomString()))
+		).labelInfoLocalizedValue(
+			InfoLocalizedValue.singleValue(RandomTestUtil.randomString())
+		).build();
+
+		DefaultFragmentRendererContext defaultFragmentRendererContext =
+			new DefaultFragmentRendererContext(fragmentEntryLink);
+
+		defaultFragmentRendererContext.setInfoForm(
+			InfoForm.builder(
+			).infoFieldSetEntry(
+				infoField
+			).name(
+				RandomTestUtil.randomString()
+			).build());
+		defaultFragmentRendererContext.setLocale(_locale);
+
+		HttpServletRequest httpServletRequest = _getHttpServletRequest();
+
+		LayoutStructure layoutStructure = new LayoutStructure();
+
+		LayoutStructureItem rootLayoutStructureItem =
+			layoutStructure.addRootLayoutStructureItem();
+
+		FormStyledLayoutStructureItem formStyledLayoutStructureItem =
+			(FormStyledLayoutStructureItem)
+				layoutStructure.addFormStyledLayoutStructureItem(
+					rootLayoutStructureItem.getItemId(), 0);
+
+		formStyledLayoutStructureItem.setLocalizationConfigJSONObject(
+			JSONUtil.put(
+				"unlocalizedFieldsMessage",
+				JSONUtil.put(LocaleUtil.toLanguageId(_locale), html)));
+
+		layoutStructure.addFragmentStyledLayoutStructureItem(
+			fragmentEntryLink.getFragmentEntryLinkId(),
+			formStyledLayoutStructureItem.getItemId(), 0);
+
+		httpServletRequest.setAttribute(
+			LayoutWebKeys.LAYOUT_STRUCTURE, layoutStructure);
+
+		SessionErrors.add(
+			httpServletRequest, InfoFormException.class,
+			new InfoFormValidationException.CustomValidation(
+				infoField.getUniqueId(), html));
+
+		MockHttpServletResponse mockHttpServletResponse =
+			new MockHttpServletResponse();
+
+		_fragmentRenderer.render(
+			defaultFragmentRendererContext, httpServletRequest,
+			mockHttpServletResponse);
+
+		String content = mockHttpServletResponse.getContentAsString();
+
+		Assert.assertFalse(content.contains("<img onerror"));
+		Assert.assertFalse(content.contains("<script>alert(2)"));
+		Assert.assertTrue(
+			content.contains("value=\"" + HtmlUtil.escape(html) + "\""));
 	}
 
 	@Test
@@ -446,8 +642,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -519,7 +717,8 @@ public class FragmentEntryFragmentRendererTest {
 							"element-text",
 							JSONUtil.put(
 								LocaleUtil.toLanguageId(_locale), updatedText))
-					).toString()));
+					).toString(),
+					true));
 
 			String curContent =
 				_fragmentEntryLinkCache.getFragmentEntryLinkContent(
@@ -567,8 +766,10 @@ public class FragmentEntryFragmentRendererTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), _group.getGroupId()),
 				_defaultSegmentsExperienceId, _layout.getPlid(),
 				fragmentEntry.getCss(), fragmentEntry.getHtml(),
 				fragmentEntry.getJs(), fragmentEntry.getConfiguration(), null,
@@ -616,18 +817,18 @@ public class FragmentEntryFragmentRendererTest {
 			new byte[0], null, null, null, _serviceContext);
 	}
 
-	private FragmentEntryLink _addHeadingFragmentEntryLink(
-			JSONObject jsonObject)
+	private FragmentEntryLink _addHTMLFragmentEntryLink(JSONObject jsonObject)
 		throws Exception {
 
 		FragmentEntry fragmentEntry =
 			_fragmentCollectionContributorRegistry.getFragmentEntry(
-				"BASIC_COMPONENT-heading");
+				"BASIC_COMPONENT-html");
 
 		return _fragmentEntryLinkLocalService.addFragmentEntryLink(
-			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-			fragmentEntry.getFragmentEntryId(), _defaultSegmentsExperienceId,
-			_layout.getPlid(), fragmentEntry.getCss(), fragmentEntry.getHtml(),
+			null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+			fragmentEntry.getExternalReferenceCode(), null,
+			_defaultSegmentsExperienceId, _layout.getPlid(),
+			fragmentEntry.getCss(), fragmentEntry.getHtml(),
 			fragmentEntry.getJs(), fragmentEntry.getConfiguration(),
 			JSONUtil.put(
 				FragmentEntryProcessorConstants.
@@ -638,17 +839,19 @@ public class FragmentEntryFragmentRendererTest {
 			fragmentEntry.getType(), _serviceContext);
 	}
 
-	private FragmentEntryLink _addHTMLFragmentEntryLink(JSONObject jsonObject)
+	private FragmentEntryLink _addHeadingFragmentEntryLink(
+			JSONObject jsonObject)
 		throws Exception {
 
 		FragmentEntry fragmentEntry =
 			_fragmentCollectionContributorRegistry.getFragmentEntry(
-				"BASIC_COMPONENT-html");
+				"BASIC_COMPONENT-heading");
 
 		return _fragmentEntryLinkLocalService.addFragmentEntryLink(
-			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-			fragmentEntry.getFragmentEntryId(), _defaultSegmentsExperienceId,
-			_layout.getPlid(), fragmentEntry.getCss(), fragmentEntry.getHtml(),
+			null, TestPropsValues.getUserId(), _group.getGroupId(), null,
+			fragmentEntry.getExternalReferenceCode(), null,
+			_defaultSegmentsExperienceId, _layout.getPlid(),
+			fragmentEntry.getCss(), fragmentEntry.getHtml(),
 			fragmentEntry.getJs(), fragmentEntry.getConfiguration(),
 			JSONUtil.put(
 				FragmentEntryProcessorConstants.
@@ -692,21 +895,20 @@ public class FragmentEntryFragmentRendererTest {
 			fragmentCollection.getFragmentCollectionId(), null,
 			RandomTestUtil.randomString(), ".component{color:blue;}",
 			"Fragment Entry HTML", "console.log('test');", cacheable, null,
-			null, 0, false, FragmentConstants.TYPE_COMPONENT, null,
+			null, 0, false, false, FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED, _serviceContext);
 	}
 
 	private HttpServletRequest _getHttpServletRequest() throws Exception {
-		HttpServletRequest mockHttpServletRequest =
-			new MockHttpServletRequest();
+		HttpServletRequest httpServletRequest = new MockHttpServletRequest();
 
-		mockHttpServletRequest.setAttribute(
+		httpServletRequest.setAttribute(
 			TilesUtil.DEFINITION,
 			new Definition(StringPool.BLANK, new HashMap<>()));
-		mockHttpServletRequest.setAttribute(
-			WebKeys.THEME_DISPLAY, _getThemeDisplay(mockHttpServletRequest));
+		httpServletRequest.setAttribute(
+			WebKeys.THEME_DISPLAY, _getThemeDisplay(httpServletRequest));
 
-		return mockHttpServletRequest;
+		return httpServletRequest;
 	}
 
 	private ThemeDisplay _getThemeDisplay(HttpServletRequest httpServletRequest)
@@ -727,6 +929,7 @@ public class FragmentEntryFragmentRendererTest {
 			PermissionCheckerFactoryUtil.create(TestPropsValues.getUser()));
 		themeDisplay.setRealUser(TestPropsValues.getUser());
 		themeDisplay.setRequest(httpServletRequest);
+		themeDisplay.setScopeGroupId(_group.getGroupId());
 		themeDisplay.setUser(TestPropsValues.getUser());
 
 		httpServletRequest.setAttribute(WebKeys.THEME_DISPLAY, themeDisplay);
@@ -810,9 +1013,6 @@ public class FragmentEntryFragmentRendererTest {
 	}
 
 	@Inject
-	private static CTCollectionLocalService _ctCollectionLocalService;
-
-	@Inject
 	private BlogsEntryLocalService _blogsEntryLocalService;
 
 	@Inject
@@ -823,6 +1023,9 @@ public class FragmentEntryFragmentRendererTest {
 
 	@Inject
 	private ConfigurationProvider _configurationProvider;
+
+	@Inject
+	private CTCollectionLocalService _ctCollectionLocalService;
 
 	@Inject
 	private CTCollectionService _ctCollectionService;
@@ -849,6 +1052,9 @@ public class FragmentEntryFragmentRendererTest {
 		filter = "component.name=com.liferay.fragment.internal.renderer.FragmentEntryFragmentRenderer"
 	)
 	private FragmentRenderer _fragmentRenderer;
+
+	@Inject
+	private FragmentRendererController _fragmentRendererController;
 
 	@DeleteAfterTestRun
 	private Group _group;

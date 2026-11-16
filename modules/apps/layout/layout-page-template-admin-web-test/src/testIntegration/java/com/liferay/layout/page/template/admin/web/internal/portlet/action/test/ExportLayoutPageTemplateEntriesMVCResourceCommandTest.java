@@ -42,6 +42,8 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import jakarta.portlet.ResourceRequest;
+
 import java.io.File;
 
 import java.util.Arrays;
@@ -49,8 +51,6 @@ import java.util.Enumeration;
 import java.util.Objects;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-
-import javax.portlet.ResourceRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,7 +90,7 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					"Page Template Collection One", StringPool.BLANK,
+					null, "Page Template Collection One", StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					_serviceContext);
 
@@ -125,12 +125,14 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 			while (enumeration.hasMoreElements()) {
 				ZipEntry zipEntry = enumeration.nextElement();
 
-				if (!zipEntry.isDirectory()) {
-					_validateZipEntry(
-						new String[] {name1, name2}, zipEntry, zipFile);
-
-					count++;
+				if (zipEntry.isDirectory()) {
+					continue;
 				}
+
+				_validateZipEntry(
+					new String[] {name1, name2}, zipEntry, zipFile);
+
+				count++;
 			}
 
 			Assert.assertEquals(7, count);
@@ -157,7 +159,7 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					"Page Template Collection One", StringPool.BLANK,
+					null, "Page Template Collection One", StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					_serviceContext);
 
@@ -167,8 +169,9 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 				_serviceContext.getScopeGroupId(),
 				layoutPageTemplateCollection.
 					getLayoutPageTemplateCollectionId(),
-				"Page Template One", LayoutPageTemplateEntryTypeConstants.BASIC,
-				0, WorkflowConstants.STATUS_DRAFT, _serviceContext);
+				null, "Page Template One",
+				LayoutPageTemplateEntryTypeConstants.BASIC, 0,
+				WorkflowConstants.STATUS_DRAFT, _serviceContext);
 
 		String fileName = ReflectionTestUtil.invoke(
 			_mvcResourceCommand, "getFileName", new Class<?>[] {long[].class},
@@ -192,7 +195,7 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					"Page Template Collection One", StringPool.BLANK,
+					null, "Page Template Collection One", StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					_serviceContext);
 
@@ -218,11 +221,13 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 			while (enumeration.hasMoreElements()) {
 				ZipEntry zipEntry = enumeration.nextElement();
 
-				if (!zipEntry.isDirectory()) {
-					_validateZipEntry(new String[] {name}, zipEntry, zipFile);
-
-					count++;
+				if (zipEntry.isDirectory()) {
+					continue;
 				}
+
+				_validateZipEntry(new String[] {name}, zipEntry, zipFile);
+
+				count++;
 			}
 
 			Assert.assertEquals(4, count);
@@ -237,7 +242,7 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(10), StringPool.BLANK,
+					null, RandomTestUtil.randomString(10), StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					_serviceContext);
 
@@ -293,13 +298,14 @@ public class ExportLayoutPageTemplateEntriesMVCResourceCommandTest {
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
 				null, _serviceContext.getUserId(),
 				_serviceContext.getScopeGroupId(),
-				layoutPageTemplateCollectionId, name,
+				layoutPageTemplateCollectionId, null, name,
 				LayoutPageTemplateEntryTypeConstants.BASIC, 0, status,
 				_serviceContext);
 
 		_layoutPageTemplateStructureLocalService.
 			updateLayoutPageTemplateStructureData(
-				_group.getGroupId(), layoutPageTemplateEntry.getPlid(),
+				TestPropsValues.getUserId(), _group.getGroupId(),
+				layoutPageTemplateEntry.getPlid(),
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(
 						layoutPageTemplateEntry.getPlid()),

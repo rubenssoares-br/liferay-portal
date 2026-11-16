@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.security.key.secret.SecretResolverUtil;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.saml.admin.rest.dto.v1_0.Idp;
@@ -82,13 +83,18 @@ public class SamlProviderResourceImpl extends BaseSamlProviderResourceImpl {
 
 		String role = samlProviderConfiguration.role();
 
-		if (SamlProviderConfigurationKeys.SAML_ROLE_SP.equals(role)) {
-			samlProvider.setRole(() -> SamlProvider.Role.SP);
+		if (SamlProviderConfigurationKeys.SAML_ROLE_IB.equals(role)) {
+			samlProvider.setIdp(() -> _getIdp(samlProviderConfiguration));
+			samlProvider.setRole(() -> SamlProvider.Role.IB);
 			samlProvider.setSp(() -> _getSp(samlProviderConfiguration));
 		}
 		else if (SamlProviderConfigurationKeys.SAML_ROLE_IDP.equals(role)) {
 			samlProvider.setIdp(() -> _getIdp(samlProviderConfiguration));
 			samlProvider.setRole(() -> SamlProvider.Role.IDP);
+		}
+		else if (SamlProviderConfigurationKeys.SAML_ROLE_SP.equals(role)) {
+			samlProvider.setRole(() -> SamlProvider.Role.SP);
+			samlProvider.setSp(() -> _getSp(samlProviderConfiguration));
 		}
 
 		return samlProvider;
@@ -406,7 +412,10 @@ public class SamlProviderResourceImpl extends BaseSamlProviderResourceImpl {
 			_authenticateLocalEntityCertificate(
 				GetterUtil.getString(
 					samlProvider.getKeyStoreCredentialPassword(),
-					samlProviderConfiguration.keyStoreCredentialPassword()),
+					SecretResolverUtil.resolve(
+						CompanyThreadLocal.getCompanyId(),
+						samlProviderConfiguration.
+							keyStoreCredentialPassword())),
 				LocalEntityManager.CertificateUsage.SIGNING, entityId);
 		}
 

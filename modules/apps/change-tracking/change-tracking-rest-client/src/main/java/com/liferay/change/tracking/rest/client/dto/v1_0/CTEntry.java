@@ -8,13 +8,13 @@ package com.liferay.change.tracking.rest.client.dto.v1_0;
 import com.liferay.change.tracking.rest.client.function.UnsafeSupplier;
 import com.liferay.change.tracking.rest.client.serdes.v1_0.CTEntrySerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author David Truong
@@ -220,6 +220,27 @@ public class CTEntry implements Cloneable, Serializable {
 	}
 
 	protected Date dateModified;
+
+	public String getEditURL() {
+		return editURL;
+	}
+
+	public void setEditURL(String editURL) {
+		this.editURL = editURL;
+	}
+
+	public void setEditURL(
+		UnsafeSupplier<String, Exception> editURLUnsafeSupplier) {
+
+		try {
+			editURL = editURLUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String editURL;
 
 	public Boolean getHideable() {
 		return hideable;
@@ -503,3 +524,4 @@ public class CTEntry implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1753145406

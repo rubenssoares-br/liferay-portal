@@ -15,7 +15,6 @@ import com.liferay.portal.tools.GitUtil;
 import com.liferay.portal.tools.ToolsUtil;
 import com.liferay.source.formatter.BNDSettings;
 import com.liferay.source.formatter.SourceFormatterArgs;
-import com.liferay.source.formatter.check.util.BNDSourceUtil;
 import com.liferay.source.formatter.check.util.JavaSourceUtil;
 import com.liferay.source.formatter.check.util.SourceUtil;
 import com.liferay.source.formatter.parser.JavaClass;
@@ -24,13 +23,13 @@ import com.liferay.source.formatter.parser.JavaParameter;
 import com.liferay.source.formatter.parser.JavaSignature;
 import com.liferay.source.formatter.parser.JavaTerm;
 import com.liferay.source.formatter.processor.SourceProcessor;
+import com.liferay.source.formatter.util.SourceFormatterUtil;
 
 import java.io.File;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -104,19 +103,21 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 		Matcher matcher = _attributePattern.matcher(annotation);
 
 		while (matcher.find()) {
-			if (!ToolsUtil.isInsideQuotes(annotation, matcher.end(1)) &&
-				(getLevel(annotation.substring(0, matcher.end()), "{", "}") ==
+			if (ToolsUtil.isInsideQuotes(annotation, matcher.end(1)) ||
+				(getLevel(annotation.substring(0, matcher.end()), "{", "}") !=
 					0)) {
 
-				String curAttributeName = matcher.group(1);
+				continue;
+			}
 
-				if (curAttributeName.compareTo(attributeName) > 0) {
-					return StringUtil.insert(
-						annotation,
-						StringBundler.concat(
-							attributeName, " = ", attributeValue, ", "),
-						matcher.start(1));
-				}
+			String curAttributeName = matcher.group(1);
+
+			if (curAttributeName.compareTo(attributeName) > 0) {
+				return StringUtil.insert(
+					annotation,
+					StringBundler.concat(
+						attributeName, " = ", attributeValue, ", "),
+					matcher.start(1));
 			}
 		}
 
@@ -299,7 +300,7 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 
 		File javaFile = JavaSourceUtil.getJavaFile(
 			fullyQualifiedName, _getRootDirName(absolutePath),
-			_getBundleSymbolicNamesMap(absolutePath));
+			getBundleSymbolicNamesMap(absolutePath));
 
 		if (javaFile == null) {
 			return;
@@ -518,16 +519,18 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 
 			File javaFile = JavaSourceUtil.getJavaFile(
 				configurationClass, _getRootDirName(absolutePath),
-				_getBundleSymbolicNamesMap(absolutePath));
+				getBundleSymbolicNamesMap(absolutePath));
 
-			if (javaFile == null) {
-				String message = StringBundler.concat(
-					"Remove \"", configurationClass,
-					"\" from \"configurationPid\" as the configuration class ",
-					"does not exist");
-
-				addMessage(fileName, message);
+			if (javaFile != null) {
+				continue;
 			}
+
+			String message = StringBundler.concat(
+				"Remove \"", configurationClass,
+				"\" from \"configurationPid\" as the configuration class does ",
+				"not exist");
+
+			addMessage(fileName, message);
 		}
 
 		return annotation;
@@ -576,27 +579,49 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 			return annotation;
 		}
 
+		String portletInitParamConfigTemplateString =
+			"javax.portlet.init-param.config-template=";
+		String portletPortletModeString = "javax.portlet.portlet-mode=";
+		String portletSupportsMimeTypeString =
+			"javax.portlet.supports.mime-type=text/html";
+		String portletVersionString = "javax.portlet.version=3.0";
+
+		if (isAttributeValue(
+				SourceFormatterUtil.JAKARTA_USED_BRANCH, absolutePath)) {
+
+			portletInitParamConfigTemplateString = StringUtil.replaceFirst(
+				portletInitParamConfigTemplateString, "javax.", "jakarta.");
+			portletPortletModeString = StringUtil.replaceFirst(
+				portletPortletModeString, "javax.", "jakarta.");
+			portletSupportsMimeTypeString = StringUtil.replaceFirst(
+				portletSupportsMimeTypeString, "javax.", "jakarta.");
+			portletVersionString = StringUtil.replace(
+				portletVersionString, new String[] {"javax.", "3.0"},
+				new String[] {"jakarta.", "4.0"});
+		}
+
 		String newPropertyAttribute = StringUtil.replace(
 			propertyAttribute,
 			new String[] {
-				"\"javax.portlet.supports.mime-type=text/html\",",
-				"\"javax.portlet.supports.mime-type=text/html\""
+				"\"" + portletSupportsMimeTypeString + "\",",
+				"\"" + portletSupportsMimeTypeString + "\""
 			},
 			new String[] {StringPool.BLANK, StringPool.BLANK});
 
 		if (newPropertyAttribute.contains(
-				"\"javax.portlet.init-param.config-template=") &&
-			!newPropertyAttribute.contains("javax.portlet.portlet-mode=")) {
+				"\"" + portletInitParamConfigTemplateString) &&
+			!newPropertyAttribute.contains(portletPortletModeString)) {
 
 			newPropertyAttribute = _addNewProperties(
 				newPropertyAttribute,
-				"\"javax.portlet.portlet-mode=text/html;config\"");
+				"\"" + portletPortletModeString + "text/html;config\"");
 		}
 
 		if (isAttributeValue(_CHECK_PORTLET_VERSION_KEY, absolutePath) &&
 			!absolutePath.contains("/modules/apps/archived/") &&
 			!absolutePath.contains("/modules/sdk/") &&
-			!newPropertyAttribute.contains("\"javax.portlet.version=3.0\"")) {
+			!newPropertyAttribute.contains(
+				"\"" + portletVersionString + "\"")) {
 
 			String serviceAttributeValue = getAnnotationAttributeValue(
 				annotation, "service");
@@ -613,7 +638,7 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 
 			if (serviceAttributeValues.contains("Portlet.class")) {
 				newPropertyAttribute = _addNewProperties(
-					newPropertyAttribute, "\"javax.portlet.version=3.0\"");
+					newPropertyAttribute, "\"" + portletVersionString + "\"");
 			}
 		}
 
@@ -757,17 +782,6 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 		return annotation;
 	}
 
-	private synchronized Map<String, String> _getBundleSymbolicNamesMap(
-		String absolutePath) {
-
-		if (_bundleSymbolicNamesMap == null) {
-			_bundleSymbolicNamesMap = BNDSourceUtil.getBundleSymbolicNamesMap(
-				_getRootDirName(absolutePath));
-		}
-
-		return _bundleSymbolicNamesMap;
-	}
-
 	private String _getExpectedServiceAttributeValue(
 		List<String> implementedClassNames) {
 
@@ -866,17 +880,19 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 				break;
 			}
 
-			if (exportPackageName.endsWith(StringPool.STAR)) {
-				exportPackageName = exportPackageName.substring(
-					0, exportPackageName.length() - 1);
+			if (!exportPackageName.endsWith(StringPool.STAR)) {
+				continue;
+			}
 
-				if (packageName.startsWith(exportPackageName)) {
-					if (negation) {
-						break;
-					}
+			exportPackageName = exportPackageName.substring(
+				0, exportPackageName.length() - 1);
 
-					return false;
+			if (packageName.startsWith(exportPackageName)) {
+				if (negation) {
+					break;
 				}
+
+				return false;
 			}
 		}
 
@@ -964,7 +980,6 @@ public class JavaComponentAnnotationsCheck extends JavaAnnotationsCheck {
 	private static final Pattern _attributePattern = Pattern.compile(
 		"\\W(\\w+)\\s*=");
 
-	private Map<String, String> _bundleSymbolicNamesMap;
 	private String _rootDirName;
 
 	private class AnnotationParameterPropertyComparator

@@ -11,32 +11,33 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -46,11 +47,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a content template.", value = "ContentTemplate"
 )
-@JsonFilter("Liferay.Vulcan")
-@Schema(
+@io.swagger.v3.oas.annotations.media.Schema(
 	description = "Represents a content template.",
 	requiredProperties = {"contentStructureId", "name"}
 )
+@JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ContentTemplate")
 public class ContentTemplate implements Serializable {
 
@@ -62,7 +63,7 @@ public class ContentTemplate implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ContentTemplate.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Block of actions allowed by the user making the request."
 	)
 	@Valid
@@ -109,7 +110,7 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The key of the asset library to which the content template is scoped."
 	)
 	public String getAssetLibraryKey() {
@@ -154,7 +155,7 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _assetLibraryKeySupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The list of languages the content template has a translation for."
 	)
 	public String[] getAvailableLanguages() {
@@ -199,7 +200,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _availableLanguagesSupplier;
 
-	@Schema(description = "The ID of the `ContentStructure`.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The ID of the `ContentStructure`."
+	)
 	public Long getContentStructureId() {
 		if (_contentStructureIdSupplier != null) {
 			contentStructureId = _contentStructureIdSupplier.get();
@@ -241,7 +244,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _contentStructureIdSupplier;
 
-	@Schema(description = "The content template's creator.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's creator."
+	)
 	@Valid
 	public Creator getCreator() {
 		if (_creatorSupplier != null) {
@@ -283,7 +288,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The content template's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -324,7 +331,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The last time the content template changed.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time the content template changed."
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -365,7 +374,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "the content template's description.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's description."
+	)
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -399,14 +410,16 @@ public class ContentTemplate implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "the content template's description.")
+	@GraphQLField(description = "The content template's description.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String description;
 
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema(description = "the localized content template's descriptions.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized content template's descriptions."
+	)
 	@Valid
 	public Map<String, String> getDescription_i18n() {
 		if (_description_i18nSupplier != null) {
@@ -443,7 +456,7 @@ public class ContentTemplate implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "the localized content template's descriptions."
+		description = "The localized content template's descriptions."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description_i18n;
@@ -451,7 +464,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _description_i18nSupplier;
 
-	@Schema(description = "The content template's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's ID."
+	)
 	public String getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -490,7 +505,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _idSupplier;
 
-	@Schema(description = "the content template's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -522,7 +539,7 @@ public class ContentTemplate implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "the content template's name.")
+	@GraphQLField(description = "The content template's name.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String name;
@@ -530,7 +547,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(description = "the localized content template's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized content template's name."
+	)
 	@Valid
 	public Map<String, String> getName_i18n() {
 		if (_name_i18nSupplier != null) {
@@ -566,14 +585,16 @@ public class ContentTemplate implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "the localized content template's name.")
+	@GraphQLField(description = "The localized content template's name.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> name_i18n;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _name_i18nSupplier;
 
-	@Schema(description = "the content template's programming language.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's programming language."
+	)
 	public String getProgrammingLanguage() {
 		if (_programmingLanguageSupplier != null) {
 			programmingLanguage = _programmingLanguageSupplier.get();
@@ -607,14 +628,14 @@ public class ContentTemplate implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "the content template's programming language.")
+	@GraphQLField(description = "The content template's programming language.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String programmingLanguage;
 
 	@JsonIgnore
 	private Supplier<String> _programmingLanguageSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The ID of the site to which the content template is scoped."
 	)
 	public Long getSiteId() {
@@ -659,7 +680,9 @@ public class ContentTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema(description = "The content template's script.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The content template's script."
+	)
 	public String getTemplateScript() {
 		if (_templateScriptSupplier != null) {
 			templateScript = _templateScriptSupplier.get();
@@ -961,8 +984,8 @@ public class ContentTemplate implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.ContentTemplate",
 		name = "x-class-name"
 	)
@@ -1049,6 +1072,27 @@ public class ContentTemplate implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1057,3 +1101,4 @@ public class ContentTemplate implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2064925757

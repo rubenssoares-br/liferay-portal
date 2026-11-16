@@ -13,6 +13,7 @@ import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.security.permission.ResourceActionsUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.OrderByComparator;
+import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.site.navigation.model.SiteNavigationMenu;
 import com.liferay.site.navigation.model.SiteNavigationMenuItem;
 import com.liferay.site.navigation.service.SiteNavigationMenuItemLocalServiceUtil;
@@ -77,6 +78,16 @@ public class SiteNavigationMenuPortletUtil {
 						siteNavigationMenuItemId, siteNavigationMenuId,
 						siteNavigationMenuItemTypeRegistry, themeDisplay)
 				).put(
+					"displayIcon",
+					() -> {
+						if (siteNavigationMenuItemType != null) {
+							return siteNavigationMenuItemType.getDisplayIcon(
+								siteNavigationMenuItem);
+						}
+
+						return StringPool.BLANK;
+					}
+				).put(
 					"dynamic",
 					() -> {
 						if (siteNavigationMenuItemType != null) {
@@ -91,6 +102,30 @@ public class SiteNavigationMenuPortletUtil {
 						if (siteNavigationMenuItemType != null) {
 							return siteNavigationMenuItemType.getStatusIcon(
 								siteNavigationMenuItem);
+						}
+
+						return "warning-full";
+					}
+				).put(
+					"iconLabel",
+					() -> {
+						if (siteNavigationMenuItemType != null) {
+							if (!siteNavigationMenuItemType.hasModel(
+									siteNavigationMenuItem.getCompanyId(),
+									siteNavigationMenuItem.getGroupId(),
+									UnicodePropertiesBuilder.fastLoad(
+										siteNavigationMenuItem.getTypeSettings()
+									).build())) {
+
+								return LanguageUtil.get(
+									themeDisplay.getLocale(),
+									"this-item-references-a-page-that-is-" +
+										"missing-or-not-yet-available");
+							}
+
+							return LanguageUtil.get(
+								themeDisplay.getLocale(),
+								"this-item-does-not-have-a-display-page");
 						}
 
 						return StringPool.BLANK;

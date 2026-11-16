@@ -11,7 +11,7 @@
 CommerceAvailabilityEstimateDisplayContext commerceAvailabilityEstimateDisplayContext = (CommerceAvailabilityEstimateDisplayContext)request.getAttribute(WebKeys.PORTLET_DISPLAY_CONTEXT);
 %>
 
-<c:if test="<%= commerceAvailabilityEstimateDisplayContext.hasManageCommerceAvailabilityEstimatesPermission() %>">
+<c:if test="<%= commerceAvailabilityEstimateDisplayContext.hasViewCommerceAvailabilityEstimatesPermission() %>">
 	<clay:management-toolbar
 		managementToolbarDisplayContext="<%= new CommerceAvailabilityEstimateManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, commerceAvailabilityEstimateDisplayContext.getSearchContainer()) %>"
 		propsTransformer="{CommerceAvailabilityEstimateManagementToolbarPropsTransformer} from commerce-availability-estimate-web"
@@ -31,7 +31,7 @@ CommerceAvailabilityEstimateDisplayContext commerceAvailabilityEstimateDisplayCo
 			>
 				<liferay-ui:search-container-row
 					className="com.liferay.commerce.model.CommerceAvailabilityEstimate"
-					keyProperty="commerceAvailabilityEstimateId"
+					keyPropertyName="commerceAvailabilityEstimateId"
 					modelVar="commerceAvailabilityEstimate"
 				>
 					<liferay-ui:search-container-column-text

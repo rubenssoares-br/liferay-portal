@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("ShippingFixedOptionTerm")
+@GraphQLName(
+	description = "Binding that restricts a fixed-rate shipping option to a specific commerce Term; the option appears only when that term is in effect. Created on POST and removed on DELETE; no update operation.",
+	value = "ShippingFixedOptionTerm"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Binding that restricts a fixed-rate shipping option to a specific commerce Term; the option appears only when that term is in effect. Created on POST and removed on DELETE; no update operation.",
+	requiredProperties = {"shippingFixedOptionId", "termId"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"shippingFixedOptionId", "termId"})
 @XmlRootElement(name = "ShippingFixedOptionTerm")
 public class ShippingFixedOptionTerm implements Serializable {
 
@@ -54,7 +61,9 @@ public class ShippingFixedOptionTerm implements Serializable {
 			ShippingFixedOptionTerm.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -90,7 +99,9 @@ public class ShippingFixedOptionTerm implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
@@ -98,7 +109,10 @@ public class ShippingFixedOptionTerm implements Serializable {
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the ShippingFixedOption (FK identifier).",
+		example = "30130"
+	)
 	public Long getShippingFixedOptionId() {
 		if (_shippingFixedOptionIdSupplier != null) {
 			shippingFixedOptionId = _shippingFixedOptionIdSupplier.get();
@@ -132,7 +146,9 @@ public class ShippingFixedOptionTerm implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the ShippingFixedOption (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long shippingFixedOptionId;
@@ -141,7 +157,10 @@ public class ShippingFixedOptionTerm implements Serializable {
 	private Supplier<Long> _shippingFixedOptionIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal long ID of the ShippingFixedOptionTerm record; read-only.",
+		example = "30643"
+	)
 	public Long getShippingFixedOptionTermId() {
 		if (_shippingFixedOptionTermIdSupplier != null) {
 			shippingFixedOptionTermId =
@@ -177,14 +196,18 @@ public class ShippingFixedOptionTerm implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal long ID of the ShippingFixedOptionTerm record; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long shippingFixedOptionTermId;
 
 	@JsonIgnore
 	private Supplier<Long> _shippingFixedOptionTermIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Embedded snapshot of the linked Term; read-only."
+	)
 	@Valid
 	public Term getTerm() {
 		if (_termSupplier != null) {
@@ -217,14 +240,19 @@ public class ShippingFixedOptionTerm implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Embedded snapshot of the linked Term; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Term term;
 
 	@JsonIgnore
 	private Supplier<Term> _termSupplier;
 
-	@Schema(example = "PAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Term by its external reference code (FK alternate key).",
+		example = "AB-34098-789-N"
+	)
 	public String getTermExternalReferenceCode() {
 		if (_termExternalReferenceCodeSupplier != null) {
 			termExternalReferenceCode =
@@ -260,7 +288,9 @@ public class ShippingFixedOptionTerm implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Term by its external reference code (FK alternate key)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String termExternalReferenceCode;
 
@@ -268,7 +298,10 @@ public class ShippingFixedOptionTerm implements Serializable {
 	private Supplier<String> _termExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Term (FK identifier).",
+		example = "30130"
+	)
 	public Long getTermId() {
 		if (_termIdSupplier != null) {
 			termId = _termIdSupplier.get();
@@ -302,7 +335,7 @@ public class ShippingFixedOptionTerm implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the Term (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long termId;
@@ -419,8 +452,8 @@ public class ShippingFixedOptionTerm implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.channel.dto.v1_0.ShippingFixedOptionTerm",
 		name = "x-class-name"
 	)
@@ -507,6 +540,27 @@ public class ShippingFixedOptionTerm implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -515,3 +569,4 @@ public class ShippingFixedOptionTerm implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1045950433

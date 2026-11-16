@@ -6,16 +6,14 @@
 package com.liferay.taglib.ui;
 
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyHTMLRewriterUtil;
-import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.taglib.BaseBodyTagSupport;
 
-import java.io.IOException;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspWriter;
+import jakarta.servlet.jsp.tagext.BodyContent;
+import jakarta.servlet.jsp.tagext.BodyTag;
 
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.JspWriter;
-import javax.servlet.jsp.tagext.BodyContent;
-import javax.servlet.jsp.tagext.BodyTag;
+import java.io.IOException;
 
 /**
  * @author Iván Zaera Avellón
@@ -24,40 +22,20 @@ public class CSPTag extends BaseBodyTagSupport implements BodyTag {
 
 	@Override
 	public int doEndTag() throws JspException {
-		String nonce = ContentSecurityPolicyNonceProviderUtil.getNonce(
-			getRequest());
-
-		if (Validator.isBlank(nonce)) {
-			return super.doEndTag();
-		}
-
 		try {
 			JspWriter jspWriter = pageContext.getOut();
 
 			BodyContent bodyContent = getBodyContent();
 
 			jspWriter.write(
-				ContentSecurityPolicyHTMLRewriterUtil.
-					rewriteInlineEventHandlers(
-						bodyContent.getString(), nonce, _recursive));
+				ContentSecurityPolicyHTMLRewriterUtil.rewriteInlineAttributes(
+					bodyContent.getString(), getRequest(), _recursive));
 
 			return super.doEndTag();
 		}
 		catch (IOException ioException) {
 			throw new JspException(ioException);
 		}
-	}
-
-	@Override
-	public int doStartTag() throws JspException {
-		if (Validator.isBlank(
-				ContentSecurityPolicyNonceProviderUtil.getNonce(
-					getRequest()))) {
-
-			return EVAL_BODY_INCLUDE;
-		}
-
-		return EVAL_BODY_BUFFERED;
 	}
 
 	public boolean isRecursive() {

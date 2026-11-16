@@ -9,18 +9,19 @@ import com.liferay.headless.commerce.admin.order.client.dto.v1_0.Order;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.OrderItem;
 import com.liferay.headless.commerce.admin.order.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.math.BigDecimal;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alessio Antonio Rendina
@@ -107,6 +108,20 @@ public class OrderSerDes {
 			sb.append("\"");
 
 			sb.append(_escape(order.getAdvanceStatus()));
+
+			sb.append("\"");
+		}
+
+		if (order.getAuthor() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"author\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(order.getAuthor()));
 
 			sb.append("\"");
 		}
@@ -233,6 +248,30 @@ public class OrderSerDes {
 			sb.append(_escape(order.getCurrencyCode()));
 
 			sb.append("\"");
+		}
+
+		if (order.getCurrencyExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"currencyExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(order.getCurrencyExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (order.getCurrencyId() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"currencyId\": ");
+
+			sb.append(order.getCurrencyId());
 		}
 
 		if (order.getCustomFields() != null) {
@@ -1380,6 +1419,13 @@ public class OrderSerDes {
 			map.put("advanceStatus", String.valueOf(order.getAdvanceStatus()));
 		}
 
+		if (order.getAuthor() == null) {
+			map.put("author", null);
+		}
+		else {
+			map.put("author", String.valueOf(order.getAuthor()));
+		}
+
 		if (order.getBillingAddress() == null) {
 			map.put("billingAddress", null);
 		}
@@ -1459,6 +1505,22 @@ public class OrderSerDes {
 		}
 		else {
 			map.put("currencyCode", String.valueOf(order.getCurrencyCode()));
+		}
+
+		if (order.getCurrencyExternalReferenceCode() == null) {
+			map.put("currencyExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"currencyExternalReferenceCode",
+				String.valueOf(order.getCurrencyExternalReferenceCode()));
+		}
+
+		if (order.getCurrencyId() == null) {
+			map.put("currencyId", null);
+		}
+		else {
+			map.put("currencyId", String.valueOf(order.getCurrencyId()));
 		}
 
 		if (order.getCustomFields() == null) {
@@ -2315,6 +2377,9 @@ public class OrderSerDes {
 			else if (Objects.equals(jsonParserFieldName, "advanceStatus")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "author")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "billingAddress")) {
 				return false;
 			}
@@ -2350,6 +2415,14 @@ public class OrderSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "currencyCode")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "currencyExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "currencyId")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "customFields")) {
@@ -2830,6 +2903,11 @@ public class OrderSerDes {
 					order.setAdvanceStatus((String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "author")) {
+				if (jsonParserFieldValue != null) {
+					order.setAuthor((String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "billingAddress")) {
 				if (jsonParserFieldValue != null) {
 					order.setBillingAddress(
@@ -2892,6 +2970,20 @@ public class OrderSerDes {
 			else if (Objects.equals(jsonParserFieldName, "currencyCode")) {
 				if (jsonParserFieldValue != null) {
 					order.setCurrencyCode((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "currencyExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					order.setCurrencyExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "currencyId")) {
+				if (jsonParserFieldValue != null) {
+					order.setCurrencyId(
+						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "customFields")) {
@@ -3653,6 +3745,16 @@ public class OrderSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -3685,3 +3787,4 @@ public class OrderSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1989948242

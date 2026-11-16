@@ -379,6 +379,10 @@ function OverlayContainer({allowEdit, root}) {
 		style.type = 'text/css';
 		style.appendChild(document.createTextNode(css));
 
+		if (Liferay.CSP?.nonce) {
+			style.setAttribute('nonce', Liferay.CSP.nonce);
+		}
+
 		head.appendChild(style);
 
 		// This must happen after hiding the toppers.
@@ -675,7 +679,7 @@ function TargetTopper({allowEdit, geometry, isEditing, selector}) {
 			}}
 		>
 			<span className="mr-2 text-truncate">
-				{isEditing ? selector : Liferay.Language.get('target')}
+				{isEditing ? selector : Liferay.Language.get('target[element]')}
 			</span>
 
 			{allowEdit && (

@@ -154,7 +154,7 @@ public class TestFileEntry implements FileEntry {
 	@Override
 	public Folder getFolder() {
 		try {
-			return DLAppLocalServiceUtil.getFolder(_folderId);
+			return DLAppLocalServiceUtil.fetchFolder(_folderId);
 		}
 		catch (PortalException portalException) {
 			if (_log.isDebugEnabled()) {
@@ -374,6 +374,10 @@ public class TestFileEntry implements FileEntry {
 
 	@Override
 	public void setCreateDate(Date date) {
+	}
+
+	@Override
+	public void setExternalReferenceCode(String externalReferenceCode) {
 	}
 
 	@Override

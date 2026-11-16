@@ -9,16 +9,17 @@ import com.liferay.analytics.settings.rest.client.dto.v1_0.Channel;
 import com.liferay.analytics.settings.rest.client.dto.v1_0.DataSource;
 import com.liferay.analytics.settings.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Riccardo Ferrari
@@ -63,16 +64,6 @@ public class ChannelSerDes {
 			sb.append(_escape(channel.getChannelId()));
 
 			sb.append("\"");
-		}
-
-		if (channel.getCommerceSyncEnabled() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"commerceSyncEnabled\": ");
-
-			sb.append(channel.getCommerceSyncEnabled());
 		}
 
 		if (channel.getCreateDate() != null) {
@@ -151,15 +142,6 @@ public class ChannelSerDes {
 			map.put("channelId", String.valueOf(channel.getChannelId()));
 		}
 
-		if (channel.getCommerceSyncEnabled() == null) {
-			map.put("commerceSyncEnabled", null);
-		}
-		else {
-			map.put(
-				"commerceSyncEnabled",
-				String.valueOf(channel.getCommerceSyncEnabled()));
-		}
-
 		if (channel.getCreateDate() == null) {
 			map.put("createDate", null);
 		}
@@ -203,11 +185,6 @@ public class ChannelSerDes {
 			if (Objects.equals(jsonParserFieldName, "channelId")) {
 				return false;
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "commerceSyncEnabled")) {
-
-				return false;
-			}
 			else if (Objects.equals(jsonParserFieldName, "createDate")) {
 				return false;
 			}
@@ -229,14 +206,6 @@ public class ChannelSerDes {
 			if (Objects.equals(jsonParserFieldName, "channelId")) {
 				if (jsonParserFieldValue != null) {
 					channel.setChannelId((String)jsonParserFieldValue);
-				}
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "commerceSyncEnabled")) {
-
-				if (jsonParserFieldValue != null) {
-					channel.setCommerceSyncEnabled(
-						(Boolean)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "createDate")) {
@@ -310,6 +279,16 @@ public class ChannelSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -342,3 +321,4 @@ public class ChannelSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1997636796

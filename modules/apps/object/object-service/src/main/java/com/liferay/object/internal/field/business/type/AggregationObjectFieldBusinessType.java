@@ -88,8 +88,9 @@ public class AggregationObjectFieldBusinessType
 
 	@Override
 	public Map<String, Object> getProperties(
-		ObjectField objectField,
-		ObjectFieldRenderingContext objectFieldRenderingContext) {
+			ObjectField objectField,
+			ObjectFieldRenderingContext objectFieldRenderingContext)
+		throws PortalException {
 
 		return HashMapBuilder.<String, Object>put(
 			"readOnly", true
@@ -111,6 +112,11 @@ public class AggregationObjectFieldBusinessType
 			ObjectFieldSettingConstants.NAME_FUNCTION,
 			ObjectFieldSettingConstants.NAME_OBJECT_FIELD_NAME,
 			ObjectFieldSettingConstants.NAME_OBJECT_RELATIONSHIP_NAME);
+	}
+
+	@Override
+	public boolean isLocalizationSupported(ObjectField objectField) {
+		return false;
 	}
 
 	@Override
@@ -164,13 +170,15 @@ public class AggregationObjectFieldBusinessType
 		for (String requiredObjectFieldSettingName :
 				requiredObjectFieldSettingsNames) {
 
-			if (Validator.isNull(
+			if (Validator.isNotNull(
 					objectFieldSettingsValuesMap.get(
 						requiredObjectFieldSettingName))) {
 
-				missingRequiredObjectFieldSettingsNames.add(
-					requiredObjectFieldSettingName);
+				continue;
 			}
+
+			missingRequiredObjectFieldSettingsNames.add(
+				requiredObjectFieldSettingName);
 		}
 
 		if (!missingRequiredObjectFieldSettingsNames.isEmpty()) {
@@ -201,21 +209,22 @@ public class AggregationObjectFieldBusinessType
 								NAME_OBJECT_RELATIONSHIP_NAME)));
 
 			ObjectDefinition objectDefinition =
-				_objectDefinitionLocalService.fetchObjectDefinition(
+				_objectDefinitionLocalService.getObjectDefinition(
 					objectRelationship.getObjectDefinitionId2());
 
 			if (!Objects.equals(
 					function, ObjectFieldSettingConstants.VALUE_COUNT)) {
 
 				ObjectField objectField1 =
-					_objectFieldLocalService.getObjectField(
+					_objectFieldLocalService.fetchObjectField(
 						objectDefinition.getObjectDefinitionId(),
 						GetterUtil.getString(
 							objectFieldSettingsValuesMap.get(
 								ObjectFieldSettingConstants.
 									NAME_OBJECT_FIELD_NAME)));
 
-				if (!ArrayUtil.contains(
+				if ((objectField1 != null) &&
+					!ArrayUtil.contains(
 						_NUMERIC_BUSINESS_TYPES,
 						objectField1.getBusinessType())) {
 
@@ -260,6 +269,15 @@ public class AggregationObjectFieldBusinessType
 		}
 	}
 
+	private void _validateObjectFilterValue(
+		Set<String> missingObjectFilterValues, String objectFilterName,
+		String objectFilterValue) {
+
+		if (Validator.isNull(objectFilterValue)) {
+			missingObjectFilterValues.add(objectFilterName);
+		}
+	}
+
 	private void _validateObjectFilters(
 			ObjectDefinition objectDefinition, String objectFieldName,
 			List<ObjectFilter> objectFilters)
@@ -291,25 +309,16 @@ public class AggregationObjectFieldBusinessType
 				objectDefinition.getObjectDefinitionId(),
 				GetterUtil.getString(objectFilter.getFilterBy()));
 
-			if ((objectField == null) ||
-				objectField.compareBusinessType(
+			if ((objectField != null) &&
+				(objectField.compareBusinessType(
 					ObjectFieldConstants.BUSINESS_TYPE_AGGREGATION) ||
-				objectField.compareBusinessType(
-					ObjectFieldConstants.BUSINESS_TYPE_FORMULA)) {
+				 objectField.compareBusinessType(
+					 ObjectFieldConstants.BUSINESS_TYPE_FORMULA))) {
 
 				throw new ObjectFieldSettingValueException.InvalidValue(
 					objectFieldName, "filterBy",
 					GetterUtil.getString(objectFilter.getFilterBy()));
 			}
-		}
-	}
-
-	private void _validateObjectFilterValue(
-		Set<String> missingObjectFilterValues, String objectFilterName,
-		String objectFilterValue) {
-
-		if (Validator.isNull(objectFilterValue)) {
-			missingObjectFilterValues.add(objectFilterName);
 		}
 	}
 

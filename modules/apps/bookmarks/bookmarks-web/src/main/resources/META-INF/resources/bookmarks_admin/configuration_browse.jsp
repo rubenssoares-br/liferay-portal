@@ -76,7 +76,7 @@ portletDisplay.setURLBackTitle("bookmarks");
 					<liferay-ui:error key="emailEntryUpdatedSubject" message="please-enter-a-valid-subject" />
 
 					<%
-					Map<String, String> emailDefinitionTerms = BookmarksUtil.getEmailDefinitionTerms(renderRequest, bookmarksGroupServiceOverriddenConfiguration.emailFromAddress(), bookmarksGroupServiceOverriddenConfiguration.emailFromName());
+					Map<String, String> emailDefinitionTerms = BookmarksUtil.getEmailDefinitionTerms(renderRequest, bookmarksGroupServiceConfiguration.emailFromAddress(), bookmarksGroupServiceConfiguration.emailFromName());
 					%>
 
 					<c:choose>
@@ -107,46 +107,49 @@ portletDisplay.setURLBackTitle("bookmarks");
 									warningMessage='<%= rootFolderInTrash ? LanguageUtil.get(request, "the-selected-root-folder-is-in-the-recycle-bin-please-remove-it-or-select-another-one") : null %>'
 								/>
 
-								<aui:input label="show-search" name="preferences--showFoldersSearch--" type="checkbox" value="<%= bookmarksGroupServiceOverriddenConfiguration.showFoldersSearch() %>" />
+								<aui:input label="show-search" name="preferences--showFoldersSearch--" type="checkbox" value="<%= bookmarksGroupServiceConfiguration.showFoldersSearch() %>" />
 
-								<aui:input name="preferences--showSubfolders--" type="checkbox" value="<%= bookmarksGroupServiceOverriddenConfiguration.showSubfolders() %>" />
+								<aui:input name="preferences--showSubfolders--" type="checkbox" value="<%= bookmarksGroupServiceConfiguration.showSubfolders() %>" />
 
 								<aui:field-wrapper label="show-columns">
 
 									<%
-									Set<String> availableFolderColumns = SetUtil.fromArray(StringUtil.split(allFolderColumns));
 
 									// Left list
 
 									List<KeyValuePair> leftList = new ArrayList<>();
 
-									for (String folderColumn : folderColumns) {
-										leftList.add(new KeyValuePair(folderColumn, LanguageUtil.get(request, folderColumn)));
+									Set<String> availableFolderColumns = SetUtil.fromArray(StringUtil.split(allFolderColumns));
+
+									String[] sortedFolderColumns = ArrayUtil.clone(folderColumns);
+
+									Arrays.sort(sortedFolderColumns);
+
+									for (String folderColumn : availableFolderColumns) {
+										if (Arrays.binarySearch(sortedFolderColumns, folderColumn) < 0) {
+											leftList.add(new KeyValuePair(folderColumn, LanguageUtil.get(request, folderColumn)));
+										}
 									}
+
+									leftList = ListUtil.sort(leftList, new KeyValuePairComparator(false, true));
 
 									// Right list
 
 									List<KeyValuePair> rightList = new ArrayList<>();
 
-									Arrays.sort(folderColumns);
-
-									for (String folderColumn : availableFolderColumns) {
-										if (Arrays.binarySearch(folderColumns, folderColumn) < 0) {
-											rightList.add(new KeyValuePair(folderColumn, LanguageUtil.get(request, folderColumn)));
-										}
+									for (String folderColumn : folderColumns) {
+										rightList.add(new KeyValuePair(folderColumn, LanguageUtil.get(request, folderColumn)));
 									}
-
-									rightList = ListUtil.sort(rightList, new KeyValuePairComparator(false, true));
 									%>
 
 									<liferay-ui:input-move-boxes
-										leftBoxName="currentFolderColumns"
+										leftBoxName="availableFolderColumns"
 										leftList="<%= leftList %>"
-										leftReorder="<%= Boolean.TRUE.toString() %>"
-										leftTitle="current"
-										rightBoxName="availableFolderColumns"
+										leftTitle="available"
+										rightBoxName="currentFolderColumns"
 										rightList="<%= rightList %>"
-										rightTitle="available"
+										rightReorder="<%= Boolean.TRUE.toString() %>"
+										rightTitle="in-use"
 									/>
 								</aui:field-wrapper>
 							</div>
@@ -154,33 +157,33 @@ portletDisplay.setURLBackTitle("bookmarks");
 						<c:when test='<%= Objects.equals(bookmarksConfigurationDisplayContext.getNavigation(), "entry-added-email") %>'>
 							<div class="c-px-4">
 								<liferay-frontend:email-notification-settings
-									emailBodyLocalizedValuesMap="<%= bookmarksGroupServiceOverriddenConfiguration.emailEntryAddedBody() %>"
+									emailBodyLocalizedValuesMap="<%= bookmarksGroupServiceConfiguration.emailEntryAddedBody() %>"
 									emailDefinitionTerms="<%= emailDefinitionTerms %>"
-									emailEnabled="<%= bookmarksGroupServiceOverriddenConfiguration.emailEntryAddedEnabled() %>"
+									emailEnabled="<%= bookmarksGroupServiceConfiguration.emailEntryAddedEnabled() %>"
 									emailParam="emailEntryAdded"
-									emailSubjectLocalizedValuesMap="<%= bookmarksGroupServiceOverriddenConfiguration.emailEntryAddedSubject() %>"
+									emailSubjectLocalizedValuesMap="<%= bookmarksGroupServiceConfiguration.emailEntryAddedSubject() %>"
 								/>
 							</div>
 						</c:when>
 						<c:when test='<%= Objects.equals(bookmarksConfigurationDisplayContext.getNavigation(), "entry-updated-email") %>'>
 							<div class="c-px-4">
 								<liferay-frontend:email-notification-settings
-									emailBodyLocalizedValuesMap="<%= bookmarksGroupServiceOverriddenConfiguration.emailEntryUpdatedBody() %>"
+									emailBodyLocalizedValuesMap="<%= bookmarksGroupServiceConfiguration.emailEntryUpdatedBody() %>"
 									emailDefinitionTerms="<%= emailDefinitionTerms %>"
-									emailEnabled="<%= bookmarksGroupServiceOverriddenConfiguration.emailEntryUpdatedEnabled() %>"
+									emailEnabled="<%= bookmarksGroupServiceConfiguration.emailEntryUpdatedEnabled() %>"
 									emailParam="emailEntryUpdated"
-									emailSubjectLocalizedValuesMap="<%= bookmarksGroupServiceOverriddenConfiguration.emailEntryUpdatedSubject() %>"
+									emailSubjectLocalizedValuesMap="<%= bookmarksGroupServiceConfiguration.emailEntryUpdatedSubject() %>"
 								/>
 							</div>
 						</c:when>
 						<c:otherwise>
 							<div class="c-px-4">
 								<liferay-frontend:fieldset>
-									<aui:input cssClass="lfr-input-text-container" label="name" name="preferences--emailFromName--" value="<%= bookmarksGroupServiceOverriddenConfiguration.emailFromName() %>">
+									<aui:input cssClass="lfr-input-text-container" label="name" name="preferences--emailFromName--" value="<%= bookmarksGroupServiceConfiguration.emailFromName() %>">
 										<aui:validator errorMessage="please-enter-a-valid-name" name="required" />
 									</aui:input>
 
-									<aui:input cssClass="lfr-input-text-container" label="address" name="preferences--emailFromAddress--" value="<%= bookmarksGroupServiceOverriddenConfiguration.emailFromAddress() %>">
+									<aui:input cssClass="lfr-input-text-container" label="address" name="preferences--emailFromAddress--" value="<%= bookmarksGroupServiceConfiguration.emailFromAddress() %>">
 										<aui:validator errorMessage="please-enter-a-valid-email-address" name="required" />
 										<aui:validator name="email" />
 									</aui:input>
@@ -206,46 +209,47 @@ portletDisplay.setURLBackTitle("bookmarks");
 						</h3>
 
 						<div class="c-px-4">
-							<aui:input label="show-related-assets" name="preferences--enableRelatedAssets--" type="checkbox" value="<%= bookmarksGroupServiceOverriddenConfiguration.enableRelatedAssets() %>" />
+							<aui:input label="show-related-assets" name="preferences--enableRelatedAssets--" type="checkbox" value="<%= bookmarksGroupServiceConfiguration.enableRelatedAssets() %>" />
 
 							<aui:field-wrapper label="show-columns">
 
 								<%
-								Set<String> availableEntryColumns = SetUtil.fromArray(StringUtil.split(allEntryColumns));
 
 								// Left list
 
 								List<KeyValuePair> leftList = new ArrayList<>();
 
-								for (int i = 0; i < entryColumns.length; i++) {
-									String entryColumn = entryColumns[i];
+								Set<String> availableEntryColumns = SetUtil.fromArray(StringUtil.split(allEntryColumns));
 
-									leftList.add(new KeyValuePair(entryColumn, LanguageUtil.get(request, entryColumn)));
+								String[] sortedEntryColumns = ArrayUtil.clone(entryColumns);
+
+								Arrays.sort(sortedEntryColumns);
+
+								for (String entryColumn : availableEntryColumns) {
+									if (Arrays.binarySearch(sortedEntryColumns, entryColumn) < 0) {
+										leftList.add(new KeyValuePair(entryColumn, LanguageUtil.get(request, entryColumn)));
+									}
 								}
+
+								leftList = ListUtil.sort(leftList, new KeyValuePairComparator(false, true));
 
 								// Right list
 
 								List<KeyValuePair> rightList = new ArrayList<>();
 
-								Arrays.sort(entryColumns);
-
-								for (String entryColumn : availableEntryColumns) {
-									if (Arrays.binarySearch(entryColumns, entryColumn) < 0) {
-										rightList.add(new KeyValuePair(entryColumn, LanguageUtil.get(request, entryColumn)));
-									}
+								for (String entryColumn : entryColumns) {
+									rightList.add(new KeyValuePair(entryColumn, LanguageUtil.get(request, entryColumn)));
 								}
-
-								rightList = ListUtil.sort(rightList, new KeyValuePairComparator(false, true));
 								%>
 
 								<liferay-ui:input-move-boxes
-									leftBoxName="currentEntryColumns"
+									leftBoxName="availableEntryColumns"
 									leftList="<%= leftList %>"
-									leftReorder="<%= Boolean.TRUE.toString() %>"
-									leftTitle="current"
-									rightBoxName="availableEntryColumns"
+									leftTitle="available"
+									rightBoxName="currentEntryColumns"
 									rightList="<%= rightList %>"
-									rightTitle="available"
+									rightReorder="<%= Boolean.TRUE.toString() %>"
+									rightTitle="in-use"
 								/>
 							</aui:field-wrapper>
 						</div>

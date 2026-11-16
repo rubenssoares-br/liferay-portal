@@ -115,6 +115,15 @@ public class CommerceChannelServiceWrapper
 			accountEntryId, name, start, end);
 	}
 
+	@Override
+	public CommerceChannel getOrAddEmptyCommerceChannel(
+			String externalReferenceCode)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _commerceChannelService.getOrAddEmptyCommerceChannel(
+			externalReferenceCode);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -191,3 +200,4 @@ public class CommerceChannelServiceWrapper
 	private CommerceChannelService _commerceChannelService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1613734734

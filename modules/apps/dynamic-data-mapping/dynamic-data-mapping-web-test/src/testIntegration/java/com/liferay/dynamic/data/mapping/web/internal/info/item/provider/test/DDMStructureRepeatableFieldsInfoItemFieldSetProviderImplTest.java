@@ -70,14 +70,14 @@ public class DDMStructureRepeatableFieldsInfoItemFieldSetProviderImplTest {
 				_readFileToString("structure_with_repeatable_field.json")),
 			StorageType.DEFAULT.getValue(), DDMStructureConstants.TYPE_DEFAULT);
 
-		List<InfoFieldSetEntry> infoItemFieldSet =
+		List<InfoFieldSetEntry> infoFieldSetEntries =
 			_ddmStructureRepeatableFieldsInfoItemFieldSetProvider.
 				getInfoItemFieldSet(ddmStructure.getStructureId());
 
 		Assert.assertEquals(
-			infoItemFieldSet.toString(), 2, infoItemFieldSet.size());
+			infoFieldSetEntries.toString(), 2, infoFieldSetEntries.size());
 
-		InfoFieldSetEntry infoFieldSetEntry1 = infoItemFieldSet.get(0);
+		InfoFieldSetEntry infoFieldSetEntry1 = infoFieldSetEntries.get(0);
 
 		Assert.assertTrue(infoFieldSetEntry1 instanceof InfoField<?>);
 
@@ -85,7 +85,7 @@ public class DDMStructureRepeatableFieldsInfoItemFieldSetProviderImplTest {
 
 		Assert.assertEquals("Text1", infoField1.getName());
 
-		InfoFieldSetEntry infoFieldSetEntry2 = infoItemFieldSet.get(1);
+		InfoFieldSetEntry infoFieldSetEntry2 = infoFieldSetEntries.get(1);
 
 		Assert.assertTrue(infoFieldSetEntry2 instanceof InfoField<?>);
 
@@ -107,14 +107,14 @@ public class DDMStructureRepeatableFieldsInfoItemFieldSetProviderImplTest {
 				_readFileToString("structure_with_repeatable_fieldset.json")),
 			StorageType.DEFAULT.getValue(), DDMStructureConstants.TYPE_DEFAULT);
 
-		List<InfoFieldSetEntry> infoItemFieldSet =
+		List<InfoFieldSetEntry> infoFieldSetEntries =
 			_ddmStructureRepeatableFieldsInfoItemFieldSetProvider.
 				getInfoItemFieldSet(ddmStructure.getStructureId());
 
 		Assert.assertEquals(
-			infoItemFieldSet.toString(), 1, infoItemFieldSet.size());
+			infoFieldSetEntries.toString(), 1, infoFieldSetEntries.size());
 
-		InfoFieldSetEntry infoFieldSetEntry = infoItemFieldSet.get(0);
+		InfoFieldSetEntry infoFieldSetEntry = infoFieldSetEntries.get(0);
 
 		Assert.assertTrue(infoFieldSetEntry instanceof InfoFieldSet);
 
@@ -155,15 +155,15 @@ public class DDMStructureRepeatableFieldsInfoItemFieldSetProviderImplTest {
 				"/test/dependencies/" + fileName);
 	}
 
-	@Inject(filter = "ddm.form.deserializer.type=json")
-	private static DDMFormDeserializer _jsonDDMFormDeserializer;
-
 	@Inject
 	private DDMStructureRepeatableFieldsInfoItemFieldSetProvider
 		_ddmStructureRepeatableFieldsInfoItemFieldSetProvider;
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject(filter = "ddm.form.deserializer.type=json")
+	private DDMFormDeserializer _jsonDDMFormDeserializer;
 
 	@Inject
 	private Portal _portal;

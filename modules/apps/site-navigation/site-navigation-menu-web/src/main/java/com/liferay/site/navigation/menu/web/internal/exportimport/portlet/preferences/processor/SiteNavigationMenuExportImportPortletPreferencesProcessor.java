@@ -12,6 +12,7 @@ import com.liferay.exportimport.kernel.lar.StagedModelDataHandlerUtil;
 import com.liferay.exportimport.kernel.staging.MergeLayoutPrototypesThreadLocal;
 import com.liferay.exportimport.portlet.preferences.processor.Capability;
 import com.liferay.exportimport.portlet.preferences.processor.ExportImportPortletPreferencesProcessor;
+import com.liferay.exportimport.portlet.preferences.processor.ExportImportPortletPreferencesProcessorHelper;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
@@ -30,10 +31,10 @@ import com.liferay.site.navigation.constants.SiteNavigationMenuPortletKeys;
 import com.liferay.site.navigation.model.SiteNavigationMenu;
 import com.liferay.site.navigation.service.SiteNavigationMenuLocalService;
 
-import java.util.List;
+import jakarta.portlet.PortletPreferences;
+import jakarta.portlet.ReadOnlyException;
 
-import javax.portlet.PortletPreferences;
-import javax.portlet.ReadOnlyException;
+import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -42,7 +43,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Jürgen Kappler
  */
 @Component(
-	property = "javax.portlet.name=" + SiteNavigationMenuPortletKeys.SITE_NAVIGATION_MENU,
+	property = "jakarta.portlet.name=" + SiteNavigationMenuPortletKeys.SITE_NAVIGATION_MENU,
 	service = ExportImportPortletPreferencesProcessor.class
 )
 public class SiteNavigationMenuExportImportPortletPreferencesProcessor
@@ -56,6 +57,17 @@ public class SiteNavigationMenuExportImportPortletPreferencesProcessor
 	@Override
 	public List<Capability> getImportCapabilities() {
 		return ListUtil.fromArray(_importCapability);
+	}
+
+	@Override
+	public void processExportPortletPreferences(
+			long companyId, PortletPreferences portletPreferences)
+		throws PortletDataException {
+
+		_exportImportPortletPreferencesProcessorHelper.
+			updateGroupExportPortletPreferencesExternalReferenceCode(
+				companyId, "siteNavigationMenuGroupExternalReferenceCode",
+				portletPreferences);
 	}
 
 	@Override
@@ -90,7 +102,21 @@ public class SiteNavigationMenuExportImportPortletPreferencesProcessor
 				siteNavigationMenu);
 		}
 
+		processExportPortletPreferences(
+			portletDataContext.getCompanyId(), portletPreferences);
+
 		return portletPreferences;
+	}
+
+	@Override
+	public void processImportPortletPreferences(
+			long companyId, PortletPreferences portletPreferences)
+		throws PortletDataException {
+
+		_exportImportPortletPreferencesProcessorHelper.
+			updateGroupImportPortletPreferencesExternalReferenceCode(
+				companyId, "siteNavigationMenuGroupExternalReferenceCode",
+				portletPreferences);
 	}
 
 	@Override
@@ -107,6 +133,12 @@ public class SiteNavigationMenuExportImportPortletPreferencesProcessor
 			throw new PortletDataException(
 				"Unable to import portlet permissions", portalException);
 		}
+
+		_exportImportPortletPreferencesProcessorHelper.
+			updateGroupImportPortletPreferencesExternalReferenceCode(
+				portletDataContext,
+				"siteNavigationMenuGroupExternalReferenceCode",
+				portletPreferences);
 
 		if (!MapUtil.getBoolean(
 				portletDataContext.getParameterMap(),
@@ -261,6 +293,10 @@ public class SiteNavigationMenuExportImportPortletPreferencesProcessor
 
 	@Reference(target = "(name=CommonPortletDisplayTemplateExportCapability)")
 	private Capability _exportCapability;
+
+	@Reference
+	private ExportImportPortletPreferencesProcessorHelper
+		_exportImportPortletPreferencesProcessorHelper;
 
 	@Reference(unbind = "-")
 	private GroupLocalService _groupLocalService;

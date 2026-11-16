@@ -15,9 +15,11 @@ import com.liferay.portal.kernel.dao.orm.Junction;
 import com.liferay.portal.kernel.dao.orm.Property;
 import com.liferay.portal.kernel.dao.orm.PropertyFactoryUtil;
 import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.security.audit.constants.AuditEventConstants;
 import com.liferay.portal.security.audit.storage.comparator.AuditEventCreateDateComparator;
 import com.liferay.portal.security.audit.storage.model.AuditEvent;
 import com.liferay.portal.security.audit.storage.service.base.AuditEventLocalServiceBaseImpl;
@@ -83,30 +85,32 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 	@Override
 	public List<AuditEvent> getAuditEvents(
 		long companyId, long groupId, long userId, String userName,
-		Date createDateGT, Date createDateLT, String eventType,
+		Date createDateGT, Date createDateLT, long[] accountEntryIds,
 		String className, String classPK, String clientHost, String clientIP,
-		String serverName, int serverPort, String sessionID, boolean andSearch,
-		int start, int end) {
+		String contextName, String eventType, String serverName, int serverPort,
+		String sessionID, boolean andSearch, int start, int end) {
 
 		return getAuditEvents(
 			companyId, groupId, userId, userName, createDateGT, createDateLT,
-			eventType, className, classPK, clientHost, clientIP, serverName,
-			serverPort, sessionID, andSearch, start, end,
-			new AuditEventCreateDateComparator());
+			accountEntryIds, className, classPK, clientHost, clientIP,
+			contextName, eventType, serverName, serverPort, sessionID,
+			andSearch, start, end, new AuditEventCreateDateComparator());
 	}
 
 	@Override
 	public List<AuditEvent> getAuditEvents(
 		long companyId, long groupId, long userId, String userName,
-		Date createDateGT, Date createDateLT, String eventType,
+		Date createDateGT, Date createDateLT, long[] accountEntryIds,
 		String className, String classPK, String clientHost, String clientIP,
-		String serverName, int serverPort, String sessionID, boolean andSearch,
-		int start, int end, OrderByComparator<AuditEvent> orderByComparator) {
+		String contextName, String eventType, String serverName, int serverPort,
+		String sessionID, boolean andSearch, int start, int end,
+		OrderByComparator<AuditEvent> orderByComparator) {
 
 		DynamicQuery dynamicQuery = _buildDynamicQuery(
 			companyId, groupId, userId, userName, createDateGT, createDateLT,
-			eventType, className, classPK, clientHost, clientIP, serverName,
-			serverPort, sessionID, andSearch);
+			accountEntryIds, className, classPK, clientHost, clientIP,
+			contextName, eventType, serverName, serverPort, sessionID,
+			andSearch);
 
 		return dynamicQuery(dynamicQuery, start, end, orderByComparator);
 	}
@@ -119,25 +123,26 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 	@Override
 	public int getAuditEventsCount(
 		long companyId, long groupId, long userId, String userName,
-		Date createDateGT, Date createDateLT, String eventType,
+		Date createDateGT, Date createDateLT, long[] accountEntryIds,
 		String className, String classPK, String clientHost, String clientIP,
-		String serverName, int serverPort, String sessionID,
-		boolean andSearch) {
+		String contextName, String eventType, String serverName, int serverPort,
+		String sessionID, boolean andSearch) {
 
 		DynamicQuery dynamicQuery = _buildDynamicQuery(
 			companyId, groupId, userId, userName, createDateGT, createDateLT,
-			eventType, className, classPK, clientHost, clientIP, serverName,
-			serverPort, sessionID, andSearch);
+			accountEntryIds, className, classPK, clientHost, clientIP,
+			contextName, eventType, serverName, serverPort, sessionID,
+			andSearch);
 
 		return (int)dynamicQueryCount(dynamicQuery);
 	}
 
 	private DynamicQuery _buildDynamicQuery(
 		long companyId, long groupId, long userId, String userName,
-		Date createDateGT, Date createDateLT, String eventType,
+		Date createDateGT, Date createDateLT, long[] accountEntryIds,
 		String className, String classPK, String clientHost, String clientIP,
-		String serverName, int serverPort, String sessionID,
-		boolean andSearch) {
+		String contextName, String eventType, String serverName, int serverPort,
+		String sessionID, boolean andSearch) {
 
 		Junction junction = null;
 
@@ -146,6 +151,16 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 		}
 		else {
 			junction = RestrictionsFactoryUtil.disjunction();
+		}
+
+		Property accountEntryIdProperty = PropertyFactoryUtil.forName(
+			"accountEntryId");
+
+		if (ArrayUtil.isNotEmpty(accountEntryIds)) {
+			junction.add(accountEntryIdProperty.in(accountEntryIds));
+		}
+		else if (andSearch) {
+			junction.add(accountEntryIdProperty.eq(0L));
 		}
 
 		if (groupId > 0) {
@@ -232,6 +247,12 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 			dynamicQuery.add(property.eq(companyId));
 		}
 
+		if (Validator.isNotNull(contextName)) {
+			Property property = PropertyFactoryUtil.forName("contextName");
+
+			dynamicQuery.add(property.eq(contextName));
+		}
+
 		if (createDateGT != null) {
 			Property property = PropertyFactoryUtil.forName("createDate");
 
@@ -247,6 +268,14 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 		return dynamicQuery.add(junction);
 	}
 
+	private String _getContextName(AuditMessage auditMessage) {
+		if (Validator.isBlank(auditMessage.getContextName())) {
+			return AuditEventConstants.CONTEXT_NAME_INSTANCE;
+		}
+
+		return auditMessage.getContextName();
+	}
+
 	private AuditEvent _toAuditEvent(
 		AuditMessage auditMessage, long auditEventId) {
 
@@ -256,18 +285,36 @@ public class AuditEventLocalServiceImpl extends AuditEventLocalServiceBaseImpl {
 		auditEvent.setCompanyId(auditMessage.getCompanyId());
 		auditEvent.setUserId(auditMessage.getUserId());
 		auditEvent.setUserName(auditMessage.getUserName());
-		auditEvent.setCreateDate(auditMessage.getTimestamp());
-		auditEvent.setEventType(auditMessage.getEventType());
+		auditEvent.setCreateDate(auditMessage.getTimestampDate());
+		auditEvent.setAccountEntryId(auditMessage.getAccountEntryId());
+		auditEvent.setAdditionalInfo(
+			String.valueOf(auditMessage.getAdditionalInfo()));
 		auditEvent.setClassName(auditMessage.getClassName());
 		auditEvent.setClassPK(auditMessage.getClassPK());
-		auditEvent.setMessage(auditMessage.getMessage());
 		auditEvent.setClientHost(auditMessage.getClientHost());
 		auditEvent.setClientIP(auditMessage.getClientIP());
+		auditEvent.setContextName(_getContextName(auditMessage));
+		auditEvent.setCorrelationId(auditMessage.getCorrelationId());
+		auditEvent.setEventType(auditMessage.getEventType());
+		auditEvent.setHttpMethod(auditMessage.getHttpMethod());
+		auditEvent.setImpersonated(auditMessage.isImpersonated());
+		auditEvent.setImpersonatedUserEmailAddress(
+			auditMessage.getImpersonatedUserEmailAddress());
+		auditEvent.setImpersonatedUserId(auditMessage.getImpersonatedUserId());
+		auditEvent.setImpersonatedUserName(
+			auditMessage.getImpersonatedUserName());
+		auditEvent.setMessage(auditMessage.getMessage());
+		auditEvent.setObjectName(auditMessage.getObjectName());
+		auditEvent.setRequestId(auditMessage.getRequestId());
+		auditEvent.setRequestIdGenerated(auditMessage.isRequestIdGenerated());
+		auditEvent.setResourceAction(auditMessage.getResourceAction());
+		auditEvent.setResourceType(auditMessage.getResourceType());
+		auditEvent.setRoles(auditMessage.getRoles());
 		auditEvent.setServerName(auditMessage.getServerName());
 		auditEvent.setServerPort(auditMessage.getServerPort());
 		auditEvent.setSessionID(auditMessage.getSessionID());
-		auditEvent.setAdditionalInfo(
-			String.valueOf(auditMessage.getAdditionalInfo()));
+		auditEvent.setUserAgent(auditMessage.getUserAgent());
+		auditEvent.setUserEmailAddress(auditMessage.getUserEmailAddress());
 
 		return auditEvent;
 	}

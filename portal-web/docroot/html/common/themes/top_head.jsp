@@ -9,6 +9,8 @@
 <%@ include file="/html/common/themes/top_meta.jspf" %>
 <%@ include file="/html/common/themes/top_meta-ext.jsp" %>
 
+<liferay-util:dynamic-include key="/html/common/themes/top_head.jsp#consent_management_platform" />
+
 <liferay-util:dynamic-include key="/html/common/themes/top_head.jsp#pre" />
 
 <link href="<%= themeDisplay.getFaviconURL() %>" rel="apple-touch-icon" />
@@ -31,7 +33,17 @@ if (layout != null) {
 	if (layout.isTypeAssetDisplay() || layout.isTypeContent()) {
 		List<com.liferay.portal.kernel.model.PortletPreferences> portletPreferencesList = PortletPreferencesLocalServiceUtil.getPortletPreferences(PortletKeys.PREFS_OWNER_ID_DEFAULT, PortletKeys.PREFS_OWNER_TYPE_LAYOUT, layout.getPlid());
 
+		Set<String> portletIds = new HashSet<>();
+
+		for (Portlet portlet : portletTreeSet) {
+			portletIds.add(portlet.getPortletId());
+		}
+
 		for (com.liferay.portal.kernel.model.PortletPreferences portletPreferences : portletPreferencesList) {
+			if (portletIds.contains(portletPreferences.getPortletId())) {
+				continue;
+			}
+
 			Portlet portlet = PortletLocalServiceUtil.getPortletById(company.getCompanyId(), portletPreferences.getPortletId());
 
 			if ((portlet == null) || !portlet.isActive() || portlet.isUndeployedPortlet()) {
@@ -141,7 +153,7 @@ boolean portletHubRequired = false;
 
 for (Portlet portlet : portletTreeSet) {
 	for (PortletDependency portletDependency : portlet.getPortletDependencies()) {
-		if (Objects.equals(portletDependency.getName(), "PortletHub") && Objects.equals(portletDependency.getScope(), "javax.portlet")) {
+		if (Objects.equals(portletDependency.getName(), "PortletHub") && Objects.equals(portletDependency.getScope(), "jakarta.portlet")) {
 			portletHubRequired = true;
 
 			break;

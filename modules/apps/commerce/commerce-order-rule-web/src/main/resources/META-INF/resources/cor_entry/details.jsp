@@ -19,7 +19,7 @@ if ((corEntry != null) && (corEntry.getExpirationDate() != null)) {
 	neverExpire = false;
 }
 
-String type = BeanParamUtil.getString(corEntry, renderRequest, "type", COREntryConstants.TYPE_MINIMUM_ORDER_AMOUNT);
+String type = BeanParamUtil.getString(corEntry, renderRequest, "type", COREntry::getType, COREntryConstants.TYPE_MINIMUM_ORDER_AMOUNT);
 %>
 
 <portlet:actionURL name="/cor_entry/edit_cor_entry" var="editCOREntryActionURL" />
@@ -96,7 +96,7 @@ String type = BeanParamUtil.getString(corEntry, renderRequest, "type", COREntryC
 		<div class="col-12 col-xl-4">
 			<commerce-ui:panel
 				bodyClasses="flex-fill"
-				title='<%= LanguageUtil.get(request, "schedule") %>'
+				title='<%= LanguageUtil.get(request, "schedule[noun]") %>'
 			>
 				<liferay-ui:error exception="<%= COREntryExpirationDateException.class %>" message="please-select-a-valid-expiration-date" />
 

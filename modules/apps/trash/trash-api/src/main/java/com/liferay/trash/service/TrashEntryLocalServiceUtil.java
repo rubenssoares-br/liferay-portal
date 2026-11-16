@@ -151,6 +151,10 @@ public class TrashEntryLocalServiceUtil {
 		return getService().deletePersistedModel(persistedModel);
 	}
 
+	public static void deleteTrashEntries(long companyId, String className) {
+		getService().deleteTrashEntries(companyId, className);
+	}
+
 	/**
 	 * Deletes the trash entry with the primary key from the database. Also notifies the appropriate model listeners.
 	 *
@@ -308,40 +312,6 @@ public class TrashEntryLocalServiceUtil {
 		return getService().getEntries(groupId);
 	}
 
-	/**
-	 * Returns a range of all the trash entries matching the group ID.
-	 *
-	 * @param groupId the primary key of the group
-	 * @param start the lower bound of the range of trash entries to return
-	 * @param end the upper bound of the range of trash entries to return (not
-	 inclusive)
-	 * @return the range of matching trash entries
-	 */
-	public static List<TrashEntry> getEntries(
-		long groupId, int start, int end) {
-
-		return getService().getEntries(groupId, start, end);
-	}
-
-	/**
-	 * Returns a range of all the trash entries matching the group ID.
-	 *
-	 * @param groupId the primary key of the group
-	 * @param start the lower bound of the range of trash entries to return
-	 * @param end the upper bound of the range of trash entries to return (not
-	 inclusive)
-	 * @param orderByComparator the comparator to order the trash entries
-	 (optionally <code>null</code>)
-	 * @return the range of matching trash entries ordered by comparator
-	 <code>orderByComparator</code>
-	 */
-	public static List<TrashEntry> getEntries(
-		long groupId, int start, int end,
-		OrderByComparator<TrashEntry> orderByComparator) {
-
-		return getService().getEntries(groupId, start, end, orderByComparator);
-	}
-
 	public static List<TrashEntry> getEntries(long groupId, String className) {
 		return getService().getEntries(groupId, className);
 	}
@@ -441,14 +411,6 @@ public class TrashEntryLocalServiceUtil {
 		return getService().getTrashEntry(entryId);
 	}
 
-	public static com.liferay.portal.kernel.search.Hits search(
-		long companyId, long groupId, long userId, String keywords, int start,
-		int end, com.liferay.portal.kernel.search.Sort sort) {
-
-		return getService().search(
-			companyId, groupId, userId, keywords, start, end, sort);
-	}
-
 	public static com.liferay.portal.kernel.search.BaseModelSearchResult
 		<TrashEntry> searchTrashEntries(
 			long companyId, long groupId, long userId, String keywords,
@@ -481,3 +443,4 @@ public class TrashEntryLocalServiceUtil {
 			TrashEntryLocalServiceUtil.class, TrashEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1599239839

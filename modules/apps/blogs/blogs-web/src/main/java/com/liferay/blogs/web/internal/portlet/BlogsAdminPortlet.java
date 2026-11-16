@@ -9,20 +9,17 @@ import com.liferay.asset.constants.AssetWebKeys;
 import com.liferay.asset.util.AssetHelper;
 import com.liferay.blogs.constants.BlogsPortletKeys;
 import com.liferay.blogs.model.BlogsEntry;
-import com.liferay.change.tracking.spi.constants.CTTimelineKeys;
+import com.liferay.change.tracking.spi.history.util.CTTimelineUtil;
 import com.liferay.portal.kernel.model.Release;
-import com.liferay.portal.kernel.util.Portal;
 import com.liferay.trash.TrashHelper;
 import com.liferay.trash.util.TrashWebKeys;
 
+import jakarta.portlet.Portlet;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
 import java.io.IOException;
-
-import javax.portlet.Portlet;
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -44,14 +41,15 @@ import org.osgi.service.component.annotations.Reference;
 		"com.liferay.portlet.render-weight=50",
 		"com.liferay.portlet.scopeable=true",
 		"com.liferay.portlet.use-default-template=true",
-		"javax.portlet.display-name=Blogs", "javax.portlet.expiration-cache=0",
-		"javax.portlet.init-param.mvc-command-names-default-views=/blogs/view",
-		"javax.portlet.init-param.portlet-title-based-navigation=true",
-		"javax.portlet.init-param.template-path=/META-INF/resources/",
-		"javax.portlet.name=" + BlogsPortletKeys.BLOGS_ADMIN,
-		"javax.portlet.resource-bundle=content.Language",
-		"javax.portlet.security-role-ref=administrator",
-		"javax.portlet.version=3.0"
+		"jakarta.portlet.display-name=Blogs",
+		"jakarta.portlet.expiration-cache=0",
+		"jakarta.portlet.init-param.mvc-command-names-default-views=/blogs/view",
+		"jakarta.portlet.init-param.portlet-title-based-navigation=true",
+		"jakarta.portlet.init-param.template-path=/META-INF/resources/",
+		"jakarta.portlet.name=" + BlogsPortletKeys.BLOGS_ADMIN,
+		"jakarta.portlet.resource-bundle=content.Language",
+		"jakarta.portlet.security-role-ref=administrator",
+		"jakarta.portlet.version=4.0"
 	},
 	service = Portlet.class
 )
@@ -65,20 +63,13 @@ public class BlogsAdminPortlet extends BaseBlogsPortlet {
 		renderRequest.setAttribute(AssetWebKeys.ASSET_HELPER, _assetHelper);
 		renderRequest.setAttribute(TrashWebKeys.TRASH_HELPER, _trashHelper);
 
-		HttpServletRequest httpServletRequest = _portal.getHttpServletRequest(
-			renderRequest);
-
-		httpServletRequest.setAttribute(
-			CTTimelineKeys.CLASS_NAME, BlogsEntry.class.getName());
+		CTTimelineUtil.setClassName(renderRequest, BlogsEntry.class);
 
 		super.render(renderRequest, renderResponse);
 	}
 
 	@Reference
 	private AssetHelper _assetHelper;
-
-	@Reference
-	private Portal _portal;
 
 	@Reference(
 		target = "(&(release.bundle.symbolic.name=com.liferay.blogs.web)(&(release.schema.version>=1.2.0)(!(release.schema.version>=2.0.0))))"

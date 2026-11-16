@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {Locator, Page, expect} from '@playwright/test';
 
 import {expandSection} from '../../utils/expandSection';
 import fillAndClickOutside from '../../utils/fillAndClickOutside';
@@ -11,7 +11,21 @@ import getRandomString from '../../utils/getRandomString';
 
 type SegmentSection = 'context' | 'segments' | 'user' | 'user-organization';
 
-type SegmentProperty = 'Date of Birth' | 'First Name' | 'Name';
+type SegmentProperty =
+	| 'Country'
+	| 'Date of Birth'
+	| 'Email Address'
+	| 'First Name'
+	| 'Last Name'
+	| 'Name'
+	| 'Organization'
+	| 'Parent Organization'
+	| 'Regular Role'
+	| 'Segments'
+	| 'Site'
+	| string
+	| 'Tag'
+	| 'Type';
 
 type SegmentProperties = Partial<Record<SegmentSection, SegmentProperty[]>>;
 
@@ -19,6 +33,7 @@ export class SegmentEditorPage {
 	readonly page: Page;
 
 	readonly emptyDropzone: Locator;
+	readonly keyboardMovementTarget: Locator;
 	readonly loading: Locator;
 	readonly saveButton: Locator;
 
@@ -26,6 +41,9 @@ export class SegmentEditorPage {
 		this.page = page;
 
 		this.emptyDropzone = page.locator('.empty-drop-zone');
+		this.keyboardMovementTarget = page.locator(
+			'.drop-zone-indicator, .empty-drop-zone--target'
+		);
 		this.loading = page.locator('.sheet .loading-animation');
 		this.saveButton = page.getByText('Save');
 	}
@@ -81,13 +99,52 @@ export class SegmentEditorPage {
 
 		await body.waitFor();
 
+		// Map known label exceptions
+
+		const labelMap: Record<string, string> = {
+			'Country': 'Drag Country',
+			'Name': 'Drag Name',
+			'Organization': 'Drag Organization',
+			'Parent Organization': 'Drag Parent Organization',
+			'Segments': 'Drag Segment',
+			'Site': 'Drag Site',
+			'Tag': 'Drag Tag',
+			'Team': 'Drag Team',
+		};
+
+		const label = labelMap[property] ?? `Drag ${property}`;
+
 		// Add property to desired dropzone
 
-		await this.page.locator('li', {hasText: property}).press('Enter');
+		const criterionRows = this.page.locator(
+			`.criterion-row-root.drop-zone-${section}`
+		);
+		const criterionRowsCount = await criterionRows.count();
+
+		try {
+			await this.page.getByLabel(label, {exact: true}).press('Enter');
+		}
+		catch {
+			try {
+				await this.page
+					.getByRole('menuitem', {exact: true, name: label})
+					.press('Enter');
+			}
+			catch {
+				await this.page
+					.locator('li', {hasText: property})
+					.press('Enter');
+			}
+		}
+
+		// The drop is discarded unless the movement target is already set
+
+		await this.keyboardMovementTarget.first().waitFor({state: 'attached'});
 
 		await target.press('Enter');
 
-		await this.loading.waitFor();
+		await expect(criterionRows).toHaveCount(criterionRowsCount + 1);
+
 		await this.loading.waitFor({state: 'hidden'});
 
 		// Configure property

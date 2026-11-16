@@ -74,17 +74,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro goToCP2(site = null) {
-		Refresh();
-
-		Click(locator1 = "CP2NavigationMenu#APPLICATIONS_MENU_ACCOUNTS");
-
-		Click(
-			key_site = ${site},
-			locator1 = "ApplicationsMenu#SITE_LINK");
-	}
-
-	@summary = "Default summary"
 	macro goToProductActivation() {
 		Click(locator1 = "CP2NavigationMenu#PRODUCT_ACTIVATION");
 	}
@@ -92,21 +81,6 @@ definition {
 	@summary = "Default summary"
 	macro goToTeamMembers() {
 		Click(locator1 = "CP2NavigationMenu#TEAM_MEMBERS");
-	}
-
-	@summary = "Default summary"
-	macro openLastIdCreated() {
-		var idCreated = selenium.getText("RaylifeRetrieveEmail#ID_CREATED");
-
-		Click(
-			locator1 = "RaylifeRetrieveEmail#ID_CREATED",
-			value1 = ${idCreated});
-
-		WaitForElementPresent(locator1 = "RaylifeRetrieveEmail#QUOTE_RETRIEVE_LINK");
-
-		var openURL = selenium.getAttribute("RaylifeRetrieveEmail#SITE_LINK");
-
-		Navigator.openSpecificURL(url = ${openURL});
 	}
 
 }

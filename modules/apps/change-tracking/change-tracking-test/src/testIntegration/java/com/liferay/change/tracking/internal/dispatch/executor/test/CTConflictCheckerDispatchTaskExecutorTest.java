@@ -86,7 +86,7 @@ public class CTConflictCheckerDispatchTaskExecutorTest {
 		List<DispatchLog> dispatchLogs =
 			_dispatchLogLocalService.getDispatchLogs(
 				dispatchTrigger.getDispatchTriggerId(), QueryUtil.ALL_POS,
-				QueryUtil.ALL_POS);
+				QueryUtil.ALL_POS, null);
 
 		DispatchLog dispatchLog = dispatchLogs.get(0);
 
@@ -183,7 +183,7 @@ public class CTConflictCheckerDispatchTaskExecutorTest {
 	private UserNotificationEventLocalService
 		_userNotificationEventLocalService;
 
-	@Inject(filter = "javax.portlet.name=" + CTPortletKeys.PUBLICATIONS)
+	@Inject(filter = "jakarta.portlet.name=" + CTPortletKeys.PUBLICATIONS)
 	private UserNotificationHandler _userNotificationHandler;
 
 }

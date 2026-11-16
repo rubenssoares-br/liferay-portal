@@ -84,10 +84,10 @@ public class DDLXLSExporter extends BaseDDLExporter {
 
 			_createHeaderRow(ddmFormFields.values(), sheet, workbook);
 
-			List<DDLRecord> records = _ddlRecordLocalService.getRecords(
+			List<DDLRecord> ddlRecords = _ddlRecordLocalService.getRecords(
 				recordSetId, status, start, end, orderByComparator);
 
-			Iterator<DDLRecord> iterator = records.iterator();
+			Iterator<DDLRecord> iterator = ddlRecords.iterator();
 
 			int rowIndex = 1;
 
@@ -189,10 +189,10 @@ public class DDLXLSExporter extends BaseDDLExporter {
 
 			cell.setCellStyle(style);
 
-			if (values.containsKey(entry.getKey())) {
-				DDMFormFieldRenderedValue ddmFormFieldRenderedValue =
-					values.get(entry.getKey());
+			DDMFormFieldRenderedValue ddmFormFieldRenderedValue = values.get(
+				entry.getKey());
 
+			if (ddmFormFieldRenderedValue != null) {
 				cell.setCellValue(
 					GetterUtil.getString(ddmFormFieldRenderedValue.getValue()));
 			}

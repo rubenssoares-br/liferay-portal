@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Properties;
 
+import org.json.JSONObject;
+
 /**
  * @author Kenji Heigel
  */
@@ -101,6 +103,14 @@ public class RelevantRuleValidation {
 			String repositoryName, String upstreamBranchName)
 		throws IOException {
 
+		validate(repositoryName, upstreamBranchName, null);
+	}
+
+	public static void validate(
+			String repositoryName, String upstreamBranchName,
+			JSONObject jsonObject)
+		throws IOException {
+
 		Properties properties = JenkinsResultsParserUtil.getBuildProperties();
 
 		File portalDir = new File(
@@ -114,11 +124,12 @@ public class RelevantRuleValidation {
 		PortalAcceptancePullRequestJob portalAcceptancePullRequestJob =
 			(PortalAcceptancePullRequestJob)JobFactory.newJob(
 				Job.BuildProfile.DXP,
-				"test-portal-acceptance-pullrequest(master)", null,
+				"test-portal-acceptance-pullrequest(master)", jsonObject,
 				portalGitWorkingDirectory, upstreamBranchName, null,
 				repositoryName, "relevant", upstreamBranchName);
 
-		RelevantRuleEngine.getInstance(portalAcceptancePullRequestJob);
+		RelevantRuleEngine relevantRuleEngine = RelevantRuleEngine.getInstance(
+			portalAcceptancePullRequestJob);
 
 		for (Path testPropertiesPath : _findTestPropertiesPaths(portalDir)) {
 			Properties testProperties = JenkinsResultsParserUtil.getProperties(
@@ -134,12 +145,11 @@ public class RelevantRuleValidation {
 			List<RelevantRule> relevantRules = new ArrayList<>();
 
 			for (String relevantRuleName : relevantRuleNames.split(",")) {
-				RelevantRule relevantRule = new RelevantRule(
-					testPropertiesPath.toString(),
-					portalAcceptancePullRequestJob, relevantRuleName,
-					testProperties);
-
-				relevantRules.add(relevantRule);
+				relevantRules.add(
+					relevantRuleEngine.getRelevantRule(
+						testPropertiesPath.toString(),
+						portalAcceptancePullRequestJob, testProperties,
+						relevantRuleName));
 			}
 
 			evaluate(relevantRules);

@@ -6,10 +6,10 @@
 import {Locator, Page, expect} from '@playwright/test';
 
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {GlobalMenuPage} from '../product-navigation-applications-menu/GlobalMenuPage';
 
 export class SXPBlueprintsAndElementsViewPage {
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly page: Page;
 	readonly blueprintElementSearchBar: Locator;
 	readonly blueprintElementTable: Locator;
@@ -22,21 +22,23 @@ export class SXPBlueprintsAndElementsViewPage {
 
 	constructor(page: Page) {
 		this.addBlueprintButton = page
-			.getByTestId('management-toolbar')
+			.getByTestId('managementToolbar')
 			.getByLabel('New Search Blueprint');
 		this.addBlueprintElementModal = page.locator('.modal-dialog');
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
-		this.blueprintElementTable = page.locator('.dnd-table');
-		this.blueprintElementSearchBar = page.getByPlaceholder('Search');
+		this.blueprintElementTable = page.locator('.fds table');
+		this.blueprintElementSearchBar = page
+			.getByTestId('managementToolbar')
+			.getByRole('searchbox', {name: 'Search'});
 		this.blueprintsTab = page.getByRole('link', {name: 'Blueprints'});
 		this.elementsTab = page.getByRole('link', {name: 'Elements'});
+		this.globalMenuPage = new GlobalMenuPage(page);
 
 		// Blueprint/Element Table
 
 		this.blueprintElementTableHeading =
-			this.blueprintElementTable.locator('.dnd-thead');
+			this.blueprintElementTable.locator('thead');
 		this.blueprintElementTableOpenFieldsMenuButton =
-			this.blueprintElementTable.getByLabel('Open Fields Menu');
+			this.blueprintElementTable.getByLabel('Manage Columns Visibility');
 
 		this.page = page;
 	}
@@ -44,7 +46,7 @@ export class SXPBlueprintsAndElementsViewPage {
 	// Navigation
 
 	async goto() {
-		await this.applicationsMenuPage.goToBlueprints();
+		await this.globalMenuPage.goToApplications('Blueprints');
 	}
 
 	async goToBlueprintsTab() {
@@ -94,7 +96,7 @@ export class SXPBlueprintsAndElementsViewPage {
 			// If there are multiple items with the same title, check id
 
 			itemLink = this.blueprintElementTable
-				.locator('.dnd-tr')
+				.locator('tr')
 				.filter({
 					has: this.page.getByText(`${id}`),
 				})
@@ -107,7 +109,7 @@ export class SXPBlueprintsAndElementsViewPage {
 	async selectTableMenuOption(title: string, option: string) {
 		await expect(this.blueprintElementTable).toBeVisible();
 
-		const itemRow = this.blueprintElementTable.locator('.dnd-tr').filter({
+		const itemRow = this.blueprintElementTable.locator('tr').filter({
 			has: this.page.getByRole('link', {name: title}),
 		});
 

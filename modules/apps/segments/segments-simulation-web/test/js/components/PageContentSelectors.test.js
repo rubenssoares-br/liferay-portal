@@ -7,7 +7,7 @@ import {act, fireEvent, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 
 import PageContentSelectors from '../../../src/main/resources/META-INF/resources/js/components/PageContentSelectors';
 
@@ -43,6 +43,7 @@ const mockProps = {
 jest.mock('frontend-js-web', () => ({
 	debounce: jest.fn(),
 	sub: jest.fn(),
+	uuidv4: jest.requireActual('frontend-js-web').uuidv4,
 }));
 
 describe('PageContentSelectors', () => {
@@ -73,7 +74,7 @@ describe('PageContentSelectors', () => {
 		userEvent.click(previewBySelector);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		expect(document.getElementById('segments')).toBeInTheDocument();
@@ -81,9 +82,7 @@ describe('PageContentSelectors', () => {
 	});
 
 	it('If no segments available renders empty segments message', () => {
-		render(
-			<PageContentSelectors {...{...mockProps, segmentsEntries: []}} />
-		);
+		render(<PageContentSelectors {...mockProps} segmentsEntries={[]} />);
 
 		expect(
 			screen.getByText('no-segments-have-been-added-yet')
@@ -94,9 +93,7 @@ describe('PageContentSelectors', () => {
 		jest.useFakeTimers();
 
 		render(
-			<PageContentSelectors
-				{...{...mockProps, segmentsExperiences: []}}
-			/>
+			<PageContentSelectors {...mockProps} segmentsExperiences={[]} />
 		);
 
 		const previewBySelector = screen.getByRole('combobox', {
@@ -106,7 +103,7 @@ describe('PageContentSelectors', () => {
 		userEvent.click(previewBySelector);
 
 		act(() => {
-			jest.runAllTimers();
+			jest.advanceTimersByTime(100);
 		});
 
 		fireEvent.click(document.getElementById('experiences'));

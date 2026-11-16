@@ -74,16 +74,21 @@ import org.gradle.api.execution.TaskExecutionGraph;
 import org.gradle.api.execution.TaskExecutionListener;
 import org.gradle.api.file.ConfigurableFileCollection;
 import org.gradle.api.file.CopySpec;
+import org.gradle.api.file.Directory;
 import org.gradle.api.file.DirectoryProperty;
+import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.initialization.Settings;
 import org.gradle.api.invocation.Gradle;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.plugins.BasePlugin;
 import org.gradle.api.plugins.ExtensionAware;
+import org.gradle.api.plugins.PluginManager;
 import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.Copy;
 import org.gradle.api.tasks.Delete;
+import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.TaskInputs;
 import org.gradle.api.tasks.TaskOutputs;
@@ -316,6 +321,8 @@ public class ClientExtensionProjectConfigurator
 
 			_configureLanguageProject(project);
 		}
+
+		_configureSpringBootPlugin(project);
 	}
 
 	@Override
@@ -716,8 +723,13 @@ public class ClientExtensionProjectConfigurator
 				}
 			});
 
-		File clientExtensionBuildDir = new File(
-			project.getBuildDir(), getClientExtensionBuildDir(project));
+		ProjectLayout projectLayout = project.getLayout();
+
+		DirectoryProperty buildDirectoryProperty =
+			projectLayout.getBuildDirectory();
+
+		Provider<Directory> clientExtensionBuildDirProvider =
+			buildDirectoryProperty.dir(getClientExtensionBuildDir(project));
 
 		assembleClientExtensionTaskProvider.configure(
 			copy -> {
@@ -727,7 +739,7 @@ public class ClientExtensionProjectConfigurator
 					taskInputs.file(clientExtensionYamlFile);
 				}
 
-				copy.into(clientExtensionBuildDir);
+				copy.into(clientExtensionBuildDirProvider);
 
 				copy.doFirst(
 					new Action<Task>() {
@@ -795,7 +807,7 @@ public class ClientExtensionProjectConfigurator
 
 				archiveVersion.set("");
 
-				zip.from(clientExtensionBuildDir);
+				zip.from(clientExtensionBuildDirProvider);
 				zip.include("**/*");
 			});
 
@@ -834,27 +846,28 @@ public class ClientExtensionProjectConfigurator
 
 								Set<Project> projects = entry.getValue();
 
-								if ((projects.size() > 1) &&
-									projects.contains(project)) {
+								if ((projects.size() <= 1) ||
+									!projects.contains(project)) {
+
+									continue;
+								}
+
+								sb.append("Duplicate client extension ID \"");
+								sb.append(entry.getKey());
+								sb.append("\" found in these projects:\n");
+
+								for (Project curProject : projects) {
+									File projectDir =
+										curProject.getProjectDir();
 
 									sb.append(
-										"Duplicate client extension ID \"");
-									sb.append(entry.getKey());
-									sb.append("\" found in these projects:\n");
-
-									for (Project curProject : projects) {
-										File projectDir =
-											curProject.getProjectDir();
-
-										sb.append(
-											rootDirPath.relativize(
-												projectDir.toPath()));
-
-										sb.append(StringUtil.COMMA_AND_SPACE);
-									}
+										rootDirPath.relativize(
+											projectDir.toPath()));
 
 									sb.append(StringUtil.COMMA_AND_SPACE);
 								}
+
+								sb.append(StringUtil.COMMA_AND_SPACE);
 							}
 
 							if (sb.length() > 0) {
@@ -883,8 +896,12 @@ public class ClientExtensionProjectConfigurator
 				DirectoryProperty destinationDirectoryProperty =
 					zip.getDestinationDirectory();
 
+				Provider<Directory> siteInitializerBuildDirProvider =
+					clientExtensionBuildDirProvider.map(
+						directory -> directory.dir("site-initializer"));
+
 				destinationDirectoryProperty.set(
-					new File(clientExtensionBuildDir, "site-initializer"));
+					siteInitializerBuildDirProvider);
 
 				Property<String> archiveBaseNameProperty =
 					zip.getArchiveBaseName();
@@ -1090,6 +1107,54 @@ public class ClientExtensionProjectConfigurator
 			});
 	}
 
+	private void _configureSpringBootPlugin(Project project) {
+		PluginManager pluginManager = project.getPluginManager();
+
+		Map<String, String> environmentMap = Collections.singletonMap(
+			"JDK_JAVA_OPTIONS",
+			StringUtil.concat(
+				"--add-opens=java.base/java.lang=ALL-UNNAMED ",
+				"--add-opens=java.base/java.lang.invoke=ALL-UNNAMED ",
+				"--add-opens=java.base/java.lang.reflect=ALL-UNNAMED ",
+				"--add-opens=java.base/java.net=ALL-UNNAMED ",
+				"--add-opens=java.base/sun.net.www.protocol.http=ALL-UNNAMED ",
+				"--add-opens=java.base/sun.net.www.protocol.https=ALL-UNNAMED ",
+				"--add-opens=java.base/sun.util.calendar=ALL-UNNAMED ",
+				"--add-opens=jdk.zipfs/jdk.nio.zipfs=ALL-UNNAMED"));
+
+		pluginManager.withPlugin(
+			"org.springframework.boot",
+			appliedPlugin -> {
+				TaskContainer taskContainer = project.getTasks();
+
+				taskContainer.withType(
+					JavaExec.class,
+					javaExecTask -> {
+						javaExecTask.environment(environmentMap);
+
+						Logger logger = javaExecTask.getLogger();
+
+						if (!logger.isInfoEnabled()) {
+							return;
+						}
+
+						logger.info(
+							StringUtil.concat(
+								"Injected the environment variable ",
+								" \"JDK_JAVA_OPTIONS\" into the process ",
+								"invoked by the task {}"),
+							javaExecTask.getPath());
+
+						for (Map.Entry<String, String> entry :
+								environmentMap.entrySet()) {
+
+							logger.info(
+								"{}: {}", entry.getKey(), entry.getValue());
+						}
+					});
+			});
+	}
+
 	private void _configureTaskCheck(Project project) {
 		Task checkTask = GradleUtil.getTask(
 			project, LifecycleBasePlugin.CHECK_TASK_NAME);
@@ -1141,15 +1206,30 @@ public class ClientExtensionProjectConfigurator
 		}
 	}
 
-	private boolean _isActiveProfile(Project project, String profileName) {
-		if (Objects.equals(
-				profileName,
-				GradleUtil.getProperty(project, "profileName", "default"))) {
+	private Map<String, Object> _getObjectFromTypeSettings(
+		ClientExtension clientExtension, String typeSettingsKey) {
 
-			return true;
+		Map<String, Object> typeSettings = clientExtension.typeSettings;
+
+		if (!typeSettings.containsKey(typeSettingsKey)) {
+			return null;
 		}
 
-		return false;
+		Object value = typeSettings.get(typeSettingsKey);
+
+		if (!(value instanceof Map)) {
+			throw new GradleException(
+				String.format(
+					"The property '%s' must be an object", typeSettingsKey));
+		}
+
+		return (Map<String, Object>)value;
+	}
+
+	private boolean _isActiveProfile(Project project, String profileName) {
+		return Objects.equals(
+			profileName,
+			GradleUtil.getProperty(project, "profileName", "default"));
 	}
 
 	private boolean _isLanguageProject(File rootDir, File projectDir) {
@@ -1198,10 +1278,14 @@ public class ClientExtensionProjectConfigurator
 			_validateRequiredTypeSettingsKeys(
 				clientExtension, "oAuthApplicationHeadlessServer");
 		}
+		else if (Objects.equals(clientExtension.type, "globalCSS")) {
+			_validateTypeSettingsValues(
+				clientExtension, "scope", "company", "layout");
+		}
 		else if (Objects.equals(clientExtension.type, "globalJS")) {
 			_validateGlobalJSScriptElementAttributes(clientExtension);
 			_validateTypeSettingsValues(
-				clientExtension, "scope", "instance", "page");
+				clientExtension, "scope", "company", "layout");
 			_validateTypeSettingsValues(
 				clientExtension, "scriptLocation", "bottom", "head");
 		}
@@ -1220,28 +1304,24 @@ public class ClientExtensionProjectConfigurator
 			_validateTypeSettingsValues(
 				clientExtension, "membershipType", "open", "private",
 				"restricted");
+			_validateSiteInitializerSiteNameI18n(clientExtension);
+		}
+		else if (Objects.equals(clientExtension.type, "themeCSS")) {
+			_validateTypeSettingsValues(
+				clientExtension, "scope", "controlPanel", "layout");
 		}
 	}
 
 	private void _validateGlobalJSScriptElementAttributes(
 		ClientExtension clientExtension) {
 
-		Map<String, Object> typeSettings = clientExtension.typeSettings;
+		Map<String, Object> scriptElementAttributesMap =
+			_getObjectFromTypeSettings(
+				clientExtension, "scriptElementAttributes");
 
-		if (!typeSettings.containsKey("scriptElementAttributes")) {
+		if (scriptElementAttributesMap == null) {
 			return;
 		}
-
-		Object scriptElementAttributes = typeSettings.get(
-			"scriptElementAttributes");
-
-		if (!(scriptElementAttributes instanceof Map)) {
-			throw new GradleException(
-				"The property 'scriptElementAttributes' must be an object");
-		}
-
-		Map<String, Object> scriptElementAttributesMap =
-			(Map<String, Object>)scriptElementAttributes;
 
 		for (Map.Entry<String, Object> entry :
 				scriptElementAttributesMap.entrySet()) {
@@ -1308,6 +1388,35 @@ public class ClientExtensionProjectConfigurator
 						"property %s",
 					clientExtension.id, clientExtension.type,
 					StringUtil.quote(requiredTypeSettingsKey)));
+		}
+	}
+
+	private void _validateSiteInitializerSiteNameI18n(
+		ClientExtension clientExtension) {
+
+		Map<String, Object> siteNameI18nMap = _getObjectFromTypeSettings(
+			clientExtension, "siteName_i18n");
+
+		if (siteNameI18nMap == null) {
+			return;
+		}
+
+		for (Map.Entry<String, Object> entry : siteNameI18nMap.entrySet()) {
+			Object value = entry.getValue();
+
+			if (value == null) {
+				throw new GradleException(
+					String.format(
+						"The value for the language ID '%s' must be specified",
+						entry.getKey()));
+			}
+
+			if (!(value instanceof String)) {
+				throw new GradleException(
+					String.format(
+						"The value for the language ID '%s' must be a string",
+						entry.getKey()));
+			}
 		}
 	}
 

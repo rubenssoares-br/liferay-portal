@@ -9,10 +9,8 @@ import {
 	FDS_NESTED_FIELD_NAME_DELIMITER,
 	FDS_NESTED_FIELD_NAME_PARENT_SUFFIX,
 } from '@liferay/frontend-data-set-web';
-import {fetch} from 'frontend-js-web';
 
-import openDefaultFailureToast from './openDefaultFailureToast';
-import {EFieldFormat, EFieldType, IField} from './types';
+import {EFieldType, IField, IProperties, ISchemas} from './types';
 
 export const BLACKLISTED_FIELDS = [
 	'actions',
@@ -22,25 +20,6 @@ export const BLACKLISTED_FIELDS = [
 ];
 
 const LOCALIZABLE_PROPERTY_SUFFIX = '_i18n';
-
-interface IProperty {
-	$ref?: string;
-	format?: EFieldFormat;
-	items?: any;
-	type?: EFieldType;
-	['x-parent-map']?: string;
-}
-
-interface IProperties {
-	[key: string]: IProperty;
-}
-
-interface ISchemas {
-	[key: string]: {
-		properties: IProperties;
-		type: string;
-	};
-}
 
 const validSchemaPropertyFilter = (propertyKey: string) => {
 	return (
@@ -84,6 +63,9 @@ function getValidFields({
 
 			let targetSchemaName;
 
+			const reference =
+				propertyValue.$ref ?? propertyValue.allOf?.[0]?.$ref;
+
 			if (propertyValue.items?.$ref) {
 				field.name = `${field.name}${FDS_ARRAY_FIELD_NAME_PARENT_SUFFIX}`;
 				field.type = type ? type : 'array';
@@ -92,10 +74,10 @@ function getValidFields({
 					''
 				);
 			}
-			else if (propertyValue.$ref) {
+			else if (reference) {
 				field.name = `${field.name}${FDS_NESTED_FIELD_NAME_PARENT_SUFFIX}`;
 				field.type = type ? type : 'object';
-				targetSchemaName = propertyValue.$ref.replace(/^.*\//, '');
+				targetSchemaName = reference.replace(/^.*\//, '');
 			}
 			else if (propertyValue['x-parent-map'] === 'properties') {
 				const schemaNames = Object.keys(schemas);
@@ -134,31 +116,13 @@ function getValidFields({
 	return fields;
 }
 
-export default async function getFields({
-	restApplication,
+export default function getFields({
 	restSchema,
+	schemas,
 }: {
-	restApplication: string;
 	restSchema: string;
+	schemas: ISchemas;
 }) {
-	const response = await fetch(`/o${restApplication}/openapi.json`);
-
-	if (!response.ok) {
-		openDefaultFailureToast();
-
-		return [];
-	}
-
-	const responseJSON = await response.json();
-
-	const schemas = responseJSON?.components?.schemas;
-
-	if (!schemas?.[restSchema]?.properties) {
-		openDefaultFailureToast();
-
-		return [];
-	}
-
 	return getValidFields({
 		contextPath: '',
 		schemaName: restSchema,
@@ -167,4 +131,51 @@ export default async function getFields({
 	});
 }
 
-export {getValidFields, ISchemas};
+function getFilterableFields({
+	restSchema,
+	schemas,
+}: {
+	restSchema: string;
+	schemas: ISchemas;
+}): IField[] {
+	if (!schemas[restSchema]['x-filterable']) {
+		return [];
+	}
+
+	const filterablePaths = schemas[restSchema]['x-filterable'];
+
+	if (!filterablePaths) {
+		return [];
+	}
+
+	const filterableItemList = Object.keys(filterablePaths);
+
+	return filterableItemList.map((item) => {
+		const type = filterablePaths[item].type;
+		const entityFieldType =
+			type === EFieldType.ARRAY
+				? filterablePaths[item].items?.type
+				: type;
+
+		const field: IField = {
+			entityFieldType,
+			label: item,
+			name: item,
+			type,
+		};
+
+		if (type === EFieldType.ARRAY) {
+			field.entityFieldType = `collection-${field.entityFieldType}` as
+				| EFieldType.COLLECTION_INTEGER
+				| EFieldType.COLLECTION_STRING;
+		}
+
+		if (field.type === EFieldType.DATE_TIME) {
+			field.entityFieldType = EFieldType.STRING;
+		}
+
+		return field;
+	});
+}
+
+export {getValidFields, getFilterableFields};

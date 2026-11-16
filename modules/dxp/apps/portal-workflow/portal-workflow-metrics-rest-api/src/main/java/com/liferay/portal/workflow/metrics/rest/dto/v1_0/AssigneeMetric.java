@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rafael Praxedes
@@ -39,6 +40,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "https://schema.org/AssigneeMetric", value = "AssigneeMetric"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "https://schema.org/AssigneeMetric"
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "AssigneeMetric")
@@ -52,7 +56,7 @@ public class AssigneeMetric implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(AssigneeMetric.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Assignee getAssignee() {
 		if (_assigneeSupplier != null) {
@@ -94,7 +98,7 @@ public class AssigneeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Assignee> _assigneeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getDurationTaskAvg() {
 		if (_durationTaskAvgSupplier != null) {
 			durationTaskAvg = _durationTaskAvgSupplier.get();
@@ -135,7 +139,7 @@ public class AssigneeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _durationTaskAvgSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getOnTimeTaskCount() {
 		if (_onTimeTaskCountSupplier != null) {
 			onTimeTaskCount = _onTimeTaskCountSupplier.get();
@@ -176,7 +180,7 @@ public class AssigneeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _onTimeTaskCountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getOverdueTaskCount() {
 		if (_overdueTaskCountSupplier != null) {
 			overdueTaskCount = _overdueTaskCountSupplier.get();
@@ -217,7 +221,7 @@ public class AssigneeMetric implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _overdueTaskCountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getTaskCount() {
 		if (_taskCountSupplier != null) {
 			taskCount = _taskCountSupplier.get();
@@ -350,8 +354,8 @@ public class AssigneeMetric implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.workflow.metrics.rest.dto.v1_0.AssigneeMetric",
 		name = "x-class-name"
 	)
@@ -438,6 +442,27 @@ public class AssigneeMetric implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -446,3 +471,4 @@ public class AssigneeMetric implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1560885780

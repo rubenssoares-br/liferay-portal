@@ -13,6 +13,10 @@ definition {
 		User.firstLoginPG();
 
 		WikiPortlet.enableWiki();
+
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
+		}
 	}
 
 	tearDown {
@@ -295,7 +299,6 @@ definition {
 		property portal.acceptance = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
-		property testray.component.names = "Training";
 
 		Workflow.openWorkflowListView();
 
@@ -789,8 +792,7 @@ definition {
 		property test.liferay.virtual.instance = "false";
 
 		task ("Given administrators publish and edit workflows configuration is disabled") {
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
@@ -831,8 +833,7 @@ definition {
 		property test.liferay.virtual.instance = "false";
 
 		task ("Given administrators publish and edit workflows configuration is enabled") {
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 
@@ -956,13 +957,13 @@ definition {
 			assetType = "Blogs Entry",
 			user = "Test Test");
 
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Assign to Me");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Assign to Me");
 
 		Workflow.confirmWorkflowAction();
 
 		Navigator.gotoPage(pageName = "Blogs Page");
 
-		Notifications.viewBadgeCount(notificationCount = 0);
+		Notifications.viewBadgeCount(notificationCount = 1);
 
 		UserBar.gotoDropdownItem(dropdownItem = "My Workflow Tasks");
 
@@ -972,7 +973,7 @@ definition {
 			workflowAssignedTo = "Test Test",
 			workflowTask = "Review");
 
-		LexiconEntry.gotoEllipsisMenuItem(menuItem = "Approve");
+		LexiconEntry.gotoVerticalEllipsisMenuItemNoError(menuItem = "Approve");
 
 		Button.clickDone();
 
@@ -988,7 +989,7 @@ definition {
 			entryContent = "Blogs Entry Content",
 			entryTitle = "Blogs Entry Title");
 
-		Notifications.viewBadgeCount(notificationCount = 0);
+		Notifications.viewBadgeCount(notificationCount = 1);
 	}
 
 	@ignore = "true"

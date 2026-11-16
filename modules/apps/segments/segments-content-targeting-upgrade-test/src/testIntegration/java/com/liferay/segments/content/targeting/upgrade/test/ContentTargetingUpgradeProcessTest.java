@@ -294,6 +294,42 @@ public class ContentTargetingUpgradeProcessTest {
 	}
 
 	@Test
+	public void testUpgradeContentTargetingUserSegmentsWithOSRule()
+		throws Exception {
+
+		long contentTargetingUserSegmentId = -1L;
+
+		insertContentTargetingRuleInstance(
+			contentTargetingUserSegmentId, "OSRule", "iOS");
+
+		insertContentTargetingUserSegment(
+			contentTargetingUserSegmentId,
+			RandomTestUtil.randomLocaleStringMap(),
+			RandomTestUtil.randomLocaleStringMap());
+
+		_contentTargetingUpgradeProcess.upgrade();
+
+		_segmentsEntry = _segmentsEntryLocalService.fetchSegmentsEntry(
+			_group.getGroupId(), "CT_" + contentTargetingUserSegmentId);
+
+		Assert.assertNotNull(_segmentsEntry);
+
+		Criteria criteria = _segmentsEntry.getCriteriaObj();
+
+		Assert.assertNotNull(criteria);
+
+		Criteria.Criterion criterion = criteria.getCriterion("context");
+
+		Assert.assertNotNull(criterion);
+
+		Assert.assertEquals(
+			Criteria.Conjunction.AND,
+			Criteria.Conjunction.parse(criterion.getConjunction()));
+		Assert.assertEquals(
+			"contains(userAgent, 'iOS')", criterion.getFilterString());
+	}
+
+	@Test
 	public void testUpgradeContentTargetingUserSegmentsWithOrganizationMemberRule()
 		throws Exception {
 
@@ -328,42 +364,6 @@ public class ContentTargetingUpgradeProcessTest {
 			Criteria.Conjunction.parse(criterion.getConjunction()));
 		Assert.assertEquals(
 			"(organizationId eq '12345')", criterion.getFilterString());
-	}
-
-	@Test
-	public void testUpgradeContentTargetingUserSegmentsWithOSRule()
-		throws Exception {
-
-		long contentTargetingUserSegmentId = -1L;
-
-		insertContentTargetingRuleInstance(
-			contentTargetingUserSegmentId, "OSRule", "iOS");
-
-		insertContentTargetingUserSegment(
-			contentTargetingUserSegmentId,
-			RandomTestUtil.randomLocaleStringMap(),
-			RandomTestUtil.randomLocaleStringMap());
-
-		_contentTargetingUpgradeProcess.upgrade();
-
-		_segmentsEntry = _segmentsEntryLocalService.fetchSegmentsEntry(
-			_group.getGroupId(), "CT_" + contentTargetingUserSegmentId);
-
-		Assert.assertNotNull(_segmentsEntry);
-
-		Criteria criteria = _segmentsEntry.getCriteriaObj();
-
-		Assert.assertNotNull(criteria);
-
-		Criteria.Criterion criterion = criteria.getCriterion("context");
-
-		Assert.assertNotNull(criterion);
-
-		Assert.assertEquals(
-			Criteria.Conjunction.AND,
-			Criteria.Conjunction.parse(criterion.getConjunction()));
-		Assert.assertEquals(
-			"contains(userAgent, 'iOS')", criterion.getFilterString());
 	}
 
 	@Test
@@ -621,6 +621,7 @@ public class ContentTargetingUpgradeProcessTest {
 		throws Exception {
 
 		try (Connection connection = DataAccess.getConnection();
+
 			PreparedStatement preparedStatement = connection.prepareStatement(
 				StringBundler.concat(
 					"insert into CT_RuleInstance(ruleInstanceId, groupId, ",
@@ -655,6 +656,7 @@ public class ContentTargetingUpgradeProcessTest {
 		throws Exception {
 
 		try (Connection connection = DataAccess.getConnection();
+
 			PreparedStatement preparedStatement = connection.prepareStatement(
 				StringBundler.concat(
 					"insert into CT_UserSegment(userSegmentId, groupId, ",
@@ -705,10 +707,12 @@ public class ContentTargetingUpgradeProcessTest {
 					for (UpgradeStep upgradeStep : upgradeSteps) {
 						Class<?> clazz = upgradeStep.getClass();
 
-						if (Objects.equals(clazz.getName(), _CLASS_NAME)) {
-							_contentTargetingUpgradeProcess =
-								(UpgradeProcess)upgradeStep;
+						if (!Objects.equals(clazz.getName(), _CLASS_NAME)) {
+							continue;
 						}
+
+						_contentTargetingUpgradeProcess =
+							(UpgradeProcess)upgradeStep;
 					}
 				}
 
@@ -766,12 +770,12 @@ public class ContentTargetingUpgradeProcessTest {
 		"com.liferay.segments.content.targeting.upgrade.internal.upgrade." +
 			"v1_0_0.ContentTargetingUpgradeProcess";
 
-	private static DB _db;
-
 	private UpgradeProcess _contentTargetingUpgradeProcess;
 
 	@Inject
 	private CounterLocalService _counterLocalService;
+
+	private DB _db;
 
 	@DeleteAfterTestRun
 	private ExpandoTable _expandoTable;

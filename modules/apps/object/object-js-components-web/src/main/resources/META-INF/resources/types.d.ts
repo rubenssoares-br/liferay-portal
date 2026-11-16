@@ -30,6 +30,7 @@ interface ObjectDefinition {
 	dateCreated: string;
 	dateModified: string;
 	defaultLanguageId: string;
+	description?: LocalizedValue<string>;
 	externalReferenceCode: string;
 	id: number;
 	label: LocalizedValue<string>;
@@ -58,6 +59,7 @@ interface ObjectField {
 	DBType: string;
 	businessType: ObjectFieldBusinessType | string;
 	defaultValue?: string;
+	description?: LocalizedValue<string>;
 	externalReferenceCode?: string;
 	id: number;
 	indexed: boolean;
@@ -67,7 +69,9 @@ interface ObjectField {
 	listTypeDefinitionId: number;
 	localized: boolean;
 	name: string;
+	objectDefinitionExternalReferenceCode1?: string;
 	objectFieldSettings?: ObjectFieldSetting[];
+	objectRelationshipExternalReferenceCode: string;
 	relationshipType?: unknown;
 	required: boolean;
 	state: boolean;
@@ -85,6 +89,7 @@ type ObjectFieldBusinessTypeName =
 	| 'Encrypted'
 	| 'Formula'
 	| 'Integer'
+	| 'Location'
 	| 'LongInteger'
 	| 'LongText'
 	| 'MultiselectPicklist'
@@ -124,7 +129,7 @@ type ObjectFieldSettingName =
 	| 'maximumFileSize'
 	| 'maxLength'
 	| 'showCounter'
-	| 'showFilesInDocumentsAndMedia'
+	| 'showFilesInLibrary'
 	| 'storageDLFolderPath'
 	| 'relationship'
 	| 'function'

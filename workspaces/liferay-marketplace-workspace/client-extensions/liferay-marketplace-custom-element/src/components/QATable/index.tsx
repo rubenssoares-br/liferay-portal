@@ -4,7 +4,7 @@
  */
 
 import classNames from 'classnames';
-import React, {ReactNode} from 'react';
+import React, {HTMLAttributes, ReactNode} from 'react';
 
 import './index.scss';
 
@@ -14,34 +14,47 @@ export enum Orientation {
 }
 
 type QAItem = {
+	className?: HTMLAttributes<HTMLTableRowElement>['className'];
 	divider?: boolean;
 	flexHeading?: boolean;
-	title: string;
+	title: string | ReactNode;
 	value: string | ReactNode;
 	visible?: boolean;
 };
 
 type QATableProps = {
+	columns?: number;
 	items: QAItem[];
 	orientation?: keyof typeof Orientation;
 };
 
 const QATable: React.FC<QATableProps> = ({
+	columns = 1,
 	items,
 	orientation = Orientation.HORIZONTAL,
 }) => (
 	<table className="qa-table">
-		<tbody>
+		<tbody
+			className={classNames({
+				'd-flex flex-wrap': columns > 1,
+			})}
+		>
 			{items
 				.filter(({visible = true}) => visible)
 				.map((item, index) => (
 					<React.Fragment key={index}>
 						<tr
-							className={classNames({
+							className={classNames(item.className, {
 								'd-flex flex-column':
 									orientation === Orientation.VERTICAL,
 							})}
 							key={index}
+							style={{
+								width:
+									columns > 1
+										? `${100 / columns}%`
+										: undefined,
+							}}
 						>
 							<th
 								className={classNames('tr-qa-table__header', {

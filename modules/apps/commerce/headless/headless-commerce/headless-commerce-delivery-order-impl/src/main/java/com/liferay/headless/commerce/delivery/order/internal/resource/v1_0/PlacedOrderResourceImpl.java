@@ -5,7 +5,6 @@
 
 package com.liferay.headless.commerce.delivery.order.internal.resource.v1_0;
 
-import com.liferay.account.exception.NoSuchEntryException;
 import com.liferay.account.model.AccountEntry;
 import com.liferay.account.service.AccountEntryService;
 import com.liferay.commerce.constants.CommerceOrderActionKeys;
@@ -16,19 +15,21 @@ import com.liferay.commerce.context.CommerceContext;
 import com.liferay.commerce.context.CommerceContextFactory;
 import com.liferay.commerce.exception.CommerceOrderStatusException;
 import com.liferay.commerce.exception.NoSuchOrderException;
+import com.liferay.commerce.helper.CommerceAccountHelper;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.order.engine.CommerceOrderEngine;
-import com.liferay.commerce.product.exception.NoSuchChannelException;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
 import com.liferay.commerce.service.CommerceOrderService;
-import com.liferay.commerce.util.CommerceAccountHelper;
 import com.liferay.commerce.util.CommerceCheckoutStep;
 import com.liferay.commerce.util.CommerceCheckoutStepRegistry;
+import com.liferay.expando.kernel.service.ExpandoColumnLocalService;
+import com.liferay.expando.kernel.service.ExpandoTableLocalService;
 import com.liferay.headless.commerce.core.util.ExpandoUtil;
 import com.liferay.headless.commerce.delivery.order.dto.v1_0.PlacedOrder;
-import com.liferay.headless.commerce.delivery.order.internal.odate.entity.v1_0.PlacedOrderEntityModel;
+import com.liferay.headless.commerce.delivery.order.internal.odata.entity.v1_0.PlacedOrderEntityModel;
 import com.liferay.headless.commerce.delivery.order.resource.v1_0.PlacedOrderResource;
+import com.liferay.headless.common.spi.odata.entity.EntityFieldsUtil;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
@@ -60,13 +61,13 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.SearchUtil;
 
+import jakarta.servlet.http.HttpServletResponse;
+
+import jakarta.ws.rs.core.MultivaluedMap;
+
 import java.security.Key;
 
 import java.util.Map;
-
-import javax.servlet.http.HttpServletResponse;
-
-import javax.ws.rs.core.MultivaluedMap;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -85,56 +86,64 @@ public class PlacedOrderResourceImpl extends BasePlacedOrderResourceImpl {
 
 	@Override
 	public Page<PlacedOrder> getChannelAccountPlacedOrdersPage(
-			Long accountId, Long channelId, Pagination pagination)
+			Long accountId, Long channelId, String search, Filter filter,
+			Pagination pagination, Sort[] sorts)
 		throws Exception {
 
 		CommerceChannel commerceChannel =
 			_commerceChannelLocalService.getCommerceChannel(channelId);
 
-		return Page.of(
-			transform(
-				_commerceOrderService.getPlacedCommerceOrders(
-					commerceChannel.getGroupId(), accountId, null,
-					pagination.getStartPosition(), pagination.getEndPosition()),
-				commerceOrder -> _toPlacedOrder(
-					commerceOrder.getCommerceOrderId())),
-			pagination,
-			_commerceOrderService.getPlacedCommerceOrdersCount(
-				commerceChannel.getGroupId(), accountId, null));
+		return SearchUtil.search(
+			null,
+			booleanQuery -> {
+			},
+			filter, CommerceOrder.class.getName(), search, pagination,
+			queryConfig -> queryConfig.setSelectedFieldNames(
+				Field.ENTRY_CLASS_PK),
+			searchContext -> {
+				searchContext.setAttribute(
+					"commerceAccountIds", new long[] {accountId});
+				searchContext.setAttribute("negateOrderStatuses", Boolean.TRUE);
+				searchContext.setAttribute(
+					"orderStatuses",
+					new int[] {CommerceOrderConstants.ORDER_STATUS_OPEN});
+				searchContext.setCompanyId(contextCompany.getCompanyId());
+				searchContext.setGroupIds(
+					new long[] {commerceChannel.getGroupId()});
+
+				if (Validator.isNotNull(search)) {
+					searchContext.setKeywords(search);
+				}
+
+				searchContext.setUserId(0);
+			},
+			sorts,
+			document -> _toPlacedOrder(
+				GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK))));
 	}
 
 	@Override
 	public Page<PlacedOrder>
 			getChannelByExternalReferenceCodeChannelExternalReferenceCodeAccountByExternalReferenceCodeAccountExternalReferenceCodePlacedOrdersPage(
 				String accountExternalReferenceCode,
-				String channelExternalReferenceCode, Pagination pagination)
+				String channelExternalReferenceCode, String search,
+				Filter filter, Pagination pagination, Sort[] sorts)
 		throws Exception {
 
 		AccountEntry accountEntry =
-			_accountEntryService.fetchAccountEntryByExternalReferenceCode(
-				contextCompany.getCompanyId(), accountExternalReferenceCode);
-
-		if (accountEntry == null) {
-			throw new NoSuchEntryException(
-				"Unable to find account entry with external reference code " +
-					accountExternalReferenceCode);
-		}
+			_accountEntryService.getAccountEntryByExternalReferenceCode(
+				accountExternalReferenceCode, contextCompany.getCompanyId());
 
 		CommerceChannel commerceChannel =
 			_commerceChannelLocalService.
-				fetchCommerceChannelByExternalReferenceCode(
+				getCommerceChannelByExternalReferenceCode(
 					channelExternalReferenceCode,
 					contextCompany.getCompanyId());
 
-		if (commerceChannel == null) {
-			throw new NoSuchChannelException(
-				"Unable to find channel with external reference code " +
-					channelExternalReferenceCode);
-		}
-
 		return getChannelAccountPlacedOrdersPage(
 			accountEntry.getAccountEntryId(),
-			commerceChannel.getCommerceChannelId(), pagination);
+			commerceChannel.getCommerceChannelId(), search, filter, pagination,
+			sorts);
 	}
 
 	@Override
@@ -194,7 +203,11 @@ public class PlacedOrderResourceImpl extends BasePlacedOrderResourceImpl {
 
 	@Override
 	public EntityModel getEntityModel(MultivaluedMap multivaluedMap) {
-		return _entityModel;
+		return new PlacedOrderEntityModel(
+			EntityFieldsUtil.getEntityFields(
+				_portal.getClassNameId(CommerceOrder.class.getName()),
+				contextCompany.getCompanyId(), _expandoColumnLocalService,
+				_expandoTableLocalService));
 	}
 
 	@Override
@@ -276,8 +289,10 @@ public class PlacedOrderResourceImpl extends BasePlacedOrderResourceImpl {
 			Key key = contextCompany.getKeyObj();
 
 			sb.append(
-				_encryptor.encrypt(
-					key, String.valueOf(commerceOrder.getCommerceOrderId())));
+				URLCodec.encodeURL(
+					_encryptor.encrypt(
+						key,
+						String.valueOf(commerceOrder.getCommerceOrderId()))));
 
 			sb.append(StringPool.AMPERSAND);
 		}
@@ -429,9 +444,9 @@ public class PlacedOrderResourceImpl extends BasePlacedOrderResourceImpl {
 		throws Exception {
 
 		CommerceContext commerceContext = _commerceContextFactory.create(
-			contextCompany.getCompanyId(), commerceOrder.getGroupId(),
-			contextUser.getUserId(), commerceOrder.getCommerceOrderId(),
-			commerceOrder.getCommerceAccountId());
+			commerceOrder.getCommerceAccountId(), commerceOrder.getGroupId(),
+			null, commerceOrder.getCommerceOrderId(),
+			contextCompany.getCompanyId());
 
 		_commerceOrderEngine.updateCommerceOrder(
 			commerceOrder.getExternalReferenceCode(),
@@ -469,9 +484,6 @@ public class PlacedOrderResourceImpl extends BasePlacedOrderResourceImpl {
 		}
 	}
 
-	private static final EntityModel _entityModel =
-		new PlacedOrderEntityModel();
-
 	@Reference
 	private AccountEntryService _accountEntryService;
 
@@ -504,6 +516,12 @@ public class PlacedOrderResourceImpl extends BasePlacedOrderResourceImpl {
 
 	@Reference
 	private Encryptor _encryptor;
+
+	@Reference
+	private ExpandoColumnLocalService _expandoColumnLocalService;
+
+	@Reference
+	private ExpandoTableLocalService _expandoTableLocalService;
 
 	@Reference(
 		target = "(component.name=com.liferay.headless.commerce.delivery.order.internal.dto.v1_0.converter.PlacedOrderDTOConverter)"

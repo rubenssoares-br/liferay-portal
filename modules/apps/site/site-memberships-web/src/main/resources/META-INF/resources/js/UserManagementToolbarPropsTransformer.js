@@ -3,18 +3,14 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {
-	addParams,
-	openConfirmModal,
-	openSelectionModal,
-	sub,
-} from 'frontend-js-web';
+import {openConfirmModal, openSelectionModal} from 'frontend-js-components-web';
+import {addParams, sub} from 'frontend-js-web';
 
 export default function propsTransformer({portletNamespace, ...otherProps}) {
 	const deleteSelectedUsers = () => {
 		openConfirmModal({
 			message: Liferay.Language.get(
-				'are-you-sure-you-want-to-delete-this'
+				'only-direct-memberships-will-be-removed'
 			),
 			onConfirm: (isConfirmed) => {
 				if (isConfirmed) {

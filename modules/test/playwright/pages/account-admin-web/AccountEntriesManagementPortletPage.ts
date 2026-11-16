@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {Locator, Page, expect} from '@playwright/test';
 
 import {CommerceLayoutsPage} from '../commerce/commerce-order-content-web/commerceLayoutsPage';
 import {searchTableRowByValue} from '../users-admin-web/UsersAndOrganizationsPage';
@@ -21,7 +21,11 @@ export class AccountEntriesManagementPortletPage {
 	readonly accountEntriesTableRowSelectedCheck: (
 		accountName: string
 	) => Promise<Locator>;
+	readonly accountName: (accountName: string) => Locator;
+	readonly accountNameLink: (accountName: string) => Locator;
+	readonly editMenuItem: Locator;
 	readonly layoutsPage: CommerceLayoutsPage;
+	readonly noAccountsFoundMessage: Locator;
 	readonly page: Page;
 	readonly pageLabel: Locator;
 	readonly searchInput: Locator;
@@ -90,7 +94,18 @@ export class AccountEntriesManagementPortletPage {
 				`Cannot locate account row with accountName ${accountName}`
 			);
 		};
+		this.accountName = (accountName: string) =>
+			this.accountEntriesTable.getByText(accountName, {exact: false});
+		this.accountNameLink = (accountName: string) =>
+			this.accountEntriesTable.getByRole('link', {
+				exact: true,
+				name: accountName,
+			});
+		this.editMenuItem = page.getByRole('menuitem', {name: 'Edit'});
 		this.layoutsPage = new CommerceLayoutsPage(page);
+		this.noAccountsFoundMessage = page
+			.getByText('No accounts were found.')
+			.first();
 		this.page = page;
 		this.pageLabel = page
 			.getByTestId('layoutHref')
@@ -106,9 +121,19 @@ export class AccountEntriesManagementPortletPage {
 		await this.searchInput.press('Enter');
 		await this.page.waitForTimeout(500);
 
-		await (await this.accountEntriesTableRowActions(accountName)).click();
+		const selectedCheck =
+			await this.accountEntriesTableRowSelectedCheck(accountName);
 
-		await this.selectAccountButton.click();
-		await this.page.waitForResponse((resp) => resp.status() === 200);
+		if (!(await selectedCheck.isVisible())) {
+			await expect(async () => {
+				await (
+					await this.accountEntriesTableRowActions(accountName)
+				).click();
+
+				await this.selectAccountButton.click({timeout: 1000});
+			}).toPass();
+
+			await this.page.waitForResponse((resp) => resp.status() === 200);
+		}
 	}
 }

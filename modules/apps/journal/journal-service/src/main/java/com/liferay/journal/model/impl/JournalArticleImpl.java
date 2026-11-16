@@ -59,11 +59,12 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.webserver.WebServerServletTokenUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.kernel.xml.Document;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.kernel.xml.Element;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -71,6 +72,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -177,16 +179,16 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 			return getSmallImageURL();
 		}
 
-		if (getSmallImageSource() ==
+		if (getSmallImageSource() !=
 				JournalArticleConstants.SMALL_IMAGE_SOURCE_USER_COMPUTER) {
 
-			return StringBundler.concat(
-				themeDisplay.getPathImage(), "/journal/article?img_id=",
-				getSmallImageId(), "&t=",
-				WebServerServletTokenUtil.getToken(getSmallImageId()));
+			return null;
 		}
 
-		return null;
+		return StringBundler.concat(
+			themeDisplay.getPathImage(), "/journal/article?img_id=",
+			getSmallImageId(), "&t=",
+			WebServerServletTokenUtil.getToken(getSmallImageId()));
 	}
 
 	@Override
@@ -208,7 +210,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 
 		availableLanguageIds.addAll(
 			JournalArticleLocalServiceUtil.getArticleLocalizationLanguageIds(
-				getId()));
+				getCompanyId(), getId()));
 
 		List<DDMFieldAttribute> ddmFieldAttributes =
 			DDMFieldLocalServiceUtil.getDDMFieldAttributes(
@@ -249,7 +251,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	@Override
 	public DDMFormValues getDDMFormValues() {
 		if (_ddmFormValues == null) {
-			_ddmFormValues = getDDMFormValues(true);
+			_ddmFormValues = getDDMFormValues(false);
 		}
 
 		return _ddmFormValues;
@@ -309,7 +311,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	public String getDescription() {
 		String description =
 			JournalArticleLocalServiceUtil.getArticleDescription(
-				getId(), getDefaultLanguageId());
+				getCompanyId(), getId(), getDefaultLanguageId());
 
 		if (description == null) {
 			return StringPool.BLANK;
@@ -322,7 +324,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	public String getDescription(Locale locale) {
 		String description =
 			JournalArticleLocalServiceUtil.getArticleDescription(
-				getId(), locale);
+				getCompanyId(), getId(), locale);
 
 		if (description == null) {
 			return getDescription();
@@ -349,7 +351,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	public String getDescription(String languageId, boolean useDefault) {
 		String description =
 			JournalArticleLocalServiceUtil.getArticleDescription(
-				getId(), languageId);
+				getCompanyId(), getId(), languageId);
 
 		if (description != null) {
 			return description;
@@ -376,7 +378,8 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 		}
 
 		_descriptionMap =
-			JournalArticleLocalServiceUtil.getArticleDescriptionMap(getId());
+			JournalArticleLocalServiceUtil.getArticleDescriptionMap(
+				getCompanyId(), getId());
 
 		return _descriptionMap;
 	}
@@ -430,12 +433,17 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 			DDMStructure ddmStructure = getDDMStructure();
 
 			if (ddmStructure != null) {
-				_documentMap.put(
-					languageId,
-					_getDocument(
-						ddmStructure,
-						DDMFieldLocalServiceUtil.getDDMFormValues(
-							ddmStructure.getDDMForm(), getId(), languageId)));
+				Document document = _getDocument(
+					ddmStructure,
+					DDMFieldLocalServiceUtil.getDDMFormValues(
+						ddmStructure.getDDMForm(), getId(), languageId));
+
+				if (document != null) {
+					_filterDynamicContentByLocale(
+						document.getRootElement(), languageId);
+				}
+
+				_documentMap.put(languageId, document);
 			}
 		}
 
@@ -650,7 +658,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	@Override
 	public String getTitle() {
 		String title = JournalArticleLocalServiceUtil.getArticleTitle(
-			getId(), getDefaultLanguageId());
+			getCompanyId(), getId(), getDefaultLanguageId());
 
 		if (title == null) {
 			return StringPool.BLANK;
@@ -662,7 +670,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	@Override
 	public String getTitle(Locale locale) {
 		String title = JournalArticleLocalServiceUtil.getArticleTitle(
-			getId(), locale);
+			getCompanyId(), getId(), locale);
 
 		if (title == null) {
 			return getTitle();
@@ -688,7 +696,7 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	@Override
 	public String getTitle(String languageId, boolean useDefault) {
 		String title = JournalArticleLocalServiceUtil.getArticleTitle(
-			getId(), languageId);
+			getCompanyId(), getId(), languageId);
 
 		if (title != null) {
 			return title;
@@ -714,7 +722,8 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 			return _titleMap;
 		}
 
-		_titleMap = JournalArticleLocalServiceUtil.getArticleTitleMap(getId());
+		_titleMap = JournalArticleLocalServiceUtil.getArticleTitleMap(
+			getCompanyId(), getId());
 
 		return _titleMap;
 	}
@@ -779,6 +788,48 @@ public class JournalArticleImpl extends JournalArticleBaseImpl {
 	@Override
 	public void setTitleMap(Map<Locale, String> titleMap) {
 		_titleMap = titleMap;
+	}
+
+	private void _filterDynamicContentByLocale(
+		Element parentElement, String languageId) {
+
+		for (Element dynamicElementElement :
+				parentElement.elements("dynamic-element")) {
+
+			_filterDynamicContentByLocale(dynamicElementElement, languageId);
+
+			List<Element> dynamicContentElements =
+				dynamicElementElement.elements("dynamic-content");
+
+			if (dynamicContentElements.size() <= 1) {
+				continue;
+			}
+
+			Element matchingElement = null;
+
+			for (Element dynamicContentElement : dynamicContentElements) {
+				if (Objects.equals(
+						dynamicContentElement.attributeValue("language-id"),
+						languageId)) {
+
+					matchingElement = dynamicContentElement;
+
+					break;
+				}
+			}
+
+			if (matchingElement == null) {
+				matchingElement = dynamicContentElements.get(0);
+			}
+
+			for (Element dynamicContentElement : dynamicContentElements) {
+				if (dynamicContentElement == matchingElement) {
+					continue;
+				}
+
+				dynamicElementElement.remove(dynamicContentElement);
+			}
+		}
 	}
 
 	private String _getContent(

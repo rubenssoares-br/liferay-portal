@@ -8,11 +8,11 @@ package com.liferay.headless.admin.workflow.client.dto.v1_0;
 import com.liferay.headless.admin.workflow.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.workflow.client.serdes.v1_0.WorkflowDefinitionLinkSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -66,6 +66,31 @@ public class WorkflowDefinitionLink implements Cloneable, Serializable {
 	}
 
 	protected String externalReferenceCode;
+
+	public String getGroupExternalReferenceCode() {
+		return groupExternalReferenceCode;
+	}
+
+	public void setGroupExternalReferenceCode(
+		String groupExternalReferenceCode) {
+
+		this.groupExternalReferenceCode = groupExternalReferenceCode;
+	}
+
+	public void setGroupExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			groupExternalReferenceCodeUnsafeSupplier) {
+
+		try {
+			groupExternalReferenceCode =
+				groupExternalReferenceCodeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String groupExternalReferenceCode;
 
 	public Long getGroupId() {
 		return groupId;
@@ -187,3 +212,4 @@ public class WorkflowDefinitionLink implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:641664302

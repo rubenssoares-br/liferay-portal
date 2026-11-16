@@ -9,16 +9,17 @@ import com.liferay.headless.form.client.dto.v1_0.FormPage;
 import com.liferay.headless.form.client.dto.v1_0.FormStructure;
 import com.liferay.headless.form.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -521,6 +522,16 @@ public class FormStructureSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -553,3 +564,4 @@ public class FormStructureSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-73937845

@@ -8,11 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.PageSpecificationSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -24,6 +24,35 @@ public abstract class PageSpecification implements Cloneable, Serializable {
 	public static PageSpecification toDTO(String json) {
 		return PageSpecificationSerDes.toDTO(json);
 	}
+
+	public com.liferay.headless.admin.site.client.custom.field.CustomField[]
+		getCustomFields() {
+
+		return customFields;
+	}
+
+	public void setCustomFields(
+		com.liferay.headless.admin.site.client.custom.field.CustomField[]
+			customFields) {
+
+		this.customFields = customFields;
+	}
+
+	public void setCustomFields(
+		UnsafeSupplier
+			<com.liferay.headless.admin.site.client.custom.field.CustomField[],
+			 Exception> customFieldsUnsafeSupplier) {
+
+		try {
+			customFields = customFieldsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected com.liferay.headless.admin.site.client.custom.field.CustomField[]
+		customFields;
 
 	public String getExternalReferenceCode() {
 		return externalReferenceCode;
@@ -46,26 +75,61 @@ public abstract class PageSpecification implements Cloneable, Serializable {
 
 	protected String externalReferenceCode;
 
-	public Settings getSettings() {
-		return settings;
+	public String getSiteTemplatePageSpecificationExternalReferenceCode() {
+		return siteTemplatePageSpecificationExternalReferenceCode;
 	}
 
-	public void setSettings(Settings settings) {
-		this.settings = settings;
+	public void setSiteTemplatePageSpecificationExternalReferenceCode(
+		String siteTemplatePageSpecificationExternalReferenceCode) {
+
+		this.siteTemplatePageSpecificationExternalReferenceCode =
+			siteTemplatePageSpecificationExternalReferenceCode;
 	}
 
-	public void setSettings(
-		UnsafeSupplier<Settings, Exception> settingsUnsafeSupplier) {
+	public void setSiteTemplatePageSpecificationExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			siteTemplatePageSpecificationExternalReferenceCodeUnsafeSupplier) {
 
 		try {
-			settings = settingsUnsafeSupplier.get();
+			siteTemplatePageSpecificationExternalReferenceCode =
+				siteTemplatePageSpecificationExternalReferenceCodeUnsafeSupplier.
+					get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected Settings settings;
+	protected String siteTemplatePageSpecificationExternalReferenceCode;
+
+	public Status getStatus() {
+		return status;
+	}
+
+	public String getStatusAsString() {
+		if (status == null) {
+			return null;
+		}
+
+		return status.toString();
+	}
+
+	public void setStatus(Status status) {
+		this.status = status;
+	}
+
+	public void setStatus(
+		UnsafeSupplier<Status, Exception> statusUnsafeSupplier) {
+
+		try {
+			status = statusUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Status status;
 
 	public Type getType() {
 		return type;
@@ -125,9 +189,46 @@ public abstract class PageSpecification implements Cloneable, Serializable {
 		return PageSpecificationSerDes.toJSON(this);
 	}
 
+	public static enum Status {
+
+		APPROVED("Approved"), DRAFT("Draft");
+
+		public static Status create(String value) {
+			for (Status status : values()) {
+				if (Objects.equals(status.getValue(), value) ||
+					Objects.equals(status.name(), value)) {
+
+					return status;
+				}
+			}
+
+			return null;
+		}
+
+		public String getValue() {
+			return _value;
+		}
+
+		@Override
+		public String toString() {
+			return _value;
+		}
+
+		private Status(String value) {
+			_value = value;
+		}
+
+		private final String _value;
+
+	}
+
 	public static enum Type {
 
 		CONTENT_PAGE_SPECIFICATION("ContentPageSpecification"),
+		EMBEDDED_PAGE_SPECIFICATION("EmbeddedPageSpecification"),
+		LINK_TO_PAGE_PAGE_SPECIFICATION("LinkToPagePageSpecification"),
+		LINK_TO_URL_PAGE_SPECIFICATION("LinkToURLPageSpecification"),
+		PAGE_SET_PAGE_SPECIFICATION("PageSetPageSpecification"),
 		WIDGET_PAGE_SPECIFICATION("WidgetPageSpecification");
 
 		public static Type create(String value) {
@@ -160,3 +261,4 @@ public abstract class PageSpecification implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2108654183

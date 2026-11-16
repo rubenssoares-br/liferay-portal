@@ -14,11 +14,11 @@ import com.liferay.commerce.constants.CommerceOrderConstants;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.currency.test.util.CommerceCurrencyTestUtil;
 import com.liferay.commerce.model.CommerceOrder;
+import com.liferay.commerce.notification.CommerceNotificationSender;
 import com.liferay.commerce.notification.model.CommerceNotificationQueueEntry;
 import com.liferay.commerce.notification.model.CommerceNotificationTemplate;
 import com.liferay.commerce.notification.service.CommerceNotificationQueueEntryLocalService;
 import com.liferay.commerce.notification.test.util.CommerceNotificationTestUtil;
-import com.liferay.commerce.notification.util.CommerceNotificationHelper;
 import com.liferay.commerce.product.constants.CommerceChannelConstants;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
@@ -120,15 +120,14 @@ public class CommerceNotificationTest {
 			_accountEntry.getAccountEntryId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -158,13 +157,13 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		Assert.assertEquals(
 			1,
-			_commerceNotificationQueueEntryLocalService.
+			CommerceNotificationTestUtil.
 				getCommerceNotificationQueueEntriesCount(_group.getGroupId()));
 	}
 
@@ -180,15 +179,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -217,15 +215,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -255,15 +252,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -296,15 +292,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -332,15 +327,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -367,15 +361,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -404,15 +397,14 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 2,
@@ -468,15 +460,14 @@ public class CommerceNotificationTest {
 			_accountEntry.getAccountEntryId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		List<CommerceNotificationQueueEntry> commerceNotificationQueueEntries =
-			_commerceNotificationQueueEntryLocalService.
-				getCommerceNotificationQueueEntries(
-					_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-					null);
+			CommerceNotificationTestUtil.getCommerceNotificationQueueEntries(
+				_group.getGroupId(), QueryUtil.ALL_POS, QueryUtil.ALL_POS,
+				null);
 
 		Assert.assertEquals(
 			commerceNotificationQueueEntries.toString(), 1,
@@ -502,13 +493,13 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		Assert.assertEquals(
 			1,
-			_commerceNotificationQueueEntryLocalService.
+			CommerceNotificationTestUtil.
 				getCommerceNotificationQueueEntriesCount(_group.getGroupId()));
 	}
 
@@ -530,13 +521,13 @@ public class CommerceNotificationTest {
 			_user.getUserId(), _commerceChannel.getGroupId(),
 			_commerceCurrency.getCommerceCurrencyId());
 
-		_commerceNotificationHelper.sendNotifications(
+		_commerceNotificationSender.sendNotifications(
 			_group.getGroupId(), _user.getUserId(),
 			CommerceOrderConstants.ORDER_NOTIFICATION_PLACED, _commerceOrder);
 
 		Assert.assertEquals(
 			1,
-			_commerceNotificationQueueEntryLocalService.
+			CommerceNotificationTestUtil.
 				getCommerceNotificationQueueEntriesCount(_group.getGroupId()));
 	}
 
@@ -614,8 +605,8 @@ public class CommerceNotificationTest {
 
 	private String _setUpUserGroup() throws Exception {
 		UserGroup userGroup = _userGroupLocalService.addUserGroup(
-			_user.getUserId(), _group.getCompanyId(), "Test User Group",
-			RandomTestUtil.randomString(), _serviceContext);
+			StringPool.BLANK, _user.getUserId(), _group.getCompanyId(),
+			"Test User Group", RandomTestUtil.randomString(), _serviceContext);
 
 		long[] userIds = new long[1];
 
@@ -626,8 +617,6 @@ public class CommerceNotificationTest {
 
 		return userGroup.getName();
 	}
-
-	private static User _user;
 
 	@DeleteAfterTestRun
 	private User _accountAdmin;
@@ -645,11 +634,11 @@ public class CommerceNotificationTest {
 	private CommerceCurrency _commerceCurrency;
 
 	@Inject
-	private CommerceNotificationHelper _commerceNotificationHelper;
-
-	@Inject
 	private CommerceNotificationQueueEntryLocalService
 		_commerceNotificationQueueEntryLocalService;
+
+	@Inject
+	private CommerceNotificationSender _commerceNotificationSender;
 
 	@DeleteAfterTestRun
 	private CommerceNotificationTemplate _commerceNotificationTemplate;
@@ -667,6 +656,7 @@ public class CommerceNotificationTest {
 	private RoleLocalService _roleLocalService;
 
 	private ServiceContext _serviceContext;
+	private User _user;
 
 	@Inject
 	private UserGroupLocalService _userGroupLocalService;

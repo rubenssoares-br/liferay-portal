@@ -26,14 +26,14 @@ DLViewMoreMenuItemsDisplayContext dlViewMoreMenuItemsDisplayContext = new DLView
 	selectable="<%= false %>"
 />
 
-<aui:form cssClass="container-fluid container-fluid-max-xl" name="addMenuItemFm">
+<aui:form cssClass="container-fluid container-fluid-max-xxxl" name="addMenuItemFm">
 	<liferay-ui:search-container
 		searchContainer="<%= dlViewMoreMenuItemsDisplayContext.getSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.document.library.kernel.model.DLFileEntryType"
 			escapedModel="<%= true %>"
-			keyProperty="fileEntryTypeId"
+			keyPropertyName="fileEntryTypeId"
 			modelVar="fileEntryType"
 		>
 			<liferay-ui:search-container-column-text
@@ -54,7 +54,7 @@ DLViewMoreMenuItemsDisplayContext dlViewMoreMenuItemsDisplayContext = new DLView
 
 			<liferay-ui:search-container-column-text
 				name="scope"
-				value="<%= dlViewMoreMenuItemsDisplayContext.getDLFileEntryTypeScopeName(fileEntryType, locale) %>"
+				value="<%= HtmlUtil.escape(dlViewMoreMenuItemsDisplayContext.getDLFileEntryTypeScopeName(fileEntryType, locale)) %>"
 			/>
 
 			<liferay-ui:search-container-column-text

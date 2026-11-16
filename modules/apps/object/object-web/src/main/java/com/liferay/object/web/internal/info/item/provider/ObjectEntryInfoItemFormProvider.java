@@ -5,6 +5,7 @@
 
 package com.liferay.object.web.internal.info.item.provider;
 
+import com.liferay.asset.info.item.provider.AssetEntryInfoItemFieldSetProvider;
 import com.liferay.info.field.InfoFieldSet;
 import com.liferay.info.form.InfoForm;
 import com.liferay.info.item.field.reader.InfoItemFieldReaderFieldSetProvider;
@@ -21,11 +22,13 @@ import com.liferay.object.rest.context.path.RESTContextPathResolverRegistry;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectActionLocalService;
 import com.liferay.object.service.ObjectDefinitionLocalService;
-import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.template.info.item.provider.TemplateInfoItemFieldSetProvider;
 
@@ -37,14 +40,14 @@ public class ObjectEntryInfoItemFormProvider
 	implements InfoItemFormProvider<ObjectEntry> {
 
 	public ObjectEntryInfoItemFormProvider(
+		AssetEntryInfoItemFieldSetProvider assetEntryInfoItemFieldSetProvider,
 		DisplayPageInfoItemFieldSetProvider displayPageInfoItemFieldSetProvider,
-		ObjectDefinition objectDefinition,
+		GroupLocalService groupLocalService, ObjectDefinition objectDefinition,
 		InfoItemFieldReaderFieldSetProvider infoItemFieldReaderFieldSetProvider,
 		ListTypeEntryLocalService listTypeEntryLocalService,
 		ObjectActionLocalService objectActionLocalService,
 		ObjectDefinitionLocalService objectDefinitionLocalService,
 		ObjectFieldInfoFieldConverter objectFieldInfoFieldConverter,
-		ObjectFieldLocalService objectFieldLocalService,
 		ObjectFieldSettingLocalService objectFieldSettingLocalService,
 		ObjectRelationshipLocalService objectRelationshipLocalService,
 		ObjectScopeProviderRegistry objectScopeProviderRegistry,
@@ -52,8 +55,11 @@ public class ObjectEntryInfoItemFormProvider
 		TemplateInfoItemFieldSetProvider templateInfoItemFieldSetProvider,
 		UserLocalService userLocalService) {
 
+		_assetEntryInfoItemFieldSetProvider =
+			assetEntryInfoItemFieldSetProvider;
 		_displayPageInfoItemFieldSetProvider =
 			displayPageInfoItemFieldSetProvider;
+		_groupLocalService = groupLocalService;
 		_objectDefinition = objectDefinition;
 		_infoItemFieldReaderFieldSetProvider =
 			infoItemFieldReaderFieldSetProvider;
@@ -61,7 +67,6 @@ public class ObjectEntryInfoItemFormProvider
 		_objectActionLocalService = objectActionLocalService;
 		_objectDefinitionLocalService = objectDefinitionLocalService;
 		_objectFieldInfoFieldConverter = objectFieldInfoFieldConverter;
-		_objectFieldLocalService = objectFieldLocalService;
 		_objectFieldSettingLocalService = objectFieldSettingLocalService;
 		_objectRelationshipLocalService = objectRelationshipLocalService;
 		_objectScopeProviderRegistry = objectScopeProviderRegistry;
@@ -85,6 +90,35 @@ public class ObjectEntryInfoItemFormProvider
 		return _getInfoForm(groupId);
 	}
 
+	private long _getCategorizationGroupId(long groupId) {
+		if (_objectDefinition.isCMS()) {
+			Group group = _groupLocalService.fetchGroup(
+				_objectDefinition.getCompanyId(), GroupConstants.CMS);
+
+			if (group != null) {
+				return group.getGroupId();
+			}
+		}
+
+		return groupId;
+	}
+
+	private InfoFieldSet _getCategorizationInfoFieldSet(long groupId) {
+		if (!_objectDefinition.isEnableCategorization()) {
+			return null;
+		}
+
+		long categorizationGroupId = _getCategorizationGroupId(groupId);
+
+		if (categorizationGroupId == 0) {
+			return _assetEntryInfoItemFieldSetProvider.getInfoFieldSet(
+				_objectDefinition.getClassName());
+		}
+
+		return _assetEntryInfoItemFieldSetProvider.getInfoFieldSet(
+			_objectDefinition.getClassName(), 0, categorizationGroupId);
+	}
+
 	private InfoForm _getInfoForm(long groupId) {
 		try {
 			return ObjectEntryInfoItemFormProviderUtil.getInfoForm(
@@ -94,13 +128,28 @@ public class ObjectEntryInfoItemFormProvider
 				).infoFieldSetEntry(
 					ObjectEntryInfoItemFields.createDateInfoField
 				).infoFieldSetEntry(
+					unsafeConsumer -> unsafeConsumer.accept(
+						ObjectEntryInfoItemFields.getDisplayDateInfoField(
+							_objectDefinition))
+				).infoFieldSetEntry(
+					unsafeConsumer -> unsafeConsumer.accept(
+						ObjectEntryInfoItemFields.getExpirationDateInfoField(
+							_objectDefinition))
+				).infoFieldSetEntry(
 					ObjectEntryInfoItemFields.externalReferenceCodeInfoField
 				).infoFieldSetEntry(
 					ObjectEntryInfoItemFields.modifiedDateInfoField
 				).infoFieldSetEntry(
+					ObjectEntryInfoItemFields.getFriendlyURLInfoField(
+						_objectDefinition)
+				).infoFieldSetEntry(
 					ObjectEntryInfoItemFields.objectEntryIdInfoField
 				).infoFieldSetEntry(
 					ObjectEntryInfoItemFields.publishDateInfoField
+				).infoFieldSetEntry(
+					unsafeConsumer -> unsafeConsumer.accept(
+						ObjectEntryInfoItemFields.getReviewDateInfoField(
+							_objectDefinition))
 				).infoFieldSetEntry(
 					ObjectEntryInfoItemFields.statusInfoField
 				).infoFieldSetEntry(
@@ -110,6 +159,7 @@ public class ObjectEntryInfoItemFormProvider
 				).name(
 					"basic-information"
 				).build(),
+				_getCategorizationInfoFieldSet(groupId),
 				_displayPageInfoItemFieldSetProvider.getInfoFieldSet(
 					_objectDefinition.getClassName(), StringPool.BLANK,
 					ObjectEntry.class.getSimpleName(), groupId),
@@ -117,7 +167,7 @@ public class ObjectEntryInfoItemFormProvider
 				_objectDefinition.getClassName(), _objectActionLocalService,
 				_objectDefinition, _objectDefinition.getObjectDefinitionId(),
 				_objectDefinitionLocalService, _objectFieldInfoFieldConverter,
-				_objectFieldLocalService, _objectRelationshipLocalService,
+				_objectRelationshipLocalService,
 				_templateInfoItemFieldSetProvider);
 		}
 		catch (PortalException portalException) {
@@ -125,8 +175,11 @@ public class ObjectEntryInfoItemFormProvider
 		}
 	}
 
+	private final AssetEntryInfoItemFieldSetProvider
+		_assetEntryInfoItemFieldSetProvider;
 	private final DisplayPageInfoItemFieldSetProvider
 		_displayPageInfoItemFieldSetProvider;
+	private final GroupLocalService _groupLocalService;
 	private final InfoItemFieldReaderFieldSetProvider
 		_infoItemFieldReaderFieldSetProvider;
 	private final ListTypeEntryLocalService _listTypeEntryLocalService;
@@ -134,7 +187,6 @@ public class ObjectEntryInfoItemFormProvider
 	private final ObjectDefinition _objectDefinition;
 	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
 	private final ObjectFieldInfoFieldConverter _objectFieldInfoFieldConverter;
-	private final ObjectFieldLocalService _objectFieldLocalService;
 	private final ObjectFieldSettingLocalService
 		_objectFieldSettingLocalService;
 	private final ObjectRelationshipLocalService

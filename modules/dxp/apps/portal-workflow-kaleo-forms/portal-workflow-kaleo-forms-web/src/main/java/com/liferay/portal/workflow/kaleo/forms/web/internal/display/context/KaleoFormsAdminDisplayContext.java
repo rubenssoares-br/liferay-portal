@@ -19,8 +19,6 @@ import com.liferay.frontend.taglib.clay.servlet.taglib.util.NavigationItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.NavigationItemListBuilder;
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.bean.BeanParamUtil;
-import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.LanguageUtil;
@@ -32,7 +30,6 @@ import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HtmlParser;
-import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
@@ -40,10 +37,8 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.kernel.workflow.WorkflowDefinition;
-import com.liferay.portal.workflow.constants.WorkflowDefinitionConstants;
 import com.liferay.portal.workflow.kaleo.forms.constants.KaleoFormsActionKeys;
 import com.liferay.portal.workflow.kaleo.forms.constants.KaleoFormsPortletKeys;
-import com.liferay.portal.workflow.kaleo.forms.constants.KaleoFormsWebKeys;
 import com.liferay.portal.workflow.kaleo.forms.model.KaleoProcess;
 import com.liferay.portal.workflow.kaleo.forms.service.KaleoProcessServiceUtil;
 import com.liferay.portal.workflow.kaleo.forms.util.comparator.KaleoProcessCreateDateComparator;
@@ -51,21 +46,19 @@ import com.liferay.portal.workflow.kaleo.forms.util.comparator.KaleoProcessModif
 import com.liferay.portal.workflow.kaleo.forms.web.internal.display.context.helper.KaleoFormsAdminRequestHelper;
 import com.liferay.portal.workflow.kaleo.forms.web.internal.search.KaleoProcessSearch;
 import com.liferay.portal.workflow.kaleo.forms.web.internal.security.permission.resource.KaleoFormsPermission;
-import com.liferay.portal.workflow.kaleo.forms.web.internal.util.filter.KaleoDefinitionVersionActivePredicate;
-import com.liferay.portal.workflow.kaleo.forms.web.internal.util.filter.KaleoDefinitionVersionScopePredicate;
 import com.liferay.portal.workflow.kaleo.model.KaleoDefinitionVersion;
 import com.liferay.portal.workflow.kaleo.service.KaleoDefinitionVersionLocalService;
 import com.liferay.portal.workflow.util.WorkflowDefinitionManagerUtil;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletException;
-import javax.portlet.PortletURL;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Leonardo Barros
@@ -201,12 +194,8 @@ public class KaleoFormsAdminDisplayContext {
 			return _kaleoProcessId;
 		}
 
-		KaleoProcess kaleoProcess =
-			(KaleoProcess)_httpServletRequest.getAttribute(
-				KaleoFormsWebKeys.KALEO_PROCESS);
-
-		_kaleoProcessId = BeanParamUtil.getLong(
-			kaleoProcess, _httpServletRequest, "kaleoProcessId");
+		_kaleoProcessId = ParamUtil.getLong(
+			_httpServletRequest, "kaleoProcessId");
 
 		return _kaleoProcessId;
 	}
@@ -405,38 +394,19 @@ public class KaleoFormsAdminDisplayContext {
 					_renderRequest, _getIteratorURL(), null,
 					emptyResultsMessage);
 
-			List<KaleoDefinitionVersion> kaleoDefinitionVersions =
-				_kaleoDefinitionVersionLocalService.
-					getLatestKaleoDefinitionVersions(
-						_kaleoFormsAdminRequestHelper.getCompanyId(), null,
-						WorkflowConstants.STATUS_ANY, QueryUtil.ALL_POS,
-						QueryUtil.ALL_POS, null);
-
-			kaleoDefinitionVersions = ListUtil.filter(
-				kaleoDefinitionVersions,
-				new KaleoDefinitionVersionActivePredicate(_getStatus()));
-
-			List<KaleoDefinitionVersion> filteredKaleoDefinitionVersions =
-				ListUtil.filter(
-					kaleoDefinitionVersions,
-					new KaleoDefinitionVersionScopePredicate(
-						WorkflowDefinitionConstants.SCOPE_ALL));
-
 			searchContainer.setResultsAndTotal(
-				() -> {
-					if (filteredKaleoDefinitionVersions.size() >
-							(searchContainer.getEnd() -
-								searchContainer.getStart())) {
-
-						return ListUtil.subList(
-							filteredKaleoDefinitionVersions,
+				() ->
+					_kaleoDefinitionVersionLocalService.
+						getLatestKaleoDefinitionVersions(
+							_kaleoFormsAdminRequestHelper.getCompanyId(), null,
+							_getStatus(),
+							_kaleoFormsAdminRequestHelper.getLocale(),
 							searchContainer.getStart(),
-							searchContainer.getEnd());
-					}
-
-					return filteredKaleoDefinitionVersions;
-				},
-				filteredKaleoDefinitionVersions.size());
+							searchContainer.getEnd(), null),
+				_kaleoDefinitionVersionLocalService.
+					getLatestKaleoDefinitionVersionsCount(
+						_kaleoFormsAdminRequestHelper.getCompanyId(), null,
+						_getStatus()));
 
 			_searchContainer = searchContainer;
 		}
@@ -520,11 +490,7 @@ public class KaleoFormsAdminDisplayContext {
 	}
 
 	protected boolean isSearch() {
-		if (Validator.isNotNull(getKeywords())) {
-			return true;
-		}
-
-		return false;
+		return Validator.isNotNull(getKeywords());
 	}
 
 	private PortletURL _getIteratorURL() {

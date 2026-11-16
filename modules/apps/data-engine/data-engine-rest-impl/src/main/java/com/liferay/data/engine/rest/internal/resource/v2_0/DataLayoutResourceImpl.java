@@ -74,14 +74,14 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.SearchUtil;
 
+import jakarta.servlet.http.HttpServletResponse;
+
+import jakarta.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletResponse;
-
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -103,6 +103,10 @@ public class DataLayoutResourceImpl extends BaseDataLayoutResourceImpl {
 
 		DDMStructure ddmStructure = _ddmStructureLocalService.getDDMStructure(
 			dataDefinitionId);
+
+		DataDefinitionPermissionUtil.check(
+			PermissionThreadLocal.getPermissionChecker(), ddmStructure,
+			ActionKeys.DELETE);
 
 		List<DDMStructureVersion> ddmStructureVersions =
 			_ddmStructureVersionLocalService.getStructureVersions(
@@ -345,10 +349,11 @@ public class DataLayoutResourceImpl extends BaseDataLayoutResourceImpl {
 
 			DDMFormField ddmFormField = ddmFormFieldsMap.get(fieldName);
 
-			if (ddmFormField != null) {
-				_addDataDefinitionFieldLinks(
-					dataLayoutId, ddmFormField, siteId);
+			if (ddmFormField == null) {
+				continue;
 			}
+
+			_addDataDefinitionFieldLinks(dataLayoutId, ddmFormField, siteId);
 		}
 	}
 
@@ -388,6 +393,16 @@ public class DataLayoutResourceImpl extends BaseDataLayoutResourceImpl {
 			_portal.getClassNameId(DDMStructureLayout.class), dataLayoutId);
 	}
 
+	private long _getDDMStructureVersionId(long deDataDefinitionId)
+		throws PortalException {
+
+		DDMStructureVersion ddmStructureVersion =
+			_ddmStructureVersionLocalService.getLatestStructureVersion(
+				deDataDefinitionId);
+
+		return ddmStructureVersion.getStructureVersionId();
+	}
+
 	private DataLayout _getDataLayout(long dataLayoutId) throws Exception {
 		return DataLayoutUtil.toDataLayout(
 			_ddmFormFieldTypeServicesRegistry,
@@ -421,6 +436,10 @@ public class DataLayoutResourceImpl extends BaseDataLayoutResourceImpl {
 
 		DDMStructure ddmStructure = _ddmStructureLocalService.getStructure(
 			dataDefinitionId);
+
+		DataDefinitionPermissionUtil.check(
+			PermissionThreadLocal.getPermissionChecker(), ddmStructure,
+			ActionKeys.VIEW);
 
 		DataDefinitionContentType dataDefinitionContentType =
 			DataDefinitionContentTypeRegistryUtil.getDataDefinitionContentType(
@@ -498,16 +517,6 @@ public class DataLayoutResourceImpl extends BaseDataLayoutResourceImpl {
 				_ddmStructureLayoutLocalService.getStructureLayout(
 					GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK))),
 				_spiDDMFormRuleConverter));
-	}
-
-	private long _getDDMStructureVersionId(long deDataDefinitionId)
-		throws PortalException {
-
-		DDMStructureVersion ddmStructureVersion =
-			_ddmStructureVersionLocalService.getLatestStructureVersion(
-				deDataDefinitionId);
-
-		return ddmStructureVersion.getStructureVersionId();
 	}
 
 	private List<String> _getFieldNames(String content) {

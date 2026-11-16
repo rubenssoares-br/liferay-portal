@@ -12,7 +12,6 @@ import com.liferay.document.library.constants.DLPortletKeys;
 import com.liferay.document.library.kernel.model.DLFolder;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.service.DLAppService;
-import com.liferay.portal.kernel.bean.BeanParamUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -38,15 +37,15 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletException;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Adolfo Pérez
@@ -55,6 +54,7 @@ public class DLSelectFolderDisplayContext {
 
 	public DLSelectFolderDisplayContext(
 		long blockedFolderId, DLAppService dlAppService, Folder folder,
+		long folderId,
 		ModelResourcePermission<Folder> folderModelResourcePermission,
 		HttpServletRequest httpServletRequest, PortletURL portletURL,
 		long repositoryId, long selectedFolderId, long selectedRepositoryId,
@@ -63,6 +63,7 @@ public class DLSelectFolderDisplayContext {
 		_blockedFolderId = blockedFolderId;
 		_dlAppService = dlAppService;
 		_folder = folder;
+		_folderId = folderId;
 		_folderModelResourcePermission = folderModelResourcePermission;
 		_httpServletRequest = httpServletRequest;
 		_portletURL = portletURL;
@@ -124,9 +125,7 @@ public class DLSelectFolderDisplayContext {
 	}
 
 	public long getFolderId() {
-		return BeanParamUtil.getLong(
-			_folder, _httpServletRequest, "folderId",
-			DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+		return _folderId;
 	}
 
 	public String getFolderName() {
@@ -348,6 +347,7 @@ public class DLSelectFolderDisplayContext {
 	private final long _blockedFolderId;
 	private final DLAppService _dlAppService;
 	private final Folder _folder;
+	private final long _folderId;
 	private final ModelResourcePermission<Folder>
 		_folderModelResourcePermission;
 	private final HttpServletRequest _httpServletRequest;

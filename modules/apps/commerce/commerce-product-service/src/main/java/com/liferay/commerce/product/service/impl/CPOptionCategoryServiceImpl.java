@@ -13,6 +13,7 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.search.BaseModelSearchResult;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -66,14 +67,12 @@ public class CPOptionCategoryServiceImpl
 		throws PortalException {
 
 		CPOptionCategory cpOptionCategory =
-			cpOptionCategoryLocalService.
-				fetchCPOptionCategoryByExternalReferenceCode(
-					externalReferenceCode, serviceContext.getCompanyId());
+			cpOptionCategoryPersistence.fetchByERC_C(
+				externalReferenceCode, serviceContext.getCompanyId());
 
 		if ((cpOptionCategory == null) && (cpOptionCategoryId > 0)) {
-			cpOptionCategory =
-				cpOptionCategoryLocalService.fetchCPOptionCategory(
-					cpOptionCategoryId);
+			cpOptionCategory = cpOptionCategoryPersistence.fetchByPrimaryKey(
+				cpOptionCategoryId);
 		}
 
 		if (cpOptionCategory == null) {
@@ -111,8 +110,7 @@ public class CPOptionCategoryServiceImpl
 		throws PortalException {
 
 		CPOptionCategory cpOptionCategory =
-			cpOptionCategoryLocalService.fetchCPOptionCategory(
-				cpOptionCategoryId);
+			cpOptionCategoryPersistence.fetchByPrimaryKey(cpOptionCategoryId);
 
 		if (cpOptionCategory != null) {
 			_cpOptionCategoryModelResourcePermission.check(
@@ -128,9 +126,8 @@ public class CPOptionCategoryServiceImpl
 		throws PortalException {
 
 		CPOptionCategory cpOptionCategory =
-			cpOptionCategoryLocalService.
-				fetchCPOptionCategoryByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			cpOptionCategoryPersistence.fetchByERC_C(
+				externalReferenceCode, companyId);
 
 		if (cpOptionCategory != null) {
 			_cpOptionCategoryModelResourcePermission.check(
@@ -148,8 +145,7 @@ public class CPOptionCategoryServiceImpl
 		_cpOptionCategoryModelResourcePermission.check(
 			getPermissionChecker(), cpOptionCategoryId, ActionKeys.VIEW);
 
-		return cpOptionCategoryLocalService.getCPOptionCategory(
-			cpOptionCategoryId);
+		return cpOptionCategoryPersistence.findByPrimaryKey(cpOptionCategoryId);
 	}
 
 	@Override
@@ -158,15 +154,43 @@ public class CPOptionCategoryServiceImpl
 		throws PortalException {
 
 		CPOptionCategory cpOptionCategory =
-			cpOptionCategoryLocalService.
-				getCPOptionCategoryByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			cpOptionCategoryPersistence.findByERC_C(
+				externalReferenceCode, companyId);
 
 		_cpOptionCategoryModelResourcePermission.check(
 			getPermissionChecker(), cpOptionCategory.getCPOptionCategoryId(),
 			ActionKeys.VIEW);
 
 		return cpOptionCategory;
+	}
+
+	@Override
+	public CPOptionCategory getOrAddEmptyCPOptionCategory(
+			String externalReferenceCode)
+		throws PortalException {
+
+		PermissionChecker permissionChecker = getPermissionChecker();
+
+		CPOptionCategory cpOptionCategory =
+			cpOptionCategoryService.
+				fetchCPOptionCategoryByExternalReferenceCode(
+					externalReferenceCode, permissionChecker.getCompanyId());
+
+		if (cpOptionCategory != null) {
+			return cpOptionCategory;
+		}
+
+		PortletResourcePermission portletResourcePermission =
+			_cpOptionCategoryModelResourcePermission.
+				getPortletResourcePermission();
+
+		portletResourcePermission.check(
+			permissionChecker, null,
+			CPActionKeys.ADD_COMMERCE_PRODUCT_OPTION_CATEGORY);
+
+		return cpOptionCategoryLocalService.getOrAddEmptyCPOptionCategory(
+			externalReferenceCode, permissionChecker.getCompanyId(),
+			permissionChecker.getUserId());
 	}
 
 	@Override

@@ -51,4 +51,16 @@ public interface CPConfigurationEntry
 
 			};
 
+	public java.math.BigDecimal[] getAllowedOrderQuantitiesArray();
+
+	public CPTaxCategory getCPTaxCategory()
+		throws com.liferay.portal.kernel.exception.PortalException;
+
+	public CPConfigurationList getParentCPConfigurationList()
+		throws com.liferay.portal.kernel.exception.PortalException;
+
+	public boolean isMaster()
+		throws com.liferay.portal.kernel.exception.PortalException;
+
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-108382113

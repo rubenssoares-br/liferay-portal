@@ -7,9 +7,9 @@ package com.liferay.headless.commerce.admin.pricing.client.problem;
 
 import com.liferay.headless.commerce.admin.pricing.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Zoltán Takács
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1976313067

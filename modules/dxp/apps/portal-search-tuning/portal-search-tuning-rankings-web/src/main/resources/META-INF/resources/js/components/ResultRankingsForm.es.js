@@ -6,7 +6,7 @@
 import ClayAlert from '@clayui/alert';
 import ClayLayout from '@clayui/layout';
 import ClayTabs from '@clayui/tabs';
-import {openToast} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
 import {PropTypes} from 'prop-types';
 import React, {Component} from 'react';
 
@@ -861,7 +861,7 @@ class ResultRankingsForm extends Component {
 					</ClayLayout.Sheet>
 
 					<ClayLayout.Sheet className="form-section-body">
-						<div className="results-title sheet-text">
+						<div className="results-title sheet-text text-dark">
 							{Liferay.Language.get('results')}
 						</div>
 

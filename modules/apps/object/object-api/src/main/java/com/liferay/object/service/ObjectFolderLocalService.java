@@ -306,6 +306,12 @@ public interface ObjectFolderLocalService
 	public ObjectFolder getOrAddDefaultObjectFolder(long companyId)
 		throws PortalException;
 
+	@Indexable(type = IndexableType.REINDEX)
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public ObjectFolder getOrAddEmptyObjectFolder(
+			String externalReferenceCode, long companyId, long userId)
+		throws PortalException;
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -341,3 +347,4 @@ public interface ObjectFolderLocalService
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1789072714

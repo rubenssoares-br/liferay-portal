@@ -19,9 +19,9 @@ import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 
-import java.util.List;
+import jakarta.portlet.RenderRequest;
 
-import javax.portlet.RenderRequest;
+import java.util.List;
 
 /**
  * @author Jürgen Kappler
@@ -81,11 +81,11 @@ public class AssetListEntryVerticalCard extends BaseVerticalCard {
 
 	@Override
 	public List<LabelItem> getLabels() {
-		int assetListEntrySegmentsEntryRelsCount =
-			_assetListDisplayContext.getAssetListEntrySegmentsEntryRelsCount(
+		int assetListEntryVariationsCount =
+			_assetListDisplayContext.getAssetListEntryVariationsCount(
 				_assetListEntry);
 
-		if (assetListEntrySegmentsEntryRelsCount > 0) {
+		if (assetListEntryVariationsCount > 0) {
 			return LabelItemListBuilder.add(
 				labelItem -> {
 					labelItem.setDisplayType("info");
@@ -93,8 +93,7 @@ public class AssetListEntryVerticalCard extends BaseVerticalCard {
 						LanguageUtil.format(
 							themeDisplay.getLocale(), "x-variations",
 							new String[] {
-								String.valueOf(
-									assetListEntrySegmentsEntryRelsCount)
+								String.valueOf(assetListEntryVariationsCount)
 							}));
 				}
 			).build();

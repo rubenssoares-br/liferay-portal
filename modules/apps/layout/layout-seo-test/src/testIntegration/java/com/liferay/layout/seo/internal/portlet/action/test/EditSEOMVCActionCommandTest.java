@@ -39,8 +39,8 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -211,15 +211,16 @@ public class EditSEOMVCActionCommandTest {
 	public void testUpdateSEOWithMasterLayout() throws Exception {
 		LayoutPageTemplateEntry masterLayoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
+				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, null,
 				RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT, 0,
 				WorkflowConstants.STATUS_APPROVED,
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
-		_layout = _layoutLocalService.updateMasterLayoutPlid(
+		_layout = _layoutLocalService.updateMasterLayoutPageTemplateEntryERC(
 			_group.getGroupId(), _layout.isPrivateLayout(),
-			_layout.getLayoutId(), masterLayoutPageTemplateEntry.getPlid());
+			_layout.getLayoutId(),
+			masterLayoutPageTemplateEntry.getExternalReferenceCode());
 
 		MockLiferayPortletActionRequest mockLiferayPortletActionRequest =
 			_setUpMockLiferayPortletActionRequest();
@@ -266,7 +267,7 @@ public class EditSEOMVCActionCommandTest {
 		return mockLiferayPortletActionRequest;
 	}
 
-	private static Company _company;
+	private Company _company;
 
 	@Inject
 	private CompanyLocalService _companyLocalService;

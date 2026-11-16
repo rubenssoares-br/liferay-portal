@@ -4,7 +4,7 @@
  */
 
 import ClayForm, {ClayInput, ClaySelectWithOption} from '@clayui/form';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 
 import AssetDisplayPageSelector from './AssetDisplayPageSelector';
 import PreviewButton from './PreviewButton';
@@ -71,6 +71,18 @@ export default function SelectAssetDisplayPage({
 		},
 	];
 
+	useEffect(() => {
+		Liferay.component(
+			`${namespace}SelectAssetDisplayPage`,
+			{},
+			{destroyOnNavigate: true}
+		);
+
+		return () => {
+			Liferay.destroyComponent(`${namespace}SelectAssetDisplayPage`);
+		};
+	}, [namespace]);
+
 	return (
 		<>
 			<ClayForm.Group>
@@ -90,20 +102,20 @@ export default function SelectAssetDisplayPage({
 			</ClayForm.Group>
 
 			<ClayInput
-				hidden
 				name={`${namespace}layoutUuid`}
+				type="hidden"
 				value={assetDisplayPageSelected?.layoutUuid ?? ''}
 			/>
 
 			<ClayInput
-				hidden
 				name={`${namespace}assetDisplayPageId`}
+				type="hidden"
 				value={assetDisplayPageSelected?.assetDisplayPageId ?? ''}
 			/>
 
 			<ClayInput
-				hidden
 				name={`${namespace}displayPageType`}
+				type="hidden"
 				value={selectedDisplayPageType ?? ''}
 			/>
 

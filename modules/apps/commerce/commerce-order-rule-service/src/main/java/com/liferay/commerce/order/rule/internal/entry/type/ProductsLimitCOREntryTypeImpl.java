@@ -12,8 +12,9 @@ import com.liferay.commerce.order.rule.entry.type.COREntryType;
 import com.liferay.commerce.order.rule.entry.type.COREntryTypeItem;
 import com.liferay.commerce.order.rule.model.COREntry;
 import com.liferay.commerce.product.model.CPDefinition;
+import com.liferay.commerce.product.model.CProduct;
 import com.liferay.commerce.product.service.CPDefinitionLocalService;
-import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.commerce.product.service.CProductLocalService;
 import com.liferay.petra.string.StringUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
@@ -50,27 +51,26 @@ public class ProductsLimitCOREntryTypeImpl implements COREntryType {
 				corEntry.getTypeSettings()
 			).build();
 
-		List<Long> cProductIds = TransformUtil.transform(
-			StringUtil.split(
-				typeSettingsUnicodeProperties.getProperty(
-					COREntryConstants.TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_IDS)),
-			cProductId -> Long.valueOf(cProductId));
+		List<String> cProductExternalReferenceCodes = StringUtil.split(
+			typeSettingsUnicodeProperties.getProperty(
+				COREntryConstants.
+					TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_EXTERNAL_REFERENCE_CODES));
 
 		for (CommerceOrderItem commerceOrderItem :
 				commerceOrder.getCommerceOrderItems()) {
 
-			CPDefinition cpDefinition =
-				_cpDefinitionLocalService.fetchCPDefinition(
+			String cProductExternalReferenceCode =
+				_getCProductExternalReferenceCode(
 					commerceOrderItem.getCPDefinitionId());
 
-			if (cpDefinition == null) {
+			if ((cProductExternalReferenceCode == null) ||
+				!cProductExternalReferenceCodes.contains(
+					cProductExternalReferenceCode)) {
+
 				continue;
 			}
 
-			if (cProductIds.contains(cpDefinition.getCProductId())) {
-				totalQuantity = totalQuantity.add(
-					commerceOrderItem.getQuantity());
-			}
+			totalQuantity = totalQuantity.add(commerceOrderItem.getQuantity());
 		}
 
 		int compare = totalQuantity.compareTo(
@@ -98,25 +98,24 @@ public class ProductsLimitCOREntryTypeImpl implements COREntryType {
 				corEntry.getTypeSettings()
 			).build();
 
-		List<Long> cProductIds = TransformUtil.transform(
-			StringUtil.split(
-				typeSettingsUnicodeProperties.getProperty(
-					COREntryConstants.TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_IDS)),
-			cProductId -> Long.valueOf(cProductId));
+		List<String> cProductExternalReferenceCodes = StringUtil.split(
+			typeSettingsUnicodeProperties.getProperty(
+				COREntryConstants.
+					TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_EXTERNAL_REFERENCE_CODES));
 
 		for (COREntryTypeItem corEntryTypeItem : corEntryTypeItems) {
-			CPDefinition cpDefinition =
-				_cpDefinitionLocalService.fetchCPDefinition(
+			String cProductExternalReferenceCode =
+				_getCProductExternalReferenceCode(
 					corEntryTypeItem.getCPDefinitionId());
 
-			if (cpDefinition == null) {
+			if ((cProductExternalReferenceCode == null) ||
+				!cProductExternalReferenceCodes.contains(
+					cProductExternalReferenceCode)) {
+
 				continue;
 			}
 
-			if (cProductIds.contains(cpDefinition.getCProductId())) {
-				totalQuantity = totalQuantity.add(
-					corEntryTypeItem.getQuantity());
-			}
+			totalQuantity = totalQuantity.add(corEntryTypeItem.getQuantity());
 		}
 
 		int compare = totalQuantity.compareTo(
@@ -175,6 +174,27 @@ public class ProductsLimitCOREntryTypeImpl implements COREntryType {
 	public boolean isActive() {
 		return true;
 	}
+
+	private String _getCProductExternalReferenceCode(long cpDefinitionId) {
+		CPDefinition cpDefinition = _cpDefinitionLocalService.fetchCPDefinition(
+			cpDefinitionId);
+
+		if (cpDefinition == null) {
+			return null;
+		}
+
+		CProduct cProduct = _cProductLocalService.fetchCProduct(
+			cpDefinition.getCProductId());
+
+		if (cProduct == null) {
+			return null;
+		}
+
+		return cProduct.getExternalReferenceCode();
+	}
+
+	@Reference
+	private CProductLocalService _cProductLocalService;
 
 	@Reference
 	private CPDefinitionLocalService _cpDefinitionLocalService;

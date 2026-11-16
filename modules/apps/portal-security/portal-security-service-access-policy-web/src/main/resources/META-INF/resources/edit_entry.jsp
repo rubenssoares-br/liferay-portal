@@ -149,7 +149,7 @@ renderResponse.setTitle((sapEntry == null) ? LanguageUtil.get(request, "new-serv
 	);
 </aui:script>
 
-<aui:script use="autocomplete,autocomplete-filters,io-base,liferay-auto-fields">
+<aui:script use="autocomplete,autocomplete-filters,io-base">
 	var REGEX_DOT = /\./g;
 
 	var actionMethodNamesCache = {};
@@ -192,7 +192,7 @@ renderResponse.setTitle((sapEntry == null) ? LanguageUtil.get(request, "new-serv
 					})
 					.then((data) => {
 						methodObj.actionMethodNames = data;
-						callback(actionMethodNames);
+						callback(data);
 					});
 			}
 			else {
@@ -220,6 +220,16 @@ renderResponse.setTitle((sapEntry == null) ? LanguageUtil.get(request, "new-serv
 		var actionMethodNameInput = rowNode.one('.action-method-name');
 		var serviceClassNameInput = rowNode.one('.service-class-name');
 
+		var syncActionMethodNameDisabled = function () {
+			var hasServiceClassName = serviceClassNameInput.val().trim().length > 0;
+
+			actionMethodNameInput.attr('disabled', !hasServiceClassName);
+		};
+
+		syncActionMethodNameDisabled();
+
+		serviceClassNameInput.on('input', syncActionMethodNameDisabled);
+
 		new A.AutoComplete({
 			inputNode: serviceClassNameInput,
 			on: {
@@ -235,7 +245,7 @@ renderResponse.setTitle((sapEntry == null) ? LanguageUtil.get(request, "new-serv
 						result.contextName
 					);
 
-					actionMethodNameInput.attr('disabled', false);
+					syncActionMethodNameDisabled();
 				},
 			},
 			resultFilters: 'phraseMatch',
@@ -326,29 +336,30 @@ renderResponse.setTitle((sapEntry == null) ? LanguageUtil.get(request, "new-serv
 		});
 	};
 
-	new Liferay.AutoFields({
-		contentBox:
-			'#<portlet:namespace />allowedServiceSignaturesFriendlyContentBox',
-		namespace: '<portlet:namespace />',
-		on: {
-			clone: function (event) {
-				var rowNode = event.row;
+	import(
+		'<%= FrontendESMUtil.buildURL(themeDisplay, "frontend-js-web", "auto_fields") %>'
+	).then(({autoFields}) => {
+		autoFields({
+			contentBox:
+				'#<portlet:namespace />allowedServiceSignaturesFriendlyContentBox',
+			namespace: '<portlet:namespace />',
+			on: {
+				clone(event) {
+					var rowNode = A.one(event.row);
 
-				var actionMethodNameInput = rowNode.one('.action-method-name');
-				var serviceClassNameInput = rowNode.one('.service-class-name');
+					var serviceClassNameInput = rowNode.one('.service-class-name');
 
-				actionMethodNameInput.attr('disabled', true);
+					serviceClassNameInput.attr({
+						'data-context-name': '',
+						'data-service-class-name': '',
+					});
 
-				serviceClassNameInput.attr({
-					'data-context-name': '',
-					'data-service-class-name': '',
-				});
-
-				initAutoCompleteRow(rowNode);
+					initAutoCompleteRow(rowNode);
+				},
+				delete: updateAdvancedModeTextarea,
 			},
-			delete: updateAdvancedModeTextarea,
-		},
-	}).render();
+		});
+	});
 
 	var rows = A.all(
 		'#<portlet:namespace />allowedServiceSignaturesFriendlyContentBox .lfr-form-row'

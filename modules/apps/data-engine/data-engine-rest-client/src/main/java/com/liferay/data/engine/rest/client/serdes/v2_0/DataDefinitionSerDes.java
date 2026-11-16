@@ -10,16 +10,17 @@ import com.liferay.data.engine.rest.client.dto.v2_0.DataDefinitionField;
 import com.liferay.data.engine.rest.client.dto.v2_0.DataRule;
 import com.liferay.data.engine.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Jeyvison Nascimento
@@ -214,6 +215,20 @@ public class DataDefinitionSerDes {
 			sb.append(_toJSON(dataDefinition.getDescription()));
 		}
 
+		if (dataDefinition.getExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(dataDefinition.getExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
 		if (dataDefinition.getId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -378,6 +393,15 @@ public class DataDefinitionSerDes {
 				"description", String.valueOf(dataDefinition.getDescription()));
 		}
 
+		if (dataDefinition.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(dataDefinition.getExternalReferenceCode()));
+		}
+
 		if (dataDefinition.getId() == null) {
 			map.put("id", null);
 		}
@@ -463,6 +487,11 @@ public class DataDefinitionSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "description")) {
 				return true;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
@@ -571,6 +600,14 @@ public class DataDefinitionSerDes {
 						(Map<String, Object>)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					dataDefinition.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				if (jsonParserFieldValue != null) {
 					dataDefinition.setId(
@@ -645,6 +682,16 @@ public class DataDefinitionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -677,3 +724,4 @@ public class DataDefinitionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:632972702

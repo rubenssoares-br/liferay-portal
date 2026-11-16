@@ -61,7 +61,7 @@ List<Phone> phones = PhoneServiceUtil.getPhones(className, classPK);
 	curParam="phoneNumberCur"
 	deltaParam="phoneNumbersDelta"
 	emptyResultsMessage='<%= ParamUtil.getString(request, "emptyResultsMessage") %>'
-	headerNames="phone-number,type,extension,"
+	headerNames="phone-number,type,phone-extension,"
 	id="phonesSearchContainer"
 	iteratorURL="<%= currentURLObj %>"
 	total="<%= phones.size() %>"
@@ -74,7 +74,7 @@ List<Phone> phones = PhoneServiceUtil.getPhones(className, classPK);
 	<liferay-ui:search-container-row
 		className="com.liferay.portal.kernel.model.Phone"
 		escapedModel="<%= true %>"
-		keyProperty="phoneId"
+		keyPropertyName="phoneId"
 		modelVar="phone"
 	>
 		<liferay-ui:search-container-column-text
@@ -97,7 +97,7 @@ List<Phone> phones = PhoneServiceUtil.getPhones(className, classPK);
 
 		<liferay-ui:search-container-column-text
 			cssClass="table-cell-expand-small"
-			name="extension"
+			name="phone-extension"
 			property="extension"
 		/>
 

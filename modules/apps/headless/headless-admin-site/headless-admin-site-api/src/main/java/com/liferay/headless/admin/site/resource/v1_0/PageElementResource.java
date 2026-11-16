@@ -5,10 +5,7 @@
 
 package com.liferay.headless.admin.site.resource.v1_0;
 
-import com.liferay.headless.admin.site.dto.v1_0.FragmentComposition;
 import com.liferay.headless.admin.site.dto.v1_0.PageElement;
-import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
@@ -21,17 +18,17 @@ import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineExportTa
 import com.liferay.portal.vulcan.batch.engine.resource.VulcanBatchEngineImportTaskResource;
 import com.liferay.portal.vulcan.pagination.Page;
 
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import jakarta.ws.rs.core.UriInfo;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.annotation.Generated;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import javax.ws.rs.core.UriInfo;
 
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -47,50 +44,53 @@ import org.osgi.annotation.versioning.ProviderType;
 @ProviderType
 public interface PageElementResource {
 
-	public void deleteSiteSiteByExternalReferenceCodePageElement(
+	public void deleteSitePageSpecificationPageExperiencePageElement(
 			String siteExternalReferenceCode,
+			String pageSpecificationExternalReferenceCode,
+			String pageExperienceExternalReferenceCode,
 			String pageElementExternalReferenceCode)
 		throws Exception;
 
-	public PageElement getSiteSiteByExternalReferenceCodePageElement(
+	public PageElement getSitePageSpecificationPageExperiencePageElement(
 			String siteExternalReferenceCode,
+			String pageSpecificationExternalReferenceCode,
+			String pageExperienceExternalReferenceCode,
 			String pageElementExternalReferenceCode)
-		throws Exception;
-
-	public PageElement patchSiteSiteByExternalReferenceCodePageElement(
-			String siteExternalReferenceCode,
-			String pageElementExternalReferenceCode, PageElement pageElement)
-		throws Exception;
-
-	public PageElement putSiteSiteByExternalReferenceCodePageElement(
-			String siteExternalReferenceCode,
-			String pageElementExternalReferenceCode, PageElement pageElement)
-		throws Exception;
-
-	public PageElement
-			postSiteSiteByExternalReferenceCodePageElementFragmentComposition(
-				String siteExternalReferenceCode,
-				String pageElementExternalReferenceCode, Integer position,
-				FragmentComposition fragmentComposition)
 		throws Exception;
 
 	public Page<PageElement>
-			getSiteSiteByExternalReferenceCodePageElementPageElementsPage(
+			getSitePageSpecificationPageExperiencePageElementPageElementsPage(
 				String siteExternalReferenceCode,
+				String pageSpecificationExternalReferenceCode,
+				String pageExperienceExternalReferenceCode,
 				String pageElementExternalReferenceCode, Boolean flatten)
 		throws Exception;
 
 	public Page<PageElement>
-			getSiteSiteByExternalReferenceCodePageExperiencePageElementsPage(
+			getSitePageSpecificationPageExperiencePageElementsPage(
 				String siteExternalReferenceCode,
+				String pageSpecificationExternalReferenceCode,
 				String pageExperienceExternalReferenceCode, Boolean flatten)
 		throws Exception;
 
-	public PageElement
-			postSiteSiteByExternalReferenceCodePageExperiencePageElement(
-				String siteExternalReferenceCode,
-				String pageExperienceExternalReferenceCode,
-				PageElement pageElement)
+	public PageElement patchSitePageSpecificationPageExperiencePageElement(
+			String siteExternalReferenceCode,
+			String pageSpecificationExternalReferenceCode,
+			String pageExperienceExternalReferenceCode,
+			String pageElementExternalReferenceCode, PageElement pageElement)
+		throws Exception;
+
+	public PageElement postSitePageSpecificationPageExperiencePageElement(
+			String siteExternalReferenceCode,
+			String pageSpecificationExternalReferenceCode,
+			String pageExperienceExternalReferenceCode, PageElement pageElement)
+		throws Exception;
+
+	public PageElement putSitePageSpecificationPageExperiencePageElement(
+			String siteExternalReferenceCode,
+			String pageSpecificationExternalReferenceCode,
+			String pageExperienceExternalReferenceCode,
+			String pageElementExternalReferenceCode, PageElement pageElement)
 		throws Exception;
 
 	public default void setContextAcceptLanguage(
@@ -115,7 +115,8 @@ public interface PageElementResource {
 		com.liferay.portal.kernel.model.User contextUser);
 
 	public void setExpressionConvert(
-		ExpressionConvert<Filter> expressionConvert);
+		ExpressionConvert<com.liferay.portal.kernel.search.filter.Filter>
+			expressionConvert);
 
 	public void setFilterParserProvider(
 		FilterParserProvider filterParserProvider);
@@ -140,19 +141,23 @@ public interface PageElementResource {
 		VulcanBatchEngineImportTaskResource
 			vulcanBatchEngineImportTaskResource);
 
-	public default Filter toFilter(String filterString) {
+	public default com.liferay.portal.kernel.search.filter.Filter toFilter(
+		String filterString) {
+
 		return toFilter(
 			filterString, Collections.<String, List<String>>emptyMap());
 	}
 
-	public default Filter toFilter(
+	public default com.liferay.portal.kernel.search.filter.Filter toFilter(
 		String filterString, Map<String, List<String>> multivaluedMap) {
 
 		return null;
 	}
 
-	public default Sort[] toSorts(String sortsString) {
-		return new Sort[0];
+	public default com.liferay.portal.kernel.search.Sort[] toSorts(
+		String sortsString) {
+
+		return new com.liferay.portal.kernel.search.Sort[0];
 	}
 
 	@ProviderType
@@ -184,3 +189,4 @@ public interface PageElementResource {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:546600468

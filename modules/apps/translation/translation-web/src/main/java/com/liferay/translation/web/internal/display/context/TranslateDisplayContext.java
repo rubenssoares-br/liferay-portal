@@ -18,19 +18,24 @@ import com.liferay.info.localized.InfoLocalizedValue;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.CharPool;
-import com.liferay.portal.kernel.bean.BeanParamUtil;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.editor.configuration.EditorConfiguration;
 import com.liferay.portal.kernel.editor.configuration.EditorConfigurationFactoryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.model.GroupedModel;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.RequestBackedPortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
+import com.liferay.portal.kernel.sanitizer.SanitizerException;
+import com.liferay.portal.kernel.sanitizer.SanitizerUtil;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalServiceUtil;
 import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HtmlUtil;
@@ -50,6 +55,11 @@ import com.liferay.translation.info.field.TranslationInfoFieldChecker;
 import com.liferay.translation.model.TranslationEntry;
 import com.liferay.translation.service.TranslationEntryLocalServiceUtil;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -58,11 +68,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Alejandro Tardín
@@ -126,25 +131,6 @@ public class TranslateDisplayContext {
 		return HtmlUtil.escape(
 			labelInfoLocalizedValue.getValue(
 				PortalUtil.getLocale(_httpServletRequest)));
-	}
-
-	public List<InfoField> getInfoFields(InfoFieldSetEntry infoFieldSetEntry) {
-		if (infoFieldSetEntry instanceof InfoField) {
-			InfoField infoField = (InfoField)infoFieldSetEntry;
-
-			if (_translationInfoFieldChecker.isTranslatable(infoField)) {
-				return Arrays.asList(infoField);
-			}
-		}
-		else if (infoFieldSetEntry instanceof InfoFieldSet) {
-			InfoFieldSet infoFieldSet = (InfoFieldSet)infoFieldSetEntry;
-
-			return ListUtil.filter(
-				infoFieldSet.getAllInfoFields(),
-				_translationInfoFieldChecker::isTranslatable);
-		}
-
-		return Collections.emptyList();
 	}
 
 	public List<InfoFieldSetEntry> getInfoFieldSetEntries() {
@@ -236,7 +222,7 @@ public class TranslateDisplayContext {
 			() -> {
 				PortletRequest portletRequest =
 					(PortletRequest)_httpServletRequest.getAttribute(
-						JavaConstants.JAVAX_PORTLET_REQUEST);
+						JavaConstants.JAKARTA_PORTLET_REQUEST);
 
 				return SessionErrors.contains(
 					portletRequest, "duplicateChanges");
@@ -300,6 +286,25 @@ public class TranslateDisplayContext {
 		return null;
 	}
 
+	public List<InfoField> getInfoFields(InfoFieldSetEntry infoFieldSetEntry) {
+		if (infoFieldSetEntry instanceof InfoField) {
+			InfoField infoField = (InfoField)infoFieldSetEntry;
+
+			if (_translationInfoFieldChecker.isTranslatable(infoField)) {
+				return Arrays.asList(infoField);
+			}
+		}
+		else if (infoFieldSetEntry instanceof InfoFieldSet) {
+			InfoFieldSet infoFieldSet = (InfoFieldSet)infoFieldSetEntry;
+
+			return ListUtil.filter(
+				infoFieldSet.getAllInfoFields(),
+				_translationInfoFieldChecker::isTranslatable);
+		}
+
+		return Collections.emptyList();
+	}
+
 	public String getLanguageIdTitle(String languageId) {
 		return StringUtil.replace(
 			languageId, CharPool.UNDERLINE, CharPool.DASH);
@@ -314,6 +319,13 @@ public class TranslateDisplayContext {
 		}
 
 		return "publish";
+	}
+
+	public String getSanitizedHTML(String html) throws SanitizerException {
+		return SanitizerUtil.sanitize(
+			_themeDisplay.getCompanyId(), _themeDisplay.getScopeGroupId(),
+			_themeDisplay.getUserId(), StringPool.BLANK, 0,
+			ContentTypes.TEXT_HTML, html);
 	}
 
 	public String getSaveButtonLabel() {
@@ -420,11 +432,7 @@ public class TranslateDisplayContext {
 	}
 
 	public boolean hasTranslationPermission() {
-		if (_isAvailableTargetLanguageIdsEmpty()) {
-			return false;
-		}
-
-		return true;
+		return !_isAvailableTargetLanguageIdsEmpty();
 	}
 
 	public boolean isAutoTranslateEnabled() throws PortalException {
@@ -511,18 +519,32 @@ public class TranslateDisplayContext {
 			return _groupId;
 		}
 
-		_groupId = BeanParamUtil.getLong(
-			_object, _httpServletRequest, "groupId",
-			_themeDisplay.getScopeGroupId());
+		if (_object instanceof GroupedModel groupedModel) {
+			_groupId = ParamUtil.getLong(
+				_httpServletRequest, "groupId", groupedModel.getGroupId());
+		}
+		else {
+			_groupId = ParamUtil.getLong(
+				_httpServletRequest, "groupId",
+				_themeDisplay.getScopeGroupId());
+		}
 
 		return _groupId;
 	}
 
 	private Map<String, Object> _getInfoFieldEditorConfig(String infoFieldId) {
+		String editorName = "ckeditor";
+
+		if (!FeatureFlagManagerUtil.isEnabled(
+				_themeDisplay.getCompanyId(), "LPD-11235")) {
+
+			editorName = "ckeditor5_classic";
+		}
+
 		EditorConfiguration editorConfiguration =
 			EditorConfigurationFactoryUtil.getEditorConfiguration(
 				TranslationPortletKeys.TRANSLATION, _getEditorConfigKey(),
-				"ckeditor",
+				editorName,
 				HashMapBuilder.<String, Object>put(
 					"liferay-ui:input-editor:allowBrowseDocuments", true
 				).put(
@@ -565,11 +587,7 @@ public class TranslateDisplayContext {
 	}
 
 	private boolean _isAvailableTargetLanguageIdsEmpty() {
-		if (_availableTargetLanguageIds.isEmpty()) {
-			return true;
-		}
-
-		return false;
+		return _availableTargetLanguageIds.isEmpty();
 	}
 
 	private final List<String> _availableSourceLanguageIds;

@@ -7,27 +7,62 @@ package com.liferay.asset.display.page.util.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.display.page.constants.AssetDisplayPageConstants;
+import com.liferay.asset.display.page.model.AssetDisplayPageEntry;
 import com.liferay.asset.display.page.service.AssetDisplayPageEntryLocalService;
 import com.liferay.asset.display.page.util.AssetDisplayPageUtil;
+import com.liferay.depot.constants.DepotConstants;
+import com.liferay.depot.model.DepotEntry;
+import com.liferay.depot.service.DepotEntryGroupRelLocalService;
+import com.liferay.depot.service.DepotEntryLocalService;
+import com.liferay.info.field.InfoField;
+import com.liferay.info.field.InfoFieldSet;
+import com.liferay.info.field.type.TextInfoFieldType;
+import com.liferay.info.item.ClassPKInfoItemIdentifier;
+import com.liferay.info.item.ERCInfoItemIdentifier;
+import com.liferay.info.item.InfoItemReference;
+import com.liferay.info.item.capability.InfoItemCapability;
+import com.liferay.info.test.util.MockInfoServiceRegistrationHolder;
+import com.liferay.info.test.util.model.MockObject;
 import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.test.util.JournalTestUtil;
-import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
+import com.liferay.layout.page.template.info.item.capability.DisplayPageInfoItemCapability;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
+import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
+import com.liferay.object.constants.ObjectFieldConstants;
+import com.liferay.object.field.util.ObjectFieldUtil;
+import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.test.util.ObjectDefinitionTestUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.FeatureFlagTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import java.io.Serializable;
+
+import java.util.Collections;
+
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -50,9 +85,340 @@ public class AssetDisplayPageUtilTest {
 
 	@Before
 	public void setUp() throws Exception {
+		_classNameId = _portal.getClassNameId(JournalArticle.class.getName());
+
 		_group = GroupTestUtil.addGroup();
 
-		_classNameId = _portal.getClassNameId(JournalArticle.class.getName());
+		_serviceContext = ServiceContextTestUtil.getServiceContext(
+			_group, TestPropsValues.getUserId());
+
+		ServiceContextThreadLocal.pushServiceContext(_serviceContext);
+	}
+
+	@After
+	public void tearDown() {
+		ServiceContextThreadLocal.popServiceContext();
+	}
+
+	@FeatureFlag("LPD-57283")
+	@Test
+	public void testGetAssetDisplayPageLayoutPageTemplateEntryWithConnectedDesignLibraryGroup()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition();
+
+		long classNameId = _portal.getClassNameId(
+			objectDefinition.getClassName());
+
+		long classPK = RandomTestUtil.randomLong();
+
+		Assert.assertNull(
+			AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+				_group.getGroupId(), classNameId, classPK, 0));
+
+		Group designLibraryGroup = _addConnectedDesignLibraryGroup();
+
+		LayoutPageTemplateEntry defaultLayoutPageTemplateEntry =
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				designLibraryGroup.getGroupId(), classNameId, null, true,
+				WorkflowConstants.STATUS_APPROVED);
+
+		Assert.assertEquals(
+			defaultLayoutPageTemplateEntry,
+			AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+				_group.getGroupId(), classNameId, classPK, 0));
+	}
+
+	@Test
+	public void testGetAssetDisplayPageLayoutPageTemplateEntryWithInfoItemIdentifier()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.addCustomObjectDefinition(
+				null, TestPropsValues.getUserId(), 0, null, null, true, false,
+				true, false, true, false, false, false, false, null,
+				RandomTestUtil.randomLocaleStringMap(),
+				ObjectDefinitionTestUtil.getRandomName(), null, null,
+				RandomTestUtil.randomLocaleStringMap(), true,
+				ObjectDefinitionConstants.SCOPE_COMPANY,
+				ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
+				ListUtil.fromArray(
+					ObjectFieldUtil.createObjectField(
+						ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+						ObjectFieldConstants.DB_TYPE_STRING,
+						RandomTestUtil.randomString(), "text")),
+				Collections.emptyList(), new ServiceContext());
+
+		_objectDefinitionLocalService.publishCustomObjectDefinition(
+			TestPropsValues.getUserId(),
+			objectDefinition.getObjectDefinitionId());
+
+		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
+			0, TestPropsValues.getUserId(),
+			objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
+			HashMapBuilder.<String, Serializable>put(
+				"text", RandomTestUtil.randomString()
+			).build(),
+			_serviceContext);
+
+		InfoItemReference infoItemReference = new InfoItemReference(
+			objectDefinition.getClassName(),
+			new ERCInfoItemIdentifier(objectEntry.getExternalReferenceCode()));
+
+		Assert.assertNull(
+			AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+				_group.getGroupId(), infoItemReference));
+
+		long classNameId = _portal.getClassNameId(
+			objectDefinition.getClassName());
+
+		LayoutPageTemplateEntry defaultLayoutPageTemplateEntry =
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(), classNameId, null, true,
+				WorkflowConstants.STATUS_APPROVED);
+
+		Assert.assertEquals(
+			defaultLayoutPageTemplateEntry,
+			AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+				_group.getGroupId(), infoItemReference));
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(), classNameId, null, false,
+				WorkflowConstants.STATUS_APPROVED);
+
+		_assetDisplayPageEntryLocalService.addAssetDisplayPageEntry(
+			TestPropsValues.getUserId(), _group.getGroupId(), classNameId,
+			objectEntry.getObjectEntryId(),
+			layoutPageTemplateEntry.getLayoutPageTemplateEntryId(),
+			AssetDisplayPageConstants.TYPE_SPECIFIC, _serviceContext);
+
+		Assert.assertEquals(
+			layoutPageTemplateEntry,
+			AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+				_group.getGroupId(), infoItemReference));
+	}
+
+	@Test
+	public void testGetAssetDisplayPageLayoutPageTemplateEntryWithUnsupportedInfoItemIdentifier()
+		throws Exception {
+
+		MockObject mockObject = new MockObject(
+			RandomTestUtil.randomLong(), false, true);
+
+		try (MockInfoServiceRegistrationHolder
+				mockInfoServiceRegistrationHolder =
+					new MockInfoServiceRegistrationHolder(
+						InfoFieldSet.builder(
+						).infoFieldSetEntries(
+							ListUtil.fromArray(
+								InfoField.builder(
+								).infoFieldType(
+									TextInfoFieldType.INSTANCE
+								).namespace(
+									RandomTestUtil.randomString()
+								).name(
+									RandomTestUtil.randomString()
+								).build())
+						).build(),
+						mockObject, _portal, _displayPageInfoItemCapability)) {
+
+			InfoItemReference infoItemReference = new InfoItemReference(
+				MockObject.class.getName(),
+				new ERCInfoItemIdentifier(RandomTestUtil.randomString()));
+
+			Assert.assertNull(
+				AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+					_group.getGroupId(), infoItemReference));
+
+			LayoutPageTemplateEntry defaultLayoutPageTemplateEntry =
+				DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+					_group.getGroupId(),
+					_portal.getClassNameId(MockObject.class.getName()), null,
+					true, WorkflowConstants.STATUS_APPROVED);
+
+			Assert.assertNull(
+				AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+					_group.getGroupId(), infoItemReference));
+
+			infoItemReference = new InfoItemReference(
+				MockObject.class.getName(),
+				new ClassPKInfoItemIdentifier(RandomTestUtil.randomLong()));
+
+			Assert.assertEquals(
+				defaultLayoutPageTemplateEntry,
+				AssetDisplayPageUtil.getAssetDisplayPageLayoutPageTemplateEntry(
+					_group.getGroupId(), infoItemReference));
+		}
+	}
+
+	@FeatureFlag("LPD-57283")
+	@Test
+	public void testHasAssetDisplayPageWithConnectedDesignLibraryGroup()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition();
+
+		long classNameId = _portal.getClassNameId(
+			objectDefinition.getClassName());
+
+		long classPK = RandomTestUtil.randomLong();
+
+		Assert.assertFalse(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), classNameId, classPK, 0));
+
+		Group designLibraryGroup = _addConnectedDesignLibraryGroup();
+
+		DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+			designLibraryGroup.getGroupId(), classNameId, null, true,
+			WorkflowConstants.STATUS_APPROVED);
+
+		Assert.assertTrue(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), classNameId, classPK, 0));
+	}
+
+	@Test
+	public void testHasAssetDisplayPageWithInfoItemIdentifier()
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.addCustomObjectDefinition(
+				null, TestPropsValues.getUserId(), 0, null, null, true, false,
+				true, false, true, false, false, false, false, null,
+				RandomTestUtil.randomLocaleStringMap(),
+				ObjectDefinitionTestUtil.getRandomName(), null, null,
+				RandomTestUtil.randomLocaleStringMap(), true,
+				ObjectDefinitionConstants.SCOPE_COMPANY,
+				ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
+				ListUtil.fromArray(
+					ObjectFieldUtil.createObjectField(
+						ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+						ObjectFieldConstants.DB_TYPE_STRING,
+						RandomTestUtil.randomString(), "text")),
+				Collections.emptyList(), new ServiceContext());
+
+		_objectDefinitionLocalService.publishCustomObjectDefinition(
+			TestPropsValues.getUserId(),
+			objectDefinition.getObjectDefinitionId());
+
+		ObjectEntry objectEntry = _objectEntryLocalService.addObjectEntry(
+			0, TestPropsValues.getUserId(),
+			objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
+			HashMapBuilder.<String, Serializable>put(
+				"text", RandomTestUtil.randomString()
+			).build(),
+			_serviceContext);
+
+		InfoItemReference infoItemReference = new InfoItemReference(
+			objectDefinition.getClassName(),
+			new ERCInfoItemIdentifier(objectEntry.getExternalReferenceCode()));
+
+		Assert.assertFalse(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), infoItemReference));
+
+		long classNameId = _portal.getClassNameId(
+			objectDefinition.getClassName());
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(), classNameId, null, true,
+				WorkflowConstants.STATUS_APPROVED);
+
+		Assert.assertTrue(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), infoItemReference));
+
+		_layoutPageTemplateEntryLocalService.deleteLayoutPageTemplateEntry(
+			layoutPageTemplateEntry);
+
+		Assert.assertFalse(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), infoItemReference));
+
+		layoutPageTemplateEntry =
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(), classNameId, null, false,
+				WorkflowConstants.STATUS_APPROVED);
+
+		AssetDisplayPageEntry assetDisplayPageEntry =
+			_assetDisplayPageEntryLocalService.addAssetDisplayPageEntry(
+				TestPropsValues.getUserId(), _group.getGroupId(), classNameId,
+				objectEntry.getObjectEntryId(),
+				layoutPageTemplateEntry.getLayoutPageTemplateEntryId(),
+				AssetDisplayPageConstants.TYPE_SPECIFIC, _serviceContext);
+
+		Assert.assertTrue(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), infoItemReference));
+
+		_assetDisplayPageEntryLocalService.deleteAssetDisplayPageEntry(
+			assetDisplayPageEntry);
+
+		Assert.assertFalse(
+			AssetDisplayPageUtil.hasAssetDisplayPage(
+				_group.getGroupId(), infoItemReference));
+	}
+
+	@Test
+	public void testHasAssetDisplayPageWithUnsupportedInfoItemIdentifier()
+		throws Exception {
+
+		MockObject mockObject = new MockObject(
+			RandomTestUtil.randomLong(), false, true);
+
+		try (MockInfoServiceRegistrationHolder
+				mockInfoServiceRegistrationHolder =
+					new MockInfoServiceRegistrationHolder(
+						InfoFieldSet.builder(
+						).infoFieldSetEntries(
+							ListUtil.fromArray(
+								InfoField.builder(
+								).infoFieldType(
+									TextInfoFieldType.INSTANCE
+								).namespace(
+									RandomTestUtil.randomString()
+								).name(
+									RandomTestUtil.randomString()
+								).build())
+						).build(),
+						mockObject, _portal, _displayPageInfoItemCapability)) {
+
+			InfoItemReference infoItemReference = new InfoItemReference(
+				MockObject.class.getName(),
+				new ERCInfoItemIdentifier(RandomTestUtil.randomString()));
+
+			Assert.assertFalse(
+				AssetDisplayPageUtil.hasAssetDisplayPage(
+					_group.getGroupId(), infoItemReference));
+
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(),
+				_portal.getClassNameId(MockObject.class.getName()), null, true,
+				WorkflowConstants.STATUS_APPROVED);
+
+			Assert.assertFalse(
+				AssetDisplayPageUtil.hasAssetDisplayPage(
+					_group.getGroupId(), infoItemReference));
+
+			infoItemReference = new InfoItemReference(
+				MockObject.class.getName(),
+				new ClassPKInfoItemIdentifier(RandomTestUtil.randomLong()));
+
+			Assert.assertTrue(
+				AssetDisplayPageUtil.hasAssetDisplayPage(
+					_group.getGroupId(), infoItemReference));
+		}
 	}
 
 	@Test
@@ -62,16 +428,10 @@ public class AssetDisplayPageUtilTest {
 			JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
 		LayoutPageTemplateEntry defaultLayoutPageTemplateEntry =
-			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				_classNameId, journalArticle.getDDMStructureId(),
-				RandomTestUtil.randomString(),
-				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, true, 0,
-				0, 0, WorkflowConstants.STATUS_APPROVED, new ServiceContext());
-
-		_layoutPageTemplateEntryLocalService.updateLayoutPageTemplateEntry(
-			defaultLayoutPageTemplateEntry.getLayoutPageTemplateEntryId(),
-			true);
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(), _classNameId,
+				journalArticle.getDDMStructureKey(), true,
+				WorkflowConstants.STATUS_APPROVED);
 
 		Assert.assertEquals(
 			defaultLayoutPageTemplateEntry,
@@ -81,12 +441,10 @@ public class AssetDisplayPageUtilTest {
 				journalArticle.getDDMStructureId()));
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
-				_classNameId, journalArticle.getDDMStructureId(),
-				RandomTestUtil.randomString(),
-				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0, false, 0,
-				0, 0, WorkflowConstants.STATUS_APPROVED, new ServiceContext());
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(), _classNameId,
+				journalArticle.getDDMStructureKey(), false,
+				WorkflowConstants.STATUS_APPROVED);
 
 		Assert.assertEquals(
 			defaultLayoutPageTemplateEntry,
@@ -99,7 +457,7 @@ public class AssetDisplayPageUtilTest {
 			TestPropsValues.getUserId(), _group.getGroupId(), _classNameId,
 			journalArticle.getResourcePrimKey(),
 			layoutPageTemplateEntry.getLayoutPageTemplateEntryId(),
-			AssetDisplayPageConstants.TYPE_SPECIFIC, new ServiceContext());
+			AssetDisplayPageConstants.TYPE_SPECIFIC, _serviceContext);
 
 		Assert.assertEquals(
 			layoutPageTemplateEntry,
@@ -109,11 +467,41 @@ public class AssetDisplayPageUtilTest {
 				journalArticle.getDDMStructureId()));
 	}
 
+	private Group _addConnectedDesignLibraryGroup() throws Exception {
+		FeatureFlagTestUtil.invokeFeatureFlagListeners(
+			TestPropsValues.getCompanyId(), true, "LPD-57283");
+
+		_depotEntry = _depotEntryLocalService.addDepotEntry(
+			RandomTestUtil.randomLocaleStringMap(),
+			RandomTestUtil.randomLocaleStringMap(),
+			DepotConstants.TYPE_DESIGN_LIBRARY,
+			ServiceContextTestUtil.getServiceContext());
+
+		_depotEntryGroupRelLocalService.addDepotEntryGroupRel(
+			_depotEntry.getDepotEntryId(), _group.getGroupId());
+
+		return _depotEntry.getGroup();
+	}
+
 	@Inject
 	private AssetDisplayPageEntryLocalService
 		_assetDisplayPageEntryLocalService;
 
 	private long _classNameId;
+
+	@DeleteAfterTestRun
+	private DepotEntry _depotEntry;
+
+	@Inject
+	private DepotEntryGroupRelLocalService _depotEntryGroupRelLocalService;
+
+	@Inject
+	private DepotEntryLocalService _depotEntryLocalService;
+
+	@Inject(
+		filter = "info.item.capability.key=" + DisplayPageInfoItemCapability.KEY
+	)
+	private InfoItemCapability _displayPageInfoItemCapability;
 
 	@DeleteAfterTestRun
 	private Group _group;
@@ -123,6 +511,14 @@ public class AssetDisplayPageUtilTest {
 		_layoutPageTemplateEntryLocalService;
 
 	@Inject
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Inject
+	private ObjectEntryLocalService _objectEntryLocalService;
+
+	@Inject
 	private Portal _portal;
+
+	private ServiceContext _serviceContext;
 
 }

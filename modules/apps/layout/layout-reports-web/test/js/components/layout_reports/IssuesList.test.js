@@ -7,7 +7,7 @@ import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 
 import IssuesList from '../../../../src/main/resources/META-INF/resources/js/components/layout_reports/IssuesList';
 import {StoreContextProvider} from '../../../../src/main/resources/META-INF/resources/js/context/StoreContext';
@@ -242,11 +242,11 @@ describe('IssuesList', () => {
 			layoutReportsIssues: mockLayoutReportsIssuesSEODetails,
 		});
 
-		const button = getByText('launch');
+		const button = getByText('launch[verb]');
 
 		userEvent.click(button);
 
-		expect(loadIssues).toBeCalled();
+		expect(loadIssues).toHaveBeenCalled();
 	});
 
 	it('does not show launch button when there is cached data', () => {
@@ -254,7 +254,7 @@ describe('IssuesList', () => {
 			layoutReportsIssues: mockLayoutReportsIssuesSEODetails,
 		});
 
-		expect(screen.queryByText('launch')).not.toBeInTheDocument();
+		expect(screen.queryByText('launch[verb]')).not.toBeInTheDocument();
 	});
 
 	it('shows launch button when there is no cached data', () => {
@@ -263,6 +263,6 @@ describe('IssuesList', () => {
 			layoutReportsIssues: mockLayoutReportsIssuesSEODetails,
 		});
 
-		expect(screen.getByText('launch')).toBeInTheDocument();
+		expect(screen.getByText('launch[verb]')).toBeInTheDocument();
 	});
 });

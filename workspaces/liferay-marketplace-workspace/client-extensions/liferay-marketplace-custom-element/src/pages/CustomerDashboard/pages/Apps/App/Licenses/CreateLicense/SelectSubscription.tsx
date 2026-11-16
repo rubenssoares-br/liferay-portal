@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import ClayAlert from '@clayui/alert';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import classNames from 'classnames';
 import {useParams} from 'react-router-dom';
@@ -11,7 +12,7 @@ import useSWR from 'swr';
 import RadioCardList from '../../../../../../../components/RadioCardList/RadioCardList';
 import i18n from '../../../../../../../i18n';
 import koroneikiOAuth2 from '../../../../../../../services/oauth/Koroneiki';
-import {formatDate} from '../../../../../../PublisherDashboard/PublisherDashboardPageUtil';
+import {formatDate} from '../../../../../../../utils/date';
 
 type SubscriptionSelectionProps = {
 	onSelectSubscription: (subscription: any) => void;
@@ -38,6 +39,14 @@ const SelectSubscription = ({
 			<p>Generate licenses with a selected subscription term.</p>
 
 			{(isLoading || isValidating) && <ClayLoadingIndicator />}
+
+			{!isLoading && !isValidating && !subscriptions.length && (
+				<ClayAlert displayType="info">
+					{i18n.translate(
+						'no-subscriptions-are-available-for-this-order'
+					)}
+				</ClayAlert>
+			)}
 
 			<RadioCardList
 				contentList={subscriptions.map((licenseKey, index) => {

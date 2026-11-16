@@ -7,20 +7,25 @@ package com.liferay.object.internal.notification.term.contributor;
 
 import com.liferay.notification.context.NotificationContext;
 import com.liferay.notification.term.evaluator.NotificationTermEvaluator;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
+import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.definition.notification.term.util.ObjectDefinitionNotificationTermUtil;
 import com.liferay.object.internal.notification.term.evaluator.util.ObjectDefinitionNotificationTermEvaluatorUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.model.ObjectEntryFolder;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.relationship.util.ObjectRelationshipUtil;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryFolderLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.petra.function.UnsafeTriFunction;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Contact;
 import com.liferay.portal.kernel.model.ListType;
 import com.liferay.portal.kernel.model.User;
@@ -29,6 +34,7 @@ import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -52,6 +58,7 @@ public class ObjectDefinitionNotificationTermEvaluator
 		ListTypeLocalService listTypeLocalService,
 		ObjectDefinition objectDefinition,
 		ObjectDefinitionLocalService objectDefinitionLocalService,
+		ObjectEntryFolderLocalService objectEntryFolderLocalService,
 		ObjectEntryLocalService objectEntryLocalService,
 		ObjectFieldLocalService objectFieldLocalService,
 		ObjectRelationshipLocalService objectRelationshipLocalService,
@@ -60,6 +67,7 @@ public class ObjectDefinitionNotificationTermEvaluator
 		_listTypeLocalService = listTypeLocalService;
 		_objectDefinition = objectDefinition;
 		_objectDefinitionLocalService = objectDefinitionLocalService;
+		_objectEntryFolderLocalService = objectEntryFolderLocalService;
 		_objectEntryLocalService = objectEntryLocalService;
 		_objectFieldLocalService = objectFieldLocalService;
 		_objectRelationshipLocalService = objectRelationshipLocalService;
@@ -178,6 +186,65 @@ public class ObjectDefinitionNotificationTermEvaluator
 				GetterUtil.getLong(termValues.get("currentUserId"))));
 	}
 
+	private String _evaluateObjectDefinition(
+		Context context, String termName, Map<String, Object> termValues) {
+
+		if (!termName.equals("[%OBJECT_DEFINITION_NAME%]")) {
+			return null;
+		}
+
+		return _objectDefinition.getShortName();
+	}
+
+	private String _evaluateObjectEntry(
+		Context context, String termName, Map<String, Object> termValues) {
+
+		ObjectEntry objectEntry = _objectEntryLocalService.fetchObjectEntry(
+			GetterUtil.getLong(termValues.get("id")));
+
+		if (objectEntry == null) {
+			return null;
+		}
+
+		if (termName.equals("[%OBJECT_ENTRY_FOLDER_NAME%]")) {
+			if (objectEntry.getObjectEntryFolderId() ==
+					ObjectEntryFolderConstants.
+						PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT) {
+
+				return LanguageUtil.get(LocaleUtil.getDefault(), "home");
+			}
+
+			ObjectEntryFolder objectEntryFolder =
+				_objectEntryFolderLocalService.fetchObjectEntryFolder(
+					objectEntry.getObjectEntryFolderId());
+
+			if (objectEntryFolder == null) {
+				return null;
+			}
+
+			return objectEntryFolder.getName();
+		}
+		else if (termName.equals("[%OBJECT_ENTRY_TITLE_FIELD%]")) {
+			ObjectDefinition objectDefinition =
+				_objectDefinitionLocalService.fetchObjectDefinition(
+					_objectDefinition.getObjectDefinitionId());
+
+			ObjectField objectField = _objectFieldLocalService.fetchObjectField(
+				objectDefinition.getTitleObjectFieldId());
+
+			if (objectField == null) {
+				return null;
+			}
+
+			return _getObjectFieldValue(context, objectField, termValues);
+		}
+		else if (termName.equals("[%OBJECT_ENTRY_VERSION%]")) {
+			return String.valueOf(objectEntry.getVersion());
+		}
+
+		return null;
+	}
+
 	private String _evaluateObjectFields(
 		Context context, String termName, Map<String, Object> termValues) {
 
@@ -193,15 +260,7 @@ public class ObjectDefinitionNotificationTermEvaluator
 				continue;
 			}
 
-			Object termValue = termValues.get(objectField.getName());
-
-			if (Validator.isNotNull(termValue)) {
-				return String.valueOf(termValue);
-			}
-
-			return Objects.toString(
-				termValues.get(objectField.getDBColumnName()),
-				StringPool.BLANK);
+			return _getObjectFieldValue(context, objectField, termValues);
 		}
 
 		return null;
@@ -327,7 +386,7 @@ public class ObjectDefinitionNotificationTermEvaluator
 			return StringPool.BLANK;
 		}
 
-		if (parentObjectDefinition.isSystem()) {
+		if (parentObjectDefinition.isUnmodifiableSystemObject()) {
 			return MapUtil.getString(
 				_objectEntryLocalService.getSystemModelAttributes(
 					parentObjectDefinition, primaryKey),
@@ -353,7 +412,8 @@ public class ObjectDefinitionNotificationTermEvaluator
 
 		return String.valueOf(
 			ObjectDefinitionNotificationTermEvaluatorUtil.getTermValue(
-				parentObjectField, values.get(parentObjectField.getName())));
+				null, parentObjectField,
+				values.get(parentObjectField.getName())));
 	}
 
 	private String _format(Date date, Locale locale) {
@@ -361,6 +421,82 @@ public class ObjectDefinitionNotificationTermEvaluator
 			"EEE MMM dd HH:mm:ss zzz yyyy", locale);
 
 		return dateFormat.format(date);
+	}
+
+	private String _getObjectFieldValue(
+		Context context, ObjectField objectField,
+		Map<String, Object> termValues) {
+
+		if (objectField.compareBusinessType(
+				ObjectFieldConstants.BUSINESS_TYPE_ASSIGNEE)) {
+
+			Map<String, Object> entryDTO = (Map<String, Object>)termValues.get(
+				"entryDTO");
+
+			Map<String, Object> properties = (Map<String, Object>)entryDTO.get(
+				"properties");
+
+			Map<String, Object> assigneeMap =
+				(Map<String, Object>)properties.get(objectField.getName());
+
+			if (MapUtil.isEmpty(assigneeMap)) {
+				return null;
+			}
+
+			if (!context.equals(Context.RECIPIENT)) {
+				return GetterUtil.getString(assigneeMap.get("name"));
+			}
+
+			String type = GetterUtil.getString(assigneeMap.get("type"));
+
+			if (StringUtil.equalsIgnoreCase("Role", type) ||
+				StringUtil.equalsIgnoreCase("User", type)) {
+
+				return MapUtil.getString(
+					(Map<String, Object>)termValues.get(objectField.getName()),
+					"classPK");
+			}
+
+			return null;
+		}
+		else if (objectField.compareBusinessType(
+					ObjectFieldConstants.BUSINESS_TYPE_ENCRYPTED)) {
+
+			ObjectEntry objectEntry = _objectEntryLocalService.fetchObjectEntry(
+				GetterUtil.getLong(termValues.get("id")));
+
+			if (objectEntry != null) {
+				return MapUtil.getString(
+					objectEntry.getValues(), objectField.getName());
+			}
+		}
+		else if (objectField.compareBusinessType(
+					ObjectFieldConstants.BUSINESS_TYPE_LOCATION)) {
+
+			Map<String, Object> entryDTO = (Map<String, Object>)termValues.get(
+				"entryDTO");
+
+			Map<String, Object> properties = (Map<String, Object>)entryDTO.get(
+				"properties");
+
+			Map<String, Object> locationMap =
+				(Map<String, Object>)properties.get(objectField.getName());
+
+			if (MapUtil.isEmpty(locationMap)) {
+				return null;
+			}
+
+			return GetterUtil.getString(locationMap.get("address"));
+		}
+
+		Object termValue = termValues.get(objectField.getName());
+
+		if (Validator.isNotNull(termValue)) {
+			return String.valueOf(termValue);
+		}
+
+		return Objects.toString(
+			termValues.get(objectField.getDBColumnName()), StringPool.BLANK);
 	}
 
 	private String _getTermValue(String partialTermName, User user)
@@ -427,25 +563,22 @@ public class ObjectDefinitionNotificationTermEvaluator
 	private boolean _isObjectFieldTermName(
 		String objectFieldName, String termName) {
 
-		if (StringUtil.equals(
-				ObjectDefinitionNotificationTermUtil.getObjectFieldTermName(
-					_objectDefinition.getShortName(), objectFieldName),
-				termName)) {
-
-			return true;
-		}
-
-		return false;
+		return StringUtil.equals(
+			ObjectDefinitionNotificationTermUtil.getObjectFieldTermName(
+				_objectDefinition.getShortName(), objectFieldName),
+			termName);
 	}
 
 	private final List<EvaluatorFunction> _evaluatorFunctions = Arrays.asList(
 		this::_evaluateAuthor, this::_evaluateCurrentDate,
-		this::_evaluateCurrentUser, this::_evaluateObjectFields,
+		this::_evaluateCurrentUser, this::_evaluateObjectDefinition,
+		this::_evaluateObjectEntry, this::_evaluateObjectFields,
 		this::_evaluateParentObjectDefinitionAuthor,
 		this::_evaluateParentObjectDefinitionObjectFields);
 	private final ListTypeLocalService _listTypeLocalService;
 	private final ObjectDefinition _objectDefinition;
 	private final ObjectDefinitionLocalService _objectDefinitionLocalService;
+	private final ObjectEntryFolderLocalService _objectEntryFolderLocalService;
 	private final ObjectEntryLocalService _objectEntryLocalService;
 	private final ObjectFieldLocalService _objectFieldLocalService;
 	private final ObjectRelationshipLocalService

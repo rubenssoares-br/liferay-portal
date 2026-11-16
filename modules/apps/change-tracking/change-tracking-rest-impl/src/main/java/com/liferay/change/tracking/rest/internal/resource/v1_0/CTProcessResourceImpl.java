@@ -28,6 +28,7 @@ import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Validator;
@@ -38,9 +39,9 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.SearchUtil;
 
-import java.util.Collections;
+import jakarta.ws.rs.core.MultivaluedMap;
 
-import javax.ws.rs.core.MultivaluedMap;
+import java.util.Collections;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -73,6 +74,12 @@ public class CTProcessResourceImpl extends BaseCTProcessResourceImpl {
 			Pagination pagination, Sort[] sorts)
 		throws Exception {
 
+		if (ArrayUtil.isEmpty(sorts)) {
+			sorts = new Sort[] {
+				new Sort(Field.getSortableFieldName(Field.CREATE_DATE), true)
+			};
+		}
+
 		return SearchUtil.search(
 			Collections.emptyMap(),
 			booleanQuery -> booleanQuery.getPreBooleanFilter(), filter,
@@ -103,13 +110,13 @@ public class CTProcessResourceImpl extends BaseCTProcessResourceImpl {
 			Long ctProcessId, String description, String name)
 		throws Exception {
 
-		com.liferay.change.tracking.model.CTProcess ctProcess =
+		com.liferay.change.tracking.model.CTProcess serviceBuilderCTProcess =
 			_ctProcessLocalService.getCTProcess(ctProcessId);
 
 		if (Validator.isNull(name)) {
 			CTCollection ctCollection =
 				_ctCollectionLocalService.getCTCollection(
-					ctProcess.getCtCollectionId());
+					serviceBuilderCTProcess.getCtCollectionId());
 
 			name = StringBundler.concat(
 				_language.get(
@@ -118,27 +125,27 @@ public class CTProcessResourceImpl extends BaseCTProcessResourceImpl {
 		}
 
 		_ctCollectionService.undoCTCollection(
-			ctProcess.getCtCollectionId(), contextUser.getUserId(), name,
-			description);
+			serviceBuilderCTProcess.getCtCollectionId(),
+			contextUser.getUserId(), name, description);
 	}
 
 	private DefaultDTOConverterContext _getDTOConverterContext(
-			com.liferay.change.tracking.model.CTProcess ctProcess)
+			com.liferay.change.tracking.model.CTProcess serviceBuilderCTProcess)
 		throws Exception {
 
 		BackgroundTask backgroundTask =
 			_backgroundTaskLocalService.getBackgroundTask(
-				ctProcess.getBackgroundTaskId());
+				serviceBuilderCTProcess.getBackgroundTaskId());
 
 		CTCollection ctCollection = _ctCollectionLocalService.getCTCollection(
-			ctProcess.getCtCollectionId());
+			serviceBuilderCTProcess.getCtCollectionId());
 
 		return new DefaultDTOConverterContext(
 			contextAcceptLanguage.isAcceptAllLanguages(),
 			HashMapBuilder.put(
 				"delete",
 				() -> addAction(
-					ActionKeys.DELETE, ctProcess.getCtProcessId(),
+					ActionKeys.DELETE, serviceBuilderCTProcess.getCtProcessId(),
 					"deleteCTProcess", _ctProcessModelResourcePermission)
 			).put(
 				"get",
@@ -150,7 +157,8 @@ public class CTProcessResourceImpl extends BaseCTProcessResourceImpl {
 					}
 
 					return addAction(
-						ActionKeys.VIEW, ctProcess.getCtCollectionId(),
+						ActionKeys.VIEW,
+						serviceBuilderCTProcess.getCtCollectionId(),
 						"getCTProcess", _ctCollectionModelResourcePermission);
 				}
 			).put(
@@ -174,17 +182,19 @@ public class CTProcessResourceImpl extends BaseCTProcessResourceImpl {
 						_ctCollectionModelResourcePermission);
 				}
 			).build(),
-			null, contextHttpServletRequest, ctProcess.getCtCollectionId(),
+			null, contextHttpServletRequest,
+			serviceBuilderCTProcess.getCtCollectionId(),
 			contextAcceptLanguage.getPreferredLocale(), contextUriInfo,
 			contextUser);
 	}
 
 	private CTProcess _toCTProcess(Long ctProcessId) throws Exception {
-		com.liferay.change.tracking.model.CTProcess ctProcess =
+		com.liferay.change.tracking.model.CTProcess serviceBuilderCTProcess =
 			_ctProcessLocalService.getCTProcess(ctProcessId);
 
 		return _ctProcessDTOConverter.toDTO(
-			_getDTOConverterContext(ctProcess), ctProcess);
+			_getDTOConverterContext(serviceBuilderCTProcess),
+			serviceBuilderCTProcess);
 	}
 
 	private static final EntityModel _entityModel = new CTProcessEntityModel();

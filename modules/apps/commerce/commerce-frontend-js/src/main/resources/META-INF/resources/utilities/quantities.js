@@ -23,7 +23,7 @@ export function getMinQuantity(
 	);
 }
 
-export function getMultiple(
+export function getMultipleQuantity(
 	incrementalOrderQuantity = 1,
 	multipleQuantity = 1,
 	precision = 0
@@ -73,11 +73,33 @@ export function getProductMaxQuantity(
 
 	const maxDifference = maxQuantity % multipleQuantity;
 
-	if (!maxDifference) {
+	if (!maxDifference || maxQuantity < multipleQuantity) {
 		return maxQuantity.toFixed(precision);
 	}
 
 	return Number(maxQuantity - maxDifference).toFixed(precision);
+}
+
+export function getQuantity(productConfiguration = {}, skuUnitOfMeasure) {
+	if (productConfiguration.allowedOrderQuantities?.length) {
+		return Math.min(...productConfiguration.allowedOrderQuantities);
+	}
+
+	const precision = skuUnitOfMeasure?.precision || 0;
+
+	return Number(
+		getMinQuantity(
+			skuUnitOfMeasure
+				? productConfiguration.minOrderQuantity
+				: Math.ceil(productConfiguration.minOrderQuantity),
+			getMultipleQuantity(
+				skuUnitOfMeasure?.incrementalOrderQuantity,
+				productConfiguration.multipleOrderQuantity,
+				precision
+			),
+			precision
+		)
+	);
 }
 
 export function getProductMinQuantity({

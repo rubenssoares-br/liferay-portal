@@ -31,12 +31,12 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
+import jakarta.portlet.ActionRequest;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
-
-import javax.portlet.ActionRequest;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -125,6 +125,58 @@ public class AddFormInstanceRecordMVCCommandUtilTest {
 		_assertDDMFormFields(false, null);
 	}
 
+	@Test
+	public void testUpdateInvisibleDDMFormFieldValues() throws Exception {
+		DDMFormValues ddmFormValues = _createDDMFormValues(
+			StringPool.BLANK, StringPool.BLANK, StringPool.BLANK);
+		DDMFormValues persistedDDMFormValues = _createDDMFormValues(
+			"value1", "value2", "nestedValue");
+
+		AddFormInstanceRecordMVCCommandUtil.updateInvisibleDDMFormFieldValues(
+			HashMapBuilder.
+				<DDMFormEvaluatorFieldContextKey, Map<String, Object>>put(
+					new DDMFormEvaluatorFieldContextKey("field", "instanceId1"),
+					HashMapBuilder.<String, Object>put(
+						"visible", false
+					).build()
+				).put(
+					new DDMFormEvaluatorFieldContextKey("field", "instanceId2"),
+					HashMapBuilder.<String, Object>put(
+						"visible", false
+					).build()
+				).put(
+					new DDMFormEvaluatorFieldContextKey(
+						"nestedField", "nestedInstanceId"),
+					HashMapBuilder.<String, Object>put(
+						"visible", false
+					).build()
+				).build(),
+			ddmFormValues.getDDMFormFieldValuesMap(true),
+			persistedDDMFormValues.getDDMFormFieldValuesMap(true));
+
+		List<DDMFormFieldValue> ddmFormFieldValues =
+			ddmFormValues.getDDMFormFieldValues();
+
+		Assert.assertEquals(
+			ddmFormFieldValues.toString(), 2, ddmFormFieldValues.size());
+
+		DDMFormFieldValue ddmFormFieldValue = ddmFormFieldValues.get(0);
+
+		_assertDDMFormFieldValue("value1", ddmFormFieldValue);
+
+		List<DDMFormFieldValue> nestedDDMFormFieldValues =
+			ddmFormFieldValue.getNestedDDMFormFieldValues();
+
+		Assert.assertEquals(
+			nestedDDMFormFieldValues.toString(), 1,
+			nestedDDMFormFieldValues.size());
+
+		_assertDDMFormFieldValue(
+			"nestedValue", nestedDDMFormFieldValues.get(0));
+
+		_assertDDMFormFieldValue("value2", ddmFormFieldValues.get(1));
+	}
+
 	@Test(expected = FormInstanceExpiredException.class)
 	public void testValidateExpirationStatus() throws Exception {
 		ThemeDisplay themeDisplay = _mockThemeDisplay();
@@ -165,6 +217,14 @@ public class AddFormInstanceRecordMVCCommandUtilTest {
 			false, required, new UnlocalizedValue(_STRING_VALUE));
 
 		_assertDDMFormFields(required, new UnlocalizedValue(_STRING_VALUE));
+	}
+
+	private void _assertDDMFormFieldValue(
+		String expectedFieldValue, DDMFormFieldValue ddmFormFieldValue) {
+
+		Value value = ddmFormFieldValue.getValue();
+
+		Assert.assertEquals(expectedFieldValue, value.getString(LocaleUtil.US));
 	}
 
 	private void _assertDDMFormFields(
@@ -210,6 +270,30 @@ public class AddFormInstanceRecordMVCCommandUtilTest {
 				_NESTED_FIELD_INSTANCE_ID, _NESTED_FIELD_NAME, value));
 
 		_ddmFormValues.addDDMFormFieldValue(ddmFormFieldValue);
+	}
+
+	private DDMFormValues _createDDMFormValues(
+		String fieldValue1, String fieldValue2, String nestedFieldValue) {
+
+		DDMFormValues ddmFormValues = DDMFormValuesTestUtil.createDDMFormValues(
+			DDMFormTestUtil.createDDMForm());
+
+		DDMFormFieldValue ddmFormFieldValue =
+			DDMFormValuesTestUtil.createDDMFormFieldValue(
+				"instanceId1", "field", new UnlocalizedValue(fieldValue1));
+
+		ddmFormFieldValue.addNestedDDMFormFieldValue(
+			DDMFormValuesTestUtil.createDDMFormFieldValue(
+				"nestedInstanceId", "nestedField",
+				new UnlocalizedValue(nestedFieldValue)));
+
+		ddmFormValues.addDDMFormFieldValue(ddmFormFieldValue);
+
+		ddmFormValues.addDDMFormFieldValue(
+			DDMFormValuesTestUtil.createDDMFormFieldValue(
+				"instanceId2", "field", new UnlocalizedValue(fieldValue2)));
+
+		return ddmFormValues;
 	}
 
 	private Value _getFieldValue(String fieldName) {

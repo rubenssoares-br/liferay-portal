@@ -19,12 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import org.osgi.service.component.annotations.Component;
-
 /**
  * @author Feliphe Marinho
  */
-@Component(service = ObjectFieldFDSFilterFactoryRegistry.class)
 public class ObjectFieldFDSFilterFactoryRegistry {
 
 	public ObjectFieldFDSFilterFactoryRegistry(
@@ -52,6 +49,9 @@ public class ObjectFieldFDSFilterFactoryRegistry {
 				new ListTypeEntryObjectFieldFDSFilterFactory(
 					objectFieldFilterContributorRegistry);
 
+		_objectFieldBusinessTypeKeyMap.put(
+			ObjectFieldConstants.BUSINESS_TYPE_MULTISELECT_PICKLIST,
+			listTypeEntryObjectFieldFDSFilterFactory);
 		_objectFieldBusinessTypeKeyMap.put(
 			ObjectFieldConstants.BUSINESS_TYPE_PICKLIST,
 			listTypeEntryObjectFieldFDSFilterFactory);

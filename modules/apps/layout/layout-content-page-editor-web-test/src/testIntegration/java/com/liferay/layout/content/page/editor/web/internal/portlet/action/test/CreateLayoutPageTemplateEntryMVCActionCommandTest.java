@@ -23,9 +23,11 @@ import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.layout.util.structure.FragmentStyledLayoutStructureItem;
 import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.layout.util.structure.LayoutStructureItem;
+import com.liferay.petra.string.CharPool;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
@@ -53,10 +55,8 @@ import com.liferay.segments.service.SegmentsExperienceLocalService;
 import com.liferay.style.book.model.StyleBookEntry;
 import com.liferay.style.book.service.StyleBookEntryLocalService;
 
-import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,7 +90,7 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					RandomTestUtil.randomString(), StringPool.BLANK,
+					null, RandomTestUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.BASIC,
 					ServiceContextTestUtil.getServiceContext(
 						_group.getGroupId()));
@@ -140,26 +140,30 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 
 		LayoutPageTemplateEntry masterLayoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
+				null, TestPropsValues.getUserId(), _group.getGroupId(), 0, null,
 				RandomTestUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT, 0,
 				WorkflowConstants.STATUS_APPROVED,
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
-		draftLayout = _layoutLocalService.updateMasterLayoutPlid(
-			draftLayout.getGroupId(), draftLayout.isPrivateLayout(),
-			draftLayout.getLayoutId(), masterLayoutPageTemplateEntry.getPlid());
+		draftLayout =
+			_layoutLocalService.updateMasterLayoutPageTemplateEntryERC(
+				draftLayout.getGroupId(), draftLayout.isPrivateLayout(),
+				draftLayout.getLayoutId(),
+				masterLayoutPageTemplateEntry.getExternalReferenceCode());
 
 		StyleBookEntry styleBookEntry =
 			_styleBookEntryLocalService.addStyleBookEntry(
 				null, TestPropsValues.getUserId(), _group.getGroupId(), false,
-				StringPool.BLANK, RandomTestUtil.randomString(),
-				StringPool.BLANK, RandomTestUtil.randomString(),
+				StringPool.BLANK, StringPool.BLANK,
+				RandomTestUtil.randomString(), StringPool.BLANK,
+				RandomTestUtil.randomString(),
 				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
-		draftLayout = _layoutLocalService.updateStyleBookEntryId(
+		draftLayout = _layoutLocalService.updateStyleBookEntry(
 			draftLayout.getGroupId(), draftLayout.isPrivateLayout(),
-			draftLayout.getLayoutId(), styleBookEntry.getStyleBookEntryId());
+			draftLayout.getLayoutId(),
+			styleBookEntry.getExternalReferenceCode(), null);
 
 		ContentLayoutTestUtil.addPortletToLayout(
 			draftLayout, JournalContentPortletKeys.JOURNAL_CONTENT);
@@ -187,8 +191,8 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 			masterLayoutPageTemplateEntry.getPlid(),
 			draftLayout.getMasterLayoutPlid());
 		Assert.assertEquals(
-			styleBookEntry.getStyleBookEntryId(),
-			draftLayout.getStyleBookEntryId());
+			styleBookEntry.getExternalReferenceCode(),
+			draftLayout.getStyleBookEntryERC());
 
 		LayoutPageTemplateStructure layoutPageTemplateStructure =
 			LayoutPageTemplateStructureLocalServiceUtil.
@@ -201,11 +205,10 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 		LayoutStructureItem layoutStructureItem =
 			layoutStructure.getMainLayoutStructureItem();
 
-		List<String> childrenItemIds = layoutStructureItem.getChildrenItemIds();
-
 		FragmentStyledLayoutStructureItem fragmentStyledLayoutStructureItem =
 			(FragmentStyledLayoutStructureItem)
-				layoutStructure.getLayoutStructureItem(childrenItemIds.get(0));
+				layoutStructure.getLayoutStructureItem(
+					layoutStructureItem.getChildrenItemId(0));
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
@@ -213,12 +216,47 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 
 		Assert.assertTrue(fragmentEntryLink.isTypePortlet());
 
-		JSONObject editableValuesJSONObject = _jsonFactory.createJSONObject(
-			fragmentEntryLink.getEditableValues());
+		JSONObject editableValuesJSONObject =
+			fragmentEntryLink.getEditableValuesJSONObject();
 
 		Assert.assertEquals(
 			JournalContentPortletKeys.JOURNAL_CONTENT,
 			editableValuesJSONObject.getString("portletId"));
+	}
+
+	@Test
+	@TestInfo("LPD-49417")
+	public void testCreateLayoutPageTemplateEntryWithLayoutNameWithInvalidCharacters()
+		throws Exception {
+
+		StringBundler expectedSB = new StringBundler();
+		StringBundler sb = new StringBundler();
+		String string = RandomTestUtil.randomString(1);
+
+		for (char c : _BLACKLIST_CHARS) {
+			expectedSB.append(CharPool.DASH);
+			sb.append(c);
+
+			expectedSB.append(string);
+			sb.append(string);
+		}
+
+		_layoutLocalService.updateName(
+			_layout, sb.toString(),
+			LanguageUtil.getLanguageId(LocaleUtil.getSiteDefault()));
+
+		JSONObject jsonObject = ReflectionTestUtil.invoke(
+			_mvcActionCommand, "doTransactionalCommand",
+			new Class<?>[] {ActionRequest.class, ActionResponse.class},
+			_getMockLiferayPortletActionRequest(),
+			new MockLiferayPortletActionResponse());
+
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
+			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
+				jsonObject.getLong("layoutPageTemplateEntryId"));
+
+		Assert.assertEquals(
+			expectedSB + " - page-template", layoutPageTemplateEntry.getName());
 	}
 
 	private MockLiferayPortletActionRequest
@@ -265,6 +303,11 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 		return themeDisplay;
 	}
 
+	private static final char[] _BLACKLIST_CHARS = {
+		';', '/', '?', ':', '@', '=', '&', '\"', '<', '>', '#', '%', '{', '}',
+		'|', '\\', '^', '~', '[', ']', '`'
+	};
+
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
@@ -273,9 +316,6 @@ public class CreateLayoutPageTemplateEntryMVCActionCommandTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
-
-	@Inject
-	private JSONFactory _jsonFactory;
 
 	private Layout _layout;
 

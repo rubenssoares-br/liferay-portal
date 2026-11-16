@@ -3,22 +3,30 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {ObjectFolder} from '@liferay/object-admin-rest-client-js/v1_0';
+import {Locator, Page, Request, Response, expect} from '@playwright/test';
+import {readFile} from 'fs/promises';
+import path from 'path';
 
-import {ObjectFolder} from '../../../../apps/object/object-admin-rest-client-js/src/main/resources/META-INF/resources/node';
+import {gotoWithRetry} from '../../utils/gotoWithRetry';
 import {PORTLET_URLS} from '../../utils/portletUrls';
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {getTempDir} from '../../utils/temp';
+import {waitForFDS} from '../../utils/waitFor';
+import {waitForSearchToBeReady} from '../../utils/waitForSearchToBeReady';
 
 export class ViewObjectDefinitionsPage {
+	readonly actionsButton: Locator;
 	readonly addObjectFolderButton: Locator;
-	readonly applicationsMenuPage: ApplicationsMenuPage;
 	readonly createObjectDefinitionButton: Locator;
 	readonly createObjectFolderButton: Locator;
 	readonly confirmObjectFolderNameInput: Locator;
 	readonly defaultObjectFolder: Locator;
 	readonly deleteObjectDefinitionOption: Locator;
 	readonly deleteObjectFolderButton: Locator;
+	readonly exportObjectDefinitionOption: Locator;
 	readonly frontendDataSetEntries: Locator;
+	readonly hiddenFileInput: Locator;
+	readonly importObjectDefinitionOption: Locator;
 	readonly objectFolderActions: Locator;
 	readonly objectFolderCardHeader: Locator;
 	readonly objectFolderDeleteFolderOption: Locator;
@@ -26,11 +34,12 @@ export class ViewObjectDefinitionsPage {
 	readonly objectFolders: Locator;
 	readonly objectFolderLabelInput: Locator;
 	readonly page: Page;
+	readonly searchInput: Locator;
 	readonly viewInModelBuilderButton: Locator;
 
 	constructor(page: Page) {
+		this.actionsButton = page.getByRole('button', {name: 'Actions'});
 		this.addObjectFolderButton = page.getByLabel('Add Object Folder');
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
 		this.confirmObjectFolderNameInput = page.locator(
 			'input[placeholder="Confirm Folder Name"]'
 		);
@@ -39,19 +48,27 @@ export class ViewObjectDefinitionsPage {
 		this.createObjectFolderButton = page.getByRole('button', {
 			name: 'Create Folder',
 		});
-		this.defaultObjectFolder = page
-			.getByRole('listitem')
-			.filter({hasText: 'Default'});
+		this.defaultObjectFolder = page.getByRole('menuitem', {
+			exact: true,
+			name: 'Default',
+		});
 		this.deleteObjectDefinitionOption = page.getByRole('menuitem', {
 			name: 'Delete',
 		});
 		this.deleteObjectFolderButton = page.getByRole('button', {
 			name: 'Delete',
 		});
+		this.exportObjectDefinitionOption = page.getByRole('menuitem', {
+			name: 'Export Object Definition',
+		});
 		this.frontendDataSetEntries = page.locator('div.table-list-title a');
-		this.objectFolders = page
-			.getByRole('list')
-			.filter({hasText: 'Default'});
+		this.hiddenFileInput = page.locator('input[type="file"]');
+		this.importObjectDefinitionOption = page.getByRole('menuitem', {
+			name: 'Import Object Definition',
+		});
+		this.objectFolders = page.getByRole('navigation', {
+			name: 'Object Folders',
+		});
 		this.objectFolderActions = page
 			.locator('div.lfr__object-web-view-object-definitions-title-kebab')
 			.getByLabel('Object Folder Actions');
@@ -66,6 +83,9 @@ export class ViewObjectDefinitionsPage {
 		});
 		this.objectFolderLabelInput = page.locator('input[name="label"]');
 		this.page = page;
+		this.searchInput = page
+			.getByTestId('managementToolbar')
+			.getByRole('searchbox', {name: 'Search'});
 		this.viewInModelBuilderButton = page.getByLabel(
 			'View in Model Builder'
 		);
@@ -74,14 +94,63 @@ export class ViewObjectDefinitionsPage {
 	async changeObjectActivateStatus(objectDefinitionName: string) {
 		await this.clickEditObjectDefinitionLink(objectDefinitionName);
 
-		await this.page.getByRole('switch', {name: 'Activate Object'}).click();
+		const saveButton = this.page.getByRole('button', {name: 'Save'});
 
-		await this.page.getByRole('button', {name: 'Save'}).click();
+		const toggle = this.page.getByRole('switch', {
+			name: 'Activate Object',
+		});
+
+		await expect(saveButton).toBeEnabled();
+
+		const toggled = await toggle.isChecked();
+
+		await toggle.click();
+
+		await expect(toggle).toBeChecked({checked: !toggled});
+
+		const saveResponse = this.page.waitForResponse(
+			(response) =>
+				response
+					.url()
+					.includes(
+						'/o/object-admin/v1.0/object-definitions/by-external-reference-code/'
+					) && response.request().method() === 'PUT'
+		);
+
+		const reload = this.page.waitForEvent('load', {timeout: 10000});
+
+		await saveButton.click();
+
+		await saveResponse;
+
+		await reload;
 	}
 
-	async clickEditObjectDefinitionLink(objectDefinitionLabel: string) {
+	async clickEditObjectDefinitionLink(
+		objectDefinitionLabel: string,
+		placeholder?: string
+	) {
+		const input = this.page
+			.locator('.management-bar')
+			.getByRole('searchbox', {
+				name: placeholder ?? 'Search',
+			});
+
+		await input.fill(objectDefinitionLabel);
+
+		await waitForSearchToBeReady(this.page);
+
+		await this._submitSearch(objectDefinitionLabel);
+
 		await this.page
 			.getByRole('link', {exact: true, name: objectDefinitionLabel})
+			.click();
+	}
+
+	async clickObjectDefinitionActionButton(objectDefinitionLabel: string) {
+		await this.page
+			.getByRole('row', {name: objectDefinitionLabel})
+			.getByRole('button')
 			.click();
 	}
 
@@ -97,11 +166,79 @@ export class ViewObjectDefinitionsPage {
 		return response.json();
 	}
 
+	async deleteObjectDefinition(label: string, name: string) {
+		await this.clickObjectDefinitionActionButton(label);
+
+		await this.deleteObjectDefinitionOption.click();
+
+		const modal = this.page.getByRole('dialog');
+
+		await modal.getByRole('textbox').fill(name);
+
+		const reloadResponse = this.page.waitForResponse(
+			(response) =>
+				response
+					.url()
+					.includes('/o/object-admin/v1.0/object-definitions?') &&
+				response.request().method() === 'GET' &&
+				response.status() === 200
+		);
+
+		await modal.getByRole('button', {exact: true, name: 'Delete'}).click();
+
+		const response = await reloadResponse;
+
+		await response.finished();
+	}
+
+	async deleteDraftObjectDefinition(label: string) {
+		await this.clickObjectDefinitionActionButton(label);
+
+		const reloadResponse = this.page.waitForResponse(
+			(response) =>
+				response
+					.url()
+					.includes('/o/object-admin/v1.0/object-definitions?') &&
+				response.request().method() === 'GET' &&
+				response.status() === 200
+		);
+
+		await this.deleteObjectDefinitionOption.click();
+
+		const response = await reloadResponse;
+
+		await response.finished();
+	}
+
 	async deleteObjectFolder(objectFolderName: string) {
 		await this.objectFolderDeleteFolderOption.click();
 		await this.confirmObjectFolderNameInput.click();
 		await this.confirmObjectFolderNameInput.fill(objectFolderName);
 		await this.deleteObjectFolderButton.click();
+	}
+
+	async exportObjectDefinition(objectDefinitionLabel: string) {
+		await this.goto();
+
+		await this.searchObjectDefinition(objectDefinitionLabel);
+
+		const downloadPromise = this.page.waitForEvent('download');
+
+		const row = this.page.getByRole('row', {name: objectDefinitionLabel});
+
+		await row.getByRole('button', {name: 'Actions'}).click();
+
+		await this.exportObjectDefinitionOption.click();
+
+		const download = await downloadPromise;
+
+		const filePath = path.join(getTempDir(), download.suggestedFilename());
+
+		await download.saveAs(filePath);
+
+		const content = await readFile(filePath, 'utf-8');
+
+		return {content, filePath, jsonContent: JSON.parse(content)};
 	}
 
 	getObjectFolderCardHeaderERC = (objectFolderERC: string) => {
@@ -118,16 +255,109 @@ export class ViewObjectDefinitionsPage {
 	};
 
 	async goto(siteUrl?: Site['friendlyUrlPath']) {
-		await this.page.goto(
+		await gotoWithRetry(
+			this.page,
 			`/group${siteUrl || '/guest'}${PORTLET_URLS.objects}`,
 			{waitUntil: 'load'}
 		);
 	}
 
-	async openObjectFolder(objectFolderLabel: string) {
+	async importObjectDefinition(
+		filePath: string,
+		objectName: string
+	): Promise<number> {
+		await this.goto();
+
+		await this.objectFolderActions.click();
+
+		await this.importObjectDefinitionOption.click();
+
+		const internalName = objectName.replace(/ /g, '');
+
+		await this.page.getByLabel('Name').fill(internalName);
+
+		await this.hiddenFileInput.setInputFiles(filePath);
+
+		const responsePromise = this.page.waitForResponse(
+			(response: Response) =>
+				response
+					.url()
+					.includes('/o/object-admin/v1.0/object-definitions') &&
+				response.request().method() === 'GET' &&
+				response.status() === 200
+		);
+
 		await this.page
-			.getByRole('listitem')
-			.filter({hasText: objectFolderLabel})
+			.getByRole('button', {exact: true, name: 'Import'})
 			.click();
+
+		const response = await responsePromise;
+
+		await this.page
+			.locator('.modal-body')
+			.waitFor({state: 'hidden', timeout: 10000});
+
+		await expect(
+			this.page.locator('.alert-danger', {
+				hasText: 'The object definition failed to import.',
+			})
+		).toBeHidden();
+
+		const {items} = await response.json();
+
+		const imported = items.find(
+			(item: {id: number; name: string}) => item.name === internalName
+		);
+
+		return imported?.id;
+	}
+
+	async openObjectFolder(
+		objectFolderLabel: string,
+		options: {timeout?: number} = {}
+	) {
+		await this.objectFolders
+			.getByRole('menuitem', {name: objectFolderLabel})
+			.click({timeout: options?.timeout});
+	}
+
+	async searchObjectDefinition(objectDefinitionLabel: string) {
+		await this.searchInput.fill(objectDefinitionLabel);
+
+		await waitForSearchToBeReady(this.page);
+
+		await this._submitSearch(objectDefinitionLabel);
+	}
+
+	private async _submitSearch(objectDefinitionLabel: string) {
+		await waitForFDS({page: this.page});
+
+		const searchRequestSettled = new Promise<void>((resolve) => {
+			const settle = (request: Request) => {
+				const url = new URL(request.url());
+
+				if (
+					request.method() !== 'GET' ||
+					!url.pathname.endsWith(
+						'/o/object-admin/v1.0/object-definitions'
+					) ||
+					url.searchParams.get('search') !== objectDefinitionLabel
+				) {
+					return;
+				}
+
+				this.page.off('requestfailed', settle);
+				this.page.off('requestfinished', settle);
+
+				resolve();
+			};
+
+			this.page.on('requestfailed', settle);
+			this.page.on('requestfinished', settle);
+		});
+
+		await this.page.keyboard.press('Enter');
+
+		await searchRequestSettled;
 	}
 }

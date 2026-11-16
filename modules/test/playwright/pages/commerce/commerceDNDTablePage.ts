@@ -13,10 +13,10 @@ export const searchTableRowByValue = async function (
 ) {
 	await tableLocator.elementHandle();
 
-	const rows = await tableLocator.locator('div.dnd-tr').all();
+	const rows = await tableLocator.locator('tr').all();
 
 	for await (const row of rows) {
-		const column = row.locator('div.dnd-td').nth(colPosition).first();
+		const column = row.locator('td').nth(colPosition).first();
 
 		const colValue = (await column.allInnerTexts()).join('');
 
@@ -33,8 +33,18 @@ export const searchTableRowByValue = async function (
 };
 
 export class CommerceDNDTablePage {
+	readonly addFilterButton: Locator;
+	readonly backButton: Locator;
+	readonly dropdownActionItem: (itemPosition: number) => Locator;
 	readonly emptyTableMessage: Locator;
+	readonly filterButton: Locator;
+	readonly filterMenuItem: (name: string) => Locator;
+	readonly filterValue: (value: string) => Locator;
+	readonly resetFiltersButton: Locator;
+	readonly searchInput: Locator;
 	readonly table: Locator;
+	readonly tableHeadSelector: Locator;
+	readonly tableHeadSelectorActionButton: Locator;
 	readonly tableHeaders: Locator;
 	readonly tableRow: (
 		colPosition: number,
@@ -42,12 +52,45 @@ export class CommerceDNDTablePage {
 		strictEqual?: boolean
 	) => Promise<{column: Locator; row: Locator}>;
 	readonly tableRows: () => Promise<Locator[]>;
+	readonly tableRowButton: ({
+		colIndex,
+		rowValue,
+	}: {
+		colIndex?: number;
+		rowValue: number | string;
+	}) => Promise<Locator>;
 	readonly tableRowLink: ({colIndex, rowValue}) => Promise<Locator>;
 
 	constructor(page: Page, tableIdentifier: string) {
+		this.addFilterButton = page.getByRole('button', {
+			exact: true,
+			name: 'Add Filter',
+		});
+		this.backButton = page.getByRole('button', {exact: true, name: 'Back'});
+		this.dropdownActionItem = (dropdownActionItemPosition: number) =>
+			page.getByRole('menuitem').nth(dropdownActionItemPosition);
 		this.emptyTableMessage = page.getByText('No Results Found');
+		this.filterButton = page.getByRole('button', {
+			exact: true,
+			name: 'Filter',
+		});
+		this.filterMenuItem = (name: string) =>
+			page.getByRole('menuitem', {exact: true, name});
+		this.filterValue = (value: string) => page.getByLabel(value);
+		this.resetFiltersButton = page.getByRole('button', {
+			exact: true,
+			name: 'Clear',
+		});
+		this.searchInput = page
+			.locator('[data-testid="visualization-mode-table"]')
+			.getByRole('searchbox', {name: 'Search'});
 		this.table = page.locator(tableIdentifier);
-		this.tableHeaders = this.table.locator('div.dnd-tr').first();
+		this.tableHeadSelector = page.locator('input[name="items-selector"]');
+		this.tableHeadSelectorActionButton = page
+			.locator('nav')
+			.filter({hasText: 'All Selected'})
+			.getByRole('button');
+		this.tableHeaders = this.table.locator('tr').first();
 		this.tableRow = async (
 			colPosition: number,
 			value: number | string,
@@ -63,7 +106,29 @@ export class CommerceDNDTablePage {
 		this.tableRows = async () => {
 			await this.table.elementHandle();
 
-			return await this.table.locator('div.dnd-tbody div.dnd-tr').all();
+			return await this.table.locator('tbody tr').all();
+		};
+		this.tableRowButton = async ({
+			colIndex = 1,
+			rowValue,
+		}: {
+			colIndex?: number;
+			rowValue: number | string;
+		}) => {
+			const tableRow = await searchTableRowByValue(
+				this.table,
+				colIndex,
+				String(rowValue),
+				true
+			);
+
+			if (tableRow && tableRow.column) {
+				return tableRow.column.getByRole('button', {
+					name: String(rowValue),
+				});
+			}
+
+			throw new Error(`Cannot locate row with rowValue: ${rowValue}`);
 		};
 		this.tableRowLink = async ({
 			colIndex = 1,
@@ -82,5 +147,30 @@ export class CommerceDNDTablePage {
 
 			throw new Error(`Cannot locate row with rowValue: ${rowValue}`);
 		};
+	}
+
+	async searchByValue(value: string) {
+		await this.searchInput.fill(value);
+		await this.searchInput.press('Enter');
+	}
+
+	async addDataSetFilter(
+		filterName: string,
+		filterValue: string,
+		exclude: boolean = false,
+		backButton?: boolean
+	) {
+		await this.filterButton.click();
+		if (backButton) {
+			await this.backButton.click();
+		}
+		await this.filterMenuItem(filterName).click();
+		await this.filterValue(filterValue).check();
+
+		if (exclude) {
+			await this.filterValue('Exclude').check();
+		}
+
+		await this.addFilterButton.click();
 	}
 }

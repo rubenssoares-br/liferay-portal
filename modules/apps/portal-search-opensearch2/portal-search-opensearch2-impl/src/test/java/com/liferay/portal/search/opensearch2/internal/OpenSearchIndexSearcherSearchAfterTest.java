@@ -7,31 +7,32 @@ package com.liferay.portal.search.opensearch2.internal;
 
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.CharPool;
+import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Hits;
 import com.liferay.portal.kernel.search.IndexSearcher;
 import com.liferay.portal.kernel.search.IndexWriter;
+import com.liferay.portal.kernel.search.MatchAllQuery;
 import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.SearchException;
 import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.search.generic.MatchAllQuery;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.search.internal.sort.FieldSortImpl;
 import com.liferay.portal.search.internal.sort.ScoreSortImpl;
+import com.liferay.portal.search.opensearch2.configuration.DeepPaginationConfiguration;
 import com.liferay.portal.search.opensearch2.internal.connection.TestOpenSearchConnectionManager;
-import com.liferay.portal.search.opensearch2.internal.deep.pagination.configuration.DeepPaginationConfigurationWrapper;
 import com.liferay.portal.search.opensearch2.internal.indexing.OpenSearchIndexingFixture;
 import com.liferay.portal.search.sort.Sorts;
 import com.liferay.portal.search.test.util.IdempotentRetryAssert;
 import com.liferay.portal.search.test.util.indexing.DocumentFixture;
 import com.liferay.portal.search.test.util.indexing.IndexingFixture;
-import com.liferay.portal.test.rule.FeatureFlags;
+import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ import org.mockito.Mockito;
 /**
  * @author Joshua Cords
  */
-@FeatureFlags("LPS-172416")
+@FeatureFlag("LPS-172416")
 public class OpenSearchIndexSearcherSearchAfterTest {
 
 	@ClassRule
@@ -211,27 +212,49 @@ public class OpenSearchIndexSearcherSearchAfterTest {
 		};
 	}
 
-	private static void _setUpDeepPagination(int pointInTimeKeepAliveSeconds) {
-		DeepPaginationConfigurationWrapper deepPaginationConfigurationWrapper =
-			Mockito.mock(DeepPaginationConfigurationWrapper.class);
+	private static void _setUpDeepPagination(int pointInTimeKeepAliveSeconds)
+		throws Exception {
+
+		DeepPaginationConfiguration deepPaginationConfiguration = Mockito.mock(
+			DeepPaginationConfiguration.class);
 
 		Mockito.doReturn(
 			true
 		).when(
-			deepPaginationConfigurationWrapper
-		).isEnableDeepPagination(
-			_indexingFixture.getCompanyId()
-		);
+			deepPaginationConfiguration
+		).enableDeepPagination();
 
 		Mockito.doReturn(
 			pointInTimeKeepAliveSeconds
 		).when(
-			deepPaginationConfigurationWrapper
-		).getPointInTimeKeepAliveSeconds();
+			deepPaginationConfiguration
+		).pointInTimeKeepAliveSeconds();
+
+		ConfigurationProvider configurationProvider = Mockito.mock(
+			ConfigurationProvider.class);
+
+		Mockito.doReturn(
+			deepPaginationConfiguration
+		).when(
+			configurationProvider
+		).getSystemConfiguration(
+			DeepPaginationConfiguration.class
+		);
 
 		ReflectionTestUtil.setFieldValue(
-			_indexSearcher, "_deepPaginationConfigurationWrapper",
-			deepPaginationConfigurationWrapper);
+			_indexSearcher, "_configurationProvider", configurationProvider);
+	}
+
+	private static void _setUpIndexSearchLimit() {
+		PropsUtil.set(
+			PropsKeys.INDEX_SEARCH_LIMIT, String.valueOf(_INDEX_SEARCH_LIMIT));
+	}
+
+	private static void _setUpIndexSearcherAndWriter() throws Exception {
+		_indexingFixture.setUp();
+
+		_indexSearcher = _indexingFixture.getIndexSearcher();
+		_indexWriter = _indexingFixture.getIndexWriter();
 	}
 
 	private static void _setUpIndexingFixture() throws Exception {
@@ -244,27 +267,6 @@ public class OpenSearchIndexSearcherSearchAfterTest {
 		_indexingFixture = _createIndexingFixture();
 
 		Assume.assumeTrue(_indexingFixture.isSearchEngineAvailable());
-	}
-
-	private static void _setUpIndexSearcherAndWriter() throws Exception {
-		_indexingFixture.setUp();
-
-		_indexSearcher = _indexingFixture.getIndexSearcher();
-		_indexWriter = _indexingFixture.getIndexWriter();
-	}
-
-	private static void _setUpIndexSearchLimit() {
-		Props props = Mockito.mock(Props.class);
-
-		Mockito.doReturn(
-			String.valueOf(_INDEX_SEARCH_LIMIT)
-		).when(
-			props
-		).get(
-			PropsKeys.INDEX_SEARCH_LIMIT
-		);
-
-		ReflectionTestUtil.setFieldValue(_indexSearcher, "_props", props);
 	}
 
 	private static void _setUpSorts() {
@@ -424,9 +426,9 @@ public class OpenSearchIndexSearcherSearchAfterTest {
 
 	private static final int _NUMBER_INDEXED_DOCUMENTS = 7;
 
-	private static IndexingFixture _indexingFixture;
 	private static IndexSearcher _indexSearcher;
 	private static IndexWriter _indexWriter;
+	private static IndexingFixture _indexingFixture;
 
 	private final List<Document> _documents = new ArrayList<>();
 	private String _entryClassName;

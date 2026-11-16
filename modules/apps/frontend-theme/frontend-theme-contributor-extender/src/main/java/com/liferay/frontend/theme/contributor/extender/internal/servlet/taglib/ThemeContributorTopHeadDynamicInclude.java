@@ -17,6 +17,9 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -24,9 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceReference;
@@ -40,7 +40,10 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 /**
  * @author Carlos Sierra Andrés
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#post",
+	service = DynamicInclude.class
+)
 public class ThemeContributorTopHeadDynamicInclude implements DynamicInclude {
 
 	@Override
@@ -97,12 +100,6 @@ public class ThemeContributorTopHeadDynamicInclude implements DynamicInclude {
 				themeLastModified, httpServletRequest, portalCDNURL,
 				httpServletResponse.getWriter(), jsResourceURLs);
 		}
-	}
-
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_head.jsp#post");
 	}
 
 	@Activate

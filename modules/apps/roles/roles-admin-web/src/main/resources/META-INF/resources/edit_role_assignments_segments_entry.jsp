@@ -14,7 +14,7 @@
 >
 	<liferay-ui:search-container-row
 		className="com.liferay.segments.model.SegmentsEntry"
-		keyProperty="segmentsEntryId"
+		keyPropertyName="segmentsEntryId"
 		modelVar="segmentsEntry"
 	>
 		<liferay-ui:search-container-column-text
@@ -102,16 +102,11 @@
 	function <portlet:namespace />openViewMembersDialog(event) {
 		event.preventDefault();
 
-		Liferay.Util.openWindow({
-			dialog: {
-				constrain: true,
-				destroyOnHide: true,
-				height: 768,
-				modal: true,
-				width: 600,
-			},
-			uri: event.currentTarget.href,
+		Liferay.Util.openModal({
+			containerProps: {},
+			iframeBodyCssClass: '',
 			title: '<liferay-ui:message key="members" />',
+			url: event.currentTarget.href,
 		});
 	}
 </aui:script>

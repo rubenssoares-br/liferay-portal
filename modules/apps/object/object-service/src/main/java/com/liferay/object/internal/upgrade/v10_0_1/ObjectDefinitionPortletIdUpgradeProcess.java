@@ -26,6 +26,7 @@ public class ObjectDefinitionPortletIdUpgradeProcess
 				SQLTransformer.transform(
 					"select objectDefinitionId, className from " +
 						"ObjectDefinition where modifiable = [$TRUE$]"));
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
@@ -34,7 +35,9 @@ public class ObjectDefinitionPortletIdUpgradeProcess
 				long objectDefinitionId = resultSet.getLong(
 					"objectDefinitionId");
 
-				if (className.endsWith(StringPool.POUND + objectDefinitionId)) {
+				if ((className == null) ||
+					className.endsWith(StringPool.POUND + objectDefinitionId)) {
+
 					continue;
 				}
 

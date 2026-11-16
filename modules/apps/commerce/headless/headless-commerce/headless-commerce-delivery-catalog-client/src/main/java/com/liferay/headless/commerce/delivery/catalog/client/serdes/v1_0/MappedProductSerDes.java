@@ -8,15 +8,17 @@ package com.liferay.headless.commerce.delivery.catalog.client.serdes.v1_0;
 import com.liferay.headless.commerce.delivery.catalog.client.dto.v1_0.MappedProduct;
 import com.liferay.headless.commerce.delivery.catalog.client.dto.v1_0.ProductOption;
 import com.liferay.headless.commerce.delivery.catalog.client.dto.v1_0.SkuOption;
+import com.liferay.headless.commerce.delivery.catalog.client.dto.v1_0.SkuUnitOfMeasure;
 import com.liferay.headless.commerce.delivery.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Andrea Sbarra
@@ -281,6 +283,29 @@ public class MappedProductSerDes {
 			sb.append("]");
 		}
 
+		if (mappedProduct.getSkuUnitOfMeasures() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"skuUnitOfMeasures\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < mappedProduct.getSkuUnitOfMeasures().length;
+				 i++) {
+
+				sb.append(
+					String.valueOf(mappedProduct.getSkuUnitOfMeasures()[i]));
+
+				if ((i + 1) < mappedProduct.getSkuUnitOfMeasures().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (mappedProduct.getThumbnail() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -303,9 +328,7 @@ public class MappedProductSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(mappedProduct.getType());
-
 			sb.append("\"");
 		}
 
@@ -492,6 +515,15 @@ public class MappedProductSerDes {
 				"skuOptions", String.valueOf(mappedProduct.getSkuOptions()));
 		}
 
+		if (mappedProduct.getSkuUnitOfMeasures() == null) {
+			map.put("skuUnitOfMeasures", null);
+		}
+		else {
+			map.put(
+				"skuUnitOfMeasures",
+				String.valueOf(mappedProduct.getSkuUnitOfMeasures()));
+		}
+
 		if (mappedProduct.getThumbnail() == null) {
 			map.put("thumbnail", null);
 		}
@@ -599,6 +631,9 @@ public class MappedProductSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "skuOptions")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "skuUnitOfMeasures")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "thumbnail")) {
@@ -766,6 +801,23 @@ public class MappedProductSerDes {
 					mappedProduct.setSkuOptions(skuOptionsArray);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "skuUnitOfMeasures")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					SkuUnitOfMeasure[] skuUnitOfMeasuresArray =
+						new SkuUnitOfMeasure[jsonParserFieldValues.length];
+
+					for (int i = 0; i < skuUnitOfMeasuresArray.length; i++) {
+						skuUnitOfMeasuresArray[i] =
+							SkuUnitOfMeasureSerDes.toDTO(
+								(String)jsonParserFieldValues[i]);
+					}
+
+					mappedProduct.setSkuUnitOfMeasures(skuUnitOfMeasuresArray);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "thumbnail")) {
 				if (jsonParserFieldValue != null) {
 					mappedProduct.setThumbnail((String)jsonParserFieldValue);
@@ -829,6 +881,16 @@ public class MappedProductSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -861,3 +923,4 @@ public class MappedProductSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2000687252

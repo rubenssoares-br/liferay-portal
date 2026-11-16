@@ -5,15 +5,16 @@
 
 package com.liferay.portal.tools.rest.builder.test.client.dto.v1_0;
 
+import com.liferay.portal.tools.rest.builder.test.client.constant.v1_0.StringTestEntity;
 import com.liferay.portal.tools.rest.builder.test.client.function.UnsafeSupplier;
 import com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0.TestEntitySerDes;
+
+import jakarta.annotation.Generated;
 
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -109,6 +110,27 @@ public abstract class TestEntity implements Cloneable, Serializable {
 	}
 
 	protected Long documentId;
+
+	public String getExternalReferenceCode() {
+		return externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
+		try {
+			externalReferenceCode = externalReferenceCodeUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String externalReferenceCode;
 
 	public Long getId() {
 		return id;
@@ -209,6 +231,50 @@ public abstract class TestEntity implements Cloneable, Serializable {
 	}
 
 	protected String self;
+
+	public StringTestEntity[] getStringTestEntities() {
+		return stringTestEntities;
+	}
+
+	public void setStringTestEntities(StringTestEntity[] stringTestEntities) {
+		this.stringTestEntities = stringTestEntities;
+	}
+
+	public void setStringTestEntities(
+		UnsafeSupplier<StringTestEntity[], Exception>
+			stringTestEntitiesUnsafeSupplier) {
+
+		try {
+			stringTestEntities = stringTestEntitiesUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected StringTestEntity[] stringTestEntities;
+
+	public StringTestEntity getStringTestEntity() {
+		return stringTestEntity;
+	}
+
+	public void setStringTestEntity(StringTestEntity stringTestEntity) {
+		this.stringTestEntity = stringTestEntity;
+	}
+
+	public void setStringTestEntity(
+		UnsafeSupplier<StringTestEntity, Exception>
+			stringTestEntityUnsafeSupplier) {
+
+		try {
+			stringTestEntity = stringTestEntityUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected StringTestEntity stringTestEntity;
 
 	public TestEntity getTestEntities() {
 		return testEntities;
@@ -325,3 +391,4 @@ public abstract class TestEntity implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-338021111

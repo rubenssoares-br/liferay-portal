@@ -15,6 +15,54 @@ JournalEditArticleDisplayContext journalEditArticleDisplayContext = (JournalEdit
 journalEditArticleDisplayContext.setViewAttributes();
 %>
 
+<c:if test='<%= MultiSessionMessages.contains(renderRequest, "articleSavedAsDraft") %>'>
+	<c:if test="<%= article != null %>">
+		<liferay-util:buffer
+			var="alertMessage"
+		>
+			<liferay-util:buffer
+				var="articleLink"
+			>
+				<clay:link
+					cssClass="alert-link"
+					href='<%=
+						PortletURLBuilder.createRenderURL(
+							liferayPortletResponse
+						).setMVCRenderCommandName(
+							"/journal/edit_article"
+						).setRedirect(
+							currentURL
+						).setParameter(
+							"articleId", article.getArticleId()
+						).setParameter(
+							"backURLTitle", portletDisplay.getPortletDisplayName()
+						).setParameter(
+							"folderId", article.getFolderId()
+						).setParameter(
+							"groupId", article.getGroupId()
+						).setParameter(
+							"version", article.getVersion()
+						).buildString()
+					%>'
+					label="<%= article.getTitle(locale) %>"
+					translated="<%= false %>"
+				/>
+			</liferay-util:buffer>
+
+			<liferay-ui:message arguments="<%= articleLink %>" key="x-was-successfully-saved-as-draft" />
+		</liferay-util:buffer>
+
+		<liferay-frontend:component
+			context='<%=
+				HashMapBuilder.<String, Object>put(
+					"alertMessage", alertMessage
+				).build()
+			%>'
+			module="{SuccessMessageWithLink} from journal-web"
+		/>
+	</c:if>
+</c:if>
+
 <aui:model-context bean="<%= article %>" model="<%= JournalArticle.class %>" />
 
 <portlet:actionURL var="editArticleActionURL" windowState="<%= WindowState.MAXIMIZED.toString() %>">
@@ -53,7 +101,9 @@ journalEditArticleDisplayContext.setViewAttributes();
 		DDMStructure ddmStructure = journalEditArticleDisplayContext.getDDMStructure();
 		%>
 
-		<clay:container-fluid>
+		<clay:container-fluid
+			fullWidth="<%= true %>"
+		>
 			<ul class="tbar-nav">
 				<li class="tbar-item tbar-item-expand">
 					<div class="autofit-row sidebar-section">
@@ -163,7 +213,7 @@ journalEditArticleDisplayContext.setViewAttributes();
 								<clay:link
 									borderless="<%= true %>"
 									displayType="secondary"
-									href="<%= journalEditArticleDisplayContext.getBackURL() %>"
+									href="<%= PortalUtil.escapeRedirect(journalEditArticleDisplayContext.getBackURL()) %>"
 									label="cancel"
 									type="button"
 								/>
@@ -200,15 +250,17 @@ journalEditArticleDisplayContext.setViewAttributes();
 									/>
 								</c:if>
 
-								<clay:button
-									data-actionname="<%= Constants.PUBLISH %>"
-									displayType="primary"
-									id='<%= liferayPortletResponse.getNamespace() + "publishButton" %>'
-									label="<%= journalEditArticleDisplayContext.getPublishButtonLabel() %>"
-									type="submit"
-								/>
+								<c:if test='<%= !(FeatureFlagManagerUtil.isEnabled("LPD-11228") && !JournalUtil.isEditDefaultValues(article)) %>'>
+									<clay:button
+										data-actionname="<%= Constants.PUBLISH %>"
+										displayType="primary"
+										id='<%= liferayPortletResponse.getNamespace() + "publishButton" %>'
+										label="<%= journalEditArticleDisplayContext.getPublishButtonLabel() %>"
+										type="submit"
+									/>
+								</c:if>
 
-								<c:if test='<%= FeatureFlagManagerUtil.isEnabled("LPD-15596") %>'>
+								<c:if test="<%= !JournalUtil.isEditDefaultValues(article) %>">
 									<react:component
 										module="{SaveButtons} from journal-web"
 										props="<%= journalEditArticleDisplayContext.getSaveButtonsContext() %>"
@@ -286,6 +338,7 @@ journalEditArticleDisplayContext.setViewAttributes();
 	<div class="contextual-sidebar-content">
 		<clay:container-fluid
 			cssClass="container-view"
+			size="xl"
 		>
 			<div class="article-content-content">
 				<%@ include file="/edit_article_exceptions.jspf" %>
@@ -297,26 +350,84 @@ journalEditArticleDisplayContext.setViewAttributes();
 					>
 						<div class="c-gap-4 d-flex flex-column panel-body">
 							<div id="<portlet:namespace />titleMapAsXMLWrapper">
-								<label for="<portlet:namespace />titleMapAsXML" id="<portlet:namespace />Aria"><liferay-ui:message key="title" /></label>
-
-								<aui:input cssClass="form-control-inline form-control-sm" defaultLanguageId="<%= journalEditArticleDisplayContext.getDefaultArticleLanguageId() %>" label='<%= LanguageUtil.get(request, "title") %>' labelCssClass="sr-only" languagesDropdownDirection="down" languagesDropdownVisible="<%= false %>" localized="<%= true %>" name="titleMapAsXML" placeholder='<%= LanguageUtil.format(request, "untitled-x", HtmlUtil.escape(ddmStructure.getName(locale))) %>' required="<%= journalEditArticleDisplayContext.getClassNameId() == JournalArticleConstants.CLASS_NAME_ID_DEFAULT %>" selectedLanguageId="<%= journalEditArticleDisplayContext.getSelectedLanguageId() %>" type="text" wrapperCssClass="article-content-title mb-0" />
+								<aui:input cssClass="form-control-inline form-control-sm" defaultLanguageId="<%= journalEditArticleDisplayContext.getDefaultArticleLanguageId() %>" label='<%= LanguageUtil.get(request, "title") %>' languagesDropdownDirection="down" languagesDropdownVisible="<%= false %>" localized="<%= true %>" name="titleMapAsXML" placeholder='<%= LanguageUtil.format(request, "untitled-x", HtmlUtil.escape(ddmStructure.getName(locale))) %>' required="<%= journalEditArticleDisplayContext.getClassNameId() == JournalArticleConstants.CLASS_NAME_ID_DEFAULT %>" selectedLanguageId="<%= journalEditArticleDisplayContext.getSelectedLanguageId() %>" type="text" wrapperCssClass="article-content-title mb-0" />
 							</div>
 
 							<div id="<portlet:namespace />descriptionMapAsXMLWrapper">
-								<label for="<portlet:namespace />descriptionMapAsXML" id="<portlet:namespace />Aria"><liferay-ui:message key="description" /></label>
+								<c:choose>
+									<c:when test='<%= !FeatureFlagManagerUtil.isEnabled("LPD-11235") %>'>
+										<label for="<portlet:namespace />descriptionMapAsXML" id="<portlet:namespace />Aria"><liferay-ui:message key="description" /></label>
 
-								<liferay-ui:input-localized
-									availableLocales="<%= journalEditArticleDisplayContext.getAvailableLocales() %>"
-									defaultLanguageId="<%= journalEditArticleDisplayContext.getDefaultArticleLanguageId() %>"
-									editorName="ckeditor"
-									formName="fm"
-									ignoreRequestValue="<%= journalEditArticleDisplayContext.isChangeStructure() %>"
-									languagesDropdownVisible="<%= false %>"
-									name="descriptionMapAsXML"
-									selectedLanguageId="<%= journalEditArticleDisplayContext.getSelectedLanguageId() %>"
-									type="editor"
-									xml="<%= (article != null) ? article.getDescriptionMapAsXML() : StringPool.BLANK %>"
-								/>
+										<liferay-editor:input-localized
+											autofillFromDefault="<%= true %>"
+											availableLocales="<%= journalEditArticleDisplayContext.getAvailableLocales() %>"
+											componentId="descriptionMapAsXML"
+											defaultLanguageId="<%= journalEditArticleDisplayContext.getDefaultArticleLanguageId() %>"
+											ignoreRequestValue="<%= journalEditArticleDisplayContext.isChangeStructure() %>"
+											languagesDropdownVisible="<%= false %>"
+											name="descriptionMapAsXML"
+											onBlurMethod='<%= liferayPortletResponse.getNamespace() + "handleBlurDescription" %>'
+											onChangeMethod='<%= liferayPortletResponse.getNamespace() + "handleChangeDescription" %>'
+											selectedLanguageId="<%= journalEditArticleDisplayContext.getSelectedLanguageId() %>"
+											xml="<%= (article != null) ? article.getDescriptionMapAsXML() : StringPool.BLANK %>"
+										/>
+
+										<aui:script>
+											let edited = false;
+
+											function <portlet:namespace />handleBlurDescription() {
+												if (!Liferay.FeatureFlags['LPD-11228']) {
+													return;
+												}
+
+												if (edited) {
+													Liferay.fire('journal:unlock');
+
+													const label = document.querySelector(
+														'label[for="<portlet:namespace />descriptionMapAsXML"]'
+													).textContent;
+
+													Liferay.fire('journal:storeState', {
+														fieldName: Liferay.Language.get('edit') + ' ' + label.trim(),
+													});
+
+													edited = false;
+												}
+											}
+
+											function <portlet:namespace />handleChangeDescription() {
+												if (!Liferay.FeatureFlags['LPD-11228']) {
+													return;
+												}
+
+												const isUserInEditor = !!document.activeElement.closest('.ck-editor');
+
+												if (isUserInEditor) {
+													if (!edited) {
+														Liferay.fire('journal:lock');
+													}
+
+													edited = true;
+												}
+											}
+										</aui:script>
+									</c:when>
+									<c:otherwise>
+										<liferay-ui:input-localized
+											availableLocales="<%= journalEditArticleDisplayContext.getAvailableLocales() %>"
+											defaultLanguageId="<%= journalEditArticleDisplayContext.getDefaultArticleLanguageId() %>"
+											editorName="ckeditor"
+											formName="fm"
+											ignoreRequestValue="<%= journalEditArticleDisplayContext.isChangeStructure() %>"
+											languagesDropdownVisible="<%= false %>"
+											name="descriptionMapAsXML"
+											placeholder="description"
+											selectedLanguageId="<%= journalEditArticleDisplayContext.getSelectedLanguageId() %>"
+											type="editor"
+											xml="<%= (article != null) ? article.getDescriptionMapAsXML() : StringPool.BLANK %>"
+										/>
+									</c:otherwise>
+								</c:choose>
 
 								<p class="text-3 text-secondary" id="<portlet:namespace />descriptionNotTranslatableMessage" hidden>
 									<liferay-ui:message arguments="description" key="the-x-will-not-count-as-a-translatable-field" />
@@ -353,8 +464,10 @@ journalEditArticleDisplayContext.setViewAttributes();
 									</span>
 
 									<liferay-friendly-url:input
+										availableLocales="<%= journalEditArticleDisplayContext.getAvailableLocales() %>"
 										className="<%= JournalArticle.class.getName() %>"
 										classPK="<%= (article == null) || (article.getPrimaryKey() == 0) ? 0 : article.getResourcePrimKey() %>"
+										defaultLanguageId="<%= journalEditArticleDisplayContext.getDefaultArticleLanguageId() %>"
 										inputAddon="<%= journalEditArticleDisplayContext.getFriendlyURLBase() %>"
 										languagesDropdownVisible="<%= false %>"
 										name="friendlyURL"

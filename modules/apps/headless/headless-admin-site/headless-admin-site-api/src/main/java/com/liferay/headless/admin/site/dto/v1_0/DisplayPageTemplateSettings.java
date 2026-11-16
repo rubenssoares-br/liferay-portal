@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -38,8 +39,11 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName(
-	description = "The settings of a Display Page Template.",
+	description = "The settings of a display page template.",
 	value = "DisplayPageTemplateSettings"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "The settings of a display page template."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "DisplayPageTemplateSettings")
@@ -55,9 +59,11 @@ public class DisplayPageTemplateSettings implements Serializable {
 			DisplayPageTemplateSettings.class, json);
 	}
 
-	@Schema(description = "The display page template's Open Graph settings.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template's Open Graph settings."
+	)
 	@Valid
-	public OpenGraphSettings getOpenGraphSettings() {
+	public DisplayPageTemplateOpenGraphSettings getOpenGraphSettings() {
 		if (_openGraphSettingsSupplier != null) {
 			openGraphSettings = _openGraphSettingsSupplier.get();
 
@@ -67,7 +73,9 @@ public class DisplayPageTemplateSettings implements Serializable {
 		return openGraphSettings;
 	}
 
-	public void setOpenGraphSettings(OpenGraphSettings openGraphSettings) {
+	public void setOpenGraphSettings(
+		DisplayPageTemplateOpenGraphSettings openGraphSettings) {
+
 		this.openGraphSettings = openGraphSettings;
 
 		_openGraphSettingsSupplier = null;
@@ -75,7 +83,7 @@ public class DisplayPageTemplateSettings implements Serializable {
 
 	@JsonIgnore
 	public void setOpenGraphSettings(
-		UnsafeSupplier<OpenGraphSettings, Exception>
+		UnsafeSupplier<DisplayPageTemplateOpenGraphSettings, Exception>
 			openGraphSettingsUnsafeSupplier) {
 
 		_openGraphSettingsSupplier = () -> {
@@ -95,14 +103,17 @@ public class DisplayPageTemplateSettings implements Serializable {
 		description = "The display page template's Open Graph settings."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected OpenGraphSettings openGraphSettings;
+	protected DisplayPageTemplateOpenGraphSettings openGraphSettings;
 
 	@JsonIgnore
-	private Supplier<OpenGraphSettings> _openGraphSettingsSupplier;
+	private Supplier<DisplayPageTemplateOpenGraphSettings>
+		_openGraphSettingsSupplier;
 
-	@Schema(description = "The display page template's SEO settings.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template's SEO settings."
+	)
 	@Valid
-	public SEOSettings getSeoSettings() {
+	public DisplayPageTemplateSEOSettings getSeoSettings() {
 		if (_seoSettingsSupplier != null) {
 			seoSettings = _seoSettingsSupplier.get();
 
@@ -112,7 +123,7 @@ public class DisplayPageTemplateSettings implements Serializable {
 		return seoSettings;
 	}
 
-	public void setSeoSettings(SEOSettings seoSettings) {
+	public void setSeoSettings(DisplayPageTemplateSEOSettings seoSettings) {
 		this.seoSettings = seoSettings;
 
 		_seoSettingsSupplier = null;
@@ -120,7 +131,8 @@ public class DisplayPageTemplateSettings implements Serializable {
 
 	@JsonIgnore
 	public void setSeoSettings(
-		UnsafeSupplier<SEOSettings, Exception> seoSettingsUnsafeSupplier) {
+		UnsafeSupplier<DisplayPageTemplateSEOSettings, Exception>
+			seoSettingsUnsafeSupplier) {
 
 		_seoSettingsSupplier = () -> {
 			try {
@@ -137,10 +149,10 @@ public class DisplayPageTemplateSettings implements Serializable {
 
 	@GraphQLField(description = "The display page template's SEO settings.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected SEOSettings seoSettings;
+	protected DisplayPageTemplateSEOSettings seoSettings;
 
 	@JsonIgnore
-	private Supplier<SEOSettings> _seoSettingsSupplier;
+	private Supplier<DisplayPageTemplateSEOSettings> _seoSettingsSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -171,7 +183,8 @@ public class DisplayPageTemplateSettings implements Serializable {
 
 		sb.append("{");
 
-		OpenGraphSettings openGraphSettings = getOpenGraphSettings();
+		DisplayPageTemplateOpenGraphSettings openGraphSettings =
+			getOpenGraphSettings();
 
 		if (openGraphSettings != null) {
 			if (sb.length() > 1) {
@@ -183,7 +196,7 @@ public class DisplayPageTemplateSettings implements Serializable {
 			sb.append(String.valueOf(openGraphSettings));
 		}
 
-		SEOSettings seoSettings = getSeoSettings();
+		DisplayPageTemplateSEOSettings seoSettings = getSeoSettings();
 
 		if (seoSettings != null) {
 			if (sb.length() > 1) {
@@ -200,8 +213,8 @@ public class DisplayPageTemplateSettings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateSettings",
 		name = "x-class-name"
 	)
@@ -288,6 +301,27 @@ public class DisplayPageTemplateSettings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -296,3 +330,4 @@ public class DisplayPageTemplateSettings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2040114056

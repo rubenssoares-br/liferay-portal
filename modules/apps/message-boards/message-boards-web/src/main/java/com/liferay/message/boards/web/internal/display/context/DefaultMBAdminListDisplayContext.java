@@ -32,13 +32,13 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Sergio González
@@ -52,6 +52,15 @@ public class DefaultMBAdminListDisplayContext
 
 		_httpServletRequest = httpServletRequest;
 		_categoryId = categoryId;
+	}
+
+	@Override
+	public String getEmptyResultsMessage() {
+		if (isShowSearch()) {
+			return "there-are-no-threads";
+		}
+
+		return "there-are-no-threads-or-categories";
 	}
 
 	@Override
@@ -82,11 +91,7 @@ public class DefaultMBAdminListDisplayContext
 		String mvcRenderCommandName = ParamUtil.getString(
 			_httpServletRequest, "mvcRenderCommandName");
 
-		if (mvcRenderCommandName.equals("/message_boards/search")) {
-			return true;
-		}
-
-		return false;
+		return mvcRenderCommandName.equals("/message_boards/search");
 	}
 
 	@Override

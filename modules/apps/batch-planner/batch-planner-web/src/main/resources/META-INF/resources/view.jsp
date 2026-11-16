@@ -32,7 +32,7 @@ SearchContainer<BatchPlannerPlanDisplay> batchPlannerPlanDisplaySearchContainer 
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.batch.planner.web.internal.display.BatchPlannerPlanDisplay"
-			keyProperty="batchPlannerPlanId"
+			keyPropertyName="batchPlannerPlanId"
 			modelVar="batchPlannerPlanDisplay"
 		>
 			<liferay-ui:search-container-column-text
@@ -49,7 +49,7 @@ SearchContainer<BatchPlannerPlanDisplay> batchPlannerPlanDisplaySearchContainer 
 					).buildPortletURL()
 				%>'
 				name="name"
-				value="<%= batchPlannerPlanDisplay.getTitle() %>"
+				value="<%= HtmlUtil.escape(batchPlannerPlanDisplay.getTitle()) %>"
 			/>
 
 			<liferay-ui:search-container-column-text
@@ -59,7 +59,7 @@ SearchContainer<BatchPlannerPlanDisplay> batchPlannerPlanDisplaySearchContainer 
 
 			<liferay-ui:search-container-column-text
 				name="type"
-				value="<%= batchPlannerPlanDisplayContext.getSimpleClassName(batchPlannerPlanDisplay.getInternalClassNameKey()) %>"
+				value="<%= HtmlUtil.escape(batchPlannerPlanDisplayContext.getSimpleClassName(batchPlannerPlanDisplay.getInternalClassNameKey())) %>"
 			/>
 
 			<liferay-ui:search-container-column-text

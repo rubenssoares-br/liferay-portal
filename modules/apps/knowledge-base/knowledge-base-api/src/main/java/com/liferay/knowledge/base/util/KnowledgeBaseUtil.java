@@ -12,12 +12,12 @@ import com.liferay.knowledge.base.model.KBArticle;
 import com.liferay.knowledge.base.model.KBFolder;
 import com.liferay.knowledge.base.service.KBArticleLocalServiceUtil;
 import com.liferay.knowledge.base.service.KBFolderLocalServiceUtil;
+import com.liferay.petra.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.io.unsync.UnsyncByteArrayInputStream;
 import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -40,6 +40,10 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -51,10 +55,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
 
 /**
  * @author Peter Shin
@@ -436,15 +436,23 @@ public class KnowledgeBaseUtil {
 		kbArticles.clear();
 
 		for (long resourcePrimKey : resourcePrimKeys) {
-			if (map.containsKey(resourcePrimKey)) {
-				kbArticles.add(map.get(resourcePrimKey));
+			KBArticle kbArticle = map.get(resourcePrimKey);
+
+			if (kbArticle == null) {
+				continue;
 			}
+
+			kbArticles.add(kbArticle);
 		}
 
 		return kbArticles;
 	}
 
 	public static String[] splitKeywords(String keywords) {
+		if (Validator.isNull(keywords)) {
+			return new String[0];
+		}
+
 		Set<String> keywordsSet = new LinkedHashSet<>();
 
 		StringBundler sb = new StringBundler();

@@ -11,18 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,18 +37,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Riccardo Ferrari
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductContentRecommendation")
+@GraphQLName(
+	description = "Wire shape for a content-based product recommendation downloaded from the analytics pipeline. Given a source product, the model recommends similar products based on product metadata such as name, description, and categorisation.",
+	value = "ProductContentRecommendation"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Wire shape for a content-based product recommendation downloaded from the analytics pipeline. Given a source product, the model recommends similar products based on product metadata such as name, description, and categorisation."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ProductContentRecommendation")
 public class ProductContentRecommendation implements Serializable {
@@ -56,7 +63,10 @@ public class ProductContentRecommendation implements Serializable {
 			ProductContentRecommendation.class, json);
 	}
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Timestamp when the recommendation was materialised by the download executor, in ISO 8601.",
+		example = "2017-07-21"
+	)
 	public Date getCreateDate() {
 		if (_createDateSupplier != null) {
 			createDate = _createDateSupplier.get();
@@ -90,14 +100,19 @@ public class ProductContentRecommendation implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Timestamp when the recommendation was materialised by the download executor, in ISO 8601."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date createDate;
 
 	@JsonIgnore
 	private Supplier<Date> _createDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier of the analytics training job that produced this recommendation. Used to group recommendations by training run.",
+		example = "ml-job-2025-04-01"
+	)
 	public String getJobId() {
 		if (_jobIdSupplier != null) {
 			jobId = _jobIdSupplier.get();
@@ -131,14 +146,19 @@ public class ProductContentRecommendation implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier of the analytics training job that produced this recommendation. Used to group recommendations by training run."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String jobId;
 
 	@JsonIgnore
 	private Supplier<String> _jobIdSupplier;
 
-	@Schema(description = "The product identifier.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the source product the recommendation is anchored on (FK identifier).",
+		example = "30130"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -172,14 +192,19 @@ public class ProductContentRecommendation implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The product identifier.")
+	@GraphQLField(
+		description = "Reference to the source product the recommendation is anchored on (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema(description = "The recommendation rank.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "One-based ordering of the recommendation within the source product's set. Lower is better.",
+		example = "1"
+	)
 	public Integer getRank() {
 		if (_rankSupplier != null) {
 			rank = _rankSupplier.get();
@@ -211,14 +236,19 @@ public class ProductContentRecommendation implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The recommendation rank.")
+	@GraphQLField(
+		description = "One-based ordering of the recommendation within the source product's set. Lower is better."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer rank;
 
 	@JsonIgnore
 	private Supplier<Integer> _rankSupplier;
 
-	@Schema(description = "The recommended product identifier.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the product the model recommends for the source product (FK identifier).",
+		example = "30131"
+	)
 	public Long getRecommendedProductId() {
 		if (_recommendedProductIdSupplier != null) {
 			recommendedProductId = _recommendedProductIdSupplier.get();
@@ -252,14 +282,19 @@ public class ProductContentRecommendation implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The recommended product identifier.")
+	@GraphQLField(
+		description = "Reference to the product the model recommends for the source product (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long recommendedProductId;
 
 	@JsonIgnore
 	private Supplier<Long> _recommendedProductIdSupplier;
 
-	@Schema(description = "The recommendation score.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Similarity score in [0, 1]. Higher means stronger content similarity to the source product.",
+		example = "0.82"
+	)
 	@Valid
 	public Float getScore() {
 		if (_scoreSupplier != null) {
@@ -292,7 +327,9 @@ public class ProductContentRecommendation implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The recommendation score.")
+	@GraphQLField(
+		description = "Similarity score in [0, 1]. Higher means stronger content similarity to the source product."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Float score;
 
@@ -416,8 +453,8 @@ public class ProductContentRecommendation implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.machine.learning.dto.v1_0.ProductContentRecommendation",
 		name = "x-class-name"
 	)
@@ -504,6 +541,27 @@ public class ProductContentRecommendation implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -512,3 +570,4 @@ public class ProductContentRecommendation implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:130367547

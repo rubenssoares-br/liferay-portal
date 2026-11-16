@@ -12,9 +12,12 @@ import com.liferay.portal.kernel.upload.UploadPortletRequest;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.language.override.constants.PLOPortletKeys;
 import com.liferay.portal.language.override.exception.PLOEntryImportException;
 import com.liferay.portal.language.override.service.PLOEntryService;
-import com.liferay.portal.language.override.web.internal.constants.PLOPortletKeys;
+
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,9 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Properties;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -38,7 +38,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + PLOPortletKeys.PORTAL_LANGUAGE_OVERRIDE,
+		"jakarta.portlet.name=" + PLOPortletKeys.PORTAL_LANGUAGE_OVERRIDE,
 		"mvc.command.name=/portal_language_override/import_translations"
 	},
 	service = MVCActionCommand.class
@@ -55,6 +55,7 @@ public class ImportTranslationsMVCActionCommand extends BaseMVCActionCommand {
 
 		_importTranslations(
 			actionRequest, uploadPortletRequest.getFile("file"),
+			uploadPortletRequest.getFileName("file"),
 			ParamUtil.getString(actionRequest, "languageId"));
 
 		if (!SessionErrors.isEmpty(actionRequest)) {
@@ -67,7 +68,8 @@ public class ImportTranslationsMVCActionCommand extends BaseMVCActionCommand {
 	}
 
 	private void _importTranslations(
-		ActionRequest actionRequest, File file, String languageId) {
+		ActionRequest actionRequest, File file, String fileName,
+		String languageId) {
 
 		if ((file == null) || !file.exists()) {
 			SessionErrors.add(actionRequest, "fileEmpty");
@@ -75,15 +77,14 @@ public class ImportTranslationsMVCActionCommand extends BaseMVCActionCommand {
 			return;
 		}
 
-		if (!Objects.equals(
-				FileUtil.getExtension(file.getName()), "properties")) {
-
+		if (!Objects.equals(FileUtil.getExtension(fileName), "properties")) {
 			SessionErrors.add(actionRequest, "fileExtensionInvalid");
 
 			return;
 		}
 
 		try (InputStream inputStream = new FileInputStream(file);
+
 			Reader reader = new InputStreamReader(
 				inputStream, StandardCharsets.UTF_8)) {
 

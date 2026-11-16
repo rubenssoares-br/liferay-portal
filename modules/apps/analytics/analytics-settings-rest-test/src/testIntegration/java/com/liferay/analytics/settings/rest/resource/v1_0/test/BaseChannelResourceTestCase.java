@@ -24,30 +24,38 @@ import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONDeserializer;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.DateUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,8 +91,10 @@ public abstract class BaseChannelResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,16 +107,16 @@ public abstract class BaseChannelResourceTestCase {
 
 		_channelResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ChannelResource.Builder builder = ChannelResource.builder();
-
-		channelResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		channelResource = ChannelResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -187,7 +194,7 @@ public abstract class BaseChannelResourceTestCase {
 	@Test
 	public void testGetChannelsPage() throws Exception {
 		Page<Channel> page = channelResource.getChannelsPage(
-			RandomTestUtil.randomString(), Pagination.of(1, 10), null);
+			null, Pagination.of(1, 10), null);
 
 		long totalCount = page.getTotalCount();
 
@@ -196,7 +203,7 @@ public abstract class BaseChannelResourceTestCase {
 		Channel channel2 = testGetChannelsPage_addChannel(randomChannel());
 
 		page = channelResource.getChannelsPage(
-			null, Pagination.of(1, 10), null);
+			null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -216,10 +223,10 @@ public abstract class BaseChannelResourceTestCase {
 
 	@Test
 	public void testGetChannelsPageWithPagination() throws Exception {
-		Page<Channel> channelPage = channelResource.getChannelsPage(
+		Page<Channel> channelsPage = channelResource.getChannelsPage(
 			null, null, null);
 
-		int totalCount = GetterUtil.getInteger(channelPage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(channelsPage.getTotalCount());
 
 		Channel channel1 = testGetChannelsPage_addChannel(randomChannel());
 
@@ -421,7 +428,72 @@ public abstract class BaseChannelResourceTestCase {
 
 	@Test
 	public void testGraphQLGetChannelsPage() throws Exception {
-		Assert.assertTrue(false);
+		GraphQLField graphQLField =
+			testGraphQLGetChannelsPageChannel_getGraphQLField();
+
+		// No namespace
+
+		JSONObject channelsJSONObject = JSONUtil.getValueAsJSONObject(
+			invokeGraphQLQuery(graphQLField), "JSONObject/data",
+			"JSONObject/channels");
+
+		long totalCount = channelsJSONObject.getLong("totalCount");
+
+		Channel channel1 = testGraphQLChannel_addChannel(randomChannel());
+
+		Channel channel2 = testGraphQLChannel_addChannel(randomChannel());
+
+		channelsJSONObject = JSONUtil.getValueAsJSONObject(
+			invokeGraphQLQuery(graphQLField), "JSONObject/data",
+			"JSONObject/channels");
+
+		Assert.assertEquals(
+			totalCount + 2, channelsJSONObject.getLong("totalCount"));
+
+		assertContains(
+			channel1,
+			Arrays.asList(
+				ChannelSerDes.toDTOs(channelsJSONObject.getString("items"))));
+		assertContains(
+			channel2,
+			Arrays.asList(
+				ChannelSerDes.toDTOs(channelsJSONObject.getString("items"))));
+
+		// Using the namespace analyticsSettings_v1_0
+
+		channelsJSONObject = JSONUtil.getValueAsJSONObject(
+			invokeGraphQLQuery(
+				new GraphQLField("analyticsSettings_v1_0", graphQLField)),
+			"JSONObject/data", "JSONObject/analyticsSettings_v1_0",
+			"JSONObject/channels");
+
+		Assert.assertEquals(
+			totalCount + 2, channelsJSONObject.getLong("totalCount"));
+
+		assertContains(
+			channel1,
+			Arrays.asList(
+				ChannelSerDes.toDTOs(channelsJSONObject.getString("items"))));
+		assertContains(
+			channel2,
+			Arrays.asList(
+				ChannelSerDes.toDTOs(channelsJSONObject.getString("items"))));
+	}
+
+	protected GraphQLField testGraphQLGetChannelsPageChannel_getGraphQLField()
+		throws Exception {
+
+		return new GraphQLField(
+			"channels",
+			new HashMap<String, Object>() {
+				{
+					put("keywords", null);
+					put("page", 1);
+					put("pageSize", 10);
+				}
+			},
+			new GraphQLField("items", getGraphQLFields()),
+			new GraphQLField("page"), new GraphQLField("totalCount"));
 	}
 
 	@Test
@@ -444,6 +516,133 @@ public abstract class BaseChannelResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLPostChannel() throws Exception {
+		Channel randomChannel = randomChannel();
+
+		Channel channel = testGraphQLChannel_addChannel(randomChannel);
+
+		Assert.assertTrue(equals(randomChannel, channel));
+	}
+
+	protected Channel testGraphQLChannel_addChannel() throws Exception {
+		return testGraphQLChannel_addChannel(randomChannel());
+	}
+
+	protected Channel testGraphQLChannel_addChannel(Channel channel)
+		throws Exception {
+
+		JSONDeserializer<Channel> jsonDeserializer =
+			JSONFactoryUtil.createJSONDeserializer();
+
+		StringBuilder sb = new StringBuilder("{");
+
+		for (java.lang.reflect.Field field : getDeclaredFields(Channel.class)) {
+			if (getGraphQLValue(field.get(channel)) != null) {
+				if (sb.length() > 1) {
+					sb.append(", ");
+				}
+
+				sb.append(field.getName());
+				sb.append(": ");
+				sb.append(getGraphQLValue(field.get(channel)));
+			}
+		}
+
+		sb.append("}");
+
+		List<GraphQLField> graphQLFields = getGraphQLFields();
+
+		return jsonDeserializer.deserialize(
+			JSONUtil.getValueAsString(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"createChannel",
+						new HashMap<String, Object>() {
+							{
+								put("channel", sb.toString());
+							}
+						},
+						graphQLFields)),
+				"JSONObject/data", "JSONObject/createChannel"),
+			Channel.class);
+	}
+
+	protected String getGraphQLValue(Object value) throws Exception {
+		if (value == null) {
+			return null;
+		}
+		else if (value instanceof Boolean || value instanceof Number) {
+			return value.toString();
+		}
+		else if (value instanceof Date) {
+			Date date = (Date)value;
+
+			return "\"" +
+				DateUtil.getDate(
+					date, "yyyy-MM-dd'T'HH:mm:ss'Z'", LocaleUtil.getDefault(),
+					TimeZone.getTimeZone("UTC")) + "\"";
+		}
+		else if (value instanceof Enum) {
+			Enum<?> enm = (Enum<?>)value;
+
+			return enm.name();
+		}
+		else if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>)value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Map.Entry<?, ?> entry : map.entrySet()) {
+				String graphQLValue = getGraphQLValue(entry.getValue());
+
+				if (graphQLValue != null) {
+					entries.add(entry.getKey() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
+		else if (value instanceof Object[]) {
+			Object[] array = (Object[])value;
+
+			List<String> entries = new ArrayList<>();
+
+			for (Object entry : array) {
+				String graphQLValue = getGraphQLValue(entry);
+
+				if (graphQLValue != null) {
+					entries.add(graphQLValue);
+				}
+			}
+
+			return "[" + String.join(", ", entries) + "]";
+		}
+		else if (value instanceof String) {
+			return "\"" + value + "\"";
+		}
+		else {
+			List<String> entries = new ArrayList<>();
+
+			Class<?> clazz = value.getClass();
+			java.lang.reflect.Field[] declaredFields = getDeclaredFields(clazz);
+
+			if (declaredFields.length == 0) {
+				declaredFields = getDeclaredFields(clazz.getSuperclass());
+			}
+
+			for (java.lang.reflect.Field field : declaredFields) {
+				String graphQLValue = getGraphQLValue(field.get(value));
+
+				if (graphQLValue != null) {
+					entries.add(field.getName() + ": " + graphQLValue);
+				}
+			}
+
+			return "{" + String.join(", ", entries) + "}";
+		}
 	}
 
 	protected void assertContains(Channel channel, List<Channel> channels) {
@@ -511,21 +710,15 @@ public abstract class BaseChannelResourceTestCase {
 	protected void assertValid(Channel channel) throws Exception {
 		boolean valid = true;
 
+		if (channel.getChannelId() == null) {
+			valid = false;
+		}
+
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
 			if (Objects.equals("channelId", additionalAssertFieldName)) {
 				if (channel.getChannelId() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"commerceSyncEnabled", additionalAssertFieldName)) {
-
-				if (channel.getCommerceSyncEnabled() == null) {
 					valid = false;
 				}
 
@@ -613,6 +806,8 @@ public abstract class BaseChannelResourceTestCase {
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
 
+		graphQLFields.add(new GraphQLField("channelId"));
+
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
 					com.liferay.analytics.settings.rest.dto.v1_0.Channel.
@@ -675,19 +870,6 @@ public abstract class BaseChannelResourceTestCase {
 			if (Objects.equals("channelId", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						channel1.getChannelId(), channel2.getChannelId())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"commerceSyncEnabled", additionalAssertFieldName)) {
-
-				if (!Objects.deepEquals(
-						channel1.getCommerceSyncEnabled(),
-						channel2.getCommerceSyncEnabled())) {
 
 					return false;
 				}
@@ -878,11 +1060,6 @@ public abstract class BaseChannelResourceTestCase {
 			return sb.toString();
 		}
 
-		if (entityFieldName.equals("commerceSyncEnabled")) {
-			throw new IllegalArgumentException(
-				"Invalid entity field " + entityFieldName);
-		}
-
 		if (entityFieldName.equals("createDate")) {
 			if (operator.equals("between")) {
 				Date date = channel.getCreateDate();
@@ -892,13 +1069,11 @@ public abstract class BaseChannelResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -908,7 +1083,7 @@ public abstract class BaseChannelResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(channel.getCreateDate()));
+				sb.append(_format.format(channel.getCreateDate()));
 			}
 
 			return sb.toString();
@@ -978,7 +1153,9 @@ public abstract class BaseChannelResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1012,7 +1189,6 @@ public abstract class BaseChannelResourceTestCase {
 			{
 				channelId = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
-				commerceSyncEnabled = RandomTestUtil.randomBoolean();
 				createDate = RandomTestUtil.nextDate();
 				name = StringUtil.toLowerCase(RandomTestUtil.randomString());
 			}
@@ -1230,10 +1406,13 @@ public abstract class BaseChannelResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseChannelResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.analytics.settings.rest.resource.v1_0.ChannelResource
 		_channelResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2031789518

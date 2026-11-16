@@ -6,18 +6,16 @@
 package com.liferay.portal.kernel.upgrade;
 
 import com.liferay.counter.kernel.service.CounterLocalServiceUtil;
-import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.dao.db.BaseDBProcess;
 import com.liferay.portal.kernel.dao.db.DBInspector;
 import com.liferay.portal.kernel.dao.db.IndexMetadata;
 import com.liferay.portal.kernel.dao.db.IndexMetadataFactoryUtil;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ClassUtil;
-import com.liferay.portal.kernel.util.LoggingTimer;
 import com.liferay.portal.kernel.util.NotificationThreadLocal;
 import com.liferay.portal.kernel.util.ObjectValuePair;
 import com.liferay.portal.kernel.util.PortalClassLoaderUtil;
@@ -45,7 +43,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Brian Wing Shun Chan
@@ -119,7 +116,12 @@ public abstract class UpgradeProcess
 						_log.info("Upgrading " + companyInfo);
 					}
 
-					doUpgrade();
+					try {
+						doUpgrade();
+					}
+					finally {
+						closeConnections();
+					}
 				});
 		}
 		catch (Throwable throwable) {
@@ -172,35 +174,6 @@ public abstract class UpgradeProcess
 
 	}
 
-	protected SafeCloseable addTemporaryIndex(
-			String tableName, boolean unique, String... columnNames)
-		throws Exception {
-
-		String indexName = "IX_TEMP_" + _tempIndexCounter.incrementAndGet();
-
-		IndexMetadata indexMetadata = new IndexMetadata(
-			indexName, tableName, unique, columnNames);
-
-		try (LoggingTimer loggingTimer = new LoggingTimer(tableName)) {
-			addIndexes(
-				connection, new ArrayList<>(Arrays.asList(indexMetadata)));
-		}
-
-		return () -> {
-			try {
-				runSQL(indexMetadata.getDropSQL());
-			}
-			catch (Exception exception) {
-				if (_log.isWarnEnabled()) {
-					_log.warn(
-						StringBundler.concat(
-							"Unable to drop temporary index ", indexName,
-							" on ", tableName));
-				}
-			}
-		};
-	}
-
 	protected abstract void doUpgrade() throws Exception;
 
 	protected void ensureTableExists(
@@ -242,6 +215,7 @@ public abstract class UpgradeProcess
 					new ArrayList<>();
 
 				try (Reader reader = new InputStreamReader(inputStream);
+
 					UnsyncBufferedReader unsyncBufferedReader =
 						new UnsyncBufferedReader(reader)) {
 
@@ -257,10 +231,12 @@ public abstract class UpgradeProcess
 						IndexMetadata indexMetadata =
 							IndexMetadataFactoryUtil.createIndexMetadata(line);
 
-						if (tableName.equals(indexMetadata.getTableName())) {
-							objectValuePairs.add(
-								new ObjectValuePair<>(line, indexMetadata));
+						if (!tableName.equals(indexMetadata.getTableName())) {
+							continue;
 						}
+
+						objectValuePairs.add(
+							new ObjectValuePair<>(line, indexMetadata));
 					}
 				}
 
@@ -274,7 +250,9 @@ public abstract class UpgradeProcess
 
 		try (InputStream inputStream = classLoader.getResourceAsStream(
 				"com/liferay/portal/tools/sql/dependencies/indexes.sql");
+
 			Reader reader = new InputStreamReader(inputStream);
+
 			UnsyncBufferedReader unsyncBufferedReader =
 				new UnsyncBufferedReader(reader)) {
 
@@ -410,7 +388,6 @@ public abstract class UpgradeProcess
 	private static final Map
 		<String, List<ObjectValuePair<String, IndexMetadata>>>
 			_portalIndexesSQL = new HashMap<>();
-	private static final AtomicLong _tempIndexCounter = new AtomicLong(0);
 
 	private String _upgradeInfo;
 

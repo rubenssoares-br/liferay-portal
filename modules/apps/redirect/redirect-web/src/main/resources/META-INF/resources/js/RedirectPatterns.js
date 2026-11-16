@@ -7,10 +7,9 @@ import ClayButton from '@clayui/button';
 import ClayForm, {ClayInput, ClaySelect} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import ClayLayout from '@clayui/layout';
-import {sub} from 'frontend-js-web';
+import {sub, uuidv4} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useState} from 'react';
-import {v4 as uuidv4} from 'uuid';
 
 import '../css/redirect_pattern.scss';
 
@@ -217,7 +216,7 @@ const RedirectPattern = ({
 	return (
 		<form
 			action={actionUrl}
-			className="container-fluid container-fluid-max-xl mt-4"
+			className="container-fluid mt-4"
 			method="post"
 			name={`${portletNamespace}fm`}
 		>

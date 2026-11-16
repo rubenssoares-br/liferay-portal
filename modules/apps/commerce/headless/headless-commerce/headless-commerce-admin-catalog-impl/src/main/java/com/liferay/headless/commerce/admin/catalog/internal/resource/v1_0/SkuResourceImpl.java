@@ -5,53 +5,63 @@
 
 package com.liferay.headless.commerce.admin.catalog.internal.resource.v1_0;
 
+import com.liferay.commerce.currency.model.CommerceCurrency;
+import com.liferay.commerce.currency.service.CommerceCurrencyService;
 import com.liferay.commerce.price.list.service.CommercePriceEntryLocalService;
 import com.liferay.commerce.price.list.service.CommercePriceEntryService;
 import com.liferay.commerce.price.list.service.CommercePriceListLocalService;
 import com.liferay.commerce.product.constants.CPField;
+import com.liferay.commerce.product.constants.CPPortletKeys;
 import com.liferay.commerce.product.exception.CPDefinitionProductTypeNameException;
 import com.liferay.commerce.product.exception.NoSuchCPDefinitionException;
 import com.liferay.commerce.product.exception.NoSuchCPInstanceException;
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.model.CPInstanceUnitOfMeasure;
+import com.liferay.commerce.product.model.CommerceCatalog;
 import com.liferay.commerce.product.service.CPDefinitionOptionRelService;
 import com.liferay.commerce.product.service.CPDefinitionOptionValueRelService;
 import com.liferay.commerce.product.service.CPDefinitionService;
 import com.liferay.commerce.product.service.CPInstanceService;
 import com.liferay.commerce.product.service.CPInstanceUnitOfMeasureService;
+import com.liferay.commerce.product.service.CPOptionService;
+import com.liferay.commerce.product.service.CommerceCatalogService;
 import com.liferay.commerce.product.type.CPType;
 import com.liferay.commerce.product.type.CPTypeRegistry;
 import com.liferay.commerce.product.type.virtual.constants.VirtualCPTypeConstants;
 import com.liferay.commerce.product.type.virtual.service.CPDVirtualSettingFileEntryService;
 import com.liferay.commerce.product.type.virtual.service.CPDefinitionVirtualSettingService;
 import com.liferay.document.library.kernel.service.DLAppService;
+import com.liferay.exportimport.constants.ExportImportConstants;
+import com.liferay.exportimport.vulcan.batch.engine.ExportImportVulcanBatchEngineTaskItemDelegate;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.Product;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.Sku;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.SkuSubscriptionConfiguration;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.SkuUnitOfMeasure;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.SkuVirtualSettings;
 import com.liferay.headless.commerce.admin.catalog.internal.dto.v1_0.converter.constants.DTOConverterConstants;
-import com.liferay.headless.commerce.admin.catalog.internal.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.commerce.admin.catalog.internal.odata.entity.v1_0.SkuEntityModel;
 import com.liferay.headless.commerce.admin.catalog.internal.util.DateConfigUtil;
+import com.liferay.headless.commerce.admin.catalog.internal.util.v1_0.ProductUtil;
 import com.liferay.headless.commerce.admin.catalog.internal.util.v1_0.SkuUnitOfMeasureUtil;
 import com.liferay.headless.commerce.admin.catalog.internal.util.v1_0.SkuUtil;
 import com.liferay.headless.commerce.admin.catalog.internal.util.v1_0.SkuVirtualSettingsUtil;
 import com.liferay.headless.commerce.admin.catalog.resource.v1_0.SkuResource;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
+import com.liferay.headless.commerce.core.util.CommerceCurrencyUtil;
 import com.liferay.headless.commerce.core.util.DateConfig;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
-import com.liferay.petra.function.UnsafeConsumer;
+import com.liferay.journal.service.JournalArticleService;
 import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
-import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
+import com.liferay.portal.kernel.service.GroupService;
 import com.liferay.portal.kernel.service.RepositoryLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.util.ArrayUtil;
@@ -62,6 +72,7 @@ import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityModel;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
@@ -71,6 +82,9 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.SearchUtil;
 import com.liferay.upload.UniqueFileNameProvider;
+
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
 
 import java.io.Serializable;
 
@@ -82,9 +96,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ServiceScope;
@@ -95,11 +106,16 @@ import org.osgi.service.component.annotations.ServiceScope;
  */
 @Component(
 	properties = "OSGI-INF/liferay/rest/v1_0/sku.properties",
-	property = "nested.field.support=true", scope = ServiceScope.PROTOTYPE,
-	service = SkuResource.class
+	property = {
+		"export.import.vulcan.batch.engine.task.item.delegate=true",
+		"nested.field.support=true"
+	},
+	scope = ServiceScope.PROTOTYPE, service = SkuResource.class
 )
 @CTAware
-public class SkuResourceImpl extends BaseSkuResourceImpl {
+public class SkuResourceImpl
+	extends BaseSkuResourceImpl
+	implements ExportImportVulcanBatchEngineTaskItemDelegate<Sku> {
 
 	@Override
 	public Response deleteSku(Long id) throws Exception {
@@ -138,6 +154,50 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 	}
 
 	@Override
+	public ExportImportDescriptor<CPInstance> getExportImportDescriptor() {
+		return new ExportImportDescriptor<>() {
+
+			@Override
+			public String getKey() {
+				return SkuResourceImpl.class.getName();
+			}
+
+			@Override
+			public String getLabelLanguageKey() {
+				return "skus";
+			}
+
+			@Override
+			public Class<CPInstance> getModelClass() {
+				return CPInstance.class;
+			}
+
+			@Override
+			public List<String> getNestedFields() {
+				return List.of(
+					"creator", "skuSubscriptionConfiguration",
+					"skuUnitOfMeasures", "skuVirtualSettings");
+			}
+
+			@Override
+			public String getPortletId() {
+				return CPPortletKeys.CP_DEFINITIONS;
+			}
+
+			@Override
+			public Scope getScope() {
+				return Scope.COMPANY;
+			}
+
+			@Override
+			public String getSectionKey() {
+				return ExportImportConstants.SECTION_KEY_PRODUCT_MANAGEMENT;
+			}
+
+		};
+	}
+
+	@Override
 	public Page<Sku> getProductByExternalReferenceCodeSkusPage(
 			String externalReferenceCode, Pagination pagination)
 		throws Exception {
@@ -145,7 +205,8 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 		CPDefinition cpDefinition =
 			_cpDefinitionService.
 				fetchCPDefinitionByCProductExternalReferenceCode(
-					externalReferenceCode, contextCompany.getCompanyId());
+					externalReferenceCode, contextCompany.getCompanyId(),
+					false);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
@@ -265,9 +326,9 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 		throws Exception {
 
 		CPDefinition cpDefinition =
-			_cpDefinitionService.
-				fetchCPDefinitionByCProductExternalReferenceCode(
-					externalReferenceCode, contextCompany.getCompanyId());
+			ProductUtil.fetchCPDefinitionByCProductExternalReferenceCode(
+				externalReferenceCode, contextCompany.getCompanyId(),
+				_cpDefinitionService);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
@@ -275,20 +336,22 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 					externalReferenceCode);
 		}
 
-		return _addOrUpdateSKU(cpDefinition, sku);
+		return _addOrUpdateSKU(
+			cpDefinition, sku.getExternalReferenceCode(), sku);
 	}
 
 	@Override
 	public Sku postProductIdSku(Long id, Sku sku) throws Exception {
-		CPDefinition cpDefinition =
-			_cpDefinitionService.fetchCPDefinitionByCProductId(id);
+		CPDefinition cpDefinition = ProductUtil.fetchCPDefinitionByCProductId(
+			id, _cpDefinitionService);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
 				"Unable to find product with ID " + id);
 		}
 
-		return _addOrUpdateSKU(cpDefinition, sku);
+		return _addOrUpdateSKU(
+			cpDefinition, sku.getExternalReferenceCode(), sku);
 	}
 
 	@Override
@@ -301,9 +364,19 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 				externalReferenceCode, contextCompany.getCompanyId());
 
 		if (cpInstance == null) {
-			throw new NoSuchCPInstanceException(
-				"Unable to find SKU with external reference code " +
-					externalReferenceCode);
+			if (!LazyReferencingThreadLocal.isEnabled()) {
+				throw new NoSuchCPInstanceException(
+					"Unable to find SKU with external reference code " +
+						externalReferenceCode);
+			}
+
+			return _addOrUpdateSKU(
+				_getOrAddEmptyCPDefinition(sku), externalReferenceCode, sku);
+		}
+
+		if (LazyReferencingThreadLocal.isEnabled()) {
+			return _addOrUpdateSKU(
+				cpInstance.getCPDefinition(), externalReferenceCode, sku);
 		}
 
 		ServiceContext serviceContext = _serviceContextHelper.getServiceContext(
@@ -506,7 +579,8 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 		return _toSku(cpInstance.getCPInstanceId(), null);
 	}
 
-	private Sku _addOrUpdateSKU(CPDefinition cpDefinition, Sku sku)
+	private Sku _addOrUpdateSKU(
+			CPDefinition cpDefinition, String externalReferenceCode, Sku sku)
 		throws Exception {
 
 		ServiceContext serviceContext = _serviceContextHelper.getServiceContext(
@@ -520,19 +594,23 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 		}
 
 		CPInstance cpInstance = SkuUtil.addOrUpdateCPInstance(
-			_cpInstanceService, sku, cpDefinition,
-			_cpDefinitionOptionRelService, _cpDefinitionOptionValueRelService,
-			serviceContext);
+			cpDefinition, _cpDefinitionOptionRelService,
+			_cpDefinitionOptionValueRelService, _cpDefinitionService,
+			_cpInstanceService, _cpOptionService, externalReferenceCode,
+			serviceContext, sku);
 
 		serviceContext.setExpandoBridgeAttributes(null);
 
-		SkuUtil.updateCommercePriceEntries(
-			_commercePriceEntryLocalService, _commercePriceListLocalService,
-			_configurationProvider, cpInstance,
-			(BigDecimal)GetterUtil.get(sku.getPrice(), cpInstance.getPrice()),
-			(BigDecimal)GetterUtil.get(
-				sku.getPromoPrice(), cpInstance.getPromoPrice()),
-			StringPool.BLANK, serviceContext);
+		if (!LazyReferencingThreadLocal.isEnabled()) {
+			SkuUtil.updateCommercePriceEntries(
+				_commercePriceEntryLocalService, _commercePriceListLocalService,
+				_configurationProvider, cpInstance,
+				(BigDecimal)GetterUtil.get(
+					sku.getPrice(), cpInstance.getPrice()),
+				(BigDecimal)GetterUtil.get(
+					sku.getPromoPrice(), cpInstance.getPromoPrice()),
+				StringPool.BLANK, serviceContext);
+		}
 
 		_updateNestedResources(sku, cpInstance, serviceContext);
 
@@ -545,12 +623,42 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 			sku.getCustomFields(), contextAcceptLanguage.getPreferredLocale());
 	}
 
+	private CPDefinition _getOrAddEmptyCPDefinition(Sku sku) throws Exception {
+		CommerceCatalog commerceCatalog =
+			_commerceCatalogService.fetchCommerceCatalogByExternalReferenceCode(
+				sku.getCatalogExternalReferenceCode(),
+				contextCompany.getCompanyId());
+
+		if (commerceCatalog == null) {
+			CommerceCurrency commerceCurrency =
+				CommerceCurrencyUtil.fetchCommerceCurrency(
+					contextCompany.getCompanyId(), sku.getCatalogCurrencyCode(),
+					sku.getCatalogCurrencyExternalReferenceCode(), 0);
+
+			if (commerceCurrency == null) {
+				commerceCurrency =
+					_commerceCurrencyService.getOrAddEmptyCommerceCurrency(
+						sku.getCatalogCurrencyExternalReferenceCode(),
+						sku.getCatalogCurrencyCode());
+			}
+
+			commerceCatalog =
+				_commerceCatalogService.getOrAddEmptyCommerceCatalog(
+					sku.getCatalogExternalReferenceCode(), null,
+					commerceCurrency.getCode());
+		}
+
+		return _cpDefinitionService.getOrAddEmptyCPDefinition(
+			sku.getProductExternalReferenceCode(), commerceCatalog.getGroupId(),
+			null, sku.getProductType());
+	}
+
 	private Page<Sku> _getSkusPage(
 			long id, Locale locale, Pagination pagination)
 		throws Exception {
 
 		CPDefinition cpDefinition =
-			_cpDefinitionService.fetchCPDefinitionByCProductId(id);
+			_cpDefinitionService.fetchCPDefinitionByCProductId(id, false);
 
 		if (cpDefinition == null) {
 			return Page.of(Collections.emptyList());
@@ -562,10 +670,10 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 				pagination.getStartPosition(), pagination.getEndPosition(),
 				null);
 
-		int totalItems = _cpInstanceService.getCPDefinitionInstancesCount(
+		int totalCount = _cpInstanceService.getCPDefinitionInstancesCount(
 			cpDefinition.getCPDefinitionId(), WorkflowConstants.STATUS_ANY);
 
-		return Page.of(_toSKUs(cpInstances, locale), pagination, totalItems);
+		return Page.of(_toSKUs(cpInstances, locale), pagination, totalCount);
 	}
 
 	private Page<Sku> _getSkusPage(
@@ -579,18 +687,22 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 			CPInstance.class.getName(), search, pagination,
 			queryConfig -> queryConfig.setSelectedFieldNames(
 				Field.ENTRY_CLASS_PK),
-			new UnsafeConsumer() {
-
-				public void accept(Object object) throws Exception {
-					SearchContext searchContext = (SearchContext)object;
-
-					searchContext.setAttribute(
-						Field.STATUS, WorkflowConstants.STATUS_ANY);
-					searchContext.setCompanyId(companyId);
-				}
-
+			searchContext -> {
+				searchContext.setAttribute(
+					Field.STATUS, WorkflowConstants.STATUS_ANY);
+				searchContext.setCompanyId(companyId);
 			},
 			sorts, transformUnsafeFunction);
+	}
+
+	private List<Sku> _toSKUs(List<CPInstance> cpInstances, Locale locale)
+		throws Exception {
+
+		return transform(
+			cpInstances,
+			cpInstance -> _skuDTOConverter.toDTO(
+				new DefaultDTOConverterContext(
+					cpInstance.getCPInstanceId(), locale)));
 	}
 
 	private Sku _toSku(
@@ -608,21 +720,6 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 			"cpInstanceUnitOfMeasure", cpInstanceUnitOfMeasure);
 
 		return _skuDTOConverter.toDTO(defaultDTOConverterContext);
-	}
-
-	private List<Sku> _toSKUs(List<CPInstance> cpInstances, Locale locale)
-		throws Exception {
-
-		List<Sku> skus = new ArrayList<>();
-
-		for (CPInstance cpInstance : cpInstances) {
-			skus.add(
-				_skuDTOConverter.toDTO(
-					new DefaultDTOConverterContext(
-						cpInstance.getCPInstanceId(), locale)));
-		}
-
-		return skus;
 	}
 
 	private Page<Sku> _toUnitOfMeasureSkusPage(Page<Long> cpInstanceIdsPage)
@@ -708,8 +805,8 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 				cpInstance, skuVirtualSettings,
 				_cpDefinitionVirtualSettingService,
 				_cpdVirtualSettingFileEntryService, _dlAppService,
-				_repositoryLocalService, _uniqueFileNameProvider,
-				serviceContext);
+				_groupService, _journalArticleService, _repositoryLocalService,
+				_uniqueFileNameProvider, serviceContext);
 		}
 
 		return cpInstance;
@@ -726,9 +823,8 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 			serviceContext.setExpandoBridgeAttributes(expandoBridgeAttributes);
 		}
 
-		long replacementCProductId = cpInstance.getReplacementCProductId();
-		String replacementCPInstanceUuid =
-			cpInstance.getReplacementCPInstanceUuid();
+		long replacementCProductId = 0;
+		String replacementCPInstanceUuid = StringPool.BLANK;
 
 		if (GetterUtil.getBoolean(sku.getDiscontinued())) {
 			CPInstance discontinuedCPInstance = null;
@@ -757,6 +853,11 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 
 				replacementCPInstanceUuid =
 					discontinuedCPInstance.getCPInstanceUuid();
+			}
+			else {
+				replacementCProductId = cpInstance.getReplacementCProductId();
+				replacementCPInstanceUuid =
+					cpInstance.getReplacementCPInstanceUuid();
 			}
 		}
 
@@ -924,13 +1025,16 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 
 		serviceContext.setExpandoBridgeAttributes(null);
 
-		SkuUtil.updateCommercePriceEntries(
-			_commercePriceEntryLocalService, _commercePriceListLocalService,
-			_configurationProvider, cpInstance,
-			(BigDecimal)GetterUtil.get(sku.getPrice(), cpInstance.getPrice()),
-			(BigDecimal)GetterUtil.get(
-				sku.getPromoPrice(), cpInstance.getPromoPrice()),
-			StringPool.BLANK, serviceContext);
+		if (!LazyReferencingThreadLocal.isEnabled()) {
+			SkuUtil.updateCommercePriceEntries(
+				_commercePriceEntryLocalService, _commercePriceListLocalService,
+				_configurationProvider, cpInstance,
+				(BigDecimal)GetterUtil.get(
+					sku.getPrice(), cpInstance.getPrice()),
+				(BigDecimal)GetterUtil.get(
+					sku.getPromoPrice(), cpInstance.getPromoPrice()),
+				StringPool.BLANK, serviceContext);
+		}
 
 		_updateNestedResources(sku, cpInstance, serviceContext);
 
@@ -938,6 +1042,12 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 	}
 
 	private static final EntityModel _entityModel = new SkuEntityModel();
+
+	@Reference
+	private CommerceCatalogService _commerceCatalogService;
+
+	@Reference
+	private CommerceCurrencyService _commerceCurrencyService;
 
 	@Reference
 	private CommercePriceEntryLocalService _commercePriceEntryLocalService;
@@ -966,23 +1076,32 @@ public class SkuResourceImpl extends BaseSkuResourceImpl {
 		_cpDefinitionVirtualSettingService;
 
 	@Reference
-	private CPDVirtualSettingFileEntryService
-		_cpdVirtualSettingFileEntryService;
-
-	@Reference
 	private CPInstanceService _cpInstanceService;
 
 	@Reference
 	private CPInstanceUnitOfMeasureService _cpInstanceUnitOfMeasureService;
 
 	@Reference
+	private CPOptionService _cpOptionService;
+
+	@Reference
 	private CPTypeRegistry _cpTypeRegistry;
+
+	@Reference
+	private CPDVirtualSettingFileEntryService
+		_cpdVirtualSettingFileEntryService;
 
 	@Reference
 	private DLAppService _dlAppService;
 
 	@Reference
 	private DTOConverterRegistry _dtoConverterRegistry;
+
+	@Reference
+	private GroupService _groupService;
+
+	@Reference
+	private JournalArticleService _journalArticleService;
 
 	@Reference
 	private RepositoryLocalService _repositoryLocalService;

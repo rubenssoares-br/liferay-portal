@@ -15,11 +15,12 @@ import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.role.RoleConstants;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactory;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -37,18 +38,29 @@ public class APIApplicationPublisherPortalInstanceLifecycleListener
 
 	@Override
 	public void portalInstanceRegistered(Company company) {
-		if (!FeatureFlagManagerUtil.isEnabled("LPS-178642")) {
+		if (!FeatureFlagManagerUtil.isEnabled(
+				company.getCompanyId(), "LPS-178642")) {
+
 			return;
 		}
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
-				PermissionThreadLocal.setPermissionChecker(
-					_permissionCheckerFactory.create(
-						_userLocalService.getUser(
-							_getAdminUserId(company.getCompanyId()))));
+				PermissionChecker permissionChecker =
+					PermissionThreadLocal.getPermissionChecker();
 
-				_apiApplicationPublisher.publish(company.getCompanyId());
+				try {
+					PermissionThreadLocal.setPermissionChecker(
+						_permissionCheckerFactory.create(
+							_userLocalService.getUser(
+								_getAdminUserId(company.getCompanyId()))));
+
+					_apiApplicationPublisher.publish(company.getCompanyId());
+				}
+				finally {
+					PermissionThreadLocal.setPermissionChecker(
+						permissionChecker);
+				}
 
 				return null;
 			});

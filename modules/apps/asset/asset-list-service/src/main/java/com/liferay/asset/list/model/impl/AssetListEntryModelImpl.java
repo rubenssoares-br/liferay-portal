@@ -103,6 +103,10 @@ public class AssetListEntryModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table AssetListEntry";
 
+	public static final String ENTITY_ALIAS = "assetListEntry";
+
+	public static final String FILTER_PK_COLUMN_NAME = "assetListEntryId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY assetListEntry.assetListEntryId ASC";
 
@@ -164,20 +168,14 @@ public class AssetListEntryModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long TYPE_COLUMN_BITMASK = 128L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 256L;
+	public static final long UUID_COLUMN_BITMASK = 128L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long ASSETLISTENTRYID_COLUMN_BITMASK = 512L;
+	public static final long ASSETLISTENTRYID_COLUMN_BITMASK = 256L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
@@ -715,16 +713,6 @@ public class AssetListEntryModelImpl
 		}
 
 		_type = type;
-	}
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public int getOriginalType() {
-		return GetterUtil.getInteger(
-			this.<Integer>getColumnOriginalValue("type_"));
 	}
 
 	@JSON
@@ -1296,3 +1284,4 @@ public class AssetListEntryModelImpl
 	private AssetListEntry _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1260876584

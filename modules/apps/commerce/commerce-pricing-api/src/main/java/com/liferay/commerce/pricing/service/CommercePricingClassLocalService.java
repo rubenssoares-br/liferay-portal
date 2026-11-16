@@ -288,10 +288,6 @@ public interface CommercePricingClassLocalService
 			String uuid, long companyId)
 		throws PortalException;
 
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getCommercePricingClassCountByCPDefinitionId(
-		long cpDefinitionId, String title);
-
 	/**
 	 * Returns a range of all the commerce pricing classes.
 	 *
@@ -324,15 +320,16 @@ public interface CommercePricingClassLocalService
 	public int getCommercePricingClassesCount(long companyId);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getCommercePricingClassesCount(
-		long cpDefinitionId, String title);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public ExportActionableDynamicQuery getExportActionableDynamicQuery(
 		PortletDataContext portletDataContext);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public IndexableActionableDynamicQuery getIndexableActionableDynamicQuery();
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public CommercePricingClass getOrAddEmptyCommercePricingClass(
+			String externalReferenceCode, long companyId, long userId)
+		throws PortalException;
 
 	/**
 	 * Returns the OSGi service identifier.
@@ -348,10 +345,6 @@ public interface CommercePricingClassLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public PersistedModel getPersistedModel(Serializable primaryKeyObj)
 		throws PortalException;
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<CommercePricingClass> searchByCPDefinitionId(
-		long cpDefinitionId, String title, int start, int end);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public BaseModelSearchResult<CommercePricingClass>
@@ -401,3 +394,4 @@ public interface CommercePricingClassLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1428162567

@@ -76,7 +76,7 @@ public class DDMFieldCTUpgradeProcessTest extends BaseCTUpgradeProcessTestCase {
 			RandomTestUtil.randomString());
 
 		_ddmStructure = DDMStructureLocalServiceUtil.addStructure(
-			TestPropsValues.getUserId(), _group.getGroupId(), 0,
+			null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
 			PortalUtil.getClassNameId(DDLRecordSet.class.getName()),
 			"CUSTOM-META-TAGS", RandomTestUtil.randomLocaleStringMap(), null,
 			ddmForm, _ddm.getDefaultDDMFormLayout(ddmForm),
@@ -173,11 +173,6 @@ public class DDMFieldCTUpgradeProcessTest extends BaseCTUpgradeProcessTestCase {
 
 	private static final int _PRIORITY = RandomTestUtil.randomInt();
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private CounterLocalService _counterLocalService;
 
@@ -198,5 +193,10 @@ public class DDMFieldCTUpgradeProcessTest extends BaseCTUpgradeProcessTestCase {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

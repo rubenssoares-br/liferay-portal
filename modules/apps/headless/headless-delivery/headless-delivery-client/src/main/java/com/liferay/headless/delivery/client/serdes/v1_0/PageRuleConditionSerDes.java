@@ -8,13 +8,14 @@ package com.liferay.headless.delivery.client.serdes.v1_0;
 import com.liferay.headless.delivery.client.dto.v1_0.PageRuleCondition;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -46,16 +47,16 @@ public class PageRuleConditionSerDes {
 
 		sb.append("{");
 
-		if (pageRuleCondition.getCondition() != null) {
+		if (pageRuleCondition.getField() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"condition\": ");
+			sb.append("\"field\": ");
 
 			sb.append("\"");
 
-			sb.append(_escape(pageRuleCondition.getCondition()));
+			sb.append(_escape(pageRuleCondition.getField()));
 
 			sb.append("\"");
 		}
@@ -74,6 +75,16 @@ public class PageRuleConditionSerDes {
 			sb.append("\"");
 		}
 
+		if (pageRuleCondition.getOptions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"options\": ");
+
+			sb.append(String.valueOf(pageRuleCondition.getOptions()));
+		}
+
 		if (pageRuleCondition.getType() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -84,20 +95,6 @@ public class PageRuleConditionSerDes {
 			sb.append("\"");
 
 			sb.append(_escape(pageRuleCondition.getType()));
-
-			sb.append("\"");
-		}
-
-		if (pageRuleCondition.getValue() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"value\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(pageRuleCondition.getValue()));
 
 			sb.append("\"");
 		}
@@ -123,12 +120,11 @@ public class PageRuleConditionSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
-		if (pageRuleCondition.getCondition() == null) {
-			map.put("condition", null);
+		if (pageRuleCondition.getField() == null) {
+			map.put("field", null);
 		}
 		else {
-			map.put(
-				"condition", String.valueOf(pageRuleCondition.getCondition()));
+			map.put("field", String.valueOf(pageRuleCondition.getField()));
 		}
 
 		if (pageRuleCondition.getId() == null) {
@@ -138,18 +134,18 @@ public class PageRuleConditionSerDes {
 			map.put("id", String.valueOf(pageRuleCondition.getId()));
 		}
 
+		if (pageRuleCondition.getOptions() == null) {
+			map.put("options", null);
+		}
+		else {
+			map.put("options", String.valueOf(pageRuleCondition.getOptions()));
+		}
+
 		if (pageRuleCondition.getType() == null) {
 			map.put("type", null);
 		}
 		else {
 			map.put("type", String.valueOf(pageRuleCondition.getType()));
-		}
-
-		if (pageRuleCondition.getValue() == null) {
-			map.put("value", null);
-		}
-		else {
-			map.put("value", String.valueOf(pageRuleCondition.getValue()));
 		}
 
 		return map;
@@ -170,16 +166,16 @@ public class PageRuleConditionSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "condition")) {
+			if (Objects.equals(jsonParserFieldName, "field")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "type")) {
+			else if (Objects.equals(jsonParserFieldName, "options")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "value")) {
+			else if (Objects.equals(jsonParserFieldName, "type")) {
 				return false;
 			}
 
@@ -191,10 +187,9 @@ public class PageRuleConditionSerDes {
 			PageRuleCondition pageRuleCondition, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "condition")) {
+			if (Objects.equals(jsonParserFieldName, "field")) {
 				if (jsonParserFieldValue != null) {
-					pageRuleCondition.setCondition(
-						(String)jsonParserFieldValue);
+					pageRuleCondition.setField((String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
@@ -202,14 +197,15 @@ public class PageRuleConditionSerDes {
 					pageRuleCondition.setId((String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "options")) {
+				if (jsonParserFieldValue != null) {
+					pageRuleCondition.setOptions(
+						OptionsSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
 				if (jsonParserFieldValue != null) {
 					pageRuleCondition.setType((String)jsonParserFieldValue);
-				}
-			}
-			else if (Objects.equals(jsonParserFieldName, "value")) {
-				if (jsonParserFieldValue != null) {
-					pageRuleCondition.setValue((String)jsonParserFieldValue);
 				}
 			}
 		}
@@ -257,6 +253,16 @@ public class PageRuleConditionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -289,3 +295,4 @@ public class PageRuleConditionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1865529434

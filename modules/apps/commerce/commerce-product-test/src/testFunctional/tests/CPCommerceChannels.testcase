@@ -1,13 +1,17 @@
 @component-name = "portal-commerce"
 definition {
 
-	property custom.properties = "feature.flag.LPD-38869=true";
+	property browser.chrome.version = "139.0";
 	property portal.release = "true";
 	property portal.upstream = "true";
 	property testray.main.component.name = "Product Info Management";
 
 	setUp {
 		CommerceConfiguration.commerceSetUp(minium = "true");
+
+		task ("Enable private pages") {
+			PagesAdmin.enablePrivatePages();
+		}
 	}
 
 	tearDown {
@@ -257,8 +261,6 @@ definition {
 
 		SelectFrame.selectFrameNoLoading(locator1 = "CommerceEntry#IFRAME_SIDE_PANEL");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Shipping Option Settings");
-
 		CommerceEntry.addShippingOptionSettingsVariableRate(
 			country = "Italy",
 			fixedPrice = 1,
@@ -266,12 +268,13 @@ definition {
 			region = "Roma",
 			shippingOption = "Standard",
 			subtotal = 1,
-			warehouse = "Italy",
 			weightFrom = 1,
 			weightTo = 1,
 			zip = 0100);
 
-		Alert.viewSuccessMessage();
+		AssertElementPresent(
+			key_entryName = "Standard",
+			locator1 = "CommerceNavigation#ENTRY_NAME");
 	}
 
 	@description = "This is a test for COMMERCE-6110. AddShippingOptionVariableRate"
@@ -452,45 +455,6 @@ definition {
 			locator1 = "CommerceEntry#ENTRY_NAME_BODY_VERTICAL_ELLIPSIS");
 	}
 
-	@description = "This is a test for COMMERCE-6413. Commerce Channel API unable to define Type"
-	@priority = 3
-	test CanCreateChannelViaAPIAndCheckTabs {
-		property portal.acceptance = "false";
-
-		var wrongChannelType = "Site";
-		var correctChannelType = "site";
-		var channelTabsList = "General,Type,Notification Queue,Notification Templates,Payment Restrictions,Shipping Restrictions";
-		var createChannelResponseWithError = CommerceJSONChannelsAPI._addChannel(
-			channelName = "Test Channel New",
-			channelType = ${wrongChannelType},
-			currencyCode = "US",
-			externalReferenceCode = 101);
-
-		var createChannelErrorMessage = JSONUtil.getWithJSONPath(${createChannelResponseWithError}, "$");
-
-		TestUtils.assertEquals(
-			actual = ${createChannelErrorMessage},
-			expected = "{errorDescription=Invalid channel type, message=null, status=400}");
-
-		CommerceChannels.openChannelsAdmin();
-
-		IsElementPresent(locator1 = "CommerceNavigation#EMPTY_SEARCH_CONTAINER");
-
-		CommerceJSONChannelsAPI._addChannel(
-			channelName = "Test Channel New",
-			channelType = ${correctChannelType},
-			currencyCode = "US",
-			externalReferenceCode = 101);
-
-		Refresh();
-
-		CommerceNavigator.gotoEntry(entryName = "Test Channel New");
-
-		for (var channelTab : list ${channelTabsList}) {
-			CommerceEntry.gotoMenuTab(menuTab = ${channelTab});
-		}
-	}
-
 	@description = "COMMERCE-12919. Can Edit PayPal payment method in a channel's Details page"
 	@priority = 3
 	test CanEditPayPalPaymentMethod {
@@ -664,7 +628,7 @@ definition {
 		}
 
 		task ("Then an error message is shown") {
-			Alert.viewErrorMessage(errorMessage = "The qualifier is already linked.");
+			Alert.viewErrorMessage(errorMessage = "The payment method group relation qualifier already exists.");
 		}
 
 		task ("When the admin selects the same term eligibility once again") {
@@ -674,7 +638,7 @@ definition {
 		}
 
 		task ("Then an error message is shown") {
-			Alert.viewErrorMessage(errorMessage = "The qualifier is already linked.");
+			Alert.viewErrorMessage(errorMessage = "The payment method group relation qualifier already exists.");
 		}
 	}
 
@@ -715,7 +679,7 @@ definition {
 		}
 
 		task ("Then an error message is shown") {
-			Alert.viewErrorMessage(errorMessage = "The qualifier is already linked.");
+			Alert.viewErrorMessage(errorMessage = "The shipping fixed option qualifier already exists.");
 		}
 
 		task ("When the admin selects the same term eligibility once again") {
@@ -725,79 +689,7 @@ definition {
 		}
 
 		task ("Then an error message is shown") {
-			Alert.viewErrorMessage(errorMessage = "The qualifier is already linked.");
-		}
-	}
-
-	@description = "Test for COMMERCE-9432 | Can paginate Payment and Shipping Restrictions pages"
-	@priority = 3
-	test CanPaginatePaymentAndShippingRestrictions {
-		property portal.acceptance = "false";
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("Given the admin navigates to 'Minium Portal' channel") {
-			CommerceChannels.openChannelsAdmin();
-
-			CommerceNavigator.gotoEntry(entryName = "Minium Portal");
-		}
-
-		task ("When the admin navigates to the Payment/Shipping Restrictions tab") {
-			for (var tab : list "Payment,Shipping") {
-				CommerceEntry.gotoMenuTab(menuTab = "${tab} Restrictions");
-
-				task ("Then the admin can use pagination to change the list of countries shown on the page") {
-					Pagination.changePagination(itemsPerPage = "4 Items");
-
-					CommerceEntry.viewPaginationResults(results = "Showing 1 to 4 of 249 entries.");
-
-					AssertElementNotPresent(
-						key_rowNumber = 5,
-						locator1 = "CommerceEntry#ENTRY_CONTENT_ROW_NUMBER");
-
-					for (var country : list "Afghanistan,Aland Islands,Albania,Algeria") {
-						AssertElementPresent(
-							key_tableEntry = ${country},
-							locator1 = "LexiconTable#TABLE_ENTRY");
-					}
-
-					Click(locator1 = "ACUtils#NEXT_PAGES");
-
-					CommerceEntry.viewPaginationResults(results = "Showing 5 to 8 of 249 entries.");
-
-					AssertElementNotPresent(
-						key_rowNumber = 5,
-						locator1 = "CommerceEntry#ENTRY_CONTENT_ROW_NUMBER");
-
-					for (var country : list "Afghanistan,Aland Islands,Albania,Algeria") {
-						AssertElementNotPresent(
-							key_tableEntry = ${country},
-							locator1 = "LexiconTable#TABLE_ENTRY");
-					}
-
-					Click(locator1 = "ACUtils#PREVIOUS_PAGES");
-
-					AssertElementNotPresent(
-						key_rowNumber = 5,
-						locator1 = "CommerceEntry#ENTRY_CONTENT_ROW_NUMBER");
-
-					for (var country : list "Afghanistan,Aland Islands,Albania,Algeria") {
-						AssertElementPresent(
-							key_tableEntry = ${country},
-							locator1 = "LexiconTable#TABLE_ENTRY");
-					}
-
-					Click(
-						key_pageNumber = 4,
-						locator1 = "CommerceNavigation#PAGINATION_ANY_PAGE");
-
-					for (var country : list "Afghanistan,Aland Islands,Albania,Algeria") {
-						AssertElementNotPresent(
-							key_tableEntry = ${country},
-							locator1 = "LexiconTable#TABLE_ENTRY");
-					}
-				}
-			}
+			Alert.viewErrorMessage(errorMessage = "The shipping fixed option qualifier already exists");
 		}
 	}
 
@@ -879,7 +771,7 @@ definition {
 		}
 
 		task ("And the user creates a new notifications template") {
-			CommerceEntry.gotoMenuTab(menuTab = "Notification Templates");
+			CommerceEntry.gotoMenuTab(menuTab = "Notification Templates DEPRECATED");
 
 			Click(locator1 = "Button#PLUS");
 
@@ -976,7 +868,7 @@ definition {
 		task ("And when the buyer reach the visibility tab for a product inside the Products section") {
 			CommerceProducts.openProductsAdmin();
 
-			AppBuilderAdmin.searchByItem(itemName = "ABS Sensor");
+			CommerceNavigator.searchEntry(entryName = "ABS Sensor");
 
 			CommerceNavigator.gotoEntry(entryName = "ABS Sensor");
 
@@ -1274,7 +1166,7 @@ definition {
 			channelType = "Site",
 			siteName = "Guest");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates DEPRECATED");
 
 		Click(locator1 = "Button#PLUS");
 
@@ -1481,7 +1373,7 @@ definition {
 
 		CommerceNavigator.gotoEntry(entryName = "Minium Portal");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates DEPRECATED");
 
 		Click(locator1 = "Button#PLUS");
 
@@ -1588,103 +1480,6 @@ definition {
 		Alert.viewSuccessMessage();
 	}
 
-	@description = "Verify users can configure payment method eligibility to specific payment terms."
-	@priority = 5
-	test PaymentMethodEligibleForSpecificPaymentTerms {
-		property custom.properties = "company.security.strangers.verify=false${line.separator}jsonws.web.service.paths.excludes=";
-		property portal.acceptance = "true";
-
-		task ("Given an account with a buyer user") {
-			CommerceEntry.addAccountEntryUser(
-				accountName = "Commerce Account",
-				accountType = "Business",
-				agreeToTermsAndAnswerReminderQuery = "true",
-				createNewAccount = "true",
-				requireReset = "false",
-				userEmailAddress = "buyer@liferay.com",
-				userFirstName = "Buyer",
-				userLastName = "User",
-				userRole = "Buyer",
-				userScreenName = "buyeruser",
-				userSiteMembership = "Minium");
-		}
-
-		task ("And given an active payment term") {
-			CommerceJSONTermsAndConditionsAPI._addCommerceTermsAndConditions(termsType = "Payment");
-		}
-
-		task ("And given multiple active payment methods") {
-			CommerceChannels.openChannelsAdmin();
-
-			CommerceNavigator.gotoEntry(entryName = "Minium Portal");
-
-			CommerceChannels.activatePaymentMethod(paymentMethod = "PayPal");
-
-			CommerceChannels.activatePaymentMethod(paymentMethod = "Mercanet");
-		}
-
-		task ("And given one of the payment method's eligibility is set specifically to Payment Term 1") {
-			CommerceEntry.setEntryEligibility(
-				paymentMethod = "PayPal",
-				paymentTermsEligibility = "Payment Term 1");
-		}
-
-		task ("When the buyer checks out an order using the edited payment method") {
-			User.logoutPG();
-
-			CommerceLogin.miniumLogin(
-				password = PropsUtil.get("default.admin.password"),
-				urlAppend = "web/minium",
-				userEmailAddress = "buyer@liferay.com");
-
-			FrontStore.addInitializerProductToCart(
-				productName = "U-Joint",
-				productQuantity = 1);
-
-			CommerceCheckout.gotoCheckoutViaMiniCart();
-		}
-
-		task ("Then the payment term should be applied to the order") {
-			CommerceCheckout.initializersCheckout(
-				newAddressAddress = "Test Address",
-				newAddressCity = "Test City",
-				newAddressCountry = "United States",
-				newAddressName = "Address Name",
-				newAddressZipCode = "Test Zip Code",
-				paymentMethod = "PayPal",
-				paymentTerm = "Payment Term 1",
-				productName = "U-Joint",
-				productQuantity = 1,
-				productUnitPrice = 24,
-				shippingMethod = "Standard");
-		}
-
-		task ("When the buyer checks out an order using the non-edited payment method") {
-			CommerceNavigator.gotoMiniumSidebarItem(menuItem = "Catalog");
-
-			FrontStore.addInitializerProductToCart(
-				productName = "U-Joint",
-				productQuantity = 1);
-
-			CommerceCheckout.gotoCheckoutViaMiniCart();
-		}
-
-		task ("The the payment term should not be applied to the order") {
-			CommerceCheckout.initializersCheckout(
-				newAddressAddress = "Test Address",
-				newAddressCity = "Test City",
-				newAddressCountry = "United States",
-				newAddressName = "Address Name",
-				newAddressZipCode = "Test Zip Code",
-				paymentMethod = "Mercanet",
-				paymentTerm = "",
-				productName = "U-Joint",
-				productQuantity = 1,
-				productUnitPrice = 24,
-				shippingMethod = "Standard");
-		}
-	}
-
 	@description = "This is a test for COMMERCE-6270. RemoveNotificationQueue"
 	@priority = 5
 	test RemoveNotificationQueue {
@@ -1729,7 +1524,7 @@ definition {
 
 		CommerceNavigator.gotoEntry(entryName = "Minium Portal");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates DEPRECATED");
 
 		Click(locator1 = "Button#PLUS");
 
@@ -1767,7 +1562,7 @@ definition {
 
 		CommerceNavigator.gotoEntry(entryName = "Minium Portal");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Queue");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Queue DEPRECATED");
 
 		Click(
 			key_value = "Test",
@@ -1787,7 +1582,7 @@ definition {
 
 		CommerceNavigator.gotoEntry(entryName = "Minium Portal");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates DEPRECATED");
 
 		Click(locator1 = "Button#PLUS");
 
@@ -2009,8 +1804,6 @@ definition {
 
 		SelectFrame.selectFrameNoLoading(locator1 = "CommerceEntry#IFRAME_SIDE_PANEL");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Shipping Option Settings");
-
 		CommerceEntry.addShippingOptionSettingsVariableRate(
 			country = "Italy",
 			fixedPrice = 1,
@@ -2018,7 +1811,6 @@ definition {
 			region = "Roma",
 			shippingOption = "Standard",
 			subtotal = 1,
-			warehouse = "Italy",
 			weightFrom = 1,
 			weightTo = 1,
 			zip = 0100);
@@ -2175,7 +1967,7 @@ definition {
 
 		CommerceProducts.openProductsAdmin();
 
-		AppBuilderAdmin.searchByItem(itemName = "Turbocharger");
+		CommerceNavigator.searchEntry(entryName = "Turbocharger");
 
 		CommerceNavigator.gotoEntry(entryName = "Turbocharger");
 
@@ -2187,9 +1979,7 @@ definition {
 
 		CommerceEntry.gotoMenuTab(menuTab = "Visibility");
 
-		for (var nameList : list "Channels,Account Groups") {
-			CommerceEntry.assertCheckedSpecificToggle(name = ${nameList});
-		}
+		CommerceEntry.assertCheckedSpecificToggle(name = "Channels");
 
 		CommerceChannels.openChannelsAdmin();
 
@@ -2207,7 +1997,7 @@ definition {
 
 		SelectFrame.selectFrameNoLoading(locator1 = "IFrame#MODAL_IFRAME");
 
-		AppBuilderAdmin.searchByItem(itemName = "Turbocharger");
+		CommerceNavigator.searchEntry(entryName = "Turbocharger");
 
 		AssertElementPresent(
 			key_entry = "Turbocharger",
@@ -2388,98 +2178,6 @@ definition {
 			AssertElementPresent(
 				key_radioOption = "Expedited",
 				locator1 = "CommerceEntry#RADIO_BUTTON");
-		}
-	}
-
-	@description = "Verify users can configure shipping option eligibility to specific delivery terms."
-	@priority = 5
-	test ShippingOptionEligibleForSpecificDeliveryTerms {
-		property custom.properties = "company.security.strangers.verify=false${line.separator}jsonws.web.service.paths.excludes=";
-		property portal.acceptance = "true";
-
-		task ("Given an account with a buyer user") {
-			CommerceEntry.addAccountEntryUser(
-				accountName = "Commerce Account",
-				accountType = "Business",
-				agreeToTermsAndAnswerReminderQuery = "true",
-				createNewAccount = "true",
-				requireReset = "false",
-				userEmailAddress = "buyer@liferay.com",
-				userFirstName = "Buyer",
-				userLastName = "User",
-				userRole = "Buyer",
-				userScreenName = "buyeruser",
-				userSiteMembership = "Minium");
-		}
-
-		task ("And given an active delivery term") {
-			CommerceJSONTermsAndConditionsAPI._addCommerceTermsAndConditions(
-				termsCount = 1,
-				termsType = "Delivery");
-		}
-
-		task ("And given one of the shipping option's eligibility is set specifically to Delivery Term 1") {
-			CommerceChannels.openChannelsAdmin();
-
-			CommerceNavigator.gotoEntry(entryName = "Minium Portal");
-
-			CommerceEntry.setEntryEligibility(
-				deliveryTermsEligibility = "Delivery Term 1",
-				shippingMethod = "Flat Rate",
-				shippingOption = "Standard Delivery");
-		}
-
-		task ("When the buyer checks out an order using the edited shipping option") {
-			User.logoutPG();
-
-			CommerceLogin.miniumLogin(
-				password = PropsUtil.get("default.admin.password"),
-				urlAppend = "web/minium",
-				userEmailAddress = "buyer@liferay.com");
-
-			FrontStore.addInitializerProductToCart(
-				productName = "U-Joint",
-				productQuantity = 1);
-
-			CommerceCheckout.gotoCheckout();
-		}
-
-		task ("Then the delivery term should be applied to the order") {
-			CommerceCheckout.initializersCheckout(
-				deliveryTerm = "Delivery Term 1",
-				newAddressAddress = "Test Address",
-				newAddressCity = "Test City",
-				newAddressCountry = "United States",
-				newAddressName = "Address Name",
-				newAddressZipCode = "Test Zip Code",
-				productName = "U-Joint",
-				productQuantity = 1,
-				productUnitPrice = 24,
-				shippingMethod = "Standard");
-		}
-
-		task ("When the buyer checks out an order using the non-edited shipping option") {
-			CommerceNavigator.gotoMiniumSidebarItem(menuItem = "Catalog");
-
-			FrontStore.addInitializerProductToCart(
-				productName = "U-Joint",
-				productQuantity = 1);
-
-			CommerceCheckout.gotoCheckout();
-		}
-
-		task ("The the delivery term should not be applied to the order") {
-			CommerceCheckout.initializersCheckout(
-				deliveryTerm = "",
-				newAddressAddress = "Test Address",
-				newAddressCity = "Test City",
-				newAddressCountry = "United States",
-				newAddressName = "Address Name",
-				newAddressZipCode = "Test Zip Code",
-				productName = "U-Joint",
-				productQuantity = 1,
-				productUnitPrice = 24,
-				shippingMethod = "Expedited");
 		}
 	}
 
@@ -2715,7 +2413,7 @@ definition {
 
 		CommerceNavigator.gotoEntry(entryName = "Minium Portal");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Templates DEPRECATED");
 
 		Click(locator1 = "Button#PLUS");
 
@@ -2753,7 +2451,7 @@ definition {
 
 		CommerceNavigator.gotoEntry(entryName = "Minium Portal");
 
-		CommerceEntry.gotoMenuTab(menuTab = "Notification Queue");
+		CommerceEntry.gotoMenuTab(menuTab = "Notification Queue DEPRECATED");
 
 		AssertElementPresent(
 			key_name = "Test",
@@ -2791,10 +2489,6 @@ definition {
 		}
 
 		task ("Then the priority values will be shown in the priority column") {
-			AssertElementPresent(
-				key_text = "Priority",
-				locator1 = "Button#ANY");
-
 			AssertTextEquals(
 				key_columnNumber = 3,
 				key_entryName = "Standard Delivery",

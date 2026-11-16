@@ -51,6 +51,30 @@ public class AssetTagServiceWrapper
 	}
 
 	@Override
+	public AssetTag fetchAssetTagByExternalReferenceCode(
+		String externalReferenceCode, long groupId) {
+
+		return _assetTagService.fetchAssetTagByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
+	@Override
+	public AssetTag fetchTag(long groupId, String name)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _assetTagService.fetchTag(groupId, name);
+	}
+
+	@Override
+	public AssetTag getAssetTagByExternalReferenceCode(
+			String externalReferenceCode, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _assetTagService.getAssetTagByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
+	@Override
 	public java.util.List<AssetTag> getGroupsTags(long[] groupIds) {
 		return _assetTagService.getGroupsTags(groupIds);
 	}
@@ -97,6 +121,13 @@ public class AssetTagServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _assetTagService.getTag(tagId);
+	}
+
+	@Override
+	public AssetTag getTag(long groupId, String name)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _assetTagService.getTag(groupId, name);
 	}
 
 	@Override
@@ -238,3 +269,4 @@ public class AssetTagServiceWrapper
 	private AssetTagService _assetTagService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:926018192

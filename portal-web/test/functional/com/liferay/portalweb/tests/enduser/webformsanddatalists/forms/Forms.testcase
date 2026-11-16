@@ -38,12 +38,22 @@ definition {
 
 	@priority = 5
 	test AddFormInGlobal {
-		property custom.properties = "feature.flag.LPD-38869=true";
 		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
-		property testray.component.names = "Training";
+
+		task ("Enable Scope Configuration") {
+			Portlet.enableScopeConfiguration();
+		}
+
+		task ("Enable private pages") {
+			PagesAdmin.enablePrivatePages();
+		}
+
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
+		}
 
 		Navigator.openURL();
 
@@ -125,10 +135,13 @@ definition {
 	@description = "This is a use case for LPS-68377."
 	@priority = 3
 	test AddFormToUserSiteAndViewNoDuplicates {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
+
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
+		}
 
 		User.openUsersAdmin();
 
@@ -233,7 +246,6 @@ definition {
 	@description = "LPS-68390 - Verify that a notification appears when a Form is autosaved."
 	@priority = 3
 	test AutosaveDisplaysANotification {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
@@ -258,22 +270,20 @@ definition {
 	@description = "LPS-68418 - Verify that a Form's autosave interval can be configured"
 	@priority = 3
 	test AutosaveIntervalCanBeConfigured {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
 		Navigator.openURL();
 
-		ApplicationsMenu.gotoPortlet(
-			category = "Configuration",
+		ApplicationsMenu.gotoRootPortlet(
 			panel = "Control Panel",
 			portlet = "System Settings");
 
 		SystemSettings.gotoConfiguration(
 			configurationCategory = "Forms",
 			configurationName = "Forms",
-			configurationScope = "Site Scope");
+			configurationScope = "System Scope");
 
 		FormFields.viewTextLabel(
 			fieldLabel = "Autosave Interval",
@@ -720,7 +730,6 @@ definition {
 	@description = "LPS-69334 - Verify that a Form can be edited after the default language is changed"
 	@priority = 3
 	test CanBeEditedAfterChangingLanguage {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
@@ -765,7 +774,6 @@ definition {
 	@description = "LPS-69100 - Verify that a Form can be edited after the Site's default locale is changed"
 	@priority = 3
 	test CanBeEditedAfterChangingLocale {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
@@ -1160,7 +1168,6 @@ definition {
 	@description = "LPS-69214 - Verify that a confirmation appears when attempting to leave a Form without saving."
 	@priority = 3
 	test ConfirmationAppearsWhenLeavingFormWithoutSaving {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
@@ -1389,8 +1396,7 @@ definition {
 
 		Navigator.openURL();
 
-		ApplicationsMenu.gotoPortlet(
-			category = "Configuration",
+		ApplicationsMenu.gotoRootPortlet(
 			panel = "Control Panel",
 			portlet = "System Settings");
 
@@ -1429,7 +1435,7 @@ definition {
 		SystemSettings.gotoConfiguration(
 			configurationCategory = "Dynamic Data Mapping",
 			configurationName = "Dynamic Data Mapping Service",
-			configurationScope = "Site Scope");
+			configurationScope = "System Scope");
 
 		FormFields.viewRepeatableTextMultilineField(
 			fieldHelpText = "Set the allowed file extensions for template images. A file extension of * will permit all file extensions.",
@@ -1473,7 +1479,7 @@ definition {
 		SystemSettings.gotoConfiguration(
 			configurationCategory = "Dynamic Data Mapping",
 			configurationName = "Dynamic Data Mapping Service",
-			configurationScope = "Site Scope");
+			configurationScope = "System Scope");
 
 		FormFields.viewRepeatableTextMultilineValue(
 			fieldName = "smallImageExtensions",
@@ -2293,7 +2299,7 @@ definition {
 				webContentContent = "WC WebContent Content",
 				webContentTitle = "WC WebContent Title");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 
 			Navigator.openURL();
 		}

@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("ChannelAccount")
+@GraphQLName(
+	description = "Association that grants a commerce account access to a channel; controls whether the account can browse or purchase on the storefront. Created on POST and removed on DELETE; no update operation.",
+	value = "ChannelAccount"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Association that grants a commerce account access to a channel; controls whether the account can browse or purchase on the storefront. Created on POST and removed on DELETE; no update operation.",
+	requiredProperties = {"accountId", "channelId"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"accountId", "channelId"})
 @XmlRootElement(name = "ChannelAccount")
 public class ChannelAccount implements Serializable {
 
@@ -53,7 +60,9 @@ public class ChannelAccount implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ChannelAccount.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Embedded snapshot of the linked Account; read-only."
+	)
 	@Valid
 	public Account getAccount() {
 		if (_accountSupplier != null) {
@@ -88,14 +97,19 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Embedded snapshot of the linked Account; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Account account;
 
 	@JsonIgnore
 	private Supplier<Account> _accountSupplier;
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Account by its external reference code (FK alternate key).",
+		example = "AB-34098-789-N"
+	)
 	public String getAccountExternalReferenceCode() {
 		if (_accountExternalReferenceCodeSupplier != null) {
 			accountExternalReferenceCode =
@@ -133,7 +147,9 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Account by its external reference code (FK alternate key)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String accountExternalReferenceCode;
 
@@ -141,7 +157,10 @@ public class ChannelAccount implements Serializable {
 	private Supplier<String> _accountExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Account (FK identifier).",
+		example = "30130"
+	)
 	public Long getAccountId() {
 		if (_accountIdSupplier != null) {
 			accountId = _accountIdSupplier.get();
@@ -175,7 +194,7 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the Account (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long accountId;
@@ -183,7 +202,9 @@ public class ChannelAccount implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _accountIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -219,7 +240,9 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
@@ -227,7 +250,10 @@ public class ChannelAccount implements Serializable {
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal long ID of the ChannelAccount record; read-only.",
+		example = "30643"
+	)
 	public Long getChannelAccountId() {
 		if (_channelAccountIdSupplier != null) {
 			channelAccountId = _channelAccountIdSupplier.get();
@@ -261,14 +287,19 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal long ID of the ChannelAccount record; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long channelAccountId;
 
 	@JsonIgnore
 	private Supplier<Long> _channelAccountIdSupplier;
 
-	@Schema(example = "PAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Channel by its external reference code (FK alternate key).",
+		example = "AB-34098-789-N"
+	)
 	public String getChannelExternalReferenceCode() {
 		if (_channelExternalReferenceCodeSupplier != null) {
 			channelExternalReferenceCode =
@@ -306,7 +337,9 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the Channel by its external reference code (FK alternate key)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String channelExternalReferenceCode;
 
@@ -314,7 +347,10 @@ public class ChannelAccount implements Serializable {
 	private Supplier<String> _channelExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the Channel (FK identifier).",
+		example = "30130"
+	)
 	public Long getChannelId() {
 		if (_channelIdSupplier != null) {
 			channelId = _channelIdSupplier.get();
@@ -348,7 +384,7 @@ public class ChannelAccount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the Channel (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long channelId;
@@ -480,8 +516,8 @@ public class ChannelAccount implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.channel.dto.v1_0.ChannelAccount",
 		name = "x-class-name"
 	)
@@ -568,6 +604,27 @@ public class ChannelAccount implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -576,3 +633,4 @@ public class ChannelAccount implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:303428528

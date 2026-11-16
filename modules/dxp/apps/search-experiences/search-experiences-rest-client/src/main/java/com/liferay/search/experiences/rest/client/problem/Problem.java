@@ -7,9 +7,9 @@ package com.liferay.search.experiences.rest.client.problem;
 
 import com.liferay.search.experiences.rest.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Brian Wing Shun Chan
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:799440373

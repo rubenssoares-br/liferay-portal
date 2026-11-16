@@ -25,6 +25,7 @@ const ROW_DRAGGABLE = 'rowDraggable';
 
 interface IAction {
 	icon: string;
+	isVisible?: ({item}: {item: any}) => boolean;
 	label: string;
 	onClick: Function;
 }
@@ -35,7 +36,9 @@ interface IContentRendererProps {
 }
 
 interface IContentRenderer {
-	component: React.FC<IContentRendererProps>;
+	component: React.FC<
+		{children?: React.ReactNode | undefined} & IContentRendererProps
+	>;
 	textMatch?: Function;
 }
 
@@ -46,6 +49,8 @@ interface IField {
 	name: string;
 }
 
+type TOnRowClick = ({item}: {item: any}) => void;
+
 const Row = ({
 	actions,
 	fields,
@@ -53,6 +58,7 @@ const Row = ({
 	item,
 	onDragCrossover,
 	onDrop,
+	onRowClick,
 	query,
 }: {
 	actions?: Array<IAction>;
@@ -61,6 +67,7 @@ const Row = ({
 	item: any;
 	onDragCrossover: Function;
 	onDrop: Function;
+	onRowClick?: TOnRowClick;
 	query: string;
 }) => {
 	const tableRowRef = useRef<HTMLTableRowElement>(null);
@@ -175,11 +182,26 @@ const Row = ({
 
 	dragRef(dropRef(tableRowRef));
 
+	const onClick = (event: React.MouseEvent<HTMLTableRowElement>) => {
+		if (
+			!onRowClick ||
+			(event.target as HTMLElement).closest(
+				'a, button, input, label, .dropdown-menu'
+			)
+		) {
+			return;
+		}
+
+		onRowClick({item});
+	};
+
 	return (
 		<ClayTable.Row
 			className={classNames('orderable-table-row', {
-				dragging: isDragging,
+				'dragging': isDragging,
+				'orderable-table-row-clickable': onRowClick,
 			})}
+			onClick={onClick}
 			ref={tableRowRef}
 		>
 			<ClayTable.Cell className="drag-handle-cell">
@@ -207,7 +229,11 @@ const Row = ({
 			{fields.map((field) => {
 				if (field.contentRenderer) {
 					const Component = field.contentRenderer
-						.component as React.FC<IContentRendererProps>;
+						.component as React.FC<
+						{
+							children?: React.ReactNode | undefined;
+						} & IContentRendererProps
+					>;
 
 					return (
 						<ClayTable.Cell key={field.name}>
@@ -242,45 +268,59 @@ const Row = ({
 				);
 			})}
 
-			{actions && (
-				<ClayTable.Cell className="actions-cell">
-					<ClayDropDown
-						trigger={
-							<ClayButton
-								className="component-action"
-								displayType="unstyled"
-							>
-								<ClayIcon symbol="ellipsis-v" />
-
-								<span className="sr-only">
-									{Liferay.Language.get('actions')}
-								</span>
-							</ClayButton>
-						}
-					>
-						<ClayDropDown.ItemList>
-							{actions.map(({icon, label, onClick}) => (
-								<ClayDropDown.Item
-									key={label}
-									onClick={() =>
-										onClick({
-											item,
-										})
-									}
+			<ClayTable.Cell className="actions-cell">
+				{actions &&
+					!!actions.filter(
+						(action) =>
+							!action.isVisible || action.isVisible({item})
+					).length && (
+						<ClayDropDown
+							trigger={
+								<ClayButton
+									className="component-action"
+									displayType="unstyled"
 								>
-									{icon && (
-										<span className="pr-2">
-											<ClayIcon symbol={icon} />
-										</span>
-									)}
+									<ClayIcon symbol="ellipsis-v" />
 
-									{label}
-								</ClayDropDown.Item>
-							))}
-						</ClayDropDown.ItemList>
-					</ClayDropDown>
-				</ClayTable.Cell>
-			)}
+									<span className="sr-only">
+										{Liferay.Language.get('actions')}
+									</span>
+								</ClayButton>
+							}
+						>
+							<ClayDropDown.ItemList>
+								{actions.map(
+									({icon, isVisible, label, onClick}) => {
+										if (isVisible && !isVisible({item})) {
+											return;
+										}
+
+										return (
+											<ClayDropDown.Item
+												key={label}
+												onClick={() =>
+													onClick({
+														item,
+													})
+												}
+											>
+												{icon && (
+													<span className="pr-2">
+														<ClayIcon
+															symbol={icon}
+														/>
+													</span>
+												)}
+
+												{label}
+											</ClayDropDown.Item>
+										);
+									}
+								)}
+							</ClayDropDown.ItemList>
+						</ClayDropDown>
+					)}
+			</ClayTable.Cell>
 		</ClayTable.Row>
 	);
 };
@@ -291,6 +331,7 @@ const Table = ({
 	items,
 	onDragCrossover,
 	onDrop,
+	onRowClick,
 	query,
 }: {
 	actions?: Array<IAction>;
@@ -298,6 +339,7 @@ const Table = ({
 	items: Array<any>;
 	onDragCrossover: Function;
 	onDrop: Function;
+	onRowClick?: TOnRowClick;
 	query: string;
 }) => {
 	const [, dropRef] = useDrop({
@@ -314,7 +356,11 @@ const Table = ({
 					<ClayTable.Cell className="drag-handle-cell" />
 
 					{fields.map((field) => (
-						<ClayTable.Cell headingCell key={field.name}>
+						<ClayTable.Cell
+							className={`cell-${field.name}`}
+							headingCell
+							key={field.name}
+						>
 							{field.label}
 						</ClayTable.Cell>
 					))}
@@ -330,9 +376,10 @@ const Table = ({
 						fields={fields}
 						index={index}
 						item={item}
-						key={item.id || index}
+						key={item.externalReferenceCode || item.id || index}
 						onDragCrossover={onDragCrossover}
 						onDrop={onDrop}
+						onRowClick={onRowClick}
 						query={query}
 					/>
 				))}
@@ -354,8 +401,35 @@ interface IOrderableTableProps {
 	noItemsDescription: string;
 	noItemsTitle: string;
 	onOrderChange: (args: {order: string}) => void;
+	onRowClick?: TOnRowClick;
 	title?: string;
 }
+
+const filterItems = ({
+	fields,
+	items,
+	query,
+}: {
+	fields: IOrderableTableProps['fields'];
+	items: IOrderableTableProps['items'];
+	query: string;
+}) => {
+	if (!query) {
+		return items;
+	}
+
+	const lowerCaseQuery = query.toLowerCase();
+
+	return items.filter((item) =>
+		fields.some((field) => {
+			const text = field.contentRenderer?.textMatch
+				? field.contentRenderer.textMatch(item)
+				: item[field.name];
+
+			return String(text).toLowerCase().includes(lowerCaseQuery);
+		})
+	);
+};
 
 const OrderableTable = ({
 	actions,
@@ -368,37 +442,21 @@ const OrderableTable = ({
 	noItemsDescription,
 	noItemsTitle,
 	onOrderChange,
+	onRowClick,
 	title,
 }: IOrderableTableProps) => {
 	const [items, setItems] = useState(initialItems);
 	const [order, setOrder] = useState(
-		initialItems.map((item) => item.id).join(',')
+		initialItems.map((item) => item.externalReferenceCode).join(',')
 	);
 	const [query, setQuery] = useState('');
 
-	useEffect(() => setItems(initialItems), [initialItems]);
+	// Keep the search applied when the items change, e.g. after reordering
 
-	const onSearch = (query: string) => {
-		setQuery(query);
-
-		const regexp = new RegExp(query, 'i');
-
-		setItems(
-			query
-				? initialItems.filter((item) =>
-						fields.some((field) => {
-							if (field.contentRenderer?.textMatch) {
-								return String(
-									field.contentRenderer.textMatch(item)
-								).match(regexp);
-							}
-
-							return String(item[field.name]).match(regexp);
-						})
-					) || []
-				: initialItems
-		);
-	};
+	useEffect(
+		() => setItems(filterItems({fields, items: initialItems, query})),
+		[fields, initialItems, query]
+	);
 
 	return (
 		<ClayLayout.Sheet
@@ -414,7 +472,7 @@ const OrderableTable = ({
 				<ManagementToolbar.Container>
 					<ManagementToolbar.ItemList expand>
 						<ManagementToolbar.Item className="nav-item-expand">
-							<Search onSearch={onSearch} query={query} />
+							<Search onSearch={setQuery} query={query} />
 						</ManagementToolbar.Item>
 
 						{creationMenuItems?.length && (
@@ -452,7 +510,10 @@ const OrderableTable = ({
 				</ManagementToolbar.Container>
 
 				{items.length ? (
-					<DndProvider backend={HTML5Backend}>
+
+					// @ts-ignore
+
+					<DndProvider backend={HTML5Backend} context={window}>
 						<Table
 							actions={actions}
 							fields={fields}
@@ -480,7 +541,7 @@ const OrderableTable = ({
 							}}
 							onDrop={() => {
 								const newOrder = items
-									.map((item) => item.id)
+									.map((item) => item.externalReferenceCode)
 									.join(',');
 
 								if (newOrder !== order) {
@@ -489,6 +550,7 @@ const OrderableTable = ({
 									onOrderChange({order: newOrder});
 								}
 							}}
+							onRowClick={onRowClick}
 							query={query}
 						/>
 					</DndProvider>

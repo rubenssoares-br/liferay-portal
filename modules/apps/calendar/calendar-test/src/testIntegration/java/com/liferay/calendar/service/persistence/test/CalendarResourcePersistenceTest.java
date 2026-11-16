@@ -115,11 +115,7 @@ public class CalendarResourcePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		CalendarResource newCalendarResource = _persistence.create(pk);
-
-		newCalendarResource.setMvccVersion(RandomTestUtil.nextLong());
+		CalendarResource newCalendarResource = addCalendarResource();
 
 		newCalendarResource.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -153,7 +149,9 @@ public class CalendarResourcePersistenceTest {
 
 		newCalendarResource.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_calendarResources.add(_persistence.update(newCalendarResource));
+		newCalendarResource = _persistence.update(newCalendarResource);
+
+		_calendarResources.add(newCalendarResource);
 
 		CalendarResource existingCalendarResource =
 			_persistence.findByPrimaryKey(newCalendarResource.getPrimaryKey());
@@ -270,31 +268,11 @@ public class CalendarResourcePersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_A() throws Exception {
-		_persistence.countByG_A(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
-
-		_persistence.countByG_A(0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
 	public void testCountByC_C() throws Exception {
 		_persistence.countByC_C(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
 
 		_persistence.countByC_C(0L, 0L);
-	}
-
-	@Test
-	public void testCountByC_LikeC_A() throws Exception {
-		_persistence.countByC_LikeC_A(
-			RandomTestUtil.nextLong(), "", RandomTestUtil.randomBoolean());
-
-		_persistence.countByC_LikeC_A(
-			0L, "null", RandomTestUtil.randomBoolean());
-
-		_persistence.countByC_LikeC_A(
-			0L, (String)null, RandomTestUtil.randomBoolean());
 	}
 
 	@Test
@@ -651,8 +629,6 @@ public class CalendarResourcePersistenceTest {
 
 		CalendarResource calendarResource = _persistence.create(pk);
 
-		calendarResource.setMvccVersion(RandomTestUtil.nextLong());
-
 		calendarResource.setCtCollectionId(RandomTestUtil.nextLong());
 
 		calendarResource.setUuid(RandomTestUtil.randomString());
@@ -696,3 +672,4 @@ public class CalendarResourcePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-907173692

@@ -7,11 +7,14 @@ package com.liferay.change.tracking.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.change.tracking.constants.CTConstants;
+import com.liferay.change.tracking.internal.test.util.CTCollectionTestUtil;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.model.CTEntry;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.change.tracking.service.CTEntryLocalService;
 import com.liferay.change.tracking.service.CTProcessLocalService;
+import com.liferay.change.tracking.spi.history.CTCollectionHistoryProvider;
+import com.liferay.change.tracking.spi.history.CTCollectionHistoryProviderRegistry;
 import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.model.JournalFolder;
@@ -28,6 +31,9 @@ import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LogEntry;
+import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
@@ -79,7 +85,11 @@ public class CTEntryLocalServiceTest {
 				journalArticle, RandomTestUtil.randomString());
 		}
 
-		CTEntry ctEntry = _ctEntryLocalService.fetchTimelineCTEntry(
+		CTCollectionHistoryProvider<?> ctCollectionHistoryProvider =
+			_ctCollectionHistoryProviderRegistry.getCTCollectionHistoryProvider(
+				_classNameLocalService.getClassNameId(JournalArticle.class));
+
+		CTEntry ctEntry = ctCollectionHistoryProvider.getCTEntry(
 			ctCollection.getCtCollectionId(),
 			_classNameLocalService.getClassNameId(JournalArticle.class),
 			journalArticle.getId());
@@ -120,10 +130,10 @@ public class CTEntryLocalServiceTest {
 			CTConstants.CT_COLLECTION_ID_PRODUCTION, ctEntry1,
 			journalFolder.getFolderId(), folderName1);
 
-		CTCollection ctCollection2 = _createCTCollection();
-
+		CTCollection ctCollection2 =
+			CTCollectionTestUtil.createCTCollectionWithIncompleteStatus(
+				TestPropsValues.getUser());
 		CTEntry ctEntry2 = null;
-
 		String folderName2 = "Test folder name 2";
 
 		try (SafeCloseable safeCloseable =
@@ -200,6 +210,44 @@ public class CTEntryLocalServiceTest {
 			journalFolder.getFolderId(), folderName2);
 	}
 
+	@Test
+	public void testUpdateCTEntry() throws Exception {
+		CTCollection ctCollection = _createCTCollection();
+
+		JournalArticle journalArticle = null;
+
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					ctCollection.getCtCollectionId())) {
+
+			journalArticle = JournalTestUtil.addArticle(
+				_group.getGroupId(),
+				JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+		}
+
+		CTEntry ctEntry = _ctEntryLocalService.fetchCTEntry(
+			ctCollection.getCtCollectionId(),
+			_classNameLocalService.getClassNameId(JournalArticle.class),
+			journalArticle.getId());
+
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"com.liferay.portal.search.IndexableAdvice",
+				LoggerTestUtil.DEBUG)) {
+
+			_ctEntryLocalService.updateCTEntry(ctEntry);
+
+			List<LogEntry> logEntries = logCapture.getLogEntries();
+
+			Assert.assertEquals(logEntries.toString(), 1, logEntries.size());
+
+			LogEntry logEntry = logEntries.get(0);
+
+			Assert.assertEquals(
+				"Skip indexing because the result opts out",
+				logEntry.getMessage());
+		}
+	}
+
 	private void _assertCTRowCTCollectionId(
 			long ctCollectionId, CTEntry ctEntry, long folderId,
 			String folderName)
@@ -234,27 +282,31 @@ public class CTEntryLocalServiceTest {
 	}
 
 	@Inject
-	private static ClassNameLocalService _classNameLocalService;
+	private ClassNameLocalService _classNameLocalService;
 
 	@Inject
-	private static CTCollectionLocalService _ctCollectionLocalService;
+	private CTCollectionHistoryProviderRegistry
+		_ctCollectionHistoryProviderRegistry;
 
 	@Inject
-	private static CTEntryLocalService _ctEntryLocalService;
-
-	@Inject
-	private static CTProcessLocalService _ctProcessLocalService;
-
-	@Inject
-	private static JournalFolderLocalService _journalFolderLocalService;
+	private CTCollectionLocalService _ctCollectionLocalService;
 
 	@DeleteAfterTestRun
 	private final List<CTCollection> _ctCollections = new ArrayList<>();
+
+	@Inject
+	private CTEntryLocalService _ctEntryLocalService;
+
+	@Inject
+	private CTProcessLocalService _ctProcessLocalService;
 
 	@DeleteAfterTestRun
 	private Group _group;
 
 	private long _journalFolderClassNameId;
 	private JournalFolderFixture _journalFolderFixture;
+
+	@Inject
+	private JournalFolderLocalService _journalFolderLocalService;
 
 }

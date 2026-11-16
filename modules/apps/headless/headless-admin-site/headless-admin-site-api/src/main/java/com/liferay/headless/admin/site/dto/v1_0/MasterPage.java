@@ -9,35 +9,34 @@ import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import com.liferay.headless.admin.taxonomy.dto.v1_0.Keyword;
-import com.liferay.headless.admin.taxonomy.dto.v1_0.TaxonomyCategory;
 import com.liferay.headless.admin.user.dto.v1_0.Creator;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -47,6 +46,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "A page with common elements (header, footer, ...) used for all or several pages of a site.",
 	value = "MasterPage"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A page with common elements (header, footer, ...) used for all or several pages of a site."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "MasterPage")
@@ -60,7 +62,54 @@ public class MasterPage implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(MasterPage.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The actions and their permissions for this master page."
+	)
+	@Valid
+	public Map<String, Map<String, String>> getActions() {
+		if (_actionsSupplier != null) {
+			actions = _actionsSupplier.get();
+
+			_actionsSupplier = null;
+		}
+
+		return actions;
+	}
+
+	public void setActions(Map<String, Map<String, String>> actions) {
+		this.actions = actions;
+
+		_actionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setActions(
+		UnsafeSupplier<Map<String, Map<String, String>>, Exception>
+			actionsUnsafeSupplier) {
+
+		_actionsSupplier = () -> {
+			try {
+				return actionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "The actions and their permissions for this master page."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Map<String, Map<String, String>> actions;
+
+	@JsonIgnore
+	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The master page's creator. It is not returned by default. It can be embedded via nestedFields."
 	)
 	@Valid
@@ -106,52 +155,9 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The page's creator external reference code.")
-	public String getCreatorExternalReferenceCode() {
-		if (_creatorExternalReferenceCodeSupplier != null) {
-			creatorExternalReferenceCode =
-				_creatorExternalReferenceCodeSupplier.get();
-
-			_creatorExternalReferenceCodeSupplier = null;
-		}
-
-		return creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		String creatorExternalReferenceCode) {
-
-		this.creatorExternalReferenceCode = creatorExternalReferenceCode;
-
-		_creatorExternalReferenceCodeSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setCreatorExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			creatorExternalReferenceCodeUnsafeSupplier) {
-
-		_creatorExternalReferenceCodeSupplier = () -> {
-			try {
-				return creatorExternalReferenceCodeUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "The page's creator external reference code.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String creatorExternalReferenceCode;
-
-	@JsonIgnore
-	private Supplier<String> _creatorExternalReferenceCodeSupplier;
-
-	@Schema(description = "The master page's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The master page's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -192,7 +198,7 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The last time any field of the master page was changed."
 	)
 	public Date getDateModified() {
@@ -237,7 +243,9 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The master page's most recent publication date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The master page's most recent publication date."
+	)
 	public Date getDatePublished() {
 		if (_datePublishedSupplier != null) {
 			datePublished = _datePublishedSupplier.get();
@@ -280,7 +288,7 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _datePublishedSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The master page's external reference code, unique per site."
 	)
 	public String getExternalReferenceCode() {
@@ -325,7 +333,9 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The master page's key.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The master page's key."
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -364,60 +374,10 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(description = "The external references to the associated keywords.")
-	@Valid
-	public ItemExternalReference[] getKeywordItemExternalReferences() {
-		if (_keywordItemExternalReferencesSupplier != null) {
-			keywordItemExternalReferences =
-				_keywordItemExternalReferencesSupplier.get();
-
-			_keywordItemExternalReferencesSupplier = null;
-		}
-
-		return keywordItemExternalReferences;
-	}
-
-	public void setKeywordItemExternalReferences(
-		ItemExternalReference[] keywordItemExternalReferences) {
-
-		this.keywordItemExternalReferences = keywordItemExternalReferences;
-
-		_keywordItemExternalReferencesSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setKeywordItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			keywordItemExternalReferencesUnsafeSupplier) {
-
-		_keywordItemExternalReferencesSupplier = () -> {
-			try {
-				return keywordItemExternalReferencesUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The external references to the associated keywords."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of keywords describing the master page."
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference[] keywordItemExternalReferences;
-
-	@JsonIgnore
-	private Supplier<ItemExternalReference[]>
-		_keywordItemExternalReferencesSupplier;
-
-	@Schema(
-		description = "The associated keywords. They are not returned by default. They can be embedded via nestedFields."
-	)
-	@Valid
-	public Keyword[] getKeywords() {
+	public String[] getKeywords() {
 		if (_keywordsSupplier != null) {
 			keywords = _keywordsSupplier.get();
 
@@ -427,7 +387,7 @@ public class MasterPage implements Serializable {
 		return keywords;
 	}
 
-	public void setKeywords(Keyword[] keywords) {
+	public void setKeywords(String[] keywords) {
 		this.keywords = keywords;
 
 		_keywordsSupplier = null;
@@ -435,7 +395,7 @@ public class MasterPage implements Serializable {
 
 	@JsonIgnore
 	public void setKeywords(
-		UnsafeSupplier<Keyword[], Exception> keywordsUnsafeSupplier) {
+		UnsafeSupplier<String[], Exception> keywordsUnsafeSupplier) {
 
 		_keywordsSupplier = () -> {
 			try {
@@ -451,15 +411,17 @@ public class MasterPage implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The associated keywords. They are not returned by default. They can be embedded via nestedFields."
+		description = "A list of keywords describing the master page."
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
-	protected Keyword[] keywords;
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String[] keywords;
 
 	@JsonIgnore
-	private Supplier<Keyword[]> _keywordsSupplier;
+	private Supplier<String[]> _keywordsSupplier;
 
-	@Schema(description = "Whether the master page is the default one.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the master page is the default one."
+	)
 	public Boolean getMarkedAsDefault() {
 		if (_markedAsDefaultSupplier != null) {
 			markedAsDefault = _markedAsDefaultSupplier.get();
@@ -500,7 +462,9 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _markedAsDefaultSupplier;
 
-	@Schema(description = "The master page's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The master page's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -539,8 +503,8 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
-		description = "The master page's specifications. A master page may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The master page's specifications. A master page will contain 1 page specification for its draft layout and 1 page specification for its published layout. This field is not returned by default. It can be requested via nestedFields."
 	)
 	@Valid
 	public PageSpecification[] getPageSpecifications() {
@@ -578,7 +542,7 @@ public class MasterPage implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The master page's specifications. A master page may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status."
+		description = "The master page's specifications. A master page will contain 1 page specification for its draft layout and 1 page specification for its published layout. This field is not returned by default. It can be requested via nestedFields."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected PageSpecification[] pageSpecifications;
@@ -586,34 +550,83 @@ public class MasterPage implements Serializable {
 	@JsonIgnore
 	private Supplier<PageSpecification[]> _pageSpecificationsSupplier;
 
-	@Schema(
-		description = "The associated categories. They are not returned by default. They can be embedded via nestedFields."
-	)
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public TaxonomyCategory[] getTaxonomyCategories() {
-		if (_taxonomyCategoriesSupplier != null) {
-			taxonomyCategories = _taxonomyCategoriesSupplier.get();
+	public com.liferay.portal.vulcan.permission.Permission[] getPermissions() {
+		if (_permissionsSupplier != null) {
+			permissions = _permissionsSupplier.get();
 
-			_taxonomyCategoriesSupplier = null;
+			_permissionsSupplier = null;
 		}
 
-		return taxonomyCategories;
+		return permissions;
 	}
 
-	public void setTaxonomyCategories(TaxonomyCategory[] taxonomyCategories) {
-		this.taxonomyCategories = taxonomyCategories;
+	public void setPermissions(
+		com.liferay.portal.vulcan.permission.Permission[] permissions) {
 
-		_taxonomyCategoriesSupplier = null;
+		this.permissions = permissions;
+
+		_permissionsSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setTaxonomyCategories(
-		UnsafeSupplier<TaxonomyCategory[], Exception>
-			taxonomyCategoriesUnsafeSupplier) {
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.permission.Permission[], Exception>
+				permissionsUnsafeSupplier) {
 
-		_taxonomyCategoriesSupplier = () -> {
+		_permissionsSupplier = () -> {
 			try {
-				return taxonomyCategoriesUnsafeSupplier.get();
+				return permissionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.permission.Permission[] permissions;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.permission.Permission[]>
+		_permissionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The taxonomy categories associated with this page."
+	)
+	@Valid
+	public TaxonomyCategoryBrief[] getTaxonomyCategoryBriefs() {
+		if (_taxonomyCategoryBriefsSupplier != null) {
+			taxonomyCategoryBriefs = _taxonomyCategoryBriefsSupplier.get();
+
+			_taxonomyCategoryBriefsSupplier = null;
+		}
+
+		return taxonomyCategoryBriefs;
+	}
+
+	public void setTaxonomyCategoryBriefs(
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs) {
+
+		this.taxonomyCategoryBriefs = taxonomyCategoryBriefs;
+
+		_taxonomyCategoryBriefsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTaxonomyCategoryBriefs(
+		UnsafeSupplier<TaxonomyCategoryBrief[], Exception>
+			taxonomyCategoryBriefsUnsafeSupplier) {
+
+		_taxonomyCategoryBriefsSupplier = () -> {
+			try {
+				return taxonomyCategoryBriefsUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -625,93 +638,44 @@ public class MasterPage implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The associated categories. They are not returned by default. They can be embedded via nestedFields."
-	)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
-	protected TaxonomyCategory[] taxonomyCategories;
-
-	@JsonIgnore
-	private Supplier<TaxonomyCategory[]> _taxonomyCategoriesSupplier;
-
-	@Schema(
-		description = "The external references to the associated categories."
-	)
-	@Valid
-	public ItemExternalReference[] getTaxonomyCategoryItemExternalReferences() {
-		if (_taxonomyCategoryItemExternalReferencesSupplier != null) {
-			taxonomyCategoryItemExternalReferences =
-				_taxonomyCategoryItemExternalReferencesSupplier.get();
-
-			_taxonomyCategoryItemExternalReferencesSupplier = null;
-		}
-
-		return taxonomyCategoryItemExternalReferences;
-	}
-
-	public void setTaxonomyCategoryItemExternalReferences(
-		ItemExternalReference[] taxonomyCategoryItemExternalReferences) {
-
-		this.taxonomyCategoryItemExternalReferences =
-			taxonomyCategoryItemExternalReferences;
-
-		_taxonomyCategoryItemExternalReferencesSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setTaxonomyCategoryItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			taxonomyCategoryItemExternalReferencesUnsafeSupplier) {
-
-		_taxonomyCategoryItemExternalReferencesSupplier = () -> {
-			try {
-				return taxonomyCategoryItemExternalReferencesUnsafeSupplier.
-					get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The external references to the associated categories."
+		description = "The taxonomy categories associated with this page."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference[] taxonomyCategoryItemExternalReferences;
+	protected TaxonomyCategoryBrief[] taxonomyCategoryBriefs;
 
 	@JsonIgnore
-	private Supplier<ItemExternalReference[]>
-		_taxonomyCategoryItemExternalReferencesSupplier;
+	private Supplier<TaxonomyCategoryBrief[]> _taxonomyCategoryBriefsSupplier;
 
-	@Schema(description = "The master page's thumbnail.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The master page's thumbnail."
+	)
 	@Valid
-	public ItemExternalReference getThumbnail() {
-		if (_thumbnailSupplier != null) {
-			thumbnail = _thumbnailSupplier.get();
+	public ThumbnailURLReference getThumbnailURLReference() {
+		if (_thumbnailURLReferenceSupplier != null) {
+			thumbnailURLReference = _thumbnailURLReferenceSupplier.get();
 
-			_thumbnailSupplier = null;
+			_thumbnailURLReferenceSupplier = null;
 		}
 
-		return thumbnail;
+		return thumbnailURLReference;
 	}
 
-	public void setThumbnail(ItemExternalReference thumbnail) {
-		this.thumbnail = thumbnail;
+	public void setThumbnailURLReference(
+		ThumbnailURLReference thumbnailURLReference) {
 
-		_thumbnailSupplier = null;
+		this.thumbnailURLReference = thumbnailURLReference;
+
+		_thumbnailURLReferenceSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setThumbnail(
-		UnsafeSupplier<ItemExternalReference, Exception>
-			thumbnailUnsafeSupplier) {
+	public void setThumbnailURLReference(
+		UnsafeSupplier<ThumbnailURLReference, Exception>
+			thumbnailURLReferenceUnsafeSupplier) {
 
-		_thumbnailSupplier = () -> {
+		_thumbnailURLReferenceSupplier = () -> {
 			try {
-				return thumbnailUnsafeSupplier.get();
+				return thumbnailURLReferenceUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -724,12 +688,14 @@ public class MasterPage implements Serializable {
 
 	@GraphQLField(description = "The master page's thumbnail.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference thumbnail;
+	protected ThumbnailURLReference thumbnailURLReference;
 
 	@JsonIgnore
-	private Supplier<ItemExternalReference> _thumbnailSupplier;
+	private Supplier<ThumbnailURLReference> _thumbnailURLReferenceSupplier;
 
-	@Schema(description = "A valid external identifier to reference this page.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A valid external identifier to reference this page."
+	)
 	public String getUuid() {
 		if (_uuidSupplier != null) {
 			uuid = _uuidSupplier.get();
@@ -800,6 +766,18 @@ public class MasterPage implements Serializable {
 		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
 
+		Map<String, Map<String, String>> actions = getActions();
+
+		if (actions != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"actions\": ");
+
+			sb.append(_toJSON(actions));
+		}
+
 		Creator creator = getCreator();
 
 		if (creator != null) {
@@ -810,22 +788,6 @@ public class MasterPage implements Serializable {
 			sb.append("\"creator\": ");
 
 			sb.append(creator);
-		}
-
-		String creatorExternalReferenceCode = getCreatorExternalReferenceCode();
-
-		if (creatorExternalReferenceCode != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(creatorExternalReferenceCode));
-
-			sb.append("\"");
 		}
 
 		Date dateCreated = getDateCreated();
@@ -908,30 +870,7 @@ public class MasterPage implements Serializable {
 			sb.append("\"");
 		}
 
-		ItemExternalReference[] keywordItemExternalReferences =
-			getKeywordItemExternalReferences();
-
-		if (keywordItemExternalReferences != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"keywordItemExternalReferences\": ");
-
-			sb.append("[");
-
-			for (int i = 0; i < keywordItemExternalReferences.length; i++) {
-				sb.append(String.valueOf(keywordItemExternalReferences[i]));
-
-				if ((i + 1) < keywordItemExternalReferences.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
-		}
-
-		Keyword[] keywords = getKeywords();
+		String[] keywords = getKeywords();
 
 		if (keywords != null) {
 			if (sb.length() > 1) {
@@ -943,7 +882,11 @@ public class MasterPage implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < keywords.length; i++) {
-				sb.append(keywords[i]);
+				sb.append("\"");
+
+				sb.append(_escape(keywords[i]));
+
+				sb.append("\"");
 
 				if ((i + 1) < keywords.length) {
 					sb.append(", ");
@@ -1003,21 +946,22 @@ public class MasterPage implements Serializable {
 			sb.append("]");
 		}
 
-		TaxonomyCategory[] taxonomyCategories = getTaxonomyCategories();
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
 
-		if (taxonomyCategories != null) {
+		if (permissions != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategories\": ");
+			sb.append("\"permissions\": ");
 
 			sb.append("[");
 
-			for (int i = 0; i < taxonomyCategories.length; i++) {
-				sb.append(taxonomyCategories[i]);
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
 
-				if ((i + 1) < taxonomyCategories.length) {
+				if ((i + 1) < permissions.length) {
 					sb.append(", ");
 				}
 			}
@@ -1025,25 +969,22 @@ public class MasterPage implements Serializable {
 			sb.append("]");
 		}
 
-		ItemExternalReference[] taxonomyCategoryItemExternalReferences =
-			getTaxonomyCategoryItemExternalReferences();
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs =
+			getTaxonomyCategoryBriefs();
 
-		if (taxonomyCategoryItemExternalReferences != null) {
+		if (taxonomyCategoryBriefs != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategoryItemExternalReferences\": ");
+			sb.append("\"taxonomyCategoryBriefs\": ");
 
 			sb.append("[");
 
-			for (int i = 0; i < taxonomyCategoryItemExternalReferences.length;
-				 i++) {
+			for (int i = 0; i < taxonomyCategoryBriefs.length; i++) {
+				sb.append(String.valueOf(taxonomyCategoryBriefs[i]));
 
-				sb.append(
-					String.valueOf(taxonomyCategoryItemExternalReferences[i]));
-
-				if ((i + 1) < taxonomyCategoryItemExternalReferences.length) {
+				if ((i + 1) < taxonomyCategoryBriefs.length) {
 					sb.append(", ");
 				}
 			}
@@ -1051,16 +992,17 @@ public class MasterPage implements Serializable {
 			sb.append("]");
 		}
 
-		ItemExternalReference thumbnail = getThumbnail();
+		ThumbnailURLReference thumbnailURLReference =
+			getThumbnailURLReference();
 
-		if (thumbnail != null) {
+		if (thumbnailURLReference != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"thumbnail\": ");
+			sb.append("\"thumbnailURLReference\": ");
 
-			sb.append(String.valueOf(thumbnail));
+			sb.append(String.valueOf(thumbnailURLReference));
 		}
 
 		String uuid = getUuid();
@@ -1084,8 +1026,8 @@ public class MasterPage implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.MasterPage",
 		name = "x-class-name"
 	)
@@ -1172,6 +1114,27 @@ public class MasterPage implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1180,3 +1143,4 @@ public class MasterPage implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1489231413

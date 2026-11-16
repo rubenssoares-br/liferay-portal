@@ -22,6 +22,7 @@ import EmptyPieChart from './EmptyPieChart';
 import Hint from './Hint';
 
 const COLORS_MAP = {
+	chatbot: '#9B6DFF',
 	direct: '#FF73C3',
 	organic: '#4B9FFF',
 	paid: '#FFB46E',
@@ -137,12 +138,12 @@ export default function TrafficSources({dataProvider, onTrafficSourceClick}) {
 	return (
 		<>
 			<div className="mt-3 sheet-subtitle">
-				{Liferay.Language.get('traffic-channels')}
+				{Liferay.Language.get('traffic-channel')}
 
 				<Hint
 					message={Liferay.Language.get('traffic-channels-help')}
 					secondary={true}
-					title={Liferay.Language.get('traffic-channels')}
+					title={Liferay.Language.get('traffic-channel')}
 				/>
 			</div>
 

@@ -34,7 +34,7 @@ PortalUtil.addPortletBreadcrumbEntry(request, wikiPage.getTitle(), portletURL.to
 portletURL.setParameter(ActionRequest.ACTION_NAME, "/wiki/view_page_history");
 portletURL.setParameter("redirect", currentURL);
 
-PortalUtil.addPortletBreadcrumbEntry(request, LanguageUtil.get(request, "history"), portletURL.toString());
+PortalUtil.addPortletBreadcrumbEntry(request, LanguageUtil.get(request, "history[record]"), portletURL.toString());
 %>
 
 <div class="page-activities">
@@ -65,7 +65,7 @@ PortalUtil.addPortletBreadcrumbEntry(request, LanguageUtil.get(request, "history
 		<liferay-ui:search-container-row
 			className="com.liferay.social.kernel.model.SocialActivity"
 			escapedModel="<%= true %>"
-			keyProperty="activityId"
+			keyPropertyName="activityId"
 			modelVar="socialActivity"
 		>
 

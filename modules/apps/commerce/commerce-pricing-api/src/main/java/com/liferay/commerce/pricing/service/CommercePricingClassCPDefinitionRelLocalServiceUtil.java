@@ -242,14 +242,6 @@ public class CommercePricingClassCPDefinitionRelLocalServiceUtil {
 			CommercePricingClassCPDefinitionRelId);
 	}
 
-	public static CommercePricingClassCPDefinitionRel
-		fetchCommercePricingClassCPDefinitionRel(
-			long commercePricingClassId, long cpDefinitionId) {
-
-		return getService().fetchCommercePricingClassCPDefinitionRel(
-			commercePricingClassId, cpDefinitionId);
-	}
-
 	public static com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
 		getActionableDynamicQuery() {
 
@@ -296,23 +288,6 @@ public class CommercePricingClassCPDefinitionRelLocalServiceUtil {
 		return getService().getCommercePricingClassCPDefinitionRels(start, end);
 	}
 
-	public static List<CommercePricingClassCPDefinitionRel>
-		getCommercePricingClassCPDefinitionRels(long commercePricingClassId) {
-
-		return getService().getCommercePricingClassCPDefinitionRels(
-			commercePricingClassId);
-	}
-
-	public static List<CommercePricingClassCPDefinitionRel>
-		getCommercePricingClassCPDefinitionRels(
-			long commercePricingClassId, int start, int end,
-			OrderByComparator<CommercePricingClassCPDefinitionRel>
-				orderByComparator) {
-
-		return getService().getCommercePricingClassCPDefinitionRels(
-			commercePricingClassId, start, end, orderByComparator);
-	}
-
 	/**
 	 * Returns the number of commerce pricing class cp definition rels.
 	 *
@@ -320,20 +295,6 @@ public class CommercePricingClassCPDefinitionRelLocalServiceUtil {
 	 */
 	public static int getCommercePricingClassCPDefinitionRelsCount() {
 		return getService().getCommercePricingClassCPDefinitionRelsCount();
-	}
-
-	public static int getCommercePricingClassCPDefinitionRelsCount(
-		long commercePricingClassId) {
-
-		return getService().getCommercePricingClassCPDefinitionRelsCount(
-			commercePricingClassId);
-	}
-
-	public static int getCommercePricingClassCPDefinitionRelsCount(
-		long commercePricingClassId, String name, String languageId) {
-
-		return getService().getCommercePricingClassCPDefinitionRelsCount(
-			commercePricingClassId, name, languageId);
 	}
 
 	public static long[] getCPDefinitionIds(long commercePricingClassId) {
@@ -363,15 +324,6 @@ public class CommercePricingClassCPDefinitionRelLocalServiceUtil {
 		throws PortalException {
 
 		return getService().getPersistedModel(primaryKeyObj);
-	}
-
-	public static List<CommercePricingClassCPDefinitionRel>
-		searchByCommercePricingClassId(
-			long commercePricingClassId, String name, String languageId,
-			int start, int end) {
-
-		return getService().searchByCommercePricingClassId(
-			commercePricingClassId, name, languageId, start, end);
 	}
 
 	/**
@@ -404,3 +356,4 @@ public class CommercePricingClassCPDefinitionRelLocalServiceUtil {
 				CommercePricingClassCPDefinitionRelLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2146136442

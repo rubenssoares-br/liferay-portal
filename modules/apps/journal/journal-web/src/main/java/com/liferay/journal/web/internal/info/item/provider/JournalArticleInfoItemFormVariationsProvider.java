@@ -6,6 +6,7 @@
 package com.liferay.journal.web.internal.info.item.provider;
 
 import com.liferay.depot.util.SiteConnectedGroupGroupProviderUtil;
+import com.liferay.dynamic.data.mapping.info.item.provider.DDMStructureInfoItemFormVariationsProvider;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalService;
 import com.liferay.info.item.InfoItemFormVariation;
@@ -15,6 +16,7 @@ import com.liferay.journal.model.JournalArticle;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.Localization;
 import com.liferay.portal.kernel.util.Portal;
 
 import java.util.ArrayList;
@@ -29,19 +31,24 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = InfoItemFormVariationsProvider.class)
 public class JournalArticleInfoItemFormVariationsProvider
-	implements InfoItemFormVariationsProvider<JournalArticle> {
+	implements DDMStructureInfoItemFormVariationsProvider<JournalArticle> {
+
+	@Override
+	public long getDDMStructureId(String formVariationKey) {
+		return GetterUtil.getLong(formVariationKey);
+	}
 
 	@Override
 	public InfoItemFormVariation getInfoItemFormVariation(
 		long groupId, String formVariationKey) {
 
 		DDMStructure ddmStructure = _ddmStructureLocalService.fetchStructure(
-			GetterUtil.getLong(formVariationKey));
+			groupId, _portal.getClassNameId(JournalArticle.class.getName()),
+			formVariationKey);
 
 		if (ddmStructure == null) {
 			ddmStructure = _ddmStructureLocalService.fetchStructure(
-				groupId, _portal.getClassNameId(JournalArticle.class.getName()),
-				formVariationKey);
+				GetterUtil.getLong(formVariationKey));
 		}
 
 		if (ddmStructure == null) {
@@ -55,7 +62,7 @@ public class JournalArticleInfoItemFormVariationsProvider
 			).defaultLocale(
 				LocaleUtil.fromLanguageId(ddmStructure.getDefaultLanguageId())
 			).values(
-				ddmStructure.getNameMap()
+				_localization.getLocalizationMap(ddmStructure.getName(), true)
 			).build());
 	}
 
@@ -79,8 +86,13 @@ public class JournalArticleInfoItemFormVariationsProvider
 			).defaultLocale(
 				LocaleUtil.fromLanguageId(ddmStructure.getDefaultLanguageId())
 			).values(
-				ddmStructure.getNameMap()
+				_localization.getLocalizationMap(ddmStructure.getName(), true)
 			).build());
+	}
+
+	@Override
+	public String getInfoItemFormVariationClassName() {
+		return DDMStructure.class.getName();
 	}
 
 	@Override
@@ -117,7 +129,8 @@ public class JournalArticleInfoItemFormVariationsProvider
 						LocaleUtil.fromLanguageId(
 							ddmStructure.getDefaultLanguageId())
 					).values(
-						ddmStructure.getNameMap()
+						_localization.getLocalizationMap(
+							ddmStructure.getName(), true)
 					).build()));
 		}
 
@@ -144,7 +157,8 @@ public class JournalArticleInfoItemFormVariationsProvider
 						LocaleUtil.fromLanguageId(
 							ddmStructure.getDefaultLanguageId())
 					).values(
-						ddmStructure.getNameMap()
+						_localization.getLocalizationMap(
+							ddmStructure.getName(), true)
 					).build()));
 		}
 
@@ -160,6 +174,9 @@ public class JournalArticleInfoItemFormVariationsProvider
 
 	@Reference
 	private DDMStructureLocalService _ddmStructureLocalService;
+
+	@Reference
+	private Localization _localization;
 
 	@Reference
 	private Portal _portal;

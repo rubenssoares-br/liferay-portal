@@ -11,6 +11,12 @@
 Map<String, Object> componentContext = journalDisplayContext.getComponentContext();
 %>
 
+<portlet:actionURL name="/journal/restore_trash_entries" var="restoreTrashEntriesURL" />
+
+<liferay-trash:undo
+	portletURL="<%= restoreTrashEntriesURL %>"
+/>
+
 <liferay-ui:search-container
 	cssClass='<%= journalDisplayContext.isSearch() ? "pt-0" : StringPool.BLANK %>'
 	emptyResultsMessage="no-version-was-found"
@@ -153,3 +159,12 @@ Map<String, Object> componentContext = journalDisplayContext.getComponentContext
 		searchContainer="<%= searchContainer %>"
 	/>
 </liferay-ui:search-container>
+
+<c:if test='<%= FeatureFlagManagerUtil.isEnabled(themeDisplay.getCompanyId(), "LPD-72278") %>'>
+	<div id="<portlet:namespace />addToLaunchModal">
+		<react:component
+			componentId="addToLaunchModal"
+			module="{AddToLaunchModal} from launch-web"
+		/>
+	</div>
+</c:if>

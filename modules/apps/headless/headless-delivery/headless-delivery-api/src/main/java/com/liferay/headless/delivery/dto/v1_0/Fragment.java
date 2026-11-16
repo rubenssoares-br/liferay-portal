@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -38,6 +39,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a template made up of CSS, HTML, and JavaScript used to build Content Pages.",
 	value = "Fragment"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a template made up of CSS, HTML, and JavaScript used to build Content Pages."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Fragment")
@@ -51,7 +55,9 @@ public class Fragment implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Fragment.class, json);
 	}
 
-	@Schema(description = "The collection name this fragment belongs to.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The collection name this fragment belongs to."
+	)
 	public String getCollectionName() {
 		if (_collectionNameSupplier != null) {
 			collectionName = _collectionNameSupplier.get();
@@ -92,7 +98,9 @@ public class Fragment implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _collectionNameSupplier;
 
-	@Schema(description = "The fragment's key.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment's key."
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -131,7 +139,9 @@ public class Fragment implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(description = "The fragment's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -170,7 +180,7 @@ public class Fragment implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The key of the site to which this fragment is scoped."
 	)
 	public String getSiteKey() {
@@ -311,8 +321,8 @@ public class Fragment implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.Fragment",
 		name = "x-class-name"
 	)
@@ -399,6 +409,27 @@ public class Fragment implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -407,3 +438,4 @@ public class Fragment implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1257773904

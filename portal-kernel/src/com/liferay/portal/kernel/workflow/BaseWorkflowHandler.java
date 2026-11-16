@@ -17,27 +17,31 @@ import com.liferay.portal.kernel.model.WorkflowDefinitionLink;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.portlet.PortletURLFactoryUtil;
+import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.LayoutLocalServiceUtil;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalServiceUtil;
 import com.liferay.portal.kernel.service.WorkflowInstanceLinkLocalServiceUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.WindowState;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.Serializable;
 
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-import javax.portlet.PortletURL;
-import javax.portlet.WindowState;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Bruno Farache
@@ -106,16 +110,19 @@ public abstract class BaseWorkflowHandler<T> implements WorkflowHandler<T> {
 					themeDisplay.getPlid());
 			}
 
-			PortletURL portletURL = PortletURLFactoryUtil.create(
-				serviceContext.getRequest(), PortletKeys.MY_WORKFLOW_TASK,
-				layout.getPlid(), PortletRequest.RENDER_PHASE);
-
-			portletURL.setParameter("mvcPath", "/edit_workflow_task.jsp");
-			portletURL.setParameter(
-				"workflowTaskId", String.valueOf(workflowTaskId));
-			portletURL.setWindowState(WindowState.MAXIMIZED);
-
-			return portletURL.toString();
+			return PortletURLBuilder.create(
+				PortletURLFactoryUtil.create(
+					serviceContext.getRequest(), PortletKeys.MY_WORKFLOW_TASK,
+					layout.getPlid(), PortletRequest.RENDER_PHASE)
+			).setMVCPath(
+				"/edit_workflow_task.jsp"
+			).setBackURL(
+				_getBackURL(httpServletRequest, themeDisplay.getURLCurrent())
+			).setParameter(
+				"workflowTaskId", String.valueOf(workflowTaskId)
+			).setWindowState(
+				WindowState.MAXIMIZED
+			).buildString();
 		}
 		catch (Exception exception) {
 			if (_log.isWarnEnabled()) {
@@ -292,7 +299,28 @@ public abstract class BaseWorkflowHandler<T> implements WorkflowHandler<T> {
 
 		WorkflowInstanceLinkLocalServiceUtil.startWorkflowInstance(
 			companyId, groupId, userId, getClassName(), classPK,
-			workflowContext);
+			workflowContext,
+			GetterUtil.getBoolean(
+				workflowContext.get(
+					WorkflowConstants.CONTEXT_WAIT_FOR_COMPLETION)));
+	}
+
+	private String _getBackURL(
+		HttpServletRequest httpServletRequest, String defaultValue) {
+
+		String backURL = ParamUtil.getString(httpServletRequest, "backURL");
+
+		if (Validator.isNotNull(backURL)) {
+			return backURL;
+		}
+
+		backURL = ParamUtil.getString(httpServletRequest, "redirect");
+
+		if (Validator.isNotNull(backURL)) {
+			return backURL;
+		}
+
+		return defaultValue;
 	}
 
 	private static final boolean _ASSET_TYPE_SEARCHABLE = true;

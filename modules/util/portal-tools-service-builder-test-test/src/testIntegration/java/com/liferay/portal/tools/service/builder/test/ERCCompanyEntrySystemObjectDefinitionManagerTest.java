@@ -51,7 +51,7 @@ public class ERCCompanyEntrySystemObjectDefinitionManagerTest {
 		int randomInt = RandomTestUtil.randomInt();
 
 		_systemObjectDefinitionManager.addBaseModel(
-			TestPropsValues.getUser(),
+			false, TestPropsValues.getUser(),
 			HashMapBuilder.<String, Object>put(
 				"column1", randomInt
 			).put(
@@ -110,8 +110,6 @@ public class ERCCompanyEntrySystemObjectDefinitionManagerTest {
 				objectDefinition.getObjectDefinitionId(), "column1"));
 	}
 
-	private static SystemObjectDefinitionManager _systemObjectDefinitionManager;
-
 	@Inject
 	private ERCCompanyEntryLocalService _ercCompanyEntryLocalService;
 
@@ -120,6 +118,8 @@ public class ERCCompanyEntrySystemObjectDefinitionManagerTest {
 
 	@Inject
 	private ObjectFieldLocalService _objectFieldLocalService;
+
+	private SystemObjectDefinitionManager _systemObjectDefinitionManager;
 
 	@Inject
 	private SystemObjectDefinitionManagerRegistry

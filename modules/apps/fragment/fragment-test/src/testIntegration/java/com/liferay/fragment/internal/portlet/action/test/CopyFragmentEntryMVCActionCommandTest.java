@@ -28,7 +28,6 @@ import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
-import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -50,7 +49,6 @@ import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
 import java.util.List;
 
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -77,11 +75,6 @@ public class CopyFragmentEntryMVCActionCommandTest {
 
 		_serviceContext = ServiceContextTestUtil.getServiceContext(
 			_group.getGroupId());
-	}
-
-	@After
-	public void tearDown() {
-		ServiceContextThreadLocal.popServiceContext();
 	}
 
 	@Test
@@ -147,7 +140,7 @@ public class CopyFragmentEntryMVCActionCommandTest {
 				null, TestPropsValues.getUserId(), _group.getGroupId(), 0,
 				StringPool.BLANK, StringUtil.randomString(), StringPool.BLANK,
 				StringUtil.randomString(), StringPool.BLANK, false,
-				StringPool.BLANK, StringPool.BLANK, 0, false,
+				StringPool.BLANK, StringPool.BLANK, 0, false, false,
 				FragmentConstants.TYPE_COMPONENT, StringPool.BLANK,
 				WorkflowConstants.STATUS_APPROVED, _serviceContext);
 
@@ -193,7 +186,7 @@ public class CopyFragmentEntryMVCActionCommandTest {
 			new MockLiferayPortletActionRequest();
 
 		mockLiferayPortletActionRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletActionResponse());
 		mockLiferayPortletActionRequest.setAttribute(
 			WebKeys.PORTLET_ID, FragmentPortletKeys.FRAGMENT);

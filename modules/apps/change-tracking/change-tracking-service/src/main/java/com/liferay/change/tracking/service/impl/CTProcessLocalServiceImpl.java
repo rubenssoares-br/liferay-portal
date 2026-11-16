@@ -11,11 +11,13 @@ import com.liferay.change.tracking.model.CTProcess;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.change.tracking.service.CTPreferencesLocalService;
 import com.liferay.change.tracking.service.base.CTProcessLocalServiceBaseImpl;
+import com.liferay.change.tracking.service.persistence.CTCollectionPersistence;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.background.task.model.BackgroundTask;
 import com.liferay.portal.background.task.service.BackgroundTaskLocalService;
 import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskConstants;
+import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
@@ -45,6 +47,7 @@ import org.osgi.service.component.annotations.Reference;
 	property = "model.class.name=com.liferay.change.tracking.model.CTProcess",
 	service = AopService.class
 )
+@CTAware(onProduction = true)
 public class CTProcessLocalServiceImpl extends CTProcessLocalServiceBaseImpl {
 
 	@Indexable(type = IndexableType.REINDEX)
@@ -52,7 +55,7 @@ public class CTProcessLocalServiceImpl extends CTProcessLocalServiceBaseImpl {
 	public CTProcess addCTProcess(long userId, long ctCollectionId)
 		throws PortalException {
 
-		CTCollection ctCollection = _ctCollectionLocalService.getCTCollection(
+		CTCollection ctCollection = _ctCollectionPersistence.findByPrimaryKey(
 			ctCollectionId);
 
 		if (ctCollection.getStatus() == WorkflowConstants.STATUS_APPROVED) {
@@ -66,6 +69,7 @@ public class CTProcessLocalServiceImpl extends CTProcessLocalServiceBaseImpl {
 				"Change tracking collection is empty " + ctCollection);
 		}
 
+		ctCollection.setScheduledDate(null);
 		ctCollection.setStatus(WorkflowConstants.STATUS_PENDING);
 
 		ctCollection = _ctCollectionLocalService.updateCTCollection(
@@ -141,7 +145,7 @@ public class CTProcessLocalServiceImpl extends CTProcessLocalServiceBaseImpl {
 					BackgroundTaskConstants.STATUS_SUCCESSFUL) {
 
 				CTCollection ctCollection =
-					_ctCollectionLocalService.fetchCTCollection(
+					_ctCollectionPersistence.fetchByPrimaryKey(
 						ctProcess.getCtCollectionId());
 
 				if (ctCollection != null) {
@@ -182,6 +186,9 @@ public class CTProcessLocalServiceImpl extends CTProcessLocalServiceBaseImpl {
 
 	@Reference
 	private CTCollectionLocalService _ctCollectionLocalService;
+
+	@Reference
+	private CTCollectionPersistence _ctCollectionPersistence;
 
 	@Reference
 	private CTPreferencesLocalService _ctPreferencesLocalService;

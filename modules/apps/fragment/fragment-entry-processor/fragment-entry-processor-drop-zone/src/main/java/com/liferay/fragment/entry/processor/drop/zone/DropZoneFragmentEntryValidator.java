@@ -8,6 +8,7 @@ package com.liferay.fragment.entry.processor.drop.zone;
 import com.liferay.fragment.exception.FragmentEntryContentException;
 import com.liferay.fragment.processor.DocumentFragmentEntryValidator;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.util.Validator;
 
@@ -34,7 +35,8 @@ public class DropZoneFragmentEntryValidator
 
 	@Override
 	public void validateFragmentEntryHTML(
-			Document document, String configuration, Locale locale)
+			Document document, JSONObject configurationJSONObject,
+			Locale locale)
 		throws PortalException {
 
 		Elements elements = document.getElementsByTag("lfr-drop-zone");
@@ -48,9 +50,11 @@ public class DropZoneFragmentEntryValidator
 		for (Element element : elements) {
 			String dropZoneId = element.attr("data-lfr-drop-zone-id");
 
-			if (!Validator.isBlank(dropZoneId)) {
-				elementDropZoneIds.add(dropZoneId);
+			if (Validator.isBlank(dropZoneId)) {
+				continue;
 			}
+
+			elementDropZoneIds.add(dropZoneId);
 		}
 
 		if (!elementDropZoneIds.isEmpty() &&

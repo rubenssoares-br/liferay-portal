@@ -718,6 +718,50 @@ public class DLAppServiceWrapper
 			groupId, folderId, folderName, fileName);
 	}
 
+	@Override
+	public com.liferay.portal.kernel.repository.model.FileEntry fetchFileEntry(
+			long fileEntryId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _dlAppService.fetchFileEntry(fileEntryId);
+	}
+
+	@Override
+	public com.liferay.portal.kernel.repository.model.FileEntry fetchFileEntry(
+			long groupId, long folderId, String title)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _dlAppService.fetchFileEntry(groupId, folderId, title);
+	}
+
+	@Override
+	public com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByExternalReferenceCode(
+				String externalReferenceCode, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _dlAppService.fetchFileEntryByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
+	@Override
+	public com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByFileName(
+				long groupId, long folderId, String fileName)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _dlAppService.fetchFileEntryByFileName(
+			groupId, folderId, fileName);
+	}
+
+	@Override
+	public com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByUuidAndGroupId(String uuid, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _dlAppService.fetchFileEntryByUuidAndGroupId(uuid, groupId);
+	}
+
 	/**
 	 * Returns all the file entries in the folder.
 	 *
@@ -2192,6 +2236,13 @@ public class DLAppServiceWrapper
 		return _dlAppService.search(repositoryId, searchContext, query);
 	}
 
+	@Override
+	public void subscribeFileEntry(long groupId, long fileEntryId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		_dlAppService.subscribeFileEntry(groupId, fileEntryId);
+	}
+
 	/**
 	 * Subscribe the user to changes in documents of the file entry type. This
 	 * method is only supported by the Liferay repository.
@@ -2254,6 +2305,13 @@ public class DLAppServiceWrapper
 
 		_dlAppService.unlockFolder(
 			repositoryId, parentFolderId, name, lockUuid);
+	}
+
+	@Override
+	public void unsubscribeFileEntry(long groupId, long fileEntryId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		_dlAppService.unsubscribeFileEntry(groupId, fileEntryId);
 	}
 
 	/**
@@ -2615,3 +2673,4 @@ public class DLAppServiceWrapper
 	private DLAppService _dlAppService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1402510782

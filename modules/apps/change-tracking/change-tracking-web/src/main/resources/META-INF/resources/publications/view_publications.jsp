@@ -11,15 +11,21 @@
 	navigationItems="<%= publicationsDisplayContext.getViewNavigationItems() %>"
 />
 
-<clay:container-fluid>
+<div>
+	<react:component
+		module="{PublicationsExpiredInfoPanel} from change-tracking-web"
+	/>
+</div>
+
+<div>
 	<frontend-data-set:headless-display
 		apiURL="<%= publicationsDisplayContext.getAPIURL() %>"
 		creationMenu="<%= publicationsDisplayContext.getCreationMenu() %>"
 		fdsActionDropdownItems="<%= publicationsDisplayContext.getFDSActionDropdownItems() %>"
 		id="<%= PublicationsFDSNames.PUBLICATIONS_ONGOING %>"
-		propsTransformer="{DeletePublicationsFDSPropsTransformer} from change-tracking-web"
+		propsTransformer="{OngoingPublicationsFDSPropsTransformer} from change-tracking-web"
 	/>
-</clay:container-fluid>
+</div>
 
 <aui:script>
 	(function () {

@@ -7,8 +7,8 @@ package com.liferay.analytics.settings.web.internal.configuration.admin.display;
 
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
 import com.liferay.analytics.settings.web.internal.constants.AnalyticsSettingsWebKeys;
-import com.liferay.analytics.settings.web.internal.user.AnalyticsUsersManager;
 import com.liferay.configuration.admin.display.ConfigurationScreen;
+import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
@@ -16,14 +16,14 @@ import com.liferay.portal.kernel.model.Release;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.Locale;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Reference;
 
@@ -35,7 +35,7 @@ public abstract class BaseAnalyticsConfigurationScreen
 
 	@Override
 	public String getCategoryKey() {
-		return "analytics-cloud";
+		return "liferay-data-platform";
 	}
 
 	@Override
@@ -45,16 +45,12 @@ public abstract class BaseAnalyticsConfigurationScreen
 
 	@Override
 	public String getScope() {
-		return "company";
+		return ExtendedObjectClassDefinition.Scope.COMPANY.getValue();
 	}
 
 	@Override
 	public boolean isVisible() {
-		if (FeatureFlagManagerUtil.isEnabled("LRAC-10757")) {
-			return true;
-		}
-
-		return false;
+		return FeatureFlagManagerUtil.isEnabled("LRAC-10757");
 	}
 
 	@Override
@@ -84,9 +80,6 @@ public abstract class BaseAnalyticsConfigurationScreen
 	protected abstract ServletContext getServletContext();
 
 	@Reference
-	protected AnalyticsUsersManager analyticsUsersManager;
-
-	@Reference
 	protected ConfigurationProvider configurationProvider;
 
 	@Reference(
@@ -106,10 +99,6 @@ public abstract class BaseAnalyticsConfigurationScreen
 			AnalyticsSettingsWebKeys.ANALYTICS_CONFIGURATION,
 			configurationProvider.getCompanyConfiguration(
 				AnalyticsConfiguration.class, themeDisplay.getCompanyId()));
-
-		httpServletRequest.setAttribute(
-			AnalyticsSettingsWebKeys.ANALYTICS_USERS_MANAGER,
-			analyticsUsersManager);
 	}
 
 }

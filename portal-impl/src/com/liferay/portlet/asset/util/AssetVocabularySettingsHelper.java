@@ -11,6 +11,7 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.Validator;
@@ -48,6 +49,17 @@ public class AssetVocabularySettingsHelper {
 
 	public long[] getClassTypePKs() {
 		return getClassTypePKs(getClassNameIdsAndClassTypePKs());
+	}
+
+	public long[] getRegisteredClassNameIds() {
+		String value = _unicodeProperties.getProperty(
+			_KEY_REGISTERED_CLASS_NAME_IDS_AND_CLASS_TYPE_PKS);
+
+		if (Validator.isNull(value)) {
+			return new long[0];
+		}
+
+		return getClassNameIds(StringUtil.split(value));
 	}
 
 	public long[] getRequiredClassNameIds() {
@@ -90,6 +102,12 @@ public class AssetVocabularySettingsHelper {
 		String value = _unicodeProperties.getProperty(_KEY_MULTI_VALUED);
 
 		return GetterUtil.getBoolean(value, true);
+	}
+
+	public boolean isSystem() {
+		String value = _unicodeProperties.getProperty(_KEY_SYSTEM);
+
+		return GetterUtil.getBoolean(value);
 	}
 
 	public void setClassNameIdsAndClassTypePKs(
@@ -180,6 +198,23 @@ public class AssetVocabularySettingsHelper {
 	public void setMultiValued(boolean multiValued) {
 		_unicodeProperties.setProperty(
 			_KEY_MULTI_VALUED, String.valueOf(multiValued));
+	}
+
+	public void setRegisteredClassNameIds(long[] classNameIds) {
+		Set<Long> registeredClassNameIds = SetUtil.fromArray(
+			getRegisteredClassNameIds());
+
+		for (long classNameId : classNameIds) {
+			registeredClassNameIds.add(classNameId);
+		}
+
+		_unicodeProperties.setProperty(
+			_KEY_REGISTERED_CLASS_NAME_IDS_AND_CLASS_TYPE_PKS,
+			StringUtil.merge(registeredClassNameIds));
+	}
+
+	public void setSystem(boolean system) {
+		_unicodeProperties.setProperty(_KEY_SYSTEM, String.valueOf(system));
 	}
 
 	@Override
@@ -303,12 +338,18 @@ public class AssetVocabularySettingsHelper {
 	private static final String _KEY_MULTI_VALUED = "multiValued";
 
 	private static final String
+		_KEY_REGISTERED_CLASS_NAME_IDS_AND_CLASS_TYPE_PKS =
+			"registeredClassNameIds";
+
+	private static final String
 		_KEY_REQUIRED_CLASS_NAME_IDS_AND_CLASS_TYPE_PKS =
 			"requiredClassNameIds";
 
 	private static final String
 		_KEY_SELECTED_CLASS_NAME_IDS_AND_CLASS_TYPE_PKS =
 			"selectedClassNameIds";
+
+	private static final String _KEY_SYSTEM = "system";
 
 	private final UnicodeProperties _unicodeProperties;
 

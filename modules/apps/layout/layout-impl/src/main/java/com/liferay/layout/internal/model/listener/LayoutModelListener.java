@@ -12,6 +12,7 @@ import com.liferay.layout.friendly.url.LayoutFriendlyURLEntryHelper;
 import com.liferay.layout.model.LayoutLocalization;
 import com.liferay.layout.service.LayoutClassedModelUsageLocalService;
 import com.liferay.layout.service.LayoutLocalizationLocalService;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.exception.ModelListenerException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
@@ -21,7 +22,12 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.ModelListener;
+import com.liferay.portal.kernel.search.Indexer;
+import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.search.SearchException;
+import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.LayoutRevisionLocalService;
+import com.liferay.portal.kernel.service.persistence.change.tracking.CTPersistence;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
 
@@ -45,6 +51,13 @@ public class LayoutModelListener extends BaseModelListener<Layout> {
 	public void onAfterRemove(Layout layout) {
 		if (layout == null) {
 			return;
+		}
+
+		if (!CTCollectionThreadLocal.isProductionMode()) {
+			CTPersistence<?> ctPersistence =
+				_layoutLocalService.getCTPersistence();
+
+			ctPersistence.flush();
 		}
 
 		_clientExtensionEntryRelLocalService.deleteClientExtensionEntryRels(
@@ -72,15 +85,32 @@ public class LayoutModelListener extends BaseModelListener<Layout> {
 					layout.getGroupId(), LocaleUtil.toLanguageId(locale),
 					layout.getPlid());
 
-			if (layoutLocalization != null) {
-				_layoutLocalizationLocalService.deleteLayoutLocalization(
-					layoutLocalization);
+			if (layoutLocalization == null) {
+				continue;
 			}
+
+			_layoutLocalizationLocalService.deleteLayoutLocalization(
+				layoutLocalization);
 		}
 	}
 
 	@Override
 	public void onAfterUpdate(Layout originalLayout, Layout layout) {
+		if ((originalLayout == null) || (layout == null) ||
+			(originalLayout.getPriority() == layout.getPriority())) {
+
+			return;
+		}
+
+		try {
+			Indexer<Layout> indexer = IndexerRegistryUtil.getIndexer(
+				Layout.class);
+
+			indexer.reindex(layout);
+		}
+		catch (SearchException searchException) {
+			throw new ModelListenerException(searchException);
+		}
 	}
 
 	@Override
@@ -136,6 +166,9 @@ public class LayoutModelListener extends BaseModelListener<Layout> {
 
 	@Reference
 	private LayoutFriendlyURLEntryHelper _layoutFriendlyURLEntryHelper;
+
+	@Reference
+	private LayoutLocalService _layoutLocalService;
 
 	@Reference
 	private LayoutLocalizationLocalService _layoutLocalizationLocalService;

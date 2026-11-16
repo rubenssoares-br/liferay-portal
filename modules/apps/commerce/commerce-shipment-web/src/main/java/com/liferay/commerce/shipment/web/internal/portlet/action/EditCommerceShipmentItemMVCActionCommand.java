@@ -6,11 +6,13 @@
 package com.liferay.commerce.shipment.web.internal.portlet.action;
 
 import com.liferay.commerce.constants.CommercePortletKeys;
+import com.liferay.commerce.exception.CommerceShipmentItemQuantityException;
 import com.liferay.commerce.exception.DuplicateCommerceShipmentItemException;
 import com.liferay.commerce.exception.DuplicateCommerceShipmentItemExternalReferenceCodeException;
 import com.liferay.commerce.exception.NoSuchShipmentException;
 import com.liferay.commerce.inventory.model.CommerceInventoryWarehouse;
 import com.liferay.commerce.inventory.service.CommerceInventoryWarehouseLocalService;
+import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderItem;
 import com.liferay.commerce.model.CommerceShipment;
 import com.liferay.commerce.model.CommerceShipmentItem;
@@ -42,14 +44,14 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.WindowStateException;
+
 import java.math.BigDecimal;
 
 import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletURL;
-import javax.portlet.WindowStateException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -60,7 +62,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CommercePortletKeys.COMMERCE_SHIPMENT,
+		"jakarta.portlet.name=" + CommercePortletKeys.COMMERCE_SHIPMENT,
 		"mvc.command.name=/commerce_shipment/edit_commerce_shipment_item"
 	},
 	service = MVCActionCommand.class
@@ -94,7 +96,9 @@ public class EditCommerceShipmentItemMVCActionCommand
 							"mvcPath", "/error.jsp");
 					}
 					else if (exception instanceof
-								DuplicateCommerceShipmentItemException ||
+								CommerceShipmentItemQuantityException ||
+							 exception instanceof
+								 DuplicateCommerceShipmentItemException ||
 							 exception instanceof NoSuchShipmentException) {
 
 						hideDefaultErrorMessage(actionRequest);
@@ -232,6 +236,8 @@ public class EditCommerceShipmentItemMVCActionCommand
 		CommerceOrderItem commerceOrderItem =
 			_commerceOrderItemService.getCommerceOrderItem(commerceOrderItemId);
 
+		CommerceOrder commerceOrder = commerceOrderItem.getCommerceOrder();
+
 		CommerceShipmentItem initialCommerceShipmentItem =
 			_commerceShipmentItemService.fetchCommerceShipmentItem(
 				commerceShipmentId, commerceOrderItemId, 0);
@@ -250,6 +256,7 @@ public class EditCommerceShipmentItemMVCActionCommand
 			_commerceInventoryWarehouseLocalService.
 				getCommerceInventoryWarehouses(
 					commerceOrderItem.getCompanyId(),
+					commerceOrder.getCommerceAccountId(),
 					commerceOrderItem.getGroupId(), true);
 
 		for (CommerceInventoryWarehouse commerceInventoryWarehouse :
@@ -264,13 +271,15 @@ public class EditCommerceShipmentItemMVCActionCommand
 					commerceInventoryWarehouseId);
 
 			BigDecimal quantity = _commerceOrderItemQuantityFormatter.parse(
-				actionRequest, commerceInventoryWarehouseId + "_quantity");
+				actionRequest, CommerceShipmentItem.class.getName(),
+				commerceInventoryWarehouseId + "_quantity");
 
 			if ((initialCommerceShipmentItem != null) &&
 				BigDecimalUtil.gt(quantity, BigDecimal.ZERO)) {
 
 				commerceShipmentItem =
 					_commerceShipmentItemService.updateCommerceShipmentItem(
+						commerceShipmentId,
 						initialCommerceShipmentItem.getCommerceShipmentItemId(),
 						commerceInventoryWarehouseId, quantity, true);
 
@@ -290,12 +299,14 @@ public class EditCommerceShipmentItemMVCActionCommand
 
 				commerceShipmentItem =
 					_commerceShipmentItemService.updateCommerceShipmentItem(
+						commerceShipmentId,
 						commerceShipmentItem.getCommerceShipmentItemId(),
 						commerceInventoryWarehouseId, quantity, true);
 
 				if (BigDecimalUtil.eq(quantity, BigDecimal.ZERO)) {
 					commerceShipmentItem =
 						_commerceShipmentItemService.updateCommerceShipmentItem(
+							commerceShipmentId,
 							commerceShipmentItem.getCommerceShipmentItemId(), 0,
 							quantity, true);
 				}
@@ -309,7 +320,7 @@ public class EditCommerceShipmentItemMVCActionCommand
 			actionRequest, "externalReferenceCode");
 
 		return _commerceShipmentItemService.updateExternalReferenceCode(
-			commerceShipmentItemId, externalReferenceCode);
+			commerceShipmentId, commerceShipmentItemId, externalReferenceCode);
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

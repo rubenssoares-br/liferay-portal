@@ -27,22 +27,28 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,10 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -81,8 +83,10 @@ public abstract class BaseAddressResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -95,16 +99,16 @@ public abstract class BaseAddressResourceTestCase {
 
 		_addressResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		AddressResource.Builder builder = AddressResource.builder();
-
-		addressResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		addressResource = AddressResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -178,6 +182,7 @@ public abstract class BaseAddressResourceTestCase {
 		address.setStreet1(regex);
 		address.setStreet2(regex);
 		address.setStreet3(regex);
+		address.setSubtype(regex);
 		address.setType(regex);
 		address.setVatNumber(regex);
 		address.setZip(regex);
@@ -200,313 +205,10 @@ public abstract class BaseAddressResourceTestCase {
 		Assert.assertEquals(regex, address.getStreet1());
 		Assert.assertEquals(regex, address.getStreet2());
 		Assert.assertEquals(regex, address.getStreet3());
+		Assert.assertEquals(regex, address.getSubtype());
 		Assert.assertEquals(regex, address.getType());
 		Assert.assertEquals(regex, address.getVatNumber());
 		Assert.assertEquals(regex, address.getZip());
-	}
-
-	@Test
-	public void testGetCartByExternalReferenceCodeBillingAddress()
-		throws Exception {
-
-		Address postAddress =
-			testGetCartByExternalReferenceCodeBillingAddress_addAddress();
-
-		Address getAddress =
-			addressResource.getCartByExternalReferenceCodeBillingAddress(
-				testGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
-					postAddress));
-
-		assertEquals(postAddress, getAddress);
-		assertValid(getAddress);
-	}
-
-	protected String
-			testGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
-				Address address)
-		throws Exception {
-
-		return address.getExternalReferenceCode();
-	}
-
-	protected Address
-			testGetCartByExternalReferenceCodeBillingAddress_addAddress()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetCartByExternalReferenceCodeBillingAddress()
-		throws Exception {
-
-		Address address =
-			testGraphQLGetCartByExternalReferenceCodeBillingAddress_addAddress();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				address,
-				AddressSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"cartByExternalReferenceCodeBillingAddress",
-								new HashMap<String, Object>() {
-									{
-										put(
-											"externalReferenceCode",
-											"\"" +
-												testGraphQLGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
-													address) + "\"");
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data",
-						"Object/cartByExternalReferenceCodeBillingAddress"))));
-
-		// Using the namespace headlessCommerceDeliveryCart_v1_0
-
-		Assert.assertTrue(
-			equals(
-				address,
-				AddressSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceDeliveryCart_v1_0",
-								new GraphQLField(
-									"cartByExternalReferenceCodeBillingAddress",
-									new HashMap<String, Object>() {
-										{
-											put(
-												"externalReferenceCode",
-												"\"" +
-													testGraphQLGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
-														address) + "\"");
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceDeliveryCart_v1_0",
-						"Object/cartByExternalReferenceCodeBillingAddress"))));
-	}
-
-	protected String
-			testGraphQLGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
-				Address address)
-		throws Exception {
-
-		return address.getExternalReferenceCode();
-	}
-
-	@Test
-	public void testGraphQLGetCartByExternalReferenceCodeBillingAddressNotFound()
-		throws Exception {
-
-		String irrelevantExternalReferenceCode =
-			"\"" + RandomTestUtil.randomString() + "\"";
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"cartByExternalReferenceCodeBillingAddress",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"externalReferenceCode",
-									irrelevantExternalReferenceCode);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceDeliveryCart_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceDeliveryCart_v1_0",
-						new GraphQLField(
-							"cartByExternalReferenceCodeBillingAddress",
-							new HashMap<String, Object>() {
-								{
-									put(
-										"externalReferenceCode",
-										irrelevantExternalReferenceCode);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected Address
-			testGraphQLGetCartByExternalReferenceCodeBillingAddress_addAddress()
-		throws Exception {
-
-		return testGraphQLAddress_addAddress();
-	}
-
-	@Test
-	public void testGetCartByExternalReferenceCodeShippingAddress()
-		throws Exception {
-
-		Address postAddress =
-			testGetCartByExternalReferenceCodeShippingAddress_addAddress();
-
-		Address getAddress =
-			addressResource.getCartByExternalReferenceCodeShippingAddress(
-				testGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
-					postAddress));
-
-		assertEquals(postAddress, getAddress);
-		assertValid(getAddress);
-	}
-
-	protected String
-			testGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
-				Address address)
-		throws Exception {
-
-		return address.getExternalReferenceCode();
-	}
-
-	protected Address
-			testGetCartByExternalReferenceCodeShippingAddress_addAddress()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testGraphQLGetCartByExternalReferenceCodeShippingAddress()
-		throws Exception {
-
-		Address address =
-			testGraphQLGetCartByExternalReferenceCodeShippingAddress_addAddress();
-
-		// No namespace
-
-		Assert.assertTrue(
-			equals(
-				address,
-				AddressSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"cartByExternalReferenceCodeShippingAddress",
-								new HashMap<String, Object>() {
-									{
-										put(
-											"externalReferenceCode",
-											"\"" +
-												testGraphQLGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
-													address) + "\"");
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data",
-						"Object/cartByExternalReferenceCodeShippingAddress"))));
-
-		// Using the namespace headlessCommerceDeliveryCart_v1_0
-
-		Assert.assertTrue(
-			equals(
-				address,
-				AddressSerDes.toDTO(
-					JSONUtil.getValueAsString(
-						invokeGraphQLQuery(
-							new GraphQLField(
-								"headlessCommerceDeliveryCart_v1_0",
-								new GraphQLField(
-									"cartByExternalReferenceCodeShippingAddress",
-									new HashMap<String, Object>() {
-										{
-											put(
-												"externalReferenceCode",
-												"\"" +
-													testGraphQLGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
-														address) + "\"");
-										}
-									},
-									getGraphQLFields()))),
-						"JSONObject/data",
-						"JSONObject/headlessCommerceDeliveryCart_v1_0",
-						"Object/cartByExternalReferenceCodeShippingAddress"))));
-	}
-
-	protected String
-			testGraphQLGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
-				Address address)
-		throws Exception {
-
-		return address.getExternalReferenceCode();
-	}
-
-	@Test
-	public void testGraphQLGetCartByExternalReferenceCodeShippingAddressNotFound()
-		throws Exception {
-
-		String irrelevantExternalReferenceCode =
-			"\"" + RandomTestUtil.randomString() + "\"";
-
-		// No namespace
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"cartByExternalReferenceCodeShippingAddress",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"externalReferenceCode",
-									irrelevantExternalReferenceCode);
-							}
-						},
-						getGraphQLFields())),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-
-		// Using the namespace headlessCommerceDeliveryCart_v1_0
-
-		Assert.assertEquals(
-			"Not Found",
-			JSONUtil.getValueAsString(
-				invokeGraphQLQuery(
-					new GraphQLField(
-						"headlessCommerceDeliveryCart_v1_0",
-						new GraphQLField(
-							"cartByExternalReferenceCodeShippingAddress",
-							new HashMap<String, Object>() {
-								{
-									put(
-										"externalReferenceCode",
-										irrelevantExternalReferenceCode);
-								}
-							},
-							getGraphQLFields()))),
-				"JSONArray/errors", "Object/0", "JSONObject/extensions",
-				"Object/code"));
-	}
-
-	protected Address
-			testGraphQLGetCartByExternalReferenceCodeShippingAddress_addAddress()
-		throws Exception {
-
-		return testGraphQLAddress_addAddress();
 	}
 
 	@Test
@@ -520,12 +222,12 @@ public abstract class BaseAddressResourceTestCase {
 		assertValid(getAddress);
 	}
 
-	protected Long testGetCartBillingAddres_getCartId() throws Exception {
+	protected Address testGetCartBillingAddres_addAddress() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
-	protected Address testGetCartBillingAddres_addAddress() throws Exception {
+	protected Long testGetCartBillingAddres_getCartId() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
@@ -630,7 +332,315 @@ public abstract class BaseAddressResourceTestCase {
 	protected Address testGraphQLGetCartBillingAddres_addAddress()
 		throws Exception {
 
-		return testGraphQLAddress_addAddress();
+		return testGraphQLCartAddress_addAddress();
+	}
+
+	@Test
+	public void testGetCartByExternalReferenceCodeBillingAddress()
+		throws Exception {
+
+		Address postAddress =
+			testGetCartByExternalReferenceCodeBillingAddress_addAddress();
+
+		Address getAddress =
+			addressResource.getCartByExternalReferenceCodeBillingAddress(
+				testGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
+					postAddress));
+
+		assertEquals(postAddress, getAddress);
+		assertValid(getAddress);
+	}
+
+	protected Address
+			testGetCartByExternalReferenceCodeBillingAddress_addAddress()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
+				Address address)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetCartByExternalReferenceCodeBillingAddress()
+		throws Exception {
+
+		Address address =
+			testGraphQLGetCartByExternalReferenceCodeBillingAddress_addAddress();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				address,
+				AddressSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"cartByExternalReferenceCodeBillingAddress",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"externalReferenceCode",
+											"\"" +
+												testGraphQLGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
+													address) + "\"");
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/cartByExternalReferenceCodeBillingAddress"))));
+
+		// Using the namespace headlessCommerceDeliveryCart_v1_0
+
+		Assert.assertTrue(
+			equals(
+				address,
+				AddressSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceDeliveryCart_v1_0",
+								new GraphQLField(
+									"cartByExternalReferenceCodeBillingAddress",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"externalReferenceCode",
+												"\"" +
+													testGraphQLGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
+														address) + "\"");
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceDeliveryCart_v1_0",
+						"Object/cartByExternalReferenceCodeBillingAddress"))));
+	}
+
+	protected String
+			testGraphQLGetCartByExternalReferenceCodeBillingAddress_getExternalReferenceCode(
+				Address address)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetCartByExternalReferenceCodeBillingAddressNotFound()
+		throws Exception {
+
+		String irrelevantExternalReferenceCode =
+			"\"" + RandomTestUtil.randomString() + "\"";
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"cartByExternalReferenceCodeBillingAddress",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									irrelevantExternalReferenceCode);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceDeliveryCart_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceDeliveryCart_v1_0",
+						new GraphQLField(
+							"cartByExternalReferenceCodeBillingAddress",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										irrelevantExternalReferenceCode);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Address
+			testGraphQLGetCartByExternalReferenceCodeBillingAddress_addAddress()
+		throws Exception {
+
+		return testGraphQLCartAddress_addAddress();
+	}
+
+	@Test
+	public void testGetCartByExternalReferenceCodeShippingAddress()
+		throws Exception {
+
+		Address postAddress =
+			testGetCartByExternalReferenceCodeShippingAddress_addAddress();
+
+		Address getAddress =
+			addressResource.getCartByExternalReferenceCodeShippingAddress(
+				testGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
+					postAddress));
+
+		assertEquals(postAddress, getAddress);
+		assertValid(getAddress);
+	}
+
+	protected Address
+			testGetCartByExternalReferenceCodeShippingAddress_addAddress()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
+				Address address)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetCartByExternalReferenceCodeShippingAddress()
+		throws Exception {
+
+		Address address =
+			testGraphQLGetCartByExternalReferenceCodeShippingAddress_addAddress();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				address,
+				AddressSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"cartByExternalReferenceCodeShippingAddress",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"externalReferenceCode",
+											"\"" +
+												testGraphQLGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
+													address) + "\"");
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/cartByExternalReferenceCodeShippingAddress"))));
+
+		// Using the namespace headlessCommerceDeliveryCart_v1_0
+
+		Assert.assertTrue(
+			equals(
+				address,
+				AddressSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"headlessCommerceDeliveryCart_v1_0",
+								new GraphQLField(
+									"cartByExternalReferenceCodeShippingAddress",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"externalReferenceCode",
+												"\"" +
+													testGraphQLGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
+														address) + "\"");
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data",
+						"JSONObject/headlessCommerceDeliveryCart_v1_0",
+						"Object/cartByExternalReferenceCodeShippingAddress"))));
+	}
+
+	protected String
+			testGraphQLGetCartByExternalReferenceCodeShippingAddress_getExternalReferenceCode(
+				Address address)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetCartByExternalReferenceCodeShippingAddressNotFound()
+		throws Exception {
+
+		String irrelevantExternalReferenceCode =
+			"\"" + RandomTestUtil.randomString() + "\"";
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"cartByExternalReferenceCodeShippingAddress",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"externalReferenceCode",
+									irrelevantExternalReferenceCode);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace headlessCommerceDeliveryCart_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"headlessCommerceDeliveryCart_v1_0",
+						new GraphQLField(
+							"cartByExternalReferenceCodeShippingAddress",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"externalReferenceCode",
+										irrelevantExternalReferenceCode);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
+	protected Address
+			testGraphQLGetCartByExternalReferenceCodeShippingAddress_addAddress()
+		throws Exception {
+
+		return testGraphQLCartAddress_addAddress();
 	}
 
 	@Test
@@ -644,12 +654,12 @@ public abstract class BaseAddressResourceTestCase {
 		assertValid(getAddress);
 	}
 
-	protected Long testGetCartShippingAddres_getCartId() throws Exception {
+	protected Address testGetCartShippingAddres_addAddress() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
-	protected Address testGetCartShippingAddres_addAddress() throws Exception {
+	protected Long testGetCartShippingAddres_getCartId() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
@@ -754,10 +764,10 @@ public abstract class BaseAddressResourceTestCase {
 	protected Address testGraphQLGetCartShippingAddres_addAddress()
 		throws Exception {
 
-		return testGraphQLAddress_addAddress();
+		return testGraphQLCartAddress_addAddress();
 	}
 
-	protected Address testGraphQLAddress_addAddress() throws Exception {
+	protected Address testGraphQLCartAddress_addAddress() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
@@ -948,6 +958,14 @@ public abstract class BaseAddressResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals("subtype", additionalAssertFieldName)) {
+				if (address.getSubtype() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("type", additionalAssertFieldName)) {
 				if (address.getType() == null) {
 					valid = false;
@@ -1036,6 +1054,10 @@ public abstract class BaseAddressResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1242,6 +1264,16 @@ public abstract class BaseAddressResourceTestCase {
 			if (Objects.equals("street3", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						address1.getStreet3(), address2.getStreet3())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("subtype", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						address1.getSubtype(), address2.getSubtype())) {
 
 					return false;
 				}
@@ -1963,6 +1995,52 @@ public abstract class BaseAddressResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("subtype")) {
+			Object object = address.getSubtype();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("type")) {
 			Object object = address.getType();
 
@@ -2120,7 +2198,9 @@ public abstract class BaseAddressResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2172,6 +2252,7 @@ public abstract class BaseAddressResourceTestCase {
 				street1 = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				street2 = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				street3 = StringUtil.toLowerCase(RandomTestUtil.randomString());
+				subtype = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				type = StringUtil.toLowerCase(RandomTestUtil.randomString());
 				typeId = RandomTestUtil.randomInt();
 				vatNumber = StringUtil.toLowerCase(
@@ -2392,7 +2473,9 @@ public abstract class BaseAddressResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseAddressResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -2400,3 +2483,4 @@ public abstract class BaseAddressResourceTestCase {
 			AddressResource _addressResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-157432053

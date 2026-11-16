@@ -11,18 +11,28 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,23 +40,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Product")
+@GraphQLName(
+	description = "Core catalog product entity with a parent envelope record, a parent catalog, localized name and description maps, and asset-framework category and tag links; admin catalog write view covering create, update (PATCH merges with current values), clone, and status transitions; nested collections such as `skus`, `productOptions`, `categories`, `productChannels`, and `productAccountGroups` are written through dedicated sub-resources during the same request.",
+	value = "Product"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Core catalog product entity with a parent envelope record, a parent catalog, localized name and description maps, and asset-framework category and tag links; admin catalog write view covering create, update (PATCH merges with current values), clone, and status transitions; nested collections such as `skus`, `productOptions`, `categories`, `productChannels`, and `productAccountGroups` are written through dedicated sub-resources during the same request.",
+	requiredProperties = {"active", "name", "productType"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"active", "name", "productType"})
 @XmlRootElement(name = "Product")
 public class Product implements Serializable {
 
@@ -58,7 +65,9 @@ public class Product implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Product.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -94,14 +103,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the product is published; setting this to false moves the product to inactive status after the save and removes it from storefront listings; setting it to true leaves the workflow-driven status untouched; required.",
+		example = "true"
+	)
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -135,7 +149,9 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the product is published; setting this to false moves the product to inactive status after the save and removes it from storefront listings; setting it to true leaves the workflow-driven status untouched; required."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Boolean active;
@@ -143,7 +159,9 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Gallery attachments of type Other; replaces the existing set on write."
+	)
 	@Valid
 	public Attachment[] getAttachments() {
 		if (_attachmentsSupplier != null) {
@@ -178,14 +196,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Gallery attachments of type Other; replaces the existing set on write."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Attachment[] attachments;
 
 	@JsonIgnore
 	private Supplier<Attachment[]> _attachmentsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Embedded parent catalog reference; read-only."
+	)
 	@Valid
 	public Catalog getCatalog() {
 		if (_catalogSupplier != null) {
@@ -220,14 +242,114 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Embedded parent catalog reference; read-only.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Catalog catalog;
 
 	@JsonIgnore
 	private Supplier<Catalog> _catalogSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "ISO 4217 code of the default currency of the parent catalog. A catalog cannot exist without a currency, so the currency must travel with the catalog reference whenever the product is imported before the catalog.",
+		example = "USD"
+	)
+	public String getCatalogCurrencyCode() {
+		if (_catalogCurrencyCodeSupplier != null) {
+			catalogCurrencyCode = _catalogCurrencyCodeSupplier.get();
+
+			_catalogCurrencyCodeSupplier = null;
+		}
+
+		return catalogCurrencyCode;
+	}
+
+	public void setCatalogCurrencyCode(String catalogCurrencyCode) {
+		this.catalogCurrencyCode = catalogCurrencyCode;
+
+		_catalogCurrencyCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCatalogCurrencyCode(
+		UnsafeSupplier<String, Exception> catalogCurrencyCodeUnsafeSupplier) {
+
+		_catalogCurrencyCodeSupplier = () -> {
+			try {
+				return catalogCurrencyCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "ISO 4217 code of the default currency of the parent catalog. A catalog cannot exist without a currency, so the currency must travel with the catalog reference whenever the product is imported before the catalog."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String catalogCurrencyCode;
+
+	@JsonIgnore
+	private Supplier<String> _catalogCurrencyCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the default currency of the parent catalog; resolved after `catalogCurrencyCode` and used to create the currency when neither identifier matches an existing one.",
+		example = "AB-34098-789-N"
+	)
+	public String getCatalogCurrencyExternalReferenceCode() {
+		if (_catalogCurrencyExternalReferenceCodeSupplier != null) {
+			catalogCurrencyExternalReferenceCode =
+				_catalogCurrencyExternalReferenceCodeSupplier.get();
+
+			_catalogCurrencyExternalReferenceCodeSupplier = null;
+		}
+
+		return catalogCurrencyExternalReferenceCode;
+	}
+
+	public void setCatalogCurrencyExternalReferenceCode(
+		String catalogCurrencyExternalReferenceCode) {
+
+		this.catalogCurrencyExternalReferenceCode =
+			catalogCurrencyExternalReferenceCode;
+
+		_catalogCurrencyExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCatalogCurrencyExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			catalogCurrencyExternalReferenceCodeUnsafeSupplier) {
+
+		_catalogCurrencyExternalReferenceCodeSupplier = () -> {
+			try {
+				return catalogCurrencyExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the default currency of the parent catalog; resolved after `catalogCurrencyCode` and used to create the currency when neither identifier matches an existing one."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String catalogCurrencyExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _catalogCurrencyExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the parent catalog; used on create when `catalogId` is not supplied to look up the catalog within the company; the request is rejected when neither resolves.",
+		example = "AB-34098-789-N"
+	)
 	public String getCatalogExternalReferenceCode() {
 		if (_catalogExternalReferenceCodeSupplier != null) {
 			catalogExternalReferenceCode =
@@ -265,7 +387,9 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the parent catalog; used on create when `catalogId` is not supplied to look up the catalog within the company; the request is rejected when neither resolves."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String catalogExternalReferenceCode;
 
@@ -273,7 +397,10 @@ public class Product implements Serializable {
 	private Supplier<String> _catalogExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30054")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier of the parent catalog; the catalog's scope determines where the product lives; either `catalogId` or `catalogExternalReferenceCode` must resolve on create.",
+		example = "30054"
+	)
 	public Long getCatalogId() {
 		if (_catalogIdSupplier != null) {
 			catalogId = _catalogIdSupplier.get();
@@ -307,14 +434,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier of the parent catalog; the catalog's scope determines where the product lives; either `catalogId` or `catalogExternalReferenceCode` must resolve on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long catalogId;
 
 	@JsonIgnore
 	private Supplier<Long> _catalogIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Asset-framework categories associated with the product for classification; on write, replaces the existing assignments; each item is resolved by ID, or by external reference code within the company scope when ID is omitted."
+	)
 	@Valid
 	public Category[] getCategories() {
 		if (_categoriesSupplier != null) {
@@ -349,14 +480,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Asset-framework categories associated with the product for classification; on write, replaces the existing assignments; each item is resolved by ID, or by external reference code within the company scope when ID is omitted."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Category[] categories;
 
 	@JsonIgnore
 	private Supplier<Category[]> _categoriesSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Creation timestamp of the product row; filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
 	public Date getCreateDate() {
 		if (_createDateSupplier != null) {
 			createDate = _createDateSupplier.get();
@@ -390,16 +526,68 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Creation timestamp of the product row; filterable and sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date createDate;
 
 	@JsonIgnore
 	private Supplier<Date> _createDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "User who created the product. Read-only; embedded through the `creator` nested field."
+	)
 	@Valid
-	public CustomField[] getCustomFields() {
+	public Creator getCreator() {
+		if (_creatorSupplier != null) {
+			creator = _creatorSupplier.get();
+
+			_creatorSupplier = null;
+		}
+
+		return creator;
+	}
+
+	public void setCreator(Creator creator) {
+		this.creator = creator;
+
+		_creatorSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCreator(
+		UnsafeSupplier<Creator, Exception> creatorUnsafeSupplier) {
+
+		_creatorSupplier = () -> {
+			try {
+				return creatorUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "User who created the product. Read-only; embedded through the `creator` nested field."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Creator creator;
+
+	@JsonIgnore
+	private Supplier<Creator> _creatorSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Custom field values stored against the product; written as expando attribute values during save."
+	)
+	@Valid
+	public com.liferay.portal.vulcan.custom.field.CustomField[]
+		getCustomFields() {
+
 		if (_customFieldsSupplier != null) {
 			customFields = _customFieldsSupplier.get();
 
@@ -409,7 +597,9 @@ public class Product implements Serializable {
 		return customFields;
 	}
 
-	public void setCustomFields(CustomField[] customFields) {
+	public void setCustomFields(
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields) {
+
 		this.customFields = customFields;
 
 		_customFieldsSupplier = null;
@@ -417,7 +607,9 @@ public class Product implements Serializable {
 
 	@JsonIgnore
 	public void setCustomFields(
-		UnsafeSupplier<CustomField[], Exception> customFieldsUnsafeSupplier) {
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.custom.field.CustomField[], Exception>
+				customFieldsUnsafeSupplier) {
 
 		_customFieldsSupplier = () -> {
 			try {
@@ -432,14 +624,112 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Custom field values stored against the product; written as expando attribute values during save."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected CustomField[] customFields;
+	protected com.liferay.portal.vulcan.custom.field.CustomField[] customFields;
 
 	@JsonIgnore
-	private Supplier<CustomField[]> _customFieldsSupplier;
+	private Supplier<com.liferay.portal.vulcan.custom.field.CustomField[]>
+		_customFieldsSupplier;
 
-	@Schema(example = "Blue handle, 00001l, 70cm, lifetime warranty")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Creation timestamp in ISO 8601 (UTC). Read-only; set when the product is first persisted. Filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
+	public Date getDateCreated() {
+		if (_dateCreatedSupplier != null) {
+			dateCreated = _dateCreatedSupplier.get();
+
+			_dateCreatedSupplier = null;
+		}
+
+		return dateCreated;
+	}
+
+	public void setDateCreated(Date dateCreated) {
+		this.dateCreated = dateCreated;
+
+		_dateCreatedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDateCreated(
+		UnsafeSupplier<Date, Exception> dateCreatedUnsafeSupplier) {
+
+		_dateCreatedSupplier = () -> {
+			try {
+				return dateCreatedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Creation timestamp in ISO 8601 (UTC). Read-only; set when the product is first persisted. Filterable and sortable via the OData query parameter."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date dateCreated;
+
+	@JsonIgnore
+	private Supplier<Date> _dateCreatedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Last modification timestamp in ISO 8601 (UTC). Read-only; updated on each save. Filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
+	public Date getDateModified() {
+		if (_dateModifiedSupplier != null) {
+			dateModified = _dateModifiedSupplier.get();
+
+			_dateModifiedSupplier = null;
+		}
+
+		return dateModified;
+	}
+
+	public void setDateModified(Date dateModified) {
+		this.dateModified = dateModified;
+
+		_dateModifiedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDateModified(
+		UnsafeSupplier<Date, Exception> dateModifiedUnsafeSupplier) {
+
+		_dateModifiedSupplier = () -> {
+			try {
+				return dateModifiedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Last modification timestamp in ISO 8601 (UTC). Read-only; updated on each save. Filterable and sortable via the OData query parameter."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date dateModified;
+
+	@JsonIgnore
+	private Supplier<Date> _dateModifiedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Optional default SKU code used during product creation to seed the initial variant.",
+		example = "Blue handle, 00001l, 70cm, lifetime warranty"
+	)
 	public String getDefaultSku() {
 		if (_defaultSkuSupplier != null) {
 			defaultSku = _defaultSkuSupplier.get();
@@ -473,15 +763,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Optional default SKU code used during product creation to seed the initial variant."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String defaultSku;
 
 	@JsonIgnore
 	private Supplier<String> _defaultSkuSupplier;
 
-	@Schema(
-		example = "{hu_HU=Product Description HU, hr_HR=Product Description HR, en_US=Professional hand stainless steel saw for wood. Made to last and saw forever. Made of best steel}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized description as a map whose keys are locale codes and whose values are the translated strings; HTML is sanitized on save.",
+		example = "{en_US=Professional hand stainless steel saw for wood. Made to last and saw forever. Made of best steel, hr_HR=Product Description HR, hu_HU=Product Description HU}"
 	)
 	@Valid
 	public Map<String, String> getDescription() {
@@ -518,14 +811,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized description as a map whose keys are locale codes and whose values are the translated strings; HTML is sanitized on save."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Diagram getDiagram() {
 		if (_diagramSupplier != null) {
@@ -567,7 +862,10 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<Diagram> _diagramSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "ISO 8601 date-time from which the product becomes visible; must not be after `expirationDate` or the request is rejected.",
+		example = "2017-07-21"
+	)
 	public Date getDisplayDate() {
 		if (_displayDateSupplier != null) {
 			displayDate = _displayDateSupplier.get();
@@ -601,14 +899,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "ISO 8601 date-time from which the product becomes visible; must not be after `expirationDate` or the request is rejected."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date displayDate;
 
 	@JsonIgnore
 	private Supplier<Date> _displayDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Custom field payload applied to the product after save; merged with any existing custom field values."
+	)
 	@Valid
 	public Map<String, ?> getExpando() {
 		if (_expandoSupplier != null) {
@@ -643,14 +945,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Custom field payload applied to the product after save; merged with any existing custom field values."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, ?> expando;
 
 	@JsonIgnore
 	private Supplier<Map<String, ?>> _expandoSupplier;
 
-	@Schema(example = "2017-08-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "ISO 8601 date-time when the product is hidden from the catalog; ignored when `neverExpire` is true (default).",
+		example = "2017-08-21"
+	)
 	public Date getExpirationDate() {
 		if (_expirationDateSupplier != null) {
 			expirationDate = _expirationDateSupplier.get();
@@ -684,14 +991,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "ISO 8601 date-time when the product is hidden from the catalog; ignored when `neverExpire` is true (default)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date expirationDate;
 
 	@JsonIgnore
 	private Supplier<Date> _expirationDateSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per product within the company; used by upsert, lookup, and PATCH endpoints to locate the product.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -725,15 +1037,67 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per product within the company; used by upsert, lookup, and PATCH endpoints to locate the product."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Child products bundled into a product whose `productType` is grouped; written through the grouped-product sub-resource and, when sent with the product, added or updated by matching the entry product."
+	)
+	@Valid
+	public GroupedProduct[] getGroupedProducts() {
+		if (_groupedProductsSupplier != null) {
+			groupedProducts = _groupedProductsSupplier.get();
+
+			_groupedProductsSupplier = null;
+		}
+
+		return groupedProducts;
+	}
+
+	public void setGroupedProducts(GroupedProduct[] groupedProducts) {
+		this.groupedProducts = groupedProducts;
+
+		_groupedProductsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setGroupedProducts(
+		UnsafeSupplier<GroupedProduct[], Exception>
+			groupedProductsUnsafeSupplier) {
+
+		_groupedProductsSupplier = () -> {
+			try {
+				return groupedProductsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Child products bundled into a product whose `productType` is grouped; written through the grouped-product sub-resource and, when sent with the product, added or updated by matching the entry product."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected GroupedProduct[] groupedProducts;
+
+	@JsonIgnore
+	private Supplier<GroupedProduct[]> _groupedProductsSupplier;
+
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Primary key of the product row; read-only; filterable and sortable via the OData query parameter.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -765,14 +1129,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Primary key of the product row; read-only; filterable and sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Image attachments of type Image."
+	)
 	@Valid
 	public Attachment[] getImages() {
 		if (_imagesSupplier != null) {
@@ -807,14 +1175,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Image attachments of type Image.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Attachment[] images;
 
 	@JsonIgnore
 	private Supplier<Attachment[]> _imagesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Read-only collection of linked-product projections covering grouped-product entries and shop-by-diagram entries that target this product."
+	)
 	@Valid
 	public LinkedProduct[] getLinkedProducts() {
 		if (_linkedProductsSupplier != null) {
@@ -850,14 +1220,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Read-only collection of linked-product projections covering grouped-product entries and shop-by-diagram entries that target this product."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected LinkedProduct[] linkedProducts;
 
 	@JsonIgnore
 	private Supplier<LinkedProduct[]> _linkedProductsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Read-only collection of mapped-product entries that bind diagram pins to other catalog products."
+	)
 	@Valid
 	public MappedProduct[] getMappedProducts() {
 		if (_mappedProductsSupplier != null) {
@@ -893,14 +1267,17 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Read-only collection of mapped-product entries that bind diagram pins to other catalog products."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected MappedProduct[] mappedProducts;
 
 	@JsonIgnore
 	private Supplier<MappedProduct[]> _mappedProductsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized SEO meta description as a map whose keys are locale codes and whose values are the translated strings; maximum length 255 per value.",
 		example = "{en_US=Meta description HU, hr_HR=Meta description HU, hu_HU=Meta description HU}"
 	)
 	@Valid
@@ -938,14 +1315,17 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized SEO meta description as a map whose keys are locale codes and whose values are the translated strings; maximum length 255 per value."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> metaDescription;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _metaDescriptionSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized SEO meta keywords as a map whose keys are locale codes and whose values are the translated strings; maximum length 255 per value.",
 		example = "{en_US=Meta keyword HU, hr_HR=Meta keyword HU, hu_HU=Meta keyword HU}"
 	)
 	@Valid
@@ -983,14 +1363,17 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized SEO meta keywords as a map whose keys are locale codes and whose values are the translated strings; maximum length 255 per value."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> metaKeyword;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _metaKeywordSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized SEO meta title as a map whose keys are locale codes and whose values are the translated strings; maximum length 255 per value.",
 		example = "{en_US=Meta title HU, hr_HR=Meta title HU, hu_HU=Meta title HU}"
 	)
 	@Valid
@@ -1028,14 +1411,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized SEO meta title as a map whose keys are locale codes and whose values are the translated strings; maximum length 255 per value."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> metaTitle;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _metaTitleSupplier;
 
-	@Schema(example = "2017-08-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Last modification timestamp of the product row, refreshed on every update; filterable and sortable via the OData query parameter.",
+		example = "2017-08-21"
+	)
 	public Date getModifiedDate() {
 		if (_modifiedDateSupplier != null) {
 			modifiedDate = _modifiedDateSupplier.get();
@@ -1069,14 +1457,17 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Last modification timestamp of the product row, refreshed on every update; filterable and sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date modifiedDate;
 
 	@JsonIgnore
 	private Supplier<Date> _modifiedDateSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized product name as a map whose keys are locale codes and whose values are the translated strings; required on create; sortable via the OData query parameter and matched by the search query parameter.",
 		example = "{en_US=Hand Saw, hr_HR=Product Name HR, hu_HU=Product Name HU}"
 	)
 	@Valid
@@ -1113,7 +1504,9 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized product name as a map whose keys are locale codes and whose values are the translated strings; required on create; sortable via the OData query parameter and matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> name;
@@ -1121,7 +1514,10 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _nameSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, `expirationDate` is ignored and the product never auto-expires; defaults to true on create when omitted; on update, defaults to true when no `expirationDate` is set on the current row.",
+		example = "true"
+	)
 	public Boolean getNeverExpire() {
 		if (_neverExpireSupplier != null) {
 			neverExpire = _neverExpireSupplier.get();
@@ -1155,14 +1551,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, `expirationDate` is ignored and the product never auto-expires; defaults to true on create when omitted; on update, defaults to true when no `expirationDate` is set on the current row."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean neverExpire;
 
 	@JsonIgnore
 	private Supplier<Boolean> _neverExpireSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Diagram pins defined on this product; applies when `productType` is diagram."
+	)
 	@Valid
 	public Pin[] getPins() {
 		if (_pinsSupplier != null) {
@@ -1195,14 +1595,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Diagram pins defined on this product; applies when `productType` is diagram."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Pin[] pins;
 
 	@JsonIgnore
 	private Supplier<Pin[]> _pinsSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the product's visibility is filtered by the associated account groups in `productAccountGroups`.",
+		example = "true"
+	)
 	public Boolean getProductAccountGroupFilter() {
 		if (_productAccountGroupFilterSupplier != null) {
 			productAccountGroupFilter =
@@ -1240,14 +1645,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the product's visibility is filtered by the associated account groups in `productAccountGroups`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean productAccountGroupFilter;
 
 	@JsonIgnore
 	private Supplier<Boolean> _productAccountGroupFilterSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Account groups allowed to see this product when `productAccountGroupFilter` is enabled; written through the product-account-group sub-resource."
+	)
 	@Valid
 	public ProductAccountGroup[] getProductAccountGroups() {
 		if (_productAccountGroupsSupplier != null) {
@@ -1285,14 +1694,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Account groups allowed to see this product when `productAccountGroupFilter` is enabled; written through the product-account-group sub-resource."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected ProductAccountGroup[] productAccountGroups;
 
 	@JsonIgnore
 	private Supplier<ProductAccountGroup[]> _productAccountGroupsSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the product's visibility is filtered by the associated commerce channels in `productChannels`.",
+		example = "true"
+	)
 	public Boolean getProductChannelFilter() {
 		if (_productChannelFilterSupplier != null) {
 			productChannelFilter = _productChannelFilterSupplier.get();
@@ -1326,14 +1740,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the product's visibility is filtered by the associated commerce channels in `productChannels`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean productChannelFilter;
 
 	@JsonIgnore
 	private Supplier<Boolean> _productChannelFilterSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Commerce channels where this product is offered when `productChannelFilter` is enabled; written through the product-channel sub-resource."
+	)
 	@Valid
 	public ProductChannel[] getProductChannels() {
 		if (_productChannelsSupplier != null) {
@@ -1369,14 +1787,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Commerce channels where this product is offered when `productChannelFilter` is enabled; written through the product-channel sub-resource."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected ProductChannel[] productChannels;
 
 	@JsonIgnore
 	private Supplier<ProductChannel[]> _productChannelsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ProductConfiguration getProductConfiguration() {
 		if (_productConfigurationSupplier != null) {
@@ -1421,7 +1841,57 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<ProductConfiguration> _productConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Product groups the product belongs to. Each entry carries the external reference code of the product group, so the membership survives a transfer between instances."
+	)
+	@Valid
+	public ProductProductGroup[] getProductGroups() {
+		if (_productGroupsSupplier != null) {
+			productGroups = _productGroupsSupplier.get();
+
+			_productGroupsSupplier = null;
+		}
+
+		return productGroups;
+	}
+
+	public void setProductGroups(ProductProductGroup[] productGroups) {
+		this.productGroups = productGroups;
+
+		_productGroupsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setProductGroups(
+		UnsafeSupplier<ProductProductGroup[], Exception>
+			productGroupsUnsafeSupplier) {
+
+		_productGroupsSupplier = () -> {
+			try {
+				return productGroupsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Product groups the product belongs to. Each entry carries the external reference code of the product group, so the membership survives a transfer between instances."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected ProductProductGroup[] productGroups;
+
+	@JsonIgnore
+	private Supplier<ProductProductGroup[]> _productGroupsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier of the parent product envelope; stable across product revisions; read-only; filterable and sortable via the OData query parameter.",
+		example = "30129"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -1455,14 +1925,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier of the parent product envelope; stable across product revisions; read-only; filterable and sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Customizable options bound to this product."
+	)
 	@Valid
 	public ProductOption[] getProductOptions() {
 		if (_productOptionsSupplier != null) {
@@ -1498,14 +1972,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Customizable options bound to this product.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected ProductOption[] productOptions;
 
 	@JsonIgnore
 	private Supplier<ProductOption[]> _productOptionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Specification attribute values recorded against this product."
+	)
 	@Valid
 	public ProductSpecification[] getProductSpecifications() {
 		if (_productSpecificationsSupplier != null) {
@@ -1543,14 +2019,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Specification attribute values recorded against this product."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected ProductSpecification[] productSpecifications;
 
 	@JsonIgnore
 	private Supplier<ProductSpecification[]> _productSpecificationsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Integer workflow status -- 0=Approved, 1=Pending, 2=Draft, 3=Expired, 4=Denied, 5=Inactive, 6=Incomplete, 7=Scheduled, 8=InTrash; on write, any value other than Approved or Pending causes the save to be treated as a draft.",
+		example = "0"
+	)
 	public Integer getProductStatus() {
 		if (_productStatusSupplier != null) {
 			productStatus = _productStatusSupplier.get();
@@ -1584,14 +2065,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Integer workflow status -- 0=Approved, 1=Pending, 2=Draft, 3=Expired, 4=Denied, 5=Inactive, 6=Incomplete, 7=Scheduled, 8=InTrash; on write, any value other than Approved or Pending causes the save to be treated as a draft."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer productStatus;
 
 	@JsonIgnore
 	private Supplier<Integer> _productStatusSupplier;
 
-	@Schema(example = "simple")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Product type name; validated on save and rejected when the type is unknown; required; filterable and sortable via the OData query parameter.",
+		example = "simple"
+	)
 	public String getProductType() {
 		if (_productTypeSupplier != null) {
 			productType = _productTypeSupplier.get();
@@ -1625,7 +2111,9 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Product type name; validated on save and rejected when the type is unknown; required; filterable and sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String productType;
@@ -1633,7 +2121,10 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _productTypeSupplier;
 
-	@Schema(example = "simple")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized label for `productType` in the requested locale; read-only.",
+		example = "simple"
+	)
 	public String getProductTypeI18n() {
 		if (_productTypeI18nSupplier != null) {
 			productTypeI18n = _productTypeI18nSupplier.get();
@@ -1667,14 +2158,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized label for `productType` in the requested locale; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String productTypeI18n;
 
 	@JsonIgnore
 	private Supplier<String> _productTypeI18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ProductVirtualSettings getProductVirtualSettings() {
 		if (_productVirtualSettingsSupplier != null) {
@@ -1719,7 +2212,9 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<ProductVirtualSettings> _productVirtualSettingsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Explicit product-to-product links such as cross-sell or up-sell; written through the related-product sub-resource."
+	)
 	@Valid
 	public RelatedProduct[] getRelatedProducts() {
 		if (_relatedProductsSupplier != null) {
@@ -1755,14 +2250,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Explicit product-to-product links such as cross-sell or up-sell; written through the related-product sub-resource."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected RelatedProduct[] relatedProducts;
 
 	@JsonIgnore
 	private Supplier<RelatedProduct[]> _relatedProductsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ProductShippingConfiguration getShippingConfiguration() {
 		if (_shippingConfigurationSupplier != null) {
@@ -1808,7 +2305,8 @@ public class Product implements Serializable {
 	private Supplier<ProductShippingConfiguration>
 		_shippingConfigurationSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized short description as a map whose keys are locale codes and whose values are the translated strings.",
 		example = "{en_US=Hand stainless steel saw for wood, hr_HR=Product Short Description HR, hu_HU=Product Short Description HU}"
 	)
 	@Valid
@@ -1846,14 +2344,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized short description as a map whose keys are locale codes and whose values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> shortDescription;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _shortDescriptionSupplier;
 
-	@Schema(example = "default")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display-formatted SKU summary; read-only; resolves to the single variant SKU when only one variant exists, an empty string when there are no variants, or the localized 'multiple-skus' label when several variants exist.",
+		example = "default"
+	)
 	public String getSkuFormatted() {
 		if (_skuFormattedSupplier != null) {
 			skuFormatted = _skuFormattedSupplier.get();
@@ -1887,14 +2390,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display-formatted SKU summary; read-only; resolves to the single variant SKU when only one variant exists, an empty string when there are no variants, or the localized 'multiple-skus' label when several variants exist."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String skuFormatted;
 
 	@JsonIgnore
 	private Supplier<String> _skuFormattedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Product variants with pricing and inventory information."
+	)
 	@Valid
 	public Sku[] getSkus() {
 		if (_skusSupplier != null) {
@@ -1927,14 +2434,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Product variants with pricing and inventory information."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Sku[] skus;
 
 	@JsonIgnore
 	private Supplier<Sku[]> _skusSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ProductSubscriptionConfiguration getSubscriptionConfiguration() {
 		if (_subscriptionConfigurationSupplier != null) {
@@ -1981,7 +2490,10 @@ public class Product implements Serializable {
 	private Supplier<ProductSubscriptionConfiguration>
 		_subscriptionConfigurationSupplier;
 
-	@Schema(example = "[tag1, tag2, tag3]")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Asset-framework tag names attached to the product; replaces the existing tag set on write; matched by the search query parameter.",
+		example = "[tag1, tag2, tag3]"
+	)
 	public String[] getTags() {
 		if (_tagsSupplier != null) {
 			tags = _tagsSupplier.get();
@@ -2015,14 +2527,16 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Asset-framework tag names attached to the product; replaces the existing tag set on write; matched by the search query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String[] tags;
 
 	@JsonIgnore
 	private Supplier<String[]> _tagsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ProductTaxConfiguration getTaxConfiguration() {
 		if (_taxConfigurationSupplier != null) {
@@ -2065,7 +2579,10 @@ public class Product implements Serializable {
 	@JsonIgnore
 	private Supplier<ProductTaxConfiguration> _taxConfigurationSupplier;
 
-	@Schema(example = "simple")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "URL of the product's default thumbnail attachment resolved against the admin account scope; read-only.",
+		example = "simple"
+	)
 	public String getThumbnail() {
 		if (_thumbnailSupplier != null) {
 			thumbnail = _thumbnailSupplier.get();
@@ -2099,14 +2616,17 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "URL of the product's default thumbnail attachment resolved against the admin account scope; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String thumbnail;
 
 	@JsonIgnore
 	private Supplier<String> _thumbnailSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Friendly URL slugs per locale as a map whose keys are locale codes and whose values are the URL slugs.",
 		example = "{en_US=product-url-us, hr_HR=product-url-hr, hu_HU=product-url-hu}"
 	)
 	@Valid
@@ -2143,14 +2663,19 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Friendly URL slugs per locale as a map whose keys are locale codes and whose values are the URL slugs."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> urls;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _urlsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Versioning counter of the product row; incremented when a versionable product is cloned to a new revision; read-only.",
+		example = "1"
+	)
 	public Integer getVersion() {
 		if (_versionSupplier != null) {
 			version = _versionSupplier.get();
@@ -2184,14 +2709,18 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Versioning counter of the product row; incremented when a versionable product is cloned to a new revision; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Integer version;
 
 	@JsonIgnore
 	private Supplier<Integer> _versionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Embedded workflow status descriptor exposing the integer code together with its label and localized label; read-only."
+	)
 	@Valid
 	public Status getWorkflowStatusInfo() {
 		if (_workflowStatusInfoSupplier != null) {
@@ -2226,7 +2755,9 @@ public class Product implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Embedded workflow status descriptor exposing the integer code together with its label and localized label; read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Status workflowStatusInfo;
 
@@ -2321,6 +2852,39 @@ public class Product implements Serializable {
 			sb.append(String.valueOf(catalog));
 		}
 
+		String catalogCurrencyCode = getCatalogCurrencyCode();
+
+		if (catalogCurrencyCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"catalogCurrencyCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(catalogCurrencyCode));
+
+			sb.append("\"");
+		}
+
+		String catalogCurrencyExternalReferenceCode =
+			getCatalogCurrencyExternalReferenceCode();
+
+		if (catalogCurrencyExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"catalogCurrencyExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(catalogCurrencyExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		String catalogExternalReferenceCode = getCatalogExternalReferenceCode();
 
 		if (catalogExternalReferenceCode != null) {
@@ -2387,7 +2951,20 @@ public class Product implements Serializable {
 			sb.append("\"");
 		}
 
-		CustomField[] customFields = getCustomFields();
+		Creator creator = getCreator();
+
+		if (creator != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(creator));
+		}
+
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields =
+			getCustomFields();
 
 		if (customFields != null) {
 			if (sb.length() > 1) {
@@ -2399,7 +2976,7 @@ public class Product implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < customFields.length; i++) {
-				sb.append(String.valueOf(customFields[i]));
+				sb.append(customFields[i]);
 
 				if ((i + 1) < customFields.length) {
 					sb.append(", ");
@@ -2407,6 +2984,38 @@ public class Product implements Serializable {
 			}
 
 			sb.append("]");
+		}
+
+		Date dateCreated = getDateCreated();
+
+		if (dateCreated != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateCreated\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(dateCreated));
+
+			sb.append("\"");
+		}
+
+		Date dateModified = getDateModified();
+
+		if (dateModified != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateModified\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(dateModified));
+
+			sb.append("\"");
 		}
 
 		String defaultSku = getDefaultSku();
@@ -2507,6 +3116,28 @@ public class Product implements Serializable {
 			sb.append(_escape(externalReferenceCode));
 
 			sb.append("\"");
+		}
+
+		GroupedProduct[] groupedProducts = getGroupedProducts();
+
+		if (groupedProducts != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"groupedProducts\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < groupedProducts.length; i++) {
+				sb.append(String.valueOf(groupedProducts[i]));
+
+				if ((i + 1) < groupedProducts.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
 		Long id = getId();
@@ -2763,6 +3394,28 @@ public class Product implements Serializable {
 			sb.append("\"productConfiguration\": ");
 
 			sb.append(String.valueOf(productConfiguration));
+		}
+
+		ProductProductGroup[] productGroups = getProductGroups();
+
+		if (productGroups != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productGroups\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < productGroups.length; i++) {
+				sb.append(String.valueOf(productGroups[i]));
+
+				if ((i + 1) < productGroups.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
 		Long productId = getProductId();
@@ -3072,8 +3725,8 @@ public class Product implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.Product",
 		name = "x-class-name"
 	)
@@ -3160,6 +3813,27 @@ public class Product implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -3168,3 +3842,4 @@ public class Product implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1563309769

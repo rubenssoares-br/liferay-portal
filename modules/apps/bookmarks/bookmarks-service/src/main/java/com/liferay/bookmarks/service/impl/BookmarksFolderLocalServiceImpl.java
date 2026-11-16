@@ -149,11 +149,13 @@ public class BookmarksFolderLocalServiceImpl
 			folder.getGroupId(), folder.getFolderId());
 
 		for (BookmarksFolder curFolder : folders) {
-			if (includeTrashedEntries ||
-				!_trashHelper.isInTrashExplicitly(curFolder)) {
+			if (!includeTrashedEntries &&
+				_trashHelper.isInTrashExplicitly(curFolder)) {
 
-				bookmarksFolderLocalService.deleteFolder(curFolder);
+				continue;
 			}
+
+			bookmarksFolderLocalService.deleteFolder(curFolder);
 		}
 
 		// Folder
@@ -223,7 +225,7 @@ public class BookmarksFolderLocalServiceImpl
 			long folderId, boolean includeTrashedEntries)
 		throws PortalException {
 
-		BookmarksFolder folder = bookmarksFolderLocalService.getFolder(
+		BookmarksFolder folder = bookmarksFolderPersistence.findByPrimaryKey(
 			folderId);
 
 		return bookmarksFolderLocalService.deleteFolder(
@@ -238,19 +240,6 @@ public class BookmarksFolderLocalServiceImpl
 		for (BookmarksFolder folder : folders) {
 			bookmarksFolderLocalService.deleteFolder(folder);
 		}
-	}
-
-	@Override
-	public List<BookmarksFolder> getCompanyFolders(
-		long companyId, int start, int end) {
-
-		return bookmarksFolderPersistence.findByCompanyId(
-			companyId, start, end);
-	}
-
-	@Override
-	public int getCompanyFoldersCount(long companyId) {
-		return bookmarksFolderPersistence.countByCompanyId(companyId);
 	}
 
 	@Override
@@ -299,14 +288,6 @@ public class BookmarksFolderLocalServiceImpl
 
 		return bookmarksFolderFinder.findF_E_ByG_F(
 			groupId, folderId, queryDefinition);
-	}
-
-	@Override
-	public List<Object> getFoldersAndEntries(
-		long groupId, long folderId, int status, int start, int end) {
-
-		return getFoldersAndEntries(
-			groupId, folderId, status, start, end, null);
 	}
 
 	@Override

@@ -14,35 +14,34 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.JsonValue;
 
-import com.liferay.headless.admin.taxonomy.dto.v1_0.Keyword;
-import com.liferay.headless.admin.taxonomy.dto.v1_0.TaxonomyCategory;
 import com.liferay.headless.admin.user.dto.v1_0.Creator;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -62,7 +61,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 	}
 )
 @JsonTypeInfo(
-	include = JsonTypeInfo.As.PROPERTY, property = "type",
+	include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
 	use = JsonTypeInfo.Id.NAME, visible = true
 )
 @XmlRootElement(name = "PageTemplate")
@@ -76,7 +75,7 @@ public abstract class PageTemplate implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageTemplate.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The page template's creator. It is not returned by default. It can be embedded via nestedFields."
 	)
 	@Valid
@@ -122,52 +121,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The page's creator external reference code.")
-	public String getCreatorExternalReferenceCode() {
-		if (_creatorExternalReferenceCodeSupplier != null) {
-			creatorExternalReferenceCode =
-				_creatorExternalReferenceCodeSupplier.get();
-
-			_creatorExternalReferenceCodeSupplier = null;
-		}
-
-		return creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		String creatorExternalReferenceCode) {
-
-		this.creatorExternalReferenceCode = creatorExternalReferenceCode;
-
-		_creatorExternalReferenceCodeSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setCreatorExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			creatorExternalReferenceCodeUnsafeSupplier) {
-
-		_creatorExternalReferenceCodeSupplier = () -> {
-			try {
-				return creatorExternalReferenceCodeUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "The page's creator external reference code.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String creatorExternalReferenceCode;
-
-	@JsonIgnore
-	private Supplier<String> _creatorExternalReferenceCodeSupplier;
-
-	@Schema(description = "The page template's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -208,7 +164,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The last time the page template changed.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time the page template changed."
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -249,7 +207,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The last time the page template was published.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time the page template was published."
+	)
 	public Date getDatePublished() {
 		if (_datePublishedSupplier != null) {
 			datePublished = _datePublishedSupplier.get();
@@ -292,7 +252,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _datePublishedSupplier;
 
-	@Schema(description = "The page template's external reference code.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's external reference code."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -333,7 +295,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The page template's key.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's key."
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -372,60 +336,10 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(description = "The external references to the associated keywords.")
-	@Valid
-	public ItemExternalReference[] getKeywordItemExternalReferences() {
-		if (_keywordItemExternalReferencesSupplier != null) {
-			keywordItemExternalReferences =
-				_keywordItemExternalReferencesSupplier.get();
-
-			_keywordItemExternalReferencesSupplier = null;
-		}
-
-		return keywordItemExternalReferences;
-	}
-
-	public void setKeywordItemExternalReferences(
-		ItemExternalReference[] keywordItemExternalReferences) {
-
-		this.keywordItemExternalReferences = keywordItemExternalReferences;
-
-		_keywordItemExternalReferencesSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setKeywordItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			keywordItemExternalReferencesUnsafeSupplier) {
-
-		_keywordItemExternalReferencesSupplier = () -> {
-			try {
-				return keywordItemExternalReferencesUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The external references to the associated keywords."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of keywords describing the page template."
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference[] keywordItemExternalReferences;
-
-	@JsonIgnore
-	private Supplier<ItemExternalReference[]>
-		_keywordItemExternalReferencesSupplier;
-
-	@Schema(
-		description = "The associated keywords. They are not returned by default. They can be embedded via nestedFields."
-	)
-	@Valid
-	public Keyword[] getKeywords() {
+	public String[] getKeywords() {
 		if (_keywordsSupplier != null) {
 			keywords = _keywordsSupplier.get();
 
@@ -435,7 +349,7 @@ public abstract class PageTemplate implements Serializable {
 		return keywords;
 	}
 
-	public void setKeywords(Keyword[] keywords) {
+	public void setKeywords(String[] keywords) {
 		this.keywords = keywords;
 
 		_keywordsSupplier = null;
@@ -443,7 +357,7 @@ public abstract class PageTemplate implements Serializable {
 
 	@JsonIgnore
 	public void setKeywords(
-		UnsafeSupplier<Keyword[], Exception> keywordsUnsafeSupplier) {
+		UnsafeSupplier<String[], Exception> keywordsUnsafeSupplier) {
 
 		_keywordsSupplier = () -> {
 			try {
@@ -459,15 +373,17 @@ public abstract class PageTemplate implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The associated keywords. They are not returned by default. They can be embedded via nestedFields."
+		description = "A list of keywords describing the page template."
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
-	protected Keyword[] keywords;
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String[] keywords;
 
 	@JsonIgnore
-	private Supplier<Keyword[]> _keywordsSupplier;
+	private Supplier<String[]> _keywordsSupplier;
 
-	@Schema(description = "The page template's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -506,8 +422,8 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
-		description = "The page template's specifications. A page template of type content may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status. A page template of type widget contains only 1 page specification in published status."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's specifications. A page template of type content will contain 1 page specification for its draft layout and 1 page specification for its published layout. A page template of type widget contains only 1 page specification for its published layout. This field is not returned by default. It can be requested via nestedFields."
 	)
 	@Valid
 	public PageSpecification[] getPageSpecifications() {
@@ -545,7 +461,7 @@ public abstract class PageTemplate implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The page template's specifications. A page template of type content may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status. A page template of type widget contains only 1 page specification in published status."
+		description = "The page template's specifications. A page template of type content will contain 1 page specification for its draft layout and 1 page specification for its published layout. A page template of type widget contains only 1 page specification for its published layout. This field is not returned by default. It can be requested via nestedFields."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected PageSpecification[] pageSpecifications;
@@ -553,7 +469,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<PageSpecification[]> _pageSpecificationsSupplier;
 
-	@Schema(description = "The page template's set.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page template's set."
+	)
 	@Valid
 	public PageTemplateSet getPageTemplateSet() {
 		if (_pageTemplateSetSupplier != null) {
@@ -596,7 +514,9 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<PageTemplateSet> _pageTemplateSetSupplier;
 
-	@Schema(description = "The settings of the page template.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The settings of the page template."
+	)
 	@Valid
 	public PageTemplateSettings getPageTemplateSettings() {
 		if (_pageTemplateSettingsSupplier != null) {
@@ -641,34 +561,83 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<PageTemplateSettings> _pageTemplateSettingsSupplier;
 
-	@Schema(
-		description = "The associated categories. They are not returned by default. They can be embedded via nestedFields."
-	)
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public TaxonomyCategory[] getTaxonomyCategories() {
-		if (_taxonomyCategoriesSupplier != null) {
-			taxonomyCategories = _taxonomyCategoriesSupplier.get();
+	public com.liferay.portal.vulcan.permission.Permission[] getPermissions() {
+		if (_permissionsSupplier != null) {
+			permissions = _permissionsSupplier.get();
 
-			_taxonomyCategoriesSupplier = null;
+			_permissionsSupplier = null;
 		}
 
-		return taxonomyCategories;
+		return permissions;
 	}
 
-	public void setTaxonomyCategories(TaxonomyCategory[] taxonomyCategories) {
-		this.taxonomyCategories = taxonomyCategories;
+	public void setPermissions(
+		com.liferay.portal.vulcan.permission.Permission[] permissions) {
 
-		_taxonomyCategoriesSupplier = null;
+		this.permissions = permissions;
+
+		_permissionsSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setTaxonomyCategories(
-		UnsafeSupplier<TaxonomyCategory[], Exception>
-			taxonomyCategoriesUnsafeSupplier) {
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.permission.Permission[], Exception>
+				permissionsUnsafeSupplier) {
 
-		_taxonomyCategoriesSupplier = () -> {
+		_permissionsSupplier = () -> {
 			try {
-				return taxonomyCategoriesUnsafeSupplier.get();
+				return permissionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.permission.Permission[] permissions;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.permission.Permission[]>
+		_permissionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The taxonomy categories associated with this page."
+	)
+	@Valid
+	public TaxonomyCategoryBrief[] getTaxonomyCategoryBriefs() {
+		if (_taxonomyCategoryBriefsSupplier != null) {
+			taxonomyCategoryBriefs = _taxonomyCategoryBriefsSupplier.get();
+
+			_taxonomyCategoryBriefsSupplier = null;
+		}
+
+		return taxonomyCategoryBriefs;
+	}
+
+	public void setTaxonomyCategoryBriefs(
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs) {
+
+		this.taxonomyCategoryBriefs = taxonomyCategoryBriefs;
+
+		_taxonomyCategoryBriefsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTaxonomyCategoryBriefs(
+		UnsafeSupplier<TaxonomyCategoryBrief[], Exception>
+			taxonomyCategoryBriefsUnsafeSupplier) {
+
+		_taxonomyCategoryBriefsSupplier = () -> {
+			try {
+				return taxonomyCategoryBriefsUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -680,69 +649,65 @@ public abstract class PageTemplate implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The associated categories. They are not returned by default. They can be embedded via nestedFields."
-	)
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
-	protected TaxonomyCategory[] taxonomyCategories;
-
-	@JsonIgnore
-	private Supplier<TaxonomyCategory[]> _taxonomyCategoriesSupplier;
-
-	@Schema(
-		description = "The external references to the associated categories."
-	)
-	@Valid
-	public ItemExternalReference[] getTaxonomyCategoryItemExternalReferences() {
-		if (_taxonomyCategoryItemExternalReferencesSupplier != null) {
-			taxonomyCategoryItemExternalReferences =
-				_taxonomyCategoryItemExternalReferencesSupplier.get();
-
-			_taxonomyCategoryItemExternalReferencesSupplier = null;
-		}
-
-		return taxonomyCategoryItemExternalReferences;
-	}
-
-	public void setTaxonomyCategoryItemExternalReferences(
-		ItemExternalReference[] taxonomyCategoryItemExternalReferences) {
-
-		this.taxonomyCategoryItemExternalReferences =
-			taxonomyCategoryItemExternalReferences;
-
-		_taxonomyCategoryItemExternalReferencesSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setTaxonomyCategoryItemExternalReferences(
-		UnsafeSupplier<ItemExternalReference[], Exception>
-			taxonomyCategoryItemExternalReferencesUnsafeSupplier) {
-
-		_taxonomyCategoryItemExternalReferencesSupplier = () -> {
-			try {
-				return taxonomyCategoryItemExternalReferencesUnsafeSupplier.
-					get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The external references to the associated categories."
+		description = "The taxonomy categories associated with this page."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference[] taxonomyCategoryItemExternalReferences;
+	protected TaxonomyCategoryBrief[] taxonomyCategoryBriefs;
 
 	@JsonIgnore
-	private Supplier<ItemExternalReference[]>
-		_taxonomyCategoryItemExternalReferencesSupplier;
+	private Supplier<TaxonomyCategoryBrief[]> _taxonomyCategoryBriefsSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The display page template's thumbnail."
+	)
+	@Valid
+	public ThumbnailURLReference getThumbnailURLReference() {
+		if (_thumbnailURLReferenceSupplier != null) {
+			thumbnailURLReference = _thumbnailURLReferenceSupplier.get();
+
+			_thumbnailURLReferenceSupplier = null;
+		}
+
+		return thumbnailURLReference;
+	}
+
+	public void setThumbnailURLReference(
+		ThumbnailURLReference thumbnailURLReference) {
+
+		this.thumbnailURLReference = thumbnailURLReference;
+
+		_thumbnailURLReferenceSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setThumbnailURLReference(
+		UnsafeSupplier<ThumbnailURLReference, Exception>
+			thumbnailURLReferenceUnsafeSupplier) {
+
+		_thumbnailURLReferenceSupplier = () -> {
+			try {
+				return thumbnailURLReferenceUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The display page template's thumbnail.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected ThumbnailURLReference thumbnailURLReference;
+
+	@JsonIgnore
+	private Supplier<ThumbnailURLReference> _thumbnailURLReferenceSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The type of the page template."
+	)
 	@JsonGetter("type")
-	@Schema(description = "The type of the page template.")
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -793,7 +758,7 @@ public abstract class PageTemplate implements Serializable {
 	@JsonIgnore
 	private Supplier<Type> _typeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A valid external identifier to reference this page template."
 	)
 	public String getUuid() {
@@ -878,22 +843,6 @@ public abstract class PageTemplate implements Serializable {
 			sb.append(creator);
 		}
 
-		String creatorExternalReferenceCode = getCreatorExternalReferenceCode();
-
-		if (creatorExternalReferenceCode != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(creatorExternalReferenceCode));
-
-			sb.append("\"");
-		}
-
 		Date dateCreated = getDateCreated();
 
 		if (dateCreated != null) {
@@ -974,30 +923,7 @@ public abstract class PageTemplate implements Serializable {
 			sb.append("\"");
 		}
 
-		ItemExternalReference[] keywordItemExternalReferences =
-			getKeywordItemExternalReferences();
-
-		if (keywordItemExternalReferences != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"keywordItemExternalReferences\": ");
-
-			sb.append("[");
-
-			for (int i = 0; i < keywordItemExternalReferences.length; i++) {
-				sb.append(String.valueOf(keywordItemExternalReferences[i]));
-
-				if ((i + 1) < keywordItemExternalReferences.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
-		}
-
-		Keyword[] keywords = getKeywords();
+		String[] keywords = getKeywords();
 
 		if (keywords != null) {
 			if (sb.length() > 1) {
@@ -1009,7 +935,11 @@ public abstract class PageTemplate implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < keywords.length; i++) {
-				sb.append(keywords[i]);
+				sb.append("\"");
+
+				sb.append(_escape(keywords[i]));
+
+				sb.append("\"");
 
 				if ((i + 1) < keywords.length) {
 					sb.append(", ");
@@ -1081,21 +1011,22 @@ public abstract class PageTemplate implements Serializable {
 			sb.append(String.valueOf(pageTemplateSettings));
 		}
 
-		TaxonomyCategory[] taxonomyCategories = getTaxonomyCategories();
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
 
-		if (taxonomyCategories != null) {
+		if (permissions != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategories\": ");
+			sb.append("\"permissions\": ");
 
 			sb.append("[");
 
-			for (int i = 0; i < taxonomyCategories.length; i++) {
-				sb.append(taxonomyCategories[i]);
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
 
-				if ((i + 1) < taxonomyCategories.length) {
+				if ((i + 1) < permissions.length) {
 					sb.append(", ");
 				}
 			}
@@ -1103,30 +1034,40 @@ public abstract class PageTemplate implements Serializable {
 			sb.append("]");
 		}
 
-		ItemExternalReference[] taxonomyCategoryItemExternalReferences =
-			getTaxonomyCategoryItemExternalReferences();
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs =
+			getTaxonomyCategoryBriefs();
 
-		if (taxonomyCategoryItemExternalReferences != null) {
+		if (taxonomyCategoryBriefs != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategoryItemExternalReferences\": ");
+			sb.append("\"taxonomyCategoryBriefs\": ");
 
 			sb.append("[");
 
-			for (int i = 0; i < taxonomyCategoryItemExternalReferences.length;
-				 i++) {
+			for (int i = 0; i < taxonomyCategoryBriefs.length; i++) {
+				sb.append(String.valueOf(taxonomyCategoryBriefs[i]));
 
-				sb.append(
-					String.valueOf(taxonomyCategoryItemExternalReferences[i]));
-
-				if ((i + 1) < taxonomyCategoryItemExternalReferences.length) {
+				if ((i + 1) < taxonomyCategoryBriefs.length) {
 					sb.append(", ");
 				}
 			}
 
 			sb.append("]");
+		}
+
+		ThumbnailURLReference thumbnailURLReference =
+			getThumbnailURLReference();
+
+		if (thumbnailURLReference != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"thumbnailURLReference\": ");
+
+			sb.append(String.valueOf(thumbnailURLReference));
 		}
 
 		Type type = getType();
@@ -1139,9 +1080,7 @@ public abstract class PageTemplate implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -1166,8 +1105,8 @@ public abstract class PageTemplate implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.PageTemplate",
 		name = "x-class-name"
 	)
@@ -1293,6 +1232,27 @@ public abstract class PageTemplate implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1301,3 +1261,4 @@ public abstract class PageTemplate implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2134089171

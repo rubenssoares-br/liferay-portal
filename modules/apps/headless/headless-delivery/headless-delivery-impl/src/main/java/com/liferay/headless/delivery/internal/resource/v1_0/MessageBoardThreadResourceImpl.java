@@ -12,7 +12,6 @@ import com.liferay.headless.common.spi.resource.SPIRatingResource;
 import com.liferay.headless.common.spi.service.context.ServiceContextBuilder;
 import com.liferay.headless.delivery.dto.v1_0.MessageBoardThread;
 import com.liferay.headless.delivery.dto.v1_0.Rating;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.RatingUtil;
 import com.liferay.headless.delivery.internal.odata.entity.v1_0.MessageBoardMessageEntityModel;
 import com.liferay.headless.delivery.resource.v1_0.MessageBoardThreadResource;
@@ -62,8 +61,8 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.view.count.ViewCountManager;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityModel;
-import com.liferay.portal.search.expando.ExpandoBridgeIndexer;
 import com.liferay.portal.vulcan.aggregation.Aggregation;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
@@ -77,16 +76,16 @@ import com.liferay.ratings.kernel.model.RatingsStats;
 import com.liferay.ratings.kernel.service.RatingsEntryLocalService;
 import com.liferay.ratings.kernel.service.RatingsStatsLocalService;
 
+import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotAuthorizedException;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.UriBuilder;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Map;
-
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.NotAuthorizedException;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.UriBuilder;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -127,8 +126,8 @@ public class MessageBoardThreadResourceImpl
 			new ArrayList<>(
 				EntityFieldsUtil.getEntityFields(
 					_portal.getClassNameId(MBMessage.class.getName()),
-					contextCompany.getCompanyId(), _expandoBridgeIndexer,
-					_expandoColumnLocalService, _expandoTableLocalService)));
+					contextCompany.getCompanyId(), _expandoColumnLocalService,
+					_expandoTableLocalService)));
 	}
 
 	@Override
@@ -224,9 +223,12 @@ public class MessageBoardThreadResourceImpl
 		MBThread mbThread = _mbThreadLocalService.getMBThread(
 			messageBoardThreadId);
 
+		MBMessage mbMessage = _mbMessageService.getMessage(
+			mbThread.getRootMessageId());
+
 		_checkPermission(
-			mbThread.getCompanyId(), mbThread.getGroupId(),
-			mbThread.getStatus(), mbThread.getUserId());
+			mbMessage.getCompanyId(), mbMessage.getGroupId(),
+			mbMessage.getStatus(), mbMessage.getUserId());
 
 		_viewCountManager.incrementViewCount(
 			contextCompany.getCompanyId(),
@@ -625,30 +627,6 @@ public class MessageBoardThreadResourceImpl
 		return dynamicQuery;
 	}
 
-	private Page<MessageBoardThread> _getSiteMessageBoardThreadsPage(
-			Map<String, Map<String, String>> actions,
-			UnsafeConsumer<BooleanQuery, Exception> booleanQueryUnsafeConsumer,
-			Long siteId, Aggregation aggregation, Filter filter,
-			String keywords, Pagination pagination, Sort[] sorts)
-		throws Exception {
-
-		return SearchUtil.search(
-			actions, booleanQueryUnsafeConsumer, filter,
-			MBMessage.class.getName(), keywords, pagination,
-			queryConfig -> queryConfig.setSelectedFieldNames(
-				Field.ENTRY_CLASS_PK),
-			searchContext -> {
-				searchContext.addVulcanAggregation(aggregation);
-				searchContext.setCompanyId(contextCompany.getCompanyId());
-				searchContext.setGroupIds(new long[] {siteId});
-			},
-			sorts,
-			document -> _toMessageBoardThread(
-				_mbMessageService.getMessage(
-					GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK))),
-				true));
-	}
-
 	private SPIRatingResource<Rating> _getSPIRatingResource() {
 		return new SPIRatingResource<>(
 			MBMessage.class.getName(), _ratingsEntryLocalService,
@@ -681,6 +659,30 @@ public class MessageBoardThreadResourceImpl
 					_portal, ratingsEntry, _userLocalService);
 			},
 			contextUser);
+	}
+
+	private Page<MessageBoardThread> _getSiteMessageBoardThreadsPage(
+			Map<String, Map<String, String>> actions,
+			UnsafeConsumer<BooleanQuery, Exception> booleanQueryUnsafeConsumer,
+			Long siteId, Aggregation aggregation, Filter filter,
+			String keywords, Pagination pagination, Sort[] sorts)
+		throws Exception {
+
+		return SearchUtil.search(
+			actions, booleanQueryUnsafeConsumer, filter,
+			MBMessage.class.getName(), keywords, pagination,
+			queryConfig -> queryConfig.setSelectedFieldNames(
+				Field.ENTRY_CLASS_PK),
+			searchContext -> {
+				searchContext.addVulcanAggregation(aggregation);
+				searchContext.setCompanyId(contextCompany.getCompanyId());
+				searchContext.setGroupIds(new long[] {siteId});
+			},
+			sorts,
+			document -> _toMessageBoardThread(
+				_mbMessageService.getMessage(
+					GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK))),
+				true));
 	}
 
 	private MessageBoardThread _toMessageBoardThread(
@@ -815,9 +817,6 @@ public class MessageBoardThreadResourceImpl
 
 	@Reference
 	private DTOConverterRegistry _dtoConverterRegistry;
-
-	@Reference
-	private ExpandoBridgeIndexer _expandoBridgeIndexer;
 
 	@Reference
 	private ExpandoColumnLocalService _expandoColumnLocalService;

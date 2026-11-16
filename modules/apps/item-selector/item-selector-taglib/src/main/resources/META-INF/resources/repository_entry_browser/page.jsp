@@ -15,7 +15,7 @@ PortletURL editImageURL = (PortletURL)request.getAttribute("liferay-item-selecto
 String emptyResultsMessage = GetterUtil.getString(request.getAttribute("liferay-item-selector:repository-entry-browser:emptyResultsMessage"));
 ItemSelectorReturnType existingFileEntryReturnType = (ItemSelectorReturnType)request.getAttribute("liferay-item-selector:repository-entry-browser:existingFileEntryReturnType");
 List<String> extensions = (List)request.getAttribute("liferay-item-selector:repository-entry-browser:extensions");
-long folderId = ParamUtil.getLong(request, "folderId", GetterUtil.getLong(request.getAttribute("liferay-item-selector:repository-entry-browser:folderId")));
+long folderId = GetterUtil.getLong(request.getAttribute("liferay-item-selector:repository-entry-browser:folderId"));
 String itemSelectedEventName = GetterUtil.getString(request.getAttribute("liferay-item-selector:repository-entry-browser:itemSelectedEventName"));
 ItemSelectorReturnTypeResolver<?, FileEntry> itemSelectorReturnTypeResolver = (ItemSelectorReturnTypeResolver<?, FileEntry>)request.getAttribute("liferay-item-selector:repository-entry-browser:itemSelectorReturnTypeResolver");
 long maxFileSize = GetterUtil.getLong(request.getAttribute("liferay-item-selector:repository-entry-browser:maxFileSize"));
@@ -47,7 +47,7 @@ if (uploadURL != null) {
 <liferay-util:html-top
 	outputKey="com.liferay.item.selector.taglib#/repository_entry_browser/page.jsp"
 >
-	<aui:link href='<%= PortalUtil.getPathProxy() + ServletContextUtil.getContextPath() + "/repository_entry_browser/css/main.css" %>' rel="stylesheet" type="text/css" />
+	<aui:link hashedFile="<%= true %>" href="item-selector-taglib/repository_entry_browser/css/main.css" rel="stylesheet" type="text/css" />
 </liferay-util:html-top>
 
 <%
@@ -126,6 +126,8 @@ SearchContainer<?> searchContainer = new SearchContainer(renderRequest, itemSele
 
 						return null;
 					}
+				).put(
+					"folderId", folderId
 				).put(
 					"itemSelectedEventName", itemSelectedEventName
 				).put(
@@ -226,7 +228,7 @@ SearchContainer<?> searchContainer = new SearchContainer(renderRequest, itemSele
 										/>
 									</c:if>
 
-									<a class="<%= repositoryEntryBrowserDisplayContext.isPreviewable(latestFileVersion) ? "item-preview-editable" : StringPool.BLANK %> item-preview" data-metadata="<%= HtmlUtil.escapeAttribute(itemMedatadaJSONObject.toString()) %>" data-returnType="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getItemSelectorReturnTypeClassName(itemSelectorReturnTypeResolver, existingFileEntryReturnType)) %>" data-title="<%= HtmlUtil.escapeAttribute(title) %>" data-type="<%= repositoryEntryBrowserDisplayContext.getType(latestFileVersion) %>" data-url="<%= HtmlUtil.escapeAttribute(DLURLHelperUtil.getPreviewURL(fileEntry, latestFileVersion, themeDisplay, StringPool.BLANK)) %>" data-value="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getValue(itemSelectorReturnTypeResolver, existingFileEntryReturnType, fileEntry, themeDisplay)) %>" href="<%= Validator.isNotNull(thumbnailSrc) ? HtmlUtil.escapeHREF(DLURLHelperUtil.getImagePreviewURL(fileEntry, themeDisplay)) : themeDisplay.getPathThemeImages() + "/file_system/large/default.png" %>">
+									<a class="<%= repositoryEntryBrowserDisplayContext.isPreviewable(latestFileVersion) ? "item-preview-editable" : StringPool.BLANK %> item-preview" data-metadata="<%= HtmlUtil.escapeAttribute(itemMedatadaJSONObject.toString()) %>" data-mimeType="<%= HtmlUtil.escapeAttribute(fileEntry.getMimeType()) %>" data-returnType="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getItemSelectorReturnTypeClassName(itemSelectorReturnTypeResolver, existingFileEntryReturnType)) %>" data-title="<%= HtmlUtil.escapeAttribute(title) %>" data-type="<%= repositoryEntryBrowserDisplayContext.getType(latestFileVersion) %>" data-url="<%= HtmlUtil.escapeAttribute(DLURLHelperUtil.getPreviewURL(fileEntry, latestFileVersion, themeDisplay, StringPool.BLANK)) %>" data-value="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getValue(itemSelectorReturnTypeResolver, existingFileEntryReturnType, fileEntry, themeDisplay)) %>" href="<%= Validator.isNotNull(thumbnailSrc) ? HtmlUtil.escapeHREF(DLURLHelperUtil.getImagePreviewURL(fileEntry, themeDisplay)) : themeDisplay.getPathThemeImages() + "/file_system/large/default.png" %>">
 										<span class="taglib-text text-truncate">
 											<%= HtmlUtil.escape(title) %>
 										</span>
@@ -430,6 +432,7 @@ SearchContainer<?> searchContainer = new SearchContainer(renderRequest, itemSele
 									}
 
 									data.put("metadata", itemMedatadaJSONObject.toString());
+									data.put("mimeType", fileEntry.getMimeType());
 									data.put("returnType", ItemSelectorRepositoryEntryBrowserUtil.getItemSelectorReturnTypeClassName(itemSelectorReturnTypeResolver, existingFileEntryReturnType));
 									data.put("title", title);
 									data.put("type", repositoryEntryBrowserDisplayContext.getType(latestFileVersion));
@@ -529,7 +532,7 @@ SearchContainer<?> searchContainer = new SearchContainer(renderRequest, itemSele
 										colspan="<%= 3 %>"
 									>
 										<div class="h5">
-											<a href="<%= HtmlUtil.escapeAttribute(viewFolderURL.toString()) %>" title="<%= folder.getName() %>">
+											<a href="<%= HtmlUtil.escapeAttribute(viewFolderURL.toString()) %>" title="<%= HtmlUtil.escapeAttribute(folder.getName()) %>">
 												<strong><%= HtmlUtil.escape(folder.getName()) %></strong>
 											</a>
 										</div>
@@ -587,9 +590,9 @@ SearchContainer<?> searchContainer = new SearchContainer(renderRequest, itemSele
 									<liferay-ui:search-container-column-text
 										colspan="<%= 2 %>"
 									>
-										<div class="<%= repositoryEntryBrowserDisplayContext.isPreviewable(latestFileVersion) ? "item-preview-editable" : StringPool.BLANK %> item-preview" data-href="<%= Validator.isNotNull(thumbnailSrc) ? HtmlUtil.escapeHREF(DLURLHelperUtil.getImagePreviewURL(fileEntry, themeDisplay)) : themeDisplay.getPathThemeImages() + "/file_system/large/default.png" %>" data-metadata="<%= HtmlUtil.escapeAttribute(itemMedatadaJSONObject.toString()) %>" data-returnType="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getItemSelectorReturnTypeClassName(itemSelectorReturnTypeResolver, existingFileEntryReturnType)) %>" data-title="<%= HtmlUtil.escapeAttribute(title) %>" data-type="<%= repositoryEntryBrowserDisplayContext.getType(latestFileVersion) %>" data-url="<%= HtmlUtil.escapeAttribute(DLURLHelperUtil.getPreviewURL(fileEntry, latestFileVersion, themeDisplay, StringPool.BLANK)) %>" data-value="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getValue(itemSelectorReturnTypeResolver, existingFileEntryReturnType, fileEntry, themeDisplay)) %>">
+										<div class="<%= repositoryEntryBrowserDisplayContext.isPreviewable(latestFileVersion) ? "item-preview-editable" : StringPool.BLANK %> item-preview" data-href="<%= Validator.isNotNull(thumbnailSrc) ? HtmlUtil.escapeHREF(DLURLHelperUtil.getImagePreviewURL(fileEntry, themeDisplay)) : themeDisplay.getPathThemeImages() + "/file_system/large/default.png" %>" data-metadata="<%= HtmlUtil.escapeAttribute(itemMedatadaJSONObject.toString()) %>" data-mimeType="<%= HtmlUtil.escapeAttribute(fileEntry.getMimeType()) %>" data-returnType="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getItemSelectorReturnTypeClassName(itemSelectorReturnTypeResolver, existingFileEntryReturnType)) %>" data-title="<%= HtmlUtil.escapeAttribute(title) %>" data-type="<%= repositoryEntryBrowserDisplayContext.getType(latestFileVersion) %>" data-url="<%= HtmlUtil.escapeAttribute(DLURLHelperUtil.getPreviewURL(fileEntry, latestFileVersion, themeDisplay, StringPool.BLANK)) %>" data-value="<%= HtmlUtil.escapeAttribute(ItemSelectorRepositoryEntryBrowserUtil.getValue(itemSelectorReturnTypeResolver, existingFileEntryReturnType, fileEntry, themeDisplay)) %>">
 											<div class="h5">
-												<strong><%= title %></strong>
+												<strong><%= HtmlUtil.escape(title) %></strong>
 
 												<c:if test="<%= !repositoryEntryBrowserDisplayContext.hasGuestViewPermission(fileEntry) %>">
 													<clay:icon

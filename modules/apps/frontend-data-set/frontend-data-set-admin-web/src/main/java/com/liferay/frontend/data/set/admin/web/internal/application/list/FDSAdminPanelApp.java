@@ -8,12 +8,8 @@ package com.liferay.frontend.data.set.admin.web.internal.application.list;
 import com.liferay.application.list.BasePanelApp;
 import com.liferay.application.list.PanelApp;
 import com.liferay.application.list.constants.PanelCategoryKeys;
-import com.liferay.frontend.data.set.admin.web.internal.constants.FDSAdminPortletKeys;
-import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
-import com.liferay.portal.kernel.model.Group;
+import com.liferay.frontend.data.set.constants.FDSAdminPortletKeys;
 import com.liferay.portal.kernel.model.Portlet;
-import com.liferay.portal.kernel.security.permission.PermissionChecker;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -23,12 +19,17 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"panel.app.order:Integer=150",
+		"panel.app.order:Integer=300",
 		"panel.category.key=" + PanelCategoryKeys.CONTROL_PANEL_OBJECT
 	},
 	service = PanelApp.class
 )
 public class FDSAdminPanelApp extends BasePanelApp {
+
+	@Override
+	public String getIcon() {
+		return "table2";
+	}
 
 	@Override
 	public Portlet getPortlet() {
@@ -40,19 +41,8 @@ public class FDSAdminPanelApp extends BasePanelApp {
 		return FDSAdminPortletKeys.FDS_ADMIN;
 	}
 
-	@Override
-	public boolean isShow(PermissionChecker permissionChecker, Group group)
-		throws PortalException {
-
-		if (!FeatureFlagManagerUtil.isEnabled("LPS-164563")) {
-			return false;
-		}
-
-		return super.isShow(permissionChecker, group);
-	}
-
 	@Reference(
-		target = "(javax.portlet.name=" + FDSAdminPortletKeys.FDS_ADMIN + ")"
+		target = "(jakarta.portlet.name=" + FDSAdminPortletKeys.FDS_ADMIN + ")"
 	)
 	private Portlet _portlet;
 

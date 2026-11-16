@@ -21,7 +21,7 @@ import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PortalInetSocketAddressEventListener;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.io.File;
 import java.io.IOException;
@@ -74,21 +74,22 @@ public class RoutesPortalK8sConfigMapModifier
 		File liferayRoutesFile = liferayRoutesPath.toFile();
 
 		for (String directoryName : FileUtil.listDirs(liferayRoutesFile)) {
-			if (Objects.equals(directoryName, "default")) {
+			if (Objects.equals(directoryName, "default") ||
+				virtualInstanceIds.contains(directoryName)) {
+
 				continue;
 			}
 
-			if (!virtualInstanceIds.contains(directoryName)) {
-				File routesDirectory = new File(
-					liferayRoutesFile, directoryName);
+			File routesDirectory = new File(liferayRoutesFile, directoryName);
 
-				if (routesDirectory.exists()) {
-					FileUtil.deltree(routesDirectory);
+			if (!routesDirectory.exists()) {
+				continue;
+			}
 
-					if (_log.isDebugEnabled()) {
-						_log.debug("Deleted custodian " + directoryName);
-					}
-				}
+			FileUtil.deltree(routesDirectory);
+
+			if (_log.isDebugEnabled()) {
+				_log.debug("Deleted custodian " + directoryName);
 			}
 		}
 	}

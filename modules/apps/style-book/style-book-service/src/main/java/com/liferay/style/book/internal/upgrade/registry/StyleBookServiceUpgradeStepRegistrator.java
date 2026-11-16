@@ -5,19 +5,28 @@
 
 package com.liferay.style.book.internal.upgrade.registry;
 
+import com.liferay.frontend.token.definition.FrontendTokenDefinitionRegistry;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.upgrade.BaseExternalReferenceCodeUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.CTModelUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.DummyUpgradeStep;
 import com.liferay.portal.kernel.upgrade.MVCCVersionUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.UpgradeProcessFactory;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
+import com.liferay.style.book.internal.upgrade.v1_10_0.StyleBookEntryFrontendTokensValuesUpgradeProcess;
+import com.liferay.style.book.internal.upgrade.v1_10_1.StyleBookEntryDefaultStyleBookEntryUpgradeProcess;
 import com.liferay.style.book.internal.upgrade.v1_1_0.StyleBookEntryUpgradeProcess;
 import com.liferay.style.book.internal.upgrade.v1_2_0.StyleBookEntryVersionUpgradeProcess;
+import com.liferay.style.book.internal.upgrade.v1_7_0.StyleBookEntryThemeIdUpgradeProcess;
+import com.liferay.style.book.internal.upgrade.v1_8_0.StyleBookEntryVersionThemeIdUpgradeProcess;
 
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Jürgen Kappler
+ * @author Thiago Buarque
  */
 @Component(service = UpgradeStepRegistrator.class)
 public class StyleBookServiceUpgradeStepRegistrator
@@ -66,10 +75,9 @@ public class StyleBookServiceUpgradeStepRegistrator
 			new BaseExternalReferenceCodeUpgradeProcess() {
 
 				@Override
-				protected String[][] getTableAndPrimaryKeyColumnNames() {
-					return new String[][] {
-						{"StyleBookEntry", "styleBookEntryId"},
-						{"StyleBookEntryVersion", "styleBookEntryId"}
+				protected String[] getTableNames() {
+					return new String[] {
+						"StyleBookEntry", "StyleBookEntryVersion"
 					};
 				}
 
@@ -81,6 +89,54 @@ public class StyleBookServiceUpgradeStepRegistrator
 				"StyleBookEntry", "themeId VARCHAR(255) null"),
 			UpgradeProcessFactory.addColumns(
 				"StyleBookEntryVersion", "themeId VARCHAR(255) null"));
+
+		registry.register(
+			"1.6.0", "1.7.0",
+			new StyleBookEntryThemeIdUpgradeProcess(
+				_frontendTokenDefinitionRegistry, _groupLocalService));
+
+		registry.register(
+			"1.7.0", "1.8.0",
+			new StyleBookEntryVersionThemeIdUpgradeProcess(_groupLocalService));
+
+		registry.register(
+			"1.8.0", "1.9.0",
+			UpgradeProcessFactory.addColumns(
+				"StyleBookEntry", "frontendTokenDefinition TEXT null"),
+			UpgradeProcessFactory.addColumns(
+				"StyleBookEntryVersion", "frontendTokenDefinition TEXT null"));
+
+		registry.register(
+			"1.9.0", "1.10.0",
+			new StyleBookEntryFrontendTokensValuesUpgradeProcess());
+
+		registry.register(
+			"1.10.0", "1.10.1",
+			new StyleBookEntryDefaultStyleBookEntryUpgradeProcess());
+
+		registry.register(
+			"1.10.1", "1.11.0",
+			UpgradeProcessFactory.addColumns(
+				"StyleBookEntry", "status INTEGER"),
+			UpgradeProcessFactory.addColumns(
+				"StyleBookEntryVersion", "status INTEGER"),
+			UpgradeProcessFactory.runSQL(
+				"update StyleBookEntry set status = " +
+					WorkflowConstants.STATUS_APPROVED,
+				"update StyleBookEntryVersion set status = " +
+					WorkflowConstants.STATUS_APPROVED));
+
+		registry.register(
+			"1.11.0", "2.0.0",
+			UpgradeProcessFactory.dropColumns("StyleBookEntry", "status"),
+			UpgradeProcessFactory.dropColumns(
+				"StyleBookEntryVersion", "status"));
 	}
+
+	@Reference
+	private FrontendTokenDefinitionRegistry _frontendTokenDefinitionRegistry;
+
+	@Reference
+	private GroupLocalService _groupLocalService;
 
 }

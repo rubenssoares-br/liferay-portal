@@ -69,7 +69,6 @@ public class ERCVersionedEntryVersionCacheModel
 		sb.append(groupId);
 		sb.append(", companyId=");
 		sb.append(companyId);
-		sb.append("}");
 
 		return sb.toString();
 	}
@@ -159,3 +158,4 @@ public class ERCVersionedEntryVersionCacheModel
 	public long companyId;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1729621124

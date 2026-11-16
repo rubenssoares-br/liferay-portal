@@ -27,7 +27,7 @@ List<AssetEntry> assetEntries = assetPublisherHelper.getAssetEntries(renderReque
 	<liferay-ui:search-container-row
 		className="com.liferay.asset.kernel.model.AssetEntry"
 		escapedModel="<%= true %>"
-		keyProperty="entryId"
+		keyPropertyName="entryId"
 		modelVar="assetEntry"
 	>
 
@@ -103,19 +103,21 @@ long[] groupIds = assetPublisherDisplayContext.getGroupIds();
 			String title = LanguageUtil.format(request, (groupIds.length == 1) ? "select" : "select-in-x", HtmlUtil.escape(group.getDescriptiveName(locale)), false);
 		%>
 
-				<clay:dropdown-menu
+				<clay:button
 					additionalProps='<%=
 						HashMapBuilder.<String, Object>put(
+							"assetEntryTypes", assetPublisherDisplayContext.getAssetEntryTypesJSONArray(groupId)
+						).put(
 							"currentURL", configurationRenderURL.toString()
+						).put(
+							"groupIds", assetPublisherDisplayContext.getConnectedGroupIdsString(groupId)
 						).build()
 					%>'
 					aria-label="<%= title %>"
 					cssClass="mr-2"
 					displayType="secondary"
-					dropdownItems="<%= assetPublisherDisplayContext.getDropdownItems(group) %>"
 					label="<%= title %>"
 					propsTransformer="{AssetEntrySelectionDropdownPropsTransformer} from asset-publisher-web"
-					title="<%= title %>"
 				/>
 
 		<%

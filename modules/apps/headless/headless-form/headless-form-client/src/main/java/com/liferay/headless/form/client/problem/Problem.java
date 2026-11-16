@@ -7,9 +7,9 @@ package com.liferay.headless.form.client.problem;
 
 import com.liferay.headless.form.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Javier Gamarra
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1741595048

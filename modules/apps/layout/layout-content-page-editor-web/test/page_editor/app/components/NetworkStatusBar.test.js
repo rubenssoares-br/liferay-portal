@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render, screen} from '@testing-library/react';
 import React from 'react';
 
@@ -16,10 +16,10 @@ describe('NetworkStatusBar', () => {
 	it('renders saved status when the status is 0 (draftSaved)', () => {
 		renderComponent({status: 0});
 
-		const savedIcon = screen.getByLabelText('saved');
+		const savedIcon = screen.getByLabelText('saved-as-draft');
 
 		expect(savedIcon).toBeInTheDocument();
-		expect(savedIcon).toHaveAttribute('data-title', 'saved');
+		expect(savedIcon).toHaveAttribute('data-title', 'saved-as-draft');
 	});
 
 	it('renders error status when the status is 1 (error)', () => {

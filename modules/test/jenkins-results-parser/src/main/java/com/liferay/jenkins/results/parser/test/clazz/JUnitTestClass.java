@@ -5,14 +5,20 @@
 
 package com.liferay.jenkins.results.parser.test.clazz;
 
+import com.liferay.jenkins.results.parser.DownstreamBuildReport;
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
 import com.liferay.jenkins.results.parser.PortalGitWorkingDirectory;
+import com.liferay.jenkins.results.parser.TestClassReport;
 import com.liferay.jenkins.results.parser.test.clazz.group.BatchTestClassGroup;
 import com.liferay.jenkins.results.parser.test.clazz.group.JUnitBatchTestClassGroup;
 
 import java.io.File;
 import java.io.IOException;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,12 +29,77 @@ import org.json.JSONObject;
  */
 public class JUnitTestClass extends BaseTestClass {
 
+	public DownstreamBuildReport getCachedDownstreamBuildReport() {
+		return getCachedDownstreamBuildReport(getBatchTestClassGroup());
+	}
+
+	public DownstreamBuildReport getCachedDownstreamBuildReport(
+		BatchTestClassGroup batchTestClassGroup) {
+
+		List<TestClassReport> cachedTestClassReports =
+			getCachedTestClassReports(batchTestClassGroup);
+
+		if (cachedTestClassReports == null) {
+			return null;
+		}
+
+		TestClassReport testClassReport = cachedTestClassReports.get(0);
+
+		return testClassReport.getDownstreamBuildReport();
+	}
+
+	public List<TestClassReport> getCachedTestClassReports() {
+		return getCachedTestClassReports(getBatchTestClassGroup());
+	}
+
+	public List<TestClassReport> getCachedTestClassReports(
+		BatchTestClassGroup batchTestClassGroup) {
+
+		if (!isBuildCachingEnabled()) {
+			return null;
+		}
+
+		String batchName = batchTestClassGroup.getBatchName();
+
+		List<TestClassReport> cachedTestClassReports =
+			_cachedTestClassReportsMap.get(batchName);
+
+		if (cachedTestClassReports != null) {
+			return cachedTestClassReports;
+		}
+
+		String testClassName = getTestClassName();
+
+		cachedTestClassReports = new ArrayList<>();
+
+		TestClassReport testClassReport =
+			batchTestClassGroup.getCachedTestClassReport(testClassName);
+
+		if (testClassReport != null) {
+			cachedTestClassReports.add(testClassReport);
+		}
+
+		cachedTestClassReports.addAll(
+			batchTestClassGroup.getCachedTestClassReportByPrefix(
+				testClassName + "$"));
+
+		if (cachedTestClassReports.isEmpty()) {
+			return null;
+		}
+
+		_cachedTestClassReportsMap.put(batchName, cachedTestClassReports);
+
+		return cachedTestClassReports;
+	}
+
 	@Override
 	public JSONObject getJSONObject() {
 		JSONObject jsonObject = super.getJSONObject();
 
 		if ((_testPropertiesFile != null) && _testPropertiesFile.exists()) {
-			jsonObject.put("test_properties_file", _testPropertiesFile);
+			jsonObject.put(
+				"test_properties_file",
+				JenkinsResultsParserUtil.getCanonicalPath(_testPropertiesFile));
 		}
 
 		if (!JenkinsResultsParserUtil.isNullOrEmpty(
@@ -41,9 +112,61 @@ public class JUnitTestClass extends BaseTestClass {
 		return jsonObject;
 	}
 
+	public List<String> getTestClassFileMethodNames() {
+		List<String> testClassFileMethodNames = new ArrayList<>();
+
+		Matcher matcher = _testClassFileNamePattern.matcher(
+			String.valueOf(getTestClassFile()));
+
+		if (!matcher.find()) {
+			return testClassFileMethodNames;
+		}
+
+		String testClassFileName = matcher.group("testClassFileName");
+
+		testClassFileName = testClassFileName.replace(".java", ".class");
+
+		List<String> testClassMethodNames = getTestClassMethodNames();
+
+		if ((testClassMethodNames == null) || testClassMethodNames.isEmpty()) {
+			testClassFileMethodNames.add(testClassFileName);
+
+			return testClassFileMethodNames;
+		}
+
+		for (String testClassMethodName : testClassMethodNames) {
+			testClassFileMethodNames.add(
+				testClassFileName + "#" + testClassMethodName);
+		}
+
+		return testClassFileMethodNames;
+	}
+
+	public List<String> getTestClassMethodNames() {
+		return _testClassMethodNames;
+	}
+
+	@Override
 	public String getTestClassName() {
 		return JenkinsResultsParserUtil.combine(
 			_getPackageName(), ".", _getClassName());
+	}
+
+	@Override
+	public String getTestTaskName() {
+		String taskName = getTaskName();
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(taskName)) {
+			return super.getTestTaskName();
+		}
+
+		String testClassFilePath = JenkinsResultsParserUtil.getCanonicalPath(
+			getTestClassFile());
+
+		String testTaskName = testClassFilePath.replaceAll(
+			".*/modules(/.+)/src/" + taskName + "/.+", "$1");
+
+		return testTaskName.replaceAll("/", ":") + ":" + taskName;
 	}
 
 	public String getTestrayMainComponentName() {
@@ -113,6 +236,64 @@ public class JUnitTestClass extends BaseTestClass {
 	}
 
 	protected JUnitTestClass(
+		BatchTestClassGroup batchTestClassGroup, File testClassFile,
+		List<String> testClassMethodNames) {
+
+		super(batchTestClassGroup, testClassFile);
+
+		File modulesBaseDir = _getPortalModulesBaseDir();
+
+		if ((modulesBaseDir != null) && modulesBaseDir.exists()) {
+			_modulesBaseDir = modulesBaseDir;
+		}
+		else {
+			_modulesBaseDir = new File(".");
+		}
+
+		File testPropertiesBaseDir = getTestPropertiesBaseDir(
+			getTestClassFile());
+
+		if ((testPropertiesBaseDir != null) && testPropertiesBaseDir.exists()) {
+			_testPropertiesFile = new File(
+				testPropertiesBaseDir, "test.properties");
+
+			String testrayMainComponentName =
+				JenkinsResultsParserUtil.getProperty(
+					JenkinsResultsParserUtil.getProperties(_testPropertiesFile),
+					"testray.main.component.name");
+
+			if ((testrayMainComponentName == null) &&
+				_modulesBaseDir.exists()) {
+
+				testrayMainComponentName = JenkinsResultsParserUtil.getProperty(
+					JenkinsResultsParserUtil.getProperties(
+						_getParentTestPropertiesFile(testPropertiesBaseDir)),
+					"testray.main.component.name");
+			}
+
+			_testrayMainComponentName = testrayMainComponentName;
+		}
+		else {
+			_testPropertiesFile = null;
+			_testrayMainComponentName = null;
+		}
+
+		String testClassFileName = testClassFile.getName();
+
+		if (!testClassFileName.endsWith(".java")) {
+			return;
+		}
+
+		boolean methodIgnored = false;
+
+		for (String testClassMethodName : testClassMethodNames) {
+			_testClassMethodNames.add(testClassMethodName);
+
+			addTestClassMethod(methodIgnored, testClassMethodName);
+		}
+	}
+
+	protected JUnitTestClass(
 		BatchTestClassGroup batchTestClassGroup, JSONObject jsonObject) {
 
 		super(batchTestClassGroup, jsonObject);
@@ -150,6 +331,21 @@ public class JUnitTestClass extends BaseTestClass {
 		}
 
 		_testrayMainComponentName = testrayMainComponentName;
+	}
+
+	protected String getTaskName() {
+		BatchTestClassGroup batchTestClassGroup = getBatchTestClassGroup();
+
+		String batchName = batchTestClassGroup.getBatchName();
+
+		if (batchName.startsWith("modules-integration")) {
+			return "testIntegration";
+		}
+		else if (batchName.startsWith("modules-unit")) {
+			return "test";
+		}
+
+		return null;
 	}
 
 	@Override
@@ -311,9 +507,28 @@ public class JUnitTestClass extends BaseTestClass {
 				methodIgnored = true;
 			}
 
-			if (annotations.contains("@Test")) {
-				String methodName = methodHeaderMatcher.group("methodName");
+			if (!annotations.contains("@Test")) {
+				continue;
+			}
 
+			String methodName = methodHeaderMatcher.group("methodName");
+
+			if (annotations.contains("@TestInfo")) {
+				List<String> issuesList = new ArrayList<>();
+
+				String testInfo = annotations.substring(
+					annotations.indexOf("@TestInfo"));
+
+				Matcher matcher = _issuesPattern.matcher(testInfo);
+
+				while (matcher.find()) {
+					issuesList.add(matcher.group());
+				}
+
+				addTestClassMethod(
+					methodIgnored, methodName, String.join(", ", issuesList));
+			}
+			else {
 				addTestClassMethod(methodIgnored, methodName);
 			}
 		}
@@ -356,13 +571,20 @@ public class JUnitTestClass extends BaseTestClass {
 		JenkinsResultsParserUtil.combine(
 			"\\*/(?<annotations>[^/]*)public\\s+class\\s+",
 			"(?<className>[^\\(\\s]+)"));
+	private static final Pattern _issuesPattern = Pattern.compile(
+		"[A-Z]+-\\d+");
 	private static final Pattern _methodHeaderPattern = Pattern.compile(
 		JenkinsResultsParserUtil.combine(
 			"\\t(?<annotations>(@[\\s\\S]+?))public\\s+void\\s+",
 			"(?<methodName>[^\\(\\s]+)"));
+	private static final Pattern _testClassFileNamePattern = Pattern.compile(
+		".*/(?<testClassFileName>com/.*)");
 
+	private final Map<String, List<TestClassReport>>
+		_cachedTestClassReportsMap = new ConcurrentHashMap<>();
 	private boolean _classIgnored;
 	private final File _modulesBaseDir;
+	private final List<String> _testClassMethodNames = new ArrayList<>();
 	private final File _testPropertiesFile;
 	private final String _testrayMainComponentName;
 

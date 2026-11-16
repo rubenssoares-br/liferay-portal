@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.Specification;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -104,6 +105,37 @@ public class SpecificationSerDes {
 			sb.append("\"");
 		}
 
+		if (specification.getListTypeDefinitionExternalReferenceCodes() !=
+				null) {
+
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"listTypeDefinitionExternalReferenceCodes\": ");
+
+			sb.append("[");
+
+			for (int i = 0;
+				 i < specification.
+					 getListTypeDefinitionExternalReferenceCodes().length;
+				 i++) {
+
+				sb.append(
+					_toJSON(
+						specification.
+							getListTypeDefinitionExternalReferenceCodes()[i]));
+
+				if ((i + 1) < specification.
+						getListTypeDefinitionExternalReferenceCodes().length) {
+
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (specification.getListTypeDefinitionId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -112,6 +144,28 @@ public class SpecificationSerDes {
 			sb.append("\"listTypeDefinitionId\": ");
 
 			sb.append(specification.getListTypeDefinitionId());
+		}
+
+		if (specification.getListTypeDefinitionIds() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"listTypeDefinitionIds\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < specification.getListTypeDefinitionIds().length;
+				 i++) {
+
+				sb.append(specification.getListTypeDefinitionIds()[i]);
+
+				if ((i + 1) < specification.getListTypeDefinitionIds().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
 		if (specification.getOptionCategory() != null) {
@@ -142,6 +196,16 @@ public class SpecificationSerDes {
 			sb.append("\"title\": ");
 
 			sb.append(_toJSON(specification.getTitle()));
+		}
+
+		if (specification.getVisible() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"visible\": ");
+
+			sb.append(specification.getVisible());
 		}
 
 		sb.append("}");
@@ -201,6 +265,19 @@ public class SpecificationSerDes {
 			map.put("key", String.valueOf(specification.getKey()));
 		}
 
+		if (specification.getListTypeDefinitionExternalReferenceCodes() ==
+				null) {
+
+			map.put("listTypeDefinitionExternalReferenceCodes", null);
+		}
+		else {
+			map.put(
+				"listTypeDefinitionExternalReferenceCodes",
+				String.valueOf(
+					specification.
+						getListTypeDefinitionExternalReferenceCodes()));
+		}
+
 		if (specification.getListTypeDefinitionId() == null) {
 			map.put("listTypeDefinitionId", null);
 		}
@@ -208,6 +285,15 @@ public class SpecificationSerDes {
 			map.put(
 				"listTypeDefinitionId",
 				String.valueOf(specification.getListTypeDefinitionId()));
+		}
+
+		if (specification.getListTypeDefinitionIds() == null) {
+			map.put("listTypeDefinitionIds", null);
+		}
+		else {
+			map.put(
+				"listTypeDefinitionIds",
+				String.valueOf(specification.getListTypeDefinitionIds()));
 		}
 
 		if (specification.getOptionCategory() == null) {
@@ -231,6 +317,13 @@ public class SpecificationSerDes {
 		}
 		else {
 			map.put("title", String.valueOf(specification.getTitle()));
+		}
+
+		if (specification.getVisible() == null) {
+			map.put("visible", null);
+		}
+		else {
+			map.put("visible", String.valueOf(specification.getVisible()));
 		}
 
 		return map;
@@ -269,7 +362,18 @@ public class SpecificationSerDes {
 				return false;
 			}
 			else if (Objects.equals(
+						jsonParserFieldName,
+						"listTypeDefinitionExternalReferenceCodes")) {
+
+				return false;
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "listTypeDefinitionId")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "listTypeDefinitionIds")) {
 
 				return false;
 			}
@@ -281,6 +385,9 @@ public class SpecificationSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "title")) {
 				return true;
+			}
+			else if (Objects.equals(jsonParserFieldName, "visible")) {
+				return false;
 			}
 
 			return false;
@@ -322,11 +429,28 @@ public class SpecificationSerDes {
 				}
 			}
 			else if (Objects.equals(
+						jsonParserFieldName,
+						"listTypeDefinitionExternalReferenceCodes")) {
+
+				if (jsonParserFieldValue != null) {
+					specification.setListTypeDefinitionExternalReferenceCodes(
+						toStrings((Object[])jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "listTypeDefinitionId")) {
 
 				if (jsonParserFieldValue != null) {
 					specification.setListTypeDefinitionId(
 						Long.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "listTypeDefinitionIds")) {
+
+				if (jsonParserFieldValue != null) {
+					specification.setListTypeDefinitionIds(
+						toLongs((Object[])jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "optionCategory")) {
@@ -346,6 +470,11 @@ public class SpecificationSerDes {
 				if (jsonParserFieldValue != null) {
 					specification.setTitle(
 						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "visible")) {
+				if (jsonParserFieldValue != null) {
+					specification.setVisible((Boolean)jsonParserFieldValue);
 				}
 			}
 		}
@@ -393,6 +522,16 @@ public class SpecificationSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -425,3 +564,4 @@ public class SpecificationSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1241858272

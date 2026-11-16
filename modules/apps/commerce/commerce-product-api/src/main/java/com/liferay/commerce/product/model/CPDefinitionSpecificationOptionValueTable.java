@@ -79,6 +79,9 @@ public class CPDefinitionSpecificationOptionValueTable
 	public final Column<CPDefinitionSpecificationOptionValueTable, String>
 		value = createColumn(
 			"value", String.class, Types.VARCHAR, Column.FLAG_DEFAULT);
+	public final Column<CPDefinitionSpecificationOptionValueTable, Boolean>
+		visible = createColumn(
+			"visible", Boolean.class, Types.BOOLEAN, Column.FLAG_DEFAULT);
 	public final Column<CPDefinitionSpecificationOptionValueTable, Date>
 		lastPublishDate = createColumn(
 			"lastPublishDate", Date.class, Types.TIMESTAMP,
@@ -91,3 +94,4 @@ public class CPDefinitionSpecificationOptionValueTable
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1044359477

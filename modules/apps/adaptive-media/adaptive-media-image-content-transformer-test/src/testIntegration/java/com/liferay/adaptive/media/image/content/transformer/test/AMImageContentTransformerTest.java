@@ -9,9 +9,9 @@ import com.liferay.adaptive.media.content.transformer.ContentTransformerHandler;
 import com.liferay.adaptive.media.image.configuration.AMImageConfigurationEntry;
 import com.liferay.adaptive.media.image.configuration.AMImageConfigurationHelper;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
-import com.liferay.document.library.util.DLURLHelper;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.Group;
@@ -30,6 +30,11 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -56,21 +61,20 @@ public class AMImageContentTransformerTest {
 	public void setUp() throws Exception {
 		_group = GroupTestUtil.addGroup();
 
-		_amImageConfigurationEntry =
-			_amImageConfigurationHelper.addAMImageConfigurationEntry(
-				_group.getCompanyId(), StringUtil.randomString(),
-				StringUtil.randomString(), StringUtil.randomString(),
-				HashMapBuilder.put(
-					"max-height", "600"
-				).put(
-					"max-width", "800"
-				).build());
+		_amImageConfigurationEntries.add(
+			_addAMImageConfigurationEntry(300, 300));
+		_amImageConfigurationEntries.add(
+			_addAMImageConfigurationEntry(600, 800));
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		_amImageConfigurationHelper.forceDeleteAMImageConfigurationEntry(
-			_group.getCompanyId(), _amImageConfigurationEntry.getUUID());
+		for (AMImageConfigurationEntry amImageConfigurationEntry :
+				_amImageConfigurationEntries) {
+
+			_amImageConfigurationHelper.forceDeleteAMImageConfigurationEntry(
+				_group.getCompanyId(), amImageConfigurationEntry.getUUID());
+		}
 	}
 
 	@Test
@@ -79,23 +83,47 @@ public class AMImageContentTransformerTest {
 			ServiceContextTestUtil.getServiceContext(
 				_group, TestPropsValues.getUserId()));
 
-		String rawHTML = String.format(
-			"<img data-fileentryid=\"%s\" src=\"%s\" />",
-			fileEntry.getFileEntryId(),
-			_dlURLHelper.getPreviewURL(
-				fileEntry, fileEntry.getFileVersion(), null, StringPool.BLANK,
-				false, false));
+		String transformedHTML = _contentTransformerHandler.transform(
+			_getRawHTML(fileEntry, 1));
 
-		String regex = StringBundler.concat(
-			"<picture data-fileentryid=\".+\">",
-			"<source media=\"\\(max-width:.+px\\)\" srcset=\".+\" \\/>",
-			"<source media=\"\\(max-width:.+px\\) and \\(min-width:.+px\\)\" ",
-			"srcset=\".+\" \\/><img data-fileentryid=\".+\" src=\".+\" \\/>",
-			"<\\/picture>");
-
-		String transformedHTML = _contentTransformerHandler.transform(rawHTML);
+		String regex = _getRegex();
 
 		Assert.assertTrue(transformedHTML, transformedHTML.matches(regex));
+
+		_assertMatcher(1, regex, transformedHTML);
+	}
+
+	@Test
+	public void testTransformASingleImageMultipleTimes() throws Exception {
+		int fileEntriesCount = 5;
+
+		FileEntry fileEntry = _addImageFileEntry(
+			ServiceContextTestUtil.getServiceContext(
+				_group, TestPropsValues.getUserId()));
+
+		String transformedHTML = _contentTransformerHandler.transform(
+			_contentTransformerHandler.transform(
+				_getRawHTML(fileEntry, fileEntriesCount)));
+
+		String regex = _getRegex();
+
+		Assert.assertTrue(transformedHTML, transformedHTML.matches(regex));
+
+		_assertMatcher(fileEntriesCount, regex, transformedHTML);
+	}
+
+	private AMImageConfigurationEntry _addAMImageConfigurationEntry(
+			int maxHeight, int maxWidth)
+		throws Exception {
+
+		return _amImageConfigurationHelper.addAMImageConfigurationEntry(
+			_group.getCompanyId(), StringUtil.randomString(),
+			StringUtil.randomString(), StringUtil.randomString(),
+			HashMapBuilder.put(
+				"max-height", String.valueOf(maxHeight)
+			).put(
+				"max-width", String.valueOf(maxWidth)
+			).build());
 	}
 
 	private FileEntry _addImageFileEntry(ServiceContext serviceContext)
@@ -110,7 +138,51 @@ public class AMImageContentTransformerTest {
 			null, null, null, serviceContext);
 	}
 
-	private AMImageConfigurationEntry _amImageConfigurationEntry;
+	private void _assertMatcher(
+		int fileEntriesCount, String regex, String transformedHTML) {
+
+		Pattern pattern = Pattern.compile(regex);
+
+		Matcher matcher = pattern.matcher(transformedHTML);
+
+		int count = 0;
+
+		while (matcher.find()) {
+			count++;
+		}
+
+		Assert.assertEquals(fileEntriesCount, count);
+	}
+
+	private String _getRawHTML(FileEntry fileEntry, int imageCount)
+		throws Exception {
+
+		StringBuilder sb = new StringBuilder(imageCount);
+
+		for (int i = 0; i < imageCount; i++) {
+			sb.append(
+				String.format(
+					"<img data-fileentryid=\"%s\" src=\"%s\" />",
+					fileEntry.getFileEntryId(),
+					_dlURLHelper.getPreviewURL(
+						fileEntry, fileEntry.getFileVersion(), null,
+						StringPool.BLANK, false, false)));
+		}
+
+		return sb.toString();
+	}
+
+	private String _getRegex() {
+		return StringBundler.concat(
+			"<picture data-fileentryid=\".+?\"><source ",
+			"media=\"\\(max-width:.+?px\\)\" srcset=\".+?\" \\/><source ",
+			"media=\"\\(max-width:.+?px\\) and \\(min-width:.+?px\\)\" ",
+			"srcset=\".+?\" \\/><img data-fileentryid=\".+?\" src=\".+?\" ",
+			"\\/><\\/picture>");
+	}
+
+	private final List<AMImageConfigurationEntry> _amImageConfigurationEntries =
+		new ArrayList<>();
 
 	@Inject
 	private AMImageConfigurationHelper _amImageConfigurationHelper;

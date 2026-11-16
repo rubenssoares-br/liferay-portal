@@ -244,7 +244,6 @@ public class DLFileEntryRepeatableFieldsInfoCollectionProviderTest {
 		DDMFormFieldValue ddmFormFieldValue = new DDMFormFieldValue();
 
 		ddmFormFieldValue.setName(name);
-		ddmFormFieldValue.setInstanceId(StringUtil.randomString());
 
 		Value value = new LocalizedValue(locale);
 
@@ -319,9 +318,6 @@ public class DLFileEntryRepeatableFieldsInfoCollectionProviderTest {
 			clazz.getResourceAsStream("dependencies/" + fileName));
 	}
 
-	@Inject(filter = "ddm.form.deserializer.type=json")
-	private static DDMFormDeserializer _jsonDDMFormDeserializer;
-
 	@Inject
 	private DLAppHelperLocalService _dlAppHelperLocalService;
 
@@ -336,6 +332,9 @@ public class DLFileEntryRepeatableFieldsInfoCollectionProviderTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject(filter = "ddm.form.deserializer.type=json")
+	private DDMFormDeserializer _jsonDDMFormDeserializer;
 
 	@Inject
 	private Portal _portal;

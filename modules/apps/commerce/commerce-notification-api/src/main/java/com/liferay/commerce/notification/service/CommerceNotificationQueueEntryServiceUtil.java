@@ -22,8 +22,10 @@ import java.util.List;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationQueueEntryService
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 public class CommerceNotificationQueueEntryServiceUtil {
 
 	/*
@@ -84,3 +86,4 @@ public class CommerceNotificationQueueEntryServiceUtil {
 			CommerceNotificationQueueEntryService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1421283264

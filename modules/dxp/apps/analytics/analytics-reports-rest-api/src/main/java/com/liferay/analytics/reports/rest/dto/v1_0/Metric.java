@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Marcos Martins
@@ -50,7 +51,7 @@ public class Metric implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Metric.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getMetricType() {
 		if (_metricTypeSupplier != null) {
 			metricType = _metricTypeSupplier.get();
@@ -91,7 +92,7 @@ public class Metric implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _metricTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getPreviousValue() {
 		if (_previousValueSupplier != null) {
 			previousValue = _previousValueSupplier.get();
@@ -132,7 +133,7 @@ public class Metric implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _previousValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getPreviousValueKey() {
 		if (_previousValueKeySupplier != null) {
 			previousValueKey = _previousValueKeySupplier.get();
@@ -173,7 +174,7 @@ public class Metric implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _previousValueKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Trend getTrend() {
 		if (_trendSupplier != null) {
@@ -213,7 +214,7 @@ public class Metric implements Serializable {
 	@JsonIgnore
 	private Supplier<Trend> _trendSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getValue() {
 		if (_valueSupplier != null) {
 			value = _valueSupplier.get();
@@ -254,7 +255,7 @@ public class Metric implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _valueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getValueKey() {
 		if (_valueKeySupplier != null) {
 			valueKey = _valueKeySupplier.get();
@@ -411,8 +412,8 @@ public class Metric implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.analytics.reports.rest.dto.v1_0.Metric",
 		name = "x-class-name"
 	)
@@ -499,6 +500,27 @@ public class Metric implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -507,3 +529,4 @@ public class Metric implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:2122009320

@@ -65,7 +65,8 @@ public interface ObjectFieldLocalService
 	public ObjectField addCustomObjectField(
 			String externalReferenceCode, long userId,
 			long listTypeDefinitionId, long objectDefinitionId,
-			String businessType, String dbType, boolean indexed,
+			String businessType, String dbType,
+			Map<Locale, String> descriptionMap, boolean indexed,
 			boolean indexedAsKeyword, String indexedLanguageId,
 			Map<Locale, String> labelMap, boolean localized, String name,
 			String readOnly, String readOnlyConditionExpression,
@@ -90,7 +91,24 @@ public interface ObjectFieldLocalService
 	public ObjectField addOrUpdateCustomObjectField(
 			String externalReferenceCode, long objectFieldId, long userId,
 			long listTypeDefinitionId, long objectDefinitionId,
-			String businessType, String dbType, boolean indexed,
+			String businessType, String dbType,
+			Map<Locale, String> descriptionMap, boolean indexed,
+			boolean indexedAsKeyword, String indexedLanguageId,
+			Map<Locale, String> labelMap, boolean localized, String name,
+			String readOnly, String readOnlyConditionExpression,
+			boolean required, boolean state,
+			List<ObjectFieldSetting> objectFieldSettings)
+		throws PortalException;
+
+	public void addOrUpdateObjectFieldPLOEntries(ObjectField objectField)
+		throws PortalException;
+
+	@Indexable(type = IndexableType.REINDEX)
+	public ObjectField addOrUpdateSystemObjectField(
+			String externalReferenceCode, long userId,
+			long listTypeDefinitionId, long objectDefinitionId,
+			String businessType, String dbColumnName, String dbTableName,
+			String dbType, Map<Locale, String> descriptionMap, boolean indexed,
 			boolean indexedAsKeyword, String indexedLanguageId,
 			Map<Locale, String> labelMap, boolean localized, String name,
 			String readOnly, String readOnlyConditionExpression,
@@ -99,26 +117,15 @@ public interface ObjectFieldLocalService
 		throws PortalException;
 
 	@Indexable(type = IndexableType.REINDEX)
-	public ObjectField addOrUpdateSystemObjectField(
-			String externalReferenceCode, long userId,
-			long listTypeDefinitionId, long objectDefinitionId,
-			String businessType, String dbColumnName, String dbTableName,
-			String dbType, boolean indexed, boolean indexedAsKeyword,
-			String indexedLanguageId, Map<Locale, String> labelMap,
-			boolean localized, String name, String readOnly,
-			String readOnlyConditionExpression, boolean required, boolean state,
-			List<ObjectFieldSetting> objectFieldSettings)
-		throws PortalException;
-
-	@Indexable(type = IndexableType.REINDEX)
 	public ObjectField addSystemObjectField(
 			String externalReferenceCode, long userId,
 			long listTypeDefinitionId, long objectDefinitionId,
 			String businessType, String dbColumnName, String dbTableName,
-			String dbType, boolean indexed, boolean indexedAsKeyword,
-			String indexedLanguageId, Map<Locale, String> labelMap,
-			boolean localized, String name, String readOnly,
-			String readOnlyConditionExpression, boolean required, boolean state,
+			String dbType, Map<Locale, String> descriptionMap, boolean indexed,
+			boolean indexedAsKeyword, String indexedLanguageId,
+			Map<Locale, String> labelMap, boolean localized, String name,
+			String readOnly, String readOnlyConditionExpression,
+			boolean required, boolean state,
 			List<ObjectFieldSetting> objectFieldSettings)
 		throws PortalException;
 
@@ -264,6 +271,11 @@ public interface ObjectFieldLocalService
 	public ObjectField fetchObjectField(
 		String externalReferenceCode, long objectDefinitionId);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public ObjectField fetchObjectFieldByBusinessType(
+		long objectDefinitionId, String businessType,
+		OrderByComparator<ObjectField> orderByComparator);
+
 	/**
 	 * Returns the object field with the matching UUID and company.
 	 *
@@ -302,6 +314,10 @@ public interface ObjectFieldLocalService
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<ObjectField> getLocalizedObjectFields(long objectDefinitionId);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<ObjectField> getLocalizedObjectFields(
+		long objectDefinitionId, boolean system);
 
 	/**
 	 * Returns the object field with the primary key.
@@ -388,6 +404,9 @@ public interface ObjectFieldLocalService
 	public int getObjectFieldsCountByListTypeDefinitionId(
 		long listTypeDefinitionId);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public Map<Long, List<ObjectField>> getObjectFieldsMap(long companyId);
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -424,11 +443,12 @@ public interface ObjectFieldLocalService
 			String externalReferenceCode, long objectFieldId, long userId,
 			long listTypeDefinitionId, long objectDefinitionId,
 			String businessType, String dbColumnName, String dbTableName,
-			String dbType, boolean indexed, boolean indexedAsKeyword,
-			String indexedLanguageId, Map<Locale, String> labelMap,
-			boolean localized, String name, String readOnly,
-			String readOnlyConditionExpression, boolean required, boolean state,
-			boolean system, List<ObjectFieldSetting> objectFieldSettings)
+			String dbType, Map<Locale, String> descriptionMap, boolean indexed,
+			boolean indexedAsKeyword, String indexedLanguageId,
+			Map<Locale, String> labelMap, boolean localized, String name,
+			String readOnly, String readOnlyConditionExpression,
+			boolean required, boolean state, boolean system,
+			List<ObjectFieldSetting> objectFieldSettings)
 		throws PortalException;
 
 	@Indexable(type = IndexableType.REINDEX)
@@ -454,3 +474,4 @@ public interface ObjectFieldLocalService
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1707747933

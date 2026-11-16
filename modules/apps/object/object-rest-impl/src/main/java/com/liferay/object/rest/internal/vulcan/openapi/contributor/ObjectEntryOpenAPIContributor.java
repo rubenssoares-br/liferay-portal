@@ -14,7 +14,11 @@ import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.relationship.util.ObjectRelationshipUtil;
+import com.liferay.object.rest.dto.v1_0.Assignee;
+import com.liferay.object.rest.dto.v1_0.FileEntry;
 import com.liferay.object.rest.dto.v1_0.ListEntry;
+import com.liferay.object.rest.dto.v1_0.Location;
+import com.liferay.object.rest.internal.util.ObjectDefinitionUtil;
 import com.liferay.object.rest.internal.vulcan.openapi.contributor.util.OpenAPIContributorUtil;
 import com.liferay.object.rest.openapi.v1_0.ObjectEntryOpenAPIResource;
 import com.liferay.object.rest.openapi.v1_0.ObjectEntryOpenAPIResourceProvider;
@@ -33,6 +37,7 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.openapi.OpenAPIContext;
 import com.liferay.portal.vulcan.resource.OpenAPIResource;
+import com.liferay.portal.vulcan.util.OpenAPISchemaUtil;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -93,6 +98,10 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 	public void contribute(OpenAPI openAPI, OpenAPIContext openAPIContext)
 		throws Exception {
 
+		ObjectField assigneeObjectField =
+			_objectFieldLocalService.fetchObjectFieldByBusinessType(
+				_objectDefinition.getObjectDefinitionId(),
+				ObjectFieldConstants.BUSINESS_TYPE_ASSIGNEE, null);
 		List<ObjectAction> objectActions =
 			_objectActionLocalService.getObjectActions(
 				_objectDefinition.getObjectDefinitionId(),
@@ -105,12 +114,37 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 		Schema objectDefinitionSchema = schemas.get(
 			_objectDefinition.getShortName());
 
+		objectDefinitionSchema.setDescription(
+			ObjectDefinitionUtil.getDescription(_objectDefinition));
+
 		Map<String, Schema> objectDefinitionSchemaProperties =
 			objectDefinitionSchema.getProperties();
 
 		Paths paths = openAPI.getPaths();
 
 		for (String key : ListUtil.fromMapKeys(paths)) {
+			if ((assigneeObjectField != null) &&
+				(key.equals("/") || key.equals("/scopes/{scopeKey}"))) {
+
+				PathItem pathItem = paths.get(key);
+
+				Operation operation = pathItem.getGet();
+
+				if (operation != null) {
+					List<Parameter> parameters = operation.getParameters();
+
+					parameters.add(
+						1,
+						new Parameter() {
+							{
+								in("query");
+								name("assigneeUserExternalReferenceCode");
+								schema(new StringSchema());
+							}
+						});
+				}
+			}
+
 			if (!key.contains("objectActionName") &&
 				!key.contains("objectRelationshipName")) {
 
@@ -158,9 +192,6 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 					}
 
 					if (_addRelatedSchemas && (relatedSchemaName != null)) {
-						_setSchemaDescription(
-							objectRelationship, openAPI, relatedSchemaName);
-
 						objectDefinitionSchemaProperties.put(
 							objectRelationship.getName(),
 							_getSchema(objectRelationship, relatedSchemaName));
@@ -182,6 +213,32 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 			objectDefinitionSchemaProperties.remove("taxonomyCategoryIds");
 
 			schemas.remove("TaxonomyCategoryBrief");
+		}
+
+		if (!_objectDefinition.isEnableComments() &&
+			!_objectDefinition.isEnableObjectEntryVersioning()) {
+
+			objectDefinitionSchemaProperties.remove("systemProperties");
+
+			schemas.remove("SystemProperties");
+		}
+		else {
+			Schema systemPropertiesSchema = schemas.get("SystemProperties");
+
+			if (systemPropertiesSchema != null) {
+				Map<String, Schema> systemPropertiesSchemaProperties =
+					systemPropertiesSchema.getProperties();
+
+				if (systemPropertiesSchemaProperties != null) {
+					if (!_objectDefinition.isEnableComments()) {
+						systemPropertiesSchemaProperties.remove("comments");
+					}
+
+					if (!_objectDefinition.isEnableObjectEntryVersioning()) {
+						systemPropertiesSchemaProperties.remove("version");
+					}
+				}
+			}
 		}
 
 		if ((openAPIContext != null) &&
@@ -213,7 +270,8 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 		}
 
 		_setBatchUnsupportedFormats(objectDefinitionSchemaProperties);
-		_setListEntryRef(schemas);
+		_setFieldDescriptions(schemas);
+		_setFieldRefs(schemas);
 		_setReadOnlyProperties(schemas);
 	}
 
@@ -290,6 +348,14 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 			objectDefinition.isUnmodifiableSystemObject(), openAPI);
 	}
 
+	private void _addSchema(
+		Class<?> entityClass, Schema schema, Map<String, Schema> schemas) {
+
+		_addSchemas(entityClass, schemas);
+
+		OpenAPISchemaUtil.setReference(entityClass.getSimpleName(), schema);
+	}
+
 	private void _addSchemas(
 		Class<?> entityClass, Map<String, Schema> schemas) {
 
@@ -353,6 +419,9 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 				put(
 					new Operation() {
 						{
+							description(
+								ObjectDefinitionUtil.getDescription(
+									objectAction, _objectDefinition));
 							operationId(
 								StringBundler.concat(
 									"put", _objectDefinition.getShortName(),
@@ -378,21 +447,38 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 
 		if (operations.containsKey(PathItem.HttpMethod.DELETE)) {
 			pathItem.delete(
-				_getObjectRelationshipDeleteOperation(
-					objectRelationship, existingPathItem.getDelete(),
+				_getObjectRelationshipOperation(
+					objectRelationship, existingPathItem.getDelete(), null,
 					schemaName));
 		}
 
 		if (operations.containsKey(PathItem.HttpMethod.GET)) {
 			pathItem.get(
-				_getObjectRelationshipGetOperation(
-					objectRelationship, existingPathItem.getGet(), schemaName));
+				_getObjectRelationshipOperation(
+					objectRelationship, existingPathItem.getGet(),
+					OpenAPIContributorUtil.getPageSchemaName(schemaName),
+					schemaName));
+		}
+
+		if (operations.containsKey(PathItem.HttpMethod.PATCH)) {
+			pathItem.patch(
+				_getObjectRelationshipOperation(
+					objectRelationship, existingPathItem.getPatch(), schemaName,
+					schemaName));
+		}
+
+		if (operations.containsKey(PathItem.HttpMethod.POST)) {
+			pathItem.post(
+				_getObjectRelationshipOperation(
+					objectRelationship, existingPathItem.getPost(), schemaName,
+					schemaName));
 		}
 
 		if (operations.containsKey(PathItem.HttpMethod.PUT)) {
 			pathItem.put(
-				_getObjectRelationshipPutOperation(
-					objectRelationship, existingPathItem.getPut(), schemaName));
+				_getObjectRelationshipOperation(
+					objectRelationship, existingPathItem.getPut(), schemaName,
+					schemaName));
 		}
 
 		return pathItem;
@@ -473,12 +559,6 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 		return content;
 	}
 
-	private String _getDescription(ObjectRelationship objectRelationship) {
-		return StringBundler.concat(
-			"Information about the relationship ", objectRelationship.getName(),
-			" can be embedded with \"nestedFields\".");
-	}
-
 	private Map<String, Schema> _getIndividualActionSchemas(
 		OpenAPIContext openAPIContext, Paths paths) {
 
@@ -545,62 +625,31 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 		return apiResponses;
 	}
 
-	private Operation _getObjectRelationshipDeleteOperation(
+	private Operation _getObjectRelationshipOperation(
 		ObjectRelationship objectRelationship, Operation operation,
-		String schemaName) {
+		String responseSchemaName, String schemaName) {
 
 		return new Operation() {
 			{
 				operationId(
-					StringBundler.concat(
-						"delete", _objectDefinition.getShortName(),
-						StringUtil.upperCaseFirstLetter(
-							objectRelationship.getName()),
-						schemaName));
+					StringUtil.replace(
+						operation.getOperationId(),
+						new String[] {
+							"CurrentExternalReferenceCode",
+							"ObjectRelationshipName",
+							"RelatedExternalReferenceCode", "RelatedObjectEntry"
+						},
+						new String[] {
+							_objectDefinition.getShortName(),
+							StringUtil.upperCaseFirstLetter(
+								objectRelationship.getName()),
+							schemaName, schemaName
+						}));
 				parameters(_getParameters(operation, schemaName));
-				responses(_getObjectRelationshipApiResponses(operation, null));
-				tags(operation.getTags());
-			}
-		};
-	}
-
-	private Operation _getObjectRelationshipGetOperation(
-		ObjectRelationship objectRelationship, Operation operation,
-		String schemaName) {
-
-		return new Operation() {
-			{
-				operationId(
-					StringBundler.concat(
-						"get", _objectDefinition.getShortName(),
-						StringUtil.upperCaseFirstLetter(
-							objectRelationship.getName()),
-						schemaName, "Page"));
-				parameters(_getParameters(operation, schemaName));
+				requestBody(operation.getRequestBody());
 				responses(
 					_getObjectRelationshipApiResponses(
-						operation,
-						OpenAPIContributorUtil.getPageSchemaName(schemaName)));
-				tags(operation.getTags());
-			}
-		};
-	}
-
-	private Operation _getObjectRelationshipPutOperation(
-		ObjectRelationship objectRelationship, Operation operation,
-		String schemaName) {
-
-		return new Operation() {
-			{
-				operationId(
-					StringBundler.concat(
-						"put", _objectDefinition.getShortName(),
-						StringUtil.upperCaseFirstLetter(
-							objectRelationship.getName()),
-						schemaName));
-				parameters(_getParameters(operation, schemaName));
-				responses(
-					_getObjectRelationshipApiResponses(operation, schemaName));
+						operation, responseSchemaName));
 				tags(operation.getTags());
 			}
 		};
@@ -676,6 +725,9 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 
 		objectSchema.set$ref(schemaName);
 
+		String description = ObjectDefinitionUtil.getDescription(
+			_objectDefinition, objectRelationship);
+
 		if (Objects.equals(
 				objectRelationship.getType(),
 				ObjectRelationshipConstants.TYPE_MANY_TO_MANY) ||
@@ -687,15 +739,13 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 
 			return new ArraySchema() {
 				{
-					setDescription(_getDescription(objectRelationship));
+					setDescription(description);
 					setItems(objectSchema);
 				}
 			};
 		}
 
-		objectSchema.setDescription(_getDescription(objectRelationship));
-
-		return objectSchema;
+		return OpenAPISchemaUtil.setDescription(description, objectSchema);
 	}
 
 	private Map<String, Schema> _getSchemas(OpenAPI openAPI) {
@@ -766,6 +816,104 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 		}
 	}
 
+	private void _setFieldDescriptions(Map<String, Schema> schemas) {
+		Map<String, ObjectField> objectFields =
+			ObjectFieldUtil.toObjectFieldsMap(
+				_objectFieldLocalService.getObjectFields(
+					_objectDefinition.getObjectDefinitionId()));
+
+		Schema objectDefinitionSchema = schemas.get(
+			_objectDefinition.getShortName());
+
+		Map<String, Schema> properties = objectDefinitionSchema.getProperties();
+
+		for (Map.Entry<String, Schema> entry : properties.entrySet()) {
+			ObjectField objectField = objectFields.get(entry.getKey());
+
+			if ((objectField == null) || objectField.isMetadata()) {
+				continue;
+			}
+
+			entry.setValue(
+				OpenAPISchemaUtil.setDescription(
+					ObjectDefinitionUtil.getDescription(
+						_objectDefinition, objectField),
+					entry.getValue()));
+		}
+	}
+
+	private void _setFieldRefs(Map<String, Schema> schemas) {
+		Map<String, ObjectField> objectFields =
+			ObjectFieldUtil.toObjectFieldsMap(
+				_objectFieldLocalService.getObjectFields(
+					_objectDefinition.getObjectDefinitionId()));
+
+		Schema objectDefinitionSchema = schemas.get(
+			_objectDefinition.getShortName());
+
+		Map<String, Schema> properties = objectDefinitionSchema.getProperties();
+
+		for (Map.Entry<String, Schema> entry : properties.entrySet()) {
+			String key = entry.getKey();
+
+			ObjectField objectField = objectFields.get(key);
+
+			if (objectField == null) {
+				continue;
+			}
+
+			if (Objects.equals(
+					objectField.getBusinessType(),
+					ObjectFieldConstants.BUSINESS_TYPE_ASSIGNEE)) {
+
+				_addSchema(Assignee.class, entry.getValue(), schemas);
+			}
+			else if (Objects.equals(
+						objectField.getBusinessType(),
+						ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
+
+				_addSchema(FileEntry.class, entry.getValue(), schemas);
+			}
+			else if (Objects.equals(
+						objectField.getBusinessType(),
+						ObjectFieldConstants.BUSINESS_TYPE_LOCATION)) {
+
+				_addSchema(Location.class, entry.getValue(), schemas);
+			}
+			else if (Objects.equals(
+						objectField.getBusinessType(),
+						ObjectFieldConstants.BUSINESS_TYPE_PICKLIST)) {
+
+				_addSchema(ListEntry.class, entry.getValue(), schemas);
+			}
+			else if (Objects.equals(
+						objectField.getBusinessType(),
+						ObjectFieldConstants.
+							BUSINESS_TYPE_MULTISELECT_PICKLIST)) {
+
+				_addSchemas(ListEntry.class, schemas);
+
+				Schema schema = entry.getValue();
+
+				properties.put(
+					key,
+					new ArraySchema() {
+						{
+							setDescription(schema.getDescription());
+							setExtensions(schema.getExtensions());
+							setItems(
+								new Schema() {
+									{
+										set$ref(
+											ListEntry.class.getSimpleName());
+									}
+								});
+						}
+					});
+			}
+		}
+	}
+
 	private void _setIndividualActionSchemas(
 		Map<String, Schema> actionSchemas, OpenAPIContext openAPIContext,
 		Map<PathItem.HttpMethod, Operation> operations, String pathName) {
@@ -814,63 +962,6 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 		}
 	}
 
-	private void _setListEntryRef(Map<String, Schema> schemas) {
-		Map<String, ObjectField> objectFields =
-			ObjectFieldUtil.toObjectFieldsMap(
-				_objectFieldLocalService.getObjectFields(
-					_objectDefinition.getObjectDefinitionId()));
-
-		Schema objectDefinitionSchema = schemas.get(
-			_objectDefinition.getShortName());
-
-		Map<String, Schema> properties = objectDefinitionSchema.getProperties();
-
-		for (Map.Entry<String, Schema> entry : properties.entrySet()) {
-			String key = entry.getKey();
-
-			ObjectField objectField = objectFields.get(key);
-
-			if (objectField == null) {
-				continue;
-			}
-
-			if (Objects.equals(
-					objectField.getBusinessType(),
-					ObjectFieldConstants.BUSINESS_TYPE_PICKLIST)) {
-
-				_addSchemas(ListEntry.class, schemas);
-
-				Schema schema = entry.getValue();
-
-				schema.$ref(ListEntry.class.getSimpleName());
-			}
-
-			if (Objects.equals(
-					objectField.getBusinessType(),
-					ObjectFieldConstants.BUSINESS_TYPE_MULTISELECT_PICKLIST)) {
-
-				_addSchemas(ListEntry.class, schemas);
-
-				Schema schema = entry.getValue();
-
-				properties.put(
-					key,
-					new ArraySchema() {
-						{
-							setExtensions(schema.getExtensions());
-							setItems(
-								new Schema() {
-									{
-										set$ref(
-											ListEntry.class.getSimpleName());
-									}
-								});
-						}
-					});
-			}
-		}
-	}
-
 	private void _setReadOnlyProperties(Map<String, Schema> schemas) {
 		Map<String, ObjectField> objectFields =
 			ObjectFieldUtil.toObjectFieldsMap(
@@ -912,24 +1003,6 @@ public class ObjectEntryOpenAPIContributor extends BaseOpenAPIContributor {
 			}
 
 			objectDefinitionSchema.readOnly(true);
-		}
-	}
-
-	private void _setSchemaDescription(
-		ObjectRelationship objectRelationship, OpenAPI openAPI,
-		String relatedSchemaName) {
-
-		if (Objects.equals(
-				objectRelationship.getType(),
-				ObjectRelationshipConstants.TYPE_ONE_TO_MANY) &&
-			(objectRelationship.getObjectDefinitionId2() ==
-				_objectDefinition.getObjectDefinitionId())) {
-
-			Map<String, Schema> schemas = _getSchemas(openAPI);
-
-			Schema schema = schemas.get(relatedSchemaName);
-
-			schema.setDescription(_getDescription(objectRelationship));
 		}
 	}
 

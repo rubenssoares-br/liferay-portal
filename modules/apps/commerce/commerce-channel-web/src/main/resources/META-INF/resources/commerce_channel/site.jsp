@@ -8,18 +8,24 @@
 <%@ include file="/init.jsp" %>
 
 <%
-List<Group> groups = new ArrayList<>();
-
 SiteCommerceChannelTypeDisplayContext siteCommerceChannelTypeDisplayContext = (SiteCommerceChannelTypeDisplayContext)request.getAttribute("site.jsp-portletDisplayContext");
 
 Group channelSiteGroup = siteCommerceChannelTypeDisplayContext.getChannelSite();
+CommerceChannel commerceChannel = siteCommerceChannelTypeDisplayContext.getCommerceChannel();
+long commerceChannelId = siteCommerceChannelTypeDisplayContext.getCommerceChannelId();
+
+List<Group> groups = new ArrayList<>();
+Map<String, Object> site = null;
 
 if (channelSiteGroup != null) {
 	groups = Arrays.asList(channelSiteGroup);
-}
 
-CommerceChannel commerceChannel = siteCommerceChannelTypeDisplayContext.getCommerceChannel();
-long commerceChannelId = siteCommerceChannelTypeDisplayContext.getCommerceChannelId();
+	site = HashMapBuilder.<String, Object>put(
+		"id", channelSiteGroup.getGroupId()
+	).put(
+		"name", channelSiteGroup.getName(locale)
+	).build();
+}
 
 String searchContainerId = "CommerceChannelSitesSearchContainer";
 
@@ -73,7 +79,7 @@ if (commerceChannel != null) {
 
 			<liferay-ui:search-container-row
 				className="com.liferay.portal.kernel.model.Group"
-				keyProperty="groupId"
+				keyPropertyName="groupId"
 				modelVar="group"
 			>
 				<liferay-ui:search-container-column-text
@@ -102,13 +108,15 @@ if (commerceChannel != null) {
 <liferay-frontend:component
 	context='<%=
 		HashMapBuilder.<String, Object>put(
-			"itemSelectorUrl", siteCommerceChannelTypeDisplayContext.getItemSelectorUrl()
+			"commerceChannelId", commerceChannelId
 		).put(
 			"portletNamespace", liferayPortletResponse.getNamespace()
 		).put(
 			"removeCommerceChannelSiteIcon", removeCommerceChannelSiteIcon
 		).put(
 			"searchContainerId", searchContainerId
+		).put(
+			"site", site
 		).build()
 	%>'
 	module="{CommerceChannelSite} from commerce-channel-web"

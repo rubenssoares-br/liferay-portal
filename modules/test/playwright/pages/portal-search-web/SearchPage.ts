@@ -18,6 +18,7 @@ export class SearchPage {
 	readonly searchBarInputInNavBar: Locator;
 	readonly searchBarPortletInMainContent: Locator;
 	readonly searchBarPortletInNavBar: Locator;
+	readonly searchBarSuggestions: Locator;
 	readonly searchOptionsConfigurationLink: Locator;
 	readonly searchResults: Locator;
 	readonly searchResultsItems: Locator;
@@ -59,6 +60,9 @@ export class SearchPage {
 			this.searchBarPortletInMainContent.getByPlaceholder('Search...');
 		this.searchBarInputInNavBar =
 			this.searchBarPortletInNavBar.getByPlaceholder('Search...');
+		this.searchBarSuggestions = page.locator(
+			'.search-bar-suggestions-dropdown-menu'
+		);
 
 		// Search Results Elements
 
@@ -220,13 +224,15 @@ export class SearchPage {
 			autoClick: true,
 			target: this.searchResultsPaginationItemsPerPageDropdown
 				.nth(index)
-				.locator(`xpath=//*[@id='${delta}']`),
+				.getByRole('option', {
+					name: new RegExp(`${delta}`),
+				}),
 			trigger: this.searchResultsPaginationItemsPerPageToggle.nth(index),
 		});
 
 		await expect(
 			this.searchResultsPaginationItemsPerPageToggle.nth(index)
-		).toHaveText(new RegExp(`${delta.toString()} Entries`));
+		).toHaveText(new RegExp(`${delta} Entries`));
 	}
 
 	async selectPaginationPageNumber(pageNumber: number) {
@@ -284,6 +290,8 @@ export class SearchPage {
 
 			await expect(searchFacetCheckbox).not.toBeChecked();
 		}
+
+		await expect(searchFacetCheckbox).not.toBeDisabled();
 	}
 
 	async selectSearchFacetLink(

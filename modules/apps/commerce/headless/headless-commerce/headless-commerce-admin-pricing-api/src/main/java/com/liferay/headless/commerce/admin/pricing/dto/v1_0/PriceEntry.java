@@ -11,39 +11,46 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.math.BigDecimal;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("PriceEntry")
+@GraphQLName(
+	description = "Per-SKU price entry inside a price list. Backed by price entry; binds a SKU to a regular price and an optional promo price. Entries with one or more tier price overrides expose `hasTierPrice` as true.",
+	value = "PriceEntry"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Per-SKU price entry inside a price list. Backed by price entry; binds a SKU to a regular price and an optional promo price. Entries with one or more tier price overrides expose `hasTierPrice` as true.",
+	requiredProperties = {"price"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"price"})
 @XmlRootElement(name = "PriceEntry")
 public class PriceEntry implements Serializable {
 
@@ -55,7 +62,10 @@ public class PriceEntry implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PriceEntry.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form Expando custom fields attached to the underlying price entry entity. Keys are Expando attribute names; values follow each attribute's declared column type.",
+		example = "{customField1=value1}"
+	)
 	@Valid
 	public Map<String, ?> getCustomFields() {
 		if (_customFieldsSupplier != null) {
@@ -90,14 +100,19 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form Expando custom fields attached to the underlying price entry entity. Keys are Expando attribute names; values follow each attribute's declared column type."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, ?> customFields;
 
 	@JsonIgnore
 	private Supplier<Map<String, ?>> _customFieldsSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update. Must be unique per price entry within the company; matched on the persisted record.",
+		example = "PE-HAND-SAW-DEFAULT"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -131,14 +146,19 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update. Must be unique per price entry within the company; matched on the persisted record."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the entry has one or more tier price overrides. Read-only; computed by the runtime from the tier-price collection on every fetch.",
+		example = "true"
+	)
 	public Boolean getHasTierPrice() {
 		if (_hasTierPriceSupplier != null) {
 			hasTierPrice = _hasTierPriceSupplier.get();
@@ -172,7 +192,9 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the entry has one or more tier price overrides. Read-only; computed by the runtime from the tier-price collection on every fetch."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean hasTierPrice;
 
@@ -180,7 +202,10 @@ public class PriceEntry implements Serializable {
 	private Supplier<Boolean> _hasTierPriceSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the price entry; read-only and assigned by the service on create.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -212,7 +237,9 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the price entry; read-only and assigned by the service on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -220,7 +247,10 @@ public class PriceEntry implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Regular selling price for the SKU within this price list. Expressed in the price list's currency with the price-list scale (typically 2 decimals); rejected when negative.",
+		example = "99.99"
+	)
 	@Valid
 	public BigDecimal getPrice() {
 		if (_priceSupplier != null) {
@@ -255,7 +285,9 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Regular selling price for the SKU within this price list. Expressed in the price list's currency with the price-list scale (typically 2 decimals); rejected when negative."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected BigDecimal price;
@@ -263,7 +295,10 @@ public class PriceEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<BigDecimal> _priceSupplier;
 
-	@Schema(example = "PLAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the parent price list. Populated by the server on response; on create the parent is resolved from the URL path.",
+		example = "PL-DEFAULT-USD"
+	)
 	public String getPriceListExternalReferenceCode() {
 		if (_priceListExternalReferenceCodeSupplier != null) {
 			priceListExternalReferenceCode =
@@ -301,7 +336,9 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the parent price list. Populated by the server on response; on create the parent is resolved from the URL path."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String priceListExternalReferenceCode;
 
@@ -309,7 +346,10 @@ public class PriceEntry implements Serializable {
 	private Supplier<String> _priceListExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "20078")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the parent price list. Populated by the server on response; on create the parent is resolved from the URL path.",
+		example = "20078"
+	)
 	public Long getPriceListId() {
 		if (_priceListIdSupplier != null) {
 			priceListId = _priceListIdSupplier.get();
@@ -343,15 +383,116 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the parent price list. Populated by the server on response; on create the parent is resolved from the URL path."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long priceListId;
 
 	@JsonIgnore
 	private Supplier<Long> _priceListIdSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the product the bound SKU belongs to. On read it mirrors that product's external reference code; on write it is used only when the SKU does not yet exist, to create it under that product.",
+		example = "PROD0111"
+	)
+	public String getProductExternalReferenceCode() {
+		if (_productExternalReferenceCodeSupplier != null) {
+			productExternalReferenceCode =
+				_productExternalReferenceCodeSupplier.get();
+
+			_productExternalReferenceCodeSupplier = null;
+		}
+
+		return productExternalReferenceCode;
+	}
+
+	public void setProductExternalReferenceCode(
+		String productExternalReferenceCode) {
+
+		this.productExternalReferenceCode = productExternalReferenceCode;
+
+		_productExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setProductExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			productExternalReferenceCodeUnsafeSupplier) {
+
+		_productExternalReferenceCodeSupplier = () -> {
+			try {
+				return productExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "External reference code of the product the bound SKU belongs to. On read it mirrors that product's external reference code; on write it is used only when the SKU does not yet exist, to create it under that product."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String productExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _productExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Product type name of the product the bound SKU belongs to. On read it mirrors that product's type; on write it is used only when neither the SKU nor its product exists yet, to create the product with the right type, and is then required.",
+		example = "simple"
+	)
+	public String getProductType() {
+		if (_productTypeSupplier != null) {
+			productType = _productTypeSupplier.get();
+
+			_productTypeSupplier = null;
+		}
+
+		return productType;
+	}
+
+	public void setProductType(String productType) {
+		this.productType = productType;
+
+		_productTypeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setProductType(
+		UnsafeSupplier<String, Exception> productTypeUnsafeSupplier) {
+
+		_productTypeSupplier = () -> {
+			try {
+				return productTypeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Product type name of the product the bound SKU belongs to. On read it mirrors that product's type; on write it is used only when neither the SKU nor its product exists yet, to create the product with the right type, and is then required."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String productType;
+
+	@JsonIgnore
+	private Supplier<String> _productTypeSupplier;
+
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Promotional price applied when a promotion is active for the SKU. Expressed in the price list's currency; rejected when negative.",
+		example = "89.99"
+	)
 	@Valid
 	public BigDecimal getPromoPrice() {
 		if (_promoPriceSupplier != null) {
@@ -386,14 +527,19 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Promotional price applied when a promotion is active for the SKU. Expressed in the price list's currency; rejected when negative."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal promoPrice;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _promoPriceSupplier;
 
-	@Schema(example = "BL500IC")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "SKU code of the target SKU. Read-only on update; on create the SKU is resolved by `skuId` or `skuExternalReferenceCode`.",
+		example = "HAND-SAW-A1"
+	)
 	public String getSku() {
 		if (_skuSupplier != null) {
 			sku = _skuSupplier.get();
@@ -425,14 +571,19 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "SKU code of the target SKU. Read-only on update; on create the SKU is resolved by `skuId` or `skuExternalReferenceCode`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String sku;
 
 	@JsonIgnore
 	private Supplier<String> _skuSupplier;
 
-	@Schema(example = "CAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the target SKU. Either this or `skuId` must be supplied on create; resolved through the catalog service.",
+		example = "SKU-HAND-SAW-A1"
+	)
 	public String getSkuExternalReferenceCode() {
 		if (_skuExternalReferenceCodeSupplier != null) {
 			skuExternalReferenceCode = _skuExternalReferenceCodeSupplier.get();
@@ -467,7 +618,9 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the target SKU. Either this or `skuId` must be supplied on create; resolved through the catalog service."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String skuExternalReferenceCode;
 
@@ -475,7 +628,10 @@ public class PriceEntry implements Serializable {
 	private Supplier<String> _skuExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the target SKU. Either this or `skuExternalReferenceCode` must be supplied on create.",
+		example = "42101"
+	)
 	public Long getSkuId() {
 		if (_skuIdSupplier != null) {
 			skuId = _skuIdSupplier.get();
@@ -507,14 +663,18 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the target SKU. Either this or `skuExternalReferenceCode` must be supplied on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long skuId;
 
 	@JsonIgnore
 	private Supplier<Long> _skuIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Quantity-break overrides cascaded on upsert. Supplying this array on POST/PATCH replaces the previous tier-price collection."
+	)
 	@Valid
 	public TierPrice[] getTierPrices() {
 		if (_tierPricesSupplier != null) {
@@ -549,7 +709,9 @@ public class PriceEntry implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Quantity-break overrides cascaded on upsert. Supplying this array on POST/PATCH replaces the previous tier-price collection."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected TierPrice[] tierPrices;
 
@@ -676,6 +838,38 @@ public class PriceEntry implements Serializable {
 			sb.append(priceListId);
 		}
 
+		String productExternalReferenceCode = getProductExternalReferenceCode();
+
+		if (productExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(productExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
+		String productType = getProductType();
+
+		if (productType != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(productType));
+
+			sb.append("\"");
+		}
+
 		BigDecimal promoPrice = getPromoPrice();
 
 		if (promoPrice != null) {
@@ -759,8 +953,8 @@ public class PriceEntry implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v1_0.PriceEntry",
 		name = "x-class-name"
 	)
@@ -847,6 +1041,27 @@ public class PriceEntry implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -855,3 +1070,4 @@ public class PriceEntry implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-396223595

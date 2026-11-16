@@ -121,13 +121,9 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
 		CPDefinitionSpecificationOptionValue
-			newCPDefinitionSpecificationOptionValue = _persistence.create(pk);
-
-		newCPDefinitionSpecificationOptionValue.setMvccVersion(
-			RandomTestUtil.nextLong());
+			newCPDefinitionSpecificationOptionValue =
+				addCPDefinitionSpecificationOptionValue();
 
 		newCPDefinitionSpecificationOptionValue.setCtCollectionId(
 			RandomTestUtil.nextLong());
@@ -174,11 +170,17 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 		newCPDefinitionSpecificationOptionValue.setValue(
 			RandomTestUtil.randomString());
 
+		newCPDefinitionSpecificationOptionValue.setVisible(
+			RandomTestUtil.randomBoolean());
+
 		newCPDefinitionSpecificationOptionValue.setLastPublishDate(
 			RandomTestUtil.nextDate());
 
+		newCPDefinitionSpecificationOptionValue = _persistence.update(
+			newCPDefinitionSpecificationOptionValue);
+
 		_cpDefinitionSpecificationOptionValues.add(
-			_persistence.update(newCPDefinitionSpecificationOptionValue));
+			newCPDefinitionSpecificationOptionValue);
 
 		CPDefinitionSpecificationOptionValue
 			existingCPDefinitionSpecificationOptionValue =
@@ -247,6 +249,9 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 			existingCPDefinitionSpecificationOptionValue.getValue(),
 			newCPDefinitionSpecificationOptionValue.getValue());
 		Assert.assertEquals(
+			existingCPDefinitionSpecificationOptionValue.isVisible(),
+			newCPDefinitionSpecificationOptionValue.isVisible());
+		Assert.assertEquals(
 			Time.getShortTimestamp(
 				existingCPDefinitionSpecificationOptionValue.
 					getLastPublishDate()),
@@ -307,13 +312,6 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 		_persistence.countByUuid_C("null", 0L);
 
 		_persistence.countByUuid_C((String)null, 0L);
-	}
-
-	@Test
-	public void testCountByGroupId() throws Exception {
-		_persistence.countByGroupId(RandomTestUtil.nextLong());
-
-		_persistence.countByGroupId(0L);
 	}
 
 	@Test
@@ -418,7 +416,8 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 			"companyId", true, "userId", true, "userName", true, "createDate",
 			true, "modifiedDate", true, "CPDefinitionId", true,
 			"CPSpecificationOptionId", true, "CPOptionCategoryId", true, "key",
-			true, "priority", true, "value", true, "lastPublishDate", true);
+			true, "priority", true, "value", true, "visible", true,
+			"lastPublishDate", true);
 	}
 
 	@Test
@@ -811,9 +810,6 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 		CPDefinitionSpecificationOptionValue
 			cpDefinitionSpecificationOptionValue = _persistence.create(pk);
 
-		cpDefinitionSpecificationOptionValue.setMvccVersion(
-			RandomTestUtil.nextLong());
-
 		cpDefinitionSpecificationOptionValue.setCtCollectionId(
 			RandomTestUtil.nextLong());
 
@@ -859,6 +855,9 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 		cpDefinitionSpecificationOptionValue.setValue(
 			RandomTestUtil.randomString());
 
+		cpDefinitionSpecificationOptionValue.setVisible(
+			RandomTestUtil.randomBoolean());
+
 		cpDefinitionSpecificationOptionValue.setLastPublishDate(
 			RandomTestUtil.nextDate());
 
@@ -875,3 +874,4 @@ public class CPDefinitionSpecificationOptionValuePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1057344231

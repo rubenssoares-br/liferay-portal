@@ -8,6 +8,7 @@ package com.liferay.asset.publisher.upgrade.v1_0_1.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.publisher.constants.AssetPublisherPortletKeys;
 import com.liferay.layout.test.util.LayoutTestUtil;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
@@ -31,12 +32,11 @@ import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.portal.upgrade.test.util.UpgradeTestUtil;
 
-import java.util.ArrayList;
+import jakarta.portlet.PortletPreferences;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletPreferences;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -150,6 +150,16 @@ public class UpgradePortletPreferencesTest {
 		_assertPortletPreferences(portletId, expectedMap);
 	}
 
+	private String[] _getAssetEntryXMLs(Map<String, String> map)
+		throws Exception {
+
+		List<String> assetEntryXMLs = TransformUtil.transform(
+			map.entrySet(),
+			entry -> _getAssetEntryXml(entry.getKey(), entry.getValue()));
+
+		return assetEntryXMLs.toArray(new String[0]);
+	}
+
 	private String _getAssetEntryXml(
 			String assetEntryType, String assetEntryUuid)
 		throws Exception {
@@ -169,19 +179,6 @@ public class UpgradePortletPreferencesTest {
 		assetEntryUuidElement.addText(assetEntryUuid);
 
 		return document.formattedString(StringPool.BLANK);
-	}
-
-	private String[] _getAssetEntryXMLs(Map<String, String> map)
-		throws Exception {
-
-		List<String> assetEntryXMLs = new ArrayList<>();
-
-		for (Map.Entry<String, String> entry : map.entrySet()) {
-			assetEntryXMLs.add(
-				_getAssetEntryXml(entry.getKey(), entry.getValue()));
-		}
-
-		return assetEntryXMLs.toArray(new String[0]);
 	}
 
 	private HashMap<String, String[]> _getPreferenceMap(Map<String, String> map)
@@ -268,11 +265,6 @@ public class UpgradePortletPreferencesTest {
 			"com.liferay.wiki.model.WikiPage"
 		).build();
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.asset.publisher.web.internal.upgrade.registry.AssetPublisherWebUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private EntityCache _entityCache;
 
@@ -286,5 +278,10 @@ public class UpgradePortletPreferencesTest {
 
 	@Inject
 	private SAXReader _saxReader;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.asset.publisher.web.internal.upgrade.registry.AssetPublisherWebUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

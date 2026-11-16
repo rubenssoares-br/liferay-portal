@@ -342,6 +342,9 @@ public interface SiteNavigationMenuItemLocalService
 		long siteNavigationMenuId,
 		OrderByComparator<SiteNavigationMenuItem> orderByComparator);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<SiteNavigationMenuItem> getSiteNavigationMenuItems(String type);
+
 	/**
 	 * Returns all the site navigation menu items matching the UUID and company.
 	 *
@@ -377,9 +380,6 @@ public interface SiteNavigationMenuItemLocalService
 	 */
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getSiteNavigationMenuItemsCount();
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getSiteNavigationMenuItemsCount(long siteNavigationMenuId);
 
 	public SiteNavigationMenuItem updateSiteNavigationMenuItem(
 			long siteNavigationMenuItemId, long parentSiteNavigationMenuItemId,
@@ -427,3 +427,4 @@ public interface SiteNavigationMenuItemLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1882982676

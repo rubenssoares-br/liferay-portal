@@ -4,9 +4,26 @@
  */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
+import {createRoot} from 'react-dom/client';
 
 import App from './js/App.es';
+
+globalThis.MonacoEnvironment = {
+	getWorkerUrl(_workerId, label) {
+		const basePath =
+			document
+				.querySelector('script[src*="headless-discovery-web-min"]')
+				?.src?.replace(/[^/]+$/, '') || '';
+
+		const workerFile =
+			{
+				graphql: 'graphql.worker.js',
+				json: 'json.worker.js',
+			}[label] || 'editor.worker.js';
+
+		return `${basePath}${workerFile}`;
+	},
+};
 
 /* Bug with SwaggerUI: https://github.com/agoncal/swagger-ui-angular6/issues/2 */
 
@@ -16,4 +33,5 @@ window.Buffer = window.Buffer || require('buffer').Buffer;
 /* We need to define `global` due to esbuild not polyfilling it (see LPD-31939) */
 window.global = window;
 
-ReactDOM.render(<App />, document.getElementById('container'));
+const root = createRoot(document.getElementById('container'));
+root.render(<App />);

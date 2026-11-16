@@ -76,8 +76,7 @@ public class AssetListEntryAssetEntryRelUpgradeProcess extends UpgradeProcess {
 
 					positions.add((Integer)values[4]);
 				},
-				"Unable to update asset list entry and asset entry entry " +
-					"relationships");
+				null);
 
 			try (PreparedStatement preparedStatement =
 					AutoBatchPreparedStatementUtil.concurrentAutoBatch(
@@ -157,9 +156,11 @@ public class AssetListEntryAssetEntryRelUpgradeProcess extends UpgradeProcess {
 					preparedStatement1.setLong(
 						3, resultSet.getLong("assetListEntryAssetEntryRelId"));
 
-					preparedStatement1.executeUpdate();
+					preparedStatement1.addBatch();
 				}
 			}
+
+			preparedStatement1.executeBatch();
 		}
 		catch (Exception exception) {
 			if (_log.isWarnEnabled()) {

@@ -7,9 +7,11 @@ package com.liferay.object.dynamic.data.mapping.form.field.type.internal.object.
 
 import com.liferay.dynamic.data.mapping.constants.DDMPortletKeys;
 import com.liferay.dynamic.data.mapping.form.field.type.DDMFormFieldTemplateContextContributor;
+import com.liferay.dynamic.data.mapping.model.DDMForm;
 import com.liferay.dynamic.data.mapping.model.DDMFormField;
 import com.liferay.dynamic.data.mapping.model.LocalizedValue;
 import com.liferay.dynamic.data.mapping.render.DDMFormFieldRenderingContext;
+import com.liferay.dynamic.data.mapping.util.DDMFormFieldTemplateContextContributorUtil;
 import com.liferay.object.dynamic.data.mapping.form.field.type.constants.ObjectDDMFormFieldTypeConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
@@ -18,6 +20,7 @@ import com.liferay.object.rest.context.path.RESTContextPathResolverRegistry;
 import com.liferay.object.scope.ObjectScopeProvider;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.system.SystemObjectDefinitionManager;
 import com.liferay.object.system.SystemObjectDefinitionManagerRegistry;
@@ -55,6 +58,7 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 		DDMFormField ddmFormField,
 		DDMFormFieldRenderingContext ddmFormFieldRenderingContext) {
 
+		DDMForm ddmForm = ddmFormField.getDDMForm();
 		ObjectDefinition objectDefinition = _getObjectDefinition(ddmFormField);
 
 		return HashMapBuilder.<String, Object>put(
@@ -101,6 +105,32 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 						ddmFormFieldRenderingContext.getLocale()));
 			}
 		).put(
+			"selectedOptionLabel",
+			() -> {
+				if (objectDefinition == null) {
+					return StringPool.BLANK;
+				}
+
+				long primaryKey = GetterUtil.getLong(
+					ddmFormFieldRenderingContext.getValue());
+
+				if (primaryKey == 0) {
+					return StringPool.BLANK;
+				}
+
+				try {
+					return _objectEntryLocalService.getTitleValue(
+						objectDefinition.getObjectDefinitionId(), primaryKey);
+				}
+				catch (PortalException portalException) {
+					if (_log.isDebugEnabled()) {
+						_log.debug(portalException);
+					}
+
+					return StringPool.BLANK;
+				}
+			}
+		).put(
 			"value",
 			() -> {
 				String value = ddmFormFieldRenderingContext.getValue();
@@ -113,6 +143,13 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 			}
 		).put(
 			"valueKey", _getValueKey(objectDefinition)
+		).put(
+			"visible",
+			GetterUtil.getBoolean(ddmFormField.getProperty("visible"), true)
+		).putAll(
+			DDMFormFieldTemplateContextContributorUtil.
+				getLocalizationParameters(
+					ddmFormField, ddmForm.getDefaultLocale())
 		).build();
 	}
 
@@ -158,7 +195,30 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 		String restContextPath = restContextPathResolver.getRESTContextPath(
 			_getGroupId(ddmFormFieldRenderingContext, objectDefinition));
 
-		return apiURL + _portal.getPathContext() + restContextPath;
+		apiURL = apiURL + _portal.getPathContext() + restContextPath;
+
+		String additionalAPIURLParameters = _getAdditionalAPIURLParameters(
+			objectDefinition);
+
+		if (Validator.isNotNull(additionalAPIURLParameters)) {
+			return apiURL + StringPool.QUESTION + additionalAPIURLParameters;
+		}
+
+		return apiURL;
+	}
+
+	private String _getAdditionalAPIURLParameters(
+		ObjectDefinition objectDefinition) {
+
+		SystemObjectDefinitionManager systemObjectDefinitionManager =
+			_systemObjectDefinitionManagerRegistry.
+				getSystemObjectDefinitionManager(objectDefinition.getName());
+
+		if (systemObjectDefinitionManager == null) {
+			return StringPool.BLANK;
+		}
+
+		return systemObjectDefinitionManager.getAdditionalAPIURLParameters();
 	}
 
 	private long _getGroupId(
@@ -207,10 +267,6 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 			return "id";
 		}
 
-		if (objectField.isLocalized()) {
-			return objectField.getI18nObjectFieldName();
-		}
-
 		String objectFieldName = objectField.getName();
 
 		objectFieldName = StringUtil.replace(
@@ -230,14 +286,14 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 	}
 
 	private ObjectField _getObjectField(ObjectDefinition objectDefinition) {
-		if ((objectDefinition != null) &&
-			(objectDefinition.getTitleObjectFieldId() > 0)) {
+		if ((objectDefinition == null) ||
+			(objectDefinition.getTitleObjectFieldId() <= 0)) {
 
-			return _objectFieldLocalService.fetchObjectField(
-				objectDefinition.getTitleObjectFieldId());
+			return null;
 		}
 
-		return null;
+		return _objectFieldLocalService.fetchObjectField(
+			objectDefinition.getTitleObjectFieldId());
 	}
 
 	private String _getObjectFieldBusinessType(
@@ -272,6 +328,9 @@ public class ObjectRelationshipDDMFormFieldTemplateContextContributor
 
 	@Reference
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Reference
+	private ObjectEntryLocalService _objectEntryLocalService;
 
 	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;

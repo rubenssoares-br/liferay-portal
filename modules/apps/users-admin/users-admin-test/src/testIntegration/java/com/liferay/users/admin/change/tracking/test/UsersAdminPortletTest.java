@@ -65,15 +65,15 @@ import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portlet.ActionRequestFactory;
 import com.liferay.users.admin.constants.UsersAdminPortletKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.Event;
+import jakarta.portlet.Portlet;
+
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.Event;
-import javax.portlet.Portlet;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -388,11 +388,9 @@ public class UsersAdminPortletTest {
 
 		Assert.assertEquals(newFirstName, editUser.getFirstName());
 
-		Assert.assertEquals(
-			0,
-			_userLocalService.getRoleUsers(
-				role.getRoleId()
-			).size());
+		List<User> users = _userLocalService.getRoleUsers(role.getRoleId());
+
+		Assert.assertEquals(users.toString(), 0, users.size());
 	}
 
 	@Test
@@ -477,9 +475,11 @@ public class UsersAdminPortletTest {
 				user.getUserId());
 
 		for (AnnouncementsDelivery delivery : announcementsDeliveries) {
-			if (Objects.equals(delivery.getType(), "general")) {
-				Assert.assertTrue(delivery.isEmail());
+			if (!Objects.equals(delivery.getType(), "general")) {
+				continue;
 			}
+
+			Assert.assertTrue(delivery.isEmail());
 		}
 	}
 
@@ -505,10 +505,9 @@ public class UsersAdminPortletTest {
 				"primaryKey", String.valueOf(address.getPrimaryKey())
 			).build());
 
-		address = organization.getAddresses(
-		).get(
-			0
-		);
+		List<Address> addresses = organization.getAddresses();
+
+		address = addresses.get(0);
 
 		Assert.assertTrue(address.isPrimary());
 
@@ -540,10 +539,9 @@ public class UsersAdminPortletTest {
 				"primaryKey", String.valueOf(address.getPrimaryKey())
 			).build());
 
-		address = organization.getAddresses(
-		).get(
-			0
-		);
+		addresses = organization.getAddresses();
+
+		address = addresses.get(0);
 
 		Assert.assertEquals(newAddressCity, address.getCity());
 
@@ -563,10 +561,9 @@ public class UsersAdminPortletTest {
 
 		_assertNoCTEntry();
 
-		Assert.assertEquals(
-			0,
-			organization.getAddresses(
-			).size());
+		addresses = organization.getAddresses();
+
+		Assert.assertEquals(addresses.toString(), 0, addresses.size());
 	}
 
 	@Test
@@ -583,10 +580,11 @@ public class UsersAdminPortletTest {
 
 		Address address = _addressLocalService.addAddress(
 			null, user.getUserId(), Contact.class.getName(),
-			user.getContactId(), RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), RandomTestUtil.randomString(), null,
-			null, RandomTestUtil.randomString(), null, 0, 0, listTypeId, false,
-			false, null, ServiceContextTestUtil.getServiceContext());
+			user.getContactId(), 0, listTypeId, 0,
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(), false,
+			RandomTestUtil.randomString(), false, RandomTestUtil.randomString(),
+			null, null, null, null, null,
+			ServiceContextTestUtil.getServiceContext());
 
 		_processActionRequestInPublication(
 			_ctCollection, "/users_admin/update_contact_information",
@@ -602,10 +600,9 @@ public class UsersAdminPortletTest {
 				"primaryKey", String.valueOf(address.getPrimaryKey())
 			).build());
 
-		address = user.getAddresses(
-		).get(
-			0
-		);
+		List<Address> addresses = user.getAddresses();
+
+		address = addresses.get(0);
 
 		Assert.assertTrue(address.isPrimary());
 
@@ -633,10 +630,9 @@ public class UsersAdminPortletTest {
 				"primaryKey", String.valueOf(address.getPrimaryKey())
 			).build());
 
-		address = user.getAddresses(
-		).get(
-			0
-		);
+		addresses = user.getAddresses();
+
+		address = addresses.get(0);
 
 		Assert.assertEquals(newAddressCity, address.getCity());
 
@@ -656,10 +652,9 @@ public class UsersAdminPortletTest {
 
 		_assertNoCTEntry();
 
-		Assert.assertEquals(
-			0,
-			user.getAddresses(
-			).size());
+		addresses = user.getAddresses();
+
+		Assert.assertEquals(addresses.toString(), 0, addresses.size());
 	}
 
 	@Test
@@ -853,18 +848,7 @@ public class UsersAdminPortletTest {
 	}
 
 	@Inject
-	private static AddressLocalService _addressLocalService;
-
-	private static CTCollection _ctCollection;
-
-	@Inject
-	private static CTCollectionLocalService _ctCollectionLocalService;
-
-	@Inject
-	private static CTEntryLocalService _ctEntryLocalService;
-
-	@Inject
-	private static ListTypeLocalService _listTypeLocalService;
+	private AddressLocalService _addressLocalService;
 
 	@Inject
 	private AnnouncementsDeliveryLocalService
@@ -872,6 +856,14 @@ public class UsersAdminPortletTest {
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	private CTCollection _ctCollection;
+
+	@Inject
+	private CTCollectionLocalService _ctCollectionLocalService;
+
+	@Inject
+	private CTEntryLocalService _ctEntryLocalService;
 
 	@Inject
 	private DLAppLocalService _dlAppLocalService;
@@ -885,6 +877,9 @@ public class UsersAdminPortletTest {
 
 	@Inject
 	private LayoutLocalService _layoutLocalService;
+
+	@Inject
+	private ListTypeLocalService _listTypeLocalService;
 
 	@Inject
 	private OrganizationLocalService _organizationLocalService;

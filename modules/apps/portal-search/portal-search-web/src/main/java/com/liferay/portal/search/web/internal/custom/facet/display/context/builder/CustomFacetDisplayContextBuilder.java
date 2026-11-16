@@ -22,6 +22,7 @@ import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
@@ -31,7 +32,10 @@ import com.liferay.portal.search.web.internal.custom.facet.display.context.Custo
 import com.liferay.portal.search.web.internal.custom.facet.util.CustomFacetUtil;
 import com.liferay.portal.search.web.internal.facet.display.context.BucketDisplayContext;
 import com.liferay.portal.search.web.internal.util.DateRangeFactoryUtil;
+import com.liferay.portal.search.web.internal.util.DisplayContextHelperUtil;
 import com.liferay.portal.search.web.internal.util.comparator.BucketDisplayContextComparatorFactoryUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.text.DateFormat;
 
@@ -42,8 +46,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.TimeZone;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Wade Cao
@@ -81,15 +83,17 @@ public class CustomFacetDisplayContextBuilder {
 			return _buildRangeAggregationCustomFacetDisplayContext();
 		}
 
-		return new CustomFacetDisplayContext(
-			_aggregationType,
+		List<BucketDisplayContext> bucketDisplayContexts =
 			_buildTermsAggregationBucketDisplayContexts(
-				getTermsAggregationTermCollectors()),
-			null, _customFacetPortletInstanceConfiguration, null,
-			getDisplayCaption(), _getDisplayStyleGroupId(), _from,
-			isNothingSelected(), _paginationStartParameterName, _parameterName,
-			_getFirstParameterValue(), _parameterValues, isRenderNothing(),
-			_showInputRange, _to);
+				getTermsAggregationTermCollectors());
+
+		return new CustomFacetDisplayContext(
+			_aggregationType, bucketDisplayContexts, null,
+			_customFacetPortletInstanceConfiguration, null, getDisplayCaption(),
+			_getDisplayStyleGroupId(), _from, isNothingSelected(),
+			_paginationStartParameterName, _parameterName,
+			_getFirstParameterValue(), _parameterValues,
+			isRenderNothing(bucketDisplayContexts), _showInputRange, _to);
 	}
 
 	public CustomFacetDisplayContextBuilder currentURL(String currentURL) {
@@ -265,8 +269,10 @@ public class CustomFacetDisplayContextBuilder {
 		return false;
 	}
 
-	protected boolean isRenderNothing() {
-		if (_totalHits > 0) {
+	protected boolean isRenderNothing(
+		List<BucketDisplayContext> bucketDisplayContexts) {
+
+		if ((_totalHits > 0) || !bucketDisplayContexts.isEmpty()) {
 			return false;
 		}
 
@@ -287,10 +293,12 @@ public class CustomFacetDisplayContextBuilder {
 				new CustomFacetCalendarDisplayContextBuilder();
 
 		for (String parameterValue : _parameterValues) {
-			if (parameterValue.startsWith(StringPool.OPEN_CURLY_BRACE)) {
-				customFacetCalendarDisplayContextBuilder.rangeString(
-					parameterValue);
+			if (!parameterValue.startsWith(StringPool.OPEN_CURLY_BRACE)) {
+				continue;
 			}
+
+			customFacetCalendarDisplayContextBuilder.rangeString(
+				parameterValue);
 		}
 
 		return customFacetCalendarDisplayContextBuilder.from(
@@ -380,14 +388,17 @@ public class CustomFacetDisplayContextBuilder {
 	private CustomFacetDisplayContext
 		_buildRangeAggregationCustomFacetDisplayContext() {
 
+		List<BucketDisplayContext> bucketDisplayContexts =
+			_buildRangeAggregationBucketDisplayContexts();
+
 		return new CustomFacetDisplayContext(
-			_aggregationType, _buildRangeAggregationBucketDisplayContexts(),
+			_aggregationType, bucketDisplayContexts,
 			_buildCalendarDisplayContext(),
 			_customFacetPortletInstanceConfiguration,
 			_buildCustomRangeBucketDisplayContext(), getDisplayCaption(),
 			_getDisplayStyleGroupId(), _from, isNothingSelected(),
 			_paginationStartParameterName, _parameterName, null, null,
-			isRenderNothing(), _showInputRange, _to);
+			isRenderNothing(bucketDisplayContexts), _showInputRange, _to);
 	}
 
 	private BucketDisplayContext _buildTermsAggregationBucketDisplayContext(
@@ -444,7 +455,7 @@ public class CustomFacetDisplayContextBuilder {
 
 	private String _getCustomDateRangeURL() {
 		DateFormat dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
-			"yyyy-MM-dd");
+			"yyyy-MM-dd", LocaleUtil.US);
 
 		Calendar calendar = CalendarFactoryUtil.getCalendar(_timeZone);
 
@@ -460,9 +471,10 @@ public class CustomFacetDisplayContextBuilder {
 		rangeURL = HttpComponentsUtil.removeParameter(rangeURL, _parameterName);
 		rangeURL = HttpComponentsUtil.setParameter(
 			rangeURL, _parameterName + "From", from);
-
-		return HttpComponentsUtil.setParameter(
+		rangeURL = HttpComponentsUtil.setParameter(
 			rangeURL, _parameterName + "To", to);
+
+		return HttpComponentsUtil.sortParameters(rangeURL);
 	}
 
 	private TermCollector _getCustomRangeTermCollector(boolean selected) {
@@ -499,20 +511,17 @@ public class CustomFacetDisplayContextBuilder {
 		rangeURL = HttpComponentsUtil.removeParameter(rangeURL, _parameterName);
 		rangeURL = HttpComponentsUtil.setParameter(
 			rangeURL, _parameterName + "From", 0);
-
-		return HttpComponentsUtil.setParameter(
+		rangeURL = HttpComponentsUtil.setParameter(
 			rangeURL, _parameterName + "To", 0);
+
+		return HttpComponentsUtil.sortParameters(rangeURL);
 	}
 
 	private long _getDisplayStyleGroupId() {
-		long displayStyleGroupId =
-			_customFacetPortletInstanceConfiguration.displayStyleGroupId();
-
-		if (displayStyleGroupId <= 0) {
-			displayStyleGroupId = _themeDisplay.getScopeGroupId();
-		}
-
-		return displayStyleGroupId;
+		return DisplayContextHelperUtil.getDisplayStyleGroupId(
+			_customFacetPortletInstanceConfiguration.
+				displayStyleGroupExternalReferenceCode(),
+			_themeDisplay);
 	}
 
 	private List<BucketDisplayContext> _getEmptyBucketDisplayContexts() {
@@ -547,8 +556,10 @@ public class CustomFacetDisplayContextBuilder {
 			rangeURL, _parameterName + "From");
 		rangeURL = HttpComponentsUtil.removeParameter(
 			rangeURL, _parameterName + "To");
+		rangeURL = HttpComponentsUtil.setParameter(
+			rangeURL, _parameterName, label);
 
-		return HttpComponentsUtil.setParameter(rangeURL, _parameterName, label);
+		return HttpComponentsUtil.sortParameters(rangeURL);
 	}
 
 	private JSONArray _getRangesJSONArray() {
@@ -575,7 +586,7 @@ public class CustomFacetDisplayContextBuilder {
 		termsURL = HttpComponentsUtil.setParameter(
 			termsURL, _parameterName, term);
 
-		return termsURL;
+		return HttpComponentsUtil.sortParameters(termsURL);
 	}
 
 	private boolean _isCustomRangeSelected() {

@@ -44,12 +44,13 @@ public class FragmentCollectionServiceUtil {
 	public static FragmentCollection addFragmentCollection(
 			String externalReferenceCode, long groupId,
 			String fragmentCollectionKey, String name, String description,
+			boolean marketplace,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addFragmentCollection(
 			externalReferenceCode, groupId, fragmentCollectionKey, name,
-			description, serviceContext);
+			description, marketplace, serviceContext);
 	}
 
 	public static FragmentCollection deleteFragmentCollection(
@@ -80,6 +81,59 @@ public class FragmentCollectionServiceUtil {
 		return getService().fetchFragmentCollection(fragmentCollectionId);
 	}
 
+	public static List<FragmentCollection> getExportableFragmentCollections(
+		long[] fragmentCollectionIds) {
+
+		return getService().getExportableFragmentCollections(
+			fragmentCollectionIds);
+	}
+
+	public static List<FragmentCollection>
+		getExportableFragmentCollectionsByGroupId(
+			long[] groupIds, int start, int end,
+			OrderByComparator<FragmentCollection> orderByComparator) {
+
+		return getService().getExportableFragmentCollectionsByGroupId(
+			groupIds, start, end, orderByComparator);
+	}
+
+	public static List<FragmentCollection>
+		getExportableFragmentCollectionsByGroupId(
+			long[] groupIds, String name, int start, int end,
+			OrderByComparator<FragmentCollection> orderByComparator) {
+
+		return getService().getExportableFragmentCollectionsByGroupId(
+			groupIds, name, start, end, orderByComparator);
+	}
+
+	public static int getExportableFragmentCollectionsCount(
+		long[] fragmentCollectionIds) {
+
+		return getService().getExportableFragmentCollectionsCount(
+			fragmentCollectionIds);
+	}
+
+	public static int getExportableFragmentCollectionsCountByGroupId(
+		long[] groupIds) {
+
+		return getService().getExportableFragmentCollectionsCountByGroupId(
+			groupIds);
+	}
+
+	public static int getExportableFragmentCollectionsCountByGroupId(
+		long[] groupIds, String name) {
+
+		return getService().getExportableFragmentCollectionsCountByGroupId(
+			groupIds, name);
+	}
+
+	public static FragmentCollection getFragmentCollection(
+			long fragmentCollectionId)
+		throws PortalException {
+
+		return getService().getFragmentCollection(fragmentCollectionId);
+	}
+
 	public static FragmentCollection
 			getFragmentCollectionByExternalReferenceCode(
 				String externalReferenceCode, long groupId)
@@ -97,8 +151,8 @@ public class FragmentCollectionServiceUtil {
 			fragmentCollectionId);
 	}
 
-	public static List<FragmentCollection> getFragmentCollections(
-		long groupId) {
+	public static List<FragmentCollection> getFragmentCollections(long groupId)
+		throws PortalException {
 
 		return getService().getFragmentCollections(groupId);
 	}
@@ -154,11 +208,27 @@ public class FragmentCollectionServiceUtil {
 	}
 
 	public static List<FragmentCollection> getFragmentCollections(
+		long[] groupIds, boolean marketplace, int start, int end,
+		OrderByComparator<FragmentCollection> orderByComparator) {
+
+		return getService().getFragmentCollections(
+			groupIds, marketplace, start, end, orderByComparator);
+	}
+
+	public static List<FragmentCollection> getFragmentCollections(
 		long[] groupIds, int start, int end,
 		OrderByComparator<FragmentCollection> orderByComparator) {
 
 		return getService().getFragmentCollections(
 			groupIds, start, end, orderByComparator);
+	}
+
+	public static List<FragmentCollection> getFragmentCollections(
+		long[] groupIds, String name, boolean marketplace, int start, int end,
+		OrderByComparator<FragmentCollection> orderByComparator) {
+
+		return getService().getFragmentCollections(
+			groupIds, name, marketplace, start, end, orderByComparator);
 	}
 
 	public static List<FragmentCollection> getFragmentCollections(
@@ -195,9 +265,22 @@ public class FragmentCollectionServiceUtil {
 	}
 
 	public static int getFragmentCollectionsCount(
+		long[] groupIds, boolean marketplace) {
+
+		return getService().getFragmentCollectionsCount(groupIds, marketplace);
+	}
+
+	public static int getFragmentCollectionsCount(
 		long[] groupIds, String name) {
 
 		return getService().getFragmentCollectionsCount(groupIds, name);
+	}
+
+	public static int getFragmentCollectionsCount(
+		long[] groupIds, String name, boolean marketplace) {
+
+		return getService().getFragmentCollectionsCount(
+			groupIds, name, marketplace);
 	}
 
 	/**
@@ -233,3 +316,4 @@ public class FragmentCollectionServiceUtil {
 			FragmentCollectionService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1247180210

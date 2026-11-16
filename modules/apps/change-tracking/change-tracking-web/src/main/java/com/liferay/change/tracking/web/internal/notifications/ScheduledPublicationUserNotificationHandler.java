@@ -23,19 +23,28 @@ import com.liferay.portal.kernel.service.UserNotificationEventLocalService;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 
-import javax.portlet.PortletRequest;
-
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
+import jakarta.portlet.PortletRequest;
 
 /**
  * @author Brooke Dalton
  */
-@Component(service = ScheduledPublicationUserNotificationHandler.class)
 public class ScheduledPublicationUserNotificationHandler
 	extends BaseUserNotificationHandler {
 
-	public ScheduledPublicationUserNotificationHandler() {
+	public ScheduledPublicationUserNotificationHandler(
+		CTCollectionLocalService ctCollectionLocalService,
+		JSONFactory jsonFactory, Language language, Portal portal,
+		RoleLocalService roleLocalService, UserLocalService userLocalService,
+		UserNotificationEventLocalService userNotificationEventLocalService) {
+
+		_ctCollectionLocalService = ctCollectionLocalService;
+		_jsonFactory = jsonFactory;
+		_language = language;
+		_portal = portal;
+		_roleLocalService = roleLocalService;
+		_userLocalService = userLocalService;
+		_userNotificationEventLocalService = userNotificationEventLocalService;
+
 		setPortletId(CTPortletKeys.PUBLICATIONS);
 	}
 
@@ -148,22 +157,21 @@ public class ScheduledPublicationUserNotificationHandler
 			).buildString();
 		}
 
-		if (_hasAdministratorRole(userNotificationEvent)) {
-			return PortletURLBuilder.create(
-				_portal.getControlPanelPortletURL(
-					serviceContext.getRequest(), serviceContext.getScopeGroup(),
-					CTPortletKeys.PUBLICATIONS, 0, 0,
-					PortletRequest.RENDER_PHASE)
-			).setMVCRenderCommandName(
-				"/change_tracking/view_stack_trace"
-			).setParameter(
-				"backgroundTaskId", jsonObject.getLong("backgroundTaskId")
-			).setParameter(
-				"ctCollectionName", jsonObject.getString("ctCollectionName")
-			).buildString();
+		if (!_hasAdministratorRole(userNotificationEvent)) {
+			return null;
 		}
 
-		return null;
+		return PortletURLBuilder.create(
+			_portal.getControlPanelPortletURL(
+				serviceContext.getRequest(), serviceContext.getScopeGroup(),
+				CTPortletKeys.PUBLICATIONS, 0, 0, PortletRequest.RENDER_PHASE)
+		).setMVCRenderCommandName(
+			"/change_tracking/view_stack_trace"
+		).setParameter(
+			"backgroundTaskId", jsonObject.getLong("backgroundTaskId")
+		).setParameter(
+			"ctCollectionName", jsonObject.getString("ctCollectionName")
+		).buildString();
 	}
 
 	private boolean _hasAdministratorRole(
@@ -177,26 +185,13 @@ public class ScheduledPublicationUserNotificationHandler
 			role.getRoleId(), userNotificationEvent.getUserId());
 	}
 
-	@Reference
-	private CTCollectionLocalService _ctCollectionLocalService;
-
-	@Reference
-	private JSONFactory _jsonFactory;
-
-	@Reference
-	private Language _language;
-
-	@Reference
-	private Portal _portal;
-
-	@Reference
-	private RoleLocalService _roleLocalService;
-
-	@Reference
-	private UserLocalService _userLocalService;
-
-	@Reference
-	private UserNotificationEventLocalService
+	private final CTCollectionLocalService _ctCollectionLocalService;
+	private final JSONFactory _jsonFactory;
+	private final Language _language;
+	private final Portal _portal;
+	private final RoleLocalService _roleLocalService;
+	private final UserLocalService _userLocalService;
+	private final UserNotificationEventLocalService
 		_userNotificationEventLocalService;
 
 }

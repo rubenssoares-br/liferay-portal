@@ -178,7 +178,6 @@ String defaultLanguageId = cpDefinitionOptionRelDisplayContext.getCatalogDefault
 					creationMenu="<%= cpDefinitionOptionRel.isDefinedExternally() ? null : cpDefinitionOptionRelDisplayContext.getCreationMenu() %>"
 					dataProviderKey="<%= CommerceProductFDSNames.PRODUCT_OPTION_VALUES %>"
 					id="<%= dataSetDisplayId %>"
-					itemsPerPage="<%= 10 %>"
 					selectedItemsKey="cpdefinitionOptionValueRelId"
 				/>
 			</commerce-ui:panel>
@@ -198,6 +197,9 @@ String defaultLanguageId = cpDefinitionOptionRelDisplayContext.getCatalogDefault
 			var availableFieldTypeSelectOptions = availableTypeNames.split(
 				'<%= StringPool.COMMA %>'
 			);
+			var defineExternallyInput = document.getElementById(
+				'<portlet:namespace />definedExternally'
+			);
 			var multipleValuesTypeNames =
 				'<%= StringUtil.merge(CPConstants.PRODUCT_OPTION_MULTIPLE_VALUES_FIELD_TYPES, StringPool.COMMA) %>';
 			var multipleValuesFieldTypeSelectOptions = multipleValuesTypeNames.split(
@@ -212,6 +214,30 @@ String defaultLanguageId = cpDefinitionOptionRelDisplayContext.getCatalogDefault
 				'<portlet:namespace />skuContributor'
 			);
 			var valuesContainer = document.getElementById('values-container');
+
+			if (
+				formFieldTypeSelect.value != '' &&
+				endsWith(
+					formFieldTypeSelect.value,
+					allowedSkuContributorFieldTypeSelectOptions
+				) &&
+				skuContributorInput.checked
+			) {
+				for (var i = 0; i < formFieldTypeSelect.options.length; i++) {
+					var formFieldTypeSelectOption = formFieldTypeSelect.options[i];
+
+					if (
+						endsWith(
+							formFieldTypeSelectOption.value,
+							allowedSkuContributorFieldTypeSelectOptions
+						)
+					) {
+						continue;
+					}
+
+					formFieldTypeSelectOption.setAttribute('disabled', true);
+				}
+			}
 
 			function checkDDMFormFieldType(event) {
 				var priceTypeSelectValue =
@@ -272,10 +298,12 @@ String defaultLanguageId = cpDefinitionOptionRelDisplayContext.getCatalogDefault
 						allowedPriceContributorFieldTypeSelectOptions
 					)
 				) {
+					enable(defineExternallyInput);
 					enable(priceTypeSelect);
 				}
 				else {
 					if (priceTypeSelect.value == '') {
+						disable(defineExternallyInput);
 						disable(priceTypeSelect);
 					}
 					else {

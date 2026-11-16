@@ -326,10 +326,6 @@ public interface CommercePriceEntryLocalService
 	public List<CommercePriceEntry> getCommercePriceEntries(
 		String cpInstanceUuid, BigDecimal quantity, String unitOfMeasureKey);
 
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<CommercePriceEntry> getCommercePriceEntriesByCompanyId(
-		long companyId, int start, int end);
-
 	/**
 	 * Returns the number of commerce price entries.
 	 *
@@ -340,9 +336,6 @@ public interface CommercePriceEntryLocalService
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getCommercePriceEntriesCount(long commercePriceListId);
-
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getCommercePriceEntriesCountByCompanyId(long companyId);
 
 	/**
 	 * Returns the commerce price entry with the primary key.
@@ -461,7 +454,7 @@ public interface CommercePriceEntryLocalService
 
 	@Indexable(type = IndexableType.REINDEX)
 	public CommercePriceEntry updateExternalReferenceCode(
-			String externalReferenceCode, CommercePriceEntry commercePriceEntry)
+			CommercePriceEntry commercePriceEntry, String externalReferenceCode)
 		throws PortalException;
 
 	public CommercePriceEntry updatePricingInfo(
@@ -493,3 +486,4 @@ public interface CommercePriceEntryLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-108467340

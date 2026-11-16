@@ -13,11 +13,11 @@ import com.liferay.layout.page.template.admin.web.internal.configuration.LayoutP
 import com.liferay.layout.page.template.admin.web.internal.constants.LayoutPageTemplateAdminWebKeys;
 import com.liferay.layout.page.template.admin.web.internal.security.permission.resource.LayoutPageTemplateEntryPermission;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
-import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.portlet.url.builder.RenderURLBuilder;
 import com.liferay.portal.kernel.portlet.url.builder.ResourceURLBuilder;
@@ -35,13 +35,13 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -90,10 +90,8 @@ public class DisplayPageActionDropdownItemsProviderTest {
 	}
 
 	@Test
-	public void testGetActionDropdownItemsWithoutUpdatePermission()
+	public void testGetActionDropdownItemsWithExportDisplayPageURL()
 		throws Exception {
-
-		_setUpLayoutPageTemplateEntryPermission(false);
 
 		DisplayPageActionDropdownItemsProvider
 			displayPageActionDropdownItemsProvider =
@@ -101,13 +99,13 @@ public class DisplayPageActionDropdownItemsProviderTest {
 					false, false, _layoutPageTemplateEntry, _renderRequest,
 					_renderResponse);
 
-		List<DropdownItem> dropdownItems = _getActionDropdownItems(
-			displayPageActionDropdownItemsProvider.getActionDropdownItems());
+		displayPageActionDropdownItemsProvider.getActionDropdownItems();
 
-		Assert.assertEquals(dropdownItems.toString(), 2, dropdownItems.size());
-
-		_assertDropdownItems(
-			dropdownItems, new String[] {"view-usages", "export"});
+		Mockito.verify(
+			_exportDisplayPageURL
+		).setCopyCurrentRenderParameters(
+			false
+		);
 	}
 
 	@Test
@@ -134,6 +132,27 @@ public class DisplayPageActionDropdownItemsProviderTest {
 				"view-usages", "make-a-copy", "export", "move", "configure",
 				"permissions", "delete"
 			});
+	}
+
+	@Test
+	public void testGetActionDropdownItemsWithoutUpdatePermission()
+		throws Exception {
+
+		_setUpLayoutPageTemplateEntryPermission(false);
+
+		DisplayPageActionDropdownItemsProvider
+			displayPageActionDropdownItemsProvider =
+				new DisplayPageActionDropdownItemsProvider(
+					false, false, _layoutPageTemplateEntry, _renderRequest,
+					_renderResponse);
+
+		List<DropdownItem> dropdownItems = _getActionDropdownItems(
+			displayPageActionDropdownItemsProvider.getActionDropdownItems());
+
+		Assert.assertEquals(dropdownItems.toString(), 2, dropdownItems.size());
+
+		_assertDropdownItems(
+			dropdownItems, new String[] {"view-usages", "export"});
 	}
 
 	private void _assertDropdownItems(
@@ -319,9 +338,9 @@ public class DisplayPageActionDropdownItemsProviderTest {
 		);
 
 		Mockito.when(
-			afterResourceIDStep.buildString()
+			afterResourceIDStep.buildResourceURL()
 		).thenReturn(
-			StringPool.BLANK
+			_exportDisplayPageURL
 		);
 	}
 
@@ -361,6 +380,8 @@ public class DisplayPageActionDropdownItemsProviderTest {
 		_assetDisplayPageEntryServiceUtilMockedStatic = Mockito.mockStatic(
 			AssetDisplayPageEntryServiceUtil.class);
 	private final Layout _draftLayout = Mockito.mock(Layout.class);
+	private final LiferayPortletURL _exportDisplayPageURL = Mockito.mock(
+		LiferayPortletURL.class);
 	private final HttpServletRequest _httpServletRequest = Mockito.mock(
 		HttpServletRequest.class);
 	private final InfoItemServiceRegistry _infoItemServiceRegistry =

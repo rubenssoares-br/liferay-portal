@@ -33,7 +33,9 @@ PortletURL portletURL = entriesSearchContainer.getIteratorURL();
 	portletURL="<%= restoreTrashEntriesURL %>"
 />
 
-<clay:container-fluid>
+<clay:container-fluid
+	size="xxxl"
+>
 	<aui:form action="<%= portletURL %>" method="get" name="fm">
 		<aui:input name="<%= Constants.CMD %>" type="hidden" />
 		<aui:input name="redirect" type="hidden" value="<%= portletURL.toString() %>" />
@@ -54,7 +56,7 @@ PortletURL portletURL = entriesSearchContainer.getIteratorURL();
 			<liferay-ui:search-container-row
 				className="com.liferay.blogs.model.BlogsEntry"
 				escapedModel="<%= true %>"
-				keyProperty="entryId"
+				keyPropertyName="entryId"
 				modelVar="entry"
 			>
 				<liferay-portlet:renderURL varImpl="rowURL">

@@ -10,6 +10,7 @@ import java.io.IOException;
 
 import java.net.URL;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -58,6 +59,16 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 	}
 
 	@Override
+	public File getBuildDatabaseFile() {
+		return _buildDatabaseFile;
+	}
+
+	@Override
+	public JSONObject getJSONObject() {
+		return new JSONObject(_jsonObject.toString());
+	}
+
+	@Override
 	public Job getJob(String key) {
 		if (!hasJob(key)) {
 			return null;
@@ -71,8 +82,131 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 	}
 
 	@Override
-	public JSONObject getJSONObject() {
-		return new JSONObject(_jsonObject.toString());
+	public List<Job> getJobs() {
+		List<Job> jobs = new ArrayList<>();
+
+		JSONObject jobsJSONObject = _jsonObject.getJSONObject("jobs");
+
+		for (String key : jobsJSONObject.keySet()) {
+			JSONObject jobJSONObject = jobsJSONObject.getJSONObject(key);
+
+			if ((jobJSONObject == null) || jobJSONObject.isEmpty()) {
+				continue;
+			}
+
+			jobs.add(JobFactory.newJob(jobJSONObject));
+		}
+
+		return jobs;
+	}
+
+	@Override
+	public PortalFixpackRelease getPortalFixpackRelease(String key) {
+		if (!hasPortalFixpackRelease(key)) {
+			return null;
+		}
+
+		JSONObject portalFixpackReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_fixpack_releases");
+
+		return new PortalFixpackRelease(
+			portalFixpackReleasesJSONObject.getJSONObject(key));
+	}
+
+	@Override
+	public List<PortalFixpackRelease> getPortalFixpackReleases() {
+		List<PortalFixpackRelease> portalFixpackReleases = new ArrayList<>();
+
+		JSONObject portalFixpackReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_fixpack_releases");
+
+		for (String key : portalFixpackReleasesJSONObject.keySet()) {
+			JSONObject portalFixpackReleaseJSONObject =
+				portalFixpackReleasesJSONObject.getJSONObject(key);
+
+			if ((portalFixpackReleaseJSONObject == null) ||
+				portalFixpackReleaseJSONObject.isEmpty()) {
+
+				continue;
+			}
+
+			portalFixpackReleases.add(
+				new PortalFixpackRelease(portalFixpackReleaseJSONObject));
+		}
+
+		return portalFixpackReleases;
+	}
+
+	@Override
+	public PortalHotfixRelease getPortalHotfixRelease(String key) {
+		if (!hasPortalHotfixRelease(key)) {
+			return null;
+		}
+
+		JSONObject portalHotfixReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_hotfix_releases");
+
+		return new PortalHotfixRelease(
+			portalHotfixReleasesJSONObject.getJSONObject(key));
+	}
+
+	@Override
+	public List<PortalHotfixRelease> getPortalHotfixReleases() {
+		List<PortalHotfixRelease> portalHotfixReleases = new ArrayList<>();
+
+		JSONObject portalHotfixReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_hotfix_releases");
+
+		for (String key : portalHotfixReleasesJSONObject.keySet()) {
+			JSONObject portalHotfixReleaseJSONObject =
+				portalHotfixReleasesJSONObject.getJSONObject(key);
+
+			if ((portalHotfixReleaseJSONObject == null) ||
+				portalHotfixReleaseJSONObject.isEmpty()) {
+
+				continue;
+			}
+
+			portalHotfixReleases.add(
+				new PortalHotfixRelease(portalHotfixReleaseJSONObject));
+		}
+
+		return portalHotfixReleases;
+	}
+
+	@Override
+	public PortalRelease getPortalRelease(String key) {
+		if (!hasPortalRelease(key)) {
+			return null;
+		}
+
+		JSONObject portalReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_releases");
+
+		return new PortalRelease(portalReleasesJSONObject.getJSONObject(key));
+	}
+
+	@Override
+	public List<PortalRelease> getPortalReleases() {
+		List<PortalRelease> portalReleases = new ArrayList<>();
+
+		JSONObject portalReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_releases");
+
+		for (String key : portalReleasesJSONObject.keySet()) {
+			JSONObject portalReleaseJSONObject =
+				portalReleasesJSONObject.getJSONObject(key);
+
+			if ((portalReleaseJSONObject == null) ||
+				portalReleaseJSONObject.isEmpty()) {
+
+				continue;
+			}
+
+			portalReleases.add(new PortalRelease(portalReleaseJSONObject));
+		}
+
+		return portalReleases;
 	}
 
 	@Override
@@ -107,9 +241,11 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 			Matcher matcher = pattern.matcher(propertyName);
 
-			if (matcher.matches()) {
-				properties.setProperty(propertyName, propertyValue);
+			if (!matcher.matches()) {
+				continue;
 			}
+
+			properties.setProperty(propertyName, propertyValue);
 		}
 
 		return properties;
@@ -129,6 +265,30 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 			key);
 
 		return PullRequestFactory.newPullRequest(pullRequestJSONObject);
+	}
+
+	@Override
+	public List<PullRequest> getPullRequests() {
+		List<PullRequest> pullRequests = new ArrayList<>();
+
+		JSONObject pullRequestsJSONObject = _jsonObject.getJSONObject(
+			"pull_requests");
+
+		for (String key : pullRequestsJSONObject.keySet()) {
+			JSONObject pullRequestJSONObject =
+				pullRequestsJSONObject.getJSONObject(key);
+
+			if ((pullRequestJSONObject == null) ||
+				pullRequestJSONObject.isEmpty()) {
+
+				continue;
+			}
+
+			pullRequests.add(
+				PullRequestFactory.newPullRequest(pullRequestJSONObject));
+		}
+
+		return pullRequests;
 	}
 
 	@Override
@@ -162,6 +322,29 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 	}
 
 	@Override
+	public List<Workspace> getWorkspaces() {
+		List<Workspace> workspaces = new ArrayList<>();
+
+		JSONObject workspacesJSONObject = _jsonObject.getJSONObject(
+			"workspaces");
+
+		for (String key : workspacesJSONObject.keySet()) {
+			JSONObject workspaceJSONObject = workspacesJSONObject.getJSONObject(
+				key);
+
+			if ((workspaceJSONObject == null) ||
+				workspaceJSONObject.isEmpty()) {
+
+				continue;
+			}
+
+			workspaces.add(WorkspaceFactory.newWorkspace(workspaceJSONObject));
+		}
+
+		return workspaces;
+	}
+
+	@Override
 	public boolean hasBuildData(String key) {
 		JSONObject buildsJSONObject = _jsonObject.getJSONObject("builds");
 
@@ -181,6 +364,30 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 		}
 
 		return false;
+	}
+
+	@Override
+	public boolean hasPortalFixpackRelease(String key) {
+		JSONObject portalFixpackReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_fixpack_releases");
+
+		return portalFixpackReleasesJSONObject.has(key);
+	}
+
+	@Override
+	public boolean hasPortalHotfixRelease(String key) {
+		JSONObject portalHotfixReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_hotfix_releases");
+
+		return portalHotfixReleasesJSONObject.has(key);
+	}
+
+	@Override
+	public boolean hasPortalRelease(String key) {
+		JSONObject portalReleasesJSONObject = _jsonObject.getJSONObject(
+			"portal_releases");
+
+		return portalReleasesJSONObject.has(key);
 	}
 
 	@Override
@@ -221,7 +428,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 			buildsJSONObject.put(key, buildData.getJSONObject());
 
-			_writeJSONObjectFile();
+			_writeJSONFile();
 		}
 	}
 
@@ -234,7 +441,61 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 			jobsJSONObject.put(key, jobJSONObject);
 
-			_writeJSONObjectFile();
+			_writeJSONFile();
+		}
+	}
+
+	@Override
+	public void putPortalFixpackRelease(
+		String key, PortalFixpackRelease portalFixpackRelease) {
+
+		if (!JenkinsResultsParserUtil.isCINode()) {
+			return;
+		}
+
+		synchronized (_buildDatabaseFile) {
+			JSONObject portalFixpackReleasesJSONObject =
+				_jsonObject.getJSONObject("portal_fixpack_releases");
+
+			portalFixpackReleasesJSONObject.put(
+				key, portalFixpackRelease.getJSONObject());
+
+			_writeJSONFile();
+		}
+	}
+
+	@Override
+	public void putPortalHotfixRelease(
+		String key, PortalHotfixRelease portalHotfixRelease) {
+
+		if (!JenkinsResultsParserUtil.isCINode()) {
+			return;
+		}
+
+		synchronized (_buildDatabaseFile) {
+			JSONObject portalHotfixReleasesJSONObject =
+				_jsonObject.getJSONObject("portal_hotfix_releases");
+
+			portalHotfixReleasesJSONObject.put(
+				key, portalHotfixRelease.getJSONObject());
+
+			_writeJSONFile();
+		}
+	}
+
+	@Override
+	public void putPortalRelease(String key, PortalRelease portalRelease) {
+		if (!JenkinsResultsParserUtil.isCINode()) {
+			return;
+		}
+
+		synchronized (_buildDatabaseFile) {
+			JSONObject portalReleasesJSONObject = _jsonObject.getJSONObject(
+				"portal_releases");
+
+			portalReleasesJSONObject.put(key, portalRelease.getJSONObject());
+
+			_writeJSONFile();
 		}
 	}
 
@@ -268,7 +529,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 			propertiesJSONObject.put(key, _toJSONArray(properties));
 
 			if (writeFile) {
-				_writeJSONObjectFile();
+				_writeJSONFile();
 			}
 		}
 	}
@@ -281,15 +542,17 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 	}
 
 	@Override
-	public synchronized void putProperty(
+	public void putProperty(
 		String key, String propertyName, String propertyValue,
 		boolean writeFile) {
 
-		Properties properties = getProperties(key);
+		synchronized (_buildDatabaseFile) {
+			Properties properties = getProperties(key);
 
-		properties.setProperty(propertyName, propertyValue);
+			properties.setProperty(propertyName, propertyValue);
 
-		putProperties(key, properties, writeFile);
+			putProperties(key, properties, writeFile);
+		}
 	}
 
 	@Override
@@ -304,7 +567,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 			pullRequestsJSONObject.put(key, pullRequest.getJSONObject());
 
-			_writeJSONObjectFile();
+			_writeJSONFile();
 		}
 	}
 
@@ -316,7 +579,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 			workspacesJSONObject.put(key, workspace.getJSONObject());
 
-			_writeJSONObjectFile();
+			_writeJSONFile();
 		}
 	}
 
@@ -331,7 +594,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 			workspaceGitRepositoriesJSONObject.put(
 				key, workspaceGitRepository.getJSONObject());
 
-			_writeJSONObjectFile();
+			_writeJSONFile();
 		}
 	}
 
@@ -360,7 +623,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 				String srcPath = JenkinsResultsParserUtil.combine(
 					JenkinsResultsParserUtil.getHostName(
-						System.getenv("HOSTNAME")),
+						Environment.get("HOSTNAME")),
 					":", tempBuildDatabaseFile.getParent());
 
 				FilePropagator filePropagator = new FilePropagator(
@@ -381,6 +644,122 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 				if (tempBuildDatabaseFile.exists()) {
 					JenkinsResultsParserUtil.delete(tempBuildDatabaseFile);
 				}
+			}
+		}
+	}
+
+	@Override
+	public void rsyncBuildDatabaseFileToJenkinsMaster(
+		String destinationDirPath, JenkinsMaster jenkinsMaster) {
+
+		synchronized (_buildDatabaseFile) {
+			File tempBuildDatabaseFile = new File(
+				JenkinsResultsParserUtil.combine(
+					System.getProperty("java.io.tmpdir"), "/",
+					String.valueOf(_buildDatabaseFile.hashCode()), "/",
+					_buildDatabaseFile.getName()));
+
+			try {
+				JenkinsResultsParserUtil.write(
+					_buildDatabaseFile, _jsonObject.toString());
+
+				JenkinsResultsParserUtil.copy(
+					_buildDatabaseFile, tempBuildDatabaseFile);
+
+				if (!destinationDirPath.endsWith("/")) {
+					destinationDirPath += "/";
+				}
+
+				JenkinsResultsParserUtil.rsync(
+					jenkinsMaster.getName(), destinationDirPath, null,
+					JenkinsResultsParserUtil.getCanonicalPath(
+						tempBuildDatabaseFile));
+			}
+			catch (IOException ioException) {
+				throw new RuntimeException(ioException);
+			}
+			finally {
+				JenkinsResultsParserUtil.delete(tempBuildDatabaseFile);
+			}
+		}
+	}
+
+	@Override
+	public void uploadBuildDatabaseFileToCloudBucket() {
+		String s3BucketDistPath = Environment.get("S3_BUCKET_DIST_PATH");
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(s3BucketDistPath)) {
+			System.out.println(
+				"WARNING: Skipping the build database upload because the " +
+					"environment variable \"S3_BUCKET_DIST_PATH\" is not set");
+
+			return;
+		}
+
+		uploadBuildDatabaseFileToCloudBucket(
+			s3BucketDistPath + "/" + FILE_NAME_BUILD_DATABASE_JSON);
+	}
+
+	@Override
+	public void uploadBuildDatabaseFileToCloudBucket(String path) {
+		if (!JenkinsResultsParserUtil.isCINode()) {
+			return;
+		}
+
+		synchronized (_buildDatabaseFile) {
+			Retryable<JSONObject> retryable = new Retryable<JSONObject>(
+				true, 3, 5, true) {
+
+				@Override
+				public JSONObject execute() {
+					File baseTempDir = new File(
+						JenkinsResultsParserUtil.combine(
+							System.getProperty("java.io.tmpdir"), "/",
+							String.valueOf(_buildDatabaseFile.hashCode())));
+
+					String baseTempDirPath =
+						JenkinsResultsParserUtil.getCanonicalPath(baseTempDir);
+
+					File tempFile = new File(
+						baseTempDirPath + "/" + FILE_NAME_BUILD_DATABASE_JSON);
+
+					try {
+						JenkinsResultsParserUtil.write(
+							_buildDatabaseFile, _jsonObject.toString());
+
+						JenkinsResultsParserUtil.copy(
+							_buildDatabaseFile, tempFile);
+
+						CloudBucketUtil.uploadS3File(path, tempFile);
+					}
+					catch (IOException ioException) {
+						throw new RuntimeException(ioException);
+					}
+					finally {
+						if (tempFile.exists()) {
+							JenkinsResultsParserUtil.delete(tempFile);
+						}
+					}
+
+					return null;
+				}
+
+				@Override
+				protected String getRetryMessage(int retryCount) {
+					return JenkinsResultsParserUtil.combine(
+						"Unable to upload ",
+						JenkinsResultsParserUtil.getCanonicalPath(
+							_buildDatabaseFile),
+						" to ", path, ": ", super.getRetryMessage(retryCount));
+				}
+
+			};
+
+			try {
+				retryable.executeWithRetries();
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
 			}
 		}
 	}
@@ -475,7 +854,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 
 	protected BaseBuildDatabase(File baseDir) {
 		_buildDatabaseFile = new File(
-			baseDir, BuildDatabase.FILE_NAME_BUILD_DATABASE);
+			baseDir, BuildDatabase.FILE_NAME_BUILD_DATABASE_JSON);
 
 		_readBuildDatabaseFile();
 	}
@@ -503,6 +882,18 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 				_jsonObject.put("jobs", new JSONObject());
 			}
 
+			if (!_jsonObject.has("portal_fixpack_releases")) {
+				_jsonObject.put("portal_fixpack_releases", new JSONObject());
+			}
+
+			if (!_jsonObject.has("portal_hotfix_releases")) {
+				_jsonObject.put("portal_hotfix_releases", new JSONObject());
+			}
+
+			if (!_jsonObject.has("portal_releases")) {
+				_jsonObject.put("portal_releases", new JSONObject());
+			}
+
 			if (!_jsonObject.has("properties")) {
 				_jsonObject.put("properties", new JSONObject());
 			}
@@ -519,7 +910,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 				_jsonObject.put("workspaces", new JSONObject());
 			}
 
-			_writeJSONObjectFile();
+			_writeJSONFile();
 		}
 	}
 
@@ -545,7 +936,7 @@ public abstract class BaseBuildDatabase implements BuildDatabase {
 		return jsonArray;
 	}
 
-	private synchronized void _writeJSONObjectFile() {
+	private void _writeJSONFile() {
 		synchronized (_buildDatabaseFile) {
 			try {
 				JenkinsResultsParserUtil.write(

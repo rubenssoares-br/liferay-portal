@@ -11,7 +11,11 @@ import classNames from 'classnames';
 import {fetch} from 'frontend-js-web';
 import React, {useContext, useRef, useState} from 'react';
 
-import {CHANNEL_RESOURCE_ENDPOINT} from '../../utilities/constants';
+import {
+	CHANNEL_RESOURCE_ENDPOINT,
+	SITE_TYPE_B2B,
+} from '../../utilities/constants';
+import {CURRENT_ORDER_UPDATED} from '../../utilities/eventsDefinitions';
 import {addToCart} from '../add_to_cart/data';
 import InfiniteScroller from '../infinite_scroller/InfiniteScroller';
 import MiniCartContext from './MiniCartContext';
@@ -36,7 +40,12 @@ const getSearchSKUsURL = (page, search, accountId, channelId) => {
 };
 
 export default function CartQuickAdd() {
-	const {cartState} = useContext(MiniCartContext);
+	const {cartState, guestOrderEnabled} = useContext(MiniCartContext);
+
+	const quickAddDisabled =
+		!themeDisplay.isSignedIn() &&
+		!guestOrderEnabled &&
+		Liferay.CommerceContext?.commerceSiteType === SITE_TYPE_B2B;
 
 	const keypressTimoutRef = useRef(null);
 	const paginatorCurrentPageRef = useRef(1);
@@ -206,7 +215,9 @@ export default function CartQuickAdd() {
 				null,
 				CART_QUICK_ADD_NAMESPACE
 			)
-				.then(() => {})
+				.then((cart) => {
+					Liferay.fire(CURRENT_ORDER_UPDATED, {order: cart});
+				})
 				.catch((error) => {
 					Liferay.Util.openToast({
 						message:
@@ -308,6 +319,7 @@ export default function CartQuickAdd() {
 					<ClayMultiSelect
 						allowsCustomLabel={false}
 						className="p3"
+						disabled={quickAddDisabled}
 						inputName="searchSKUs"
 						items={selectedSKUs}
 						loadingState={4}
@@ -368,8 +380,13 @@ export default function CartQuickAdd() {
 
 				<ClayInput.GroupItem shrink>
 					<ClayButtonWithIcon
+						aria-label={Liferay.Language.get('add-to-cart')}
 						data-qa-id="quickAddToCartButton"
-						disabled={!selectedSKUs.length || quickAddToCartError}
+						disabled={
+							quickAddDisabled ||
+							!selectedSKUs.length ||
+							quickAddToCartError
+						}
 						onClick={handleAddToCartClick}
 						symbol="shopping-cart"
 					/>

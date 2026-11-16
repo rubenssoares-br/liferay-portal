@@ -1,9 +1,10 @@
 {
 	"dependencies": {
 		"commerce-frontend-js": "*",
+		"frontend-js-components-web": "*",
 		"frontend-js-web": "*",
 		"prop-types": "15.7.2",
-		"react": "16.12.0"
+		"react": "18.2.0"
 	},
 	"main": "js/index.js",
 	"name": "@liferay/commerce-payment-web",
@@ -12,5 +13,5 @@
 		"checkFormat": "node-scripts format --check",
 		"format": "node-scripts format"
 	},
-	"version": "4.0.62"
+	"version": "4.0.84"
 }

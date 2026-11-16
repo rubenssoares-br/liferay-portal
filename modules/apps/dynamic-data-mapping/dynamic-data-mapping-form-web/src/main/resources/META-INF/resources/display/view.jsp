@@ -80,8 +80,8 @@ boolean limitToOneSubmissionPerUser = DDMFormInstanceSubmissionLimitStatusUtil.i
 					pageTitle = LanguageUtil.get(request, "this-form-is-no-longer-available");
 				}
 				else if (showSuccessPage) {
-					pageDescription = ddmFormDisplayContext.getSuccessPageDescription(displayLocale);
-					pageTitle = ddmFormDisplayContext.getSuccessPageTitle(displayLocale);
+					pageDescription = ddmFormDisplayContext.getSuccessPageDescription();
+					pageTitle = ddmFormDisplayContext.getSuccessPageTitle();
 				}
 				else {
 					Map<String, String> limitToOneSubmissionPerUserMap = ddmFormDisplayContext.getLimitToOneSubmissionPerUserMap();
@@ -125,11 +125,13 @@ boolean limitToOneSubmissionPerUser = DDMFormInstanceSubmissionLimitStatusUtil.i
 
 						<%
 						String redirectURL = ddmFormDisplayContext.getRedirectURL();
+
+						if (Validator.isNull(redirectURL)) {
+							redirectURL = PortalUtil.escapeRedirect(ParamUtil.getString(request, "redirect", currentURL));
+						}
 						%>
 
-						<c:if test="<%= Validator.isNull(redirectURL) %>">
-							<aui:input name="redirect" type="hidden" value='<%= ParamUtil.getString(request, "redirect", currentURL) %>' />
-						</c:if>
+						<aui:input name="redirect" type="hidden" value="<%= redirectURL %>" />
 
 						<aui:input name="groupId" type="hidden" value="<%= formInstance.getGroupId() %>" />
 						<aui:input name="formInstanceId" type="hidden" value="<%= formInstance.getFormInstanceId() %>" />
@@ -198,7 +200,28 @@ boolean limitToOneSubmissionPerUser = DDMFormInstanceSubmissionLimitStatusUtil.i
 							<liferay-ui:message arguments="<%= new String[] {String.valueOf(etml.getMaxLength()), etml.getObjectFieldName()} %>" key="the-entry-value-exceeds-the-maximum-length-of-x-characters-for-object-field-x" translateArguments="<%= false %>" />
 						</liferay-ui:error>
 
+						<liferay-ui:error exception="<%= ObjectValidationRuleEngineException.class %>">
+
+							<%
+							ObjectValidationRuleEngineException objectValidationRuleEngineException = (ObjectValidationRuleEngineException)errorException;
+							%>
+
+							<liferay-ui:message key="<%= objectValidationRuleEngineException.getMessage() %>" />
+						</liferay-ui:error>
+
 						<liferay-ui:error exception="<%= StorageException.class %>" message="there-was-an-error-when-accessing-the-data-storage" />
+
+						<%
+						Map<String, String> errorMessages = ddmFormDisplayContext.getErrorMessages();
+
+						for (Map.Entry<String, String> entry : errorMessages.entrySet()) {
+						%>
+
+							<liferay-ui:error key="<%= entry.getKey() %>" message="<%= entry.getValue() %>" translateMessage="<%= false %>" />
+
+						<%
+						}
+						%>
 
 						<liferay-ui:error-principal />
 
@@ -291,6 +314,10 @@ boolean limitToOneSubmissionPerUser = DDMFormInstanceSubmissionLimitStatusUtil.i
 									).put(
 										"formReportDataURL", formReportDataURL.toString()
 									).put(
+										"indicatesRequiredFieldsLabel", LanguageUtil.get(displayLocale, "indicates-required-fields")
+									).put(
+										"requiredLabel", LanguageUtil.get(displayLocale, "required")
+									).put(
 										"title", formInstance.getName(displayLocale)
 									).put(
 										"validateCSRFTokenURL", validateCSRFTokenURL.toString()
@@ -336,62 +363,50 @@ boolean limitToOneSubmissionPerUser = DDMFormInstanceSubmissionLimitStatusUtil.i
 						});
 					}
 
-					<c:choose>
-						<c:when test="<%= ddmFormDisplayContext.isAutosaveEnabled() %>">
-							<liferay-portlet:resourceURL copyCurrentRenderParameters="<%= false %>" id="/dynamic_data_mapping_form/add_form_instance_record" var="autoSaveFormInstanceRecordURL">
-								<portlet:param name="autoSave" value="<%= Boolean.TRUE.toString() %>" />
-								<portlet:param name="languageId" value="<%= languageId %>" />
-								<portlet:param name="preview" value="<%= String.valueOf(preview) %>" />
-							</liferay-portlet:resourceURL>
+					<c:if test="<%= ddmFormDisplayContext.isAutosaveEnabled() %>">
+						<liferay-portlet:resourceURL copyCurrentRenderParameters="<%= false %>" id="/dynamic_data_mapping_form/add_form_instance_record" var="autoSaveFormInstanceRecordURL">
+							<portlet:param name="autoSave" value="<%= Boolean.TRUE.toString() %>" />
+							<portlet:param name="languageId" value="<%= languageId %>" />
+							<portlet:param name="preview" value="<%= String.valueOf(preview) %>" />
+						</liferay-portlet:resourceURL>
 
-							Liferay.on('sessionExpired', (event) => {
-								<portlet:namespace />clearInterval(<portlet:namespace />intervalId);
+						Liferay.on('sessionExpired', (event) => {
+							<portlet:namespace />clearInterval(<portlet:namespace />intervalId);
+						});
+
+						function <portlet:namespace />autoSave() {
+							var form = <portlet:namespace />form;
+							var isRendered = form.reactComponentRef && form.reactComponentRef.current;
+							var data = new URLSearchParams({
+								<portlet:namespace />formInstanceId: <%= formInstanceId %>,
+								<portlet:namespace />serializedDDMFormValues: JSON.stringify(
+									isRendered ? form.reactComponentRef.current.toJSON() : {}
+								),
 							});
 
-							function <portlet:namespace />autoSave() {
-								var form = <portlet:namespace />form;
-								var isRendered = form.reactComponentRef && form.reactComponentRef.current;
-								var data = new URLSearchParams({
-									<portlet:namespace />formInstanceId: <%= formInstanceId %>,
-									<portlet:namespace />serializedDDMFormValues: JSON.stringify(
-										isRendered ? form.reactComponentRef.current.toJSON() : {}
-									),
+							Liferay.Util.fetch('<%= autoSaveFormInstanceRecordURL.toString() %>', {
+								body: data,
+								method: 'POST',
+							}).catch(function () {
+								clearInterval(window.<portlet:namespace />intervalId);
+
+								Liferay.Util.openToast({
+									message:
+										'<%= UnicodeLanguageUtil.get(request, "autosave-error") %>',
+									type: 'warning',
 								});
+							});
+						}
 
-								Liferay.Util.fetch('<%= autoSaveFormInstanceRecordURL.toString() %>', {
-									body: data,
-									method: 'POST',
-								});
-							}
+						function <portlet:namespace />startAutoSave() {
+							<portlet:namespace />clearInterval(<portlet:namespace />intervalId);
 
-							function <portlet:namespace />startAutoSave() {
-								<portlet:namespace />clearInterval(<portlet:namespace />intervalId);
-
-								window.<portlet:namespace />intervalId = setInterval(
-									<portlet:namespace />autoSave,
-									<%= ddmFormDisplayContext.getAutosaveInterval() %>
-								);
-							}
-						</c:when>
-						<c:otherwise>
-							function <portlet:namespace />startAutoExtendSession() {
-								<portlet:namespace />clearInterval(<portlet:namespace />intervalId);
-
-								var tenSeconds = 10000;
-
-								var time = Liferay.Session.get('sessionLength') || tenSeconds;
-
-								window.<portlet:namespace />intervalId = setInterval(
-									<portlet:namespace />extendSession,
-									time / 2
-								);
-							}
-
-							function <portlet:namespace />extendSession() {
-								Liferay.Session.extend();
-							}
-						</c:otherwise>
-					</c:choose>
+							window.<portlet:namespace />intervalId = setInterval(
+								<portlet:namespace />autoSave,
+								<%= ddmFormDisplayContext.getAutosaveInterval() %>
+							);
+						}
+					</c:if>
 
 					function <portlet:namespace />enableForm() {
 						var container = document.querySelector(
@@ -402,33 +417,32 @@ boolean limitToOneSubmissionPerUser = DDMFormInstanceSubmissionLimitStatusUtil.i
 					}
 
 					function <portlet:namespace />initForm() {
+						if (window.<portlet:namespace />intervalId) {
+							clearInterval(window.<portlet:namespace />intervalId);
+						}
+
 						<portlet:namespace />enableForm();
 						<portlet:namespace />fireFormView();
 
-						<c:choose>
-							<c:when test="<%= ddmFormDisplayContext.isAutosaveEnabled() %>">
-								var container = document.querySelector(
-									'#<%= ddmFormDisplayContext.getContainerId() %>'
-								);
+						<c:if test="<%= ddmFormDisplayContext.isAutosaveEnabled() %>">
+							var container = document.querySelector(
+								'#<%= ddmFormDisplayContext.getContainerId() %>'
+							);
 
-								container.onclick = function (event) {
-									<portlet:namespace />startAutoSave();
+							container.onclick = function (event) {
+								<portlet:namespace />startAutoSave();
 
-									container.onclick = null;
-									container.onkeypress = null;
-								};
+								container.onclick = null;
+								container.onkeypress = null;
+							};
 
-								container.onkeypress = function (event) {
-									<portlet:namespace />startAutoSave();
+							container.onkeypress = function (event) {
+								<portlet:namespace />startAutoSave();
 
-									container.onclick = null;
-									container.onkeypress = null;
-								};
-							</c:when>
-							<c:otherwise>
-								<portlet:namespace />startAutoExtendSession();
-							</c:otherwise>
-						</c:choose>
+								container.onclick = null;
+								container.onkeypress = null;
+							};
+						</c:if>
 					}
 
 					var rememberMe = <%= ddmFormDisplayContext.isRememberMe() %>;

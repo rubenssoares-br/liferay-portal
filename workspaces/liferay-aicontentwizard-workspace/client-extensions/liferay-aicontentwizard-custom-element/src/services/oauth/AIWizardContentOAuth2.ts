@@ -8,16 +8,14 @@ import OAuth2Client from './OAuth2Client';
 
 export default class AIWizardContentOAuth2 extends OAuth2Client {
 	constructor() {
-		super(
-			'liferay-aicontentwizard-etc-spring-boot-oauth-application-user-agent'
-		);
+		super('liferay-aicontentwizard-etc-spring-boot-oaua');
 	}
 
 	async deleteSetting(id: number) {
 		return this.fetch(`/settings/${id}`, {method: 'DELETE'});
 	}
 
-	async fetch(url: string, options?: FetchRequestInit) {
+	async fetch(url: string, options?: RequestInit) {
 		return this.oAuth2Client.fetch(url, {
 			...options,
 			headers: {
@@ -43,7 +41,9 @@ export default class AIWizardContentOAuth2 extends OAuth2Client {
 	}
 
 	async getSetting(id: string): Promise<any> {
-		return this.fetch(`/settings/${id}`);
+		const response = await this.fetch(`/settings/${id}`);
+
+		return response.json();
 	}
 
 	async getSettings(): Promise<any> {

@@ -38,7 +38,7 @@ import com.liferay.frontend.taglib.clay.servlet.taglib.util.NavigationItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.NavigationItemList;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.ViewTypeItem;
 import com.liferay.frontend.taglib.clay.servlet.taglib.util.ViewTypeItemList;
-import com.liferay.frontend.taglib.servlet.taglib.util.EmptyResultMessageKeys;
+import com.liferay.frontend.taglib.servlet.taglib.util.AnimationType;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMapFactory;
 import com.liferay.petra.function.UnsafeConsumer;
@@ -67,18 +67,18 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.portlet.PortletException;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -107,20 +107,6 @@ public class DDMDataProviderDisplayContext {
 
 		_ddmDataProviderRequestHelper = new DDMDataProviderRequestHelper(
 			renderRequest);
-	}
-
-	public DDMDataProviderInstance fetchDataProviderInstance()
-		throws PortalException {
-
-		if (_ddmDataProviderInstance != null) {
-			return _ddmDataProviderInstance;
-		}
-
-		_ddmDataProviderInstance =
-			_ddmDataProviderInstanceService.fetchDataProviderInstance(
-				ParamUtil.getLong(_renderRequest, "dataProviderInstanceId"));
-
-		return _ddmDataProviderInstance;
 	}
 
 	public List<DropdownItem> getActionItemsDropdownItems() {
@@ -159,12 +145,32 @@ public class DDMDataProviderDisplayContext {
 		};
 	}
 
+	public DDMDataProviderInstance getDataProviderInstance()
+		throws PortalException {
+
+		if (_ddmDataProviderInstance != null) {
+			return _ddmDataProviderInstance;
+		}
+
+		long dataProviderInstanceId = ParamUtil.getLong(
+			_renderRequest, "dataProviderInstanceId");
+
+		if (dataProviderInstanceId > 0) {
+			_ddmDataProviderInstance =
+				_ddmDataProviderInstanceService.getDataProviderInstance(
+					dataProviderInstanceId);
+		}
+
+		return _ddmDataProviderInstance;
+	}
+
 	public String getDataProviderInstanceDDMFormHTML() throws PortalException {
 		DDMDataProviderInstance ddmDataProviderInstance =
-			fetchDataProviderInstance();
+			getDataProviderInstance();
 
 		String type = BeanParamUtil.getString(
-			ddmDataProviderInstance, _renderRequest, "type");
+			ddmDataProviderInstance, _renderRequest, "type",
+			DDMDataProviderInstance::getType);
 
 		DDMDataProvider ddmDataProvider =
 			_ddmDataProviderRegistry.getDDMDataProvider(type);
@@ -198,7 +204,7 @@ public class DDMDataProviderDisplayContext {
 
 	public String getDataProviderInstanceDescription() throws PortalException {
 		DDMDataProviderInstance ddmDataProviderInstance =
-			fetchDataProviderInstance();
+			getDataProviderInstance();
 
 		if (ddmDataProviderInstance == null) {
 			return StringPool.BLANK;
@@ -210,7 +216,7 @@ public class DDMDataProviderDisplayContext {
 
 	public String getDataProviderInstanceName() throws PortalException {
 		DDMDataProviderInstance ddmDataProviderInstance =
-			fetchDataProviderInstance();
+			getDataProviderInstance();
 
 		if (ddmDataProviderInstance == null) {
 			return StringPool.BLANK;
@@ -241,14 +247,12 @@ public class DDMDataProviderDisplayContext {
 		};
 	}
 
-	public EmptyResultMessageKeys.AnimationType
-		getEmptyResultMessageAnimationType() {
-
+	public AnimationType getEmptyResultMessageAnimationType() {
 		if (_isSearch()) {
-			return EmptyResultMessageKeys.AnimationType.SUCCESS;
+			return AnimationType.SUCCESS;
 		}
 
-		return EmptyResultMessageKeys.AnimationType.EMPTY;
+		return AnimationType.EMPTY;
 	}
 
 	public String getEmptyResultMessageDescription() {
@@ -679,11 +683,7 @@ public class DDMDataProviderDisplayContext {
 	}
 
 	private boolean _isSearch() {
-		if (Validator.isNotNull(_getKeywords())) {
-			return true;
-		}
-
-		return false;
+		return Validator.isNotNull(_getKeywords());
 	}
 
 	private boolean _isShowAddDataProviderButton() {
@@ -732,7 +732,8 @@ public class DDMDataProviderDisplayContext {
 		BundleContext bundleContext = bundle.getBundleContext();
 
 		_serviceTrackerMap = ServiceTrackerMapFactory.openSingleValueMap(
-			bundleContext, DDMDataProviderDisplay.class, "javax.portlet.name");
+			bundleContext, DDMDataProviderDisplay.class,
+			"jakarta.portlet.name");
 	}
 
 	private DDMDataProviderInstance _ddmDataProviderInstance;

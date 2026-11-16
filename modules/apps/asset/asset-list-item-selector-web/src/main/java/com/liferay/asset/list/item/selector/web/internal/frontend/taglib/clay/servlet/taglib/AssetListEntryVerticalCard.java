@@ -15,9 +15,9 @@ import com.liferay.portal.kernel.dao.search.RowChecker;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.util.List;
+import jakarta.portlet.RenderRequest;
 
-import javax.portlet.RenderRequest;
+import java.util.List;
 
 /**
  * @author Eudaldo Alonso
@@ -60,11 +60,11 @@ public class AssetListEntryVerticalCard extends BaseVerticalCard {
 
 	@Override
 	public List<LabelItem> getLabels() {
-		int assetListEntrySegmentsEntryRelsCount =
+		int assetListEntryVariationsCount =
 			_assetListEntryItemSelectorDisplayContext.
-				getAssetListEntrySegmentsEntryRelsCount(_assetListEntry);
+				getAssetListEntryVariationsCount(_assetListEntry);
 
-		if (assetListEntrySegmentsEntryRelsCount > 0) {
+		if (assetListEntryVariationsCount > 0) {
 			return LabelItemListBuilder.add(
 				labelItem -> {
 					labelItem.setDisplayType("info");
@@ -72,8 +72,7 @@ public class AssetListEntryVerticalCard extends BaseVerticalCard {
 						LanguageUtil.format(
 							themeDisplay.getLocale(), "x-variations",
 							new String[] {
-								String.valueOf(
-									assetListEntrySegmentsEntryRelsCount)
+								String.valueOf(assetListEntryVariationsCount)
 							}));
 				}
 			).build();

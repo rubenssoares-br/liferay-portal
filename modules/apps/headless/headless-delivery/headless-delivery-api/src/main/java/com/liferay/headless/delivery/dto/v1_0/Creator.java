@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents the user account of the content's creator/author. Properties follow the [creator](https://schema.org/creator) specification.",
 	value = "Creator"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents the user account of the content's creator/author. Properties follow the [creator](https://schema.org/creator) specification."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Creator")
@@ -53,7 +57,9 @@ public class Creator implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Creator.class, json);
 	}
 
-	@Schema(description = "The author's additional name (e.g., middle name).")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The author's additional name (e.g., middle name)."
+	)
 	public String getAdditionalName() {
 		if (_additionalNameSupplier != null) {
 			additionalName = _additionalNameSupplier.get();
@@ -96,7 +102,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _additionalNameSupplier;
 
-	@Schema(description = "The type of the content.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The type of the content."
+	)
 	public String getContentType() {
 		if (_contentTypeSupplier != null) {
 			contentType = _contentTypeSupplier.get();
@@ -137,7 +145,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentTypeSupplier;
 
-	@Schema(description = "The external reference code of the author.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The external reference code of the author."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -178,7 +188,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The author's surname.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The author's surname."
+	)
 	public String getFamilyName() {
 		if (_familyNameSupplier != null) {
 			familyName = _familyNameSupplier.get();
@@ -219,7 +231,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _familyNameSupplier;
 
-	@Schema(description = "The author's first name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The author's first name."
+	)
 	public String getGivenName() {
 		if (_givenNameSupplier != null) {
 			givenName = _givenNameSupplier.get();
@@ -260,7 +274,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _givenNameSupplier;
 
-	@Schema(description = "The author's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The author's ID."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -299,7 +315,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "A relative URL to the author's profile image.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A relative URL to the author's profile image."
+	)
 	public String getImage() {
 		if (_imageSupplier != null) {
 			image = _imageSupplier.get();
@@ -340,7 +358,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _imageSupplier;
 
-	@Schema(description = "The author's full name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The author's full name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -379,7 +399,7 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A relative URL to the author's user profile. Optional field, can be embedded with nestedFields."
 	)
 	public String getProfileURL() {
@@ -424,7 +444,9 @@ public class Creator implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _profileURLSupplier;
 
-	@Schema(description = "A list of userGroups information.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of userGroups information."
+	)
 	@Valid
 	public UserGroupBrief[] getUserGroupBriefs() {
 		if (_userGroupBriefsSupplier != null) {
@@ -661,8 +683,8 @@ public class Creator implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.Creator",
 		name = "x-class-name"
 	)
@@ -749,6 +771,27 @@ public class Creator implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -757,3 +800,4 @@ public class Creator implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1854904449

@@ -90,9 +90,11 @@ public class CTOnDemandUserTicketGeneratorImpl
 		}
 
 		AuditMessage auditMessage = AuditMessageBuilder.buildAuditMessage(
+			"grant_on_demand_access", CTCollection.class.getName(),
+			ctCollectionId,
 			CTOnDemandUserConstants.
 				AUDIT_EVENT_TYPE_CT_ON_DEMAND_USER_TICKET_GENERATED,
-			CTCollection.class.getName(), ctCollectionId, null);
+			null, null);
 
 		auditMessage.setAdditionalInfo(
 			JSONUtil.put(
@@ -160,16 +162,16 @@ public class CTOnDemandUserTicketGeneratorImpl
 
 		if (group == null) {
 			group = _groupLocalService.addGroup(
-				ctCollection.getUserId(),
+				StringPool.BLANK, ctCollection.getUserId(),
 				GroupConstants.DEFAULT_PARENT_GROUP_ID,
 				CTCollection.class.getName(), ctCollection.getCtCollectionId(),
 				GroupConstants.DEFAULT_LIVE_GROUP_ID,
 				HashMapBuilder.put(
 					LocaleUtil.getDefault(), ctCollection.getName()
 				).build(),
-				null, GroupConstants.TYPE_SITE_PRIVATE, false,
+				null, GroupConstants.TYPE_SITE_PRIVATE, null, false,
 				GroupConstants.DEFAULT_MEMBERSHIP_RESTRICTION, null, false,
-				true, null);
+				false, true, null);
 		}
 
 		_userGroupRoleLocalService.addUserGroupRole(

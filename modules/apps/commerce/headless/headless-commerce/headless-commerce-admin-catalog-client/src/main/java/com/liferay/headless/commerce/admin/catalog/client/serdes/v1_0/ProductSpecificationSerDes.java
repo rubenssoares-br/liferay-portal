@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductSpecification;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -206,6 +207,16 @@ public class ProductSpecificationSerDes {
 			sb.append(_toJSON(productSpecification.getValue()));
 		}
 
+		if (productSpecification.getVisible() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"visible\": ");
+
+			sb.append(productSpecification.getVisible());
+		}
+
 		sb.append("}");
 
 		return sb.toString();
@@ -345,6 +356,14 @@ public class ProductSpecificationSerDes {
 			map.put("value", String.valueOf(productSpecification.getValue()));
 		}
 
+		if (productSpecification.getVisible() == null) {
+			map.put("visible", null);
+		}
+		else {
+			map.put(
+				"visible", String.valueOf(productSpecification.getVisible()));
+		}
+
 		return map;
 	}
 
@@ -409,6 +428,9 @@ public class ProductSpecificationSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "value")) {
 				return true;
+			}
+			else if (Objects.equals(jsonParserFieldName, "visible")) {
+				return false;
 			}
 
 			return false;
@@ -504,6 +526,12 @@ public class ProductSpecificationSerDes {
 						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "visible")) {
+				if (jsonParserFieldValue != null) {
+					productSpecification.setVisible(
+						(Boolean)jsonParserFieldValue);
+				}
+			}
 		}
 
 	}
@@ -549,6 +577,16 @@ public class ProductSpecificationSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -581,3 +619,4 @@ public class ProductSpecificationSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1060164907

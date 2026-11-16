@@ -1,4 +1,4 @@
-@import 'atlas-variables';
+@import 'atlas-custom-properties/_variables';
 
 .lfr-objects__card {
 	background-color: $white;
@@ -25,6 +25,10 @@
 		flex-direction: column;
 		gap: 1.5rem;
 		padding: 1.5rem;
+
+		.alert {
+			margin-bottom: 0;
+		}
 
 		&--inline {
 			align-items: center;

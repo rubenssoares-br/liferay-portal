@@ -12,7 +12,7 @@ String redirect = ParamUtil.getString(request, "redirect");
 
 Repository repository = (Repository)request.getAttribute(WebKeys.DOCUMENT_LIBRARY_REPOSITORY);
 
-long repositoryId = BeanParamUtil.getLong(repository, request, "repositoryId");
+long repositoryId = BeanParamUtil.getLong(repository, request, "repositoryId", Repository::getRepositoryId);
 
 long folderId = ParamUtil.getLong(request, "folderId");
 
@@ -26,6 +26,7 @@ renderResponse.setTitle(headerTitle);
 
 <clay:container-fluid
 	cssClass="container-form-lg"
+	size="lg"
 >
 	<portlet:actionURL name="/document_library/edit_repository" var="editRepositoryURL">
 		<portlet:param name="mvcRenderCommandName" value="/document_library/edit_repository" />

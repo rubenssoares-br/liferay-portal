@@ -6,6 +6,10 @@
 package com.liferay.layout.page.template.admin.web.internal.portlet.action.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.blogs.model.BlogsEntry;
+import com.liferay.fragment.model.FragmentEntryLink;
+import com.liferay.fragment.service.FragmentEntryLinkLocalService;
+import com.liferay.layout.page.template.admin.web.internal.portlet.constants.LayoutPageTemplateAdminWebPortletKeys;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateCollectionTypeConstants;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateConstants;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
@@ -13,10 +17,14 @@ import com.liferay.layout.page.template.model.LayoutPageTemplateCollection;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateCollectionLocalService;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
+import com.liferay.layout.page.template.test.util.DisplayPageTemplateTestUtil;
+import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutSet;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
@@ -24,6 +32,7 @@ import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -36,6 +45,7 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
@@ -43,9 +53,11 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import javax.portlet.ActionRequest;
+import jakarta.portlet.ActionRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,9 +98,21 @@ public class
 				null, TestPropsValues.getUserId(), _group.getGroupId(),
 				LayoutPageTemplateConstants.
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-				StringUtil.randomString(),
+				null, StringUtil.randomString(),
 				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT, 0,
 				WorkflowConstants.STATUS_DRAFT, _serviceContext);
+
+		Layout layout = _layoutLocalService.getLayout(
+			_layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		ContentLayoutTestUtil.addPortletToLayout(
+			draftLayout,
+			LayoutPageTemplateAdminWebPortletKeys.
+				LAYOUT_PAGE_TEMPLATE_ADMIN_WEB_TEST_PORTLET);
+
+		ContentLayoutTestUtil.publishLayout(draftLayout, layout);
 
 		ServiceContextThreadLocal.pushServiceContext(_serviceContext);
 	}
@@ -108,18 +132,15 @@ public class
 					null, TestPropsValues.getUserId(), _group.getGroupId(),
 					LayoutPageTemplateConstants.
 						PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-					StringUtil.randomString(), StringPool.BLANK,
+					null, StringUtil.randomString(), StringPool.BLANK,
 					LayoutPageTemplateCollectionTypeConstants.DISPLAY_PAGE,
 					_serviceContext);
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
-			_layoutPageTemplateEntryLocalService.addLayoutPageTemplateEntry(
-				null, TestPropsValues.getUserId(), _group.getGroupId(),
-				LayoutPageTemplateConstants.
-					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
-				StringUtil.randomString(),
-				LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE, 0,
-				WorkflowConstants.STATUS_DRAFT, _serviceContext);
+			DisplayPageTemplateTestUtil.addDisplayPageTemplate(
+				_group.getGroupId(),
+				_portal.getClassNameId(BlogsEntry.class.getName()), null, false,
+				WorkflowConstants.STATUS_DRAFT);
 
 		_mvcActionCommand.processAction(
 			_getMockLiferayPortletActionRequest(
@@ -150,6 +171,7 @@ public class
 	}
 
 	@Test
+	@TestInfo("LPD-66116")
 	public void testCopyLayoutPageTemplateEntryMasterLayout() throws Exception {
 		Assert.assertNull(
 			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
@@ -167,13 +189,53 @@ public class
 				}),
 			new MockLiferayPortletActionResponse());
 
-		Assert.assertNotNull(
+		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryLocalService.fetchLayoutPageTemplateEntry(
 				_group.getGroupId(),
 				LayoutPageTemplateConstants.
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT,
 				_getName(_layoutPageTemplateEntry.getName()),
-				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT));
+				LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT);
+
+		Assert.assertNotNull(layoutPageTemplateEntry);
+
+		List<FragmentEntryLink> sourceFragmentEntryLinks =
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
+				_layoutPageTemplateEntry.getGroupId(),
+				_layoutPageTemplateEntry.getPlid());
+
+		Layout layout = _layoutLocalService.getLayout(
+			layoutPageTemplateEntry.getPlid());
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		List<FragmentEntryLink> targetFragmentEntryLinks =
+			_fragmentEntryLinkLocalService.getFragmentEntryLinksByPlid(
+				layoutPageTemplateEntry.getGroupId(), draftLayout.getPlid());
+
+		Assert.assertEquals(
+			targetFragmentEntryLinks.toString(),
+			sourceFragmentEntryLinks.size(), targetFragmentEntryLinks.size());
+
+		FragmentEntryLink sourceFragmentEntryLink =
+			sourceFragmentEntryLinks.get(0);
+
+		JSONObject sourceEditableValuesJSONObject =
+			sourceFragmentEntryLink.getEditableValuesJSONObject();
+
+		FragmentEntryLink targetFragmentEntryLink =
+			targetFragmentEntryLinks.get(0);
+
+		JSONObject targetEditableValuesJSONObject =
+			targetFragmentEntryLink.getEditableValuesJSONObject();
+
+		Assert.assertNotNull(targetEditableValuesJSONObject.get("instanceId"));
+		Assert.assertNotEquals(
+			sourceEditableValuesJSONObject.get("instanceId"),
+			targetEditableValuesJSONObject.get("instanceId"));
+		Assert.assertEquals(
+			sourceEditableValuesJSONObject.get("portletId"),
+			targetEditableValuesJSONObject.get("portletId"));
 	}
 
 	@Test
@@ -278,7 +340,7 @@ public class
 					PARENT_LAYOUT_PAGE_TEMPLATE_COLLECTION_ID_DEFAULT));
 
 		mockLiferayPortletActionRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletActionResponse());
 		mockLiferayPortletActionRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, _getThemeDisplay());
@@ -297,7 +359,7 @@ public class
 		HttpServletRequest httpServletRequest = new MockHttpServletRequest();
 
 		httpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletActionResponse());
 
 		ServiceContext serviceContext =
@@ -332,6 +394,9 @@ public class
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
+	@Inject
+	private FragmentEntryLinkLocalService _fragmentEntryLinkLocalService;
+
 	@DeleteAfterTestRun
 	private Group _group;
 
@@ -352,6 +417,9 @@ public class
 		filter = "mvc.command.name=/layout_page_template_admin/copy_layout_page_template_entries_and_layout_page_template_collections"
 	)
 	private MVCActionCommand _mvcActionCommand;
+
+	@Inject
+	private Portal _portal;
 
 	private ServiceContext _serviceContext;
 

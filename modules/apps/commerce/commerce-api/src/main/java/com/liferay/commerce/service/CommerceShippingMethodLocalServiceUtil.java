@@ -272,28 +272,18 @@ public class CommerceShippingMethodLocalServiceUtil {
 		return getService().fetchCommerceShippingMethod(groupId, engineKey);
 	}
 
+	public static CommerceShippingMethod
+		fetchCommerceShippingMethodByExternalReferenceCode(
+			String externalReferenceCode, long companyId) {
+
+		return getService().fetchCommerceShippingMethodByExternalReferenceCode(
+			externalReferenceCode, companyId);
+	}
+
 	public static com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
 		getActionableDynamicQuery() {
 
 		return getService().getActionableDynamicQuery();
-	}
-
-	public static List<com.liferay.commerce.model.CommerceAddressRestriction>
-		getCommerceAddressRestrictions(
-			long commerceShippingMethodId, int start, int end,
-			OrderByComparator
-				<com.liferay.commerce.model.CommerceAddressRestriction>
-					orderByComparator) {
-
-		return getService().getCommerceAddressRestrictions(
-			commerceShippingMethodId, start, end, orderByComparator);
-	}
-
-	public static int getCommerceAddressRestrictionsCount(
-		long commerceShippingMethodId) {
-
-		return getService().getCommerceAddressRestrictionsCount(
-			commerceShippingMethodId);
 	}
 
 	/**
@@ -308,6 +298,15 @@ public class CommerceShippingMethodLocalServiceUtil {
 		throws PortalException {
 
 		return getService().getCommerceShippingMethod(commerceShippingMethodId);
+	}
+
+	public static CommerceShippingMethod
+			getCommerceShippingMethodByExternalReferenceCode(
+				String externalReferenceCode, long companyId)
+		throws PortalException {
+
+		return getService().getCommerceShippingMethodByExternalReferenceCode(
+			externalReferenceCode, companyId);
 	}
 
 	/**
@@ -357,10 +356,6 @@ public class CommerceShippingMethodLocalServiceUtil {
 	 */
 	public static int getCommerceShippingMethodsCount() {
 		return getService().getCommerceShippingMethodsCount();
-	}
-
-	public static int getCommerceShippingMethodsCount(long groupId) {
-		return getService().getCommerceShippingMethodsCount(groupId);
 	}
 
 	public static int getCommerceShippingMethodsCount(
@@ -440,3 +435,4 @@ public class CommerceShippingMethodLocalServiceUtil {
 			CommerceShippingMethodLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2030541338

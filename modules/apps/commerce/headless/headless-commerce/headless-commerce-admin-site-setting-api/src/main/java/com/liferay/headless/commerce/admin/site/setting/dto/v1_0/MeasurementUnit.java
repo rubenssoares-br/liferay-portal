@@ -11,38 +11,45 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("MeasurementUnit")
+@GraphQLName(
+	description = "Unit of measure used by SKUs and shipping rules. Each unit belongs to one category (dimensions, weight, or units), declares a conversion `rate` against the primary unit of its category, and optionally carries the `primary` flag that marks the base unit. Records are company-scoped.",
+	value = "MeasurementUnit"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Unit of measure used by SKUs and shipping rules. Each unit belongs to one category (dimensions, weight, or units), declares a conversion `rate` against the primary unit of its category, and optionally carries the `primary` flag that marks the base unit. Records are company-scoped.",
+	requiredProperties = {"key", "name", "type"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"key", "name", "type"})
 @XmlRootElement(name = "MeasurementUnit")
 public class MeasurementUnit implements Serializable {
 
@@ -55,7 +62,10 @@ public class MeasurementUnit implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the company that owns the unit (FK identifier). Read-only; inferred from the authenticated user on create.",
+		example = "30130"
+	)
 	public Long getCompanyId() {
 		if (_companyIdSupplier != null) {
 			companyId = _companyIdSupplier.get();
@@ -89,14 +99,19 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the company that owns the unit (FK identifier). Read-only; inferred from the authenticated user on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long companyId;
 
 	@JsonIgnore
 	private Supplier<Long> _companyIdSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per measurement unit within the company. Accepted in place of the numeric identifier on the matching by-external-reference-code endpoints.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -130,7 +145,9 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per measurement unit within the company. Accepted in place of the numeric identifier on the matching by-external-reference-code endpoints."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -138,7 +155,10 @@ public class MeasurementUnit implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Server-assigned identifier. Read-only; set when the record is first persisted.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -170,14 +190,19 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Server-assigned identifier. Read-only; set when the record is first persisted."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "kg")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable, locale-independent string identifier. Required on create; must be unique per company, and used as an alternative addressing scheme to the numeric identifier on the matching by-key endpoints.",
+		example = "kg"
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -209,7 +234,9 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Stable, locale-independent string identifier. Required on create; must be unique per company, and used as an alternative addressing scheme to the numeric identifier on the matching by-key endpoints."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String key;
@@ -217,7 +244,10 @@ public class MeasurementUnit implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(example = "{en_US=Croatia, hr_HR=Hrvatska, hu_HU=Horvatorszag}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized human-readable name shown in the back office. Map keys are locale codes; values are the translated strings. Required on create.",
+		example = "{en_US=Kilogram, hr_HR=Kilogram, hu_HU=Kilogramm}"
+	)
 	@Valid
 	public Map<String, String> getName() {
 		if (_nameSupplier != null) {
@@ -252,7 +282,9 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized human-readable name shown in the back office. Map keys are locale codes; values are the translated strings. Required on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> name;
@@ -260,7 +292,10 @@ public class MeasurementUnit implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _nameSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, marks this unit as the base unit of its category; the primary unit has a `rate` of 1 and every other unit's `rate` is expressed against it. Setting this to true forces the `rate` to 1 and demotes any previously primary unit of the same category.",
+		example = "true"
+	)
 	public Boolean getPrimary() {
 		if (_primarySupplier != null) {
 			primary = _primarySupplier.get();
@@ -294,7 +329,9 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, marks this unit as the base unit of its category; the primary unit has a `rate` of 1 and every other unit's `rate` is expressed against it. Setting this to true forces the `rate` to 1 and demotes any previously primary unit of the same category."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean primary;
 
@@ -302,7 +339,10 @@ public class MeasurementUnit implements Serializable {
 	private Supplier<Boolean> _primarySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display ordering hint used when listing units of the same category; lower values appear first. Defaults to 0 when omitted.",
+		example = "1.1"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -336,7 +376,9 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display ordering hint used when listing units of the same category; lower values appear first. Defaults to 0 when omitted."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
@@ -344,7 +386,10 @@ public class MeasurementUnit implements Serializable {
 	private Supplier<Double> _prioritySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Conversion factor against the `primary` unit of the same category; the `primary` unit always has a rate of 1, and every other unit's rate expresses how many primary units one of this unit represents.",
+		example = "1"
+	)
 	public Double getRate() {
 		if (_rateSupplier != null) {
 			rate = _rateSupplier.get();
@@ -376,14 +421,19 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Conversion factor against the `primary` unit of the same category; the `primary` unit always has a rate of 1, and every other unit's rate expresses how many primary units one of this unit represents."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double rate;
 
 	@JsonIgnore
 	private Supplier<Double> _rateSupplier;
 
-	@Schema(example = "Dimensions")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Category of the unit. Integer mapping is `0`=`Dimensions`, `1`=`Weight`, `2`=`Unit`. Accepted on input either as the integer code or as the matching human label. Required on create.",
+		example = "Dimensions"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -415,7 +465,9 @@ public class MeasurementUnit implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Category of the unit. Integer mapping is `0`=`Dimensions`, `1`=`Weight`, `2`=`Unit`. Accepted on input either as the integer code or as the matching human label. Required on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String type;
@@ -575,8 +627,8 @@ public class MeasurementUnit implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.site.setting.dto.v1_0.MeasurementUnit",
 		name = "x-class-name"
 	)
@@ -663,6 +715,27 @@ public class MeasurementUnit implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -671,3 +744,4 @@ public class MeasurementUnit implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-101045733

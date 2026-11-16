@@ -15,6 +15,7 @@ import com.liferay.exportimport.test.util.exportimport.data.handler.DummyFolderS
 import com.liferay.exportimport.test.util.lar.BaseStagedModelDataHandlerTestCase;
 import com.liferay.exportimport.test.util.model.DummyFolder;
 import com.liferay.exportimport.test.util.model.util.DummyFolderTestUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.Group;
@@ -132,12 +133,16 @@ public class DummyFolderStagedModelDataHandlerTest
 	@Override
 	@Test
 	public void testCleanStagedModelDataHandler() throws Exception {
-		try {
-			_dummyFolderStagedModelDataHandler.setEnabled(true);
+		try (SafeCloseable safeCloseable =
+				_dummyFolderStagedModelDataHandler.setEnabledWithSafeCloseable(
+					true)) {
 
 			super.testCleanStagedModelDataHandler();
+		}
 
-			_dummyFolderStagedModelDataHandler.setEnabled(false);
+		try (SafeCloseable safeCloseable1 =
+				_dummyFolderStagedModelDataHandler.setEnabledWithSafeCloseable(
+					false)) {
 
 			initExport();
 
@@ -148,7 +153,6 @@ public class DummyFolderStagedModelDataHandlerTest
 				stagingGroup, dependentStagedModelsMap);
 
 			addComments(stagedModel);
-
 			addRatings(stagedModel);
 
 			StagedModelDataHandlerUtil.exportStagedModel(
@@ -157,18 +161,15 @@ public class DummyFolderStagedModelDataHandlerTest
 			validateExport(
 				portletDataContext, stagedModel, dependentStagedModelsMap);
 
-			initImport();
+			try (SafeCloseable safeCloseable2 = initImportWithSafeCloseable()) {
+				deleteStagedModel(
+					stagedModel, dependentStagedModelsMap, stagingGroup);
 
-			deleteStagedModel(
-				stagedModel, dependentStagedModelsMap, stagingGroup);
+				StagedModel exportedStagedModel = readExportedStagedModel(
+					stagedModel);
 
-			StagedModel exportedStagedModel = readExportedStagedModel(
-				stagedModel);
-
-			Assert.assertNull(exportedStagedModel);
-		}
-		finally {
-			_dummyFolderStagedModelDataHandler.setEnabled(false);
+				Assert.assertNull(exportedStagedModel);
+			}
 		}
 	}
 
@@ -206,12 +207,12 @@ public class DummyFolderStagedModelDataHandlerTest
 
 			addDefaultStagedModel(liveGroup, secondDependentStagedModelsMap);
 
-			initImport();
+			try (SafeCloseable safeCloseable = initImportWithSafeCloseable()) {
+				StagedModel exportedStagedModel = readExportedStagedModel(
+					stagedModel);
 
-			StagedModel exportedStagedModel = readExportedStagedModel(
-				stagedModel);
-
-			Assert.assertNull(exportedStagedModel);
+				Assert.assertNull(exportedStagedModel);
+			}
 		}
 		finally {
 			_dummyFolderStagedModelDataHandler.setEnabled(false);
@@ -246,12 +247,12 @@ public class DummyFolderStagedModelDataHandlerTest
 			validateExport(
 				portletDataContext, stagedModel, dependentStagedModelsMap);
 
-			initImport();
+			try (SafeCloseable safeCloseable = initImportWithSafeCloseable()) {
+				StagedModel exportedStagedModel = readExportedStagedModel(
+					stagedModel);
 
-			StagedModel exportedStagedModel = readExportedStagedModel(
-				stagedModel);
-
-			Assert.assertNull(exportedStagedModel);
+				Assert.assertNull(exportedStagedModel);
+			}
 		}
 		finally {
 			_dummyFolderStagedModelDataHandler.setEnabled(false);

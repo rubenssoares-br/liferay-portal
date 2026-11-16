@@ -7,12 +7,20 @@ import ClayDatePicker from '@clayui/date-picker';
 import ClayForm from '@clayui/form';
 import ClayLayout from '@clayui/layout';
 import classNames from 'classnames';
-import {format, getYear, isBefore, isEqual, parseISO} from 'date-fns';
+import {dateUtils} from 'frontend-js-web';
 import React, {useEffect, useState} from 'react';
 
 import {IDateFilter, IField, IFilter} from '../../../utils/types';
 import Configuration from './Configuration';
 import Footer from './Footer';
+
+// This is the admin form that defines a date range filter, and it deliberately
+// keeps the locale independent "yyyy-MM-dd" layout of the stored value. The
+// widget that renders the filter for the end user is a different component,
+// frontend-data-set-web's management_bar/controls/filters/implementation/
+// DateTimeRangeFilter.tsx, which accepts and displays dates in the viewer
+// locale format instead. Do not take the format used here as evidence of what
+// the end user sees.
 
 function Header() {
 	return <>{Liferay.Language.get('new-date-range-filter')}</>;
@@ -53,12 +61,18 @@ function Body({
 	);
 	const [from, setFrom] = useState<string>(
 		filter && (filter as IDateFilter)?.from
-			? format(parseISO((filter as IDateFilter)?.from), 'yyyy-MM-dd')
+			? dateUtils.format(
+					new Date((filter as IDateFilter)?.from),
+					'yyyy-MM-dd'
+				)
 			: ''
 	);
 	const [to, setTo] = useState<string>(
 		filter && (filter as IDateFilter)?.to
-			? format(parseISO((filter as IDateFilter)?.to), 'yyyy-MM-dd')
+			? dateUtils.format(
+					new Date((filter as IDateFilter)?.to),
+					'yyyy-MM-dd'
+				)
 			: ''
 	);
 	const [isValidDateRange, setIsValidDateRange] = useState<boolean>(true);
@@ -74,7 +88,8 @@ function Body({
 		const dateFrom = new Date(from);
 
 		if (to && from) {
-			isValid = isBefore(dateFrom, dateTo) || isEqual(dateFrom, dateTo);
+			isValid =
+				dateFrom < dateTo || dateFrom.getTime() === dateTo.getTime();
 		}
 
 		setIsValidDateRange(isValid);
@@ -125,7 +140,7 @@ function Body({
 
 		if (to && from) {
 			const isValidRange =
-				isBefore(dateFrom, dateTo) || isEqual(dateFrom, dateTo);
+				dateFrom < dateTo || dateFrom.getTime() === dateTo.getTime();
 
 			setIsValidDateRange(isValidRange);
 
@@ -148,7 +163,7 @@ function Body({
 				from,
 				label_i18n: i18nFilterLabels,
 				to,
-				type: selectedField?.format,
+				type: selectedField?.format ?? selectedField?.type,
 			};
 
 			onSave(formData);
@@ -200,16 +215,49 @@ function Body({
 							</label>
 
 							<ClayDatePicker
+								ariaLabels={{
+									buttonChooseDate: `${Liferay.Language.get(
+										'select-date'
+									)}`,
+									buttonDot: `${Liferay.Language.get(
+										'select-current-date'
+									)}`,
+									buttonNextMonth: `${Liferay.Language.get(
+										'select-next-month'
+									)}`,
+									buttonPreviousMonth: `${Liferay.Language.get(
+										'select-previous-month'
+									)}`,
+									dialog: `${Liferay.Language.get('select-date')}`,
+									selectMonth: `${Liferay.Language.get('select-a-month')}`,
+									selectYear: `${Liferay.Language.get('select-a-year')}`,
+								}}
 								dateFormat="yyyy-MM-dd"
+								firstDayOfWeek={dateUtils.getFirstDayOfWeek()}
 								inputName={fromFormElementId}
+								months={[
+									`${Liferay.Language.get('january')}`,
+									`${Liferay.Language.get('february')}`,
+									`${Liferay.Language.get('march')}`,
+									`${Liferay.Language.get('april')}`,
+									`${Liferay.Language.get('may')}`,
+									`${Liferay.Language.get('june')}`,
+									`${Liferay.Language.get('july')}`,
+									`${Liferay.Language.get('august')}`,
+									`${Liferay.Language.get('september')}`,
+									`${Liferay.Language.get('october')}`,
+									`${Liferay.Language.get('november')}`,
+									`${Liferay.Language.get('december')}`,
+								]}
 								onChange={(value: any) => {
 									setFrom(value);
 								}}
 								placeholder="YYYY-MM-DD"
 								value={from}
+								weekdaysShort={dateUtils.getWeekdaysShort()}
 								years={{
-									end: getYear(new Date()) + 25,
-									start: getYear(new Date()) - 50,
+									end: new Date().getFullYear() + 25,
+									start: new Date().getFullYear() - 50,
 								}}
 							/>
 
@@ -228,7 +276,7 @@ function Body({
 
 						<div className="form-group-item">
 							<label htmlFor={toFormElementId}>
-								{Liferay.Language.get('to')}
+								{Liferay.Language.get('to[date-time]')}
 							</label>
 
 							<ClayDatePicker
@@ -240,8 +288,8 @@ function Body({
 								placeholder="YYYY-MM-DD"
 								value={to}
 								years={{
-									end: getYear(new Date()) + 25,
-									start: getYear(new Date()) - 50,
+									end: new Date().getFullYear() + 25,
+									start: new Date().getFullYear() - 50,
 								}}
 							/>
 						</div>

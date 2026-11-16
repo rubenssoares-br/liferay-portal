@@ -4,8 +4,12 @@
  */
 
 import ClayButton from '@clayui/button';
-import {CommerceServiceProvider, commerceEvents} from 'commerce-frontend-js';
-import {openToast} from 'frontend-js-web';
+import {
+	CommerceServiceProvider,
+	RequestQuote,
+	commerceEvents,
+} from 'commerce-frontend-js';
+import {openModal, openToast} from 'frontend-js-components-web';
 import React, {useCallback, useEffect, useState} from 'react';
 
 import {handleOrderActionRedirect} from './orderActionRedirectHelper';
@@ -14,14 +18,19 @@ import {PAYMENT_METHOD_TYPE_OFFLINE, getOrder} from './util';
 function OrderActions({
 	checkoutURL,
 	isOpen,
+	isPriceOnApplication,
+	manageNotesPermission,
+	manageRestrictedNotesPermission,
 	namespace,
 	orderId,
 	orderSummaryURL,
+	quickCheckoutEnabled,
 	reorderURL,
 	viewReturnableOrderItemsURL,
 }) {
 	const [actions, setActions] = useState([]);
 	const [currentOrder, setCurrentOrder] = useState({});
+	const [errorMessage, setErrorMessage] = useState('');
 	const [open, setOpen] = useState(isOpen);
 
 	const getActions = useCallback(
@@ -33,24 +42,23 @@ function OrderActions({
 						.getOrderTransitionsById;
 
 			getTransitions(orderId)
-				.then((response) => {
-					const quickCheckoutTransition = response.items.find(
-						(item) => item.name === 'quick-checkout'
-					);
+				.then(({items: availableTransitions}) => {
+					let actions = availableTransitions;
 
-					let actions =
-						open && !quickCheckoutTransition
-							? [
-									...response.items,
-									{
-										disabled: true,
-										label: Liferay.Language.get(
-											'quick-checkout'
-										),
-										name: 'quick-checkout',
-									},
-								]
-							: response.items;
+					if (!isPriceOnApplication && quickCheckoutEnabled) {
+						const quickCheckoutTransition =
+							availableTransitions.find(
+								(item) => item.name === 'quick-checkout'
+							);
+
+						if (open && !quickCheckoutTransition) {
+							actions.push({
+								disabled: true,
+								label: Liferay.Language.get('quick-checkout'),
+								name: 'quick-checkout',
+							});
+						}
+					}
 
 					if (viewReturnableOrderItemsURL) {
 						actions = [
@@ -76,27 +84,62 @@ function OrderActions({
 					});
 				});
 		},
-		[orderId, open, viewReturnableOrderItemsURL]
+		[
+			isPriceOnApplication,
+			orderId,
+			open,
+			quickCheckoutEnabled,
+			viewReturnableOrderItemsURL,
+		]
 	);
 
-	useEffect(() => {
-		getOrder(open, null, orderId).then((order) => setCurrentOrder(order));
+	const refreshOrder = useCallback(() => {
+		getOrder(open, null, orderId).then((order) => {
+			setCurrentOrder(order);
+			setErrorMessage(order?.errorMessages?.[0] || '');
+		});
 	}, [open, orderId]);
+
+	useEffect(() => refreshOrder(), [refreshOrder]);
 
 	useEffect(() => getActions({}), [getActions]);
 
 	useEffect(() => {
-		Liferay.on(commerceEvents.CART_UPDATED, getActions);
-		Liferay.on(commerceEvents.ORDER_INFORMATION_ALTERED, getActions);
+		const refreshActionsAndOrder = (event) => {
+			getActions(event);
+
+			refreshOrder();
+		};
+
+		Liferay.on(commerceEvents.CART_UPDATED, refreshActionsAndOrder);
+		Liferay.on(
+			commerceEvents.ORDER_INFORMATION_ALTERED,
+			refreshActionsAndOrder
+		);
 
 		return () => {
-			Liferay.detach(commerceEvents.CART_UPDATED, getActions);
+			Liferay.detach(commerceEvents.CART_UPDATED, refreshActionsAndOrder);
 			Liferay.detach(
 				commerceEvents.ORDER_INFORMATION_ALTERED,
-				getActions
+				refreshActionsAndOrder
 			);
 		};
-	}, [getActions]);
+	}, [getActions, refreshOrder]);
+
+	useEffect(() => {
+		if (open && errorMessage) {
+			openModal({
+				bodyHTML: errorMessage,
+				center: true,
+				containerProps: {
+					className: 'commerce-modal',
+				},
+				size: 'md',
+				status: 'warning',
+				title: Liferay.Language.get('warning'),
+			});
+		}
+	}, [errorMessage, open]);
 
 	const onClick = (event, action) => {
 		event.preventDefault();
@@ -178,19 +221,41 @@ function OrderActions({
 
 	return (
 		<div className="align-items-center d-flex">
-			{actions.map((action) => (
-				<div key={action.name}>
-					<ClayButton
-						aria-label={action.label}
-						className="mx-1"
-						disabled={action?.disabled}
-						displayType="primary"
-						onClick={(event) => onClick(event, action)}
-					>
-						{action.label}
-					</ClayButton>
-				</div>
-			))}
+			{actions.map((action) => {
+				if (action.name === 'request-quote') {
+					return (
+						<RequestQuote
+							data={{
+								cartId: orderId,
+								createCart: false,
+								notesPermission: manageNotesPermission,
+								orderDetailURL: orderSummaryURL,
+								restrictedNotesPermission:
+									manageRestrictedNotesPermission,
+							}}
+							key={action.name}
+							style={{
+								displayType: 'primary',
+								size: 'md',
+							}}
+						/>
+					);
+				}
+
+				return (
+					<div key={action.name}>
+						<ClayButton
+							aria-label={action.label}
+							className="mx-1"
+							disabled={action?.disabled}
+							displayType="primary"
+							onClick={(event) => onClick(event, action)}
+						>
+							{action.label}
+						</ClayButton>
+					</div>
+				);
+			})}
 		</div>
 	);
 }

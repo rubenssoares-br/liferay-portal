@@ -7,7 +7,10 @@ import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
 import {TreeView as ClayTreeView} from '@clayui/core';
 import {ClayDropDownWithItems} from '@clayui/drop-down';
 import ClayIcon from '@clayui/icon';
-import {fetch, navigate, openModal, openToast, sub} from 'frontend-js-web';
+import ClayLabel from '@clayui/label';
+import {openConfirmModal} from '@liferay/layout-js-components-web';
+import {openModal, openToast} from 'frontend-js-components-web';
+import {fetch, navigate, sub} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useCallback, useEffect, useState} from 'react';
 
@@ -15,6 +18,7 @@ const ACTION_COPY_PAGE = 'copy-page';
 const ACTION_DELETE = 'delete';
 const ACTION_PERMISSIONS = 'permissions';
 const ENTER_KEYCODE = 13;
+const LAYOUT_TYPE_EMPTY = 'empty';
 const ROOT_ITEM_ID = '0';
 
 export default function PagesTree({
@@ -143,7 +147,6 @@ export default function PagesTree({
 		<div className="mx-3 pages-tree">
 			<ClayTreeView
 				defaultItems={items}
-				displayType="dark"
 				dragAndDrop={!config.stagingEnabled}
 				expandedKeys={new Set(expandedKeys)}
 				onExpandedChange={(keys) => {
@@ -176,6 +179,17 @@ PagesTree.propTypes = {
 	items: PropTypes.array.isRequired,
 	selectedLayoutId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
+
+function EmptyLabel() {
+	return (
+		<ClayLabel
+			className="bg-transparent flex-shrink-0 ml-2 mr-2"
+			displayType="warning"
+		>
+			{Liferay.Language.get('empty')}
+		</ClayLabel>
+	);
+}
 
 function TreeItem({
 	config,
@@ -253,10 +267,16 @@ function TreeItem({
 							target={item.target}
 						>
 							<span
-								className="icon-tooltip lfr-portal-tooltip text-truncate"
+								className="d-flex icon-tooltip lfr-portal-tooltip"
 								data-title={item.name}
 							>
-								{item.name}
+								<span className="text-truncate">
+									{item.name}
+								</span>
+
+								{item.type === LAYOUT_TYPE_EMPTY ? (
+									<EmptyLabel />
+								) : null}
 							</span>
 
 							{!item.hasGuestViewPermission ? (
@@ -279,7 +299,13 @@ function TreeItem({
 							) : null}
 						</a>
 					) : (
-						<span title={item.name}>{item.name}</span>
+						<span className="d-flex" title={item.name}>
+							<span className="text-truncate">{item.name}</span>
+
+							{item.type === LAYOUT_TYPE_EMPTY ? (
+								<EmptyLabel />
+							) : null}
+						</span>
 					)}
 				</div>
 			</ClayTreeView.ItemStack>
@@ -298,6 +324,9 @@ function TreeItem({
 									renderMenuOnClick
 									trigger={
 										<ClayButtonWithIcon
+											aria-label={Liferay.Language.get(
+												'actions'
+											)}
 											className="component-action quick-action-item"
 											displayType={null}
 											size="sm"
@@ -349,10 +378,16 @@ function TreeItem({
 									target={item.target}
 								>
 									<span
-										className="icon-tooltip lfr-portal-tooltip text-truncate"
+										className="d-flex icon-tooltip lfr-portal-tooltip"
 										data-title={item.name}
 									>
-										{item.name}
+										<span className="text-truncate">
+											{item.name}
+										</span>
+
+										{item.type === LAYOUT_TYPE_EMPTY ? (
+											<EmptyLabel />
+										) : null}
 									</span>
 
 									{!item.hasGuestViewPermission ? (
@@ -375,7 +410,15 @@ function TreeItem({
 									) : null}
 								</a>
 							) : (
-								<span title={item.name}>{item.name}</span>
+								<span className="d-flex" title={item.name}>
+									<span className="text-truncate">
+										{item.name}
+									</span>
+
+									{item.type === LAYOUT_TYPE_EMPTY ? (
+										<EmptyLabel />
+									) : null}
+								</span>
 							)}
 						</div>
 					</ClayTreeView.Item>
@@ -406,6 +449,35 @@ TreeItem.propTypes = {
 	selectedLayoutId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
 
+async function deleteLayout(url) {
+	try {
+		const response = await fetch(url, {method: 'post'});
+
+		const {errorMessage, redirectURL} = await response.json();
+
+		if (errorMessage) {
+			openErrorToast(errorMessage);
+
+			return;
+		}
+
+		openToast({
+			message: Liferay.Language.get(
+				'your-request-processed-successfully'
+			),
+			toastProps: {
+				autoClose: 5000,
+			},
+			type: 'success',
+		});
+
+		navigate(redirectURL);
+	}
+	catch (error) {
+		openErrorToast();
+	}
+}
+
 function normalizeActions(actions, namespace) {
 	return actions.map((group) => ({
 		...group,
@@ -418,69 +490,26 @@ function normalizeActions(actions, namespace) {
 				nextItem.onClick = (event) => {
 					event.preventDefault();
 
+					if (item.id === ACTION_DELETE) {
+						openConfirmModal({
+							blocking: true,
+							buttonLabel: Liferay.Language.get('delete'),
+							onConfirm: () => deleteLayout(item.data.url),
+							status: 'danger',
+							text: item.data.message,
+							title: item.data.modalTitle,
+						});
+
+						return;
+					}
+
 					let modalData = {
 						id: `${namespace}pagesTreeModal`,
 						title: item.data.modalTitle,
 						url: item.data.url,
 					};
 
-					if (item.id === ACTION_DELETE) {
-						delete modalData.url;
-
-						modalData = {
-							...modalData,
-							bodyHTML: item.data.message,
-							buttons: [
-								{
-									autoFocus: true,
-									displayType: 'secondary',
-									label: Liferay.Language.get('cancel'),
-									type: 'cancel',
-								},
-								{
-									displayType: 'danger',
-									label: Liferay.Language.get('delete'),
-									onClick: ({processClose}) => {
-										processClose();
-
-										fetch(item.data.url, {
-											method: 'post',
-										})
-											.then((response) => response.json())
-											.then(
-												({
-													errorMessage,
-													redirectURL,
-												}) => {
-													if (errorMessage) {
-														openErrorToast(
-															errorMessage
-														);
-													}
-													else {
-														openToast({
-															message:
-																Liferay.Language.get(
-																	'your-request-processed-successfully'
-																),
-															toastProps: {
-																autoClose: 5000,
-															},
-															type: 'success',
-														});
-
-														navigate(redirectURL);
-													}
-												}
-											)
-											.catch(() => openErrorToast());
-									},
-								},
-							],
-							status: 'danger',
-						};
-					}
-					else if (item.id === ACTION_COPY_PAGE) {
+					if (item.id === ACTION_COPY_PAGE) {
 						modalData = {
 							...modalData,
 							containerProps: {

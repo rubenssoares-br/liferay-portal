@@ -14,7 +14,6 @@ InformationTemplatesManagementToolbarDisplayContext informationTemplatesManageme
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems="<%= informationTemplatesTemplateDisplayContext.getNavigationItems() %>"
 />
 
@@ -36,7 +35,7 @@ InformationTemplatesManagementToolbarDisplayContext informationTemplatesManageme
 		>
 			<liferay-ui:search-container-row
 				className="com.liferay.template.model.TemplateEntry"
-				keyProperty="templateEntryId"
+				keyPropertyName="templateEntryId"
 				modelVar="templateEntry"
 			>
 

@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.Mapping;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -65,14 +66,7 @@ public class MappingSerDes {
 
 			sb.append("\"itemReference\": ");
 
-			if (mapping.getItemReference() instanceof String) {
-				sb.append("\"");
-				sb.append((String)mapping.getItemReference());
-				sb.append("\"");
-			}
-			else {
-				sb.append(mapping.getItemReference());
-			}
+			sb.append(String.valueOf(mapping.getItemReference()));
 		}
 
 		sb.append("}");
@@ -147,7 +141,9 @@ public class MappingSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "itemReference")) {
 				if (jsonParserFieldValue != null) {
-					mapping.setItemReference((Object)jsonParserFieldValue);
+					mapping.setItemReference(
+						FragmentMappedValueItemReferenceSerDes.toDTO(
+							(String)jsonParserFieldValue));
 				}
 			}
 		}
@@ -195,6 +191,16 @@ public class MappingSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -227,3 +233,4 @@ public class MappingSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2103547074

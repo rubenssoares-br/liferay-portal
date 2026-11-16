@@ -6,17 +6,22 @@
 package com.liferay.headless.admin.site.client.serdes.v1_0;
 
 import com.liferay.headless.admin.site.client.dto.v1_0.ContentPageSpecification;
+import com.liferay.headless.admin.site.client.dto.v1_0.EmbeddedPageSpecification;
+import com.liferay.headless.admin.site.client.dto.v1_0.LinkToPagePageSpecification;
+import com.liferay.headless.admin.site.client.dto.v1_0.LinkToURLPageSpecification;
+import com.liferay.headless.admin.site.client.dto.v1_0.PageSetPageSpecification;
 import com.liferay.headless.admin.site.client.dto.v1_0.PageSpecification;
 import com.liferay.headless.admin.site.client.dto.v1_0.WidgetPageSpecification;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -54,6 +59,26 @@ public class PageSpecificationSerDes {
 					(ContentPageSpecification)pageSpecification);
 			}
 
+			if (typeString.equals("EmbeddedPageSpecification")) {
+				return EmbeddedPageSpecificationSerDes.toJSON(
+					(EmbeddedPageSpecification)pageSpecification);
+			}
+
+			if (typeString.equals("LinkToPagePageSpecification")) {
+				return LinkToPagePageSpecificationSerDes.toJSON(
+					(LinkToPagePageSpecification)pageSpecification);
+			}
+
+			if (typeString.equals("LinkToURLPageSpecification")) {
+				return LinkToURLPageSpecificationSerDes.toJSON(
+					(LinkToURLPageSpecification)pageSpecification);
+			}
+
+			if (typeString.equals("PageSetPageSpecification")) {
+				return PageSetPageSpecificationSerDes.toJSON(
+					(PageSetPageSpecification)pageSpecification);
+			}
+
 			if (typeString.equals("WidgetPageSpecification")) {
 				return WidgetPageSpecificationSerDes.toJSON(
 					(WidgetPageSpecification)pageSpecification);
@@ -82,6 +107,15 @@ public class PageSpecificationSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
+		if (pageSpecification.getCustomFields() == null) {
+			map.put("customFields", null);
+		}
+		else {
+			map.put(
+				"customFields",
+				String.valueOf(pageSpecification.getCustomFields()));
+		}
+
 		if (pageSpecification.getExternalReferenceCode() == null) {
 			map.put("externalReferenceCode", null);
 		}
@@ -91,12 +125,25 @@ public class PageSpecificationSerDes {
 				String.valueOf(pageSpecification.getExternalReferenceCode()));
 		}
 
-		if (pageSpecification.getSettings() == null) {
-			map.put("settings", null);
+		if (pageSpecification.
+				getSiteTemplatePageSpecificationExternalReferenceCode() ==
+					null) {
+
+			map.put("siteTemplatePageSpecificationExternalReferenceCode", null);
 		}
 		else {
 			map.put(
-				"settings", String.valueOf(pageSpecification.getSettings()));
+				"siteTemplatePageSpecificationExternalReferenceCode",
+				String.valueOf(
+					pageSpecification.
+						getSiteTemplatePageSpecificationExternalReferenceCode()));
+		}
+
+		if (pageSpecification.getStatus() == null) {
+			map.put("status", null);
+		}
+		else {
+			map.put("status", String.valueOf(pageSpecification.getStatus()));
 		}
 
 		if (pageSpecification.getType() == null) {
@@ -124,10 +171,21 @@ public class PageSpecificationSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "externalReferenceCode")) {
+			if (Objects.equals(jsonParserFieldName, "customFields")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "settings")) {
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"siteTemplatePageSpecificationExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "status")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -150,6 +208,22 @@ public class PageSpecificationSerDes {
 					return ContentPageSpecification.toDTO(json);
 				}
 
+				if (typeString.equals("EmbeddedPageSpecification")) {
+					return EmbeddedPageSpecification.toDTO(json);
+				}
+
+				if (typeString.equals("LinkToPagePageSpecification")) {
+					return LinkToPagePageSpecification.toDTO(json);
+				}
+
+				if (typeString.equals("LinkToURLPageSpecification")) {
+					return LinkToURLPageSpecification.toDTO(json);
+				}
+
+				if (typeString.equals("PageSetPageSpecification")) {
+					return PageSetPageSpecification.toDTO(json);
+				}
+
 				if (typeString.equals("WidgetPageSpecification")) {
 					return WidgetPageSpecification.toDTO(json);
 				}
@@ -167,16 +241,49 @@ public class PageSpecificationSerDes {
 			PageSpecification pageSpecification, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "externalReferenceCode")) {
+			if (Objects.equals(jsonParserFieldName, "customFields")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.site.client.custom.field.
+						CustomField[] customFieldsArray = new
+						com.liferay.headless.admin.site.client.custom.field.
+							CustomField[jsonParserFieldValues.length];
+
+					for (int i = 0; i < customFieldsArray.length; i++) {
+						customFieldsArray[i] =
+							com.liferay.headless.admin.site.client.custom.field.
+								CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					pageSpecification.setCustomFields(customFieldsArray);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
 				if (jsonParserFieldValue != null) {
 					pageSpecification.setExternalReferenceCode(
 						(String)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "settings")) {
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"siteTemplatePageSpecificationExternalReferenceCode")) {
+
 				if (jsonParserFieldValue != null) {
-					pageSpecification.setSettings(
-						SettingsSerDes.toDTO((String)jsonParserFieldValue));
+					pageSpecification.
+						setSiteTemplatePageSpecificationExternalReferenceCode(
+							(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "status")) {
+				if (jsonParserFieldValue != null) {
+					pageSpecification.setStatus(
+						PageSpecification.Status.create(
+							(String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -231,6 +338,16 @@ public class PageSpecificationSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -263,3 +380,4 @@ public class PageSpecificationSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1206469687

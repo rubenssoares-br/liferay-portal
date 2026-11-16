@@ -16,6 +16,7 @@ import com.liferay.document.library.util.DLURLHelperUtil;
 import com.liferay.frontend.data.set.provider.FDSDataProvider;
 import com.liferay.frontend.data.set.provider.search.FDSKeywords;
 import com.liferay.frontend.data.set.provider.search.FDSPagination;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.repository.model.FileEntry;
@@ -23,10 +24,10 @@ import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.util.ArrayList;
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Collections;
+import java.util.List;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -47,8 +48,6 @@ public class CPDefinitionVirtualSettingFDSDataProvider
 			HttpServletRequest httpServletRequest, Sort sort)
 		throws PortalException {
 
-		List<VirtualFile> virtualFiles = new ArrayList<>();
-
 		String className = ParamUtil.getString(httpServletRequest, "className");
 		long classPK = ParamUtil.getLong(httpServletRequest, "classPK");
 
@@ -56,26 +55,21 @@ public class CPDefinitionVirtualSettingFDSDataProvider
 			_cpDefinitionVirtualSettingService.fetchCPDefinitionVirtualSetting(
 				className, classPK);
 
-		if (cpDefinitionVirtualSetting != null) {
-			for (CPDVirtualSettingFileEntry cpdVirtualSettingFileEntry :
-					_cpdVirtualSettingFileEntryService.
-						getCPDVirtualSettingFileEntries(
-							className, classPK,
-							cpDefinitionVirtualSetting.
-								getCPDefinitionVirtualSettingId(),
-							fdsPagination.getStartPosition(),
-							fdsPagination.getEndPosition())) {
-
-				virtualFiles.add(
-					new VirtualFile(
-						cpdVirtualSettingFileEntry.
-							getCPDefinitionVirtualSettingFileEntryId(),
-						_getURL(cpdVirtualSettingFileEntry),
-						cpdVirtualSettingFileEntry.getVersion()));
-			}
+		if (cpDefinitionVirtualSetting == null) {
+			return Collections.emptyList();
 		}
 
-		return virtualFiles;
+		return TransformUtil.transform(
+			_cpdVirtualSettingFileEntryService.getCPDVirtualSettingFileEntries(
+				className, classPK,
+				cpDefinitionVirtualSetting.getCPDefinitionVirtualSettingId(),
+				fdsPagination.getStartPosition(),
+				fdsPagination.getEndPosition()),
+			cpdVirtualSettingFileEntry -> new VirtualFile(
+				cpdVirtualSettingFileEntry.
+					getCPDefinitionVirtualSettingFileEntryId(),
+				_getURL(cpdVirtualSettingFileEntry),
+				cpdVirtualSettingFileEntry.getVersion()));
 	}
 
 	@Override

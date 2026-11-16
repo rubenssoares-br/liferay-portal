@@ -271,6 +271,12 @@ public class ObjectFieldSettingLocalServiceUtil {
 		return getService().getObjectFieldObjectFieldSettings(objectFieldId);
 	}
 
+	public static List<ObjectFieldSetting> getObjectFieldObjectFieldSettings(
+		com.liferay.object.model.ObjectField objectField) {
+
+		return getService().getObjectFieldObjectFieldSettings(objectField);
+	}
+
 	/**
 	 * Returns the object field setting with the primary key.
 	 *
@@ -379,3 +385,4 @@ public class ObjectFieldSettingLocalServiceUtil {
 			ObjectFieldSettingLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-773108997

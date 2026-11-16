@@ -35,9 +35,9 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.staging.StagingGroupHelper;
 import com.liferay.staging.StagingGroupHelperUtil;
 
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * @author Eudaldo Alonso
@@ -116,9 +116,9 @@ public class JournalDDMTemplateManagementToolbarDisplayContext
 		return CreationMenuBuilder.addPrimaryDropdownItem(
 			dropdownItem -> {
 				dropdownItem.setHref(
-					liferayPortletResponse.createRenderURL(), "mvcPath",
-					"/edit_ddm_template.jsp", "redirect",
-					themeDisplay.getURLCurrent(), "classPK",
+					liferayPortletResponse.createRenderURL(),
+					"mvcRenderCommandName", "/journal/edit_ddm_template",
+					"redirect", themeDisplay.getURLCurrent(), "classPK",
 					_journalDDMTemplateDisplayContext.getClassPK());
 				dropdownItem.setLabel(
 					LanguageUtil.format(

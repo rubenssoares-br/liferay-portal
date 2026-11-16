@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {openCreationModal} from '@liferay/layout-js-components-web';
 import {
-	getCheckedCheckboxes,
-	openSelectionModal,
-	setFormValues,
-} from 'frontend-js-web';
+	CreationModal,
+	openModalComponent,
+} from '@liferay/layout-js-components-web';
+import {openSelectionModal} from 'frontend-js-components-web';
+import {getCheckedCheckboxes, setFormValues} from 'frontend-js-web';
 
 import openDeletePageTemplateModal from '../commands/openDeletePageTemplateModal';
 
@@ -136,11 +136,14 @@ export default function propsTransformer({portletNamespace, ...otherProps}) {
 			const data = item?.data;
 
 			if (data?.action === 'addDisplayPageCollection') {
-				openCreationModal({
-					buttonLabel: Liferay.Language.get('create'),
-					formSubmitURL: data.addDisplayPageCollectionURL,
-					heading: Liferay.Language.get('new-folder'),
-					portletNamespace,
+				openModalComponent({
+					ModalComponent: CreationModal,
+					modalComponentProps: {
+						buttonLabel: Liferay.Language.get('create'),
+						formSubmitURL: data.addDisplayPageCollectionURL,
+						heading: Liferay.Language.get('new-folder'),
+						portletNamespace,
+					},
 				});
 			}
 		},

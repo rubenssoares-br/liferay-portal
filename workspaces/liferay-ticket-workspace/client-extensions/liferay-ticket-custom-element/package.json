@@ -1,12 +1,12 @@
 {
 	"dependencies": {
-		"@clayui/button": "^3.111.0",
-		"@clayui/core": "^3.112.0",
-		"@clayui/form": "^3.111.0",
-		"@clayui/icon": "^3.111.0",
-		"@clayui/nav": "^3.112.0",
-		"@clayui/pagination-bar": "^3.112.0",
-		"@clayui/panel": "^3.111.0",
+		"@clayui/button": "^3.159.0",
+		"@clayui/core": "^3.159.0",
+		"@clayui/form": "^3.159.0",
+		"@clayui/icon": "^3.159.0",
+		"@clayui/nav": "^3.159.0",
+		"@clayui/pagination-bar": "^3.159.0",
+		"@clayui/panel": "^3.159.0",
 		"@dnd-kit/core": "^6.1.0",
 		"@dnd-kit/utilities": "^3.2.2",
 		"@yaireo/relative-time": "^1.0.4",
@@ -18,9 +18,9 @@
 	"devDependencies": {
 		"@types/react": "16.14.58",
 		"@types/react-dom": "16.9.9",
-		"@vitejs/plugin-react": "^4.2.1",
-		"typescript": "4.2.2",
-		"vite": "^5.2.2"
+		"@vitejs/plugin-react": "^4.7.0",
+		"typescript": "^4.2.2",
+		"vite": "^6.4.4"
 	},
 	"eslintConfig": {
 		"globals": {

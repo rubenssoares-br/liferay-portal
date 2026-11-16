@@ -11,16 +11,19 @@ import {SWRConfig} from 'swr';
 import MarketplaceContextProvider from './context/MarketplaceContext';
 import {getIconSpriteMap} from './liferay/constants';
 import SWRCacheProvider from './services/SWRCacheProvider';
+import fetcher from './services/fetcher';
+import {MarketplaceProperties} from './utils/attributes';
 
 type ProviderProps = {
 	children: ReactNode;
-	properties: DefaultProperties;
+	properties: MarketplaceProperties;
 };
 
 const Providers: React.FC<ProviderProps> = ({children, properties}) => (
 	<ClayIconSpriteContext.Provider value={getIconSpriteMap()}>
 		<SWRConfig
 			value={{
+				fetcher,
 				provider: SWRCacheProvider,
 				revalidateIfStale: true,
 				revalidateOnFocus: false,

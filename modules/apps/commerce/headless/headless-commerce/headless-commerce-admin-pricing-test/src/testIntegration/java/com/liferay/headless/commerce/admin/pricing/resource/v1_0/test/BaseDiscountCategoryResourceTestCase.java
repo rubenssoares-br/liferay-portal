@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.pricing.client.dto.v1_0.DiscountCategory;
 import com.liferay.headless.commerce.admin.pricing.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.pricing.client.pagination.Page;
@@ -28,23 +31,29 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -83,8 +88,10 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -97,17 +104,27 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 		_discountCategoryResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		DiscountCategoryResource.Builder builder =
-			DiscountCategoryResource.builder();
-
-		discountCategoryResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		discountCategoryResource = DiscountCategoryResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -208,6 +225,7 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		DiscountCategory discountCategory1 =
 			testGraphQLDeleteDiscountCategory_addDiscountCategory();
 
@@ -225,6 +243,7 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 		// Using the namespace headlessCommerceAdminPricing_v1_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		DiscountCategory discountCategory2 =
 			testGraphQLDeleteDiscountCategory_addDiscountCategory();
 
@@ -250,6 +269,43 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 		throws Exception {
 
 		return testGraphQLDiscountCategory_addDiscountCategory();
+	}
+
+	@Test
+	public void testDeleteDiscountCategoryBatch() throws Exception {
+		DiscountCategory discountCategory1 =
+			testDeleteDiscountCategoryBatch_addDiscountCategory();
+
+		testDeleteDiscountCategoryBatch_deleteDiscountCategory(
+			202, null, discountCategory1.getId());
+	}
+
+	protected DiscountCategory
+			testDeleteDiscountCategoryBatch_addDiscountCategory()
+		throws Exception {
+
+		return testDeleteDiscountCategory_addDiscountCategory();
+	}
+
+	protected void testDeleteDiscountCategoryBatch_deleteDiscountCategory(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			discountCategoryResource.deleteDiscountCategoryBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
 	}
 
 	@Test
@@ -302,7 +358,8 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 		page =
 			discountCategoryResource.
 				getDiscountByExternalReferenceCodeDiscountCategoriesPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -339,13 +396,13 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 		String externalReferenceCode =
 			testGetDiscountByExternalReferenceCodeDiscountCategoriesPage_getExternalReferenceCode();
 
-		Page<DiscountCategory> discountCategoryPage =
+		Page<DiscountCategory> discountCategoriesPage =
 			discountCategoryResource.
 				getDiscountByExternalReferenceCodeDiscountCategoriesPage(
 					externalReferenceCode, null);
 
 		int totalCount = GetterUtil.getInteger(
-			discountCategoryPage.getTotalCount());
+			discountCategoriesPage.getTotalCount());
 
 		DiscountCategory discountCategory1 =
 			testGetDiscountByExternalReferenceCodeDiscountCategoriesPage_addDiscountCategory(
@@ -467,29 +524,6 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 	}
 
 	@Test
-	public void testPostDiscountByExternalReferenceCodeDiscountCategory()
-		throws Exception {
-
-		DiscountCategory randomDiscountCategory = randomDiscountCategory();
-
-		DiscountCategory postDiscountCategory =
-			testPostDiscountByExternalReferenceCodeDiscountCategory_addDiscountCategory(
-				randomDiscountCategory);
-
-		assertEquals(randomDiscountCategory, postDiscountCategory);
-		assertValid(postDiscountCategory);
-	}
-
-	protected DiscountCategory
-			testPostDiscountByExternalReferenceCodeDiscountCategory_addDiscountCategory(
-				DiscountCategory discountCategory)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetDiscountIdDiscountCategoriesPage() throws Exception {
 		Long id = testGetDiscountIdDiscountCategoriesPage_getId();
 		Long irrelevantId =
@@ -529,7 +563,7 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 				id, randomDiscountCategory());
 
 		page = discountCategoryResource.getDiscountIdDiscountCategoriesPage(
-			id, Pagination.of(1, 10));
+			id, Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -563,12 +597,12 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 		Long id = testGetDiscountIdDiscountCategoriesPage_getId();
 
-		Page<DiscountCategory> discountCategoryPage =
+		Page<DiscountCategory> discountCategoriesPage =
 			discountCategoryResource.getDiscountIdDiscountCategoriesPage(
 				id, null);
 
 		int totalCount = GetterUtil.getInteger(
-			discountCategoryPage.getTotalCount());
+			discountCategoriesPage.getTotalCount());
 
 		DiscountCategory discountCategory1 =
 			testGetDiscountIdDiscountCategoriesPage_addDiscountCategory(
@@ -679,6 +713,29 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 	}
 
 	@Test
+	public void testPostDiscountByExternalReferenceCodeDiscountCategory()
+		throws Exception {
+
+		DiscountCategory randomDiscountCategory = randomDiscountCategory();
+
+		DiscountCategory postDiscountCategory =
+			testPostDiscountByExternalReferenceCodeDiscountCategory_addDiscountCategory(
+				randomDiscountCategory);
+
+		assertEquals(randomDiscountCategory, postDiscountCategory);
+		assertValid(postDiscountCategory);
+	}
+
+	protected DiscountCategory
+			testPostDiscountByExternalReferenceCodeDiscountCategory_addDiscountCategory(
+				DiscountCategory discountCategory)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostDiscountIdDiscountCategory() throws Exception {
 		DiscountCategory randomDiscountCategory = randomDiscountCategory();
 
@@ -697,6 +754,58 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		DiscountCategory discountCategory1 =
+			testBatchEngineDeleteImportTask_addDiscountCategory();
+
+		testBatchEngineDeleteImportTask_deleteDiscountCategory(
+			200, null, discountCategory1.getId());
+	}
+
+	protected DiscountCategory
+			testBatchEngineDeleteImportTask_addDiscountCategory()
+		throws Exception {
+
+		return testDeleteDiscountCategory_addDiscountCategory();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteDiscountCategory(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.pricing.dto.v1_0.DiscountCategory",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	protected DiscountCategory testGraphQLDiscountCategory_addDiscountCategory()
@@ -893,6 +1002,8 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1244,7 +1355,9 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1300,7 +1413,30 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 		return randomDiscountCategory();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected DiscountCategoryResource discountCategoryResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1501,10 +1637,13 @@ public abstract class BaseDiscountCategoryResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseDiscountCategoryResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.pricing.resource.v1_0.
 		DiscountCategoryResource _discountCategoryResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-904401247

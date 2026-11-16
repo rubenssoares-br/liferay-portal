@@ -1,15 +1,14 @@
 {
-	"@generated": "e68911850a9e1c7d588f9fb5ac4c83c661dcf3fc",
+	"@generated": "acda0d5e56a8421e5dd97e93b533e4f4cabb3bee",
 	"@readonly": "** AUTO-GENERATED: DO NOT EDIT **",
 	"compilerOptions": {
 		"allowSyntheticDefaultImports": true,
-		"baseUrl": ".",
 		"checkJs": false,
 		"composite": true,
 		"declarationDir": "../../../../../../../../.tsc/types",
 		"emitDeclarationOnly": true,
 		"jsx": "react",
-		"module": "es6",
+		"module": "es2022",
 		"moduleResolution": "node",
 		"paths": {
 			"@liferay/fragment-renderer-collection-filter-impl": [
@@ -35,11 +34,5 @@
 		"../../../../../../../../global.d.ts"
 	],
 	"references": [
-		{
-			"path": "../../../../../../fragment-renderer-collection-filter-impl/src/main/resources/META-INF/resources/tsconfig.json"
-		},
-		{
-			"path": "../../../../../../../asset/asset-taglib/src/main/resources/META-INF/resources/tsconfig.json"
-		}
 	]
 }

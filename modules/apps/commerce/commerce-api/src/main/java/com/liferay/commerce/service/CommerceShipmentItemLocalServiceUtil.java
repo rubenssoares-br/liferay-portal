@@ -384,23 +384,6 @@ public class CommerceShipmentItemLocalServiceUtil {
 			commerceShipmentId, start, end, orderByComparator);
 	}
 
-	public static List<CommerceShipmentItem> getCommerceShipmentItems(
-		long commerceShipmentId, long commerceOrderItemId, int start, int end,
-		OrderByComparator<CommerceShipmentItem> orderByComparator) {
-
-		return getService().getCommerceShipmentItems(
-			commerceShipmentId, commerceOrderItemId, start, end,
-			orderByComparator);
-	}
-
-	public static List<CommerceShipmentItem>
-		getCommerceShipmentItemsByCommerceOrderItemId(
-			long commerceOrderItemId) {
-
-		return getService().getCommerceShipmentItemsByCommerceOrderItemId(
-			commerceOrderItemId);
-	}
-
 	/**
 	 * Returns all the commerce shipment items matching the UUID and company.
 	 *
@@ -446,13 +429,6 @@ public class CommerceShipmentItemLocalServiceUtil {
 
 	public static int getCommerceShipmentItemsCount(long commerceShipmentId) {
 		return getService().getCommerceShipmentItemsCount(commerceShipmentId);
-	}
-
-	public static int getCommerceShipmentItemsCountByCommerceOrderItemId(
-		long commerceOrderItemId) {
-
-		return getService().getCommerceShipmentItemsCountByCommerceOrderItemId(
-			commerceOrderItemId);
 	}
 
 	public static java.math.BigDecimal getCommerceShipmentOrderItemsQuantity(
@@ -539,3 +515,4 @@ public class CommerceShipmentItemLocalServiceUtil {
 			CommerceShipmentItemLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1866782898

@@ -24,27 +24,29 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilder;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilderFactory;
-import com.liferay.portal.url.builder.BundleScriptAbsolutePortalURLBuilder;
+import com.liferay.portal.url.builder.WebContextScriptAbsolutePortalURLBuilder;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Bryce Osterhaus
  */
 @Component(
-	property = "service.ranking:Integer=" + Integer.MAX_VALUE,
+	property = {
+		"dynamic.include.key=/html/common/themes/top_head.jsp#pre",
+		"service.ranking:Integer=" + Integer.MAX_VALUE
+	},
 	service = DynamicInclude.class
 )
 public class SVG4EverybodyTopHeadDynamicInclude extends BaseDynamicInclude {
@@ -109,28 +111,22 @@ public class SVG4EverybodyTopHeadDynamicInclude extends BaseDynamicInclude {
 					httpServletRequest));
 			printWriter.print(" data-senna-track=\"permanent\" src=\"");
 
-			BundleScriptAbsolutePortalURLBuilder
-				bundleScriptAbsolutePortalURLBuilder =
-					absolutePortalURLBuilder.forBundleScript(
-						_bundleContext.getBundle(), jsFileName);
+			WebContextScriptAbsolutePortalURLBuilder
+				webContextScriptAbsolutePortalURLBuilder =
+					absolutePortalURLBuilder.forWebContextScript(
+						"frontend-js-svg4everybody-web", jsFileName);
 
 			if (!cdnDynamicResourcesEnabled) {
-				bundleScriptAbsolutePortalURLBuilder.ignoreCDNHost();
+				webContextScriptAbsolutePortalURLBuilder.ignoreCDNHost();
 			}
 
-			printWriter.print(bundleScriptAbsolutePortalURLBuilder.build());
+			printWriter.print(webContextScriptAbsolutePortalURLBuilder.build());
 
 			printWriter.println("\" type=\"text/javascript\"></script>");
 		}
 	}
 
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register("/html/common/themes/top_head.jsp#pre");
-	}
-
 	@Activate
-	@Modified
 	protected void activate(BundleContext bundleContext) {
 		_bundleContext = bundleContext;
 	}

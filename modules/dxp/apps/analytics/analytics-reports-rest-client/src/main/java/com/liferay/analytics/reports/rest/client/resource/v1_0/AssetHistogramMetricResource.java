@@ -10,6 +10,8 @@ import com.liferay.analytics.reports.rest.client.http.HttpInvoker;
 import com.liferay.analytics.reports.rest.client.problem.Problem;
 import com.liferay.analytics.reports.rest.client.serdes.v1_0.AssetHistogramMetricSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.net.URL;
 
 import java.util.LinkedHashMap;
@@ -18,8 +20,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.annotation.Generated;
 
 /**
  * @author Marcos Martins
@@ -141,8 +141,8 @@ public interface AssetHistogramMetricResource {
 		private Map<String, String> _headers = new LinkedHashMap<>();
 		private String _host = "localhost";
 		private Locale _locale;
-		private String _login = "";
-		private String _password = "";
+		private String _login;
+		private String _password;
 		private Map<String, String> _parameters = new LinkedHashMap<>();
 		private int _port = 8080;
 		private String _scheme = "http";
@@ -263,13 +263,15 @@ public interface AssetHistogramMetricResource {
 			httpInvoker.path(
 				_builder._scheme + "://" + _builder._host + ":" +
 					_builder._port + _builder._contextPath +
-						"/o/analytics-reports-rest/v1.0{groupId}/asset-metrics/{assetType}/histogram");
+						"/o/analytics-reports-rest/v1.0/{groupId}/asset-metrics/{assetType}/histogram");
 
 			httpInvoker.path("groupId", groupId);
 			httpInvoker.path("assetType", assetType);
 
-			httpInvoker.userNameAndPassword(
-				_builder._login + ":" + _builder._password);
+			if ((_builder._login != null) && (_builder._password != null)) {
+				httpInvoker.userNameAndPassword(
+					_builder._login + ":" + _builder._password);
+			}
 
 			return httpInvoker.invoke();
 		}
@@ -286,3 +288,4 @@ public interface AssetHistogramMetricResource {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:514882404

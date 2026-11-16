@@ -14,15 +14,15 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.taglib.util.TagResourceBundleUtil;
 
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspWriter;
+import jakarta.servlet.jsp.PageContext;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
-
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.JspWriter;
-import javax.servlet.jsp.PageContext;
 
 /**
  * @author Julien Castelain
@@ -63,6 +63,15 @@ public class PaginationBarTag extends BaseContainerTag {
 			ResourceBundle resourceBundle =
 				TagResourceBundleUtil.getResourceBundle(pageContext);
 
+			paginationBarLabels.setEllipsisAriaLabel(
+				LanguageUtil.get(resourceBundle, "show-pages-x-through-x"));
+			paginationBarLabels.setItemsPerPagePickerAriaLabel(
+				LanguageUtil.get(resourceBundle, "items-per-page"));
+			paginationBarLabels.setNextPageAriaLabel(
+				LanguageUtil.get(resourceBundle, "go-to-the-next-page-x"));
+			paginationBarLabels.setPageLinkAriaLabel(
+				LanguageUtil.get(resourceBundle, "go-to-page-x"));
+
 			paginationBarLabels.setPaginationResults(
 				LanguageUtil.format(
 					PortalUtil.getLocale(getRequest()),
@@ -73,6 +82,9 @@ public class PaginationBarTag extends BaseContainerTag {
 				"{0} " + LanguageUtil.get(resourceBundle, "items");
 
 			paginationBarLabels.setPerPageItems(perPageItems);
+
+			paginationBarLabels.setPreviousPageAriaLabel(
+				LanguageUtil.get(resourceBundle, "go-to-the-previous-page-x"));
 			paginationBarLabels.setSelectPerPageItems(perPageItems);
 
 			setPaginationBarLabels(paginationBarLabels);
@@ -221,17 +233,8 @@ public class PaginationBarTag extends BaseContainerTag {
 		}
 
 		jspWriter.write("<div class=\"pagination-results\">");
-		jspWriter.write(LanguageUtil.get(resourceBundle, "showing"));
-		jspWriter.write(StringPool.SPACE);
 
 		Integer from = ((_activePage - 1) * _activeDelta) + 1;
-
-		jspWriter.write(from.toString());
-
-		jspWriter.write(StringPool.SPACE);
-		jspWriter.write(
-			StringUtil.toLowerCase(LanguageUtil.get(resourceBundle, "to")));
-		jspWriter.write(StringPool.SPACE);
 
 		Integer to = _activePage * _activeDelta;
 
@@ -239,14 +242,14 @@ public class PaginationBarTag extends BaseContainerTag {
 			to = _totalItems;
 		}
 
-		jspWriter.write(to.toString());
-
-		jspWriter.write(StringPool.SPACE);
 		jspWriter.write(
-			StringUtil.toLowerCase(LanguageUtil.get(resourceBundle, "of")));
-		jspWriter.write(StringPool.SPACE);
-		jspWriter.write(_totalItems.toString());
-		jspWriter.write(StringPool.SPACE);
+			LanguageUtil.format(
+				PortalUtil.getLocale(getRequest()),
+				"showing-x-to-x-of-x-entries",
+				new String[] {
+					from.toString(), to.toString(), _totalItems.toString()
+				}));
+
 		jspWriter.write("</div><ul class=\"pagination pagination-root\">");
 		jspWriter.write("<li class=\"");
 

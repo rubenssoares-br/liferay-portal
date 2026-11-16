@@ -7,17 +7,21 @@ package com.liferay.exportimport.portlet.preferences.processor.base;
 
 import com.liferay.exportimport.kernel.lar.PortletDataContext;
 import com.liferay.exportimport.portlet.preferences.processor.ExportImportPortletPreferencesProcessor;
+import com.liferay.exportimport.portlet.preferences.processor.ExportImportPortletPreferencesProcessorHelper;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Portlet;
+import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.util.Map;
+import jakarta.portlet.PortletPreferences;
 
-import javax.portlet.PortletPreferences;
+import java.util.Map;
+import java.util.Objects;
 
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -39,6 +43,30 @@ public abstract class BaseExportImportPortletPreferencesProcessor
 			PortletDataContext portletDataContext, Portlet portlet,
 			String className, long primaryKeyLong)
 		throws Exception;
+
+	protected String getGroupExportPortletPreferencesExternalReferenceCode(
+		PortletDataContext portletDataContext, String externalReferenceCode) {
+
+		ExportImportPortletPreferencesProcessorHelper
+			exportImportPortletPreferencesProcessorHelper =
+				_exportImportPortletPreferencesProcessorHelperSnapshot.get();
+
+		return exportImportPortletPreferencesProcessorHelper.
+			getGroupExportPortletPreferencesExternalReferenceCode(
+				portletDataContext.getCompanyId(), externalReferenceCode);
+	}
+
+	protected String getGroupImportPortletPreferencesExternalReferenceCode(
+		PortletDataContext portletDataContext, String externalReferenceCode) {
+
+		ExportImportPortletPreferencesProcessorHelper
+			exportImportPortletPreferencesProcessorHelper =
+				_exportImportPortletPreferencesProcessorHelperSnapshot.get();
+
+		return exportImportPortletPreferencesProcessorHelper.
+			getGroupImportPortletPreferencesExternalReferenceCode(
+				portletDataContext, externalReferenceCode);
+	}
 
 	protected String getImportPortletPreferencesNewExternalReferenceCode(
 			PortletDataContext portletDataContext, Class<?> clazz,
@@ -128,10 +156,19 @@ public abstract class BaseExportImportPortletPreferencesProcessor
 			String[] externalReferenceCodes = StringUtil.split(oldValue);
 
 			for (String externalReferenceCode : externalReferenceCodes) {
-				String newPreferencesValue =
-					getExportPortletPreferencesExternalReferenceCode(
-						portletDataContext, portlet, className,
-						externalReferenceCode);
+				String newPreferencesValue = null;
+
+				if (Objects.equals(className, Group.class.getName())) {
+					newPreferencesValue =
+						getGroupExportPortletPreferencesExternalReferenceCode(
+							portletDataContext, externalReferenceCode);
+				}
+				else {
+					newPreferencesValue =
+						getExportPortletPreferencesExternalReferenceCode(
+							portletDataContext, portlet, className,
+							externalReferenceCode);
+				}
 
 				if (Validator.isNull(newPreferencesValue)) {
 					if (_log.isWarnEnabled()) {
@@ -233,22 +270,36 @@ public abstract class BaseExportImportPortletPreferencesProcessor
 			for (String portletPreferencesOldValue :
 					portletPreferencesOldValues) {
 
+				String externalReferenceCode = portletPreferencesOldValue;
+
+				if (clazz == Group.class) {
+					externalReferenceCode =
+						getGroupImportPortletPreferencesExternalReferenceCode(
+							portletDataContext, portletPreferencesOldValue);
+				}
+
 				String newExternalReferenceCode =
 					getImportPortletPreferencesNewExternalReferenceCode(
 						portletDataContext, clazz, companyGroupId, parameterMap,
-						portletPreferencesOldValue);
+						externalReferenceCode);
 
-				if (Validator.isNull(newExternalReferenceCode)) {
-					if (_log.isInfoEnabled()) {
-						_log.info(
-							"Unable to import portlet preferences value " +
-								portletPreferencesOldValue);
-					}
-				}
-				else {
+				if (Validator.isNotNull(newExternalReferenceCode)) {
 					newValue = StringUtil.replace(
 						newValue, portletPreferencesOldValue,
 						newExternalReferenceCode);
+				}
+				else if (!Objects.equals(
+							externalReferenceCode,
+							portletPreferencesOldValue)) {
+
+					newValue = StringUtil.replace(
+						newValue, portletPreferencesOldValue,
+						externalReferenceCode);
+				}
+				else if (_log.isInfoEnabled()) {
+					_log.info(
+						"Unable to import portlet preferences value " +
+							portletPreferencesOldValue);
 				}
 			}
 
@@ -260,5 +311,10 @@ public abstract class BaseExportImportPortletPreferencesProcessor
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		BaseExportImportPortletPreferencesProcessor.class);
+
+	private static final Snapshot<ExportImportPortletPreferencesProcessorHelper>
+		_exportImportPortletPreferencesProcessorHelperSnapshot = new Snapshot<>(
+			BaseExportImportPortletPreferencesProcessor.class,
+			ExportImportPortletPreferencesProcessorHelper.class);
 
 }

@@ -12,8 +12,7 @@ import com.liferay.change.tracking.model.CTEntry;
 import com.liferay.change.tracking.model.CTEntryTable;
 import com.liferay.change.tracking.service.base.CTEntryLocalServiceBaseImpl;
 import com.liferay.change.tracking.service.persistence.CTCollectionPersistence;
-import com.liferay.journal.model.JournalArticle;
-import com.liferay.journal.model.JournalArticleTable;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
 import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.aop.AopService;
@@ -22,16 +21,20 @@ import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.model.change.tracking.CTModel;
-import com.liferay.portal.kernel.search.Indexable;
-import com.liferay.portal.kernel.search.IndexableType;
-import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import java.io.Serializable;
+
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -48,7 +51,6 @@ import org.osgi.service.component.annotations.Reference;
 @CTAware
 public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 
-	@Indexable(type = IndexableType.REINDEX)
 	@Override
 	public CTEntry addCTEntry(
 			String externalReferenceCode, long ctCollectionId,
@@ -59,9 +61,7 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 		CTCollection ctCollection = _ctCollectionPersistence.findByPrimaryKey(
 			ctCollectionId);
 
-		if ((ctCollection.getStatus() != WorkflowConstants.STATUS_DRAFT) &&
-			(ctCollection.getStatus() != WorkflowConstants.STATUS_PENDING)) {
-
+		if (ctCollection.isReadOnly()) {
 			throw new PortalException(
 				"Change tracking collection " + ctCollection + " is read only");
 		}
@@ -82,15 +82,19 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 		return ctEntryPersistence.update(ctEntry);
 	}
 
-	@Indexable(type = IndexableType.DELETE)
 	@Override
 	public CTEntry deleteCTEntry(CTEntry ctEntry) throws PortalException {
+		return deleteCTEntry(ctEntry, false);
+	}
+
+	@Override
+	public CTEntry deleteCTEntry(CTEntry ctEntry, boolean force)
+		throws PortalException {
+
 		CTCollection ctCollection = _ctCollectionPersistence.findByPrimaryKey(
 			ctEntry.getCtCollectionId());
 
-		if ((ctCollection.getStatus() != WorkflowConstants.STATUS_DRAFT) &&
-			(ctCollection.getStatus() != WorkflowConstants.STATUS_PENDING)) {
-
+		if (!force && ctCollection.isReadOnly()) {
 			throw new PortalException(
 				"Change tracking collection " + ctCollection + " is read only");
 		}
@@ -104,57 +108,6 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 
 		return ctEntryPersistence.fetchByC_MCNI_MCPK(
 			ctCollectionId, modelClassNameId, modelClassPK);
-	}
-
-	@Override
-	public CTEntry fetchTimelineCTEntry(
-		long ctCollectionId, long modelClassNameId, long modelClassPK) {
-
-		CTEntry ctEntry = ctEntryPersistence.fetchByC_MCNI_MCPK(
-			ctCollectionId, modelClassNameId, modelClassPK);
-
-		if ((ctEntry != null) ||
-			(modelClassNameId != _classNameLocalService.getClassNameId(
-				JournalArticle.class))) {
-
-			return ctEntry;
-		}
-
-		List<Long> resourcePrimKey = ctEntryPersistence.dslQuery(
-			DSLQueryFactoryUtil.select(
-				JournalArticleTable.INSTANCE.resourcePrimKey
-			).from(
-				JournalArticleTable.INSTANCE
-			).where(
-				JournalArticleTable.INSTANCE.id.eq(modelClassPK)
-			));
-
-		if (resourcePrimKey.isEmpty()) {
-			return null;
-		}
-
-		List<Long> journalArticleIds = ctEntryPersistence.dslQuery(
-			DSLQueryFactoryUtil.select(
-				JournalArticleTable.INSTANCE.id
-			).from(
-				JournalArticleTable.INSTANCE
-			).where(
-				JournalArticleTable.INSTANCE.resourcePrimKey.eq(
-					resourcePrimKey.get(0)
-				).and(
-					JournalArticleTable.INSTANCE.ctCollectionId.eq(
-						ctCollectionId)
-				)
-			).orderBy(
-				JournalArticleTable.INSTANCE.modifiedDate.descending()
-			));
-
-		if (journalArticleIds.isEmpty()) {
-			return null;
-		}
-
-		return ctEntryPersistence.fetchByC_MCNI_MCPK(
-			ctCollectionId, modelClassNameId, journalArticleIds.get(0));
 	}
 
 	@Override
@@ -194,11 +147,22 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 	}
 
 	@Override
+	public List<CTEntry> getCTEntries(long[] ctEntryIds) {
+		Set<Serializable> primaryKeys = new HashSet<>(
+			TransformUtil.transformToList(ctEntryIds, GetterUtil::getLong));
+
+		Map<Serializable, CTEntry> ctEntriesMap =
+			ctEntryPersistence.fetchByPrimaryKeys(primaryKeys);
+
+		return new ArrayList<>(ctEntriesMap.values());
+	}
+
+	@Override
 	public long getCTRowCTCollectionId(CTEntry ctEntry) throws PortalException {
 		CTCollection ctCollection = _ctCollectionPersistence.findByPrimaryKey(
 			ctEntry.getCtCollectionId());
 
-		if ((ctCollection.getStatus() == WorkflowConstants.STATUS_DRAFT) ||
+		if (ctCollection.isInProgress() ||
 			(ctCollection.getStatus() == WorkflowConstants.STATUS_PENDING)) {
 
 			return ctCollection.getCtCollectionId();
@@ -305,14 +269,19 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 				CTCollectionTable.INSTANCE.ctCollectionId.eq(
 					CTEntryTable.INSTANCE.ctCollectionId)
 			).where(
-				CTCollectionTable.INSTANCE.status.eq(
-					WorkflowConstants.STATUS_DRAFT
-				).and(
-					CTEntryTable.INSTANCE.modelClassNameId.eq(modelClassNameId)
+				CTEntryTable.INSTANCE.modelClassNameId.eq(
+					modelClassNameId
 				).and(
 					CTEntryTable.INSTANCE.modelClassPK.eq(modelClassPK)
 				).and(
 					CTEntryTable.INSTANCE.changeType.eq(changeType)
+				).and(
+					CTCollectionTable.INSTANCE.status.eq(
+						WorkflowConstants.STATUS_DRAFT
+					).or(
+						CTCollectionTable.INSTANCE.status.eq(
+							WorkflowConstants.STATUS_INCOMPLETE)
+					).withParentheses()
 				)
 			));
 
@@ -323,7 +292,6 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 		return true;
 	}
 
-	@Indexable(type = IndexableType.REINDEX)
 	@Override
 	public CTEntry updateCTEntry(CTEntry ctEntry) {
 		CTCollection ctCollection = _ctCollectionPersistence.fetchByPrimaryKey(
@@ -336,7 +304,7 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 
 		int status = ctCollection.getStatus();
 
-		if ((status != WorkflowConstants.STATUS_DRAFT) &&
+		if (!ctCollection.isInProgress() &&
 			(status != WorkflowConstants.STATUS_PENDING)) {
 
 			throw new SystemException(
@@ -347,18 +315,37 @@ public class CTEntryLocalServiceImpl extends CTEntryLocalServiceBaseImpl {
 	}
 
 	@Override
-	public CTEntry updateModelMvccVersion(
-		long ctEntryId, long modelMvccVersion) {
+	public CTEntry updateChangeType(long ctEntryId, int changeType)
+		throws PortalException {
 
-		CTEntry ctEntry = ctEntryPersistence.fetchByPrimaryKey(ctEntryId);
+		CTEntry ctEntry = ctEntryPersistence.findByPrimaryKey(ctEntryId);
+
+		ctEntry.setChangeType(changeType);
+
+		return ctEntryPersistence.update(ctEntry);
+	}
+
+	@Override
+	public CTEntry updateModelMvccVersion(long ctEntryId, long modelMvccVersion)
+		throws PortalException {
+
+		CTEntry ctEntry = ctEntryPersistence.findByPrimaryKey(ctEntryId);
 
 		ctEntry.setModelMvccVersion(modelMvccVersion);
 
 		return ctEntryPersistence.update(ctEntry);
 	}
 
-	@Reference
-	private ClassNameLocalService _classNameLocalService;
+	@Override
+	public CTEntry updateUserId(long ctEntryId, long userId)
+		throws PortalException {
+
+		CTEntry ctEntry = ctEntryPersistence.findByPrimaryKey(ctEntryId);
+
+		ctEntry.setUserId(userId);
+
+		return ctEntryPersistence.update(ctEntry);
+	}
 
 	@Reference
 	private CTCollectionPersistence _ctCollectionPersistence;

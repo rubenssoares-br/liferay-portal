@@ -6,14 +6,17 @@
 package com.liferay.portal.security.content.security.policy.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
+import com.liferay.portal.kernel.model.Company;
+import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.HtmlUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
+import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
 import java.io.BufferedReader;
@@ -35,7 +38,6 @@ import org.junit.runner.RunWith;
 /**
  * @author Olivér Kecskeméty
  */
-@FeatureFlags("LPS-134060")
 @RunWith(Arquillian.class)
 public class ContentSecurityPolicyFilterTest {
 
@@ -48,10 +50,12 @@ public class ContentSecurityPolicyFilterTest {
 	public void testNotNeededForDocrootHtmlResources() throws Exception {
 		try (CompanyConfigurationTemporarySwapper
 				configurationTemporarySwapper =
-					_getCompanyConfigurationTemporarySwapper(false, null, "")) {
+					_getCompanyConfigurationTemporarySwapper(
+						false, null, "", false)) {
 
 			HttpURLConnection httpURLConnection = _openHttpURLConnection(
-				"http://localhost:8080/html/" + RandomTestUtil.randomString());
+				"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+					"/html/common/null.html");
 
 			Map<String, List<String>> headerFields =
 				httpURLConnection.getHeaderFields();
@@ -65,12 +69,18 @@ public class ContentSecurityPolicyFilterTest {
 
 	@Test
 	public void testProcessFilter() throws Exception {
+		Company company = _companyLocalService.getCompany(
+			TestPropsValues.getCompanyId());
+
 		try (CompanyConfigurationTemporarySwapper
 				configurationTemporarySwapper =
-					_getCompanyConfigurationTemporarySwapper(false, null, "")) {
+					_getCompanyConfigurationTemporarySwapper(
+						false, null, "", false)) {
 
 			HttpURLConnection httpURLConnection = _openHttpURLConnection(
-				"http://localhost:8080/web/guest");
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
 
 			Map<String, List<String>> headerFields =
 				httpURLConnection.getHeaderFields();
@@ -83,10 +93,33 @@ public class ContentSecurityPolicyFilterTest {
 
 		try (CompanyConfigurationTemporarySwapper
 				configurationTemporarySwapper =
-					_getCompanyConfigurationTemporarySwapper(true, null, "")) {
+					_getCompanyConfigurationTemporarySwapper(
+						false, null, "", true)) {
 
 			HttpURLConnection httpURLConnection = _openHttpURLConnection(
-				"http://localhost:8080/web/guest");
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
+
+			Map<String, List<String>> headerFields =
+				httpURLConnection.getHeaderFields();
+
+			Assert.assertFalse(
+				headerFields.containsKey(
+					"Content-Security-Policy-Report-Only"));
+
+			httpURLConnection.disconnect();
+		}
+
+		try (CompanyConfigurationTemporarySwapper
+				configurationTemporarySwapper =
+					_getCompanyConfigurationTemporarySwapper(
+						true, null, "", false)) {
+
+			HttpURLConnection httpURLConnection = _openHttpURLConnection(
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
 
 			Map<String, List<String>> headerFields =
 				httpURLConnection.getHeaderFields();
@@ -106,19 +139,33 @@ public class ContentSecurityPolicyFilterTest {
 		try (CompanyConfigurationTemporarySwapper
 				configurationTemporarySwapper =
 					_getCompanyConfigurationTemporarySwapper(
-						true, null, policy)) {
+						true, null, policy, false)) {
 
 			HttpURLConnection httpURLConnection = _openHttpURLConnection(
-				"http://localhost:8080/web/guest");
-
-			Map<String, List<String>> headerFields =
-				httpURLConnection.getHeaderFields();
-
-			Assert.assertTrue(
-				headerFields.containsKey("Content-Security-Policy"));
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
 
 			Assert.assertEquals(
 				httpURLConnection.getHeaderField("Content-Security-Policy"),
+				policy);
+
+			httpURLConnection.disconnect();
+		}
+
+		try (CompanyConfigurationTemporarySwapper
+				configurationTemporarySwapper =
+					_getCompanyConfigurationTemporarySwapper(
+						true, null, policy, true)) {
+
+			HttpURLConnection httpURLConnection = _openHttpURLConnection(
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
+
+			Assert.assertEquals(
+				httpURLConnection.getHeaderField(
+					"Content-Security-Policy-Report-Only"),
 				policy);
 
 			httpURLConnection.disconnect();
@@ -131,10 +178,12 @@ public class ContentSecurityPolicyFilterTest {
 		try (CompanyConfigurationTemporarySwapper
 				configurationTemporarySwapper =
 					_getCompanyConfigurationTemporarySwapper(
-						true, null, policy)) {
+						true, null, policy, false)) {
 
 			HttpURLConnection httpURLConnection = _openHttpURLConnection(
-				"http://localhost:8080/web/guest");
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
 
 			Map<String, List<String>> headerFields =
 				httpURLConnection.getHeaderFields();
@@ -177,10 +226,12 @@ public class ContentSecurityPolicyFilterTest {
 				configurationTemporarySwapper =
 					_getCompanyConfigurationTemporarySwapper(
 						true, new String[] {"/c/portal/layout", "/web/guest"},
-						policy)) {
+						policy, false)) {
 
 			HttpURLConnection httpURLConnection = _openHttpURLConnection(
-				"http://localhost:8080/web/guest");
+				StringBundler.concat(
+					"http://", company.getVirtualHostname(), ":",
+					PortalUtil.getPortalServerPort(false), "/web/guest"));
 
 			Map<String, List<String>> headerFields =
 				httpURLConnection.getHeaderFields();
@@ -196,7 +247,8 @@ public class ContentSecurityPolicyFilterTest {
 
 	private CompanyConfigurationTemporarySwapper
 			_getCompanyConfigurationTemporarySwapper(
-				boolean enabled, String[] excludedPaths, String policy)
+				boolean enabled, String[] excludedPaths, String policy,
+				boolean reportOnly)
 		throws Exception {
 
 		return new CompanyConfigurationTemporarySwapper(
@@ -209,6 +261,8 @@ public class ContentSecurityPolicyFilterTest {
 				"excludedPaths", excludedPaths
 			).put(
 				"policy", policy
+			).put(
+				"reportOnly", reportOnly
 			).build());
 	}
 
@@ -242,5 +296,8 @@ public class ContentSecurityPolicyFilterTest {
 
 		return httpURLConnection;
 	}
+
+	@Inject
+	private CompanyLocalService _companyLocalService;
 
 }

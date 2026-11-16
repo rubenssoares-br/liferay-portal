@@ -6,13 +6,19 @@
 import ClayButton from '@clayui/button';
 import ClayDropDown from '@clayui/drop-down';
 import ClayForm, {ClayInput} from '@clayui/form';
+import ClayIcon from '@clayui/icon';
+import ClayLink from '@clayui/link';
+import ClayLoadingIndicator from '@clayui/loading-indicator';
 import ClayModal from '@clayui/modal';
+import {ClayTooltipProvider} from '@clayui/tooltip';
 import {FrontendDataSet} from '@liferay/frontend-data-set-web';
 import classNames from 'classnames';
-import {fetch, navigate, openModal} from 'frontend-js-web';
+import {openModal} from 'frontend-js-components-web';
+import {fetch, navigate} from 'frontend-js-web';
 import React, {useState} from 'react';
 
 import '../css/DataSets.scss';
+import {EItemActionsType} from '../../../../../../../frontend-data-set-web/src/main/resources/META-INF/resources/utils/types';
 import RequiredMark from './components/RequiredMark';
 import ValidationFeedback from './components/ValidationFeedback';
 import RESTApplicationDropdownItem from './components/rest/RESTApplicationDropdownItem';
@@ -21,13 +27,14 @@ import RESTEndpointDropdownMenu from './components/rest/RESTEndpointDropdownMenu
 import RESTSchemaDropdownMenu from './components/rest/RESTSchemaDropdownMenu';
 import {
 	ALLOWED_ENDPOINTS_PARAMETERS,
-	API_URL,
 	DEFAULT_FETCH_HEADERS,
 	FDS_DEFAULT_PROPS,
 } from './utils/constants';
+import getAPIExplorerURL from './utils/getAPIExplorerURL';
+import getDataSetResourceURL from './utils/getDataSetResourceURL';
 import openDefaultFailureToast from './utils/openDefaultFailureToast';
 import openDefaultSuccessToast from './utils/openDefaultSuccessToast';
-import {IDataSet} from './utils/types';
+import {IDataSet, ISystemDataSet} from './utils/types';
 
 const LIST_OF_ITEMS_PER_PAGE = '4, 8, 20, 40, 60';
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -92,6 +99,7 @@ const NewDataSetModalContent = ({
 		noEnpointsRESTApplicationValidationError,
 		setNoEnpointsRESTApplicationValidationError,
 	] = useState(false);
+	const [restSchemaLoading, setRestSchemaLoading] = useState(false);
 	const [restSchemaValidationError, setRESTSchemaValidationError] =
 		useState(false);
 	const [restEndpointValidationError, setRESTEndpointValidationError] =
@@ -125,7 +133,7 @@ const NewDataSetModalContent = ({
 			restSchema: selectedRESTSchema,
 		};
 
-		const response = await fetch(API_URL.DATA_SETS, {
+		const response = await fetch(getDataSetResourceURL({}), {
 			body: JSON.stringify(body),
 			headers: DEFAULT_FETCH_HEADERS,
 			method: 'POST',
@@ -157,6 +165,10 @@ const NewDataSetModalContent = ({
 		path: string,
 		allowedParameters: string[]
 	): boolean => {
+		if (Liferay.FeatureFlags['LPD-38564']) {
+			return true;
+		}
+
 		const paramsMatcher = RegExp('{(.*?)}', 'g');
 		let matches;
 
@@ -177,9 +189,13 @@ const NewDataSetModalContent = ({
 			return;
 		}
 
+		setRestSchemaLoading(true);
+
 		const response = await fetch(`/o${restApplication}/openapi.json`, {
 			headers: DEFAULT_FETCH_HEADERS,
 		});
+
+		setRestSchemaLoading(false);
 
 		if (!response.ok) {
 			openDefaultFailureToast();
@@ -227,7 +243,7 @@ const NewDataSetModalContent = ({
 			setNoEnpointsRESTApplicationValidationError(true);
 		}
 		else if (schemaEndpoints.size === 1) {
-			const schema = schemaEndpoints.keys().next().value;
+			const schema = Array.from(schemaEndpoints.keys())[0];
 
 			setSelectedRESTSchema(schema);
 
@@ -236,15 +252,6 @@ const NewDataSetModalContent = ({
 			if (paths?.length === 1) {
 				setSelectedRESTEndpoint(paths[0]);
 			}
-
-			setNoEnpointsRESTApplicationValidationError(false);
-		}
-		else {
-			setSelectedRESTSchema(null);
-
-			setSelectedRESTEndpoint(null);
-
-			setNoEnpointsRESTApplicationValidationError(false);
 		}
 
 		setRESTSchemaEndpoints(schemaEndpoints);
@@ -291,6 +298,7 @@ const NewDataSetModalContent = ({
 				<ClayButton
 					aria-labelledby={`${namespace}restApplicationsLabel`}
 					className="form-control form-control-select form-control-select-secondary"
+					disabled={restSchemaLoading}
 					displayType="secondary"
 					id={`${namespace}restApplicationsSelect`}
 				>
@@ -308,6 +316,12 @@ const NewDataSetModalContent = ({
 			<RESTApplicationDropdownMenu
 				onItemClick={(item: string) => {
 					setSelectedRESTApplication(item);
+
+					setSelectedRESTSchema(null);
+
+					setSelectedRESTEndpoint(null);
+
+					setNoEnpointsRESTApplicationValidationError(false);
 
 					setRequiredRESTApplicationValidationError(false);
 
@@ -327,11 +341,32 @@ const NewDataSetModalContent = ({
 				<ClayButton
 					aria-labelledby={`${namespace}restSchema`}
 					className="form-control form-control-select form-control-select-secondary"
+					disabled={
+						!selectedRESTApplication ||
+						!restSchemaEndpoints.size ||
+						restSchemaLoading
+					}
 					displayType="secondary"
 					id={`${namespace}restSchemaSelect`}
 				>
-					{selectedRESTSchema ||
-						Liferay.Language.get('choose-an-option')}
+					{restSchemaLoading && (
+						<span className="mr-4 position-relative">
+							<ClayLoadingIndicator />
+						</span>
+					)}
+
+					{restSchemaLoading
+						? Liferay.Language.get(
+								'choose-a-rest-application-to-enable-this'
+							)
+						: selectedRESTSchema
+							? selectedRESTSchema
+							: selectedRESTApplication &&
+								  restSchemaEndpoints.size
+								? Liferay.Language.get('choose-an-option')
+								: Liferay.Language.get(
+										'choose-a-rest-application-to-enable-this'
+									)}
 				</ClayButton>
 			}
 		>
@@ -364,11 +399,17 @@ const NewDataSetModalContent = ({
 				<ClayButton
 					aria-labelledby={`${namespace}restEndpoint`}
 					className="form-control form-control-select form-control-select-secondary"
+					disabled={!selectedRESTSchema || restSchemaLoading}
 					displayType="secondary"
 					id={`${namespace}restEndpointSelect`}
 				>
-					{selectedRESTEndpoint ||
-						Liferay.Language.get('choose-an-option')}
+					{selectedRESTEndpoint
+						? selectedRESTEndpoint
+						: selectedRESTSchema
+							? Liferay.Language.get('choose-an-option')
+							: Liferay.Language.get(
+									'choose-a-schema-to-enable-this'
+								)}
 				</ClayButton>
 			}
 		>
@@ -387,11 +428,23 @@ const NewDataSetModalContent = ({
 
 	return (
 		<>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{Liferay.Language.get('new-data-set')}
 			</ClayModal.Header>
 
 			<ClayModal.Body>
+				<p className="text-secondary">
+					{Liferay.Language.get(
+						'show-your-api-rest-information-in-a-dataset-fragment'
+					)}
+				</p>
+
+				<h3 className="sheet-subtitle">
+					{Liferay.Language.get('identity')}
+				</h3>
+
 				<LabelInput
 					labelValidationError={labelValidationError}
 					namespace={namespace}
@@ -401,6 +454,10 @@ const NewDataSetModalContent = ({
 					onChange={setLabel}
 					value={label}
 				/>
+
+				<h3 className="sheet-subtitle">
+					{Liferay.Language.get('configuration')}
+				</h3>
 
 				{restApplications && (
 					<ClayForm.Group
@@ -435,47 +492,49 @@ const NewDataSetModalContent = ({
 					</ClayForm.Group>
 				)}
 
-				{restSchemaEndpoints.size > 0 && (
-					<ClayForm.Group
+				<ClayForm.Group
+					className={classNames({
+						'has-error': restSchemaValidationError,
+					})}
+				>
+					<label
 						className={classNames({
-							'has-error': restSchemaValidationError,
+							disabled: !selectedRESTApplication,
 						})}
+						htmlFor={`${namespace}restSchemaSelect`}
+						id={`${namespace}restSchema`}
 					>
-						<label
-							htmlFor={`${namespace}restSchemaSelect`}
-							id={`${namespace}restSchema`}
-						>
-							{Liferay.Language.get('rest-schema')}
+						{Liferay.Language.get('schema')}
 
-							<RequiredMark />
-						</label>
+						<RequiredMark />
+					</label>
 
-						<RestSchemaDropdown />
+					<RestSchemaDropdown />
 
-						{restSchemaValidationError && <ValidationFeedback />}
-					</ClayForm.Group>
-				)}
+					{restSchemaValidationError && <ValidationFeedback />}
+				</ClayForm.Group>
 
-				{selectedRESTSchema && (
-					<ClayForm.Group
+				<ClayForm.Group
+					className={classNames({
+						'has-error': restEndpointValidationError,
+					})}
+				>
+					<label
 						className={classNames({
-							'has-error': restEndpointValidationError,
+							disabled: !selectedRESTSchema,
 						})}
+						htmlFor={`${namespace}restEndpointSelect`}
+						id={`${namespace}restEndpoint`}
 					>
-						<label
-							htmlFor={`${namespace}restEndpointSelect`}
-							id={`${namespace}restEndpoint`}
-						>
-							{Liferay.Language.get('rest-endpoint')}
+						{Liferay.Language.get('endpoint')}
 
-							<RequiredMark />
-						</label>
+						<RequiredMark />
+					</label>
 
-						<RestEndpointDropdown />
+					<RestEndpointDropdown />
 
-						{restEndpointValidationError && <ValidationFeedback />}
-					</ClayForm.Group>
-				)}
+					{restEndpointValidationError && <ValidationFeedback />}
+				</ClayForm.Group>
 			</ClayModal.Body>
 
 			<ClayModal.Footer
@@ -513,41 +572,40 @@ const NewDataSetModalContent = ({
 };
 
 const CustomDataSets = ({
+	deleteCustomDataSetURL,
 	editDataSetURL,
+	hasAddDataSetObjectEntryPermission,
 	namespace,
 	permissionsURL,
 	resolvedRESTSchemas,
 	restApplications,
+	systemDataSets,
 }: {
+	deleteCustomDataSetURL: string;
 	editDataSetURL: string;
+	hasAddDataSetObjectEntryPermission: boolean;
 	namespace: string;
 	permissionsURL: string;
 	resolvedRESTSchemas: Array<string>;
 	restApplications: Array<string>;
+	systemDataSets: Array<ISystemDataSet>;
 }) => {
-	const creationMenu = {
-		primaryItems: [
-			{
-				label: Liferay.Language.get('new-data-set'),
-				onClick: ({loadData}: {loadData: Function}) => {
-					openModal({
-						contentComponent: ({
-							closeModal,
-						}: {
-							closeModal: Function;
-						}) => (
-							<NewDataSetModalContent
-								closeModal={closeModal}
-								loadData={loadData}
-								namespace={namespace}
-								resolvedRESTSchemas={resolvedRESTSchemas}
-								restApplications={restApplications}
-							/>
-						),
-					});
-				},
-			},
-		],
+	const getAPIURL = () => {
+		let params;
+
+		if (systemDataSets.length) {
+			const systemDataSetNames: string = systemDataSets
+				.map((systemDataSet) => `'${systemDataSet.name}'`)
+				.join(',');
+
+			params = {
+				filter: `not (externalReferenceCode in (${systemDataSetNames}))`,
+			};
+		}
+
+		return getDataSetResourceURL({
+			params,
+		});
 	};
 
 	const getEditURL = (itemData: IDataSet) => {
@@ -560,10 +618,6 @@ const CustomDataSets = ({
 		url.searchParams.set(`${namespace}dataSetLabel`, itemData.label);
 
 		return url;
-	};
-
-	const onEditClick = ({itemData}: {itemData: IDataSet}) => {
-		navigate(getEditURL(itemData));
 	};
 
 	const onDeleteClick = ({
@@ -590,9 +644,18 @@ const CustomDataSets = ({
 					onClick: ({processClose}: {processClose: Function}) => {
 						processClose();
 
-						fetch(itemData.actions.delete.href, {
-							headers: DEFAULT_FETCH_HEADERS,
-							method: itemData.actions.delete.method,
+						const formData = new FormData();
+
+						formData.append(
+							`${namespace}externalReferenceCode`,
+							itemData.externalReferenceCode
+						);
+
+						formData.append(`${namespace}id`, itemData.id);
+
+						fetch(deleteCustomDataSetURL, {
+							body: formData,
+							method: 'POST',
 						})
 							.then(() => {
 								openDefaultSuccessToast();
@@ -606,6 +669,61 @@ const CustomDataSets = ({
 			status: 'danger',
 			title: Liferay.Language.get('delete-data-set'),
 		});
+	};
+
+	const restApplicationRenderer = function ({
+		itemData,
+	}: {
+		itemData: IDataSet;
+	}) {
+		const apiExplorerURL = getAPIExplorerURL(itemData.restApplication);
+
+		return (
+			<ClayTooltipProvider>
+				<ClayLink
+					data-tooltip-align="top"
+					displayType="tertiary"
+					href={apiExplorerURL}
+					rel="noopener noreferrer"
+					target="_blank"
+					title={apiExplorerURL}
+				>
+					<span className="inline-item inline-item-before">
+						<ClayIcon
+							className="mr-1 text-2 text-secondary"
+							symbol="shortcut"
+						/>
+					</span>
+
+					{itemData.restApplication}
+				</ClayLink>
+			</ClayTooltipProvider>
+		);
+	};
+
+	const creationMenu = {
+		primaryItems: [
+			{
+				label: Liferay.Language.get('new-data-set'),
+				onClick: ({loadData}: {loadData: Function}) => {
+					openModal({
+						contentComponent: ({
+							closeModal,
+						}: {
+							closeModal: Function;
+						}) => (
+							<NewDataSetModalContent
+								closeModal={closeModal}
+								loadData={loadData}
+								namespace={namespace}
+								resolvedRESTSchemas={resolvedRESTSchemas}
+								restApplications={restApplications}
+							/>
+						),
+					});
+				},
+			},
+		],
 	};
 
 	const views = [
@@ -622,6 +740,7 @@ const CustomDataSets = ({
 						sortable: true,
 					},
 					{
+						contentRenderer: 'restApplicationRenderer',
 						fieldName: 'restApplication',
 						label: Liferay.Language.get('rest-application'),
 						sortable: true,
@@ -651,29 +770,33 @@ const CustomDataSets = ({
 		<div className="custom-data-sets data-sets">
 			<FrontendDataSet
 				{...FDS_DEFAULT_PROPS}
-				apiURL={API_URL.DATA_SETS}
-				creationMenu={creationMenu}
+				apiURL={getAPIURL()}
+				creationMenu={
+					hasAddDataSetObjectEntryPermission
+						? creationMenu
+						: undefined
+				}
+				customDataRenderers={{restApplicationRenderer}}
 				emptyState={{
 					description: Liferay.Language.get(
 						'start-creating-one-to-show-your-data'
 					),
-					image: '/states/empty_state.svg',
+					symbol: 'empty-state',
 					title: Liferay.Language.get('no-data-sets-created'),
 				}}
-				id={`${namespace}DataSets`}
+				id={`${namespace}CustomDataSets`}
 				itemsActions={[
 					{
 						data: {
 							id: 'edit',
-							permissionKey: 'get',
+							permissionKey: 'update',
 						},
 						icon: 'pencil',
 						label: Liferay.Language.get('edit'),
-						onClick: onEditClick,
-					},
-					{
-						separator: true,
-						type: 'group',
+						onClick: ({itemData}: {itemData: IDataSet}) => {
+							navigate(getEditURL(itemData));
+						},
+						type: EItemActionsType.ITEM,
 					},
 					{
 						data: {
@@ -684,11 +807,8 @@ const CustomDataSets = ({
 						href: permissionsURL,
 						icon: 'password-policies',
 						label: Liferay.Language.get('permissions'),
-						target: 'modal',
-					},
-					{
-						separator: true,
-						type: 'group',
+						target: 'modal-permissions',
+						type: EItemActionsType.ITEM,
 					},
 					{
 						data: {
@@ -697,6 +817,7 @@ const CustomDataSets = ({
 						icon: 'trash',
 						label: Liferay.Language.get('delete'),
 						onClick: onDeleteClick,
+						type: EItemActionsType.ITEM,
 					},
 				]}
 				sorts={[{direction: 'desc', key: 'dateCreated'}]}

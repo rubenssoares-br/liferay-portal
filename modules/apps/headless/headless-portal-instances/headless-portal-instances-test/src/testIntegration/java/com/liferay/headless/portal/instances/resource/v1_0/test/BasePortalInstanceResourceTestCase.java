@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.portal.instances.client.dto.v1_0.PortalInstance;
 import com.liferay.headless.portal.instances.client.http.HttpInvoker;
 import com.liferay.headless.portal.instances.client.pagination.Page;
@@ -27,22 +30,28 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,10 +63,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -81,8 +86,10 @@ public abstract class BasePortalInstanceResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -95,17 +102,27 @@ public abstract class BasePortalInstanceResourceTestCase {
 
 		_portalInstanceResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		PortalInstanceResource.Builder builder =
-			PortalInstanceResource.builder();
-
-		portalInstanceResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		portalInstanceResource = PortalInstanceResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -185,6 +202,93 @@ public abstract class BasePortalInstanceResourceTestCase {
 	}
 
 	@Test
+	public void testDeletePortalInstance() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PortalInstance portalInstance =
+			testDeletePortalInstance_addPortalInstance();
+
+		assertHttpResponseStatusCode(
+			204,
+			portalInstanceResource.deletePortalInstanceHttpResponse(
+				portalInstance.getPortalInstanceId()));
+
+		assertHttpResponseStatusCode(
+			404,
+			portalInstanceResource.getPortalInstanceHttpResponse(
+				portalInstance.getPortalInstanceId()));
+		assertHttpResponseStatusCode(
+			404, portalInstanceResource.getPortalInstanceHttpResponse("-"));
+	}
+
+	protected PortalInstance testDeletePortalInstance_addPortalInstance()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testDeletePortalInstanceBatch() throws Exception {
+		PortalInstance portalInstance1 =
+			testDeletePortalInstanceBatch_addPortalInstance();
+
+		testDeletePortalInstanceBatch_deletePortalInstance(
+			202, null, portalInstance1.getPortalInstanceId());
+
+		assertHttpResponseStatusCode(
+			404,
+			portalInstanceResource.getPortalInstanceHttpResponse(
+				portalInstance1.getPortalInstanceId()));
+	}
+
+	protected PortalInstance testDeletePortalInstanceBatch_addPortalInstance()
+		throws Exception {
+
+		return testDeletePortalInstance_addPortalInstance();
+	}
+
+	protected void testDeletePortalInstanceBatch_deletePortalInstance(
+			int expectedStatusCode, String externalReferenceCode, String id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			portalInstanceResource.deletePortalInstanceBatchHttpResponse(
+				null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"portalInstanceId", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
+	public void testGetPortalInstance() throws Exception {
+		PortalInstance postPortalInstance =
+			testGetPortalInstance_addPortalInstance();
+
+		PortalInstance getPortalInstance =
+			portalInstanceResource.getPortalInstance(
+				postPortalInstance.getPortalInstanceId());
+
+		assertEquals(postPortalInstance, getPortalInstance);
+		assertValid(getPortalInstance);
+	}
+
+	protected PortalInstance testGetPortalInstance_addPortalInstance()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testGetPortalInstancesPage() throws Exception {
 		Page<PortalInstance> page =
 			portalInstanceResource.getPortalInstancesPage(null);
@@ -206,6 +310,12 @@ public abstract class BasePortalInstanceResourceTestCase {
 		assertContains(portalInstance1, (List<PortalInstance>)page.getItems());
 		assertContains(portalInstance2, (List<PortalInstance>)page.getItems());
 		assertValid(page, testGetPortalInstancesPage_getExpectedActions());
+
+		portalInstanceResource.deletePortalInstance(
+			portalInstance1.getPortalInstanceId());
+
+		portalInstanceResource.deletePortalInstance(
+			portalInstance2.getPortalInstanceId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -219,6 +329,39 @@ public abstract class BasePortalInstanceResourceTestCase {
 
 	protected PortalInstance testGetPortalInstancesPage_addPortalInstance(
 			PortalInstance portalInstance)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPatchPortalInstance() throws Exception {
+		PortalInstance postPortalInstance =
+			testPatchPortalInstance_addPortalInstance();
+
+		PortalInstance randomPatchPortalInstance = randomPatchPortalInstance();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PortalInstance patchPortalInstance =
+			portalInstanceResource.patchPortalInstance(
+				postPortalInstance.getPortalInstanceId(),
+				randomPatchPortalInstance);
+
+		PortalInstance expectedPatchPortalInstance = postPortalInstance.clone();
+
+		BeanTestUtil.copyProperties(
+			randomPatchPortalInstance, expectedPatchPortalInstance);
+
+		PortalInstance getPortalInstance =
+			portalInstanceResource.getPortalInstance(
+				patchPortalInstance.getPortalInstanceId());
+
+		assertEquals(expectedPatchPortalInstance, getPortalInstance);
+		assertValid(getPortalInstance);
+	}
+
+	protected PortalInstance testPatchPortalInstance_addPortalInstance()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -245,28 +388,106 @@ public abstract class BasePortalInstanceResourceTestCase {
 	}
 
 	@Test
-	public void testDeletePortalInstance() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGetPortalInstance() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testPatchPortalInstance() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
 	public void testPutPortalInstanceActivate() throws Exception {
-		Assert.assertTrue(false);
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PortalInstance portalInstance =
+			testPutPortalInstanceActivate_addPortalInstance();
+
+		assertHttpResponseStatusCode(
+			204,
+			portalInstanceResource.putPortalInstanceActivateHttpResponse(
+				portalInstance.getPortalInstanceId()));
+
+		assertHttpResponseStatusCode(
+			404,
+			portalInstanceResource.putPortalInstanceActivateHttpResponse("-"));
+	}
+
+	protected PortalInstance testPutPortalInstanceActivate_addPortalInstance()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
 	public void testPutPortalInstanceDeactivate() throws Exception {
-		Assert.assertTrue(false);
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		PortalInstance portalInstance =
+			testPutPortalInstanceDeactivate_addPortalInstance();
+
+		assertHttpResponseStatusCode(
+			204,
+			portalInstanceResource.putPortalInstanceDeactivateHttpResponse(
+				portalInstance.getPortalInstanceId()));
+
+		assertHttpResponseStatusCode(
+			404,
+			portalInstanceResource.putPortalInstanceDeactivateHttpResponse(
+				"-"));
+	}
+
+	protected PortalInstance testPutPortalInstanceDeactivate_addPortalInstance()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		PortalInstance portalInstance1 =
+			testBatchEngineDeleteImportTask_addPortalInstance();
+
+		testBatchEngineDeleteImportTask_deletePortalInstance(
+			200, null, portalInstance1.getPortalInstanceId());
+
+		assertHttpResponseStatusCode(
+			404,
+			portalInstanceResource.getPortalInstanceHttpResponse(
+				portalInstance1.getPortalInstanceId()));
+	}
+
+	protected PortalInstance testBatchEngineDeleteImportTask_addPortalInstance()
+		throws Exception {
+
+		return testDeletePortalInstance_addPortalInstance();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deletePortalInstance(
+			int expectedStatusCode, String externalReferenceCode, String id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.portal.instances.dto.v1_0.PortalInstance",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"portalInstanceId", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	protected void assertContains(
@@ -342,6 +563,10 @@ public abstract class BasePortalInstanceResourceTestCase {
 	protected void assertValid(PortalInstance portalInstance) throws Exception {
 		boolean valid = true;
 
+		if (portalInstance.getPortalInstanceId() == null) {
+			valid = false;
+		}
+
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
 
@@ -371,6 +596,14 @@ public abstract class BasePortalInstanceResourceTestCase {
 
 			if (Objects.equals("domain", additionalAssertFieldName)) {
 				if (portalInstance.getDomain() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("maxUsers", additionalAssertFieldName)) {
+				if (portalInstance.getMaxUsers() == null) {
 					valid = false;
 				}
 
@@ -460,6 +693,8 @@ public abstract class BasePortalInstanceResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("portalInstanceId"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -559,6 +794,17 @@ public abstract class BasePortalInstanceResourceTestCase {
 				if (!Objects.deepEquals(
 						portalInstance1.getDomain(),
 						portalInstance2.getDomain())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("maxUsers", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						portalInstance1.getMaxUsers(),
+						portalInstance2.getMaxUsers())) {
 
 					return false;
 				}
@@ -770,6 +1016,12 @@ public abstract class BasePortalInstanceResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("maxUsers")) {
+			sb.append(String.valueOf(portalInstance.getMaxUsers()));
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("portalInstanceId")) {
 			Object object = portalInstance.getPortalInstanceId();
 
@@ -921,7 +1173,9 @@ public abstract class BasePortalInstanceResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -956,6 +1210,7 @@ public abstract class BasePortalInstanceResourceTestCase {
 				active = RandomTestUtil.randomBoolean();
 				companyId = RandomTestUtil.randomLong();
 				domain = StringUtil.toLowerCase(RandomTestUtil.randomString());
+				maxUsers = RandomTestUtil.randomInt();
 				portalInstanceId = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				siteInitializerKey = StringUtil.toLowerCase(
@@ -976,7 +1231,30 @@ public abstract class BasePortalInstanceResourceTestCase {
 		return randomPortalInstance();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected PortalInstanceResource portalInstanceResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1177,7 +1455,9 @@ public abstract class BasePortalInstanceResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BasePortalInstanceResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -1185,3 +1465,4 @@ public abstract class BasePortalInstanceResourceTestCase {
 			PortalInstanceResource _portalInstanceResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1453752637

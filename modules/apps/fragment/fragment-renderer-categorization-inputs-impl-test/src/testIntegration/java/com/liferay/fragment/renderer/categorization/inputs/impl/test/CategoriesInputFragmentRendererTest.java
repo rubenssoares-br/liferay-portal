@@ -12,6 +12,7 @@ import com.liferay.asset.test.util.AssetTestUtil;
 import com.liferay.fragment.renderer.DefaultFragmentRendererContext;
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectEntry;
@@ -28,14 +29,14 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.Serializable;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -106,9 +107,9 @@ public class CategoriesInputFragmentRendererTest
 		Company company = companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		Group globalGroup = company.getGroup();
+		Group companyGroup = company.getGroup();
 
-		Assert.assertTrue(groupIds.contains(globalGroup.getGroupId()));
+		Assert.assertTrue(groupIds.contains(companyGroup.getGroupId()));
 	}
 
 	@Test
@@ -134,9 +135,9 @@ public class CategoriesInputFragmentRendererTest
 		Company company = companyLocalService.getCompany(
 			TestPropsValues.getCompanyId());
 
-		Group globalGroup = company.getGroup();
+		Group companyGroup = company.getGroup();
 
-		Assert.assertTrue(groupIds.contains(globalGroup.getGroupId()));
+		Assert.assertTrue(groupIds.contains(companyGroup.getGroupId()));
 	}
 
 	@Override
@@ -151,8 +152,10 @@ public class CategoriesInputFragmentRendererTest
 		}
 
 		return _objectEntryLocalService.addObjectEntry(
-			TestPropsValues.getUserId(), groupId,
+			groupId, TestPropsValues.getUserId(),
 			objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
 			HashMapBuilder.<String, Serializable>put(
 				"firstName", RandomTestUtil.randomString()
 			).build(),

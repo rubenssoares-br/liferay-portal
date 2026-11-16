@@ -78,7 +78,7 @@ public abstract class BaseTemplateUpgradeProcessTestCase {
 			null, _group.getGroupId(),
 			fragmentCollection.getFragmentCollectionId(), null,
 			"FragmentEntry Name", null, read(filePath), null, false, null, null,
-			0, false, FragmentConstants.TYPE_COMPONENT, null,
+			0, false, false, FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED, _serviceContext);
 	}
 
@@ -114,11 +114,6 @@ public abstract class BaseTemplateUpgradeProcessTestCase {
 		}
 	}
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	private DDMTemplate _ddmTemplate;
 
 	@Inject
@@ -142,5 +137,10 @@ public abstract class BaseTemplateUpgradeProcessTestCase {
 	private Portal _portal;
 
 	private ServiceContext _serviceContext;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.dynamic.data.mapping.internal.upgrade.registry.DDMServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

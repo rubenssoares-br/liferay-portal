@@ -63,7 +63,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Rachael Koestartyo
  */
 @Component(
-	property = "dto.class.name=com.liferay.analytics.dxp.entity.rest.dto.v1_0.DXPEntity",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.analytics.dxp.entity.rest.dto.v1_0.DXPEntity"
+	},
 	service = DTOConverter.class
 )
 public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
@@ -155,17 +158,15 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 	private List<String> _filterAttributeNames(
 		List<String> attributeNames, List<String> removeAttributeNames) {
 
-		List<String> filteredAttributeNames = new ArrayList<>();
+		return TransformUtil.transform(
+			attributeNames,
+			attributeName -> {
+				if (removeAttributeNames.contains(attributeName)) {
+					return null;
+				}
 
-		for (String attributeName : attributeNames) {
-			if (removeAttributeNames.contains(attributeName)) {
-				continue;
-			}
-
-			filteredAttributeNames.add(attributeName);
-		}
-
-		return filteredAttributeNames;
+				return attributeName;
+			});
 	}
 
 	private Map<String, Serializable> _getAttributes(
@@ -523,9 +524,11 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 		for (long userGroupId : user.getGroupIds()) {
 			Group group = _groupPersistence.findByPrimaryKey(userGroupId);
 
-			if (group.isSite()) {
-				userSiteGroups.add(group);
+			if (!group.isSite()) {
+				continue;
 			}
+
+			userSiteGroups.add(group);
 		}
 
 		if ((organizationIds.length != 0) || (userGroupIds.length != 0)) {
@@ -533,9 +536,11 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 				user.getUserId(), true);
 
 			for (Group userGroup : userGroups) {
-				if (userGroup.isSite()) {
-					userSiteGroups.add(userGroup);
+				if (!userGroup.isSite()) {
+					continue;
 				}
+
+				userSiteGroups.add(userGroup);
 			}
 		}
 
@@ -569,23 +574,23 @@ public class DXPEntityDTOConverterImpl implements DXPEntityDTOConverter {
 	}
 
 	private String _parseValue(Object value) {
-		if (value != null) {
-			Class<?> clazz = value.getClass();
-
-			if (!clazz.isArray()) {
-				return String.valueOf(value);
-			}
-
-			JSONArray jsonArray = _jsonFactory.createJSONArray();
-
-			for (int i = 0; i < Array.getLength(value); i++) {
-				jsonArray.put(Array.get(value, i));
-			}
-
-			return jsonArray.toString();
+		if (value == null) {
+			return null;
 		}
 
-		return null;
+		Class<?> clazz = value.getClass();
+
+		if (!clazz.isArray()) {
+			return String.valueOf(value);
+		}
+
+		JSONArray jsonArray = _jsonFactory.createJSONArray();
+
+		for (int i = 0; i < Array.getLength(value); i++) {
+			jsonArray.put(Array.get(value, i));
+		}
+
+		return jsonArray.toString();
 	}
 
 	private DXPEntity _toDXPEntity(

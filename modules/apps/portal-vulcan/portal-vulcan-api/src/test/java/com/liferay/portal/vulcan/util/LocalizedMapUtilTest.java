@@ -10,6 +10,8 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
+import jakarta.ws.rs.BadRequestException;
+
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,8 +20,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.ws.rs.BadRequestException;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -35,6 +35,50 @@ public class LocalizedMapUtilTest {
 	@Rule
 	public static final LiferayUnitTestRule liferayUnitTestRule =
 		LiferayUnitTestRule.INSTANCE;
+
+	@Test
+	public void testGetI18nMap() {
+		Map<String, String> i18nMap = LocalizedMapUtil.getI18nMap(
+			HashMapBuilder.put(
+				LocaleUtil.FRANCE, "bonjour"
+			).put(
+				LocaleUtil.US, "hello"
+			).build());
+
+		Assert.assertEquals(i18nMap.toString(), 2, i18nMap.size());
+		Assert.assertEquals("hello", i18nMap.get("en-US"));
+		Assert.assertEquals("bonjour", i18nMap.get("fr-FR"));
+
+		i18nMap = LocalizedMapUtil.getI18nMap(
+			false,
+			HashMapBuilder.put(
+				LocaleUtil.FRANCE, "bonjour"
+			).put(
+				LocaleUtil.US, "hello"
+			).build());
+
+		Assert.assertNull(i18nMap);
+
+		Set<Locale> availableLocales = new HashSet<>();
+
+		availableLocales.add(LocaleUtil.BRAZIL);
+		availableLocales.add(LocaleUtil.FRANCE);
+		availableLocales.add(LocaleUtil.US);
+
+		i18nMap = LocalizedMapUtil.getI18nMap(
+			true, availableLocales,
+			HashMapBuilder.put(
+				"en_US", "hello"
+			).put(
+				"fr_FR", "bonjour"
+			).put(
+				"hu_HU", "szia"
+			).build());
+
+		Assert.assertEquals(i18nMap.toString(), 2, i18nMap.size());
+		Assert.assertEquals("hello", i18nMap.get("en_US"));
+		Assert.assertEquals("bonjour", i18nMap.get("fr_FR"));
+	}
 
 	@Test
 	public void testMergeI18nMap() {
@@ -173,6 +217,33 @@ public class LocalizedMapUtilTest {
 				).build(),
 				RandomTestUtil.randomString()));
 
+		// Populate international map with english value when default language
+		// value is undefined
+
+		Locale locale = LocaleUtil.getDefault();
+
+		try {
+			_setDefaultLocale(LocaleUtil.BRAZIL);
+
+			String englishValue = RandomTestUtil.randomString();
+
+			Assert.assertEquals(
+				HashMapBuilder.put(
+					"en_US", englishValue
+				).put(
+					"pt_BR", englishValue
+				).build(),
+				LocalizedMapUtil.populateI18nMap(
+					null,
+					HashMapBuilder.put(
+						"en_US", englishValue
+					).build(),
+					null));
+		}
+		finally {
+			_setDefaultLocale(locale);
+		}
+
 		// Populate international map with site default value when default
 		// language is undefined
 
@@ -218,13 +289,20 @@ public class LocalizedMapUtilTest {
 			List<Locale> missingNotFoundLocales = new ArrayList<>();
 
 			for (Locale notFoundLocale : notFoundLocales) {
-				if (!message.contains(notFoundLocale.toString())) {
-					missingNotFoundLocales.add(notFoundLocale);
+				if (message.contains(notFoundLocale.toString())) {
+					continue;
 				}
+
+				missingNotFoundLocales.add(notFoundLocale);
 			}
 
 			Assert.assertTrue(missingNotFoundLocales.isEmpty());
 		}
+	}
+
+	private void _setDefaultLocale(Locale locale) {
+		LocaleUtil.setDefault(
+			locale.getLanguage(), locale.getCountry(), locale.getVariant());
 	}
 
 }

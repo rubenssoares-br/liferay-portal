@@ -112,9 +112,9 @@ public class ShippingMethodResourceImpl extends BaseShippingMethodResourceImpl {
 		throws PortalException {
 
 		CommerceContext commerceContext = _commerceContextFactory.create(
-			contextCompany.getCompanyId(), commerceChannel.getGroupId(),
-			contextUser.getUserId(), commerceOrder.getCommerceOrderId(),
-			commerceOrder.getCommerceAccountId());
+			commerceOrder.getCommerceAccountId(), commerceChannel.getGroupId(),
+			null, commerceOrder.getCommerceOrderId(),
+			contextCompany.getCompanyId());
 
 		CommerceShippingEngine commerceShippingEngine =
 			_commerceShippingEngineRegistry.getCommerceShippingEngine(
@@ -167,9 +167,9 @@ public class ShippingMethodResourceImpl extends BaseShippingMethodResourceImpl {
 				setAmount(commerceShippingOptionAmount::doubleValue);
 				setAmountFormatted(
 					() -> _commercePriceFormatter.format(
-						commerceContext.getCommerceCurrency(),
-						commerceShippingOption.getAmount(),
-						contextAcceptLanguage.getPreferredLocale()));
+						commerceContext.getCommerceCurrency(), true,
+						contextAcceptLanguage.getPreferredLocale(),
+						commerceShippingOption.getAmount()));
 				setLabel(commerceShippingOption::getName);
 				setName(commerceShippingOption::getKey);
 			}

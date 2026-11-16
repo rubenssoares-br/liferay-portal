@@ -8,13 +8,14 @@ package com.liferay.headless.commerce.admin.channel.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.channel.client.dto.v1_0.Channel;
 import com.liferay.headless.commerce.admin.channel.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Andrea Sbarra
@@ -80,6 +81,30 @@ public class ChannelSerDes {
 			sb.append(_escape(channel.getCurrencyCode()));
 
 			sb.append("\"");
+		}
+
+		if (channel.getCurrencyExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"currencyExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(channel.getCurrencyExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (channel.getCurrencyId() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"currencyId\": ");
+
+			sb.append(channel.getCurrencyId());
 		}
 
 		if (channel.getExternalReferenceCode() != null) {
@@ -185,6 +210,22 @@ public class ChannelSerDes {
 			map.put("currencyCode", String.valueOf(channel.getCurrencyCode()));
 		}
 
+		if (channel.getCurrencyExternalReferenceCode() == null) {
+			map.put("currencyExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"currencyExternalReferenceCode",
+				String.valueOf(channel.getCurrencyExternalReferenceCode()));
+		}
+
+		if (channel.getCurrencyId() == null) {
+			map.put("currencyId", null);
+		}
+		else {
+			map.put("currencyId", String.valueOf(channel.getCurrencyId()));
+		}
+
 		if (channel.getExternalReferenceCode() == null) {
 			map.put("externalReferenceCode", null);
 		}
@@ -251,6 +292,14 @@ public class ChannelSerDes {
 				return false;
 			}
 			else if (Objects.equals(
+						jsonParserFieldName, "currencyExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "currencyId")) {
+				return false;
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "externalReferenceCode")) {
 
 				return false;
@@ -293,6 +342,20 @@ public class ChannelSerDes {
 			else if (Objects.equals(jsonParserFieldName, "currencyCode")) {
 				if (jsonParserFieldValue != null) {
 					channel.setCurrencyCode((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "currencyExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					channel.setCurrencyExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "currencyId")) {
+				if (jsonParserFieldValue != null) {
+					channel.setCurrencyId(
+						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(
@@ -369,6 +432,16 @@ public class ChannelSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -401,3 +474,4 @@ public class ChannelSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:714191293

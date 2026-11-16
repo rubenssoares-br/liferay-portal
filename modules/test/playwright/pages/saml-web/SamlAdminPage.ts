@@ -5,27 +5,24 @@
 
 import {Locator, Page, expect} from '@playwright/test';
 
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {waitForAlert} from '../../utils/waitForAlert';
+import {GlobalMenuPage} from '../product-navigation-applications-menu/GlobalMenuPage';
 
 export class SamlAdminPage {
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly enabledField: Locator;
 	readonly entityIdField: Locator;
 	readonly page: Page;
 	readonly samlRoleField: Locator;
 	readonly saveButton: Locator;
-	readonly successMessage: Locator;
 
 	constructor(page: Page) {
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
+		this.globalMenuPage = new GlobalMenuPage(page);
 		this.enabledField = page.getByText('Enabled');
 		this.entityIdField = page.getByLabel('Entity ID');
 		this.page = page;
 		this.samlRoleField = page.getByLabel('SAML Role');
 		this.saveButton = page.getByRole('button', {name: 'Save'});
-		this.successMessage = page.getByText(
-			'Your request completed successfully'
-		);
 	}
 
 	async configureSAML(
@@ -33,7 +30,7 @@ export class SamlAdminPage {
 		entityId?: string,
 		samlRole?: string
 	) {
-		await this.applicationsMenuPage.goToSamlAdmin(false);
+		await this.globalMenuPage.goToControlPanel('SAML Admin');
 
 		// We must disable SAML before making configuration changes
 
@@ -49,9 +46,7 @@ export class SamlAdminPage {
 
 			await this.saveButton.click();
 
-			await expect(await this.successMessage).toBeVisible();
-
-			await this.page.getByLabel('Close').click();
+			await waitForAlert(this.page);
 		}
 		else if (enabled === undefined) {
 			enabled = false;
@@ -74,9 +69,7 @@ export class SamlAdminPage {
 		if (updated) {
 			await this.saveButton.click();
 
-			await expect(await this.successMessage).toBeVisible();
-
-			await this.page.getByLabel('Close').click();
+			await waitForAlert(this.page);
 		}
 
 		if (enabled) {
@@ -91,9 +84,7 @@ export class SamlAdminPage {
 
 			await this.saveButton.click();
 
-			await expect(await this.successMessage).toBeVisible();
-
-			await this.page.getByLabel('Close').click();
+			await waitForAlert(this.page);
 		}
 	}
 
@@ -101,8 +92,8 @@ export class SamlAdminPage {
 		commonName = 'test',
 		encryption = false,
 		keyAlgorithm = 'RSA',
-		keyLength = '2048',
-		keyPassword = 'test'
+		keyPassword = 'test',
+		keySize = '2048'
 	) {
 		const locator = await this.page.getByRole('group', {
 			exact: true,
@@ -143,9 +134,7 @@ export class SamlAdminPage {
 				.selectOption(keyAlgorithm);
 		}
 
-		await frameLocator
-			.getByLabel('Key Length (Bits)')
-			.selectOption(keyLength);
+		await frameLocator.getByLabel('Key Size (Bits)').selectOption(keySize);
 		await frameLocator.getByLabel('Key Password').fill(keyPassword);
 
 		await frameLocator.getByRole('button', {name: 'Save'}).click();

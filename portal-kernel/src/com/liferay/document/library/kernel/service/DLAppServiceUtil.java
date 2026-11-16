@@ -700,6 +700,45 @@ public class DLAppServiceUtil {
 			groupId, folderId, folderName, fileName);
 	}
 
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntry(long fileEntryId)
+		throws PortalException {
+
+		return getService().fetchFileEntry(fileEntryId);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntry(long groupId, long folderId, String title)
+		throws PortalException {
+
+		return getService().fetchFileEntry(groupId, folderId, title);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByExternalReferenceCode(
+				String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		return getService().fetchFileEntryByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByFileName(
+				long groupId, long folderId, String fileName)
+		throws PortalException {
+
+		return getService().fetchFileEntryByFileName(
+			groupId, folderId, fileName);
+	}
+
+	public static com.liferay.portal.kernel.repository.model.FileEntry
+			fetchFileEntryByUuidAndGroupId(String uuid, long groupId)
+		throws PortalException {
+
+		return getService().fetchFileEntryByUuidAndGroupId(uuid, groupId);
+	}
+
 	/**
 	 * Returns all the file entries in the folder.
 	 *
@@ -2097,6 +2136,12 @@ public class DLAppServiceUtil {
 		return getService().search(repositoryId, searchContext, query);
 	}
 
+	public static void subscribeFileEntry(long groupId, long fileEntryId)
+		throws PortalException {
+
+		getService().subscribeFileEntry(groupId, fileEntryId);
+	}
+
 	/**
 	 * Subscribe the user to changes in documents of the file entry type. This
 	 * method is only supported by the Liferay repository.
@@ -2156,6 +2201,12 @@ public class DLAppServiceUtil {
 		throws PortalException {
 
 		getService().unlockFolder(repositoryId, parentFolderId, name, lockUuid);
+	}
+
+	public static void unsubscribeFileEntry(long groupId, long fileEntryId)
+		throws PortalException {
+
+		getService().unsubscribeFileEntry(groupId, fileEntryId);
 	}
 
 	/**
@@ -2509,3 +2560,4 @@ public class DLAppServiceUtil {
 	private static volatile DLAppService _service;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1346529934

@@ -29,7 +29,7 @@ List<LayoutRevision> rootLayoutRevisions = LayoutRevisionLocalServiceUtil.getChi
 %>
 
 <liferay-util:include page="/navigation.jsp" servletContext="<%= application %>">
-	<liferay-util:param name="navigationName" value="history" />
+	<liferay-util:param name="navigationName" value="history[record]" />
 </liferay-util:include>
 
 <clay:container-fluid>
@@ -80,7 +80,7 @@ List<LayoutRevision> rootLayoutRevisions = LayoutRevisionLocalServiceUtil.getChi
 						<liferay-ui:search-container-row
 							className="com.liferay.portal.kernel.model.LayoutRevision"
 							escapedModel="<%= true %>"
-							keyProperty="layoutRevisionId"
+							keyPropertyName="layoutRevisionId"
 							modelVar="curLayoutRevision"
 						>
 							<liferay-ui:search-container-column-date

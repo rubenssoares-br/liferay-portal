@@ -6,12 +6,11 @@
 import ClayBreadcrumb from '@clayui/breadcrumb';
 import ClayLayout from '@clayui/layout';
 import {IClientExtensionRenderer} from '@liferay/frontend-data-set-web';
-import {fetch, openModal, sub} from 'frontend-js-web';
+import {openModal} from 'frontend-js-components-web';
+import {fetch, sub} from 'frontend-js-web';
 import React, {useEffect, useState} from 'react';
 
-import {visit} from '../../components/AddDataSourceFieldsModalContent';
 import {
-	API_URL,
 	DEFAULT_FETCH_HEADERS,
 	OBJECT_RELATIONSHIP,
 } from '../../utils/constants';
@@ -21,6 +20,7 @@ import {
 	EFieldFormat,
 	EFieldType,
 	EFilterType,
+	ESelectionFilterSourceType,
 	IDataSet,
 	IDateFilter,
 	IField,
@@ -36,6 +36,7 @@ import FilterList from './components/FilterList';
 import SelectionFilterFormContent from './components/selection_filter/SelectionFilter';
 
 import '../../../css/Filters.scss';
+import getDataSetResourceURL from '../../utils/getDataSetResourceURL';
 import sortItems from '../../utils/sortItems';
 
 const FILTER_MODE = {
@@ -48,36 +49,38 @@ const FILTER_TYPES: Record<EFilterType, IFilterTypeProps> = {
 	[EFilterType.CLIENT_EXTENSION]: {
 		Component: ClientExtensionFilterFormContent,
 		availableFieldsFilter: (item: IField) => !!item,
-		displayType: Liferay.Language.get('client-extension-filter'),
+		displayType: () => Liferay.Language.get('client-extension-filter'),
 		fdsViewRelationship:
 			OBJECT_RELATIONSHIP.DATA_SET_CLIENT_EXTENSION_FILTERS,
-		fdsViewRelationshipId:
-			OBJECT_RELATIONSHIP.DATA_SET_CLIENT_EXTENSION_FILTERS_ID,
 		label: Liferay.Language.get('client-extension'),
-		url: API_URL.CLIENT_EXTENSION_FILTERS,
 	},
 	[EFilterType.DATE_RANGE]: {
 		Component: DateRangeFilterFormContent,
 		availableFieldsFilter: (item: IField) =>
 			item.format === EFieldFormat.DATE ||
-			item.format === EFieldFormat.DATE_TIME,
-		displayType: Liferay.Language.get('date-filter'),
+			item.format === EFieldFormat.DATE_TIME ||
+			item.type === EFieldType.DATE ||
+			item.type === EFieldType.DATE_TIME,
+		displayType: () => Liferay.Language.get('date-filter'),
 		fdsViewRelationship: OBJECT_RELATIONSHIP.DATA_SET_DATE_FILTERS,
-		fdsViewRelationshipId: OBJECT_RELATIONSHIP.DATA_SET_DATE_FILTERS_ID,
 		label: Liferay.Language.get('date-range'),
-		url: API_URL.DATE_FILTERS,
 	},
 	[EFilterType.SELECTION]: {
 		Component: SelectionFilterFormContent,
 		availableFieldsFilter: (item: IField) =>
-			(item.type === EFieldType.STRING && !item.format) ||
-			item.type === EFieldType.INTEGER,
-		displayType: Liferay.Language.get('dynamic-filter'),
+			item.type === EFieldType.STRING ||
+			item.type === EFieldType.INTEGER ||
+			item.type === EFieldType.ARRAY ||
+			item.type === EFieldType.BOOLEAN,
+		displayType: (filter: IFilter | undefined) => {
+			if (filter?.sourceType === ESelectionFilterSourceType.ITEM_PROXY) {
+				return Liferay.Language.get('system-filter');
+			}
+
+			return Liferay.Language.get('selection-filter');
+		},
 		fdsViewRelationship: OBJECT_RELATIONSHIP.DATA_SET_SELECTION_FILTERS,
-		fdsViewRelationshipId:
-			OBJECT_RELATIONSHIP.DATA_SET_SELECTION_FILTERS_ID,
 		label: Liferay.Language.get('selection'),
-		url: API_URL.SELECTION_FILTERS,
 	},
 };
 
@@ -110,21 +113,31 @@ function FilterFormComponent({
 	resolvedRESTSchemas,
 	restApplications,
 }: IPropsFilterFormComponent) {
-	const {Component, displayType, fdsViewRelationshipId} =
-		FILTER_TYPES[filterType as EFilterType];
+	const {Component, displayType} = FILTER_TYPES[filterType as EFilterType];
 
 	const saveFDSFilter = async (formData: any) => {
-		formData = {
-			...formData,
-			[fdsViewRelationshipId]: dataSet.id,
-		};
+		const relationship =
+			FILTER_TYPES[filterType as EFilterType].fdsViewRelationship;
 
-		let url = FILTER_TYPES[filterType as EFilterType].url;
-		let method = 'POST';
+		let method;
+		let url;
 
 		if (filter) {
-			method = 'PUT';
-			url = `${url}/${filter.id}`;
+			method = 'PATCH';
+
+			url = getDataSetResourceURL({
+				dataSetERC: dataSet.externalReferenceCode,
+				relatedResourceERC: filter.externalReferenceCode,
+				relationship,
+			});
+		}
+		else {
+			method = 'POST';
+
+			url = getDataSetResourceURL({
+				dataSetERC: dataSet.externalReferenceCode,
+				relationship,
+			});
 		}
 
 		const response = await fetch(url, {
@@ -143,7 +156,7 @@ function FilterFormComponent({
 
 		openDefaultSuccessToast();
 
-		onSave({...responseJSON, displayType, filterType});
+		onSave({...responseJSON, displayType: displayType(filter), filterType});
 	};
 
 	return (
@@ -177,8 +190,8 @@ function FilterFormComponent({
 
 function Filters({
 	dataSet,
-	fieldTreeItems: fields,
 	filterClientExtensionRenderers,
+	filterableFieldTreeItems: filterableFields,
 	namespace,
 	resolvedRESTSchemas,
 	restApplications,
@@ -187,38 +200,42 @@ function Filters({
 	const [activeFilterType, setActiveFilterType] =
 		useState<EFilterType | null>(null);
 	const [activeMode, setActiveMode] = useState(FILTER_MODE.LIST);
-	const [availableFields, setAvailableFields] = useState(fields);
+	const [availableFields, setAvailableFields] = useState(filterableFields);
 	const [fieldNames, setFieldNames] = useState<string[]>([]);
 	const [filters, setFilters] = useState<IFilter[]>([]);
+	const [toggleActiveDisabled, setToogleActiveDisabled] =
+		useState<boolean>(false);
 
 	useEffect(() => {
 		const getFilters = async () => {
-			const response = await fetch(
-				`${API_URL.DATA_SETS}/${
-					dataSet.id
-				}?nestedFields=${Object.values(FILTER_TYPES)
-					.map((filter) => filter.fdsViewRelationship)
-					.join(',')}`,
-				{
-					headers: DEFAULT_FETCH_HEADERS,
-				}
-			);
+			const url = getDataSetResourceURL({
+				dataSetERC: dataSet.externalReferenceCode,
+				params: {
+					nestedFields: Object.values(FILTER_TYPES)
+						.map((filter) => filter.fdsViewRelationship)
+						.join(','),
+				},
+			});
+
+			const response = await fetch(url, {
+				headers: DEFAULT_FETCH_HEADERS,
+			});
 
 			const responseJSON = await response.json();
 
 			let filtersOrdered: FilterCollection = [];
 
 			Object.keys(FILTER_TYPES).forEach((type) => {
+				const filterTypeProps: IFilterTypeProps =
+					FILTER_TYPES[type as EFilterType];
+
 				const filtersArray =
-					responseJSON[
-						FILTER_TYPES[type as EFilterType].fdsViewRelationship
-					];
+					responseJSON[filterTypeProps.fdsViewRelationship];
 
 				filtersArray.forEach((filter: any) => {
 					filtersOrdered.push({
 						...filter,
-						displayType:
-							FILTER_TYPES[type as EFilterType].displayType,
+						displayType: filterTypeProps.displayType(filter),
 						filterType: type as EFilterType,
 					});
 				});
@@ -226,7 +243,7 @@ function Filters({
 
 			filtersOrdered = sortItems(
 				filtersOrdered,
-				responseJSON.fdsFiltersOrder,
+				responseJSON.filtersOrder,
 				true
 			) as FilterCollection;
 
@@ -245,21 +262,22 @@ function Filters({
 		getFilters();
 	}, [dataSet]);
 
-	const updateFDSFiltersOrder = async ({
-		fdsFiltersOrder,
+	const updateFiltersOrder = async ({
+		filtersOrder,
 	}: {
-		fdsFiltersOrder: string;
+		filtersOrder: string;
 	}) => {
-		const response = await fetch(
-			`${API_URL.DATA_SETS}/by-external-reference-code/${dataSet.externalReferenceCode}`,
-			{
-				body: JSON.stringify({
-					fdsFiltersOrder,
-				}),
-				headers: DEFAULT_FETCH_HEADERS,
-				method: 'PATCH',
-			}
-		);
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+		});
+
+		const response = await fetch(url, {
+			body: JSON.stringify({
+				filtersOrder,
+			}),
+			headers: DEFAULT_FETCH_HEADERS,
+			method: 'PATCH',
+		});
 
 		if (!response.ok) {
 			openDefaultFailureToast();
@@ -269,19 +287,15 @@ function Filters({
 
 		const responseJSON = await response.json();
 
-		const storedFDSFiltersOrder = responseJSON?.fdsFiltersOrder;
+		const storedFiltersOrder = responseJSON?.filtersOrder;
 
 		if (
 			filters &&
-			storedFDSFiltersOrder &&
-			storedFDSFiltersOrder === fdsFiltersOrder
+			storedFiltersOrder &&
+			storedFiltersOrder === filtersOrder
 		) {
 			setFilters(
-				sortItems(
-					filters,
-					storedFDSFiltersOrder,
-					true
-				) as FilterCollection
+				sortItems(filters, storedFiltersOrder, true) as FilterCollection
 			);
 
 			openDefaultSuccessToast();
@@ -314,28 +328,17 @@ function Filters({
 	};
 
 	const onCreationButtonClick = (filterType: EFilterType) => {
-		let availableFieldsListLength = 0;
+		const filterableFieldsCopy: IFieldTreeItem[] = JSON.parse(
+			JSON.stringify(filterableFields)
+		);
 
-		const availableFilterTypeFields = JSON.parse(JSON.stringify(fields));
-
-		visit(availableFilterTypeFields, (field: IFieldTreeItem) => {
-			if (
-				!FILTER_TYPES[filterType as EFilterType].availableFieldsFilter(
-					field
-				)
-			) {
-				field.disabled = true;
-			}
-			else {
-				availableFieldsListLength++;
-
-				field.disabled = false;
-			}
-		});
+		const availableFilterTypeFields = filterableFieldsCopy.filter((field) =>
+			FILTER_TYPES[filterType as EFilterType].availableFieldsFilter(field)
+		);
 
 		setAvailableFields(availableFilterTypeFields);
 
-		if (!availableFieldsListLength) {
+		if (!availableFilterTypeFields.length) {
 			openModal({
 				bodyHTML: Liferay.Language.get(
 					'there-are-no-fields-compatible-with-this-type-of-filter'
@@ -366,19 +369,6 @@ function Filters({
 		}
 	};
 
-	const onEdit = ({item}: {item: IFilter}) => {
-		if (
-			item.filterType === EFilterType.CLIENT_EXTENSION &&
-			!filterClientExtensionRenderers.length
-		) {
-			noFilterClientExtensionsAvailableModal();
-		}
-		else {
-			setActiveMode(FILTER_MODE.EDITION);
-			setActiveFilter(item);
-		}
-	};
-
 	const onDelete = async ({item}: {item: IFilter}) => {
 		openModal({
 			bodyHTML: Liferay.Language.get(
@@ -397,9 +387,15 @@ function Filters({
 					onClick: ({processClose}: {processClose: Function}) => {
 						processClose();
 
-						const url = `${
-							FILTER_TYPES[item.filterType as EFilterType].url
-						}/${item.id}`;
+						const url = getDataSetResourceURL({
+							dataSetERC: dataSet.externalReferenceCode,
+							relatedResourceERC: String(
+								item.externalReferenceCode
+							),
+							relationship:
+								FILTER_TYPES[item.filterType as EFilterType]
+									.fdsViewRelationship,
+						});
 
 						fetch(url, {
 							headers: DEFAULT_FETCH_HEADERS,
@@ -423,6 +419,64 @@ function Filters({
 			status: 'danger',
 			title: Liferay.Language.get('delete-filter'),
 		});
+	};
+
+	const onEdit = ({item}: {item: IFilter}) => {
+		if (
+			item.filterType === EFilterType.CLIENT_EXTENSION &&
+			!filterClientExtensionRenderers.length
+		) {
+			noFilterClientExtensionsAvailableModal();
+		}
+		else {
+			setActiveMode(FILTER_MODE.EDITION);
+			setActiveFilter(item);
+		}
+	};
+
+	const updateActive = async (item: IFilter) => {
+		setToogleActiveDisabled(true);
+
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+			relatedResourceERC: item.externalReferenceCode,
+			relationship:
+				FILTER_TYPES[item.filterType as EFilterType]
+					.fdsViewRelationship,
+		});
+
+		const response = await fetch(url, {
+			body: JSON.stringify({active: !item.active}),
+			headers: DEFAULT_FETCH_HEADERS,
+			method: 'PATCH',
+		});
+
+		if (!response.ok) {
+			openDefaultFailureToast();
+
+			return;
+		}
+
+		const dataSetFilter: IFilter = await response.json();
+
+		if (dataSetFilter?.id) {
+			const updatedFilters = filters.map((filter) => {
+				if (filter.id === dataSetFilter.id) {
+					filter = {...filter, ...dataSetFilter};
+				}
+
+				return filter;
+			});
+
+			setFilters(updatedFilters);
+
+			openDefaultSuccessToast();
+		}
+		else {
+			openDefaultFailureToast();
+		}
+
+		setToogleActiveDisabled(false);
 	};
 
 	const getBreadcrumbItems = () => {
@@ -507,7 +561,7 @@ function Filters({
 						<FilterFormComponent
 							dataSet={dataSet}
 							fieldNames={fieldNames}
-							fields={fields}
+							fields={availableFields}
 							filter={activeFilter}
 							filterClientExtensionRenderers={
 								filterClientExtensionRenderers
@@ -554,7 +608,9 @@ function Filters({
 						editFilter={onEdit}
 						filterTypes={FILTER_TYPES}
 						filters={filters}
-						updateFiltersOrder={updateFDSFiltersOrder}
+						toogleActiveDisabled={toggleActiveDisabled}
+						updateActive={updateActive}
+						updateFiltersOrder={updateFiltersOrder}
 					/>
 				</ClayLayout.ContainerFluid>
 			)}

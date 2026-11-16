@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Olivér Kecskeméty
@@ -50,7 +51,9 @@ public class Group implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Group.class, json);
 	}
 
-	@Schema(description = "A human-readable name for the Group.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A human-readable name for the Group."
+	)
 	public String getDisplayName() {
 		if (_displayNameSupplier != null) {
 			displayName = _displayNameSupplier.get();
@@ -91,7 +94,7 @@ public class Group implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _displayNameSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A String that is an identifier for the resource as defined by the provisioning client."
 	)
 	public String getExternalId() {
@@ -136,7 +139,7 @@ public class Group implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A unique identifier for a SCIM resource as defined by the service provider."
 	)
 	public String getId() {
@@ -179,7 +182,9 @@ public class Group implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _idSupplier;
 
-	@Schema(description = "A list of members of the Group.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of members of the Group."
+	)
 	@Valid
 	public MultiValuedAttribute[] getMembers() {
 		if (_membersSupplier != null) {
@@ -222,7 +227,7 @@ public class Group implements Serializable {
 	@JsonIgnore
 	private Supplier<MultiValuedAttribute[]> _membersSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Meta getMeta() {
 		if (_metaSupplier != null) {
@@ -262,7 +267,7 @@ public class Group implements Serializable {
 	@JsonIgnore
 	private Supplier<Meta> _metaSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A multi-valued list of strings indicating the namespaces of the SCIM schemas that define the attributes present in the current JSON structure."
 	)
 	public String[] getSchemas() {
@@ -447,8 +452,8 @@ public class Group implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.scim.rest.dto.v1_0.Group",
 		name = "x-class-name"
 	)
@@ -535,6 +540,27 @@ public class Group implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -543,3 +569,4 @@ public class Group implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1910125287

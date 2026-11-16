@@ -10,8 +10,13 @@ import com.liferay.change.tracking.configuration.CTCollectionEmailConfiguration;
 import com.liferay.change.tracking.constants.CTPortletKeys;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
+import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCResourceCommand;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
@@ -22,6 +27,8 @@ import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.test.portlet.MockLiferayResourceRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayResourceResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.PropsValuesTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -29,18 +36,21 @@ import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.JavaConstants;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.mail.MailMessage;
 import com.liferay.portal.test.mail.MailServiceTestUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.test.rule.SynchronousMailTestRule;
 
-import javax.portlet.PortletRequest;
+import jakarta.portlet.PortletRequest;
 
+import java.io.ByteArrayOutputStream;
+
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -67,9 +77,16 @@ public class InviteUsersMVCResourceCommandTest {
 		_ctCollection = _ctCollectionLocalService.addCTCollection(
 			null, TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
 			0, RandomTestUtil.randomString(), null);
+
+		_safeCloseable = PropsValuesTestUtil.swapWithSafeCloseable(
+			"AUTH_TOKEN_CHECK_ENABLED", false);
 	}
 
-	@FeatureFlags("LPD-11212")
+	@After
+	public void tearDown() throws Exception {
+		_safeCloseable.close();
+	}
+
 	@Test
 	public void testGetInviteUsersEmailNotificationBody() throws Exception {
 		_testGetInviteUsers(_ctCollection);
@@ -97,11 +114,10 @@ public class InviteUsersMVCResourceCommandTest {
 				StringBundler.concat(
 					"You have been invited to work on a publication. For ",
 					"further information, please visit:<br /><br />\n<a href=",
-					"\"", url, "\">", _ctCollection.getName(), "</a><br />",
-					"<br />")));
+					"\"", url, "\">", _ctCollection.getName(), "</a><br /><br ",
+					"/>")));
 	}
 
-	@FeatureFlags("LPD-11212")
 	@Test
 	public void testGetInviteUsersWithCustomEmailFromAddressAndEmailFromName()
 		throws Exception {
@@ -134,7 +150,6 @@ public class InviteUsersMVCResourceCommandTest {
 		}
 	}
 
-	@FeatureFlags("LPD-11212")
 	@Test
 	public void testGetInviteUsersWithCustomInvitationEmailBodyAndInvitationEmailSubject()
 		throws Exception {
@@ -167,17 +182,42 @@ public class InviteUsersMVCResourceCommandTest {
 		}
 	}
 
+	@Test
+	public void testGetInviteUsersWithInvalidUser() throws Exception {
+		_user = UserTestUtil.addUser();
+
+		MockLiferayResourceResponse mockLiferayResourceResponse =
+			new MockLiferayResourceResponse();
+
+		_mvcResourceCommand.serveResource(
+			_getMockLiferayResourceRequest(
+				_companyLocalService.createCompany(RandomTestUtil.randomLong()),
+				_ctCollection.getCtCollectionId(), _user.getUserId()),
+			mockLiferayResourceResponse);
+
+		ByteArrayOutputStream byteArrayOutputStream =
+			(ByteArrayOutputStream)
+				mockLiferayResourceResponse.getPortletOutputStream();
+
+		JSONObject jsonObject = JSONFactoryUtil.createJSONObject(
+			new String(byteArrayOutputStream.toByteArray()));
+
+		Assert.assertEquals(
+			_language.get(LocaleUtil.US, "your-request-failed-to-complete"),
+			jsonObject.getString("errorMessage"));
+	}
+
 	private MockLiferayResourceRequest _getMockLiferayResourceRequest(
-			long ctCollectionId, long userId)
+			Company company, long ctCollectionId, long userId)
 		throws Exception {
 
 		MockLiferayResourceRequest mockLiferayResourceRequest =
 			new MockLiferayResourceRequest();
 
 		mockLiferayResourceRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_CONFIG, null);
+			JavaConstants.JAKARTA_PORTLET_CONFIG, null);
 		mockLiferayResourceRequest.setAttribute(
-			WebKeys.THEME_DISPLAY, _getThemeDisplay());
+			WebKeys.THEME_DISPLAY, _getThemeDisplay(company));
 		mockLiferayResourceRequest.setParameter(
 			"ctCollectionId", String.valueOf(ctCollectionId));
 		mockLiferayResourceRequest.setParameter(
@@ -188,11 +228,11 @@ public class InviteUsersMVCResourceCommandTest {
 		return mockLiferayResourceRequest;
 	}
 
-	private ThemeDisplay _getThemeDisplay() throws Exception {
+	private ThemeDisplay _getThemeDisplay(Company company) throws Exception {
 		ThemeDisplay themeDisplay = new ThemeDisplay();
 
-		themeDisplay.setCompany(
-			_companyLocalService.fetchCompany(TestPropsValues.getCompanyId()));
+		themeDisplay.setCompany(company);
+		themeDisplay.setLocale(LocaleUtil.US);
 		themeDisplay.setPermissionChecker(
 			PermissionThreadLocal.getPermissionChecker());
 		themeDisplay.setSiteGroupId(TestPropsValues.getGroupId());
@@ -211,6 +251,8 @@ public class InviteUsersMVCResourceCommandTest {
 
 		MockLiferayResourceRequest mockLiferayResourceRequest =
 			_getMockLiferayResourceRequest(
+				_companyLocalService.fetchCompany(
+					TestPropsValues.getCompanyId()),
 				ctCollection.getCtCollectionId(), user.getUserId());
 
 		_serviceContext.setRequest(
@@ -227,13 +269,16 @@ public class InviteUsersMVCResourceCommandTest {
 		}
 	}
 
-	private static CTCollection _ctCollection;
-
-	@Inject
-	private static CTCollectionLocalService _ctCollectionLocalService;
-
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	private CTCollection _ctCollection;
+
+	@Inject
+	private CTCollectionLocalService _ctCollectionLocalService;
+
+	@Inject
+	private Language _language;
 
 	@Inject(filter = "mvc.command.name=/change_tracking/invite_users")
 	private MVCResourceCommand _mvcResourceCommand;
@@ -241,6 +286,10 @@ public class InviteUsersMVCResourceCommandTest {
 	@Inject
 	private Portal _portal;
 
+	private SafeCloseable _safeCloseable;
 	private ServiceContext _serviceContext;
+
+	@DeleteAfterTestRun
+	private User _user;
 
 }

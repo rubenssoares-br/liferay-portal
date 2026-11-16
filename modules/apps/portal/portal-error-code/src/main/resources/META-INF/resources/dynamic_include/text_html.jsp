@@ -22,7 +22,7 @@ ErrorData errorData = pageContext.getErrorData();
 
 int code = errorData.getStatusCode();
 
-String msg = String.valueOf(request.getAttribute(JavaConstants.JAVAX_SERVLET_ERROR_MESSAGE));
+String msg = String.valueOf(request.getAttribute(JavaConstants.JAKARTA_SERVLET_ERROR_MESSAGE));
 String uri = errorData.getRequestURI();
 
 String xRequestWith = request.getHeader(HttpHeaders.X_REQUESTED_WITH);
@@ -37,7 +37,7 @@ String xRequestWith = request.getHeader(HttpHeaders.X_REQUESTED_WITH);
 
 			LayoutSet layoutSet = (LayoutSet)request.getAttribute(WebKeys.VIRTUAL_HOST_LAYOUT_SET);
 
-			if (layoutSet != null) {
+			if ((layoutSet != null) && !StringUtil.equals(uri, PortalUtil.getPathMain())) {
 				redirect = PortalUtil.getPathMain();
 			}
 			else {

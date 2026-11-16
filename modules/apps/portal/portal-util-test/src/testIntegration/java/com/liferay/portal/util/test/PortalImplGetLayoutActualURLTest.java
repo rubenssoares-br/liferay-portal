@@ -187,8 +187,8 @@ public class PortalImplGetLayoutActualURLTest
 		return lastLevelLayouts.get(pos);
 	}
 
-	private void _assertGetLayoutActualURL(
-		Layout expectedLayout, Layout layout) {
+	private void _assertGetLayoutActualURL(Layout expectedLayout, Layout layout)
+		throws Exception {
 
 		_multiVMPool.clear();
 
@@ -269,10 +269,10 @@ public class PortalImplGetLayoutActualURLTest
 		}
 	}
 
-	private String[] _getTypes(int browsableTypePos, int lenght) {
-		String[] types = new String[lenght];
+	private String[] _getTypes(int browsableTypePos, int length) {
+		String[] types = new String[length];
 
-		for (int i = 0; i < lenght; i++) {
+		for (int i = 0; i < length; i++) {
 			String type = LayoutConstants.TYPE_NODE;
 
 			if ((browsableTypePos >= 0) && (i >= browsableTypePos)) {

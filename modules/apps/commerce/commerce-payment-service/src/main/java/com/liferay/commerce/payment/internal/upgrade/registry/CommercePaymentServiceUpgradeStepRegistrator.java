@@ -7,8 +7,6 @@ package com.liferay.commerce.payment.internal.upgrade.registry;
 
 import com.liferay.commerce.payment.internal.upgrade.v1_0_1.CommercePaymentMethodGroupRelUpgradeProcess;
 import com.liferay.commerce.payment.internal.upgrade.v1_2_0.util.CommercePaymentMethodGroupRelQualifierTable;
-import com.liferay.commerce.payment.internal.upgrade.v1_4_0.util.CommercePaymentEntryAuditTable;
-import com.liferay.commerce.payment.internal.upgrade.v1_4_0.util.CommercePaymentEntryTable;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
@@ -18,6 +16,7 @@ import com.liferay.portal.kernel.service.ResourceLocalService;
 import com.liferay.portal.kernel.upgrade.BaseExternalReferenceCodeUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.MVCCVersionUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.UpgradeProcessFactory;
+import com.liferay.portal.kernel.upgrade.UpgradeStep;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 
 import org.osgi.service.component.annotations.Component;
@@ -63,8 +62,7 @@ public class CommercePaymentServiceUpgradeStepRegistrator
 					_resourceActionLocalService, _resourceLocalService));
 
 		registry.register(
-			"1.3.0", "1.4.0", CommercePaymentEntryTable.create(),
-			CommercePaymentEntryAuditTable.create(),
+			"1.3.0", "1.4.0",
 			new com.liferay.commerce.payment.internal.upgrade.v1_4_0.
 				CommercePaymentEntryUpgradeProcess(
 					_resourceActionLocalService));
@@ -73,7 +71,7 @@ public class CommercePaymentServiceUpgradeStepRegistrator
 			"1.4.0", "1.5.0",
 			UpgradeProcessFactory.alterColumnName(
 				"CommercePaymentEntry", "paymentMethodName",
-				"paymentIntegrationKey VARCHAR(75) null"),
+				"paymentIntegrationKey"),
 			UpgradeProcessFactory.alterColumnType(
 				"CommercePaymentEntry", "transactionCode", "VARCHAR(255) null"),
 			UpgradeProcessFactory.addColumns(
@@ -82,7 +80,7 @@ public class CommercePaymentServiceUpgradeStepRegistrator
 				"redirectURL TEXT null"),
 			UpgradeProcessFactory.alterColumnName(
 				"CommercePaymentMethodGroupRel", "engineKey",
-				"paymentIntegrationKey VARCHAR(75) null"),
+				"paymentIntegrationKey"),
 			UpgradeProcessFactory.addColumns(
 				"CommercePaymentMethodGroupRel", "typeSettings TEXT null"));
 
@@ -93,20 +91,28 @@ public class CommercePaymentServiceUpgradeStepRegistrator
 				"errorMessages TEXT null", "languageId VARCHAR(75) null"));
 
 		registry.register(
-			"1.6.0", "1.7.0",
-			UpgradeProcessFactory.addColumns(
-				"CommercePaymentEntry", "note TEXT null",
-				"reasonKey VARCHAR(75) null", "reasonName STRING null"),
+			"1.6.0", "1.6.1",
 			new BaseExternalReferenceCodeUpgradeProcess() {
 
 				@Override
-				protected String[][] getTableAndPrimaryKeyColumnNames() {
-					return new String[][] {
-						{"CommercePaymentEntry", "commercePaymentEntryId"}
+				protected UpgradeStep[] getPreUpgradeSteps() {
+					return new UpgradeStep[] {
+						UpgradeProcessFactory.addColumns(
+							"CommercePaymentEntry", "note TEXT null",
+							"reasonKey VARCHAR(75) null",
+							"reasonName STRING null")
 					};
 				}
 
-			},
+				@Override
+				protected String[] getTableNames() {
+					return new String[] {"CommercePaymentEntry"};
+				}
+
+			});
+
+		registry.register(
+			"1.6.1", "1.7.0",
 			new com.liferay.commerce.payment.internal.upgrade.v1_7_0.
 				CommercePaymentEntryUpgradeProcess());
 

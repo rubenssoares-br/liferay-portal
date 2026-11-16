@@ -10,7 +10,7 @@ import com.liferay.portal.kernel.cluster.ClusterInvokeThreadLocal;
 import com.liferay.portal.kernel.cluster.ClusterRequest;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.ModelListener;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.kernel.util.MethodHandler;
 import com.liferay.portal.kernel.util.MethodKey;
 import com.liferay.portal.language.override.model.PLOEntry;
@@ -25,7 +25,7 @@ import org.osgi.service.component.annotations.Reference;
 public class PLOEntryModelListener extends BaseModelListener<PLOEntry> {
 
 	public static void clearCache(ClusterExecutor clusterExecutor) {
-		PLOOverrideResourceBundleManager.clearCache();
+		PLOLanguageOverrideProvider.clearCache();
 
 		if (!clusterExecutor.isEnabled() ||
 			!ClusterInvokeThreadLocal.isEnabled()) {
@@ -38,7 +38,7 @@ public class PLOEntryModelListener extends BaseModelListener<PLOEntry> {
 
 		clusterRequest.setFireAndForget(true);
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> clusterExecutor.execute(clusterRequest));
 	}
 
@@ -59,8 +59,7 @@ public class PLOEntryModelListener extends BaseModelListener<PLOEntry> {
 
 	private static final MethodHandler _clearCacheMethodHandle =
 		new MethodHandler(
-			new MethodKey(
-				PLOOverrideResourceBundleManager.class, "clearCache"));
+			new MethodKey(PLOLanguageOverrideProvider.class, "clearCache"));
 
 	@Reference
 	private ClusterExecutor _clusterExecutor;

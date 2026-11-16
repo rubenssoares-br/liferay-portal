@@ -24,6 +24,10 @@ ObjectDefinitionsActionsDisplayContext objectDefinitionsActionsDisplayContext = 
 		).put(
 			"apiURL", objectDefinitionsActionsDisplayContext.getAPIURL()
 		).put(
+			"companyAdmin", permissionChecker.isCompanyAdmin()
+		).put(
+			"hasUserNotificationHandler", objectDefinitionsActionsDisplayContext.hasUserNotificationHandler(objectDefinition.getClassName())
+		).put(
 			"objectActionCodeEditorElements", objectDefinitionsActionsDisplayContext.getObjectActionCodeEditorElements()
 		).put(
 			"objectActionExecutors", objectDefinitionsActionsDisplayContext.getObjectActionExecutorsJSONArray()
@@ -35,6 +39,8 @@ ObjectDefinitionsActionsDisplayContext objectDefinitionsActionsDisplayContext = 
 			"objectDefinitionId", objectDefinitionsActionsDisplayContext.getObjectDefinitionId()
 		).put(
 			"objectDefinitionsRelationshipsURL", objectDefinitionsActionsDisplayContext.getObjectDefinitionsRelationshipsURL()
+		).put(
+			"objectFields", objectDefinitionsActionsDisplayContext.getObjectFields()
 		).put(
 			"systemObject", objectDefinition.isSystem()
 		).put(

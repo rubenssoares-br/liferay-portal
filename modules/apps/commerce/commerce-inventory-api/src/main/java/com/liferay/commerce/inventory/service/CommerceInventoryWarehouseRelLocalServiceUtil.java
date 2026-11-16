@@ -248,12 +248,36 @@ public class CommerceInventoryWarehouseRelLocalServiceUtil {
 			commerceInventoryWarehouseRelId);
 	}
 
-	public static CommerceInventoryWarehouseRel
-		fetchCommerceInventoryWarehouseRel(
-			String className, long classPK, long commerceInventoryWarehouseId) {
+	public static List<CommerceInventoryWarehouseRel>
+		getAccountEntryCommerceInventoryWarehouseRels(
+			long commerceInventoryWarehouseId, String keywords, int start,
+			int end) {
 
-		return getService().fetchCommerceInventoryWarehouseRel(
-			className, classPK, commerceInventoryWarehouseId);
+		return getService().getAccountEntryCommerceInventoryWarehouseRels(
+			commerceInventoryWarehouseId, keywords, start, end);
+	}
+
+	public static int getAccountEntryCommerceInventoryWarehouseRelsCount(
+		long commerceInventoryWarehouseId, String keywords) {
+
+		return getService().getAccountEntryCommerceInventoryWarehouseRelsCount(
+			commerceInventoryWarehouseId, keywords);
+	}
+
+	public static List<CommerceInventoryWarehouseRel>
+		getAccountGroupCommerceInventoryWarehouseRels(
+			long commerceInventoryWarehouseId, String keywords, int start,
+			int end) {
+
+		return getService().getAccountGroupCommerceInventoryWarehouseRels(
+			commerceInventoryWarehouseId, keywords, start, end);
+	}
+
+	public static int getAccountGroupCommerceInventoryWarehouseRelsCount(
+		long commerceInventoryWarehouseId, String keywords) {
+
+		return getService().getAccountGroupCommerceInventoryWarehouseRelsCount(
+			commerceInventoryWarehouseId, keywords);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
@@ -296,20 +320,11 @@ public class CommerceInventoryWarehouseRelLocalServiceUtil {
 	}
 
 	public static List<CommerceInventoryWarehouseRel>
-		getCommerceInventoryWarehouseRels(long commerceInventoryWarehouseId) {
-
-		return getService().getCommerceInventoryWarehouseRels(
-			commerceInventoryWarehouseId);
-	}
-
-	public static List<CommerceInventoryWarehouseRel>
 		getCommerceInventoryWarehouseRels(
-			long commerceInventoryWarehouseId, int start, int end,
-			OrderByComparator<CommerceInventoryWarehouseRel>
-				orderByComparator) {
+			String className, long commerceInventoryWarehouseId) {
 
 		return getService().getCommerceInventoryWarehouseRels(
-			commerceInventoryWarehouseId, start, end, orderByComparator);
+			className, commerceInventoryWarehouseId);
 	}
 
 	/**
@@ -319,13 +334,6 @@ public class CommerceInventoryWarehouseRelLocalServiceUtil {
 	 */
 	public static int getCommerceInventoryWarehouseRelsCount() {
 		return getService().getCommerceInventoryWarehouseRelsCount();
-	}
-
-	public static int getCommerceInventoryWarehouseRelsCount(
-		long commerceInventoryWarehouseId) {
-
-		return getService().getCommerceInventoryWarehouseRelsCount(
-			commerceInventoryWarehouseId);
 	}
 
 	public static List<CommerceInventoryWarehouseRel>
@@ -398,3 +406,4 @@ public class CommerceInventoryWarehouseRelLocalServiceUtil {
 			CommerceInventoryWarehouseRelLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-205328917

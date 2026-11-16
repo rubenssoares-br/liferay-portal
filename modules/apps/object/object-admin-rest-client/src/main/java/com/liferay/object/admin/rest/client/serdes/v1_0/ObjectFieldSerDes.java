@@ -9,13 +9,14 @@ import com.liferay.object.admin.rest.client.dto.v1_0.ObjectField;
 import com.liferay.object.admin.rest.client.dto.v1_0.ObjectFieldSetting;
 import com.liferay.object.admin.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -55,9 +56,7 @@ public class ObjectFieldSerDes {
 			sb.append("\"DBType\": ");
 
 			sb.append("\"");
-
 			sb.append(objectField.getDBType());
-
 			sb.append("\"");
 		}
 
@@ -79,9 +78,7 @@ public class ObjectFieldSerDes {
 			sb.append("\"businessType\": ");
 
 			sb.append("\"");
-
 			sb.append(objectField.getBusinessType());
-
 			sb.append("\"");
 		}
 
@@ -97,6 +94,16 @@ public class ObjectFieldSerDes {
 			sb.append(_escape(objectField.getDefaultValue()));
 
 			sb.append("\"");
+		}
+
+		if (objectField.getDescription() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"description\": ");
+
+			sb.append(_toJSON(objectField.getDescription()));
 		}
 
 		if (objectField.getExternalReferenceCode() != null) {
@@ -233,6 +240,30 @@ public class ObjectFieldSerDes {
 			sb.append("\"");
 		}
 
+		if (objectField.getObjectDefinitionScope1() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"objectDefinitionScope1\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(objectField.getObjectDefinitionScope1()));
+
+			sb.append("\"");
+		}
+
+		if (objectField.getObjectDefinitionSystem1() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"objectDefinitionSystem1\": ");
+
+			sb.append(objectField.getObjectDefinitionSystem1());
+		}
+
 		if (objectField.getObjectFieldSettings() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -280,9 +311,7 @@ public class ObjectFieldSerDes {
 			sb.append("\"readOnly\": ");
 
 			sb.append("\"");
-
 			sb.append(objectField.getReadOnly());
-
 			sb.append("\"");
 		}
 
@@ -308,9 +337,7 @@ public class ObjectFieldSerDes {
 			sb.append("\"relationshipType\": ");
 
 			sb.append("\"");
-
 			sb.append(objectField.getRelationshipType());
-
 			sb.append("\"");
 		}
 
@@ -352,9 +379,7 @@ public class ObjectFieldSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(objectField.getType());
-
 			sb.append("\"");
 		}
 
@@ -415,6 +440,14 @@ public class ObjectFieldSerDes {
 		else {
 			map.put(
 				"defaultValue", String.valueOf(objectField.getDefaultValue()));
+		}
+
+		if (objectField.getDescription() == null) {
+			map.put("description", null);
+		}
+		else {
+			map.put(
+				"description", String.valueOf(objectField.getDescription()));
 		}
 
 		if (objectField.getExternalReferenceCode() == null) {
@@ -506,6 +539,24 @@ public class ObjectFieldSerDes {
 				"objectDefinitionExternalReferenceCode1",
 				String.valueOf(
 					objectField.getObjectDefinitionExternalReferenceCode1()));
+		}
+
+		if (objectField.getObjectDefinitionScope1() == null) {
+			map.put("objectDefinitionScope1", null);
+		}
+		else {
+			map.put(
+				"objectDefinitionScope1",
+				String.valueOf(objectField.getObjectDefinitionScope1()));
+		}
+
+		if (objectField.getObjectDefinitionSystem1() == null) {
+			map.put("objectDefinitionSystem1", null);
+		}
+		else {
+			map.put(
+				"objectDefinitionSystem1",
+				String.valueOf(objectField.getObjectDefinitionSystem1()));
 		}
 
 		if (objectField.getObjectFieldSettings() == null) {
@@ -617,6 +668,9 @@ public class ObjectFieldSerDes {
 			else if (Objects.equals(jsonParserFieldName, "defaultValue")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "description")) {
+				return true;
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "externalReferenceCode")) {
 
@@ -657,6 +711,16 @@ public class ObjectFieldSerDes {
 			else if (Objects.equals(
 						jsonParserFieldName,
 						"objectDefinitionExternalReferenceCode1")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "objectDefinitionScope1")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "objectDefinitionSystem1")) {
 
 				return false;
 			}
@@ -731,6 +795,12 @@ public class ObjectFieldSerDes {
 					objectField.setDefaultValue((String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "description")) {
+				if (jsonParserFieldValue != null) {
+					objectField.setDescription(
+						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "externalReferenceCode")) {
 
@@ -802,6 +872,22 @@ public class ObjectFieldSerDes {
 				if (jsonParserFieldValue != null) {
 					objectField.setObjectDefinitionExternalReferenceCode1(
 						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "objectDefinitionScope1")) {
+
+				if (jsonParserFieldValue != null) {
+					objectField.setObjectDefinitionScope1(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "objectDefinitionSystem1")) {
+
+				if (jsonParserFieldValue != null) {
+					objectField.setObjectDefinitionSystem1(
+						(Boolean)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(
@@ -926,6 +1012,16 @@ public class ObjectFieldSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -958,3 +1054,4 @@ public class ObjectFieldSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-81517690

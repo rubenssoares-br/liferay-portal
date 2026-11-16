@@ -16,6 +16,7 @@ import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -79,7 +80,7 @@ public class CommerceCatalogServiceImpl extends CommerceCatalogServiceBaseImpl {
 		throws PortalException {
 
 		CommerceCatalog commerceCatalog =
-			commerceCatalogLocalService.fetchCommerceCatalog(commerceCatalogId);
+			commerceCatalogPersistence.fetchByPrimaryKey(commerceCatalogId);
 
 		if (commerceCatalog != null) {
 			_commerceCatalogModelResourcePermission.check(
@@ -95,9 +96,8 @@ public class CommerceCatalogServiceImpl extends CommerceCatalogServiceBaseImpl {
 		throws PortalException {
 
 		CommerceCatalog commerceCatalog =
-			commerceCatalogLocalService.
-				fetchCommerceCatalogByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			commerceCatalogPersistence.fetchByERC_C(
+				externalReferenceCode, companyId);
 
 		if (commerceCatalog != null) {
 			_commerceCatalogModelResourcePermission.check(
@@ -129,8 +129,7 @@ public class CommerceCatalogServiceImpl extends CommerceCatalogServiceBaseImpl {
 		_commerceCatalogModelResourcePermission.check(
 			getPermissionChecker(), commerceCatalogId, ActionKeys.VIEW);
 
-		return commerceCatalogLocalService.getCommerceCatalog(
-			commerceCatalogId);
+		return commerceCatalogPersistence.findByPrimaryKey(commerceCatalogId);
 	}
 
 	@Override
@@ -139,6 +138,34 @@ public class CommerceCatalogServiceImpl extends CommerceCatalogServiceBaseImpl {
 
 		return commerceCatalogPersistence.filterFindByCompanyId(
 			companyId, start, end);
+	}
+
+	@Override
+	public CommerceCatalog getOrAddEmptyCommerceCatalog(
+			String externalReferenceCode, String name,
+			String commerceCurrencyCode)
+		throws PortalException {
+
+		PermissionChecker permissionChecker = getPermissionChecker();
+
+		CommerceCatalog commerceCatalog =
+			commerceCatalogService.fetchCommerceCatalogByExternalReferenceCode(
+				externalReferenceCode, permissionChecker.getCompanyId());
+
+		if (commerceCatalog != null) {
+			return commerceCatalog;
+		}
+
+		PortletResourcePermission portletResourcePermission =
+			_commerceCatalogModelResourcePermission.
+				getPortletResourcePermission();
+
+		portletResourcePermission.check(
+			permissionChecker, null, CPActionKeys.ADD_COMMERCE_CATALOG);
+
+		return commerceCatalogLocalService.getOrAddEmptyCommerceCatalog(
+			externalReferenceCode, permissionChecker.getCompanyId(),
+			permissionChecker.getUserId(), name, commerceCurrencyCode);
 	}
 
 	@Override
@@ -169,8 +196,7 @@ public class CommerceCatalogServiceImpl extends CommerceCatalogServiceBaseImpl {
 
 		if (!_hasViewCommerceCatalogsPermission()) {
 			CommerceCatalog commerceCatalog =
-				commerceCatalogLocalService.getCommerceCatalog(
-					commerceCatalogId);
+				commerceCatalogPersistence.findByPrimaryKey(commerceCatalogId);
 
 			accountEntryId = commerceCatalog.getAccountEntryId();
 		}

@@ -13,6 +13,7 @@ import com.liferay.captcha.util.CaptchaUtil;
 import com.liferay.petra.string.StringUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.captcha.CaptchaTextException;
+import com.liferay.portal.kernel.encryptor.EncryptorException;
 import com.liferay.portal.kernel.encryptor.EncryptorUtil;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -21,9 +22,9 @@ import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.servlet.filters.secure.NonceUtil;
 
-import java.io.ByteArrayOutputStream;
+import jakarta.ws.rs.ForbiddenException;
 
-import javax.ws.rs.ForbiddenException;
+import java.io.ByteArrayOutputStream;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -61,7 +62,7 @@ public class CaptchaResourceImpl extends BaseCaptchaResourceImpl {
 							return "data:image/png;base64," + data;
 						});
 					setToken(
-						() -> EncryptorUtil.encrypt(
+						() -> EncryptorUtil.encryptAuthenticated(
 							contextCompany.getKeyObj(),
 							JSONUtil.put(
 								"answer", expectedAnswer
@@ -83,9 +84,16 @@ public class CaptchaResourceImpl extends BaseCaptchaResourceImpl {
 	public void postCaptchaResponse(Captcha captcha) throws Exception {
 		_checkCaptchaConfiguration();
 
-		JSONObject jsonObject = _jsonFactory.createJSONObject(
-			EncryptorUtil.decrypt(
-				contextCompany.getKeyObj(), captcha.getToken()));
+		JSONObject jsonObject = null;
+
+		try {
+			jsonObject = _jsonFactory.createJSONObject(
+				EncryptorUtil.decryptAuthenticated(
+					contextCompany.getKeyObj(), captcha.getToken()));
+		}
+		catch (EncryptorException encryptorException) {
+			throw new IllegalArgumentException(encryptorException);
+		}
 
 		if (!jsonObject.has("answer") || !jsonObject.has("expiryTime") ||
 			!NonceUtil.verify(jsonObject.getString("nonce"))) {
@@ -108,8 +116,8 @@ public class CaptchaResourceImpl extends BaseCaptchaResourceImpl {
 
 	private void _checkCaptchaConfiguration() throws Exception {
 		CaptchaConfiguration captchaConfiguration =
-			_configurationProvider.getSystemConfiguration(
-				CaptchaConfiguration.class);
+			_configurationProvider.getCompanyConfiguration(
+				CaptchaConfiguration.class, contextCompany.getCompanyId());
 
 		if (!StringUtil.equalsIgnoreCase(
 				captchaConfiguration.captchaEngine(),

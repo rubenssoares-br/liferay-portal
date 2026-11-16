@@ -26,11 +26,11 @@ import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.Calendar;
 import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -40,7 +40,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + COREntryPortletKeys.COR_ENTRY,
+		"jakarta.portlet.name=" + COREntryPortletKeys.COR_ENTRY,
 		"mvc.command.name=/cor_entry/edit_cor_entry"
 	},
 	service = MVCActionCommand.class
@@ -186,24 +186,27 @@ public class EditCOREntryMVCActionCommand extends BaseMVCActionCommand {
 	private String _getTypeSettings(
 		ActionRequest actionRequest, COREntry corEntry) {
 
-		String cProductId = ParamUtil.getString(actionRequest, "cProductId");
+		String cProductExternalReferenceCode = ParamUtil.getString(
+			actionRequest, "cProductExternalReferenceCode");
 
 		UnicodeProperties typeSettingsUnicodeProperties =
 			UnicodePropertiesBuilder.fastLoad(
 				corEntry.getTypeSettings()
 			).build();
 
-		List<String> cProductIds = StringUtil.split(
+		List<String> cProductExternalReferenceCodes = StringUtil.split(
 			typeSettingsUnicodeProperties.getProperty(
-				COREntryConstants.TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_IDS));
+				COREntryConstants.
+					TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_EXTERNAL_REFERENCE_CODES));
 
-		cProductIds.remove(cProductId);
+		cProductExternalReferenceCodes.remove(cProductExternalReferenceCode);
 
 		return UnicodePropertiesBuilder.create(
 			true
 		).setProperty(
-			COREntryConstants.TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_IDS,
-			StringUtil.merge(cProductIds, StringPool.COMMA)
+			COREntryConstants.
+				TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_EXTERNAL_REFERENCE_CODES,
+			StringUtil.merge(cProductExternalReferenceCodes, StringPool.COMMA)
 		).setProperty(
 			COREntryConstants.TYPE_PRODUCTS_LIMIT_FIELD_PRODUCT_QUANTITY,
 			typeSettingsUnicodeProperties.getProperty(

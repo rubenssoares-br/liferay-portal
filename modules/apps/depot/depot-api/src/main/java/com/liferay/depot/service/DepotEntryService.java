@@ -50,19 +50,26 @@ public interface DepotEntryService extends BaseService {
 	 */
 	public DepotEntry addDepotEntry(
 			Map<Locale, String> nameMap, Map<Locale, String> descriptionMap,
-			ServiceContext serviceContext)
+			int type, ServiceContext serviceContext)
 		throws PortalException;
 
 	public DepotEntry deleteDepotEntry(long depotEntryId)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public DepotEntry fetchGroupDepotEntry(long groupId) throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<DepotEntry> getCurrentAndGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public DepotEntry getDepotEntry(long depotEntryId) throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<DepotEntry> getGroupConnectedDepotEntries(
@@ -71,11 +78,11 @@ public interface DepotEntryService extends BaseService {
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<DepotEntry> getGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getGroupConnectedDepotEntriesCount(long groupId)
+	public int getGroupConnectedDepotEntriesCount(long groupId, int type)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -91,9 +98,10 @@ public interface DepotEntryService extends BaseService {
 	public DepotEntry updateDepotEntry(
 			long depotEntryId, Map<Locale, String> nameMap,
 			Map<Locale, String> descriptionMap,
-			Map<String, Boolean> depotAppCustomizationMap,
+			Map<String, Boolean> depotAppCustomizationMap, String friendlyURL,
 			UnicodeProperties typeSettingsUnicodeProperties,
 			ServiceContext serviceContext)
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1881212834

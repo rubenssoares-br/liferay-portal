@@ -11,36 +11,43 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.math.BigDecimal;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("SkuUnitOfMeasure")
+@GraphQLName(
+	description = "Unit-of-measure tier bound to the SKU on a cart item. The key and name identify the tier (for example a Pallet tier on a base unit); the rate is the conversion factor against the base unit; the incremental order quantity is the minimum order increment in this tier.",
+	value = "SkuUnitOfMeasure"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Unit-of-measure tier bound to the SKU on a cart item. The key and name identify the tier (for example a Pallet tier on a base unit); the rate is the conversion factor against the base unit; the incremental order quantity is the minimum order increment in this tier."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "SkuUnitOfMeasure")
 public class SkuUnitOfMeasure implements Serializable {
@@ -54,7 +61,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "1.5")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Minimum order increment expressed in this unit-of-measure tier.",
+		example = "1.5"
+	)
 	@Valid
 	public BigDecimal getIncrementalOrderQuantity() {
 		if (_incrementalOrderQuantitySupplier != null) {
@@ -92,14 +102,19 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Minimum order increment expressed in this unit-of-measure tier."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal incrementalOrderQuantity;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _incrementalOrderQuantitySupplier;
 
-	@Schema(example = "pl")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable identifier of the unit-of-measure tier.",
+		example = "pl"
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -131,14 +146,18 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Stable identifier of the unit-of-measure tier."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String key;
 
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(example = "Pallet")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized display name of the tier.", example = "Pallet"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -170,14 +189,17 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Localized display name of the tier.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(example = "3")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Number of decimal places allowed in the ordered quantity for this tier.",
+		example = "3"
+	)
 	public Integer getPrecision() {
 		if (_precisionSupplier != null) {
 			precision = _precisionSupplier.get();
@@ -211,14 +233,19 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Number of decimal places allowed in the ordered quantity for this tier."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer precision;
 
 	@JsonIgnore
 	private Supplier<Integer> _precisionSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, this is the default unit-of-measure tier for the SKU.",
+		example = "true"
+	)
 	public Boolean getPrimary() {
 		if (_primarySupplier != null) {
 			primary = _primarySupplier.get();
@@ -252,7 +279,9 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, this is the default unit-of-measure tier for the SKU."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean primary;
 
@@ -260,7 +289,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	private Supplier<Boolean> _primarySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display priority among the SKU's unit-of-measure tiers. Lower values appear first.",
+		example = "1.1"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -294,7 +326,9 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display priority among the SKU's unit-of-measure tiers. Lower values appear first."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
@@ -302,7 +336,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	private Supplier<Double> _prioritySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "202.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Conversion factor from this tier to the base unit -- for example, the number of base units per pallet.",
+		example = "202.1"
+	)
 	@Valid
 	public BigDecimal getRate() {
 		if (_rateSupplier != null) {
@@ -337,7 +374,9 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Conversion factor from this tier to the base unit -- for example, the number of base units per pallet."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal rate;
 
@@ -468,8 +507,8 @@ public class SkuUnitOfMeasure implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.cart.dto.v1_0.SkuUnitOfMeasure",
 		name = "x-class-name"
 	)
@@ -556,6 +595,27 @@ public class SkuUnitOfMeasure implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -564,3 +624,4 @@ public class SkuUnitOfMeasure implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-943578549

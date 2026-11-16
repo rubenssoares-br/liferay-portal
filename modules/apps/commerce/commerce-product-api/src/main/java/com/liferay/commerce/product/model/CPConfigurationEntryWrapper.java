@@ -45,6 +45,7 @@ public class CPConfigurationEntryWrapper
 		attributes.put("uuid", getUuid());
 		attributes.put("externalReferenceCode", getExternalReferenceCode());
 		attributes.put("CPConfigurationEntryId", getCPConfigurationEntryId());
+		attributes.put("groupId", getGroupId());
 		attributes.put("companyId", getCompanyId());
 		attributes.put("userId", getUserId());
 		attributes.put("userName", getUserName());
@@ -56,6 +57,9 @@ public class CPConfigurationEntryWrapper
 		attributes.put("CPTaxCategoryId", getCPTaxCategoryId());
 		attributes.put("allowedOrderQuantities", getAllowedOrderQuantities());
 		attributes.put("backOrders", isBackOrders());
+		attributes.put(
+			"commerceAvailabilityEstimateId",
+			getCommerceAvailabilityEstimateId());
 		attributes.put(
 			"CPDefinitionInventoryEngine", getCPDefinitionInventoryEngine());
 		attributes.put("depth", getDepth());
@@ -73,7 +77,6 @@ public class CPConfigurationEntryWrapper
 		attributes.put("shippingExtraPrice", getShippingExtraPrice());
 		attributes.put("shipSeparately", isShipSeparately());
 		attributes.put("taxExempt", isTaxExempt());
-		attributes.put("visible", isVisible());
 		attributes.put("weight", getWeight());
 		attributes.put("width", getWidth());
 
@@ -112,6 +115,12 @@ public class CPConfigurationEntryWrapper
 
 		if (CPConfigurationEntryId != null) {
 			setCPConfigurationEntryId(CPConfigurationEntryId);
+		}
+
+		Long groupId = (Long)attributes.get("groupId");
+
+		if (groupId != null) {
+			setGroupId(groupId);
 		}
 
 		Long companyId = (Long)attributes.get("companyId");
@@ -180,6 +189,13 @@ public class CPConfigurationEntryWrapper
 
 		if (backOrders != null) {
 			setBackOrders(backOrders);
+		}
+
+		Long commerceAvailabilityEstimateId = (Long)attributes.get(
+			"commerceAvailabilityEstimateId");
+
+		if (commerceAvailabilityEstimateId != null) {
+			setCommerceAvailabilityEstimateId(commerceAvailabilityEstimateId);
 		}
 
 		String CPDefinitionInventoryEngine = (String)attributes.get(
@@ -286,12 +302,6 @@ public class CPConfigurationEntryWrapper
 			setTaxExempt(taxExempt);
 		}
 
-		Boolean visible = (Boolean)attributes.get("visible");
-
-		if (visible != null) {
-			setVisible(visible);
-		}
-
 		Double weight = (Double)attributes.get("weight");
 
 		if (weight != null) {
@@ -318,6 +328,11 @@ public class CPConfigurationEntryWrapper
 	@Override
 	public String getAllowedOrderQuantities() {
 		return model.getAllowedOrderQuantities();
+	}
+
+	@Override
+	public BigDecimal[] getAllowedOrderQuantitiesArray() {
+		return model.getAllowedOrderQuantitiesArray();
 	}
 
 	/**
@@ -361,6 +376,16 @@ public class CPConfigurationEntryWrapper
 	}
 
 	/**
+	 * Returns the commerce availability estimate ID of this cp configuration entry.
+	 *
+	 * @return the commerce availability estimate ID of this cp configuration entry
+	 */
+	@Override
+	public long getCommerceAvailabilityEstimateId() {
+		return model.getCommerceAvailabilityEstimateId();
+	}
+
+	/**
 	 * Returns the company ID of this cp configuration entry.
 	 *
 	 * @return the company ID of this cp configuration entry
@@ -398,6 +423,13 @@ public class CPConfigurationEntryWrapper
 	@Override
 	public String getCPDefinitionInventoryEngine() {
 		return model.getCPDefinitionInventoryEngine();
+	}
+
+	@Override
+	public CPTaxCategory getCPTaxCategory()
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return model.getCPTaxCategory();
 	}
 
 	/**
@@ -481,6 +513,16 @@ public class CPConfigurationEntryWrapper
 	}
 
 	/**
+	 * Returns the group ID of this cp configuration entry.
+	 *
+	 * @return the group ID of this cp configuration entry
+	 */
+	@Override
+	public long getGroupId() {
+		return model.getGroupId();
+	}
+
+	/**
 	 * Returns the height of this cp configuration entry.
 	 *
 	 * @return the height of this cp configuration entry
@@ -558,6 +600,13 @@ public class CPConfigurationEntryWrapper
 	@Override
 	public long getMvccVersion() {
 		return model.getMvccVersion();
+	}
+
+	@Override
+	public CPConfigurationList getParentCPConfigurationList()
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return model.getParentCPConfigurationList();
 	}
 
 	/**
@@ -661,16 +710,6 @@ public class CPConfigurationEntryWrapper
 	}
 
 	/**
-	 * Returns the visible of this cp configuration entry.
-	 *
-	 * @return the visible of this cp configuration entry
-	 */
-	@Override
-	public boolean getVisible() {
-		return model.getVisible();
-	}
-
-	/**
 	 * Returns the weight of this cp configuration entry.
 	 *
 	 * @return the weight of this cp configuration entry
@@ -730,6 +769,13 @@ public class CPConfigurationEntryWrapper
 		return model.isFreeShipping();
 	}
 
+	@Override
+	public boolean isMaster()
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return model.isMaster();
+	}
+
 	/**
 	 * Returns <code>true</code> if this cp configuration entry is purchasable.
 	 *
@@ -768,16 +814,6 @@ public class CPConfigurationEntryWrapper
 	@Override
 	public boolean isTaxExempt() {
 		return model.isTaxExempt();
-	}
-
-	/**
-	 * Returns <code>true</code> if this cp configuration entry is visible.
-	 *
-	 * @return <code>true</code> if this cp configuration entry is visible; <code>false</code> otherwise
-	 */
-	@Override
-	public boolean isVisible() {
-		return model.isVisible();
 	}
 
 	@Override
@@ -828,6 +864,18 @@ public class CPConfigurationEntryWrapper
 	@Override
 	public void setClassPK(long classPK) {
 		model.setClassPK(classPK);
+	}
+
+	/**
+	 * Sets the commerce availability estimate ID of this cp configuration entry.
+	 *
+	 * @param commerceAvailabilityEstimateId the commerce availability estimate ID of this cp configuration entry
+	 */
+	@Override
+	public void setCommerceAvailabilityEstimateId(
+		long commerceAvailabilityEstimateId) {
+
+		model.setCommerceAvailabilityEstimateId(commerceAvailabilityEstimateId);
 	}
 
 	/**
@@ -950,6 +998,16 @@ public class CPConfigurationEntryWrapper
 	@Override
 	public void setFreeShipping(boolean freeShipping) {
 		model.setFreeShipping(freeShipping);
+	}
+
+	/**
+	 * Sets the group ID of this cp configuration entry.
+	 *
+	 * @param groupId the group ID of this cp configuration entry
+	 */
+	@Override
+	public void setGroupId(long groupId) {
+		model.setGroupId(groupId);
 	}
 
 	/**
@@ -1133,16 +1191,6 @@ public class CPConfigurationEntryWrapper
 	}
 
 	/**
-	 * Sets whether this cp configuration entry is visible.
-	 *
-	 * @param visible the visible of this cp configuration entry
-	 */
-	@Override
-	public void setVisible(boolean visible) {
-		model.setVisible(visible);
-	}
-
-	/**
 	 * Sets the weight of this cp configuration entry.
 	 *
 	 * @param weight the weight of this cp configuration entry
@@ -1194,3 +1242,4 @@ public class CPConfigurationEntryWrapper
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1966674183

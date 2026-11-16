@@ -6,6 +6,7 @@
 package com.liferay.layout.content.page.editor.web.internal.portlet.action;
 
 import com.liferay.layout.content.page.editor.constants.ContentPageEditorPortletKeys;
+import com.liferay.layout.content.page.editor.web.internal.manager.FormItemManager;
 import com.liferay.layout.content.page.editor.web.internal.util.layout.structure.LayoutStructureUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
@@ -14,19 +15,20 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.Arrays;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Eudaldo Alonso
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
+		"jakarta.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 		"mvc.command.name=/layout_content_page_editor/move_fragment_entry_link"
 	},
 	service = MVCActionCommand.class
@@ -91,11 +93,18 @@ public class MoveFragmentEntryLinkMVCActionCommand
 			themeDisplay.getPlid(),
 			layoutStructure -> {
 				for (int i = 0; i < finalItemIds.length; i++) {
+					_formItemManager.checkFormContainerParentItemRequired(
+						new String[] {finalItemIds[i]}, layoutStructure,
+						finalParentItemIds[i]);
+
 					layoutStructure.moveLayoutStructureItem(
 						finalItemIds[i], finalParentItemIds[i],
 						finalPositions[i]);
 				}
 			});
 	}
+
+	@Reference
+	private FormItemManager _formItemManager;
 
 }

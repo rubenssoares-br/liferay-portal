@@ -5,6 +5,7 @@
 
 package com.liferay.portal.search.opensearch2.internal.search.engine.adapter;
 
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
@@ -14,7 +15,9 @@ import com.liferay.portal.kernel.search.BooleanQuery;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.DocumentImpl;
 import com.liferay.portal.kernel.search.Field;
-import com.liferay.portal.kernel.search.generic.BooleanQueryImpl;
+import com.liferay.portal.kernel.search.Indexer;
+import com.liferay.portal.kernel.search.SearchContext;
+import com.liferay.portal.kernel.search.SearchEngineHelperUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Validator;
@@ -26,20 +29,15 @@ import com.liferay.portal.search.engine.adapter.document.DeleteByQueryDocumentRe
 import com.liferay.portal.search.engine.adapter.document.DeleteByQueryDocumentResponse;
 import com.liferay.portal.search.engine.adapter.document.DeleteDocumentRequest;
 import com.liferay.portal.search.engine.adapter.document.DeleteDocumentResponse;
-import com.liferay.portal.search.engine.adapter.document.DocumentRequestExecutor;
 import com.liferay.portal.search.engine.adapter.document.IndexDocumentRequest;
 import com.liferay.portal.search.engine.adapter.document.IndexDocumentResponse;
 import com.liferay.portal.search.engine.adapter.document.UpdateByQueryDocumentRequest;
 import com.liferay.portal.search.engine.adapter.document.UpdateByQueryDocumentResponse;
 import com.liferay.portal.search.engine.adapter.document.UpdateDocumentRequest;
 import com.liferay.portal.search.engine.adapter.document.UpdateDocumentResponse;
-import com.liferay.portal.search.internal.script.ScriptsImpl;
 import com.liferay.portal.search.opensearch2.internal.BaseOpenSearchTestCase;
 import com.liferay.portal.search.opensearch2.internal.OpenSearchTestRule;
 import com.liferay.portal.search.opensearch2.internal.connection.OpenSearchConnectionManager;
-import com.liferay.portal.search.opensearch2.internal.document.OpenSearchDocumentFactory;
-import com.liferay.portal.search.opensearch2.internal.document.OpenSearchDocumentFactoryImpl;
-import com.liferay.portal.search.opensearch2.internal.search.engine.adapter.document.DocumentRequestExecutorFixture;
 import com.liferay.portal.search.opensearch2.internal.util.ConversionUtil;
 import com.liferay.portal.search.opensearch2.internal.util.IndexUtil;
 import com.liferay.portal.search.script.Script;
@@ -49,14 +47,24 @@ import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.io.IOException;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.OpenSearchClient;
@@ -106,11 +114,67 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 	}
 
 	@Test
+	public void testExecuteBatchModeAfterExactMultipleFlush() throws Exception {
+		try (MockedStatic<SearchEngineHelperUtil>
+				searchEngineHelperUtilMockedStatic = Mockito.mockStatic(
+					SearchEngineHelperUtil.class)) {
+
+			ExecutorService executorService = Mockito.mock(
+				ExecutorService.class);
+
+			Mockito.doAnswer(
+				invocation -> {
+					Runnable runnable = invocation.getArgument(0);
+
+					runnable.run();
+
+					return null;
+				}
+			).when(
+				executorService
+			).execute(
+				Mockito.any(Runnable.class)
+			);
+
+			searchEngineHelperUtilMockedStatic.when(
+				SearchEngineHelperUtil::getDocumentsConsumerExecutorService
+			).thenReturn(
+				executorService
+			);
+
+			try (SafeCloseable safeCloseable = SearchContext.openBatchMode(
+					false)) {
+
+				for (int i = 0; i < Indexer.DEFAULT_INTERVAL; i++) {
+					_searchEngineAdapter.execute(
+						_createIndexDocumentRequest(String.valueOf(i)));
+				}
+			}
+
+			GetResponse<JsonData> getResponse1 = _getDocument("0");
+
+			Assert.assertTrue(getResponse1.found());
+
+			String id = "remainder";
+
+			try (SafeCloseable safeCloseable = SearchContext.openBatchMode(
+					false)) {
+
+				_searchEngineAdapter.execute(_createIndexDocumentRequest(id));
+			}
+
+			GetResponse<JsonData> getResponse2 = _getDocument(id);
+
+			Assert.assertTrue(getResponse2.found());
+		}
+	}
+
+	@Test
 	public void testExecuteBulkDocumentRequest() throws JSONException {
 		Document document1 = new DocumentImpl();
 
-		document1.addKeyword(Field.UID, "1");
 		document1.addKeyword(_FIELD_NAME, Boolean.TRUE.toString());
+		document1.addKeyword(Field.UID, "1");
 
 		BulkDocumentRequest bulkDocumentRequest1 = new BulkDocumentRequest();
 
@@ -119,8 +183,8 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 		Document document2 = new DocumentImpl();
 
-		document2.addKeyword(Field.UID, "2");
 		document2.addKeyword(_FIELD_NAME, Boolean.FALSE.toString());
+		document2.addKeyword(Field.UID, "2");
 
 		bulkDocumentRequest1.addBulkableDocumentRequest(
 			new IndexDocumentRequest(TEST_INDEX_NAME, document2));
@@ -154,8 +218,8 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 		Document document2Update = new DocumentImpl();
 
-		document2Update.addKeyword(Field.UID, "2");
 		document2Update.addKeyword(_FIELD_NAME, Boolean.TRUE.toString());
+		document2Update.addKeyword(Field.UID, "2");
 
 		bulkDocumentRequest2.addBulkableDocumentRequest(
 			new UpdateDocumentRequest(TEST_INDEX_NAME, "2", document2Update));
@@ -250,9 +314,9 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 		Document document2Update = new DocumentImpl();
 
+		document2Update.addKeyword(_FIELD_NAME, Boolean.TRUE.toString());
 		document2Update.addKeyword(
 			Field.UID, bulkDocumentItemResponse2.getId());
-		document2Update.addKeyword(_FIELD_NAME, Boolean.TRUE.toString());
 
 		UpdateDocumentRequest updateDocumentRequest = new UpdateDocumentRequest(
 			TEST_INDEX_NAME, bulkDocumentItemResponse2.getId(),
@@ -321,13 +385,13 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 					_FIELD_NAME, Boolean.FALSE
 				).build()));
 
-		BooleanQuery query = new BooleanQueryImpl();
+		BooleanQuery booleanQuery = new BooleanQuery();
 
-		query.addExactTerm(_FIELD_NAME, true);
+		booleanQuery.addExactTerm(_FIELD_NAME, true);
 
 		DeleteByQueryDocumentRequest deleteByQueryDocumentRequest =
 			new DeleteByQueryDocumentRequest(
-				query, new String[] {TEST_INDEX_NAME});
+				booleanQuery, new String[] {TEST_INDEX_NAME});
 
 		DeleteByQueryDocumentResponse deleteByQueryDocumentResponse =
 			_searchEngineAdapter.execute(deleteByQueryDocumentRequest);
@@ -432,18 +496,70 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 					_FIELD_NAME, Boolean.TRUE
 				).build()));
 
-		BooleanQuery query = new BooleanQueryImpl();
+		BooleanQuery booleanQuery = new BooleanQuery();
 
-		query.addExactTerm(_FIELD_NAME, true);
+		booleanQuery.addExactTerm(_FIELD_NAME, true);
 
 		UpdateByQueryDocumentRequest updateByQueryDocumentRequest =
 			new UpdateByQueryDocumentRequest(
-				query, null, new String[] {TEST_INDEX_NAME});
+				booleanQuery, null, new String[] {TEST_INDEX_NAME});
 
 		UpdateByQueryDocumentResponse updateByQueryDocumentResponse =
 			_searchEngineAdapter.execute(updateByQueryDocumentRequest);
 
 		Assert.assertEquals(1, updateByQueryDocumentResponse.getUpdated());
+	}
+
+	@Test
+	public void testExecuteUpdateByQueryDocumentRequestProceedOnConflicts()
+		throws Exception {
+
+		for (int i = 0; i < 50; i++) {
+			_indexDocument(
+				String.valueOf(i),
+				JsonData.of(
+					HashMapBuilder.<String, Object>put(
+						_FIELD_NAME, Boolean.TRUE
+					).build()));
+		}
+
+		List<Throwable> throwables = new CopyOnWriteArrayList<>();
+
+		CountDownLatch countDownLatch = new CountDownLatch(1);
+		ExecutorService executorService = Executors.newFixedThreadPool(
+			_THREAD_COUNT);
+
+		try {
+			List<Future<?>> futures = new ArrayList<>();
+
+			for (int i = 0; i < _THREAD_COUNT; i++) {
+				futures.add(
+					executorService.submit(
+						() -> {
+							try {
+								countDownLatch.await();
+
+								for (int j = 0; j < 30; j++) {
+									_updateByQueryProceedOnConflicts();
+								}
+							}
+							catch (Throwable throwable) {
+								throwables.add(throwable);
+							}
+						}));
+			}
+
+			countDownLatch.countDown();
+
+			for (Future<?> future : futures) {
+				future.get();
+			}
+		}
+		finally {
+			executorService.shutdownNow();
+		}
+
+		Assert.assertTrue(throwables.toString(), throwables.isEmpty());
 	}
 
 	@Test
@@ -463,8 +579,8 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 		Document document = new DocumentImpl();
 
-		document.addKeyword(Field.UID, id);
 		document.addKeyword(_FIELD_NAME, false);
+		document.addKeyword(Field.UID, id);
 
 		UpdateDocumentResponse updateDocumentResponse =
 			_updateDocumentWithAdapter(document, id);
@@ -531,8 +647,8 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 		Document document = new DocumentImpl();
 
-		document.addKeyword(Field.UID, id);
 		document.addKeyword(_FIELD_NAME, false);
+		document.addKeyword(Field.UID, id);
 
 		UpdateDocumentResponse updateDocumentResponse =
 			_updateDocumentWithAdapter(document, null);
@@ -564,7 +680,7 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 		UpdateDocumentResponse updateDocumentResponse =
 			_updateDocumentWithAdapter(
-				_scripts.script(
+				Scripts.INSTANCE.script(
 					StringBundler.concat(
 						"ctx._source.", _FIELD_NAME, "=\"false\" ")),
 				false, id);
@@ -586,7 +702,7 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 		String id = "1";
 
 		_updateDocumentWithAdapter(
-			_scripts.script(
+			Scripts.INSTANCE.script(
 				StringBundler.concat(
 					"ctx._source.", _FIELD_NAME, "=\"true\" ")),
 			true, id);
@@ -600,33 +716,16 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 	protected static SearchEngineAdapter createSearchEngineAdapter(
 		OpenSearchConnectionManager openSearchConnectionManager) {
 
-		SearchEngineAdapter searchEngineAdapter =
+		OpenSearchSearchEngineAdapterImpl openSearchSearchEngineAdapterImpl =
 			new OpenSearchSearchEngineAdapterImpl();
 
 		ReflectionTestUtil.setFieldValue(
-			searchEngineAdapter, "_documentRequestExecutor",
-			_createDocumentRequestExecutor(
-				openSearchConnectionManager,
-				new OpenSearchDocumentFactoryImpl()));
+			openSearchSearchEngineAdapterImpl, "_openSearchConnectionManager",
+			openSearchConnectionManager);
 
-		return searchEngineAdapter;
-	}
+		openSearchSearchEngineAdapterImpl.activate(Collections.emptyMap());
 
-	private static DocumentRequestExecutor _createDocumentRequestExecutor(
-		OpenSearchConnectionManager openSearchConnectionManager,
-		OpenSearchDocumentFactory openSearchDocumentFactory) {
-
-		DocumentRequestExecutorFixture documentRequestExecutorFixture =
-			new DocumentRequestExecutorFixture() {
-				{
-					setOpenSearchConnectionManager(openSearchConnectionManager);
-					setOpenSearchDocumentFactory(openSearchDocumentFactory);
-				}
-			};
-
-		documentRequestExecutorFixture.setUp();
-
-		return documentRequestExecutorFixture.getDocumentRequestExecutor();
+		return openSearchSearchEngineAdapterImpl;
 	}
 
 	private void _createIndex() throws Exception {
@@ -650,6 +749,14 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 		catch (IOException ioException) {
 			throw new RuntimeException(ioException);
 		}
+	}
+
+	private IndexDocumentRequest _createIndexDocumentRequest(String uid) {
+		Document document = new DocumentImpl();
+
+		document.addKeyword(Field.UID, uid);
+
+		return new IndexDocumentRequest(TEST_INDEX_NAME, document);
 	}
 
 	private void _deleteIndex() {
@@ -720,6 +827,20 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 			new IndexDocumentRequest(TEST_INDEX_NAME, uid, document));
 	}
 
+	private void _updateByQueryProceedOnConflicts() {
+		BooleanQuery booleanQuery = new BooleanQuery();
+
+		booleanQuery.addExactTerm(_FIELD_NAME, true);
+
+		UpdateByQueryDocumentRequest updateByQueryDocumentRequest =
+			new UpdateByQueryDocumentRequest(
+				booleanQuery, null, new String[] {TEST_INDEX_NAME});
+
+		updateByQueryDocumentRequest.setProceedOnConflicts(true);
+
+		_searchEngineAdapter.execute(updateByQueryDocumentRequest);
+	}
+
 	private UpdateDocumentResponse _updateDocumentWithAdapter(
 		Document document, String uid) {
 
@@ -740,7 +861,7 @@ public class OpenSearchSearchEngineAdapterDocumentRequestTest
 
 	private static final String _FIELD_NAME = "matchDocument";
 
-	private static final Scripts _scripts = new ScriptsImpl();
+	private static final int _THREAD_COUNT = 6;
 
 	private final DocumentFixture _documentFixture = new DocumentFixture();
 	private OpenSearchClient _openSearchClient;

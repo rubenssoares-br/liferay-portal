@@ -57,8 +57,8 @@ public class LayoutOpenGraphScreenNavigationEntryTest {
 	public void testIsVisibleDisplayPage() throws Exception {
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_APPROVED,
 				ServiceContextTestUtil.getServiceContext());

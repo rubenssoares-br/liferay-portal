@@ -190,23 +190,7 @@ const SelectionControls = ({
 		<>
 			<ManagementToolbar.Item>
 				<ClayCheckbox
-					aria-label={
-						checkboxStatus === 'unchecked'
-							? sub(
-									Liferay.Language.get(
-										'select-all-x-on-the-page'
-									),
-									itemsType
-								)
-							: sub(
-									Liferay.Language.get(
-										'clear-selection.-there-are-currently-x-of-x-x-selected'
-									),
-									selectedItems,
-									itemsTotal,
-									itemsType
-								)
-					}
+					aria-labelledby="itemsSelectorLabel"
 					checked={checkboxStatus !== 'unchecked'}
 					disabled={disabled}
 					indeterminate={checkboxStatus === 'indeterminate'}
@@ -235,7 +219,25 @@ const SelectionControls = ({
 							}
 						);
 					}}
-				/>
+				>
+					<span className="sr-only" id="itemsSelectorLabel">
+						{checkboxStatus === 'unchecked'
+							? sub(
+									Liferay.Language.get(
+										'select-all-x-on-the-page'
+									),
+									itemsType
+								)
+							: sub(
+									Liferay.Language.get(
+										'clear-selection.-there-are-currently-x-of-x-x-selected'
+									),
+									selectedItems,
+									itemsTotal,
+									itemsType
+								)}
+					</span>
+				</ClayCheckbox>
 			</ManagementToolbar.Item>
 
 			<>
@@ -272,6 +274,11 @@ const SelectionControls = ({
 									setCheckboxStatus('unchecked');
 
 									onClearButtonClick(event);
+
+									Liferay.fire(
+										EVENT_MANAGEMENT_TOOLBAR_TOGGLE_ALL_ITEMS,
+										{checked: false}
+									);
 								}}
 								symbol="times-circle"
 								title={Liferay.Language.get('clear')}
@@ -301,6 +308,11 @@ const SelectionControls = ({
 										setSelectedItems(itemsTotal);
 
 										onSelectAllButtonClick(event);
+
+										Liferay.fire(
+											EVENT_MANAGEMENT_TOOLBAR_TOGGLE_ALL_ITEMS,
+											{checked: true}
+										);
 									}}
 								>
 									<span className="text-truncate-inline">

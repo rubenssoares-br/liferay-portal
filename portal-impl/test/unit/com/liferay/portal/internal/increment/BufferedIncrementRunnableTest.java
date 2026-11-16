@@ -10,7 +10,10 @@ import com.liferay.portal.kernel.aop.AopMethodInvocation;
 import com.liferay.portal.kernel.aop.ChainableMethodAdvice;
 import com.liferay.portal.kernel.increment.Increment;
 import com.liferay.portal.kernel.increment.NumberIncrement;
+import com.liferay.portal.kernel.model.Company;
+import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.service.ServiceContextAdvice;
@@ -27,12 +30,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 /**
@@ -57,6 +62,17 @@ public class BufferedIncrementRunnableTest {
 		_aopInvocationHandler = constructor.newInstance(
 			_testInterceptedClass,
 			new ChainableMethodAdvice[] {new ServiceContextAdvice()}, null);
+
+		_companyLocalServiceUtilMockedStatic.when(
+			() -> CompanyLocalServiceUtil.fetchCompany(Mockito.anyLong())
+		).thenReturn(
+			Mockito.mock(Company.class)
+		);
+	}
+
+	@After
+	public void tearDown() {
+		_companyLocalServiceUtilMockedStatic.close();
 	}
 
 	@Test
@@ -64,9 +80,9 @@ public class BufferedIncrementRunnableTest {
 		BatchablePipe<Serializable, Increment<?>> batchablePipe =
 			new BatchablePipe<Serializable, Increment<?>>() {
 				{
-					put(_invoke(_TEST_COMPANY_ID1));
-					put(_invoke(_TEST_COMPANY_ID2));
-					put(_invoke(_TEST_COMPANY_ID1));
+					put(_invoke(_TEST_COMPANY_ID_1));
+					put(_invoke(_TEST_COMPANY_ID_2));
+					put(_invoke(_TEST_COMPANY_ID_1));
 				}
 			};
 
@@ -80,18 +96,56 @@ public class BufferedIncrementRunnableTest {
 		Assert.assertEquals(
 			Integer.valueOf(1),
 			_testInterceptedClass.companyInvokedMethodCounter.get(
-				_TEST_COMPANY_ID1));
+				_TEST_COMPANY_ID_1));
 		Assert.assertEquals(
 			Integer.valueOf(1),
 			_testInterceptedClass.companyInvokedMethodCounter.get(
-				_TEST_COMPANY_ID2));
+				_TEST_COMPANY_ID_2));
 
 		Assert.assertEquals(
 			Integer.valueOf(2),
-			_testInterceptedClass.companyIncrement.get(_TEST_COMPANY_ID1));
+			_testInterceptedClass.companyIncrement.get(_TEST_COMPANY_ID_1));
 		Assert.assertEquals(
 			Integer.valueOf(1),
-			_testInterceptedClass.companyIncrement.get(_TEST_COMPANY_ID2));
+			_testInterceptedClass.companyIncrement.get(_TEST_COMPANY_ID_2));
+	}
+
+	@Test
+	public void testExecutionDeletedCompany() {
+		_companyLocalServiceUtilMockedStatic.when(
+			() -> CompanyLocalServiceUtil.fetchCompany(CompanyConstants.SYSTEM)
+		).thenReturn(
+			null
+		);
+
+		_companyLocalServiceUtilMockedStatic.when(
+			() -> CompanyLocalServiceUtil.fetchCompany(_TEST_COMPANY_ID_2)
+		).thenReturn(
+			null
+		);
+
+		BatchablePipe<Serializable, Increment<?>> batchablePipe =
+			new BatchablePipe<Serializable, Increment<?>>() {
+				{
+					put(_invoke(CompanyConstants.SYSTEM));
+					put(_invoke(_TEST_COMPANY_ID_2));
+				}
+			};
+
+		BufferedIncrementRunnable bufferedIncrementRunnable =
+			new BufferedIncrementRunnable(
+				Mockito.mock(BufferedIncrementConfiguration.class),
+				batchablePipe, new AtomicInteger(), Thread.currentThread());
+
+		bufferedIncrementRunnable.run();
+
+		Assert.assertEquals(
+			Integer.valueOf(1),
+			_testInterceptedClass.companyInvokedMethodCounter.get(
+				CompanyConstants.SYSTEM));
+		Assert.assertNull(
+			_testInterceptedClass.companyInvokedMethodCounter.get(
+				_TEST_COMPANY_ID_2));
 	}
 
 	private AopMethodInvocation _createTestMethodInvocation(Method method) {
@@ -120,11 +174,14 @@ public class BufferedIncrementRunnableTest {
 		}
 	}
 
-	private static final long _TEST_COMPANY_ID1 = 1L;
+	private static final long _TEST_COMPANY_ID_1 = 1L;
 
-	private static final long _TEST_COMPANY_ID2 = 2L;
+	private static final long _TEST_COMPANY_ID_2 = 2L;
 
 	private AopInvocationHandler _aopInvocationHandler;
+	private final MockedStatic<CompanyLocalServiceUtil>
+		_companyLocalServiceUtilMockedStatic = Mockito.mockStatic(
+			CompanyLocalServiceUtil.class);
 	private final Increment<Number> _increment = new NumberIncrement(1);
 	private final TestInterceptedClass _testInterceptedClass =
 		new TestInterceptedClass();

@@ -16,9 +16,9 @@ String backURL = ParamUtil.getString(request, "backURL", viewDefinitionsURL);
 
 Definition definition = (Definition)request.getAttribute(ReportsEngineWebKeys.DEFINITION);
 
-long definitionId = BeanParamUtil.getLong(definition, request, "definitionId");
+long definitionId = BeanParamUtil.getLong(definition, request, "definitionId", Definition::getDefinitionId);
 
-long sourceId = BeanParamUtil.getLong(definition, request, "sourceId");
+long sourceId = BeanParamUtil.getLong(definition, request, "sourceId", Definition::getSourceId);
 
 String reportName = StringPool.BLANK;
 
@@ -102,9 +102,9 @@ else {
 				</aui:select>
 
 				<aui:field-wrapper>
-					<aui:input cssClass="template-report" name="templateReport" style='<%= Validator.isNull(reportName) ? "display: block;" : "display: none;" %>' type="file" />
+					<aui:input cssClass='<%= "lfr-reports__template-report-input " + (Validator.isNull(reportName) ? "display-block" : "display-none") %>' name="templateReport" type="file" />
 
-					<span class="existing-report" style="<%= Validator.isNull(reportName) ? "display: none;" : "display: block;" %>">
+					<span class="lfr-reports__template-report-name <%= Validator.isNull(reportName) ? "display-none" : "display-block" %>">
 						<%= HtmlUtil.escape(reportName) %>
 
 						<img class="remove-existing-report" src="<%= themeDisplay.getPathThemeImages() %>/arrows/02_x.png" />
@@ -112,7 +112,7 @@ else {
 						<aui:input name="reportName" type="hidden" value="<%= reportName %>" />
 					</span>
 
-					<aui:button cssClass="cancel-update-template-report" style="display: none;" value="cancel" />
+					<aui:button cssClass="cancel-update-template-report" value="cancel" />
 				</aui:field-wrapper>
 			</aui:fieldset>
 
@@ -171,7 +171,7 @@ else {
 				</clay:row>
 
 				<aui:field-wrapper>
-					<div class="report-tags" />
+					<div class="report-tags"></div>
 				</aui:field-wrapper>
 			</aui:fieldset>
 

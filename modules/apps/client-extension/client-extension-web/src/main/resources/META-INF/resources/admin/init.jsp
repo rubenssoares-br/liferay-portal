@@ -10,14 +10,15 @@
 <%@ taglib uri="http://liferay.com/tld/learn" prefix="liferay-learn" %><%@
 taglib uri="http://liferay.com/tld/react" prefix="react" %>
 
-<%@ page import="com.liferay.client.extension.constants.ClientExtensionEntryConstants" %><%@
-page import="com.liferay.client.extension.exception.ClientExtensionEntryNameException" %><%@
+<%@ page import="com.liferay.client.extension.exception.ClientExtensionEntryNameException" %><%@
 page import="com.liferay.client.extension.exception.ClientExtensionEntryTypeSettingsException" %><%@
+page import="com.liferay.client.extension.type.AudiencesCustomAttributesCET" %><%@
 page import="com.liferay.client.extension.type.CommerceCheckoutStepCET" %><%@
 page import="com.liferay.client.extension.type.CustomElementCET" %><%@
 page import="com.liferay.client.extension.type.EditorConfigContributorCET" %><%@
 page import="com.liferay.client.extension.type.FDSCellRendererCET" %><%@
 page import="com.liferay.client.extension.type.FDSFilterCET" %><%@
+page import="com.liferay.client.extension.type.FDSVisualizationModeCET" %><%@
 page import="com.liferay.client.extension.type.GlobalCSSCET" %><%@
 page import="com.liferay.client.extension.type.GlobalJSCET" %><%@
 page import="com.liferay.client.extension.type.IFrameCET" %><%@
@@ -33,7 +34,9 @@ page import="com.liferay.client.extension.web.internal.display.context.ClientExt
 page import="com.liferay.client.extension.web.internal.display.context.EditClientExtensionEntryDisplayContext" %><%@
 page import="com.liferay.client.extension.web.internal.display.context.ViewClientExtensionEntryDisplayContext" %><%@
 page import="com.liferay.learn.LearnMessageUtil" %><%@
+page import="com.liferay.portal.kernel.exception.PortalException" %><%@
 page import="com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil" %><%@
+page import="com.liferay.portal.kernel.frontend.esm.FrontendESMUtil" %><%@
 page import="com.liferay.portal.kernel.language.LanguageUtil" %><%@
 page import="com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalServiceUtil" %><%@
 page import="com.liferay.portal.kernel.util.HashMapBuilder" %><%@

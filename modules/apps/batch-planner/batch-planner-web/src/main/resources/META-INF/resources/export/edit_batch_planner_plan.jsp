@@ -17,7 +17,7 @@ EditBatchPlannerPlanDisplayContext editBatchPlannerPlanDisplayContext = (EditBat
 portletDisplay.setShowBackIcon(true);
 portletDisplay.setURLBack(ParamUtil.getString(request, "backURL", String.valueOf(renderResponse.createRenderURL())));
 
-renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : LanguageUtil.get(request, "export"));
+renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : LanguageUtil.get(request, "export[noun]"));
 %>
 
 <div class="container pt-4">
@@ -38,6 +38,8 @@ renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : 
 							module="{ExportSettings} from batch-planner-web"
 							props='<%=
 								HashMapBuilder.<String, Object>put(
+									"__reactDOMFlushSync", true
+								).put(
 									"externalTypeId", liferayPortletResponse.getNamespace() + "externalType"
 								).put(
 									"externalTypeInitialOptions", editBatchPlannerPlanDisplayContext.getExternalTypeSelectOptions()
@@ -64,6 +66,11 @@ renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : 
 						>
 							<react:component
 								module="{Scope} from batch-planner-web"
+								props='<%=
+									HashMapBuilder.<String, Object>put(
+										"__reactDOMFlushSync", true
+									).build()
+								%>'
 							/>
 						</clay:col>
 					</clay:row>
@@ -75,6 +82,11 @@ renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : 
 			<div>
 				<react:component
 					module="{FieldsTable} from batch-planner-web"
+					props='<%=
+						HashMapBuilder.<String, Object>put(
+							"__reactDOMFlushSync", true
+						).build()
+					%>'
 				/>
 			</div>
 
@@ -109,6 +121,8 @@ renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : 
 						module="{SaveTemplate} from batch-planner-web"
 						props='<%=
 							HashMapBuilder.<String, Object>put(
+								"__reactDOMFlushSync", true
+							).put(
 								"formSaveAsTemplateDataQuerySelector", "#" + liferayPortletResponse.getNamespace() + "fm"
 							).put(
 								"formSaveAsTemplateURL",
@@ -134,6 +148,8 @@ renderResponse.setTitle(editable ? LanguageUtil.get(request, "edit-template") : 
 						module="{Export} from batch-planner-web"
 						props='<%=
 							HashMapBuilder.<String, Object>put(
+								"__reactDOMFlushSync", true
+							).put(
 								"formExportDataQuerySelector", "#" + liferayPortletResponse.getNamespace() + "fm"
 							).put(
 								"formExportURL",

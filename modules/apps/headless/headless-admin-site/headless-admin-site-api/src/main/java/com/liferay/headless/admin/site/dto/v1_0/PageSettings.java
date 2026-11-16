@@ -16,26 +16,29 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -47,11 +50,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 @JsonSubTypes(
 	{
 		@JsonSubTypes.Type(
-			name = "CollectionPageSettings",
-			value = CollectionPageSettings.class
+			name = "ContentPageSettings", value = ContentPageSettings.class
 		),
 		@JsonSubTypes.Type(
-			name = "ContentPageSettings", value = ContentPageSettings.class
+			name = "EmbeddedPageSettings", value = EmbeddedPageSettings.class
+		),
+		@JsonSubTypes.Type(
+			name = "LinkToPagePageSettings",
+			value = LinkToPagePageSettings.class
+		),
+		@JsonSubTypes.Type(
+			name = "LinkToURLPageSettings", value = LinkToURLPageSettings.class
+		),
+		@JsonSubTypes.Type(
+			name = "PageSetPageSettings", value = PageSetPageSettings.class
 		),
 		@JsonSubTypes.Type(
 			name = "WidgetPageSettings", value = WidgetPageSettings.class
@@ -59,7 +71,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 	}
 )
 @JsonTypeInfo(
-	include = JsonTypeInfo.As.PROPERTY, property = "type",
+	include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
 	use = JsonTypeInfo.Id.NAME, visible = true
 )
 @XmlRootElement(name = "PageSettings")
@@ -73,50 +85,7 @@ public abstract class PageSettings implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageSettings.class, json);
 	}
 
-	@Schema(description = "A list of custom meta tags this page has.")
-	@Valid
-	public CustomMetaTag[] getCustomMetaTags() {
-		if (_customMetaTagsSupplier != null) {
-			customMetaTags = _customMetaTagsSupplier.get();
-
-			_customMetaTagsSupplier = null;
-		}
-
-		return customMetaTags;
-	}
-
-	public void setCustomMetaTags(CustomMetaTag[] customMetaTags) {
-		this.customMetaTags = customMetaTags;
-
-		_customMetaTagsSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setCustomMetaTags(
-		UnsafeSupplier<CustomMetaTag[], Exception>
-			customMetaTagsUnsafeSupplier) {
-
-		_customMetaTagsSupplier = () -> {
-			try {
-				return customMetaTagsUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "A list of custom meta tags this page has.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected CustomMetaTag[] customMetaTags;
-
-	@JsonIgnore
-	private Supplier<CustomMetaTag[]> _customMetaTagsSupplier;
-
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether the page is hidden from navigation."
 	)
 	public Boolean getHiddenFromNavigation() {
@@ -161,34 +130,36 @@ public abstract class PageSettings implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _hiddenFromNavigationSupplier;
 
-	@Schema(description = "The page's site navigation menu settings.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's navigation settings."
+	)
 	@Valid
-	public NavigationMenuSettings getNavigationMenuSettings() {
-		if (_navigationMenuSettingsSupplier != null) {
-			navigationMenuSettings = _navigationMenuSettingsSupplier.get();
+	public SitePageNavigationSettings getNavigationSettings() {
+		if (_navigationSettingsSupplier != null) {
+			navigationSettings = _navigationSettingsSupplier.get();
 
-			_navigationMenuSettingsSupplier = null;
+			_navigationSettingsSupplier = null;
 		}
 
-		return navigationMenuSettings;
+		return navigationSettings;
 	}
 
-	public void setNavigationMenuSettings(
-		NavigationMenuSettings navigationMenuSettings) {
+	public void setNavigationSettings(
+		SitePageNavigationSettings navigationSettings) {
 
-		this.navigationMenuSettings = navigationMenuSettings;
+		this.navigationSettings = navigationSettings;
 
-		_navigationMenuSettingsSupplier = null;
+		_navigationSettingsSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setNavigationMenuSettings(
-		UnsafeSupplier<NavigationMenuSettings, Exception>
-			navigationMenuSettingsUnsafeSupplier) {
+	public void setNavigationSettings(
+		UnsafeSupplier<SitePageNavigationSettings, Exception>
+			navigationSettingsUnsafeSupplier) {
 
-		_navigationMenuSettingsSupplier = () -> {
+		_navigationSettingsSupplier = () -> {
 			try {
-				return navigationMenuSettingsUnsafeSupplier.get();
+				return navigationSettingsUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -199,39 +170,41 @@ public abstract class PageSettings implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The page's site navigation menu settings.")
+	@GraphQLField(description = "The page's navigation settings.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected NavigationMenuSettings navigationMenuSettings;
+	protected SitePageNavigationSettings navigationSettings;
 
 	@JsonIgnore
-	private Supplier<NavigationMenuSettings> _navigationMenuSettingsSupplier;
+	private Supplier<SitePageNavigationSettings> _navigationSettingsSupplier;
 
-	@Schema(description = "The page's Open Graph settings.")
-	@Valid
-	public OpenGraphSettings getOpenGraphSettings() {
-		if (_openGraphSettingsSupplier != null) {
-			openGraphSettings = _openGraphSettingsSupplier.get();
+	@DecimalMax("2147483647")
+	@DecimalMin("0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The priority of the page, determining the order in which the page will be listed, for example within the page administration."
+	)
+	public Integer getPriority() {
+		if (_prioritySupplier != null) {
+			priority = _prioritySupplier.get();
 
-			_openGraphSettingsSupplier = null;
+			_prioritySupplier = null;
 		}
 
-		return openGraphSettings;
+		return priority;
 	}
 
-	public void setOpenGraphSettings(OpenGraphSettings openGraphSettings) {
-		this.openGraphSettings = openGraphSettings;
+	public void setPriority(Integer priority) {
+		this.priority = priority;
 
-		_openGraphSettingsSupplier = null;
+		_prioritySupplier = null;
 	}
 
 	@JsonIgnore
-	public void setOpenGraphSettings(
-		UnsafeSupplier<OpenGraphSettings, Exception>
-			openGraphSettingsUnsafeSupplier) {
+	public void setPriority(
+		UnsafeSupplier<Integer, Exception> priorityUnsafeSupplier) {
 
-		_openGraphSettingsSupplier = () -> {
+		_prioritySupplier = () -> {
 			try {
-				return openGraphSettingsUnsafeSupplier.get();
+				return priorityUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -242,57 +215,17 @@ public abstract class PageSettings implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The page's Open Graph settings.")
+	@GraphQLField(
+		description = "The priority of the page, determining the order in which the page will be listed, for example within the page administration."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected OpenGraphSettings openGraphSettings;
+	protected Integer priority;
 
 	@JsonIgnore
-	private Supplier<OpenGraphSettings> _openGraphSettingsSupplier;
+	private Supplier<Integer> _prioritySupplier;
 
-	@Schema(description = "The page's SEO settings.")
-	@Valid
-	public SEOSettings getSeoSettings() {
-		if (_seoSettingsSupplier != null) {
-			seoSettings = _seoSettingsSupplier.get();
-
-			_seoSettingsSupplier = null;
-		}
-
-		return seoSettings;
-	}
-
-	public void setSeoSettings(SEOSettings seoSettings) {
-		this.seoSettings = seoSettings;
-
-		_seoSettingsSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setSeoSettings(
-		UnsafeSupplier<SEOSettings, Exception> seoSettingsUnsafeSupplier) {
-
-		_seoSettingsSupplier = () -> {
-			try {
-				return seoSettingsUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "The page's SEO settings.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected SEOSettings seoSettings;
-
-	@JsonIgnore
-	private Supplier<SEOSettings> _seoSettingsSupplier;
-
+	@io.swagger.v3.oas.annotations.media.Schema
 	@JsonGetter("type")
-	@Schema
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -370,28 +303,6 @@ public abstract class PageSettings implements Serializable {
 
 		sb.append("{");
 
-		CustomMetaTag[] customMetaTags = getCustomMetaTags();
-
-		if (customMetaTags != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"customMetaTags\": ");
-
-			sb.append("[");
-
-			for (int i = 0; i < customMetaTags.length; i++) {
-				sb.append(String.valueOf(customMetaTags[i]));
-
-				if ((i + 1) < customMetaTags.length) {
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
-		}
-
 		Boolean hiddenFromNavigation = getHiddenFromNavigation();
 
 		if (hiddenFromNavigation != null) {
@@ -404,41 +315,28 @@ public abstract class PageSettings implements Serializable {
 			sb.append(hiddenFromNavigation);
 		}
 
-		NavigationMenuSettings navigationMenuSettings =
-			getNavigationMenuSettings();
+		SitePageNavigationSettings navigationSettings = getNavigationSettings();
 
-		if (navigationMenuSettings != null) {
+		if (navigationSettings != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"navigationMenuSettings\": ");
+			sb.append("\"navigationSettings\": ");
 
-			sb.append(String.valueOf(navigationMenuSettings));
+			sb.append(String.valueOf(navigationSettings));
 		}
 
-		OpenGraphSettings openGraphSettings = getOpenGraphSettings();
+		Integer priority = getPriority();
 
-		if (openGraphSettings != null) {
+		if (priority != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"openGraphSettings\": ");
+			sb.append("\"priority\": ");
 
-			sb.append(String.valueOf(openGraphSettings));
-		}
-
-		SEOSettings seoSettings = getSeoSettings();
-
-		if (seoSettings != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"seoSettings\": ");
-
-			sb.append(String.valueOf(seoSettings));
+			sb.append(priority);
 		}
 
 		Type type = getType();
@@ -451,9 +349,7 @@ public abstract class PageSettings implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -462,8 +358,8 @@ public abstract class PageSettings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.PageSettings",
 		name = "x-class-name"
 	)
@@ -472,8 +368,11 @@ public abstract class PageSettings implements Serializable {
 	@GraphQLName("Type")
 	public static enum Type {
 
-		COLLECTION_PAGE_SETTINGS("CollectionPageSettings"),
 		CONTENT_PAGE_SETTINGS("ContentPageSettings"),
+		EMBEDDED_PAGE_SETTINGS("EmbeddedPageSettings"),
+		LINK_TO_PAGE_PAGE_SETTINGS("LinkToPagePageSettings"),
+		LINK_TO_URL_PAGE_SETTINGS("LinkToURLPageSettings"),
+		PAGE_SET_PAGE_SETTINGS("PageSetPageSettings"),
 		WIDGET_PAGE_SETTINGS("WidgetPageSettings");
 
 		@JsonCreator
@@ -590,6 +489,27 @@ public abstract class PageSettings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -598,3 +518,4 @@ public abstract class PageSettings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1709485177

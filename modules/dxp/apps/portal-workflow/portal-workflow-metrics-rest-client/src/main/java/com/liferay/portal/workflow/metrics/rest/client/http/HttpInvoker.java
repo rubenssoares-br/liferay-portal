@@ -5,6 +5,8 @@
 
 package com.liferay.portal.workflow.metrics.rest.client.http;
 
+import jakarta.annotation.Generated;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,8 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rafael Praxedes
@@ -379,16 +379,18 @@ public class HttpInvoker {
 			inputStream = httpURLConnection.getInputStream();
 		}
 
-		byte[] bytes = new byte[8192];
+		if (inputStream != null) {
+			byte[] bytes = new byte[8192];
 
-		while (true) {
-			int read = inputStream.read(bytes, 0, bytes.length);
+			while (true) {
+				int read = inputStream.read(bytes, 0, bytes.length);
 
-			if (read == -1) {
-				break;
+				if (read == -1) {
+					break;
+				}
+
+				byteArrayOutputStream.write(bytes, 0, read);
 			}
-
-			byteArrayOutputStream.write(bytes, 0, read);
 		}
 
 		byteArrayOutputStream.flush();
@@ -462,3 +464,4 @@ public class HttpInvoker {
 	private String _path;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1093227931

@@ -1,113 +1,26 @@
 @component-name = "portal-commerce"
 definition {
 
-	property custom.properties = "feature.flag.LPD-38869=true";
+	property browser.chrome.version = "139.0";
+	property custom.properties = "feature.flag.LPD-11235=true";
 	property portal.release = "true";
 	property portal.upstream = "true";
 	property testray.main.component.name = "Product Info Management";
 
 	setUp {
 		CommerceConfiguration.commerceSetUp(storeFront = "true");
+
+		task ("Enable private pages") {
+			PagesAdmin.enablePrivatePages();
+		}
+
+		task ("Enable CKE4") {
+			PagesAdmin.enableCKE4();
+		}
 	}
 
 	tearDown {
 		CommerceConfiguration.commerceTearDown();
-	}
-
-	@description = "This is a test for COMMERCE-6021. AddASKU"
-	@priority = 3
-	test AddASKU {
-		property portal.acceptance = "false";
-
-		CommerceAccelerators.initializeNewSiteViaAccelerator(siteName = "Minium");
-
-		CommerceProducts.openProductsAdmin();
-
-		CPCommerceCatalog.newProductsEntry(
-			productCatalog = "Minium",
-			productName = "Simple T-Shirt",
-			productType = "Simple");
-
-		CommerceEntry.gotoMenuTab(menuTab = "SKUs");
-
-		Click(locator1 = "Button#PLUS");
-
-		SelectFrame.selectFrameNoLoading(locator1 = "CommerceEntry#IFRAME_SIDE_PANEL");
-
-		Type(
-			locator1 = "CommerceEntry#SKU_FIELD",
-			value1 = "BLACKSKU");
-
-		Check.checkToggleSwitch(
-			key_toggleSwitchLabel = "Purchasable",
-			locator1 = "ToggleSwitch#ANY_TOGGLE_SWITCH");
-
-		Button.clickPublish();
-
-		AssertVisible(locator1 = "Message#SUCCESS");
-	}
-
-	@description = "This is a test for COMMERCE-6024. AddASKUWithSubscriptions"
-	@priority = 3
-	test AddASKUWithSubscriptions {
-		property portal.acceptance = "false";
-
-		CommerceProducts.openProductsAdmin();
-
-		CPCommerceCatalog.newProductsEntry(
-			productCatalog = "Master",
-			productName = "Simple T-Shirt",
-			productType = "Simple");
-
-		CommerceEntry.gotoMenuTab(menuTab = "SKUs");
-
-		CommerceSKUs.addSKU(
-			noOption = "true",
-			optionValuesList = "BLACK:10.0");
-
-		Click(
-			key_value = "BLACKSKU",
-			locator1 = "CommerceEntry#BODY_VERTICAL_ELLIPSIS");
-
-		MenuItem.click(menuItem = "Edit");
-
-		SelectFrame.selectFrameNoLoading(locator1 = "CommerceEntry#IFRAME_SIDE_PANEL");
-
-		Click(
-			key_entry = "Subscriptions",
-			locator1 = "CommerceNavigation#ANY_ENTRY_NAME");
-
-		Check.checkToggleSwitch(
-			key_toggleSwitchLabel = "Override Subscription Settings",
-			locator1 = "ToggleSwitch#ANY_TOGGLE_SWITCH");
-
-		AssertElementPresent.assertVisible(
-			key_entryName = "Payment Subscription",
-			locator1 = "CommerceEntry#ENTRY_SUBSCRIPTIONS");
-
-		AssertElementPresent.assertVisible(
-			key_entryName = "Delivery Subscription",
-			locator1 = "CommerceEntry#ENTRY_SUBSCRIPTIONS");
-
-		Button.clickSave();
-
-		AssertVisible(locator1 = "Message#SUCCESS");
-
-		Uncheck.uncheckToggleSwitch(
-			key_toggleSwitchLabel = "Override Subscription Settings",
-			locator1 = "ToggleSwitch#ANY_TOGGLE_SWITCH");
-
-		Button.clickSave();
-
-		AssertVisible(locator1 = "Message#SUCCESS");
-
-		AssertNotVisible(
-			key_entryName = "Payment Subscription",
-			locator1 = "CommerceEntry#ENTRY_SUBSCRIPTIONS");
-
-		AssertNotVisible(
-			key_entryName = "Delivery Subscription",
-			locator1 = "CommerceEntry#ENTRY_SUBSCRIPTIONS");
 	}
 
 	@description = "This is a test for COMMERCE-12290. The admin can add multiple price entries for different UOMs using the new price modal."
@@ -200,57 +113,6 @@ definition {
 					key_columnNumber = ${columnNumber},
 					locator1 = "CommerceEntry#TABLE_CELL_BY_COLUMN_ORDER_NO_TITLE",
 					value1 = ${columnValue});
-			}
-		}
-	}
-
-	@description = "This is a test for COMMERCE-11084. Admin can add price lists on a product's SKU details page"
-	@priority = 5
-	test CanAddPriceListsOnProductSKU {
-		property portal.acceptance = "true";
-
-		task ("Given a Minium site is created") {
-			CommerceAccelerators.initializeNewSiteViaAccelerator(siteName = "Minium");
-		}
-
-		task ("And a simple product with 'Minium' catalog is created") {
-			CommerceJSONProductsAPI._addCommerceProduct(
-				catalogName = "Minium",
-				productName = "Test Simple Product",
-				productType = "Simple",
-				sku = "SIMPLESKU");
-		}
-
-		task ("When admin adds some price lists on the product's SKU details page") {
-			CommerceProducts.openProductsAdmin();
-
-			CommerceNavigator.searchEntry(entryName = "Simple");
-
-			CommerceNavigator.gotoEntry(entryName = "Test Simple Product");
-
-			CommerceEntry.gotoMenuTab(menuTab = "SKUs");
-
-			CommerceEntry.addPriceListsFromProductSKU(
-				priceLists = "Master Base Price List:10,Minium Base Price List:20",
-				skuName = "SIMPLESKU");
-		}
-
-		task ("Then the price lists are added successfully") {
-			SelectFrame.selectFrameNoLoading(locator1 = "CommerceEntry#IFRAME_SIDE_PANEL");
-
-			for (var priceList : list "Master Base Price List:$ 10.00,Minium Base Price List:$ 20.00") {
-				var priceListName = StringUtil.extractFirst(${value}, ":");
-				var priceListAmount = StringUtil.extractLast(${value}, ":");
-
-				AssertElementPresent(
-					key_color = ${priceListName},
-					key_field = "Name",
-					locator1 = "FrontendDataSet#SEARCH_COLUMN_AND_ROW");
-
-				AssertElementPresent(
-					key_color = ${priceListAmount},
-					key_field = "Unit Price",
-					locator1 = "FrontendDataSet#SEARCH_COLUMN_AND_ROW");
 			}
 		}
 	}

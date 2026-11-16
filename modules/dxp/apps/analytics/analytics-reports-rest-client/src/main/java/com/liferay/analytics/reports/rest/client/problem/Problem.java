@@ -7,9 +7,9 @@ package com.liferay.analytics.reports.rest.client.problem;
 
 import com.liferay.analytics.reports.rest.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Marcos Martins
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1393091185

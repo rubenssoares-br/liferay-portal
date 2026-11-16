@@ -65,6 +65,11 @@ public interface RoleService extends BaseService {
 	public void addUserRoles(long userId, long[] roleIds)
 		throws PortalException;
 
+	public Role copyRole(
+			long userId, String name, long sourceRoleId,
+			ServiceContext serviceContext)
+		throws PortalException;
+
 	/**
 	 * Deletes the role with the primary key and its associated permissions.
 	 *
@@ -95,14 +100,20 @@ public interface RoleService extends BaseService {
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<Role> getGroupRolesAndTeamRoles(
 		long companyId, String name, List<String> excludedNames, String title,
-		String description, int[] types, long excludedTeamRoleId,
-		long teamGroupId, int start, int end);
+		String description, int[] types, String subtype,
+		long excludedTeamRoleId, long teamGroupId, int start, int end);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getGroupRolesAndTeamRolesCount(
 		long companyId, String name, List<String> excludedNames, String title,
-		String description, int[] types, long excludedTeamRoleId,
-		long teamGroupId);
+		String description, int[] types, String subtype,
+		long excludedTeamRoleId, long teamGroupId);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public Role getOrAddEmptyRole(
+			String externalReferenceCode, String className, long classPK,
+			String name, int type)
+		throws Exception;
 
 	/**
 	 * Returns the OSGi service identifier.
@@ -144,8 +155,7 @@ public interface RoleService extends BaseService {
 	public List<Role> getRoles(int type, String subtype) throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<Role> getRoles(long companyId, int[] types)
-		throws PortalException;
+	public List<Role> getRoles(long companyId, int[] types);
 
 	/**
 	 * Returns all the user's roles within the user group.
@@ -270,9 +280,10 @@ public interface RoleService extends BaseService {
 	 * @return the role with the primary key
 	 */
 	public Role updateRole(
-			long roleId, String name, Map<Locale, String> titleMap,
-			Map<Locale, String> descriptionMap, String subtype,
-			ServiceContext serviceContext)
+			String externalReferenceCode, long roleId, String name,
+			Map<Locale, String> titleMap, Map<Locale, String> descriptionMap,
+			String subtype, ServiceContext serviceContext)
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:423939638

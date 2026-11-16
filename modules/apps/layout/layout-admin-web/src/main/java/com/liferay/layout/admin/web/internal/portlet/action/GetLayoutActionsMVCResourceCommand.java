@@ -5,11 +5,14 @@
 
 package com.liferay.layout.admin.web.internal.portlet.action;
 
+import com.liferay.depot.group.provider.SiteConnectedGroupGroupProvider;
+import com.liferay.fragment.processor.PortletRegistry;
 import com.liferay.item.selector.ItemSelector;
 import com.liferay.layout.admin.constants.LayoutAdminPortletKeys;
 import com.liferay.layout.admin.web.internal.display.context.LayoutsAdminDisplayContext;
 import com.liferay.layout.admin.web.internal.helper.LayoutActionsHelper;
 import com.liferay.layout.admin.web.internal.servlet.taglib.util.LayoutActionDropdownItemsProvider;
+import com.liferay.layout.seo.provider.LayoutSetSEORobotsProvider;
 import com.liferay.layout.set.prototype.helper.LayoutSetPrototypeHelper;
 import com.liferay.layout.util.template.LayoutConverterRegistry;
 import com.liferay.portal.kernel.json.JSONUtil;
@@ -18,6 +21,7 @@ import com.liferay.portal.kernel.portlet.JSONPortletResponseUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseMVCResourceCommand;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCResourceCommand;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
@@ -25,10 +29,10 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.translation.security.permission.TranslationPermission;
 import com.liferay.translation.url.provider.TranslationURLProvider;
 
-import java.util.Collections;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
 
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
+import java.util.Collections;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -38,7 +42,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
+		"jakarta.portlet.name=" + LayoutAdminPortletKeys.GROUP_PAGES,
 		"mvc.command.name=/layout_admin/get_layout_actions"
 	},
 	service = MVCResourceCommand.class
@@ -66,14 +70,16 @@ public class GetLayoutActionsMVCResourceCommand extends BaseMVCResourceCommand {
 			WebKeys.THEME_DISPLAY);
 
 		LayoutActionsHelper layoutActionsHelper = new LayoutActionsHelper(
-			_layoutConverterRegistry, themeDisplay, _translationPermission);
+			_layoutConverterRegistry, _portletRegistry, themeDisplay,
+			_translationPermission);
 
 		LayoutsAdminDisplayContext layoutsAdminDisplayContext =
 			new LayoutsAdminDisplayContext(
-				_itemSelector, layoutActionsHelper, _layoutLocalService,
-				_layoutSetPrototypeHelper,
+				_itemSelector, layoutActionsHelper, _layoutService,
+				_layoutSetPrototypeHelper, _layoutSetSEORobotsProvider,
 				_portal.getLiferayPortletRequest(resourceRequest),
-				_portal.getLiferayPortletResponse(resourceResponse));
+				_portal.getLiferayPortletResponse(resourceResponse),
+				_siteConnectedGroupGroupProvider);
 
 		LayoutActionDropdownItemsProvider layoutActionDropdownItemsProvider =
 			new LayoutActionDropdownItemsProvider(
@@ -100,10 +106,22 @@ public class GetLayoutActionsMVCResourceCommand extends BaseMVCResourceCommand {
 	private LayoutLocalService _layoutLocalService;
 
 	@Reference
+	private LayoutService _layoutService;
+
+	@Reference
 	private LayoutSetPrototypeHelper _layoutSetPrototypeHelper;
 
 	@Reference
+	private LayoutSetSEORobotsProvider _layoutSetSEORobotsProvider;
+
+	@Reference
 	private Portal _portal;
+
+	@Reference
+	private PortletRegistry _portletRegistry;
+
+	@Reference
+	private SiteConnectedGroupGroupProvider _siteConnectedGroupGroupProvider;
 
 	@Reference
 	private TranslationPermission _translationPermission;

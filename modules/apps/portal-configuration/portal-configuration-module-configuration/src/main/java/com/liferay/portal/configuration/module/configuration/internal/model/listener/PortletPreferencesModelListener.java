@@ -6,7 +6,7 @@
 package com.liferay.portal.configuration.module.configuration.internal.model.listener;
 
 import com.liferay.asset.kernel.util.NotifiedAssetEntryThreadLocal;
-import com.liferay.portal.configuration.module.configuration.internal.ConfigurationOverrideInstance;
+import com.liferay.layout.util.UpdateLayoutModifiedDateThreadLocal;
 import com.liferay.portal.kernel.exception.ModelListenerException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -21,9 +21,6 @@ import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.LayoutSetPrototypeLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
-import com.liferay.portal.kernel.settings.Settings;
-import com.liferay.portal.kernel.settings.SettingsLocatorHelper;
-import com.liferay.portal.kernel.settings.definition.ConfigurationPidMapping;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
@@ -40,70 +37,19 @@ public class PortletPreferencesModelListener
 	extends BaseModelListener<PortletPreferences> {
 
 	@Override
-	public void onAfterCreate(PortletPreferences portletPreferences)
-		throws ModelListenerException {
-
-		_clearConfigurationOverrideInstance(portletPreferences);
-	}
-
-	@Override
-	public void onAfterRemove(PortletPreferences portletPreferences)
-		throws ModelListenerException {
-
-		_clearConfigurationOverrideInstance(portletPreferences);
-	}
-
-	@Override
 	public void onAfterUpdate(
 			PortletPreferences originalPortletPreferences,
 			PortletPreferences portletPreferences)
 		throws ModelListenerException {
 
 		_updateLayout(portletPreferences);
-
-		_clearConfigurationOverrideInstance(portletPreferences);
-	}
-
-	private void _clearConfigurationOverrideInstance(
-		PortletPreferences portletPreferences) {
-
-		if ((portletPreferences == null) ||
-			(portletPreferences.getPortletId() == null)) {
-
-			return;
-		}
-
-		ConfigurationPidMapping configurationPidMapping =
-			_getConfigurationPidMapping(portletPreferences.getPortletId());
-
-		if (configurationPidMapping == null) {
-			return;
-		}
-
-		ConfigurationOverrideInstance.clearConfigurationOverrideInstance(
-			configurationPidMapping.getConfigurationBeanClass());
-	}
-
-	private ConfigurationPidMapping _getConfigurationPidMapping(
-		String configurationId) {
-
-		ConfigurationPidMapping configurationPidMapping =
-			_settingsLocatorHelper.getConfigurationPidMapping(configurationId);
-
-		if (configurationPidMapping == null) {
-			return null;
-		}
-
-		Class<?> clazz = configurationPidMapping.getConfigurationBeanClass();
-
-		if (clazz.getAnnotation(Settings.Config.class) == null) {
-			return configurationPidMapping;
-		}
-
-		return null;
 	}
 
 	private void _updateLayout(PortletPreferences portletPreferences) {
+		if (!UpdateLayoutModifiedDateThreadLocal.isUpdateLayoutModifiedDate()) {
+			return;
+		}
+
 		try {
 			if ((portletPreferences.getOwnerType() ==
 					PortletKeys.PREFS_OWNER_TYPE_GROUP) &&
@@ -150,19 +96,26 @@ public class PortletPreferencesModelListener
 				}
 
 				if (layout.isDraftLayout()) {
+					long userId = layout.getUserId();
+
 					ServiceContext serviceContext =
 						ServiceContextThreadLocal.getServiceContext();
 
+					if ((serviceContext != null) &&
+						(serviceContext.getUserId() != 0)) {
+
+						userId = serviceContext.getUserId();
+					}
+
 					_layoutLocalService.updateStatus(
-						serviceContext.getUserId(), layout.getPlid(),
+						userId, layout.getPlid(),
 						WorkflowConstants.STATUS_DRAFT, serviceContext);
 				}
 				else {
 					layout.setModifiedDate(new Date());
 
-					_layoutLocalService.updateLayout(
-						layout.getGroupId(), layout.isPrivateLayout(),
-						layout.getLayoutId(), layout.getTypeSettings());
+					_layoutLocalService.updateTypeSettings(
+						layout, layout.getTypeSettings());
 				}
 			}
 		}
@@ -183,8 +136,5 @@ public class PortletPreferencesModelListener
 
 	@Reference
 	private LayoutSetPrototypeLocalService _layoutSetPrototypeLocalService;
-
-	@Reference
-	private SettingsLocatorHelper _settingsLocatorHelper;
 
 }

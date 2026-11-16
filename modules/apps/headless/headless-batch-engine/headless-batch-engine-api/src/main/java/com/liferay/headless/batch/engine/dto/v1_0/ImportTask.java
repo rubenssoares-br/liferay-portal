@@ -14,31 +14,32 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Ivica Cardic
@@ -58,7 +59,7 @@ public class ImportTask implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ImportTask.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The item class name for which data will be processed in batch.",
 		example = "com.liferay.headless.delivery.dto.v1_0.BlogPosting"
 	)
@@ -104,7 +105,9 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _classNameSupplier;
 
-	@Schema(description = "The file content type.", example = "JSON")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The file content type.", example = "JSON"
+	)
 	public String getContentType() {
 		if (_contentTypeSupplier != null) {
 			contentType = _contentTypeSupplier.get();
@@ -145,7 +148,7 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentTypeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The end time of import task operation.",
 		example = "2019-27-09'T'08:33:33'Z'"
 	)
@@ -189,7 +192,7 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _endTimeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The error message in case of import task's failed execution.",
 		example = "File import failed"
 	)
@@ -235,11 +238,11 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _errorMessageSupplier;
 
-	@JsonGetter("executeStatus")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The status of import task's execution.",
 		example = "INITIALIZED"
 	)
+	@JsonGetter("executeStatus")
 	@Valid
 	public ExecuteStatus getExecuteStatus() {
 		if (_executeStatusSupplier != null) {
@@ -292,7 +295,9 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<ExecuteStatus> _executeStatusSupplier;
 
-	@Schema(description = "The optional external key of this account.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The optional external key of this account."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -333,7 +338,7 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public FailedItem[] getFailedItems() {
 		if (_failedItemsSupplier != null) {
@@ -376,7 +381,9 @@ public class ImportTask implements Serializable {
 	private Supplier<FailedItem[]> _failedItemsSupplier;
 
 	@DecimalMin("0")
-	@Schema(description = "The task's ID.", example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The task's ID.", example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -415,10 +422,10 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@JsonGetter("importStrategy")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Defines if import task will fail when error occurs or continue importing rest of the items."
 	)
+	@JsonGetter("importStrategy")
 	@Valid
 	public ImportStrategy getImportStrategy() {
 		if (_importStrategySupplier != null) {
@@ -474,8 +481,10 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<ImportStrategy> _importStrategySupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The operation of import task.", example = "CREATE"
+	)
 	@JsonGetter("operation")
-	@Schema(description = "The operation of import task.", example = "CREATE")
 	@Valid
 	public Operation getOperation() {
 		if (_operationSupplier != null) {
@@ -529,7 +538,7 @@ public class ImportTask implements Serializable {
 	private Supplier<Operation> _operationSupplier;
 
 	@DecimalMin("0")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Number of items processed by import task opeartion.",
 		example = "100"
 	)
@@ -575,7 +584,7 @@ public class ImportTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _processedItemsCountSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The start time of import task operation.",
 		example = "2019-27-09'T'08:23:33'Z'"
 	)
@@ -620,7 +629,7 @@ public class ImportTask implements Serializable {
 	private Supplier<Date> _startTimeSupplier;
 
 	@DecimalMin("0")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Total number of items that will be processed by import task operation.",
 		example = "1000"
 	)
@@ -770,9 +779,7 @@ public class ImportTask implements Serializable {
 			sb.append("\"executeStatus\": ");
 
 			sb.append("\"");
-
 			sb.append(executeStatus);
-
 			sb.append("\"");
 		}
 
@@ -836,9 +843,7 @@ public class ImportTask implements Serializable {
 			sb.append("\"importStrategy\": ");
 
 			sb.append("\"");
-
 			sb.append(importStrategy);
-
 			sb.append("\"");
 		}
 
@@ -852,9 +857,7 @@ public class ImportTask implements Serializable {
 			sb.append("\"operation\": ");
 
 			sb.append("\"");
-
 			sb.append(operation);
-
 			sb.append("\"");
 		}
 
@@ -903,8 +906,8 @@ public class ImportTask implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.batch.engine.dto.v1_0.ImportTask",
 		name = "x-class-name"
 	)
@@ -1106,6 +1109,27 @@ public class ImportTask implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1114,3 +1138,4 @@ public class ImportTask implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-970120195

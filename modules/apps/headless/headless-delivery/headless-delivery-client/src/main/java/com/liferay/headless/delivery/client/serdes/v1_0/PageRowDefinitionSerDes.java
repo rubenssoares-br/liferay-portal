@@ -11,13 +11,14 @@ import com.liferay.headless.delivery.client.dto.v1_0.PageRowDefinition;
 import com.liferay.headless.delivery.client.dto.v1_0.RowViewport;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -629,6 +630,16 @@ public class PageRowDefinitionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -661,3 +672,4 @@ public class PageRowDefinitionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1135830932

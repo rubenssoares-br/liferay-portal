@@ -31,13 +31,17 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
 import com.liferay.portal.test.rule.Inject;
+import com.liferay.portal.test.rule.LanguageIds;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import jakarta.portlet.PortletPreferences;
+
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.PortletPreferences;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,6 +56,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 /**
  * @author Lourdes Fernández Besada
  */
+@LanguageIds(
+	availableLanguageIds = {"en_US", "es_ES"}, defaultLanguageId = "en_US"
+)
 @RunWith(Arquillian.class)
 public class InputTagTest {
 
@@ -92,6 +99,34 @@ public class InputTagTest {
 	}
 
 	@Test
+	public void testInputTagAvailableLocales() throws Exception {
+		Set<Locale> availableLocales = new HashSet<>(
+			Arrays.asList(LocaleUtil.SPAIN, LocaleUtil.US));
+
+		InputTag inputTag = new InputTag();
+
+		inputTag.setAvailableLocales(availableLocales);
+
+		MockHttpServletRequest mockHttpServletRequest =
+			_getMockHttpServletRequest(inputTag);
+
+		Assert.assertEquals(
+			availableLocales,
+			mockHttpServletRequest.getAttribute(
+				"liferay-friendly-url:input:availableLocales"));
+	}
+
+	@Test
+	public void testInputTagAvailableLocalesIsNullByDefault() throws Exception {
+		MockHttpServletRequest mockHttpServletRequest =
+			_getMockHttpServletRequest(new InputTag());
+
+		Assert.assertNull(
+			mockHttpServletRequest.getAttribute(
+				"liferay-friendly-url:input:availableLocales"));
+	}
+
+	@Test
 	public void testInputTagLocaleRemovedFromCompanySettings()
 		throws Exception {
 
@@ -113,9 +148,7 @@ public class InputTagTest {
 
 			String languageId = LocaleUtil.toLanguageId(LocaleUtil.SPAIN);
 
-			Assert.assertTrue(
-				StringUtil.contains(
-					originalLanguageIds, languageId, StringPool.BLANK));
+			Assert.assertTrue(originalLanguageIds.contains(languageId));
 
 			_companyLocalService.updatePreferences(
 				_group.getCompanyId(),
@@ -132,10 +165,10 @@ public class InputTagTest {
 			portletPreferences = PrefsPropsUtil.getPreferences(
 				_group.getCompanyId());
 
-			Assert.assertFalse(
-				StringUtil.contains(
-					portletPreferences.getValue(PropsKeys.LOCALES, languageId),
-					languageId, StringPool.BLANK));
+			String locales = portletPreferences.getValue(
+				PropsKeys.LOCALES, languageId);
+
+			Assert.assertFalse(locales.contains(languageId));
 
 			_assertInputTag(friendlyURLMap);
 		}
@@ -173,8 +206,7 @@ public class InputTagTest {
 
 		String languageId = LocaleUtil.toLanguageId(LocaleUtil.SPAIN);
 
-		Assert.assertTrue(
-			StringUtil.contains(languageIds, languageId, StringPool.BLANK));
+		Assert.assertTrue(languageIds.contains(languageId));
 
 		typeSettingsUnicodeProperties.setProperty(
 			PropsKeys.LOCALES,
@@ -193,11 +225,10 @@ public class InputTagTest {
 			Boolean.FALSE.toString(),
 			typeSettingsUnicodeProperties.getProperty("inheritLocales", null));
 
-		Assert.assertFalse(
-			StringUtil.contains(
-				typeSettingsUnicodeProperties.getProperty(
-					PropsKeys.LOCALES, languageId),
-				languageId, StringPool.BLANK));
+		String locales = typeSettingsUnicodeProperties.getProperty(
+			PropsKeys.LOCALES, languageId);
+
+		Assert.assertFalse(locales.contains(languageId));
 
 		_assertInputTag(friendlyURLMap);
 	}
@@ -205,17 +236,8 @@ public class InputTagTest {
 	private void _assertInputTag(Map<Locale, String> expectedFriendlyURLMap)
 		throws Exception {
 
-		InputTag inputTag = new InputTag();
-
-		inputTag.setClassName(Layout.class.getName());
-		inputTag.setClassPK(_layout.getPlid());
-
 		MockHttpServletRequest mockHttpServletRequest =
-			ContentLayoutTestUtil.getMockHttpServletRequest(
-				_companyLocalService.getCompany(_layout.getCompanyId()), _group,
-				_layout);
-
-		inputTag.doTag(mockHttpServletRequest, new MockHttpServletResponse());
+			_getMockHttpServletRequest(new InputTag());
 
 		Map<Locale, String> friendlyURLMap = _localization.getLocalizationMap(
 			(String)mockHttpServletRequest.getAttribute(
@@ -233,6 +255,22 @@ public class InputTagTest {
 			Assert.assertEquals(
 				entry.getValue(), friendlyURLMap.get(entry.getKey()));
 		}
+	}
+
+	private MockHttpServletRequest _getMockHttpServletRequest(InputTag inputTag)
+		throws Exception {
+
+		inputTag.setClassName(Layout.class.getName());
+		inputTag.setClassPK(_layout.getPlid());
+
+		MockHttpServletRequest mockHttpServletRequest =
+			ContentLayoutTestUtil.getMockHttpServletRequest(
+				_companyLocalService.getCompany(_layout.getCompanyId()), _group,
+				_layout);
+
+		inputTag.doTag(mockHttpServletRequest, new MockHttpServletResponse());
+
+		return mockHttpServletRequest;
 	}
 
 	@Inject

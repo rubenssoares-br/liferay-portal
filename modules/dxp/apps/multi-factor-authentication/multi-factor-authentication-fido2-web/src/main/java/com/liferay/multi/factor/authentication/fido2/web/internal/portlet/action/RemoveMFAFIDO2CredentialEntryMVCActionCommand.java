@@ -7,6 +7,8 @@ package com.liferay.multi.factor.authentication.fido2.web.internal.portlet.actio
 
 import com.liferay.multi.factor.authentication.fido2.credential.model.MFAFIDO2CredentialEntry;
 import com.liferay.multi.factor.authentication.fido2.credential.service.MFAFIDO2CredentialEntryLocalService;
+import com.liferay.multi.factor.authentication.fido2.web.internal.util.MFAFIDO2AuditMessageUtil;
+import com.liferay.portal.kernel.audit.AuditRouter;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -20,8 +22,8 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.users.admin.constants.UsersAdminPortletKeys;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -31,8 +33,8 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + UsersAdminPortletKeys.MY_ACCOUNT,
-		"javax.portlet.name=" + UsersAdminPortletKeys.USERS_ADMIN,
+		"jakarta.portlet.name=" + UsersAdminPortletKeys.MY_ACCOUNT,
+		"jakarta.portlet.name=" + UsersAdminPortletKeys.USERS_ADMIN,
 		"mvc.command.name=/multi_factor_authentication_fido2/remove_mfa_fido2_credential_entry"
 	},
 	service = MVCActionCommand.class
@@ -61,6 +63,11 @@ public class RemoveMFAFIDO2CredentialEntryMVCActionCommand
 		try {
 			_mfaFIDO2CredentialEntryLocalService.deleteMFAFIDO2CredentialEntry(
 				mfaFIDO2CredentialEntry.getMfaFIDO2CredentialEntryId());
+
+			MFAFIDO2AuditMessageUtil.routeAuditMessage(
+				MFAFIDO2AuditMessageUtil.buildSetupRemovedAuditMessage(
+					mfaFIDO2CredentialEntry.getUserId()),
+				_auditRouter);
 		}
 		catch (PortalException portalException) {
 			if (_log.isWarnEnabled()) {
@@ -80,6 +87,9 @@ public class RemoveMFAFIDO2CredentialEntryMVCActionCommand
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		RemoveMFAFIDO2CredentialEntryMVCActionCommand.class);
+
+	@Reference
+	private AuditRouter _auditRouter;
 
 	@Reference
 	private MFAFIDO2CredentialEntryLocalService

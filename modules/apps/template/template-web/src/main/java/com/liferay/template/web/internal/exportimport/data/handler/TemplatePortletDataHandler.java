@@ -8,6 +8,7 @@ package com.liferay.template.web.internal.exportimport.data.handler;
 import com.liferay.dynamic.data.mapping.constants.DDMTemplateConstants;
 import com.liferay.dynamic.data.mapping.model.DDMTemplate;
 import com.liferay.dynamic.data.mapping.service.DDMTemplateLocalService;
+import com.liferay.exportimport.constants.ExportImportConstants;
 import com.liferay.exportimport.kernel.lar.BasePortletDataHandler;
 import com.liferay.exportimport.kernel.lar.ExportImportDateUtil;
 import com.liferay.exportimport.kernel.lar.ManifestSummary;
@@ -35,11 +36,12 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.xml.Element;
 import com.liferay.template.constants.TemplatePortletKeys;
 import com.liferay.template.model.TemplateEntry;
+import com.liferay.template.service.TemplateEntryLocalService;
+
+import jakarta.portlet.PortletPreferences;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.PortletPreferences;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -48,7 +50,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Lourdes Fernández Besada
  */
 @Component(
-	property = "javax.portlet.name=" + TemplatePortletKeys.TEMPLATE,
+	property = "jakarta.portlet.name=" + TemplatePortletKeys.TEMPLATE,
 	service = PortletDataHandler.class
 )
 public class TemplatePortletDataHandler extends BasePortletDataHandler {
@@ -61,12 +63,6 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 	public StagedModelType[] getDeletionSystemEventStagedModelTypes() {
 		return ArrayUtil.append(
 			_getStagedModelTypes(), new StagedModelType(TemplateEntry.class));
-	}
-
-	@Override
-	public PortletDataHandlerControl[] getExportControls() {
-		return _portletDataHandlerControlsDCLSingleton.getSingleton(
-			this::_getPortletDataHandlerControls);
 	}
 
 	@Override
@@ -96,7 +92,13 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 	}
 
 	@Override
-	public PortletDataHandlerControl[] getImportControls() {
+	public PortletDataHandlerControl[] getExportPortletDataHandlerControls() {
+		return _portletDataHandlerControlsDCLSingleton.getSingleton(
+			this::_getPortletDataHandlerControls);
+	}
+
+	@Override
+	public PortletDataHandlerControl[] getImportPortletDataHandlerControls() {
 		return _portletDataHandlerControlsDCLSingleton.getSingleton(
 			this::_getPortletDataHandlerControls);
 	}
@@ -107,7 +109,12 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 	}
 
 	@Override
-	public PortletDataHandlerControl[] getStagingControls() {
+	public String getSectionKey() {
+		return ExportImportConstants.SECTION_KEY_DESIGN;
+	}
+
+	@Override
+	public PortletDataHandlerControl[] getStagingPortletDataHandlerControls() {
 		return _portletDataHandlerControlsDCLSingleton.getSingleton(
 			this::_getPortletDataHandlerControls);
 	}
@@ -122,6 +129,13 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 			_ddmTemplateLocalService.deleteTemplates(
 				portletDataContext.getScopeGroupId(), classNameId);
 		}
+
+		_ddmTemplateLocalService.deleteTemplates(
+			portletDataContext.getScopeGroupId(),
+			_portal.getClassNameId(TemplateEntry.class));
+
+		_templateEntryLocalService.deleteTemplateEntries(
+			portletDataContext.getScopeGroupId());
 
 		return portletPreferences;
 	}
@@ -170,14 +184,16 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 		List<Element> ddmTemplateElements = ddmTemplatesElement.elements();
 
 		for (Element ddmTemplateElement : ddmTemplateElements) {
-			if (classNameIds.contains(
+			if (!classNameIds.contains(
 					_portal.getClassNameId(
 						ddmTemplateElement.attributeValue(
 							"attached-class-name")))) {
 
-				StagedModelDataHandlerUtil.importStagedModel(
-					portletDataContext, ddmTemplateElement);
+				continue;
 			}
+
+			StagedModelDataHandlerUtil.importStagedModel(
+				portletDataContext, ddmTemplateElement);
 		}
 
 		Element templateEntriesElement =
@@ -239,17 +255,16 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 			ClassName className = _classNameLocalService.fetchClassName(
 				templateHandler.getClassName());
 
-			if (className == null) {
-				continue;
-			}
-
-			if (portletDataContext.getBooleanParameter(
+			if ((className == null) ||
+				!portletDataContext.getBooleanParameter(
 					NAMESPACE,
 					templateHandler.getName(LocaleUtil.getSiteDefault()))) {
 
-				classNameIds.add(
-					_portal.getClassNameId(templateHandler.getClassName()));
+				continue;
 			}
+
+			classNameIds.add(
+				_portal.getClassNameId(templateHandler.getClassName()));
 		}
 
 		return classNameIds;
@@ -356,6 +371,9 @@ public class TemplatePortletDataHandler extends BasePortletDataHandler {
 
 	@Reference
 	private Staging _staging;
+
+	@Reference
+	private TemplateEntryLocalService _templateEntryLocalService;
 
 	@Reference(
 		target = "(model.class.name=com.liferay.template.model.TemplateEntry)"

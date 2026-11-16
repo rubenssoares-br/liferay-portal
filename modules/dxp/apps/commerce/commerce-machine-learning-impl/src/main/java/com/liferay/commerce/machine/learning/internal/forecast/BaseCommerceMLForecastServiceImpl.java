@@ -27,7 +27,6 @@ import com.liferay.portal.kernel.search.SortFactoryUtil;
 import com.liferay.portal.kernel.search.filter.BooleanFilter;
 import com.liferay.portal.kernel.search.filter.RangeTermFilter;
 import com.liferay.portal.kernel.search.filter.TermFilter;
-import com.liferay.portal.kernel.search.generic.BooleanQueryImpl;
 import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
@@ -89,7 +88,7 @@ public abstract class BaseCommerceMLForecastServiceImpl
 	protected BooleanQuery getBooleanQuery(
 		String scope, String period, String target) {
 
-		return new BooleanQueryImpl() {
+		return new BooleanQuery() {
 			{
 				setPreBooleanFilter(_getBooleanFilter(scope, period, target));
 			}
@@ -101,7 +100,7 @@ public abstract class BaseCommerceMLForecastServiceImpl
 			Date endDate)
 		throws com.liferay.portal.kernel.search.ParseException {
 
-		return new BooleanQueryImpl() {
+		return new BooleanQuery() {
 			{
 				BooleanFilter booleanFilter = _getBooleanFilter(
 					scope, period, target);
@@ -121,18 +120,19 @@ public abstract class BaseCommerceMLForecastServiceImpl
 	protected T getCommerceMLForecast(long companyId, long forecastId)
 		throws PortalException {
 
-		TermFilter termFilter = new TermFilter(
-			CommerceMLForecastField.FORECAST_ID, String.valueOf(forecastId));
-
 		List<T> searchResults = getSearchResults(
 			getSearchSearchRequest(
 				getIndexName(companyId),
-				new BooleanQueryImpl() {
+				new BooleanQuery() {
 					{
 						setPreBooleanFilter(
 							new BooleanFilter() {
 								{
-									add(termFilter, BooleanClauseOccur.MUST);
+									add(
+										new TermFilter(
+											CommerceMLForecastField.FORECAST_ID,
+											String.valueOf(forecastId)),
+										BooleanClauseOccur.MUST);
 								}
 							});
 					}
@@ -220,7 +220,6 @@ public abstract class BaseCommerceMLForecastServiceImpl
 
 		document.addNumber(
 			CommerceMLForecastField.ACTUAL, commerceMLForecast.getActual());
-		document.addNumber(Field.COMPANY_ID, commerceMLForecast.getCompanyId());
 		document.addNumber(
 			CommerceMLForecastField.FORECAST, commerceMLForecast.getForecast());
 		document.addNumber(
@@ -243,6 +242,7 @@ public abstract class BaseCommerceMLForecastServiceImpl
 		document.addDate(
 			CommerceMLForecastField.TIMESTAMP,
 			commerceMLForecast.getTimestamp());
+		document.addNumber(Field.COMPANY_ID, commerceMLForecast.getCompanyId());
 
 		return document;
 	}

@@ -13,10 +13,10 @@ import com.liferay.portal.kernel.model.change.tracking.CTModel;
 import com.liferay.portal.kernel.service.change.tracking.CTService;
 import com.liferay.portal.kernel.service.persistence.change.tracking.CTPersistence;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.test.rule.Inject;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -32,8 +32,8 @@ public abstract class BaseCTUpgradeProcessTestCase {
 	@Test
 	public void testMissingCtCollectionId() throws Exception {
 		CTCollection ctCollection = _ctCollectionService.addCTCollection(
-			null, TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
-			0, RandomTestUtil.randomString(), RandomTestUtil.randomString());
+			null, 0, RandomTestUtil.randomString(),
+			RandomTestUtil.randomString());
 
 		CTModel<?> productionCTModel = addCTModel();
 
@@ -62,7 +62,7 @@ public abstract class BaseCTUpgradeProcessTestCase {
 
 			modelAttributeDiffs.put(
 				productionEntry.getKey(),
-				Objects.equals(productionEntry.getValue(), publicationValue));
+				_equals(productionEntry.getValue(), publicationValue));
 		}
 
 		runUpgrade();
@@ -96,7 +96,7 @@ public abstract class BaseCTUpgradeProcessTestCase {
 
 			Assert.assertEquals(
 				modelAttributeDiffs.get(entry.getKey()),
-				Objects.equals(entry.getValue(), publicationValue));
+				_equals(entry.getValue(), publicationValue));
 		}
 
 		_ctCollectionService.deleteCTCollection(ctCollection);
@@ -127,7 +127,22 @@ public abstract class BaseCTUpgradeProcessTestCase {
 	protected abstract CTModel<?> updateCTModel(CTModel<?> ctModel)
 		throws Exception;
 
+	private boolean _equals(Object value1, Object value2) {
+		if ((value1 instanceof Date) && (value2 instanceof Date)) {
+			Date date1 = (Date)value1;
+			Date date2 = (Date)value2;
+
+			if (date1.getTime() == date2.getTime()) {
+				return true;
+			}
+
+			return false;
+		}
+
+		return Objects.equals(value1, value2);
+	}
+
 	@Inject
-	private static CTCollectionService _ctCollectionService;
+	private CTCollectionService _ctCollectionService;
 
 }

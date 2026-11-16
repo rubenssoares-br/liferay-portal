@@ -3,21 +3,36 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Locator, Page} from '@playwright/test';
+import {FrameLocator, Locator, Page, expect} from '@playwright/test';
 
-import {ApplicationsMenuPage} from '../../product-navigation-applications-menu/ApplicationsMenuPage';
+import {clickAndExpectToBeVisible} from '../../../utils/clickAndExpectToBeVisible';
+import {waitForAlert} from '../../../utils/waitForAlert';
+import {GlobalMenuPage} from '../../product-navigation-applications-menu/GlobalMenuPage';
+import {CommerceDNDTablePage} from '../commerceDNDTablePage';
 
-export class CommerceAdminProductPage {
+export class CommerceAdminProductPage extends CommerceDNDTablePage {
+	readonly addButton: Locator;
 	readonly addVirtualProductFileEntryButton: Locator;
 	readonly addVirtualSkuFileEntryButton: Locator;
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly globalMenuPage: GlobalMenuPage;
+	readonly creationMenuItem: (menuItemName: string) => Locator;
 	readonly creationMenuNewButton: Locator;
-	readonly generateSkusMenuItem: Locator;
+	readonly deleteMenuItem: Locator;
 	readonly managementToolbarItemLink: (productName: string) => Locator;
+	readonly errorAlert: Locator;
+	readonly productRowActionsButton: (productName: string) => Locator;
+	readonly productsTableRow: (productName: string) => Locator;
 	readonly managementToolbarSearchInput: Locator;
 	readonly modalAddButton: Locator;
+	readonly modalBody: Locator;
 	readonly modalCancelButton: Locator;
 	readonly page: Page;
+	readonly menuItemProductType: (productType: string) => Locator;
+	readonly modalFieldName: Locator;
+	readonly modalFrameLocator: FrameLocator;
+	readonly modalMenuItem: (catalogName: string) => Locator;
+	readonly modalPlaceHolder: Locator;
+	readonly modalSubmitButton: Locator;
 	readonly productSkuTableRowLink: (sku: string) => Locator;
 	readonly productSkuVirtualFileEntryCancelButton: Locator;
 	readonly productSkuVirtualFileEntrySaveButton: Locator;
@@ -25,16 +40,27 @@ export class CommerceAdminProductPage {
 	readonly productSkuVirtualOverrideToggle: Locator;
 	readonly productSkusLink: Locator;
 	readonly productVirtualFileEntryCancelButton: Locator;
+	readonly productVirtualFileEntrySaveAndPropagateButton: Locator;
 	readonly productVirtualFileEntrySaveButton: Locator;
 	readonly productVirtualFileEntryURLInput: Locator;
 	readonly productVirtualLink: Locator;
 	readonly productsTableRowLink: (productName: string) => Locator;
+	readonly productsTableRowWithStatus: (
+		productName: string,
+		status: string
+	) => Locator;
 	readonly spareProductMenuButton: Locator;
 	readonly specificProductMenuLink: (productName: string) => Promise<Locator>;
-	readonly validProductCheckbox: (productName: string) => Promise<Locator>;
 	readonly virtualSettingsOverrideLink: Locator;
 
 	constructor(page: Page) {
+		super(
+			page,
+			'#_com_liferay_commerce_product_definitions_web_internal_portlet_CPDefinitionsPortlet_fm .fds table'
+		);
+		this.addButton = page
+			.getByTestId('managementToolbar')
+			.locator('[data-testid="fdsCreationActionButton"]');
 		this.addVirtualProductFileEntryButton = page
 			.getByRole('button', {exact: true, name: 'Add File Entry'})
 			.first();
@@ -42,33 +68,65 @@ export class CommerceAdminProductPage {
 			.frameLocator('iframe')
 			.getByRole('button', {exact: true, name: 'Add File Entry'})
 			.first();
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
-		this.creationMenuNewButton = page.getByRole('button', {name: 'New'});
-		this.generateSkusMenuItem = page.getByRole('menuitem', {
+		this.globalMenuPage = new GlobalMenuPage(page);
+		this.creationMenuItem = (menuItemName: string) =>
+			page.getByRole('menuitem', {
+				exact: true,
+				name: menuItemName,
+			});
+		this.creationMenuNewButton = page
+			.getByTestId('managementToolbar')
+			.locator('[data-testid="fdsCreationActionButton"]');
+		this.deleteMenuItem = page.getByRole('menuitem', {
 			exact: true,
-			name: 'Generate All SKU Combinations',
+			name: 'Delete',
 		});
 		this.managementToolbarItemLink = (productName: string) =>
 			page.getByRole('link', {exact: true, name: productName});
+		this.errorAlert = page.locator('.alert-danger');
+		this.productsTableRow = (productName: string) =>
+			page.getByRole('row').filter({hasText: productName});
+		this.productRowActionsButton = (productName: string) =>
+			page
+				.getByRole('row')
+				.filter({hasText: productName})
+				.getByRole('button');
 		this.managementToolbarSearchInput = page
-			.getByTestId('management-toolbar')
+			.getByTestId('managementToolbar')
 			.getByPlaceholder('Search', {exact: true});
 		this.modalAddButton = page.getByRole('button', {name: 'Add'});
+		this.modalBody = page.locator('.fds-modal-body');
 		this.modalCancelButton = page.getByRole('button', {name: 'Cancel'});
 		this.page = page;
+		this.menuItemProductType = (productType: string) =>
+			page.getByRole('menuitem', {exact: true, name: productType});
+		this.modalFrameLocator = page.frameLocator('.fds-modal-body iframe');
+		this.modalFieldName =
+			this.modalFrameLocator.getByLabel('Name Required');
+		this.modalMenuItem = (catalogName: string) =>
+			this.modalFrameLocator.getByRole('menuitem', {
+				exact: true,
+				name: catalogName,
+			});
+		this.modalPlaceHolder =
+			this.modalFrameLocator.getByPlaceholder('Type Here');
+		this.modalSubmitButton = this.modalFrameLocator.getByRole('button', {
+			exact: true,
+			name: 'Submit',
+		});
 		this.productSkuTableRowLink = (sku: string) =>
 			page.getByRole('link', {name: sku});
 		this.productSkuVirtualFileEntryCancelButton = page
 			.frameLocator('iframe')
-			.frameLocator('iframe >> nth=1')
+			.frameLocator('iframe')
 			.getByRole('button', {exact: true, name: 'Cancel'});
 		this.productSkuVirtualFileEntrySaveButton = page
 			.frameLocator('iframe')
-			.frameLocator('iframe >> nth=1')
+			.frameLocator('iframe')
 			.getByRole('button', {exact: true, name: 'Save'});
 		this.productSkuVirtualFileEntryURLInput = page
 			.frameLocator('iframe')
-			.frameLocator('iframe >> nth=1')
+			.frameLocator('iframe')
 			.getByLabel('URL');
 		this.productSkuVirtualOverrideToggle = page
 			.frameLocator('iframe')
@@ -78,13 +136,16 @@ export class CommerceAdminProductPage {
 			name: 'SKUs',
 		});
 		this.productVirtualFileEntryCancelButton = page
-			.frameLocator('iframe >> nth=1')
+			.frameLocator('iframe')
 			.getByRole('button', {exact: true, name: 'Cancel'});
+		this.productVirtualFileEntrySaveAndPropagateButton = page
+			.frameLocator('iframe')
+			.getByRole('button', {exact: true, name: 'Save and Propagate'});
 		this.productVirtualFileEntrySaveButton = page
-			.frameLocator('iframe >> nth=1')
+			.frameLocator('iframe')
 			.getByRole('button', {exact: true, name: 'Save'});
 		this.productVirtualFileEntryURLInput = page
-			.frameLocator('iframe >> nth=1')
+			.frameLocator('iframe')
 			.getByLabel('URL');
 		this.productVirtualLink = page.getByRole('link', {
 			exact: true,
@@ -92,19 +153,25 @@ export class CommerceAdminProductPage {
 		});
 		this.productsTableRowLink = (productName: string) =>
 			page.getByRole('link', {exact: true, name: productName});
+		this.productsTableRowWithStatus = (
+			productName: string,
+			status: string
+		) =>
+			page
+				.getByRole('row')
+				.filter({
+					has: page.getByRole('link', {
+						exact: true,
+						name: productName,
+					}),
+				})
+				.filter({hasText: status});
 		this.spareProductMenuButton = page.getByRole('menuitem', {
 			exact: true,
 			name: 'Add Spare Product',
 		});
 		this.specificProductMenuLink = async (productName: string) => {
 			return page.getByRole('link', {name: productName});
-		};
-		this.validProductCheckbox = async (productName: string) => {
-			return page
-				.frameLocator('#modalIframe')
-				.getByTestId('row')
-				.filter({hasText: productName})
-				.getByRole('checkbox', {disabled: false});
 		};
 		this.virtualSettingsOverrideLink = page
 			.frameLocator('iframe')
@@ -121,19 +188,84 @@ export class CommerceAdminProductPage {
 			await this.productSkusLink.click();
 		}
 
+		await expect(this.creationMenuNewButton).toBeVisible();
+
 		await this.creationMenuNewButton.click();
-		await this.generateSkusMenuItem.click();
-		await this.page.reload();
+		await this.creationMenuItem('Generate All SKU Combinations').click();
+		await waitForAlert(this.page);
 	}
 
-	async goto(checkTabVisibility = true) {
-		await this.applicationsMenuPage.goToProducts(checkTabVisibility);
+	async addSku(skuName: string, option = {name: '', value: ''}) {
+		await this.productSkusLink.click();
+
+		if (await this.creationMenuNewButton.isHidden()) {
+			await this.productSkusLink.click();
+		}
+
+		await this.creationMenuNewButton.click();
+		await this.creationMenuItem('Add SKU').click();
+
+		await this.page.waitForLoadState('load');
+
+		await this.page
+			.frameLocator('iframe')
+			.getByLabel('SKU Required')
+			.fill(skuName);
+
+		if (option.name !== '' && option.value !== '') {
+			await this.page
+				.frameLocator('iframe')
+				.getByLabel(option.name)
+				.selectOption(option.value);
+		}
+
+		await this.page
+			.frameLocator('iframe')
+			.getByRole('button', {exact: true, name: 'Publish'})
+			.click();
 	}
 
-	async gotoProduct(productName: string, checkTabVisibility = true) {
-		await this.goto(checkTabVisibility);
-		await this.managementToolbarSearchInput.fill(productName);
-		await this.managementToolbarSearchInput.press('Enter');
-		await this.productsTableRowLink(productName).click();
+	async goto() {
+		await this.globalMenuPage.goToCommerce('Products');
+	}
+
+	async deleteProduct(productName: string, status: string) {
+		await clickAndExpectToBeVisible({
+			autoClick: true,
+			target: this.deleteMenuItem,
+			trigger: this.productsTableRowWithStatus(
+				productName,
+				status
+			).getByRole('button'),
+		});
+
+		await waitForAlert(this.page);
+
+		await expect(
+			this.productsTableRowWithStatus(productName, status)
+		).toHaveCount(0);
+	}
+
+	async gotoProduct(productName: string) {
+		await expect(async () => {
+			await this.goto();
+			await this.table.waitFor({state: 'visible'});
+			await this.managementToolbarSearchInput.fill(productName);
+			await this.managementToolbarSearchInput.press('Enter');
+			await this.productsTableRowLink(productName).click();
+		}).toPass();
+	}
+
+	async searchProduct(productName: string) {
+		await expect(async () => {
+			await this.goto();
+			await this.table.waitFor({state: 'visible'});
+			await this.managementToolbarSearchInput.fill(productName);
+			await this.managementToolbarSearchInput.press('Enter');
+
+			await expect(
+				this.productsTableRowLink(productName).first()
+			).toBeVisible();
+		}).toPass();
 	}
 }

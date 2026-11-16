@@ -84,6 +84,10 @@ public class ExpandoColumnModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table ExpandoColumn";
 
+	public static final String ENTITY_ALIAS = "expandoColumn";
+
+	public static final String FILTER_PK_COLUMN_NAME = "columnId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY expandoColumn.name ASC";
 
@@ -130,7 +134,7 @@ public class ExpandoColumnModelImpl
 	public static final long TABLEID_COLUMN_BITMASK = 2L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.expando.kernel.model.ExpandoColumn"));
 
 	public ExpandoColumnModelImpl() {
@@ -859,3 +863,4 @@ public class ExpandoColumnModelImpl
 	private ExpandoColumn _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:698216137

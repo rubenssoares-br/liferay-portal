@@ -27,22 +27,28 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,10 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -81,8 +83,10 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -95,20 +99,20 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 
 		_productTaxConfigurationResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ProductTaxConfigurationResource.Builder builder =
-			ProductTaxConfigurationResource.builder();
-
-		productTaxConfigurationResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
-			PropsValues.DEFAULT_ADMIN_PASSWORD
-		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
-		).locale(
-			LocaleUtil.getDefault()
-		).build();
+		productTaxConfigurationResource =
+			ProductTaxConfigurationResource.builder(
+			).authentication(
+				_testCompanyAdminUser.getEmailAddress(),
+				PropsValues.DEFAULT_ADMIN_PASSWORD
+			).endpoint(
+				testCompany.getVirtualHostname(),
+				PortalUtil.getPortalServerPort(false), "http"
+			).locale(
+				LocaleUtil.getDefault()
+			).build();
 	}
 
 	@After
@@ -174,6 +178,7 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			randomProductTaxConfiguration();
 
 		productTaxConfiguration.setTaxCategory(regex);
+		productTaxConfiguration.setTaxCategoryExternalReferenceCode(regex);
 
 		String json = ProductTaxConfigurationSerDes.toJSON(
 			productTaxConfiguration);
@@ -183,6 +188,9 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 		productTaxConfiguration = ProductTaxConfigurationSerDes.toDTO(json);
 
 		Assert.assertEquals(regex, productTaxConfiguration.getTaxCategory());
+		Assert.assertEquals(
+			regex,
+			productTaxConfiguration.getTaxCategoryExternalReferenceCode());
 	}
 
 	@Test
@@ -201,16 +209,16 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 		assertValid(getProductTaxConfiguration);
 	}
 
-	protected String
-			testGetProductByExternalReferenceCodeTaxConfiguration_getExternalReferenceCode()
+	protected ProductTaxConfiguration
+			testGetProductByExternalReferenceCodeTaxConfiguration_addProductTaxConfiguration()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
-	protected ProductTaxConfiguration
-			testGetProductByExternalReferenceCodeTaxConfiguration_addProductTaxConfiguration()
+	protected String
+			testGetProductByExternalReferenceCodeTaxConfiguration_getExternalReferenceCode()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -334,14 +342,7 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			testGraphQLGetProductByExternalReferenceCodeTaxConfiguration_addProductTaxConfiguration()
 		throws Exception {
 
-		return testGraphQLProductTaxConfiguration_addProductTaxConfiguration();
-	}
-
-	@Test
-	public void testPatchProductByExternalReferenceCodeTaxConfiguration()
-		throws Exception {
-
-		Assert.assertTrue(false);
+		return testGraphQLProductProductTaxConfiguration_addProductTaxConfiguration();
 	}
 
 	@Test
@@ -358,15 +359,16 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 		assertValid(getProductTaxConfiguration);
 	}
 
-	protected Long testGetProductIdTaxConfiguration_getId(
-			ProductTaxConfiguration productTaxConfiguration)
-		throws Exception {
-
-		return productTaxConfiguration.getId();
-	}
-
 	protected ProductTaxConfiguration
 			testGetProductIdTaxConfiguration_addProductTaxConfiguration()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Long testGetProductIdTaxConfiguration_getId(
+			ProductTaxConfiguration productTaxConfiguration)
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -430,7 +432,8 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			ProductTaxConfiguration productTaxConfiguration)
 		throws Exception {
 
-		return productTaxConfiguration.getId();
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
@@ -480,7 +483,14 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			testGraphQLGetProductIdTaxConfiguration_addProductTaxConfiguration()
 		throws Exception {
 
-		return testGraphQLProductTaxConfiguration_addProductTaxConfiguration();
+		return testGraphQLProductProductTaxConfiguration_addProductTaxConfiguration();
+	}
+
+	@Test
+	public void testPatchProductByExternalReferenceCodeTaxConfiguration()
+		throws Exception {
+
+		Assert.assertTrue(false);
 	}
 
 	@Test
@@ -489,7 +499,7 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 	}
 
 	protected ProductTaxConfiguration
-			testGraphQLProductTaxConfiguration_addProductTaxConfiguration()
+			testGraphQLProductProductTaxConfiguration_addProductTaxConfiguration()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -602,6 +612,19 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 				continue;
 			}
 
+			if (Objects.equals(
+					"taxCategoryExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (productTaxConfiguration.
+						getTaxCategoryExternalReferenceCode() == null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("taxable", additionalAssertFieldName)) {
 				if (productTaxConfiguration.getTaxable() == null) {
 					valid = false;
@@ -668,6 +691,8 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -746,6 +771,22 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 				if (!Objects.deepEquals(
 						productTaxConfiguration1.getTaxCategory(),
 						productTaxConfiguration2.getTaxCategory())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"taxCategoryExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						productTaxConfiguration1.
+							getTaxCategoryExternalReferenceCode(),
+						productTaxConfiguration2.
+							getTaxCategoryExternalReferenceCode())) {
 
 					return false;
 				}
@@ -925,6 +966,53 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			return sb.toString();
 		}
 
+		if (entityFieldName.equals("taxCategoryExternalReferenceCode")) {
+			Object object =
+				productTaxConfiguration.getTaxCategoryExternalReferenceCode();
+
+			String value = String.valueOf(object);
+
+			if (operator.equals("contains")) {
+				sb = new StringBundler();
+
+				sb.append("contains(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 2)) {
+					sb.append(value.substring(1, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else if (operator.equals("startswith")) {
+				sb = new StringBundler();
+
+				sb.append("startswith(");
+				sb.append(entityFieldName);
+				sb.append(",'");
+
+				if ((object != null) && (value.length() > 1)) {
+					sb.append(value.substring(0, value.length() - 1));
+				}
+				else {
+					sb.append(value);
+				}
+
+				sb.append("')");
+			}
+			else {
+				sb.append("'");
+				sb.append(value);
+				sb.append("'");
+			}
+
+			return sb.toString();
+		}
+
 		if (entityFieldName.equals("taxable")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -943,7 +1031,9 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -979,6 +1069,8 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 			{
 				id = RandomTestUtil.randomLong();
 				taxCategory = StringUtil.toLowerCase(
+					RandomTestUtil.randomString());
+				taxCategoryExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				taxable = RandomTestUtil.randomBoolean();
 			}
@@ -1202,10 +1294,13 @@ public abstract class BaseProductTaxConfigurationResourceTestCase {
 		LogFactoryUtil.getLog(
 			BaseProductTaxConfigurationResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.catalog.resource.v1_0.
 		ProductTaxConfigurationResource _productTaxConfigurationResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-487847265

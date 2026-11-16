@@ -8,6 +8,7 @@ package com.liferay.commerce.product.service.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.commerce.product.constants.CPConstants;
 import com.liferay.commerce.product.exception.CPDefinitionOptionRelPriceTypeException;
+import com.liferay.commerce.product.exception.NoSuchCPDefinitionOptionRelException;
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPDefinitionOptionRel;
 import com.liferay.commerce.product.model.CPDefinitionOptionValueRel;
@@ -22,6 +23,8 @@ import com.liferay.commerce.product.service.CPOptionLocalService;
 import com.liferay.commerce.product.service.CommerceCatalogLocalService;
 import com.liferay.commerce.product.test.util.CPTestUtil;
 import com.liferay.commerce.product.type.simple.constants.SimpleCPTypeConstants;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -33,10 +36,12 @@ import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -80,9 +85,16 @@ public class CPDefinitionOptionRelLocalServiceTest {
 
 	@After
 	public void tearDown() throws Exception {
-		_serviceContext = null;
+		for (CPDefinitionOptionRel cpDefinitionOptionRel :
+				_cpDefinitionOptionRels) {
 
-		_cpOptionLocalService.deleteCPOptions(_group.getCompanyId());
+			_cpDefinitionOptionRelLocalService.deleteCPDefinitionOptionRel(
+				cpDefinitionOptionRel);
+		}
+
+		_cpOptionLocalService.deleteCPOptions(_serviceContext.getCompanyId());
+
+		_serviceContext = null;
 	}
 
 	@Test
@@ -106,6 +118,8 @@ public class CPDefinitionOptionRelLocalServiceTest {
 			CPTestUtil.addCPDefinitionOptionRel(
 				_commerceCatalog.getGroupId(), cpDefinition.getCPDefinitionId(),
 				false, 2);
+
+		_cpDefinitionOptionRels.add(cpDefinitionOptionRel);
 
 		Assert.assertFalse(
 			"SKU contributor value", cpDefinitionOptionRel.isSkuContributor());
@@ -138,12 +152,16 @@ public class CPDefinitionOptionRelLocalServiceTest {
 			_commerceCatalog.getGroupId(), cpDefinition.getCPDefinitionId(),
 			false, 2);
 
+		_cpDefinitionOptionRels.add(cpDefinitionOptionRel);
+
 		Assert.assertFalse(
 			"SKU contributor value", cpDefinitionOptionRel.isSkuContributor());
 
 		cpDefinitionOptionRel = CPTestUtil.addCPDefinitionOptionRel(
 			_commerceCatalog.getGroupId(), cpDefinition.getCPDefinitionId(),
 			true, 2);
+
+		_cpDefinitionOptionRels.add(cpDefinitionOptionRel);
 
 		Assert.assertTrue(
 			"SKU contributor value", cpDefinitionOptionRel.isSkuContributor());
@@ -219,6 +237,8 @@ public class CPDefinitionOptionRelLocalServiceTest {
 				_commerceCatalog.getGroupId(), cpDefinition.getCPDefinitionId(),
 				1, 5);
 
+		_cpDefinitionOptionRels.addAll(cpDefinitionOptionRels);
+
 		CPDefinitionOptionRel cpDefinitionOptionRel =
 			cpDefinitionOptionRels.get(0);
 
@@ -282,6 +302,8 @@ public class CPDefinitionOptionRelLocalServiceTest {
 				_commerceCatalog.getGroupId(), cpDefinition.getCPDefinitionId(),
 				cpOptionsCount, cpOptionValuesCount);
 
+		_cpDefinitionOptionRels.addAll(cpDefinitionOptionRels);
+
 		List<CPInstance> cpInstances = _cpInstanceLocalService.buildCPInstances(
 			cpDefinition.getCPDefinitionId(),
 			ServiceContextTestUtil.getServiceContext(
@@ -332,6 +354,178 @@ public class CPDefinitionOptionRelLocalServiceTest {
 	}
 
 	@Test
+	public void testGetOrAddEmptyCPDefinitionOptionRel() throws Exception {
+		frutillaRule.scenario(
+			"Get or add an empty product definition option"
+		).given(
+			"An existing product, product option and external reference code"
+		).when(
+			"An empty product definition option is requested"
+		).then(
+			"A NoSuchCPDefinitionOptionRelException is thrown while lazy " +
+				"referencing is disabled"
+		).and(
+			"An empty stub with the given external reference code is " +
+				"returned while lazy referencing is enabled"
+		).and(
+			"The same product definition option is resolved on subsequent " +
+				"requests"
+		).and(
+			"The empty status is cleared once the stub is updated"
+		);
+
+		CPDefinition cpDefinition = CPTestUtil.addCPDefinition(
+			_commerceCatalog.getGroupId());
+
+		String commerceOptionTypeKey =
+			CPTestUtil.getDefaultCommerceOptionTypeKey(false);
+
+		CPOption cpOption = CPTestUtil.addCPOption(
+			_commerceCatalog.getGroupId(), commerceOptionTypeKey, false);
+
+		String externalReferenceCode = RandomTestUtil.randomString();
+
+		try {
+			_cpDefinitionOptionRelLocalService.
+				getOrAddEmptyCPDefinitionOptionRel(
+					externalReferenceCode, _serviceContext.getCompanyId(),
+					_serviceContext.getUserId(),
+					cpDefinition.getCPDefinitionId(), cpOption.getCPOptionId(),
+					commerceOptionTypeKey, false);
+
+			Assert.fail();
+		}
+		catch (NoSuchCPDefinitionOptionRelException
+					noSuchCPDefinitionOptionRelException) {
+
+			Assert.assertNotNull(noSuchCPDefinitionOptionRelException);
+		}
+
+		CPDefinitionOptionRel cpDefinitionOptionRel = null;
+
+		try (SafeCloseable safeCloseable =
+				LazyReferencingThreadLocal.setEnabledWithSafeCloseable(true)) {
+
+			cpDefinitionOptionRel =
+				_cpDefinitionOptionRelLocalService.
+					getOrAddEmptyCPDefinitionOptionRel(
+						externalReferenceCode, _serviceContext.getCompanyId(),
+						_serviceContext.getUserId(),
+						cpDefinition.getCPDefinitionId(),
+						cpOption.getCPOptionId(), commerceOptionTypeKey, false);
+
+			_cpDefinitionOptionRels.add(cpDefinitionOptionRel);
+
+			Assert.assertEquals(
+				WorkflowConstants.STATUS_EMPTY,
+				cpDefinitionOptionRel.getStatus());
+			Assert.assertEquals(
+				externalReferenceCode,
+				cpDefinitionOptionRel.getExternalReferenceCode());
+			Assert.assertEquals(
+				cpDefinition.getCPDefinitionId(),
+				cpDefinitionOptionRel.getCPDefinitionId());
+			Assert.assertEquals(
+				cpDefinition.getGroupId(), cpDefinitionOptionRel.getGroupId());
+			Assert.assertEquals(
+				cpOption.getCPOptionId(),
+				cpDefinitionOptionRel.getCPOptionId());
+			Assert.assertEquals(
+				commerceOptionTypeKey,
+				cpDefinitionOptionRel.getCommerceOptionTypeKey());
+
+			CPDefinitionOptionRel resolvedCPDefinitionOptionRel =
+				_cpDefinitionOptionRelLocalService.
+					getOrAddEmptyCPDefinitionOptionRel(
+						externalReferenceCode, _serviceContext.getCompanyId(),
+						_serviceContext.getUserId(),
+						cpDefinition.getCPDefinitionId(),
+						cpOption.getCPOptionId(), commerceOptionTypeKey, false);
+
+			Assert.assertEquals(
+				cpDefinitionOptionRel.getCPDefinitionOptionRelId(),
+				resolvedCPDefinitionOptionRel.getCPDefinitionOptionRelId());
+		}
+
+		cpDefinitionOptionRel =
+			_cpDefinitionOptionRelLocalService.updateCPDefinitionOptionRel(
+				cpDefinitionOptionRel.getCPDefinitionOptionRelId(),
+				cpOption.getCPOptionId(),
+				RandomTestUtil.randomLocaleStringMap(),
+				RandomTestUtil.randomLocaleStringMap(), commerceOptionTypeKey,
+				0, false, false, false, _serviceContext);
+
+		Assert.assertEquals(
+			WorkflowConstants.STATUS_APPROVED,
+			cpDefinitionOptionRel.getStatus());
+	}
+
+	@Test
+	public void testGetOrAddEmptyCPDefinitionOptionRelWithEmptyCPOption()
+		throws Exception {
+
+		frutillaRule.scenario(
+			"Get or add an empty product definition option under an empty " +
+				"product option"
+		).given(
+			"An existing product and an empty product option stub"
+		).when(
+			"An empty product definition option is requested under it"
+		).then(
+			"The stub is created under the empty product option and carries " +
+				"its own commerce option type and SKU contributor attribute"
+		);
+
+		try (SafeCloseable safeCloseable =
+				LazyReferencingThreadLocal.setEnabledWithSafeCloseable(true)) {
+
+			String defaultCommerceOptionTypeKey =
+				CPTestUtil.getDefaultCommerceOptionTypeKey(true);
+
+			CPOption cpOption = _cpOptionLocalService.getOrAddEmptyCPOption(
+				RandomTestUtil.randomString(), _serviceContext.getCompanyId(),
+				_serviceContext.getUserId(), null, defaultCommerceOptionTypeKey,
+				false, RandomTestUtil.randomString());
+
+			Assert.assertEquals(
+				defaultCommerceOptionTypeKey,
+				cpOption.getCommerceOptionTypeKey());
+			Assert.assertFalse(cpOption.isSkuContributor());
+
+			CPDefinition cpDefinition = CPTestUtil.addCPDefinition(
+				_commerceCatalog.getGroupId());
+			String externalReferenceCode = RandomTestUtil.randomString();
+
+			CPDefinitionOptionRel cpDefinitionOptionRel =
+				_cpDefinitionOptionRelLocalService.
+					getOrAddEmptyCPDefinitionOptionRel(
+						externalReferenceCode, _serviceContext.getCompanyId(),
+						_serviceContext.getUserId(),
+						cpDefinition.getCPDefinitionId(),
+						cpOption.getCPOptionId(), defaultCommerceOptionTypeKey,
+						true);
+
+			_cpDefinitionOptionRels.add(cpDefinitionOptionRel);
+
+			Assert.assertEquals(
+				cpOption.getCPOptionId(),
+				cpDefinitionOptionRel.getCPOptionId());
+			Assert.assertEquals(
+				defaultCommerceOptionTypeKey,
+				cpDefinitionOptionRel.getCommerceOptionTypeKey());
+			Assert.assertEquals(
+				externalReferenceCode,
+				cpDefinitionOptionRel.getExternalReferenceCode());
+			Assert.assertEquals(
+				cpOption.getKey(), cpDefinitionOptionRel.getKey());
+			Assert.assertEquals(
+				WorkflowConstants.STATUS_EMPTY,
+				cpDefinitionOptionRel.getStatus());
+			Assert.assertTrue(cpDefinitionOptionRel.isSkuContributor());
+		}
+	}
+
+	@Test
 	public void testUpdateCPDefinitionOptionRelPriceType() throws Exception {
 		frutillaRule.scenario(
 			"Update product option's priceType attribute"
@@ -354,6 +548,8 @@ public class CPDefinitionOptionRelLocalServiceTest {
 			CPTestUtil.addCPDefinitionOptionRel(
 				_commerceCatalog.getGroupId(), cpDefinition.getCPDefinitionId(),
 				cpOption.getCPOptionId());
+
+		_cpDefinitionOptionRels.add(cpDefinitionOptionRel);
 
 		Assert.assertTrue(
 			Validator.isNull(cpDefinitionOptionRel.getPriceType()));
@@ -501,6 +697,8 @@ public class CPDefinitionOptionRelLocalServiceTest {
 			_cpDefinitionOptionRelLocalService.getCPDefinitionOptionRels(
 				cpDefinition.getCPDefinitionId());
 
+		_cpDefinitionOptionRels.addAll(cpDefinitionOptionRels);
+
 		Assert.assertFalse(cpDefinitionOptionRels.isEmpty());
 
 		for (CPDefinitionOptionRel cpDefinitionOptionRel :
@@ -543,8 +741,6 @@ public class CPDefinitionOptionRelLocalServiceTest {
 				cpDefinitionOptionRel.getGroupId()));
 	}
 
-	private static User _user;
-
 	private CommerceCatalog _commerceCatalog;
 
 	@Inject
@@ -556,6 +752,9 @@ public class CPDefinitionOptionRelLocalServiceTest {
 	@Inject
 	private CPDefinitionOptionRelLocalService
 		_cpDefinitionOptionRelLocalService;
+
+	private final List<CPDefinitionOptionRel> _cpDefinitionOptionRels =
+		new ArrayList<>();
 
 	@Inject
 	private CPDefinitionOptionValueRelLocalService
@@ -571,5 +770,6 @@ public class CPDefinitionOptionRelLocalServiceTest {
 	private Group _group;
 
 	private ServiceContext _serviceContext;
+	private User _user;
 
 }

@@ -5,6 +5,7 @@
 
 package com.liferay.site.memberships.web.internal.display.context;
 
+import com.liferay.depot.util.DepotRoleUtil;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.dao.search.EmptyOnClickRowChecker;
@@ -31,14 +32,14 @@ import com.liferay.roles.admin.search.RoleSearchTerms;
 import com.liferay.site.memberships.constants.SiteMembershipsPortletKeys;
 import com.liferay.site.memberships.web.internal.util.DepotRolesUtil;
 
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletURL;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -238,6 +239,8 @@ public class UserGroupRolesDisplayContext {
 		if (group.isDepot()) {
 			roles = DepotRolesUtil.filterGroupRoles(
 				themeDisplay.getPermissionChecker(), getGroupId(), roles);
+
+			roles = DepotRoleUtil.filter(getGroupId(), roles);
 		}
 		else {
 			roles = UsersAdminUtil.filterGroupRoles(

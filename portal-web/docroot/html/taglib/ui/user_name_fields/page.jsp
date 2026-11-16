@@ -21,22 +21,18 @@
 
 </aui:select>
 
-<aui:script>
-	import(themeDisplay.getPathContext() + '/o/users-admin-web/__liferay__/index.js').then(
-		({UserNameFields}) => {
-			Liferay.component(
-				'<portlet:namespace />UserNameFields',
-				new UserNameFields(
-					{
-						baseURL: '<%= HtmlUtil.escapeJS(themeDisplay.getURLCurrent()) %>',
-						formNode: <portlet:namespace />fm,
-						languageIdSelectNode: '#<portlet:namespace />languageId',
-						portletNamespace: '<portlet:namespace />',
-						userNameFieldsNode: <portlet:namespace />userNameFields
-					}
-				)
-			);
-		}
+<aui:script type="module">
+	import {UserNameFields} from '<%= FrontendESMUtil.buildURL(themeDisplay, "users-admin-web") %>';
+
+	Liferay.component(
+		'<portlet:namespace />UserNameFields',
+		new UserNameFields({
+			baseURL: '<%= HtmlUtil.escapeJS(themeDisplay.getURLCurrent()) %>',
+			formNode: <portlet:namespace />fm,
+			languageIdSelectNode: '#<portlet:namespace />languageId',
+			portletNamespace: '<portlet:namespace />',
+			userNameFieldsNode: <portlet:namespace />userNameFields,
+		})
 	);
 </aui:script>
 
@@ -65,7 +61,13 @@ FullNameDefinition fullNameDefinition = FullNameDefinitionFactory.getInstance(us
 					String listTypeName = StringPool.BLANK;
 
 					if (selContact != null) {
-						int listTypeId = BeanParamUtil.getInteger(selContact, request, fieldName.concat("ListTypeId"));
+						ToLongFunction<Contact> toLongFunction = Contact::getSuffixListTypeId;
+
+						if (fieldName.equals(LanguageConstants.VALUE_PREFIX)) {
+							toLongFunction = Contact::getPrefixListTypeId;
+						}
+
+						long listTypeId = BeanParamUtil.getLong(selContact, request, fieldName.concat("ListTypeId"), toLongFunction);
 
 						try {
 							ListType listType = ListTypeServiceUtil.getListType(listTypeId);

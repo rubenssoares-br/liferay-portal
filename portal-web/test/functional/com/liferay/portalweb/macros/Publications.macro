@@ -138,8 +138,7 @@ definition {
 	@summary = "Default summary"
 	macro disablePublications(gotoInstancesettings = null) {
 		if (${gotoInstancesettings} == "true") {
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "Instance Settings");
 
@@ -158,7 +157,7 @@ definition {
 		}
 		else {
 			ApplicationsMenu.gotoPortlet(
-				category = "Publications",
+				category = "In Maintenance",
 				panel = "Applications",
 				portlet = "Publications");
 
@@ -194,8 +193,7 @@ definition {
 	@summary = "Default summary"
 	macro enablePublications(gotoInstancesettings = null, enableSandboxOnly = null) {
 		if (${gotoInstancesettings} == "true") {
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "Instance Settings");
 
@@ -252,9 +250,7 @@ definition {
 
 	@summary = "Default summary"
 	macro filterPublishedPublication(Exclude = null, statusList = null) {
-		Click(
-			key_name = "Filter",
-			locator1 = "PublicationsChanges#SORT_BUTTON");
+		Click(locator1 = "PublicationsChanges#FILTER_BUTTON");
 
 		Click(locator1 = "Publications#FILTER_STATUS_BUTTON");
 
@@ -600,20 +596,6 @@ definition {
 			locator1 = "Publications#CONFLICTING_CHANGES_WARNING_CONTENT");
 
 		AssertVisible(locator1 = "Publications#DISABLED_PUBLISH_BUTTON");
-	}
-
-	@summary = "Default summary"
-	macro viewPublicationOrderInHistory(publicationList = null) {
-		var resultOrder = 0;
-
-		for (var publicationName : list ${publicationList}) {
-			var resultOrder = ${resultOrder} + 1;
-
-			AssertTextEquals.assertPartialText(
-				locator1 = "Publications#PUBLICATION_ORDER_IN_HISTORY",
-				resultOrder = ${resultOrder},
-				value1 = ${publicationName});
-		}
 	}
 
 	@summary = "Default summary"

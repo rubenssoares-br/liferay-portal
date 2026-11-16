@@ -20,7 +20,7 @@ import com.liferay.portal.test.rule.Inject;
 import org.junit.Before;
 
 /**
- * @author Joao Victor Alves
+ * @author João Victor Alves
  */
 public abstract class BaseFriendlyURLFormatUpgradeProcessTestCase {
 
@@ -58,10 +58,10 @@ public abstract class BaseFriendlyURLFormatUpgradeProcessTestCase {
 			_friendlyURLEntry.getFriendlyURLEntryId());
 
 		friendlyURLEntryLocalization.setLanguageId(languageId);
-		friendlyURLEntryLocalization.setUrlTitle(urlTitle);
 		friendlyURLEntryLocalization.setGroupId(group.getGroupId());
 		friendlyURLEntryLocalization.setClassNameId(classNameId);
 		friendlyURLEntryLocalization.setClassPK(classPK);
+		friendlyURLEntryLocalization.setUrlTitle(urlTitle);
 
 		friendlyURLEntryLocalService.updateFriendlyURLLocalization(
 			friendlyURLEntryLocalization);
@@ -77,8 +77,7 @@ public abstract class BaseFriendlyURLFormatUpgradeProcessTestCase {
 
 	protected String defaultLanguageId;
 
-	private static FriendlyURLEntryLocalizationPersistence _persistence;
-
 	private FriendlyURLEntry _friendlyURLEntry;
+	private FriendlyURLEntryLocalizationPersistence _persistence;
 
 }

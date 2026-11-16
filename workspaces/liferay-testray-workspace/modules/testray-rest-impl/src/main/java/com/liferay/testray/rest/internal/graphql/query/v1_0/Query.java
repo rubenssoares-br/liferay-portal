@@ -2,8 +2,6 @@ package com.liferay.testray.rest.internal.graphql.query.v1_0;
 
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
-import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
@@ -125,7 +123,7 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayCaseResultsTestrayBuild(comment: ___, error: ___, flaky: ___, issues: ___, noComment: ___, noError: ___, noIssues: ___, page: ___, pageSize: ___, priority: ___, status: ___, testrayBuildId: ___, testrayCaseName: ___, testrayCaseTypeIds: ___, testrayComponentIds: ___, testrayRunId: ___, testrayRunName: ___, testraySubtaskId: ___, testrayTeamIds: ___, userId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayCaseResultsTestrayBuild(comment: ___, error: ___, flaky: ___, issues: ___, noComment: ___, noError: ___, noIssues: ___, page: ___, pageSize: ___, priority: ___, sorts: ___, status: ___, testrayBuildId: ___, testrayCaseName: ___, testrayCaseTypeIds: ___, testrayComponentIds: ___, testrayRunId: ___, testrayRunName: ___, testraySubtaskId: ___, testrayTeamIds: ___, userId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
 	public TestrayCaseResultPage testrayCaseResultsTestrayBuild(
@@ -148,7 +146,8 @@ public class Query {
 			@GraphQLName("testrayTeamIds") String testrayTeamIds,
 			@GraphQLName("userId") String userId,
 			@GraphQLName("pageSize") int pageSize,
-			@GraphQLName("page") int page)
+			@GraphQLName("page") int page,
+			@GraphQLName("sort") String sortsString)
 		throws Exception {
 
 		return _applyComponentServiceObjects(
@@ -160,7 +159,9 @@ public class Query {
 					noError, noIssues, priority, status, testrayCaseName,
 					testrayCaseTypeIds, testrayComponentIds, testrayRunId,
 					testrayRunName, testraySubtaskId, testrayTeamIds, userId,
-					Pagination.of(page, pageSize))));
+					Pagination.of(page, pageSize),
+					_sortsBiFunction.apply(
+						testrayCaseResultResource, sortsString))));
 	}
 
 	/**
@@ -215,25 +216,6 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayRunComparisonByTestrayRoutineIdTestrayRoutine(testrayRoutineId: ___){}}"}' -u 'test@liferay.com:test'
-	 */
-	@GraphQLField
-	public Object testrayRunComparisonByTestrayRoutineIdTestrayRoutine(
-			@GraphQLName("testrayRoutineId") Long testrayRoutineId)
-		throws Exception {
-
-		return _applyComponentServiceObjects(
-			_testrayRunComparisonResourceComponentServiceObjects,
-			this::_populateResourceContext,
-			testrayRunComparisonResource ->
-				testrayRunComparisonResource.
-					getTestrayRunComparisonByTestrayRoutineIdTestrayRoutine(
-						testrayRoutineId));
-	}
-
-	/**
-	 * Invoke this method with the command line:
-	 *
 	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayRunComparison(filter: ___, testrayRunId1: ___, testrayRunId2: ___){results, testrayCaseResultComparisons}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
@@ -251,6 +233,25 @@ public class Query {
 					testrayRunId1, testrayRunId2,
 					_filterBiFunction.apply(
 						testrayRunComparisonResource, filterString)));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayRunComparisonByTestrayRoutineIdTestrayRoutine(testrayRoutineId: ___){}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public Object testrayRunComparisonByTestrayRoutineIdTestrayRoutine(
+			@GraphQLName("testrayRoutineId") Long testrayRoutineId)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_testrayRunComparisonResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			testrayRunComparisonResource ->
+				testrayRunComparisonResource.
+					getTestrayRunComparisonByTestrayRoutineIdTestrayRoutine(
+						testrayRoutineId));
 	}
 
 	/**
@@ -444,12 +445,13 @@ public class Query {
 	/**
 	 * Invoke this method with the command line:
 	 *
-	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayStatusMetricByTestrayProjectIdTestrayProjectTestrayRoutinesMetrics(page: ___, pageSize: ___, testrayProjectId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayStatusMetricByTestrayJiraIssueIdTestrayJiraIssueTestrayIssuesMetrics(page: ___, pageSize: ___, testrayBuildId: ___, testrayJiraIssueId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
 	 */
 	@GraphQLField
 	public TestrayStatusMetricPage
-			testrayStatusMetricByTestrayProjectIdTestrayProjectTestrayRoutinesMetrics(
-				@GraphQLName("testrayProjectId") Long testrayProjectId,
+			testrayStatusMetricByTestrayJiraIssueIdTestrayJiraIssueTestrayIssuesMetrics(
+				@GraphQLName("testrayJiraIssueId") Long testrayJiraIssueId,
+				@GraphQLName("testrayBuildId") Long testrayBuildId,
 				@GraphQLName("pageSize") int pageSize,
 				@GraphQLName("page") int page)
 		throws Exception {
@@ -459,8 +461,34 @@ public class Query {
 			this::_populateResourceContext,
 			testrayStatusMetricResource -> new TestrayStatusMetricPage(
 				testrayStatusMetricResource.
+					getTestrayStatusMetricByTestrayJiraIssueIdTestrayJiraIssueTestrayIssuesMetricsPage(
+						testrayJiraIssueId, testrayBuildId,
+						Pagination.of(page, pageSize))));
+	}
+
+	/**
+	 * Invoke this method with the command line:
+	 *
+	 * curl -H 'Content-Type: text/plain; charset=utf-8' -X 'POST' 'http://localhost:8080/o/graphql' -d $'{"query": "query {testrayStatusMetricByTestrayProjectIdTestrayProjectTestrayRoutinesMetrics(page: ___, pageSize: ___, sorts: ___, testrayProjectId: ___){items {__}, page, pageSize, totalCount}}"}' -u 'test@liferay.com:test'
+	 */
+	@GraphQLField
+	public TestrayStatusMetricPage
+			testrayStatusMetricByTestrayProjectIdTestrayProjectTestrayRoutinesMetrics(
+				@GraphQLName("testrayProjectId") Long testrayProjectId,
+				@GraphQLName("pageSize") int pageSize,
+				@GraphQLName("page") int page,
+				@GraphQLName("sort") String sortsString)
+		throws Exception {
+
+		return _applyComponentServiceObjects(
+			_testrayStatusMetricResourceComponentServiceObjects,
+			this::_populateResourceContext,
+			testrayStatusMetricResource -> new TestrayStatusMetricPage(
+				testrayStatusMetricResource.
 					getTestrayStatusMetricByTestrayProjectIdTestrayProjectTestrayRoutinesMetricsPage(
-						testrayProjectId, Pagination.of(page, pageSize))));
+						testrayProjectId, Pagination.of(page, pageSize),
+						_sortsBiFunction.apply(
+							testrayStatusMetricResource, sortsString))));
 	}
 
 	/**
@@ -805,12 +833,15 @@ public class Query {
 
 	private AcceptLanguage _acceptLanguage;
 	private com.liferay.portal.kernel.model.Company _company;
-	private BiFunction<Object, String, Filter> _filterBiFunction;
+	private BiFunction
+		<Object, String, com.liferay.portal.kernel.search.filter.Filter>
+			_filterBiFunction;
 	private GroupLocalService _groupLocalService;
 	private HttpServletRequest _httpServletRequest;
 	private HttpServletResponse _httpServletResponse;
 	private RoleLocalService _roleLocalService;
-	private BiFunction<Object, String, Sort[]> _sortsBiFunction;
+	private BiFunction<Object, String, com.liferay.portal.kernel.search.Sort[]>
+		_sortsBiFunction;
 	private UriInfo _uriInfo;
 	private com.liferay.portal.kernel.model.User _user;
 

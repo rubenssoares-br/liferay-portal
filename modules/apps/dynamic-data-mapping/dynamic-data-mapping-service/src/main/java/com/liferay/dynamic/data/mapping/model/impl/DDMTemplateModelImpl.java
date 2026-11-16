@@ -10,8 +10,10 @@ import com.liferay.dynamic.data.mapping.model.DDMTemplateModel;
 import com.liferay.expando.kernel.model.ExpandoBridge;
 import com.liferay.expando.kernel.util.ExpandoBridgeFactoryUtil;
 import com.liferay.exportimport.kernel.lar.StagedModelType;
+import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.bean.AutoEscapeBeanHandler;
+import com.liferay.portal.kernel.dao.orm.EntityCacheUtil;
 import com.liferay.portal.kernel.exception.LocaleException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSON;
@@ -31,6 +33,8 @@ import com.liferay.portal.kernel.util.Validator;
 
 import java.io.Serializable;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.InvocationHandler;
 
 import java.sql.Blob;
@@ -128,6 +132,10 @@ public class DDMTemplateModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table DDMTemplate";
 
+	public static final String ENTITY_ALIAS = "ddmTemplate";
+
+	public static final String FILTER_PK_COLUMN_NAME = "templateId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY ddmTemplate.templateId ASC";
 
@@ -177,44 +185,38 @@ public class DDMTemplateModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long LANGUAGE_COLUMN_BITMASK = 32L;
+	public static final long MODE_COLUMN_BITMASK = 32L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long MODE_COLUMN_BITMASK = 64L;
+	public static final long SMALLIMAGEID_COLUMN_BITMASK = 64L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long SMALLIMAGEID_COLUMN_BITMASK = 128L;
+	public static final long TEMPLATEKEY_COLUMN_BITMASK = 128L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long TEMPLATEKEY_COLUMN_BITMASK = 256L;
+	public static final long TYPE_COLUMN_BITMASK = 256L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long TYPE_COLUMN_BITMASK = 512L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 1024L;
+	public static final long UUID_COLUMN_BITMASK = 512L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long TEMPLATEID_COLUMN_BITMASK = 2048L;
+	public static final long TEMPLATEID_COLUMN_BITMASK = 1024L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
@@ -1201,15 +1203,6 @@ public class DDMTemplateModelImpl
 		_language = language;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public String getOriginalLanguage() {
-		return getColumnOriginalValue("language");
-	}
-
 	@JSON
 	@Override
 	public String getScript() {
@@ -1602,6 +1595,23 @@ public class DDMTemplateModelImpl
 	}
 
 	@Override
+	public void copyCacheFields(DDMTemplate source) {
+		if (getMvccVersion() != source.getMvccVersion()) {
+			return;
+		}
+
+		try {
+			_resourceClassNameSetterMethodHandle.invokeExact(
+				(DDMTemplateImpl)this,
+				(String)_resourceClassNameGetterMethodHandle.invokeExact(
+					(DDMTemplateImpl)source));
+		}
+		catch (Throwable throwable) {
+			ReflectionUtil.throwException(throwable);
+		}
+	}
+
+	@Override
 	public boolean equals(Object object) {
 		if (this == object) {
 			return true;
@@ -1823,9 +1833,16 @@ public class DDMTemplateModelImpl
 			ddmTemplateCacheModel.lastPublishDate = Long.MIN_VALUE;
 		}
 
-		setResourceClassName(null);
+		try {
+			setResourceClassName(null);
 
-		ddmTemplateCacheModel._resourceClassName = getResourceClassName();
+			ddmTemplateCacheModel.resourceClassName =
+				(String)_resourceClassNameGetterMethodHandle.invokeExact(
+					(DDMTemplateImpl)this);
+		}
+		catch (Throwable throwable) {
+			ReflectionUtil.throwException(throwable);
+		}
 
 		return ddmTemplateCacheModel;
 	}
@@ -2068,6 +2085,41 @@ public class DDMTemplateModelImpl
 	}
 
 	private long _columnBitmask;
+
+	protected static final BiConsumer<DDMTemplate, String>
+		resourceClassNameUpdateEntityCacheBiConsumer =
+			(ddmTemplate, resourceClassName) -> {
+				DDMTemplateCacheModel ddmTemplateCacheModel =
+					EntityCacheUtil.fetchCacheModel(
+						DDMTemplateImpl.class, ddmTemplate.getPrimaryKey(),
+						DDMTemplateCacheModel.class);
+
+				if ((ddmTemplateCacheModel != null) &&
+					(ddmTemplateCacheModel.getMvccVersion() ==
+						ddmTemplate.getMvccVersion())) {
+
+					ddmTemplateCacheModel.resourceClassName = resourceClassName;
+				}
+			};
+
+	private static final MethodHandle _resourceClassNameGetterMethodHandle;
+	private static final MethodHandle _resourceClassNameSetterMethodHandle;
+
+	static {
+		MethodHandles.Lookup lookup = ReflectionUtil.getImplLookup();
+
+		try {
+			_resourceClassNameGetterMethodHandle = lookup.findGetter(
+				DDMTemplateImpl.class, "_resourceClassName", String.class);
+			_resourceClassNameSetterMethodHandle = lookup.findSetter(
+				DDMTemplateImpl.class, "_resourceClassName", String.class);
+		}
+		catch (ReflectiveOperationException reflectiveOperationException) {
+			throw new ExceptionInInitializerError(reflectiveOperationException);
+		}
+	}
+
 	private DDMTemplate _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:738782639

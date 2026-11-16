@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {MappingFields} from '../../types/MappingField';
 import {EditableValue} from '../../types/editables/EditableValue';
 import {config} from '../config/index';
 import {State} from '../reducers';
@@ -27,10 +28,17 @@ function getAvailableListItemRenderers({
 	});
 }
 
-function getAvailableListRenderers({className}: {className: string}) {
+function getAvailableListRenderers({
+	className,
+	key,
+}: {
+	className: string;
+	key: string;
+}) {
 	return serviceFetch(config.getAvailableListRenderersURL, {
 		body: {
 			className,
+			key,
 		},
 	});
 }
@@ -42,7 +50,7 @@ function getAvailableStructureMappingFields({
 	classNameId: string;
 	classTypeId: string;
 }) {
-	return serviceFetch(config.mappingFieldsURL, {
+	return serviceFetch<MappingFields>(config.mappingFieldsURL, {
 		body: {
 			classNameId,
 			classTypeId,
@@ -108,7 +116,7 @@ function getInfoItemFieldValue({
 	editableTypeOptions: EditableValue['config'];
 	externalReferenceCode: string;
 	fieldId: string;
-	languageId: string;
+	languageId: Liferay.Language.Locale;
 }) {
 	const body: {
 		classNameId: string;
@@ -116,7 +124,7 @@ function getInfoItemFieldValue({
 		editableTypeOptions: string;
 		externalReferenceCode?: string;
 		fieldId: string;
-		languageId: string;
+		languageId: Liferay.Language.Locale;
 	} = {
 		classNameId,
 		editableTypeOptions: JSON.stringify(editableTypeOptions),

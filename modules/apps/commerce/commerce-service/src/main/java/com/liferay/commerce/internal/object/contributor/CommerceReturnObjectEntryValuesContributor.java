@@ -8,15 +8,16 @@ package com.liferay.commerce.internal.object.contributor;
 import com.liferay.commerce.constants.CommerceReturnConstants;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.model.CommerceOrder;
-import com.liferay.commerce.order.CommerceReturnThreadLocal;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
 import com.liferay.commerce.service.CommerceOrderLocalService;
+import com.liferay.commerce.util.CommerceReturnThreadLocal;
+import com.liferay.object.constants.ObjectDefinitionConstants;
 import com.liferay.object.entry.ObjectEntryContext;
 import com.liferay.object.entry.contributor.ObjectEntryValuesContributor;
-import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
-import com.liferay.object.service.ObjectDefinitionLocalService;
+import com.liferay.object.model.ObjectRelationship;
+import com.liferay.object.scope.ObjectDefinitionScoped;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -45,7 +46,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = ObjectEntryValuesContributor.class)
 public class CommerceReturnObjectEntryValuesContributor
-	implements ObjectEntryValuesContributor {
+	implements ObjectDefinitionScoped, ObjectEntryValuesContributor {
 
 	@Override
 	public void contribute(ObjectEntryContext objectEntryContext) {
@@ -57,16 +58,13 @@ public class CommerceReturnObjectEntryValuesContributor
 		}
 	}
 
+	@Override
+	public List<String> getAllowedObjectDefinitionNames() {
+		return Collections.singletonList("CommerceReturn");
+	}
+
 	private void _contribute(ObjectEntryContext objectEntryContext)
 		throws Exception {
-
-		ObjectDefinition objectDefinition =
-			_objectDefinitionLocalService.getObjectDefinition(
-				objectEntryContext.getObjectDefinitionId());
-
-		if (!StringUtil.equals(objectDefinition.getName(), "CommerceReturn")) {
-			return;
-		}
 
 		Map<String, Serializable> values = objectEntryContext.getValues();
 
@@ -103,7 +101,8 @@ public class CommerceReturnObjectEntryValuesContributor
 		if (originalObjectEntry == null) {
 			originalObjectEntry = _objectEntryLocalService.fetchObjectEntry(
 				GetterUtil.getString(values.get("externalReferenceCode")),
-				objectDefinition.getObjectDefinitionId());
+				ObjectDefinitionConstants.GROUP_ID_DEFAULT,
+				objectEntryContext.getObjectDefinitionId());
 		}
 
 		Map<String, Serializable> originalValues =
@@ -125,15 +124,17 @@ public class CommerceReturnObjectEntryValuesContributor
 			return;
 		}
 
+		ObjectRelationship objectRelationships =
+			_objectRelationshipLocalService.getObjectRelationship(
+				originalObjectEntry.getObjectDefinitionId(),
+				"commerceReturnToCommerceReturnItems");
+
 		List<ObjectEntry> objectEntries =
 			_objectEntryLocalService.getOneToManyObjectEntries(
 				originalObjectEntry.getGroupId(),
-				_objectRelationshipLocalService.getObjectRelationship(
-					originalObjectEntry.getObjectDefinitionId(),
-					"commerceReturnToCommerceReturnItems"
-				).getObjectRelationshipId(),
+				objectRelationships.getObjectRelationshipId(), null, false,
 				originalObjectEntry.getObjectEntryId(), true, null,
-				QueryUtil.ALL_POS, QueryUtil.ALL_POS);
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
 
 		Map<String, List<ObjectEntry>> returnItemStatusObjectEntriesMap =
 			_toReturnItemStatusObjectEntriesMap(objectEntries);
@@ -157,7 +158,8 @@ public class CommerceReturnObjectEntryValuesContributor
 
 				_objectEntryLocalService.updateObjectEntry(
 					objectEntry.getUserId(), objectEntry.getObjectEntryId(),
-					objectEntryValues, new ServiceContext());
+					objectEntry.getObjectEntryFolderId(), objectEntryValues,
+					new ServiceContext());
 			}
 
 			values.put(
@@ -186,7 +188,8 @@ public class CommerceReturnObjectEntryValuesContributor
 
 				_objectEntryLocalService.updateObjectEntry(
 					objectEntry.getUserId(), objectEntry.getObjectEntryId(),
-					objectEntryValues, new ServiceContext());
+					objectEntry.getObjectEntryFolderId(), objectEntryValues,
+					new ServiceContext());
 			}
 
 			return;
@@ -221,7 +224,8 @@ public class CommerceReturnObjectEntryValuesContributor
 
 				_objectEntryLocalService.updateObjectEntry(
 					objectEntry.getUserId(), objectEntry.getObjectEntryId(),
-					objectEntryValues, new ServiceContext());
+					objectEntry.getObjectEntryFolderId(), objectEntryValues,
+					new ServiceContext());
 			}
 		}
 
@@ -400,9 +404,6 @@ public class CommerceReturnObjectEntryValuesContributor
 
 	@Reference
 	private CommerceOrderLocalService _commerceOrderLocalService;
-
-	@Reference
-	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Reference
 	private ObjectEntryLocalService _objectEntryLocalService;

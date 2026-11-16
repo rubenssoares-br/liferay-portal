@@ -11,28 +11,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Jaclyn Ong
@@ -40,13 +41,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName("PunchOutSession")
-@JsonFilter("Liferay.Vulcan")
-@Schema(
+@io.swagger.v3.oas.annotations.media.Schema(
 	requiredProperties = {
 		"buyerAccountReferenceCode", "buyerGroup", "buyerUser", "cart",
 		"punchOutReturnURL", "punchOutSessionType"
 	}
 )
+@JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "PunchOutSession")
 public class PunchOutSession implements Serializable {
 
@@ -58,7 +59,7 @@ public class PunchOutSession implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PunchOutSession.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getBuyerAccountReferenceCode() {
 		if (_buyerAccountReferenceCodeSupplier != null) {
 			buyerAccountReferenceCode =
@@ -102,7 +103,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _buyerAccountReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Group getBuyerGroup() {
 		if (_buyerGroupSupplier != null) {
@@ -145,7 +146,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<Group> _buyerGroupSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Organization getBuyerOrganization() {
 		if (_buyerOrganizationSupplier != null) {
@@ -188,7 +189,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<Organization> _buyerOrganizationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public User getBuyerUser() {
 		if (_buyerUserSupplier != null) {
@@ -231,7 +232,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<User> _buyerUserSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Cart getCart() {
 		if (_cartSupplier != null) {
@@ -272,7 +273,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<Cart> _cartSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getPunchOutReturnURL() {
 		if (_punchOutReturnURLSupplier != null) {
 			punchOutReturnURL = _punchOutReturnURLSupplier.get();
@@ -314,7 +315,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _punchOutReturnURLSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getPunchOutSessionType() {
 		if (_punchOutSessionTypeSupplier != null) {
 			punchOutSessionType = _punchOutSessionTypeSupplier.get();
@@ -356,7 +357,7 @@ public class PunchOutSession implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _punchOutSessionTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getPunchOutStartURL() {
 		if (_punchOutStartURLSupplier != null) {
 			punchOutStartURL = _punchOutStartURLSupplier.get();
@@ -541,8 +542,8 @@ public class PunchOutSession implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.punchout.dto.v1_0.PunchOutSession",
 		name = "x-class-name"
 	)
@@ -629,6 +630,27 @@ public class PunchOutSession implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -637,3 +659,4 @@ public class PunchOutSession implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1968959564

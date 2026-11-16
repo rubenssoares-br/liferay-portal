@@ -4,43 +4,58 @@
  */
 
 import ClayAlert from '@clayui/alert';
-import {Input, SingleSelect} from '@liferay/object-js-components-web';
-import {InputLocalized} from 'frontend-js-components-web';
+import {
+	ILearnResourceContext,
+	InputLocalized,
+} from 'frontend-js-components-web';
 import React from 'react';
 
+import {ObjectRelationshipDeletionTypeSelect} from './ObjectRelationshipDeletionTypeSelect';
 import {ObjectRelationshipFormBase} from './ObjectRelationshipFormBase';
-import {SelectObjectRelationship} from './SelectObjectRelationship';
+import {ObjectRelationshipParameterRequired} from './ObjectRelationshipParameterRequired';
 
 import type {FormError} from '@liferay/object-js-components-web';
 import type {ChangeEventHandler, ElementType} from 'react';
 
 interface EditObjectRelationshipContentProps {
+	autoSave?: boolean;
 	baseResourceURL: string;
 	containerWrapper: ElementType;
 	errors: FormError<ObjectRelationship>;
 	handleChange: ChangeEventHandler<HTMLInputElement>;
+	inheritanceCheckboxDisabled?: boolean;
+	learnResources: ILearnResourceContext;
 	objectDefinitionExternalReferenceCode: string;
 	objectRelationshipDeletionTypes: LabelValueObject[];
-	onSubmit?: (editedObjectRelationship?: Partial<ObjectRelationship>) => void;
+	onChangeInheritanceCheckbox: (
+		event: React.ChangeEvent<HTMLInputElement>
+	) => Promise<void> | void;
+	onSubmit: (values?: Partial<ObjectRelationship>) => Promise<void>;
 	parameterRequired: boolean;
 	readOnly?: boolean;
 	restContextPath: string;
 	setValues: (values: Partial<ObjectRelationship>) => void;
+	submitError?: SubmitError;
 	values: Partial<ObjectRelationship>;
 }
 
 export function EditObjectRelationshipContent({
+	autoSave,
 	baseResourceURL,
 	containerWrapper: ContainerWrapper,
 	errors,
 	handleChange,
+	inheritanceCheckboxDisabled,
+	learnResources,
 	objectDefinitionExternalReferenceCode,
 	objectRelationshipDeletionTypes,
+	onChangeInheritanceCheckbox,
 	onSubmit,
 	parameterRequired,
 	readOnly,
 	restContextPath,
 	setValues,
+	submitError,
 	values,
 }: EditObjectRelationshipContentProps) {
 	return (
@@ -62,11 +77,11 @@ export function EditObjectRelationshipContent({
 					error={errors.label}
 					id="lfr-objects__object-relationship-form-base-label"
 					label={Liferay.Language.get('label')}
-					onBlur={(event) => {
+					onBlur={async (event) => {
 						event.stopPropagation();
 
-						if (onSubmit) {
-							onSubmit();
+						if (autoSave) {
+							await onSubmit();
 						}
 					}}
 					onChange={(label) => setValues({label})}
@@ -75,68 +90,49 @@ export function EditObjectRelationshipContent({
 				/>
 
 				<ObjectRelationshipFormBase
+					autoSave={autoSave}
 					baseResourceURL={baseResourceURL}
+					descriptionDisabled={readOnly}
+					editingObjectRelationship
 					errors={errors}
 					handleChange={handleChange}
+					inheritanceCheckboxDisabled={inheritanceCheckboxDisabled}
+					learnResources={learnResources}
 					objectDefinitionExternalReferenceCode1={
 						objectDefinitionExternalReferenceCode
 					}
+					onChangeInheritanceCheckbox={onChangeInheritanceCheckbox}
+					onSubmit={onSubmit}
 					readonly
 					setValues={setValues}
+					submitError={submitError}
 					values={values}
-				/>
-
-				<SingleSelect
-					disabled={
-						readOnly ||
-						(Liferay.FeatureFlags['LPS-187142'] && values.edge)
-					}
-					id="lfr-objects__object-relationship-deletion-type"
-					items={objectRelationshipDeletionTypes}
-					label={Liferay.Language.get('deletion-type')}
-					onSelectionChange={(value) => {
-						setValues({deletionType: value as string});
-
-						if (onSubmit) {
-							onSubmit({
-								...values,
-								deletionType: value as string,
-							});
-						}
-					}}
-					required
-					selectedKey={values.deletionType}
-				/>
-			</ContainerWrapper>
-
-			{parameterRequired && values.type === 'oneToMany' && (
-				<ContainerWrapper title={Liferay.Language.get('parameters')}>
-					<Input
-						id="lfr-objects__object-relationship-api-endpoint"
-						label={Liferay.Language.get('api-endpoint')}
-						readOnly
-						value={restContextPath}
-					/>
-
-					<SelectObjectRelationship
-						error={errors.parameterObjectFieldName}
-						objectDefinitionExternalReferenceCode1={
-							values.objectDefinitionExternalReferenceCode2 as string
-						}
-						onChange={(parameterObjectFieldName) => {
-							setValues({parameterObjectFieldName});
-
-							if (onSubmit) {
-								onSubmit({
-									...values,
-									parameterObjectFieldName,
-								});
+				>
+					<>
+						<ObjectRelationshipDeletionTypeSelect
+							autoSave={autoSave}
+							objectRelationshipDeletionTypes={
+								objectRelationshipDeletionTypes
 							}
-						}}
-						value={values.parameterObjectFieldName}
-					/>
-				</ContainerWrapper>
-			)}
+							onSubmit={onSubmit}
+							readOnly={readOnly}
+							setValues={setValues}
+							values={values}
+						/>
+
+						<ObjectRelationshipParameterRequired
+							autoSave={autoSave}
+							containerWrapper={ContainerWrapper}
+							errors={errors}
+							onSubmit={onSubmit}
+							parameterRequired={parameterRequired}
+							restContextPath={restContextPath}
+							setValues={setValues}
+							values={values}
+						/>
+					</>
+				</ObjectRelationshipFormBase>
+			</ContainerWrapper>
 		</>
 	);
 }

@@ -59,19 +59,20 @@ export default {
 		saveMappingConfiguration,
 		segmentsExperienceId,
 	}: {
-		description: string;
-		fileEntryId?: string;
-		fragmentCollectionId: string;
+		description?: string;
+		fileEntryId?: number | string;
+		fragmentCollectionId?: string;
 		itemId: string;
 		name: string;
 		onNetworkStatus: OnNetworkStatus;
-		saveInlineContent: boolean;
-		saveMappingConfiguration: boolean;
+		saveInlineContent?: boolean;
+		saveMappingConfiguration?: boolean;
 		segmentsExperienceId: string;
 	}) {
 		return draftServiceFetch<{
-			fragmentComposition: FragmentComposition;
+			fragmentComposition: FragmentComposition | null;
 			url: string;
+			valid: boolean;
 		}>(
 			config.addFragmentCompositionURL,
 			{
@@ -259,7 +260,7 @@ export default {
 		);
 	},
 
-	pasteItem({
+	pasteItems({
 		itemIds,
 		onNetworkStatus,
 		parentItemId,
@@ -299,12 +300,12 @@ export default {
 			itemClassPK?: string | null;
 			itemExternalReferenceCode?: string | null;
 		}>;
-		languageId: string;
+		languageId: Liferay.Language.Locale;
 		segmentsExperienceId: string;
 	}) {
 		const body: {
 			data: string;
-			languageId: string;
+			languageId: Liferay.Language.Locale;
 			segmentsExperienceId: string;
 		} = {
 			data: JSON.stringify(data),
@@ -312,11 +313,59 @@ export default {
 			segmentsExperienceId,
 		};
 
-		return serviceFetch<[{content: string; fragmentEntryLinkId: string}]>(
-			config.renderFragmentEntriesURL,
+		return serviceFetch<
+			Array<
+				Pick<
+					FragmentEntryLink,
+					'content' | 'editableTypes' | 'fragmentEntryLinkId'
+				>
+			>
+		>(config.renderFragmentEntriesURL, {
+			body,
+		});
+	},
+
+	swapFragment({
+		editableValues,
+		fragmentEntryKey,
+		fragmentEntryLinkId,
+		groupId,
+		onNetworkStatus,
+		segmentsExperienceId,
+	}: {
+		editableValues: string;
+		fragmentEntryKey: FragmentEntry['fragmentEntryKey'];
+		fragmentEntryLinkId: FragmentEntryLink['fragmentEntryLinkId'];
+		groupId?: string;
+		onNetworkStatus: OnNetworkStatus;
+		segmentsExperienceId: string;
+	}) {
+		const body: {
+			editableValues: string;
+			fragmentEntryKey: FragmentEntry['fragmentEntryKey'];
+			fragmentEntryLinkId: FragmentEntryLink['fragmentEntryLinkId'];
+			groupId?: string;
+			segmentsExperienceId: string;
+		} = {
+			editableValues,
+			fragmentEntryKey,
+			fragmentEntryLinkId,
+			segmentsExperienceId,
+		};
+
+		if (groupId) {
+			body.groupId = groupId;
+		}
+
+		return draftServiceFetch<{
+			fragmentEntryLink: FragmentEntryLink;
+			layoutData: LayoutData;
+		}>(
+			config.swapFragmentEntryLinkURL,
 			{
 				body,
-			}
+			},
+			onNetworkStatus
 		);
 	},
 
@@ -426,5 +475,22 @@ export default {
 			},
 			onNetworkStatus
 		);
+	},
+
+	validateFragmentComposition({
+		itemId,
+		segmentsExperienceId,
+	}: {
+		itemId: string;
+		segmentsExperienceId: string;
+	}) {
+		return serviceFetch<{
+			valid: boolean;
+		}>(config.validateFragmentCompositionURL, {
+			body: {
+				itemId,
+				segmentsExperienceId,
+			},
+		});
 	},
 };

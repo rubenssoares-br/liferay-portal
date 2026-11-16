@@ -12,12 +12,12 @@ import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.configuration.admin.constants.ConfigurationAdminPortletKeys;
 import com.liferay.content.dashboard.web.internal.constants.ContentDashboardPortletKeys;
 import com.liferay.depot.model.DepotEntry;
-import com.liferay.depot.model.DepotEntryGroupRel;
 import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.service.JournalArticleLocalService;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
@@ -40,15 +40,15 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -58,7 +58,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentDashboardPortletKeys.CONTENT_DASHBOARD_ADMIN,
+		"jakarta.portlet.name=" + ContentDashboardPortletKeys.CONTENT_DASHBOARD_ADMIN,
 		"mvc.command.name=/content_dashboard/get_content_performance_info"
 	},
 	service = MVCResourceCommand.class
@@ -235,16 +235,9 @@ public class GetContentPerformanceInfoMVCResourceCommand
 	private List<Long> _getDepotEntryGroupRelToGroupId(DepotEntry depotEntry)
 		throws PortalException {
 
-		List<Long> groupIds = new ArrayList<>();
-
-		List<DepotEntryGroupRel> depotEntryGroupRels =
-			_depotEntryGroupRelLocalService.getDepotEntryGroupRels(depotEntry);
-
-		for (DepotEntryGroupRel depotEntryGroupRel : depotEntryGroupRels) {
-			groupIds.add(depotEntryGroupRel.getToGroupId());
-		}
-
-		return groupIds;
+		return TransformUtil.transform(
+			_depotEntryGroupRelLocalService.getDepotEntryGroupRels(depotEntry),
+			depotEntryGroupRel -> depotEntryGroupRel.getToGroupId());
 	}
 
 	private boolean _hasSiteSyncedToAnalyticsCloud(

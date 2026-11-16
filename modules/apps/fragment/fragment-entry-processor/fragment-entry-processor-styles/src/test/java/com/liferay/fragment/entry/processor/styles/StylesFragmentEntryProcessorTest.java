@@ -18,11 +18,13 @@ import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
+import com.liferay.portal.util.PortalImpl;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Collections;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -48,6 +50,10 @@ public class StylesFragmentEntryProcessorTest {
 
 	@BeforeClass
 	public static void setUpClass() {
+		PortalUtil portalUtil = new PortalUtil();
+
+		portalUtil.setPortal(new PortalImpl());
+
 		_setUpDocumentStylesFragmentEntryProcessor();
 		_setUpStylesFragmentEntryValidator();
 	}
@@ -81,14 +87,22 @@ public class StylesFragmentEntryProcessorTest {
 
 		String html = "<div data-lfr-styles><span>Test</span>Fragment</div>";
 
+		Mockito.when(
+			fragmentEntryLink.getHtml()
+		).thenReturn(
+			html
+		);
+
 		Document document = _getDocument(html);
 
 		_stylesDocumentFragmentEntryProcessor.processFragmentEntryLinkHTML(
-			fragmentEntryLink, document,
+			document, fragmentEntryLink,
 			new DefaultFragmentEntryProcessorContext(
+				fragmentEntryLink.getCompanyId(),
 				_getMockHttpServletRequest(layoutStructure), null,
+				LocaleUtil.getMostRelevantLocale(),
 				FragmentEntryLinkConstants.EDIT,
-				LocaleUtil.getMostRelevantLocale()));
+				fragmentEntryLink.getGroupId()));
 
 		String layoutStructureItemUniqueCssClass =
 			fragmentStyledLayoutStructureItem.getUniqueCssClass();

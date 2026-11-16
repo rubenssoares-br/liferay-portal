@@ -16,7 +16,7 @@ import com.liferay.headless.commerce.admin.pricing.dto.v2_0.Discount;
 import com.liferay.headless.commerce.admin.pricing.dto.v2_0.DiscountProductGroup;
 import com.liferay.headless.commerce.admin.pricing.internal.util.v2_0.DiscountProductGroupUtil;
 import com.liferay.headless.commerce.admin.pricing.resource.v2_0.DiscountProductGroupResource;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
@@ -28,7 +28,6 @@ import com.liferay.portal.vulcan.fields.NestedField;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -76,14 +75,14 @@ public class DiscountProductGroupResourceImpl
 				pagination.getStartPosition(), pagination.getEndPosition(),
 				null);
 
-		int totalItems =
+		int totalCount =
 			_commerceDiscountRelService.getCommerceDiscountRelsCount(
 				commerceDiscount.getCommerceDiscountId(),
 				CommercePricingClass.class.getName());
 
 		return Page.of(
 			_toDiscountProductGroups(commerceDiscountRels), pagination,
-			totalItems);
+			totalCount);
 	}
 
 	@NestedField(parentClass = Discount.class, value = "discountProductGroups")
@@ -99,13 +98,13 @@ public class DiscountProductGroupResourceImpl
 					id, search, pagination.getStartPosition(),
 					pagination.getEndPosition());
 
-		int totalItems =
+		int totalCount =
 			_commerceDiscountRelService.
 				getCommercePricingClassesByCommerceDiscountIdCount(id, search);
 
 		return Page.of(
 			_toDiscountProductGroups(commerceDiscountRels), pagination,
-			totalItems);
+			totalCount);
 	}
 
 	@Override
@@ -185,15 +184,10 @@ public class DiscountProductGroupResourceImpl
 			List<CommerceDiscountRel> commerceDiscountRels)
 		throws Exception {
 
-		List<DiscountProductGroup> discountProductGroups = new ArrayList<>();
-
-		for (CommerceDiscountRel commerceDiscountRel : commerceDiscountRels) {
-			discountProductGroups.add(
-				_toDiscountProductGroup(
-					commerceDiscountRel.getCommerceDiscountRelId()));
-		}
-
-		return discountProductGroups;
+		return transform(
+			commerceDiscountRels,
+			commerceDiscountRel -> _toDiscountProductGroup(
+				commerceDiscountRel.getCommerceDiscountRelId()));
 	}
 
 	@Reference(

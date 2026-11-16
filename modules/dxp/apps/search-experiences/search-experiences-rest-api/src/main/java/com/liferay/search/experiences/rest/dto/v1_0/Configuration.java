@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -50,7 +51,7 @@ public class Configuration implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Configuration.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public AdvancedConfiguration getAdvancedConfiguration() {
 		if (_advancedConfigurationSupplier != null) {
@@ -95,7 +96,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<AdvancedConfiguration> _advancedConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public AggregationConfiguration getAggregationConfiguration() {
 		if (_aggregationConfigurationSupplier != null) {
@@ -141,7 +142,7 @@ public class Configuration implements Serializable {
 	private Supplier<AggregationConfiguration>
 		_aggregationConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public GeneralConfiguration getGeneralConfiguration() {
 		if (_generalConfigurationSupplier != null) {
@@ -186,7 +187,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<GeneralConfiguration> _generalConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public HighlightConfiguration getHighlightConfiguration() {
 		if (_highlightConfigurationSupplier != null) {
@@ -231,7 +232,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<HighlightConfiguration> _highlightConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public IndexConfiguration getIndexConfiguration() {
 		if (_indexConfigurationSupplier != null) {
@@ -274,7 +275,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<IndexConfiguration> _indexConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ParameterConfiguration getParameterConfiguration() {
 		if (_parameterConfigurationSupplier != null) {
@@ -319,7 +320,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<ParameterConfiguration> _parameterConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public QueryConfiguration getQueryConfiguration() {
 		if (_queryConfigurationSupplier != null) {
@@ -362,7 +363,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<QueryConfiguration> _queryConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Object> getSearchContextAttributes() {
 		if (_searchContextAttributesSupplier != null) {
@@ -407,7 +408,7 @@ public class Configuration implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Object>> _searchContextAttributesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public SortConfiguration getSortConfiguration() {
 		if (_sortConfigurationSupplier != null) {
@@ -595,8 +596,8 @@ public class Configuration implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Configuration",
 		name = "x-class-name"
 	)
@@ -683,6 +684,27 @@ public class Configuration implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -691,3 +713,4 @@ public class Configuration implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:873972975

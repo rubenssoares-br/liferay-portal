@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {State} from '@liferay/frontend-js-state-web';
 import {fireEvent, render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 
 import {pageContentsAtom} from '../../../../src/main/resources/META-INF/resources/page_editor/app/utils/usePageContents';
@@ -29,15 +30,12 @@ jest.mock(
 	})
 );
 
-jest.mock('frontend-js-web', () => ({
-	...jest.requireActual('frontend-js-web'),
-	sub: jest.fn((langKey, args) => langKey.replace('x', args)),
-}));
-
 function renderItemSelector({
+	onItemSelect = () => {},
 	pageContents = [],
 	selectedItemClassPK = '',
 	selectedItemTitle = '',
+	...props
 }) {
 	State.writeAtom(pageContentsAtom, {
 		data: pageContents,
@@ -47,7 +45,7 @@ function renderItemSelector({
 	return render(
 		<ItemSelector
 			label="itemSelectorLabel"
-			onItemSelect={() => {}}
+			onItemSelect={onItemSelect}
 			selectedItem={
 				selectedItemTitle
 					? {
@@ -57,6 +55,7 @@ function renderItemSelector({
 					: null
 			}
 			transformValueCallback={() => {}}
+			{...props}
 		/>
 	);
 }
@@ -128,7 +127,7 @@ describe('ItemSelector', () => {
 
 		fireEvent.click(screen.getByLabelText('select-itemSelectorLabel'));
 
-		expect(openItemSelector).toBeCalled();
+		expect(openItemSelector).toHaveBeenCalled();
 	});
 
 	it('shows recent items dropdown instead of calling openItemSelector when there are mapping items', () => {
@@ -144,7 +143,7 @@ describe('ItemSelector', () => {
 
 		expect(screen.getByText('Mapped Item Title')).toBeInTheDocument();
 
-		expect(openItemSelector).not.toBeCalled();
+		expect(openItemSelector).not.toHaveBeenCalled();
 	});
 
 	it('does not show recent collection page contents in the recent items', () => {
@@ -168,7 +167,106 @@ describe('ItemSelector', () => {
 		expect(screen.getByText('Mapped Item Title')).toBeInTheDocument();
 		expect(screen.queryByText('Mapped Collection')).not.toBeInTheDocument();
 
-		expect(openItemSelector).not.toBeCalled();
+		expect(openItemSelector).not.toHaveBeenCalled();
+	});
+
+	it('does not show recent page contents rejected by isAllowedMappedItem', async () => {
+		renderItemSelector({
+			isAllowedMappedItem: (item) =>
+				item.className ===
+				'com.liferay.portal.kernel.repository.model.FileEntry',
+			pageContents: [
+				{
+					className: 'com.liferay.journal.model.JournalArticle',
+					classPK: '001',
+					title: 'Web Content Title',
+				},
+				{
+					className:
+						'com.liferay.portal.kernel.repository.model.FileEntry',
+					classPK: '002',
+					title: 'Document Title',
+				},
+			],
+		});
+
+		await userEvent.click(
+			screen.getByLabelText('select-itemSelectorLabel')
+		);
+
+		expect(screen.getByText('Document Title')).toBeInTheDocument();
+		expect(screen.queryByText('Web Content Title')).not.toBeInTheDocument();
+
+		expect(openItemSelector).not.toHaveBeenCalled();
+	});
+
+	it('selects a recent page content allowed by isAllowedMappedItem', async () => {
+		const onItemSelect = jest.fn();
+
+		renderItemSelector({
+			isAllowedMappedItem: () => true,
+			onItemSelect,
+			pageContents: [
+				{
+					className:
+						'com.liferay.portal.kernel.repository.model.FileEntry',
+					classPK: '002',
+					title: 'Document Title',
+				},
+			],
+		});
+
+		await userEvent.click(
+			screen.getByLabelText('select-itemSelectorLabel')
+		);
+
+		await userEvent.click(screen.getByText('Document Title'));
+
+		expect(onItemSelect).toHaveBeenCalledWith(
+			expect.objectContaining({title: 'Document Title'})
+		);
+	});
+
+	it('opens the item selector when isAllowedMappedItem rejects every recent page content', async () => {
+		renderItemSelector({
+			isAllowedMappedItem: () => false,
+			pageContents: [
+				{
+					className: 'com.liferay.journal.model.JournalArticle',
+					classPK: '001',
+					title: 'Web Content Title',
+				},
+			],
+		});
+
+		await userEvent.click(
+			screen.getByLabelText('select-itemSelectorLabel')
+		);
+
+		expect(screen.queryByText('Web Content Title')).not.toBeInTheDocument();
+
+		expect(openItemSelector).toHaveBeenCalled();
+	});
+
+	it('opens the item selector when showMappedItems is false', async () => {
+		renderItemSelector({
+			pageContents: [
+				{
+					className: 'com.liferay.journal.model.JournalArticle',
+					classPK: '001',
+					title: 'Web Content Title',
+				},
+			],
+			showMappedItems: false,
+		});
+
+		await userEvent.click(
+			screen.getByLabelText('select-itemSelectorLabel')
+		);
+
+		expect(screen.queryByText('Web Content Title')).not.toBeInTheDocument();
+
+		expect(openItemSelector).toHaveBeenCalled();
 	});
 
 	it('removes selected item correctly when clear button is clicked', () => {

@@ -150,17 +150,19 @@ public class WorkspacePlugin implements Plugin<Settings> {
 							PathMatcher pathMatcher = fileSystem.getPathMatcher(
 								"glob:" + glob);
 
-							if (pathMatcher.matches(relativeProjectPath)) {
-								if (_logger.isInfoEnabled()) {
-									_logger.info(
-										"Skipping project evaluation for {} " +
-											"because it matches the exclude " +
-												"pattern {}.",
-										relativeProjectPath, glob);
-								}
-
-								iterator.remove();
+							if (!pathMatcher.matches(relativeProjectPath)) {
+								continue;
 							}
+
+							if (_logger.isInfoEnabled()) {
+								_logger.info(
+									"Skipping project evaluation for {} " +
+										"because it matches the exclude " +
+											"pattern {}.",
+									relativeProjectPath, glob);
+							}
+
+							iterator.remove();
 						}
 					}
 
@@ -211,8 +213,29 @@ public class WorkspacePlugin implements Plugin<Settings> {
 
 		String bundleUrl = workspaceExtension.getBundleUrl();
 
-		if (Objects.nonNull(bundleUrl) && bundleUrl.contains("7.0.")) {
-			GradleUtil.setProperty(project, "portal.version", "7.0.x");
+		if (Objects.isNull(bundleUrl)) {
+			return;
+		}
+
+		if (bundleUrl.contains("7.0.")) {
+			GradleUtil.setProperty(
+				project, PortalTools.PORTAL_VERSION_PROPERTY_NAME, "7.0.x");
+		}
+		else if (bundleUrl.contains("7.1.")) {
+			GradleUtil.setProperty(
+				project, PortalTools.PORTAL_VERSION_PROPERTY_NAME, "7.1.x");
+		}
+		else if (bundleUrl.contains("7.2.")) {
+			GradleUtil.setProperty(
+				project, PortalTools.PORTAL_VERSION_PROPERTY_NAME, "7.2.x");
+		}
+		else if (bundleUrl.contains("7.3.")) {
+			GradleUtil.setProperty(
+				project, PortalTools.PORTAL_VERSION_PROPERTY_NAME, "7.3.x");
+		}
+		else {
+			GradleUtil.setProperty(
+				project, PortalTools.PORTAL_VERSION_PROPERTY_NAME, "7.4.x");
 		}
 	}
 

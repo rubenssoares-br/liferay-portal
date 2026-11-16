@@ -19,13 +19,13 @@
 	managementToolbarDisplayContext="<%= new SiteMySitesManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, siteMySitesDisplayContext) %>"
 />
 
-<aui:form action="<%= siteMySitesDisplayContext.getPortletURL() %>" cssClass="container-fluid container-fluid-max-xl" method="get" name="fm">
+<aui:form action="<%= siteMySitesDisplayContext.getPortletURL() %>" cssClass="container-fluid" method="get" name="fm">
 	<liferay-ui:search-container
 		searchContainer="<%= siteMySitesDisplayContext.getGroupSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.portal.kernel.model.Group"
-			keyProperty="groupId"
+			keyPropertyName="groupId"
 			modelVar="group"
 			rowIdProperty="friendlyURL"
 		>

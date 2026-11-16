@@ -92,6 +92,8 @@ public class ListTypeModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table ListType";
 
+	public static final String ENTITY_ALIAS = "listType";
+
 	public static final String ORDER_BY_JPQL = " ORDER BY listType.name ASC";
 
 	public static final String ORDER_BY_SQL = " ORDER BY ListType.name ASC";
@@ -145,7 +147,7 @@ public class ListTypeModelImpl
 	public static final long UUID_COLUMN_BITMASK = 8L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.ListType"));
 
 	public ListTypeModelImpl() {
@@ -926,3 +928,4 @@ public class ListTypeModelImpl
 	private ListType _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:200438138

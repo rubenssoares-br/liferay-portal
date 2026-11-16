@@ -11,7 +11,7 @@
 	<liferay-ui:search-container-row
 		className="Object"
 		escapedModel="<%= true %>"
-		keyProperty="categoryId"
+		keyPropertyName="categoryId"
 		modelVar="result"
 	>
 		<%@ include file="/message_boards/cast_result.jspf" %>
@@ -94,21 +94,8 @@
 
 			<c:choose>
 				<c:when test="<%= (message != null) && (thread.getMessageCount() == 1) %>">
-
-					<%
-					String messageUserName = "anonymous";
-
-					if (!message.isAnonymous()) {
-						messageUserName = message.getUserName();
-					}
-
-					Date modifiedDate = message.getModifiedDate();
-
-					String modifiedDateDescription = LanguageUtil.getTimeDescription(request, System.currentTimeMillis() - modifiedDate.getTime(), true);
-					%>
-
 					<p class="list-group-subtext">
-						<liferay-ui:message arguments="<%= new String[] {messageUserName, modifiedDateDescription} %>" key="x-modified-x-ago" />
+						<%= HtmlUtil.escape(mbDisplayContext.getModifiedLabel(message)) %>
 					</p>
 				</c:when>
 				<c:otherwise>

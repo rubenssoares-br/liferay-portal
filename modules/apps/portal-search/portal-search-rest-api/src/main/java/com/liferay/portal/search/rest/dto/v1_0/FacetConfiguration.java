@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Petteri Karttunen
  * @generated
  */
 @Generated("")
-@GraphQLName("FacetConfiguration")
+@GraphQLName(
+	description = "Configuration for a single facet aggregation. Each entry describes a facet to compute alongside the search results. The processed facet term buckets appear in the response's `searchFacets` map, where each entry's key is the `aggregationName` you chose for that facet configuration and each value is an array of term-bucket objects with `displayName` (locale-dependent label), `term` (raw term value), and `frequency` (count of matching documents).",
+	value = "FacetConfiguration"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Configuration for a single facet aggregation. Each entry describes a facet to compute alongside the search results. The processed facet term buckets appear in the response's `searchFacets` map, where each entry's key is the `aggregationName` you chose for that facet configuration and each value is an array of term-bucket objects with `displayName` (locale-dependent label), `term` (raw term value), and `frequency` (count of matching documents)."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "FacetConfiguration")
 public class FacetConfiguration implements Serializable {
@@ -50,7 +57,9 @@ public class FacetConfiguration implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(FacetConfiguration.class, json);
 	}
 
-	@Schema(description = "The name of the aggregation.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Unique name for the aggregation. Required to distinguish between instances of the same facet type (instances that share the same name property)."
+	)
 	public String getAggregationName() {
 		if (_aggregationNameSupplier != null) {
 			aggregationName = _aggregationNameSupplier.get();
@@ -84,14 +93,18 @@ public class FacetConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The name of the aggregation.")
+	@GraphQLField(
+		description = "Unique name for the aggregation. Required to distinguish between instances of the same facet type (instances that share the same name property)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String aggregationName;
 
 	@JsonIgnore
 	private Supplier<String> _aggregationNameSupplier;
 
-	@Schema(description = "Additional attributes for the facet.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Additional attributes required by some facets. The custom, date-range, and nested facets require a String attribute called `field` to set the field to aggregate results by. The date-range facet also requires a `format` String (such as yyyyMMddHHmmss) and a `ranges` array of objects, each with a `label` String (display name) and a `range` String in the format `[fromDate TO toDate]` (for example, `[20240101000000 TO 20240131235959]` matching the chosen `format`). The nested facet requires `filterField`, `filterValue`, and `path` String attributes. The vocabulary facet requires a String array of asset vocabulary IDs as `vocabularyIds` (discoverable via `GET /o/headless-admin-taxonomy/v1.0/sites/{siteId}/taxonomy-vocabularies`). Omitting required attributes for a given facet type causes the facet to be silently ignored - the request still succeeds but no aggregation appears in the response."
+	)
 	@Valid
 	public Map<String, Object> getAttributes() {
 		if (_attributesSupplier != null) {
@@ -127,14 +140,18 @@ public class FacetConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Additional attributes for the facet.")
+	@GraphQLField(
+		description = "Additional attributes required by some facets. The custom, date-range, and nested facets require a String attribute called `field` to set the field to aggregate results by. The date-range facet also requires a `format` String (such as yyyyMMddHHmmss) and a `ranges` array of objects, each with a `label` String (display name) and a `range` String in the format `[fromDate TO toDate]` (for example, `[20240101000000 TO 20240131235959]` matching the chosen `format`). The nested facet requires `filterField`, `filterValue`, and `path` String attributes. The vocabulary facet requires a String array of asset vocabulary IDs as `vocabularyIds` (discoverable via `GET /o/headless-admin-taxonomy/v1.0/sites/{siteId}/taxonomy-vocabularies`). Omitting required attributes for a given facet type causes the facet to be silently ignored - the request still succeeds but no aggregation appears in the response."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, Object> attributes;
 
 	@JsonIgnore
 	private Supplier<Map<String, Object>> _attributesSupplier;
 
-	@Schema(description = "Frequency threshold for showing the terms.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Minimum frequency required for terms to appear in the list of facet terms."
+	)
 	public Integer getFrequencyThreshold() {
 		if (_frequencyThresholdSupplier != null) {
 			frequencyThreshold = _frequencyThresholdSupplier.get();
@@ -168,14 +185,18 @@ public class FacetConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Frequency threshold for showing the terms.")
+	@GraphQLField(
+		description = "Minimum frequency required for terms to appear in the list of facet terms."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer frequencyThreshold;
 
 	@JsonIgnore
 	private Supplier<Integer> _frequencyThresholdSupplier;
 
-	@Schema(description = "Maximum number of terms to be shown.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum number of facet terms to display, regardless of how many matching terms are found for the facet."
+	)
 	public Integer getMaxTerms() {
 		if (_maxTermsSupplier != null) {
 			maxTerms = _maxTermsSupplier.get();
@@ -209,14 +230,18 @@ public class FacetConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Maximum number of terms to be shown.")
+	@GraphQLField(
+		description = "Maximum number of facet terms to display, regardless of how many matching terms are found for the facet."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer maxTerms;
 
 	@JsonIgnore
 	private Supplier<Integer> _maxTermsSupplier;
 
-	@Schema(description = "The name of the facet.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Type of facet. Supported values are category, custom, date-range, folder, nested, site, tag, type, user, and vocabulary. The custom facet uses top-level index fields only; Object and Web Content Structure fields are indexed as nested fields, so use the nested facet for those entities. The server gracefully ignores unrecognized values - passing an unknown facet type does not return a 500 error; the facet is simply skipped."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -248,14 +273,18 @@ public class FacetConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The name of the facet.")
+	@GraphQLField(
+		description = "Type of facet. Supported values are category, custom, date-range, folder, nested, site, tag, type, user, and vocabulary. The custom facet uses top-level index fields only; Object and Web Content Structure fields are indexed as nested fields, so use the nested facet for those entities. The server gracefully ignores unrecognized values - passing an unknown facet type does not return a 500 error; the facet is simply skipped."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(description = "The values / selections to be filtered by.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Post-filter the results by selecting values. Equivalent to clicking facet terms in the facet widget."
+	)
 	@Valid
 	public Object[] getValues() {
 		if (_valuesSupplier != null) {
@@ -290,7 +319,9 @@ public class FacetConfiguration implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The values / selections to be filtered by.")
+	@GraphQLField(
+		description = "Post-filter the results by selecting values. Equivalent to clicking facet terms in the facet widget."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Object[] values;
 
@@ -404,11 +435,7 @@ public class FacetConfiguration implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < values.length; i++) {
-				sb.append("\"");
-
-				sb.append(_escape(values[i]));
-
-				sb.append("\"");
+				sb.append(_toJSON(values[i]));
 
 				if ((i + 1) < values.length) {
 					sb.append(", ");
@@ -423,8 +450,8 @@ public class FacetConfiguration implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.search.rest.dto.v1_0.FacetConfiguration",
 		name = "x-class-name"
 	)
@@ -511,6 +538,27 @@ public class FacetConfiguration implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -519,3 +567,4 @@ public class FacetConfiguration implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1916217769

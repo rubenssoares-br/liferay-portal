@@ -7,12 +7,12 @@ import ClayLayout from '@clayui/layout';
 import {Resizer} from '@liferay/layout-js-components-web';
 import classNames from 'classnames';
 import {useSessionState} from 'frontend-js-components-web';
-import {throttle} from 'frontend-js-web';
+import {sub, throttle} from 'frontend-js-web';
 import React, {useEffect, useRef} from 'react';
 import {useDrop} from 'react-dnd';
 
 import MillerColumnsItem from './MillerColumnsItem';
-import {ACCEPTING_TYPES} from './constants';
+import {ACCEPTING_TYPES} from './constants/acceptingTypes';
 
 const AUTOSCROLL_DELAY = 20;
 const AUTOSCROLL_DISTANCE = 20;
@@ -59,23 +59,22 @@ const MillerColumnsColumn = ({
 	columnItems = [],
 	columnsContainer,
 	isLayoutSetPrototype,
-	isPrivateLayoutsEnabled,
 	items,
 	namespace,
 	onItemDrop,
-	onItemStayHover,
+	getItemChildren,
 	index,
-	parent,
 	rtl,
 }) => {
 	const ref = useRef();
+	const lastColumnItem = columnItems[columnItems.length - 1];
 
 	const [{canDrop}, drop] = useDrop({
 		accept: ACCEPTING_TYPES.ITEM,
 		canDrop(source, monitor) {
 			return (
 				monitor.isOver({shallow: true}) &&
-				isValidTarget(source.items, parent)
+				isValidTarget(source.items, lastColumnItem)
 			);
 		},
 		collect: (monitor) => ({
@@ -83,7 +82,7 @@ const MillerColumnsColumn = ({
 		}),
 		drop(source) {
 			if (canDrop) {
-				onItemDrop(source.items, parent.id, columnItems.length);
+				onItemDrop(source.items, lastColumnItem);
 			}
 		},
 		hover(source, monitor) {
@@ -102,16 +101,15 @@ const MillerColumnsColumn = ({
 		0
 	);
 
-	const sizeProps =
-		Liferay.FeatureFlags['LPD-35220'] && columnWidth
-			? {
-					style: {
-						'max-width': `${columnWidth}px`,
-						'min-width': `${columnWidth}px`,
-						'width': `${columnWidth}px`,
-					},
-				}
-			: {lg: '4', md: '6', size: '11'};
+	const sizeProps = columnWidth
+		? {
+				style: {
+					maxWidth: `${columnWidth}px`,
+					minWidth: `${columnWidth}px`,
+					width: `${columnWidth}px`,
+				},
+			}
+		: {lg: '4', md: '6', size: '11'};
 
 	return (
 		<>
@@ -123,40 +121,44 @@ const MillerColumnsColumn = ({
 					}
 				)}
 				containerElement="ul"
+				id={`miller-columns-list-${columnItems[0]?.parentId}`}
 				ref={ref}
+				role="menu"
 				{...sizeProps}
 			>
-				{columnItems.map((item, index) => (
+				{columnItems.map((item) => (
 					<MillerColumnsItem
 						createPageTemplateURL={createPageTemplateURL}
 						getItemActionsURL={getItemActionsURL}
+						getItemChildren={getItemChildren}
 						getPageTemplateCollectionsURL={
 							getPageTemplateCollectionsURL
 						}
 						isLayoutSetPrototype={isLayoutSetPrototype}
-						isPrivateLayoutsEnabled={isPrivateLayoutsEnabled}
-						item={{...item, itemIndex: index}}
+						item={item}
 						items={items}
 						key={item.key}
 						namespace={namespace}
 						onItemDrop={onItemDrop}
-						onItemStayHover={onItemStayHover}
 						rtl={rtl}
 					/>
 				))}
 			</ClayLayout.Col>
 
-			{Liferay.FeatureFlags['LPD-35220'] && (
-				<Resizer
-					ariaLabel={Liferay.Language.get('resize-column')}
-					maxWidth={COLUMN_MAX_WIDTH}
-					minWidth={COLUMN_MIN_WIDTH}
-					resizeStep={COLUMN_WIDTH_RESIZE_STEP}
-					setWidth={setColumnWidth}
-					targetRef={ref}
-					width={columnWidth}
-				/>
-			)}
+			<Resizer
+				ariaLabel={sub(
+					Liferay.Language.get('resize-column-x'),
+					index + 1
+				)}
+				id={`resize-${index}`}
+				maxWidth={COLUMN_MAX_WIDTH}
+				minWidth={COLUMN_MIN_WIDTH}
+				resizeStep={COLUMN_WIDTH_RESIZE_STEP}
+				setWidth={setColumnWidth}
+				tabIndex={-1}
+				targetRef={ref}
+				width={columnWidth}
+			/>
 		</>
 	);
 };

@@ -5,6 +5,7 @@
 
 package com.liferay.push.notifications.sender.firebase.internal;
 
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 
@@ -13,17 +14,19 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONArray;
-import com.liferay.portal.kernel.json.JSONFactoryUtil;
+import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.servlet.HttpHeaders;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.security.key.secret.SecretResolver;
 import com.liferay.push.notifications.constants.PushNotificationsConstants;
 import com.liferay.push.notifications.exception.PushNotificationsException;
 import com.liferay.push.notifications.sender.PushNotificationsSender;
@@ -197,14 +200,16 @@ public class FirebasePushNotificationsSender
 	private JSONObject _buildMessagePayload(JSONObject payloadJSONObject) {
 		Iterator<String> keysIterator = payloadJSONObject.keys();
 
-		JSONObject jsonObject = _jsonFactoryUtil.createJSONObject();
+		JSONObject jsonObject = _jsonFactory.createJSONObject();
 
 		while (keysIterator.hasNext()) {
 			String key = keysIterator.next();
 
-			if (!_keys.contains(key)) {
-				jsonObject.put(key, payloadJSONObject.get(key));
+			if (_keys.contains(key)) {
+				continue;
 			}
+
+			jsonObject.put(key, payloadJSONObject.get(key));
 		}
 
 		return JSONUtil.put("payload", jsonObject.toString());
@@ -247,7 +252,7 @@ public class FirebasePushNotificationsSender
 				"Unable to create notification group");
 		}
 
-		JSONObject responseJSONObject = _jsonFactoryUtil.createJSONObject(
+		JSONObject responseJSONObject = _jsonFactory.createJSONObject(
 			responseString);
 
 		return new DeviceGroup(
@@ -258,8 +263,9 @@ public class FirebasePushNotificationsSender
 		try {
 			_googleCredentials.refresh();
 
-			return _googleCredentials.getAccessToken(
-			).getTokenValue();
+			AccessToken accessToken = _googleCredentials.getAccessToken();
+
+			return accessToken.getTokenValue();
 		}
 		catch (Exception exception) {
 			throw new PushNotificationsException(
@@ -275,8 +281,9 @@ public class FirebasePushNotificationsSender
 		_projectNumber =
 			_firebasePushNotificationsSenderConfiguration.projectNumber();
 
-		String serviceAccountKey =
-			_firebasePushNotificationsSenderConfiguration.serviceAccountKey();
+		String serviceAccountKey = _secretResolver.resolve(
+			CompanyConstants.SYSTEM,
+			_firebasePushNotificationsSenderConfiguration.serviceAccountKey());
 
 		try {
 			if (Validator.isBlank(serviceAccountKey)) {
@@ -412,9 +419,12 @@ public class FirebasePushNotificationsSender
 	private Http _http;
 
 	@Reference
-	private JSONFactoryUtil _jsonFactoryUtil;
+	private JSONFactory _jsonFactory;
 
 	private String _projectNumber;
+
+	@Reference
+	private SecretResolver _secretResolver;
 
 	private class DeviceGroup {
 

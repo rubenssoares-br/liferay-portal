@@ -14,7 +14,7 @@ CommerceOrder commerceOrder = commerceVirtualOrderItemEditDisplayContext.getComm
 
 CommerceVirtualOrderItem commerceVirtualOrderItem = commerceVirtualOrderItemEditDisplayContext.getCommerceVirtualOrderItem();
 
-long fileEntryId = BeanParamUtil.getLong(commerceVirtualOrderItem, request, "fileEntryId");
+long fileEntryId = ParamUtil.getLong(request, "fileEntryId");
 
 String textCssClass = "text-default ";
 
@@ -60,7 +60,6 @@ if ((commerceVirtualOrderItem != null) && (commerceVirtualOrderItem.getDuration(
 			dataProviderKey="<%= CPDefinitionVirtualSettingFDSNames.VIRTUAL_ORDER_FILES %>"
 			formName="fm"
 			id="<%= CPDefinitionVirtualSettingFDSNames.VIRTUAL_ORDER_FILES %>"
-			itemsPerPage="<%= 10 %>"
 			selectedItemsKey="id"
 		/>
 	</commerce-ui:panel>

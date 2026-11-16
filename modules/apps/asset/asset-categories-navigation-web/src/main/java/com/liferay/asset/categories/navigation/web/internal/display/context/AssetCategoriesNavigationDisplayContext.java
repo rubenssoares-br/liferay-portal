@@ -12,9 +12,9 @@ import com.liferay.asset.kernel.service.AssetVocabularyLocalServiceUtil;
 import com.liferay.asset.kernel.service.AssetVocabularyServiceUtil;
 import com.liferay.depot.util.SiteConnectedGroupGroupProviderUtil;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -32,14 +32,19 @@ import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletPreferences;
+import jakarta.portlet.RenderRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.PortletPreferences;
-import javax.portlet.RenderRequest;
-
-import javax.servlet.http.HttpServletRequest;
+import java.util.Queue;
 
 /**
  * @author Eudaldo Alonso
@@ -194,25 +199,20 @@ public class AssetCategoriesNavigationDisplayContext {
 
 		PortletPreferences portletPreferences = _renderRequest.getPreferences();
 
-		Map<String, String[]> map = portletPreferences.getMap();
+		String displayStyleGroupExternalReferenceCode =
+			portletPreferences.getValue(
+				"displayStyleGroupExternalReferenceCode",
+				_assetCategoriesNavigationPortletInstanceConfiguration.
+					displayStyleGroupExternalReferenceCode());
 
-		if (FeatureFlagManagerUtil.isEnabled(
-				_themeDisplay.getCompanyId(), "LPD-27566") &&
-			map.containsKey("displayStyleGroupExternalReferenceCode")) {
+		if (Validator.isNotNull(displayStyleGroupExternalReferenceCode)) {
+			Group group =
+				GroupLocalServiceUtil.fetchGroupByExternalReferenceCode(
+					displayStyleGroupExternalReferenceCode,
+					_themeDisplay.getCompanyId());
 
-			String displayStyleGroupExternalReferenceCode =
-				portletPreferences.getValue(
-					"displayStyleGroupExternalReferenceCode", null);
-
-			if (Validator.isNotNull(displayStyleGroupExternalReferenceCode)) {
-				Group group =
-					GroupLocalServiceUtil.fetchGroupByExternalReferenceCode(
-						displayStyleGroupExternalReferenceCode,
-						_themeDisplay.getCompanyId());
-
-				if (group != null) {
-					displayStyleGroupId = group.getGroupId();
-				}
+			if (group != null) {
+				displayStyleGroupId = group.getGroupId();
 			}
 		}
 
@@ -229,59 +229,124 @@ public class AssetCategoriesNavigationDisplayContext {
 		return _displayStyleGroupId;
 	}
 
-	private String[] _getAssetVocabularyIds() {
-		PortletPreferences portletPreferences = _renderRequest.getPreferences();
+	private Queue<String> _getAssetVocabularyExternalReferenceCodes(
+		String key, PortletPreferences portletPreferences) {
 
-		Map<String, String[]> map = portletPreferences.getMap();
+		return new ArrayDeque<>(
+			Arrays.asList(
+				GetterUtil.getStringValues(
+					portletPreferences.getValues(key, null))));
+	}
 
-		if (!FeatureFlagManagerUtil.isEnabled(
-				_themeDisplay.getCompanyId(), "LPD-27566") ||
-			!map.containsKey("assetVocabularyGroupExternalReferenceCodes")) {
+	private Long _getAssetVocabularyId(
+		String assetVocabularyExternalReferenceCode, long groupId) {
 
-			return _assetCategoriesNavigationPortletInstanceConfiguration.
-				assetVocabularyIds();
+		if (assetVocabularyExternalReferenceCode == null) {
+			return null;
 		}
 
+		AssetVocabulary assetVocabulary =
+			AssetVocabularyLocalServiceUtil.
+				fetchAssetVocabularyByExternalReferenceCode(
+					assetVocabularyExternalReferenceCode, groupId);
+
+		if (assetVocabulary == null) {
+			return null;
+		}
+
+		return assetVocabulary.getVocabularyId();
+	}
+
+	private String[] _getAssetVocabularyIds() {
+		Map<String, Queue<String>> assetVocabularyExternalReferenceCodesMap =
+			new LinkedHashMap<>();
 		List<Long> assetVocabularyIds = new ArrayList<>();
 
-		String[] assetVocabularyGroupExternalReferenceCodes =
-			GetterUtil.getStringValues(
-				portletPreferences.getValues(
-					"assetVocabularyGroupExternalReferenceCodes", null));
+		PortletPreferences portletPreferences = _renderRequest.getPreferences();
 
-		for (String assetVocabularyGroupExternalReferenceCode :
-				assetVocabularyGroupExternalReferenceCodes) {
+		String[] groupExternalReferenceCodes = GetterUtil.getStringValues(
+			portletPreferences.getValues(
+				"assetVocabularyGroupExternalReferenceCodes", null));
+
+		Map<String, Long> groupIdsMap = new HashMap<>();
+
+		for (String groupExternalReferenceCode : groupExternalReferenceCodes) {
+			if (Validator.isNull(groupExternalReferenceCode) ||
+				assetVocabularyExternalReferenceCodesMap.containsKey(
+					groupExternalReferenceCode)) {
+
+				continue;
+			}
+
+			assetVocabularyExternalReferenceCodesMap.put(
+				groupExternalReferenceCode,
+				_getAssetVocabularyExternalReferenceCodes(
+					"assetVocabularyExternalReferenceCodes_" +
+						groupExternalReferenceCode,
+					portletPreferences));
 
 			Group group =
 				GroupLocalServiceUtil.fetchGroupByExternalReferenceCode(
-					assetVocabularyGroupExternalReferenceCode,
-					_themeDisplay.getCompanyId());
+					groupExternalReferenceCode, _themeDisplay.getCompanyId());
 
 			if (group == null) {
 				continue;
 			}
 
-			String[] assetVocabularyExternalReferenceCodes =
-				GetterUtil.getStringValues(
-					portletPreferences.getValues(
-						"assetVocabularyExternalReferenceCodes_" +
-							assetVocabularyGroupExternalReferenceCode,
-						null));
+			groupIdsMap.put(groupExternalReferenceCode, group.getGroupId());
+		}
 
-			for (String assetVocabularyExternalReferenceCode :
-					assetVocabularyExternalReferenceCodes) {
+		assetVocabularyExternalReferenceCodesMap.put(
+			StringPool.BLANK,
+			_getAssetVocabularyExternalReferenceCodes(
+				"assetVocabularyExternalReferenceCodes", portletPreferences));
 
-				AssetVocabulary assetVocabulary =
-					AssetVocabularyLocalServiceUtil.
-						fetchAssetVocabularyByExternalReferenceCode(
-							assetVocabularyExternalReferenceCode,
-							group.getGroupId());
+		groupIdsMap.put(StringPool.BLANK, _themeDisplay.getScopeGroupId());
 
-				if (assetVocabulary == null) {
+		if (_isOrdered(
+				assetVocabularyExternalReferenceCodesMap,
+				groupExternalReferenceCodes)) {
+
+			for (String groupExternalReferenceCode :
+					groupExternalReferenceCodes) {
+
+				Long groupId = groupIdsMap.get(groupExternalReferenceCode);
+
+				if (groupId == null) {
 					continue;
 				}
 
-				assetVocabularyIds.add(assetVocabulary.getVocabularyId());
+				Queue<String> assetVocabularyExternalReferenceCodes =
+					assetVocabularyExternalReferenceCodesMap.get(
+						groupExternalReferenceCode);
+
+				Long assetVocabularyId = _getAssetVocabularyId(
+					assetVocabularyExternalReferenceCodes.poll(), groupId);
+
+				if (assetVocabularyId == null) {
+					continue;
+				}
+
+				assetVocabularyIds.add(assetVocabularyId);
+			}
+		}
+		else {
+			for (Map.Entry<String, Queue<String>> entry :
+					assetVocabularyExternalReferenceCodesMap.entrySet()) {
+
+				Long groupId = groupIdsMap.get(entry.getKey());
+
+				if (groupId == null) {
+					continue;
+				}
+
+				assetVocabularyIds.addAll(
+					TransformUtil.transform(
+						entry.getValue(),
+						assetVocabularyExternalReferenceCode ->
+							_getAssetVocabularyId(
+								assetVocabularyExternalReferenceCode,
+								groupId)));
 			}
 		}
 
@@ -302,6 +367,35 @@ public class AssetCategoriesNavigationDisplayContext {
 		}
 
 		return title;
+	}
+
+	private boolean _isOrdered(
+		Map<String, Queue<String>> assetVocabularyExternalReferenceCodesMap,
+		String[] groupExternalReferenceCodes) {
+
+		Map<String, Integer> counts = new HashMap<>();
+
+		for (String groupExternalReferenceCode : groupExternalReferenceCodes) {
+			int count = GetterUtil.getInteger(
+				counts.get(groupExternalReferenceCode));
+
+			counts.put(groupExternalReferenceCode, count + 1);
+		}
+
+		for (Map.Entry<String, Queue<String>> entry :
+				assetVocabularyExternalReferenceCodesMap.entrySet()) {
+
+			Queue<String> assetVocabularyExternalReferenceCodes =
+				entry.getValue();
+
+			if (assetVocabularyExternalReferenceCodes.size() !=
+					GetterUtil.getInteger(counts.get(entry.getKey()))) {
+
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	private KeyValuePair _toKeyValuePair(AssetVocabulary assetVocabulary) {

@@ -144,9 +144,11 @@ public class PoshiContext {
 			Boolean pqlResultBoolean = (Boolean)pqlEntity.getPQLResult(
 				properties);
 
-			if (pqlResultBoolean) {
-				classCommandNames.add(testCaseNamespacedClassCommandName);
+			if (!pqlResultBoolean) {
+				continue;
 			}
+
+			classCommandNames.add(testCaseNamespacedClassCommandName);
 		}
 
 		sb = new StringBuilder();
@@ -203,11 +205,7 @@ public class PoshiContext {
 
 		String functionLocatorCountKey = namespace + "." + className;
 
-		if (_functionLocatorCounts.containsKey(functionLocatorCountKey)) {
-			return _functionLocatorCounts.get(functionLocatorCountKey);
-		}
-
-		return 0;
+		return _functionLocatorCounts.getOrDefault(functionLocatorCountKey, 0);
 	}
 
 	public static int getFunctionMaxArgumentCount() {
@@ -254,13 +252,6 @@ public class PoshiContext {
 		return _namespaceClassCommandNamePattern;
 	}
 
-	public static Properties getNamespacedClassCommandNameProperties(
-		String testCaseNamespacedClassCommandName) {
-
-		return _namespacedClassCommandNamePropertiesMap.get(
-			testCaseNamespacedClassCommandName);
-	}
-
 	public static String getNamespaceFromFilePath(String filePath) {
 		if (Validator.isNull(filePath)) {
 			return _DEFAULT_NAMESPACE;
@@ -281,6 +272,13 @@ public class PoshiContext {
 		return _DEFAULT_NAMESPACE;
 	}
 
+	public static Properties getNamespacedClassCommandNameProperties(
+		String testCaseNamespacedClassCommandName) {
+
+		return _namespacedClassCommandNamePropertiesMap.get(
+			testCaseNamespacedClassCommandName);
+	}
+
 	public static List<String> getNamespaces() {
 		return _namespaces;
 	}
@@ -295,20 +293,23 @@ public class PoshiContext {
 		String pathLocator = _pathLocators.get(
 			namespace + "." + pathLocatorKey);
 
-		String className =
-			PoshiGetterUtil.getClassNameFromNamespacedClassCommandName(
-				pathLocatorKey);
-
-		if ((pathLocator == null) &&
-			_pathExtensions.containsKey(namespace + "." + className)) {
+		if (pathLocator == null) {
+			String className =
+				PoshiGetterUtil.getClassNameFromNamespacedClassCommandName(
+					pathLocatorKey);
 
 			String pathExtension = _pathExtensions.get(
 				namespace + "." + className);
-			String commandName =
-				PoshiGetterUtil.getCommandNameFromNamespacedClassCommandName(
-					pathLocatorKey);
 
-			return getPathLocator(pathExtension + "#" + commandName, namespace);
+			if (pathExtension != null) {
+				String commandName =
+					PoshiGetterUtil.
+						getCommandNameFromNamespacedClassCommandName(
+							pathLocatorKey);
+
+				return getPathLocator(
+					pathExtension + "#" + commandName, namespace);
+			}
 		}
 
 		return pathLocator;
@@ -334,10 +335,11 @@ public class PoshiContext {
 		for (String poshiPropertiesFileName : _POSHI_PROPERTIES_FILE_NAMES) {
 			File propertiesFile = new File(currentDir, poshiPropertiesFileName);
 
-			if (propertiesFile.exists()) {
-				properties.load(
-					new FileReader(propertiesFile.getCanonicalPath()));
+			if (!propertiesFile.exists()) {
+				continue;
 			}
+
+			properties.load(new FileReader(propertiesFile.getCanonicalPath()));
 		}
 
 		for (String poshiDirPropertyName : _POSHI_DIR_PROPERTY_NAMES) {
@@ -360,9 +362,11 @@ public class PoshiContext {
 					dir = new File(currentDir, dirName);
 				}
 
-				if (dir.exists()) {
-					dirs.add(dir.getCanonicalFile());
+				if (!dir.exists()) {
+					continue;
 				}
+
+				dirs.add(dir.getCanonicalFile());
 			}
 		}
 
@@ -499,9 +503,11 @@ public class PoshiContext {
 				Set<String> propertyNames = properties.stringPropertyNames();
 
 				for (String propertyName : propertyNames) {
-					if (propertyName.matches(testBatchGroupIgnoreRegex)) {
-						properties.remove(propertyName);
+					if (!propertyName.matches(testBatchGroupIgnoreRegex)) {
+						continue;
 					}
+
+					properties.remove(propertyName);
 				}
 			}
 
@@ -1209,41 +1215,41 @@ public class PoshiContext {
 						classCommandName, classType, overrideCommandElement,
 						rootElement));
 
-				if (classType.equals("test-case")) {
-					Properties baseProperties =
-						_namespacedClassCommandNamePropertiesMap.get(
-							baseNamespacedClassCommandName);
-
-					Properties overrideProperties =
-						_getClassCommandNameProperties(
-							rootElement, overrideCommandElement);
-
-					Properties overriddenProperties = new Properties(
-						baseProperties);
-
-					overriddenProperties.setProperty(
-						"test.class.method.name", classCommandName);
-					overriddenProperties.setProperty(
-						"test.class.name", className);
-
-					overriddenProperties.putAll(overrideProperties);
-
-					_namespacedClassCommandNamePropertiesMap.put(
-						baseNamespacedClassCommandName, overriddenProperties);
-
-					_poshiPropertyNames.addAll(
-						overrideProperties.stringPropertyNames());
-
-					if (Validator.isNotNull(
-							overrideCommandElement.attributeValue(
-								"description"))) {
-
-						_testCaseDescriptions.put(
-							baseNamespacedClassCommandName,
-							overrideCommandElement.attributeValue(
-								"description"));
-					}
+				if (!classType.equals("test-case")) {
+					continue;
 				}
+
+				Properties baseProperties =
+					_namespacedClassCommandNamePropertiesMap.get(
+						baseNamespacedClassCommandName);
+
+				Properties overrideProperties = _getClassCommandNameProperties(
+					rootElement, overrideCommandElement);
+
+				Properties overriddenProperties = new Properties(
+					baseProperties);
+
+				overriddenProperties.setProperty(
+					"test.class.method.name", classCommandName);
+				overriddenProperties.setProperty("test.class.name", className);
+
+				overriddenProperties.putAll(overrideProperties);
+
+				_namespacedClassCommandNamePropertiesMap.put(
+					baseNamespacedClassCommandName, overriddenProperties);
+
+				_poshiPropertyNames.addAll(
+					overrideProperties.stringPropertyNames());
+
+				if (Validator.isNull(
+						overrideCommandElement.attributeValue("description"))) {
+
+					continue;
+				}
+
+				_testCaseDescriptions.put(
+					baseNamespacedClassCommandName,
+					overrideCommandElement.attributeValue("description"));
 			}
 		}
 
@@ -1558,43 +1564,44 @@ public class PoshiContext {
 						classCommandName, classType, commandElement,
 						rootElement));
 
-				if (classType.equals("test-case")) {
-					Properties commandProperties =
-						_getClassCommandNameProperties(
-							rootElement, commandElement);
-					String propertyGroup = _getPropertyGroup(
-						rootElement, commandElement);
-					Properties propertyGroupProperties =
-						_getPropertyGroupProperties(
-							rootElement, commandElement);
-
-					_validateCommandProperties(
-						commandProperties, propertyGroup,
-						propertyGroupProperties, filePath, classCommandName);
-
-					Properties properties = new Properties();
-
-					properties.putAll(commandProperties);
-					properties.putAll(propertyGroupProperties);
-
-					properties.setProperty(
-						"test.class.method.name", classCommandName);
-					properties.setProperty("test.class.name", className);
-
-					_namespacedClassCommandNamePropertiesMap.put(
-						namespace + "." + classCommandName, properties);
-
-					_poshiPropertyNames.addAll(
-						properties.stringPropertyNames());
-
-					if (Validator.isNotNull(
-							commandElement.attributeValue("description"))) {
-
-						_testCaseDescriptions.put(
-							namespacedClassCommandName,
-							commandElement.attributeValue("description"));
-					}
+				if (!classType.equals("test-case")) {
+					continue;
 				}
+
+				Properties commandProperties = _getClassCommandNameProperties(
+					rootElement, commandElement);
+				String propertyGroup = _getPropertyGroup(
+					rootElement, commandElement);
+				Properties propertyGroupProperties =
+					_getPropertyGroupProperties(rootElement, commandElement);
+
+				_validateCommandProperties(
+					commandProperties, propertyGroup, propertyGroupProperties,
+					filePath, classCommandName);
+
+				Properties properties = new Properties();
+
+				properties.putAll(commandProperties);
+				properties.putAll(propertyGroupProperties);
+
+				properties.setProperty(
+					"test.class.method.name", classCommandName);
+				properties.setProperty("test.class.name", className);
+
+				_namespacedClassCommandNamePropertiesMap.put(
+					namespace + "." + classCommandName, properties);
+
+				_poshiPropertyNames.addAll(properties.stringPropertyNames());
+
+				if (Validator.isNull(
+						commandElement.attributeValue("description"))) {
+
+					continue;
+				}
+
+				_testCaseDescriptions.put(
+					namespacedClassCommandName,
+					commandElement.attributeValue("description"));
 			}
 
 			if (classType.equals("function")) {
@@ -1730,10 +1737,12 @@ public class PoshiContext {
 
 				Throwable causeThrowable = exception.getCause();
 
-				if (causeThrowable != null) {
-					sb.append(causeThrowable.getMessage());
-					sb.append("\n");
+				if (causeThrowable == null) {
+					continue;
 				}
+
+				sb.append(causeThrowable.getMessage());
+				sb.append("\n");
 			}
 
 			System.out.println(sb.toString());
@@ -1752,9 +1761,11 @@ public class PoshiContext {
 		for (String propertyName :
 				propertyGroupProperties.stringPropertyNames()) {
 
-			if (commandProperties.containsKey(propertyName)) {
-				propertyNames.add(propertyName);
+			if (!commandProperties.containsKey(propertyName)) {
+				continue;
 			}
+
+			propertyNames.add(propertyName);
 		}
 
 		if (propertyNames.isEmpty()) {
@@ -1969,10 +1980,9 @@ public class PoshiContext {
 
 				String namespacedFileName = _namespace + "." + fileName;
 
-				if (_filePaths.containsKey(namespacedFileName)) {
-					String duplicateFilePath = _filePaths.get(
-						namespacedFileName);
+				String duplicateFilePath = _filePaths.get(namespacedFileName);
 
+				if (duplicateFilePath != null) {
 					throw new RuntimeException(
 						StringUtil.combine(
 							"Duplicate file name '", fileName,

@@ -5,23 +5,22 @@
 
 package com.liferay.headless.admin.site.client.serdes.v1_0;
 
-import com.liferay.headless.admin.site.client.dto.v1_0.ItemExternalReference;
-import com.liferay.headless.admin.site.client.dto.v1_0.Keyword;
 import com.liferay.headless.admin.site.client.dto.v1_0.PageSpecification;
-import com.liferay.headless.admin.site.client.dto.v1_0.TaxonomyCategory;
+import com.liferay.headless.admin.site.client.dto.v1_0.TaxonomyCategoryBrief;
 import com.liferay.headless.admin.site.client.dto.v1_0.WidgetPageTemplate;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
+
+import jakarta.annotation.Generated;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -116,21 +115,6 @@ public class WidgetPageTemplateSerDes {
 			sb.append(widgetPageTemplate.getCreator());
 		}
 
-		if (widgetPageTemplate.getCreatorExternalReferenceCode() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(
-				_escape(widgetPageTemplate.getCreatorExternalReferenceCode()));
-
-			sb.append("\"");
-		}
-
 		if (widgetPageTemplate.getDateCreated() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -207,36 +191,6 @@ public class WidgetPageTemplateSerDes {
 			sb.append("\"");
 		}
 
-		if (widgetPageTemplate.getKeywordItemExternalReferences() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"keywordItemExternalReferences\": ");
-
-			sb.append("[");
-
-			for (int i = 0;
-				 i <
-					 widgetPageTemplate.
-						 getKeywordItemExternalReferences().length;
-				 i++) {
-
-				sb.append(
-					String.valueOf(
-						widgetPageTemplate.getKeywordItemExternalReferences()
-							[i]));
-
-				if ((i + 1) < widgetPageTemplate.
-						getKeywordItemExternalReferences().length) {
-
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
-		}
-
 		if (widgetPageTemplate.getKeywords() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -247,7 +201,7 @@ public class WidgetPageTemplateSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < widgetPageTemplate.getKeywords().length; i++) {
-				sb.append(widgetPageTemplate.getKeywords()[i]);
+				sb.append(_toJSON(widgetPageTemplate.getKeywords()[i]));
 
 				if ((i + 1) < widgetPageTemplate.getKeywords().length) {
 					sb.append(", ");
@@ -318,22 +272,47 @@ public class WidgetPageTemplateSerDes {
 				String.valueOf(widgetPageTemplate.getPageTemplateSettings()));
 		}
 
-		if (widgetPageTemplate.getTaxonomyCategories() != null) {
+		if (widgetPageTemplate.getPermissions() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategories\": ");
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < widgetPageTemplate.getPermissions().length;
+				 i++) {
+
+				sb.append(widgetPageTemplate.getPermissions()[i]);
+
+				if ((i + 1) < widgetPageTemplate.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		if (widgetPageTemplate.getTaxonomyCategoryBriefs() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"taxonomyCategoryBriefs\": ");
 
 			sb.append("[");
 
 			for (int i = 0;
-				 i < widgetPageTemplate.getTaxonomyCategories().length; i++) {
+				 i < widgetPageTemplate.getTaxonomyCategoryBriefs().length;
+				 i++) {
 
-				sb.append(widgetPageTemplate.getTaxonomyCategories()[i]);
+				sb.append(
+					String.valueOf(
+						widgetPageTemplate.getTaxonomyCategoryBriefs()[i]));
 
 				if ((i + 1) <
-						widgetPageTemplate.getTaxonomyCategories().length) {
+						widgetPageTemplate.getTaxonomyCategoryBriefs().length) {
 
 					sb.append(", ");
 				}
@@ -342,35 +321,15 @@ public class WidgetPageTemplateSerDes {
 			sb.append("]");
 		}
 
-		if (widgetPageTemplate.getTaxonomyCategoryItemExternalReferences() !=
-				null) {
-
+		if (widgetPageTemplate.getThumbnailURLReference() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"taxonomyCategoryItemExternalReferences\": ");
+			sb.append("\"thumbnailURLReference\": ");
 
-			sb.append("[");
-
-			for (int i = 0;
-				 i < widgetPageTemplate.
-					 getTaxonomyCategoryItemExternalReferences().length;
-				 i++) {
-
-				sb.append(
-					String.valueOf(
-						widgetPageTemplate.
-							getTaxonomyCategoryItemExternalReferences()[i]));
-
-				if ((i + 1) < widgetPageTemplate.
-						getTaxonomyCategoryItemExternalReferences().length) {
-
-					sb.append(", ");
-				}
-			}
-
-			sb.append("]");
+			sb.append(
+				String.valueOf(widgetPageTemplate.getThumbnailURLReference()));
 		}
 
 		if (widgetPageTemplate.getType() != null) {
@@ -381,9 +340,7 @@ public class WidgetPageTemplateSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(widgetPageTemplate.getType());
-
 			sb.append("\"");
 		}
 
@@ -474,16 +431,6 @@ public class WidgetPageTemplateSerDes {
 			map.put("creator", String.valueOf(widgetPageTemplate.getCreator()));
 		}
 
-		if (widgetPageTemplate.getCreatorExternalReferenceCode() == null) {
-			map.put("creatorExternalReferenceCode", null);
-		}
-		else {
-			map.put(
-				"creatorExternalReferenceCode",
-				String.valueOf(
-					widgetPageTemplate.getCreatorExternalReferenceCode()));
-		}
-
 		if (widgetPageTemplate.getDateCreated() == null) {
 			map.put("dateCreated", null);
 		}
@@ -530,16 +477,6 @@ public class WidgetPageTemplateSerDes {
 			map.put("key", String.valueOf(widgetPageTemplate.getKey()));
 		}
 
-		if (widgetPageTemplate.getKeywordItemExternalReferences() == null) {
-			map.put("keywordItemExternalReferences", null);
-		}
-		else {
-			map.put(
-				"keywordItemExternalReferences",
-				String.valueOf(
-					widgetPageTemplate.getKeywordItemExternalReferences()));
-		}
-
 		if (widgetPageTemplate.getKeywords() == null) {
 			map.put("keywords", null);
 		}
@@ -582,26 +519,31 @@ public class WidgetPageTemplateSerDes {
 				String.valueOf(widgetPageTemplate.getPageTemplateSettings()));
 		}
 
-		if (widgetPageTemplate.getTaxonomyCategories() == null) {
-			map.put("taxonomyCategories", null);
+		if (widgetPageTemplate.getPermissions() == null) {
+			map.put("permissions", null);
 		}
 		else {
 			map.put(
-				"taxonomyCategories",
-				String.valueOf(widgetPageTemplate.getTaxonomyCategories()));
+				"permissions",
+				String.valueOf(widgetPageTemplate.getPermissions()));
 		}
 
-		if (widgetPageTemplate.getTaxonomyCategoryItemExternalReferences() ==
-				null) {
-
-			map.put("taxonomyCategoryItemExternalReferences", null);
+		if (widgetPageTemplate.getTaxonomyCategoryBriefs() == null) {
+			map.put("taxonomyCategoryBriefs", null);
 		}
 		else {
 			map.put(
-				"taxonomyCategoryItemExternalReferences",
-				String.valueOf(
-					widgetPageTemplate.
-						getTaxonomyCategoryItemExternalReferences()));
+				"taxonomyCategoryBriefs",
+				String.valueOf(widgetPageTemplate.getTaxonomyCategoryBriefs()));
+		}
+
+		if (widgetPageTemplate.getThumbnailURLReference() == null) {
+			map.put("thumbnailURLReference", null);
+		}
+		else {
+			map.put(
+				"thumbnailURLReference",
+				String.valueOf(widgetPageTemplate.getThumbnailURLReference()));
 		}
 
 		if (widgetPageTemplate.getType() == null) {
@@ -658,11 +600,6 @@ public class WidgetPageTemplateSerDes {
 			else if (Objects.equals(jsonParserFieldName, "creator")) {
 				return false;
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
-				return false;
-			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
 				return false;
 			}
@@ -678,11 +615,6 @@ public class WidgetPageTemplateSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "key")) {
-				return false;
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "keywordItemExternalReferences")) {
-
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "keywords")) {
@@ -704,14 +636,16 @@ public class WidgetPageTemplateSerDes {
 
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
 			else if (Objects.equals(
-						jsonParserFieldName, "taxonomyCategories")) {
+						jsonParserFieldName, "taxonomyCategoryBriefs")) {
 
 				return false;
 			}
 			else if (Objects.equals(
-						jsonParserFieldName,
-						"taxonomyCategoryItemExternalReferences")) {
+						jsonParserFieldName, "thumbnailURLReference")) {
 
 				return false;
 			}
@@ -769,14 +703,6 @@ public class WidgetPageTemplateSerDes {
 						CreatorSerDes.toDTO((String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
-				if (jsonParserFieldValue != null) {
-					widgetPageTemplate.setCreatorExternalReferenceCode(
-						(String)jsonParserFieldValue);
-				}
-			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
 				if (jsonParserFieldValue != null) {
 					widgetPageTemplate.setDateCreated(
@@ -808,42 +734,10 @@ public class WidgetPageTemplateSerDes {
 					widgetPageTemplate.setKey((String)jsonParserFieldValue);
 				}
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "keywordItemExternalReferences")) {
-
-				if (jsonParserFieldValue != null) {
-					Object[] jsonParserFieldValues =
-						(Object[])jsonParserFieldValue;
-
-					ItemExternalReference[] keywordItemExternalReferencesArray =
-						new ItemExternalReference[jsonParserFieldValues.length];
-
-					for (int i = 0;
-						 i < keywordItemExternalReferencesArray.length; i++) {
-
-						keywordItemExternalReferencesArray[i] =
-							ItemExternalReferenceSerDes.toDTO(
-								(String)jsonParserFieldValues[i]);
-					}
-
-					widgetPageTemplate.setKeywordItemExternalReferences(
-						keywordItemExternalReferencesArray);
-				}
-			}
 			else if (Objects.equals(jsonParserFieldName, "keywords")) {
 				if (jsonParserFieldValue != null) {
-					Object[] jsonParserFieldValues =
-						(Object[])jsonParserFieldValue;
-
-					Keyword[] keywordsArray =
-						new Keyword[jsonParserFieldValues.length];
-
-					for (int i = 0; i < keywordsArray.length; i++) {
-						keywordsArray[i] = KeywordSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
-					}
-
-					widgetPageTemplate.setKeywords(keywordsArray);
+					widgetPageTemplate.setKeywords(
+						toStrings((Object[])jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "name")) {
@@ -887,51 +781,55 @@ public class WidgetPageTemplateSerDes {
 							(String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "taxonomyCategories")) {
-
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					TaxonomyCategory[] taxonomyCategoriesArray =
-						new TaxonomyCategory[jsonParserFieldValues.length];
+					com.liferay.headless.admin.site.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.site.client.permission.
+							Permission[jsonParserFieldValues.length];
 
-					for (int i = 0; i < taxonomyCategoriesArray.length; i++) {
-						taxonomyCategoriesArray[i] =
-							TaxonomyCategorySerDes.toDTO(
-								(String)jsonParserFieldValues[i]);
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.site.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
-					widgetPageTemplate.setTaxonomyCategories(
-						taxonomyCategoriesArray);
+					widgetPageTemplate.setPermissions(permissionsArray);
 				}
 			}
 			else if (Objects.equals(
-						jsonParserFieldName,
-						"taxonomyCategoryItemExternalReferences")) {
+						jsonParserFieldName, "taxonomyCategoryBriefs")) {
 
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					ItemExternalReference[]
-						taxonomyCategoryItemExternalReferencesArray =
-							new ItemExternalReference
-								[jsonParserFieldValues.length];
+					TaxonomyCategoryBrief[] taxonomyCategoryBriefsArray =
+						new TaxonomyCategoryBrief[jsonParserFieldValues.length];
 
-					for (int i = 0;
-						 i < taxonomyCategoryItemExternalReferencesArray.length;
+					for (int i = 0; i < taxonomyCategoryBriefsArray.length;
 						 i++) {
 
-						taxonomyCategoryItemExternalReferencesArray[i] =
-							ItemExternalReferenceSerDes.toDTO(
+						taxonomyCategoryBriefsArray[i] =
+							TaxonomyCategoryBriefSerDes.toDTO(
 								(String)jsonParserFieldValues[i]);
 					}
 
-					widgetPageTemplate.
-						setTaxonomyCategoryItemExternalReferences(
-							taxonomyCategoryItemExternalReferencesArray);
+					widgetPageTemplate.setTaxonomyCategoryBriefs(
+						taxonomyCategoryBriefsArray);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "thumbnailURLReference")) {
+
+				if (jsonParserFieldValue != null) {
+					widgetPageTemplate.setThumbnailURLReference(
+						ThumbnailURLReferenceSerDes.toDTO(
+							(String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -991,6 +889,16 @@ public class WidgetPageTemplateSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -1023,3 +931,4 @@ public class WidgetPageTemplateSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:736484212

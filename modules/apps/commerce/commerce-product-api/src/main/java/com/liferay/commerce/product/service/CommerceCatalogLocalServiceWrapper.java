@@ -386,6 +386,11 @@ public class CommerceCatalogLocalServiceWrapper
 	}
 
 	@Override
+	public java.util.List<CommerceCatalog> getCommerceCatalogs(long companyId) {
+		return _commerceCatalogLocalService.getCommerceCatalogs(companyId);
+	}
+
+	@Override
 	public java.util.List<CommerceCatalog> getCommerceCatalogs(
 		long companyId, boolean system) {
 
@@ -427,6 +432,17 @@ public class CommerceCatalogLocalServiceWrapper
 
 		return _commerceCatalogLocalService.
 			getIndexableActionableDynamicQuery();
+	}
+
+	@Override
+	public CommerceCatalog getOrAddEmptyCommerceCatalog(
+			String externalReferenceCode, long companyId, long userId,
+			String name, String commerceCurrencyCode)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _commerceCatalogLocalService.getOrAddEmptyCommerceCatalog(
+			externalReferenceCode, companyId, userId, name,
+			commerceCurrencyCode);
 	}
 
 	/**
@@ -554,3 +570,4 @@ public class CommerceCatalogLocalServiceWrapper
 	private CommerceCatalogLocalService _commerceCatalogLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1939600952

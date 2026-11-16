@@ -35,7 +35,6 @@ import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.util.BigDecimalUtil;
@@ -61,7 +60,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Gianmarco Brunialti Masera
  */
 @Component(
-	property = "dto.class.name=com.liferay.headless.commerce.delivery.order.dto.v1_0.PlacedOrder",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.headless.commerce.delivery.order.dto.v1_0.PlacedOrder"
+	},
 	service = DTOConverter.class
 )
 public class PlacedOrderDTOConverter
@@ -90,6 +92,7 @@ public class PlacedOrderDTOConverter
 				setAccountId(commerceOrder::getCommerceAccountId);
 				setAttachments(() -> _getAttachments(commerceOrder));
 				setAuthor(commerceOrder::getUserName);
+				setAuthorId(commerceOrder::getUserId);
 				setChannelId(
 					() -> {
 						CommerceChannel commerceChannel =
@@ -112,10 +115,6 @@ public class PlacedOrderDTOConverter
 					commerceOrder::getExternalReferenceCode);
 				setFriendlyURLSeparator(
 					() -> {
-						if (!FeatureFlagManagerUtil.isEnabled("LPD-20379")) {
-							return null;
-						}
-
 						FriendlyURLSeparatorProvider
 							friendlyURLSeparatorProvider =
 								_friendlyURLSeparatorProviderSnapshot.get();
@@ -173,17 +172,19 @@ public class PlacedOrderDTOConverter
 						String paymentMethodKey =
 							commerceOrder.getCommercePaymentMethodKey();
 
-						if (Validator.isNotNull(paymentMethodKey)) {
-							CommercePaymentMethodGroupRel
-								commercePaymentMethodGroupRel =
-									_commercePaymentMethodGroupRelLocalService.
-										getCommercePaymentMethodGroupRel(
-											commerceOrder.getGroupId(),
-											paymentMethodKey);
+						if (Validator.isNull(paymentMethodKey)) {
+							return null;
+						}
 
-							if (commercePaymentMethodGroupRel != null) {
-								return commercePaymentMethodGroupRel.getName();
-							}
+						CommercePaymentMethodGroupRel
+							commercePaymentMethodGroupRel =
+								_commercePaymentMethodGroupRelLocalService.
+									getCommercePaymentMethodGroupRel(
+										commerceOrder.getGroupId(),
+										paymentMethodKey);
+
+						if (commercePaymentMethodGroupRel != null) {
+							return commercePaymentMethodGroupRel.getName();
 						}
 
 						return null;
@@ -214,6 +215,8 @@ public class PlacedOrderDTOConverter
 					commerceOrder::getShippingAddressId);
 				setPrintedNote(commerceOrder::getPrintedNote);
 				setPurchaseOrderNumber(commerceOrder::getPurchaseOrderNumber);
+				setRequestedDeliveryDate(
+					commerceOrder::getRequestedDeliveryDate);
 				setShippingMethod(
 					() -> {
 						CommerceShippingMethod commerceShippingMethod =
@@ -259,7 +262,8 @@ public class PlacedOrderDTOConverter
 			price = BigDecimal.ZERO;
 		}
 
-		return _commercePriceFormatter.format(commerceCurrency, price, locale);
+		return _commercePriceFormatter.format(
+			commerceCurrency, true, locale, price);
 	}
 
 	private Attachment[] _getAttachments(CommerceOrder commerceOrder)
@@ -391,6 +395,11 @@ public class PlacedOrderDTOConverter
 		Summary summary = new Summary() {
 			{
 				setCurrency(() -> commerceCurrency.getName(locale));
+				setItemsCount(
+					() ->
+						_commerceOrderItemService.
+							getParentCommerceOrderItemsCount(
+								commerceOrder.getCommerceOrderId(), 0));
 				setItemsQuantity(
 					() -> BigDecimalUtil.stripTrailingZeros(
 						_commerceOrderItemService.getCommerceOrderItemsQuantity(

@@ -33,9 +33,9 @@ import com.liferay.portal.model.impl.CompanyImpl;
 import com.liferay.portal.model.impl.LayoutImpl;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -63,7 +63,9 @@ public class FriendlyURLSeparatorCompanyConfigurationDisplayContextTest {
 			FriendlyURLResolverRegistryUtil.class);
 
 		_friendlyURLResolverRegistryUtilMockedStatic.when(
-			FriendlyURLResolverRegistryUtil::getFriendlyURLResolversAsCollection
+			() ->
+				FriendlyURLResolverRegistryUtil.
+					getFriendlyURLResolversAsCollection(Mockito.anyLong())
 		).thenReturn(
 			ListUtil.fromArray(
 				new FriendlyURLResolverImpl(
@@ -77,17 +79,11 @@ public class FriendlyURLSeparatorCompanyConfigurationDisplayContextTest {
 		_friendlyURLSeparatorConfigurationManager = Mockito.mock(
 			FriendlyURLSeparatorConfigurationManager.class);
 
-		Mockito.when(
-			_friendlyURLSeparatorConfigurationManager.
-				getFriendlyURLSeparatorsJSON(Mockito.anyLong())
-		).thenReturn(
-			StringPool.BLANK
-		);
-
 		_jsonFactory = Mockito.mock(JSONFactory.class);
 
 		Mockito.when(
-			_jsonFactory.createJSONObject(Mockito.anyString())
+			_friendlyURLSeparatorConfigurationManager.
+				getFriendlyURLSeparatorsJSONObject(Mockito.anyLong())
 		).thenReturn(
 			JSONUtil.put(
 				_SIMPLE_CLASS_NAME_BLOGS_ENTRY, "blog-test1"
@@ -323,6 +319,7 @@ public class FriendlyURLSeparatorCompanyConfigurationDisplayContextTest {
 		Company company = new CompanyImpl();
 
 		company.setCompanyId(0);
+		company.setGroupId(0);
 
 		themeDisplay.setCompany(company);
 
@@ -359,12 +356,12 @@ public class FriendlyURLSeparatorCompanyConfigurationDisplayContextTest {
 	private static final String _SIMPLE_CLASS_NAME_JOURNAL_ARTICLE =
 		"JournalArticle";
 
-	private static MockedStatic<FriendlyURLResolverRegistryUtil>
+	private MockedStatic<FriendlyURLResolverRegistryUtil>
 		_friendlyURLResolverRegistryUtilMockedStatic;
-	private static FriendlyURLSeparatorConfigurationManager
+	private FriendlyURLSeparatorConfigurationManager
 		_friendlyURLSeparatorConfigurationManager;
-	private static JSONFactory _jsonFactory;
-	private static Portal _portal;
+	private JSONFactory _jsonFactory;
+	private Portal _portal;
 
 	private static class FriendlyURLResolverImpl
 		implements FriendlyURLResolver {

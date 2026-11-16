@@ -13,11 +13,10 @@ import com.liferay.portal.search.highlight.FieldConfigBuilder;
 import com.liferay.portal.search.highlight.Highlight;
 import com.liferay.portal.search.internal.highlight.FieldConfigImpl;
 import com.liferay.portal.search.internal.highlight.HighlightImpl;
-import com.liferay.portal.search.internal.query.StringQueryImpl;
 import com.liferay.portal.search.opensearch2.internal.OpenSearchTestRule;
-import com.liferay.portal.search.opensearch2.internal.query.OpenSearchQueryTranslator;
-import com.liferay.portal.search.opensearch2.internal.query.OpenSearchQueryTranslatorFixture;
+import com.liferay.portal.search.opensearch2.internal.query.OpenSearchQueryVisitor;
 import com.liferay.portal.search.query.Query;
+import com.liferay.portal.search.query.StringQuery;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.util.ArrayList;
@@ -36,6 +35,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import org.opensearch.client.opensearch._types.query_dsl.Query.Kind;
+import org.opensearch.client.opensearch._types.query_dsl.QueryStringQuery;
 import org.opensearch.client.opensearch.core.search.BoundaryScanner;
 import org.opensearch.client.opensearch.core.search.BuiltinHighlighterType;
 import org.opensearch.client.opensearch.core.search.HighlightField;
@@ -60,8 +60,6 @@ public class HighlightTranslatorTest {
 
 	@Before
 	public void setUp() {
-		_openSearchQueryTranslator =
-			_openSearchQueryTranslatorFixture.getOpenSearchQueryTranslator();
 		_highlightPrototype = _createHighlightPrototype();
 	}
 
@@ -98,6 +96,38 @@ public class HighlightTranslatorTest {
 	}
 
 	@Test
+	public void testDefaultHighlightQueryIsIgnoredWhenHighlightQueryIsSet() {
+		_highlightPrototype._highlightQuery = new StringQuery("title:explicit");
+
+		org.opensearch.client.opensearch._types.query_dsl.Query defaultQuery =
+			new org.opensearch.client.opensearch._types.query_dsl.Query(
+				OpenSearchQueryVisitor.INSTANCE.translate(
+					new StringQuery("title:default")));
+
+		org.opensearch.client.opensearch._types.query_dsl.Query highlightQuery =
+			_translateHighlightQuery(_highlightPrototype, defaultQuery);
+
+		QueryStringQuery queryStringQuery = highlightQuery.queryString();
+
+		Assert.assertEquals("title:explicit", queryStringQuery.query());
+
+		Assert.assertNotSame(defaultQuery, highlightQuery);
+	}
+
+	@Test
+	public void testDefaultHighlightQueryIsUsedWhenHighlightQueryIsNull() {
+		org.opensearch.client.opensearch._types.query_dsl.Query defaultQuery =
+			new org.opensearch.client.opensearch._types.query_dsl.Query(
+				OpenSearchQueryVisitor.INSTANCE.translate(
+					new StringQuery("title:default")));
+
+		Assert.assertNull(_highlightPrototype._highlightQuery);
+		Assert.assertSame(
+			defaultQuery,
+			_translateHighlightQuery(_highlightPrototype, defaultQuery));
+	}
+
+	@Test
 	public void testFieldConfigs() {
 		List<FieldConfig> fieldConfigs = new ArrayList<>();
 
@@ -113,9 +143,15 @@ public class HighlightTranslatorTest {
 
 	@Test
 	public void testHighlightQuery() {
-		_highlightPrototype._highlightQuery = new StringQueryImpl("title:test");
+		_highlightPrototype._highlightQuery = new StringQuery("title:test");
 
 		_assertTranslation(_highlightPrototype);
+	}
+
+	@Test
+	public void testHighlightQueryIsNullWhenDefaultHighlightQueryIsNull() {
+		Assert.assertNull(_highlightPrototype._highlightQuery);
+		Assert.assertNull(_translateHighlightQuery(_highlightPrototype, null));
 	}
 
 	@Test
@@ -164,12 +200,12 @@ public class HighlightTranslatorTest {
 	public ExpectedException expectedException = ExpectedException.none();
 
 	protected BoundaryScanner getBoundaryScanner(String boundaryScannerType) {
-		if (boundaryScannerType != null) {
-			return BoundaryScanner.valueOf(
-				StringUtils.capitalize(boundaryScannerType));
+		if (boundaryScannerType == null) {
+			return null;
 		}
 
-		return null;
+		return BoundaryScanner.valueOf(
+			StringUtils.capitalize(boundaryScannerType));
 	}
 
 	protected HighlighterOrder getOrder(String order) {
@@ -227,11 +263,11 @@ public class HighlightTranslatorTest {
 		private String _boundaryScannerType;
 		private final String _fieldName;
 		private Boolean _forceSource;
-		private String _fragmenter;
 		private Integer _fragmentSize;
-		private String _highlighterType;
+		private String _fragmenter;
 		private Boolean _highlightFilter;
 		private Query _highlightQuery;
+		private String _highlighterType;
 		private final String[] _matchedFields;
 		private Integer _noMatchSize;
 		private final Integer _numFragments;
@@ -285,11 +321,11 @@ public class HighlightTranslatorTest {
 		private final String _encoder;
 		private List<FieldConfig> _fieldConfigs;
 		private Boolean _forceSource;
-		private String _fragmenter;
 		private Integer _fragmentSize;
-		private String _highlighterType;
+		private String _fragmenter;
 		private Boolean _highlightFilter;
 		private Query _highlightQuery;
+		private String _highlighterType;
 		private Integer _noMatchSize;
 		private final Integer _numOfFragments;
 		private String _order;
@@ -490,8 +526,7 @@ public class HighlightTranslatorTest {
 		Highlight highlight = _buildHighlight(highlightPrototype);
 
 		org.opensearch.client.opensearch.core.search.Highlight
-			openSearchHighlight = _highlightTranslator.translate(
-				highlight, _openSearchQueryTranslator);
+			openSearchHighlight = _highlightTranslator.translate(highlight);
 
 		_assertHighlightBuilder(openSearchHighlight, highlight);
 	}
@@ -602,7 +637,7 @@ public class HighlightTranslatorTest {
 		Integer fragmentSize = 3;
 		String highlighterType = "plain";
 		Boolean highlightFilter = true;
-		Query highlightQuery = new StringQueryImpl("title:test");
+		Query highlightQuery = new StringQuery("title:test");
 		String[] matchedFields = null;
 		Integer noMatchSize = 4;
 		Integer numFragments = 5;
@@ -715,18 +750,14 @@ public class HighlightTranslatorTest {
 	}
 
 	private String _getHighlighterType(HighlighterType highlighterType) {
-		if (highlighterType == null) {
+		if ((highlighterType == null) || !highlighterType.isBuiltin()) {
 			return null;
 		}
 
-		if (highlighterType.isBuiltin()) {
-			BuiltinHighlighterType builtinHighlighterType =
-				highlighterType.builtin();
+		BuiltinHighlighterType builtinHighlighterType =
+			highlighterType.builtin();
 
-			return builtinHighlighterType.jsonValue();
-		}
-
-		return null;
+		return builtinHighlighterType.jsonValue();
 	}
 
 	private Object _getQueryKind(
@@ -743,26 +774,35 @@ public class HighlightTranslatorTest {
 	}
 
 	private String _getQueryKind(Query query) {
-		if (query != null) {
-			org.opensearch.client.opensearch._types.query_dsl.Query
-				openSearchQuery =
-					new org.opensearch.client.opensearch._types.query_dsl.Query(
-						_openSearchQueryTranslator.translate(query));
-
-			Kind kind = openSearchQuery._kind();
-
-			return kind.jsonValue();
+		if (query == null) {
+			return null;
 		}
 
-		return null;
+		org.opensearch.client.opensearch._types.query_dsl.Query
+			openSearchQuery =
+				new org.opensearch.client.opensearch._types.query_dsl.Query(
+					OpenSearchQueryVisitor.INSTANCE.translate(query));
+
+		Kind kind = openSearchQuery._kind();
+
+		return kind.jsonValue();
+	}
+
+	private org.opensearch.client.opensearch._types.query_dsl.Query
+		_translateHighlightQuery(
+			HighlightPrototype highlightPrototype,
+			org.opensearch.client.opensearch._types.query_dsl.Query
+				defaultHighlightQuery) {
+
+		org.opensearch.client.opensearch.core.search.Highlight highlight =
+			_highlightTranslator.translate(
+				defaultHighlightQuery, _buildHighlight(highlightPrototype));
+
+		return highlight.highlightQuery();
 	}
 
 	private HighlightPrototype _highlightPrototype;
 	private final HighlightTranslator _highlightTranslator =
 		new HighlightTranslator();
-	private OpenSearchQueryTranslator _openSearchQueryTranslator;
-	private final OpenSearchQueryTranslatorFixture
-		_openSearchQueryTranslatorFixture =
-			new OpenSearchQueryTranslatorFixture();
 
 }

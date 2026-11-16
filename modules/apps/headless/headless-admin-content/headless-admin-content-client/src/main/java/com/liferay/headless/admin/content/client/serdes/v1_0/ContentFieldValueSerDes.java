@@ -8,13 +8,14 @@ package com.liferay.headless.admin.content.client.serdes.v1_0;
 import com.liferay.headless.admin.content.client.dto.v1_0.ContentFieldValue;
 import com.liferay.headless.admin.content.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -67,7 +68,7 @@ public class ContentFieldValueSerDes {
 
 			sb.append("\"document\": ");
 
-			sb.append(contentFieldValue.getDocument());
+			sb.append(String.valueOf(contentFieldValue.getDocument()));
 		}
 
 		if (contentFieldValue.getGeo() != null) {
@@ -77,7 +78,7 @@ public class ContentFieldValueSerDes {
 
 			sb.append("\"geo\": ");
 
-			sb.append(contentFieldValue.getGeo());
+			sb.append(String.valueOf(contentFieldValue.getGeo()));
 		}
 
 		if (contentFieldValue.getImage() != null) {
@@ -87,7 +88,7 @@ public class ContentFieldValueSerDes {
 
 			sb.append("\"image\": ");
 
-			sb.append(contentFieldValue.getImage());
+			sb.append(String.valueOf(contentFieldValue.getImage()));
 		}
 
 		if (contentFieldValue.getLink() != null) {
@@ -111,7 +112,8 @@ public class ContentFieldValueSerDes {
 
 			sb.append("\"structuredContentLink\": ");
 
-			sb.append(contentFieldValue.getStructuredContentLink());
+			sb.append(
+				String.valueOf(contentFieldValue.getStructuredContentLink()));
 		}
 
 		if (contentFieldValue.getValue() != null) {
@@ -340,6 +342,16 @@ public class ContentFieldValueSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -372,3 +384,4 @@ public class ContentFieldValueSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-622972310

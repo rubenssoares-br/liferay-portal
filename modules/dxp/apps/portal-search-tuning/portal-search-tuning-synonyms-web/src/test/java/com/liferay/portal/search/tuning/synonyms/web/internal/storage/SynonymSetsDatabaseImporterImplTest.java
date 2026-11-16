@@ -6,7 +6,7 @@
 package com.liferay.portal.search.tuning.synonyms.web.internal.storage;
 
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
-import com.liferay.portal.search.query.Queries;
+import com.liferay.portal.search.spi.reindexer.IndexReindexer;
 import com.liferay.portal.search.tuning.synonyms.web.internal.BaseSynonymsWebTestCase;
 import com.liferay.portal.search.tuning.synonyms.web.internal.index.SynonymSetIndexReindexer;
 import com.liferay.portal.search.tuning.synonyms.web.internal.storage.helper.SynonymSetJSONStorageHelper;
@@ -36,8 +36,6 @@ public class SynonymSetsDatabaseImporterImplTest
 			new SynonymSetsDatabaseImporterImpl();
 
 		ReflectionTestUtil.setFieldValue(
-			_synonymSetsDatabaseImporterImpl, "queries", _queries);
-		ReflectionTestUtil.setFieldValue(
 			_synonymSetsDatabaseImporterImpl, "searchEngineAdapter",
 			searchEngineAdapter);
 		ReflectionTestUtil.setFieldValue(
@@ -61,7 +59,7 @@ public class SynonymSetsDatabaseImporterImplTest
 		Mockito.verify(
 			_synonymSetIndexReindexer, Mockito.times(1)
 		).reindex(
-			Mockito.anyLong()
+			Mockito.anyLong(), Mockito.any(IndexReindexer.ExecutionMode.class)
 		);
 	}
 
@@ -72,11 +70,10 @@ public class SynonymSetsDatabaseImporterImplTest
 		Mockito.verify(
 			_synonymSetIndexReindexer, Mockito.never()
 		).reindex(
-			Mockito.anyLong()
+			Mockito.anyLong(), Mockito.any(IndexReindexer.ExecutionMode.class)
 		);
 	}
 
-	private final Queries _queries = Mockito.mock(Queries.class);
 	private final SynonymSetIndexReindexer _synonymSetIndexReindexer =
 		Mockito.mock(SynonymSetIndexReindexer.class);
 	private final SynonymSetJSONStorageHelper _synonymSetJSONStorageHelper =

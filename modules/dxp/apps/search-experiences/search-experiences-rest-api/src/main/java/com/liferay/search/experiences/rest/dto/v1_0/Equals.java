@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class Equals implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Equals.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFormat() {
 		if (_formatSupplier != null) {
 			format = _formatSupplier.get();
@@ -92,7 +92,7 @@ public class Equals implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _formatSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getParameterName() {
 		if (_parameterNameSupplier != null) {
 			parameterName = _parameterNameSupplier.get();
@@ -133,7 +133,7 @@ public class Equals implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _parameterNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getValue() {
 		if (_valueSupplier != null) {
@@ -243,17 +243,7 @@ public class Equals implements Serializable {
 
 			sb.append("\"value\": ");
 
-			if (value instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
-			}
-			else if (value instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)value));
-				sb.append("\"");
-			}
-			else {
-				sb.append(value);
-			}
+			sb.append(_toJSON(value));
 		}
 
 		sb.append("}");
@@ -261,8 +251,8 @@ public class Equals implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Equals",
 		name = "x-class-name"
 	)
@@ -349,6 +339,27 @@ public class Equals implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -357,3 +368,4 @@ public class Equals implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2109325986

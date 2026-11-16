@@ -55,8 +55,11 @@ if (folder != null) {
 		}
 	}
 	else {
-		portletFileEntries.addAll(PortletFileRepositoryUtil.getPortletFileEntries(scopeGroupId, folder.getFolderId(), WorkflowConstants.STATUS_APPROVED, start, end, blogsItemSelectorViewDisplayContext.getOrderByComparator()));
 		portletFileEntriesCount = PortletFileRepositoryUtil.getPortletFileEntriesCount(scopeGroupId, folder.getFolderId(), WorkflowConstants.STATUS_APPROVED);
+
+		startAndEnd = SearchPaginationUtil.calculateStartAndEnd(start, end, portletFileEntriesCount);
+
+		portletFileEntries.addAll(PortletFileRepositoryUtil.getPortletFileEntries(scopeGroupId, folder.getFolderId(), WorkflowConstants.STATUS_APPROVED, startAndEnd[0], startAndEnd[1], blogsItemSelectorViewDisplayContext.getOrderByComparator()));
 	}
 }
 %>
@@ -70,7 +73,7 @@ if (folder != null) {
 	itemSelectorReturnTypeResolver="<%= blogsItemSelectorViewDisplayContext.getItemSelectorReturnTypeResolver() %>"
 	maxFileSize="<%= blogsItemSelectorViewDisplayContext.getImageMaxSize() %>"
 	mimeTypeRestriction="<%= blogsItemSelectorViewDisplayContext.getMimeTypeRestriction() %>"
-	portletURL="<%= blogsItemSelectorViewDisplayContext.getPortletURL(request, liferayPortletResponse) %>"
+	portletURL="<%= blogsItemSelectorViewDisplayContext.getPortletURL(liferayPortletResponse) %>"
 	repositoryEntries="<%= portletFileEntries %>"
 	repositoryEntriesCount="<%= portletFileEntriesCount %>"
 	showDragAndDropZone="<%= blogsItemSelectorViewDisplayContext.showDragAndDropZone(themeDisplay) %>"

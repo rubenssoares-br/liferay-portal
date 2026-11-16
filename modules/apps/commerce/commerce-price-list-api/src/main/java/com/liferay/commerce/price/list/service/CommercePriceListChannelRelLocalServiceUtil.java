@@ -235,13 +235,6 @@ public class CommercePriceListChannelRelLocalServiceUtil {
 			CommercePriceListChannelRelId);
 	}
 
-	public static CommercePriceListChannelRel fetchCommercePriceListChannelRel(
-		long commerceChannelId, long commercePriceListId) {
-
-		return getService().fetchCommercePriceListChannelRel(
-			commerceChannelId, commercePriceListId);
-	}
-
 	/**
 	 * Returns the commerce price list channel rel with the matching UUID and company.
 	 *
@@ -345,20 +338,6 @@ public class CommercePriceListChannelRelLocalServiceUtil {
 		return getService().getCommercePriceListChannelRelsCount();
 	}
 
-	public static int getCommercePriceListChannelRelsCount(
-		long commercePriceListId) {
-
-		return getService().getCommercePriceListChannelRelsCount(
-			commercePriceListId);
-	}
-
-	public static int getCommercePriceListChannelRelsCount(
-		long commercePriceListId, String name) {
-
-		return getService().getCommercePriceListChannelRelsCount(
-			commercePriceListId, name);
-	}
-
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
 		getExportActionableDynamicQuery(
 			com.liferay.exportimport.kernel.lar.PortletDataContext
@@ -419,3 +398,4 @@ public class CommercePriceListChannelRelLocalServiceUtil {
 			CommercePriceListChannelRelLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2124688236

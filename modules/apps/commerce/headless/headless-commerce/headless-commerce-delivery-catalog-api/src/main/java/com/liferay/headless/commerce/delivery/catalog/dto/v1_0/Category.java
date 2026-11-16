@@ -11,33 +11,40 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Category")
+@GraphQLName(
+	description = "Asset-vocabulary category tagged on a catalog product, used for storefront browsing and filtering.",
+	value = "Category"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Asset-vocabulary category tagged on a catalog product, used for storefront browsing and filtering."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Category")
 public class Category implements Serializable {
@@ -51,7 +58,10 @@ public class Category implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the asset category (FK identifier).",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -83,14 +93,19 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the asset category (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "Category Name")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Untranslated category name. Matched by the search query parameter on the product list endpoint.",
+		example = "Hand Tools"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -122,14 +137,19 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Category Name")
+	@GraphQLField(
+		description = "Untranslated category name. Matched by the search query parameter on the product list endpoint."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the site that owns the vocabulary the category belongs to (FK identifier). Filterable via the OData query parameter.",
+		example = "20078"
+	)
 	public Long getSiteId() {
 		if (_siteIdSupplier != null) {
 			siteId = _siteIdSupplier.get();
@@ -163,14 +183,19 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the site that owns the vocabulary the category belongs to (FK identifier). Filterable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long siteId;
 
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema(description = "Category Title")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized category title resolved for the request locale. Read-only.",
+		example = "Hand Tools"
+	)
 	public String getTitle() {
 		if (_titleSupplier != null) {
 			title = _titleSupplier.get();
@@ -204,14 +229,19 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Category Title")
+	@GraphQLField(
+		description = "Localized category title resolved for the request locale. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String title;
 
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@Schema(example = "Default Vocabulary")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the asset vocabulary the category belongs to. Read-only.",
+		example = "Default Vocabulary"
+	)
 	public String getVocabulary() {
 		if (_vocabularySupplier != null) {
 			vocabulary = _vocabularySupplier.get();
@@ -245,7 +275,9 @@ public class Category implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the asset vocabulary the category belongs to. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String vocabulary;
 
@@ -356,8 +388,8 @@ public class Category implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.Category",
 		name = "x-class-name"
 	)
@@ -444,6 +476,27 @@ public class Category implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -452,3 +505,4 @@ public class Category implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-624159447

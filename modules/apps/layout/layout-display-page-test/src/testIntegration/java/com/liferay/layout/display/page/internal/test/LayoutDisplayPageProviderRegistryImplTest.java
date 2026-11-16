@@ -11,7 +11,6 @@ import com.liferay.layout.display.page.LayoutDisplayPageObjectProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProviderRegistry;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.util.HashMapDictionary;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
@@ -48,7 +47,7 @@ public class LayoutDisplayPageProviderRegistryImplTest {
 			Assert.assertNotNull(
 				_layoutDisplayPageProviderRegistry.
 					getLayoutDisplayPageProviderByURLSeparator(
-						"/url-separator/"));
+						0, "/url-separator/"));
 		}
 		finally {
 			if (serviceRegistration != null) {
@@ -68,7 +67,7 @@ public class LayoutDisplayPageProviderRegistryImplTest {
 			Assert.assertNotNull(
 				_layoutDisplayPageProviderRegistry.
 					getLayoutDisplayPageProviderByURLSeparator(
-						"/default-url-separator/"));
+						0, "/default-url-separator/"));
 		}
 		finally {
 			if (serviceRegistration != null) {
@@ -89,7 +88,7 @@ public class LayoutDisplayPageProviderRegistryImplTest {
 			LayoutDisplayPageProvider.class,
 			new LayoutDisplayPageProviderImpl(
 				defaultURLSeparator, "/url-separator/"),
-			new HashMapDictionary<>());
+			null);
 	}
 
 	@Inject(

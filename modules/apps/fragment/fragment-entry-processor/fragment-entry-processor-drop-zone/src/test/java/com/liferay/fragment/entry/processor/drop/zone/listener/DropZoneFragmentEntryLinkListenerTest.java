@@ -9,6 +9,7 @@ import com.liferay.fragment.entry.processor.drop.zone.FragmentEntryProcessorDrop
 import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.processor.FragmentEntryProcessorContext;
 import com.liferay.fragment.processor.FragmentEntryProcessorRegistry;
+import com.liferay.fragment.util.configuration.FragmentEntryConfigurationParser;
 import com.liferay.layout.page.template.model.LayoutPageTemplateStructure;
 import com.liferay.layout.page.template.service.LayoutPageTemplateStructureLocalService;
 import com.liferay.layout.util.structure.FragmentDropZoneLayoutStructureItem;
@@ -17,6 +18,7 @@ import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.layout.util.structure.LayoutStructureItem;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
@@ -25,13 +27,17 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.KeyValuePair;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
+import com.liferay.portal.util.PortalImpl;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,6 +54,13 @@ public class DropZoneFragmentEntryLinkListenerTest {
 	@Rule
 	public static final LiferayUnitTestRule liferayUnitTestRule =
 		LiferayUnitTestRule.INSTANCE;
+
+	@BeforeClass
+	public static void setUpClass() {
+		PortalUtil portalUtil = new PortalUtil();
+
+		portalUtil.setPortal(new PortalImpl());
+	}
 
 	@Before
 	public void setUp() {
@@ -383,7 +396,7 @@ public class DropZoneFragmentEntryLinkListenerTest {
 				_layoutPageTemplateStructureLocalService, Mockito.never()
 			).updateLayoutPageTemplateStructureData(
 				Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(),
-				Mockito.anyString()
+				Mockito.anyLong(), Mockito.anyString()
 			);
 
 			return;
@@ -396,7 +409,7 @@ public class DropZoneFragmentEntryLinkListenerTest {
 			_layoutPageTemplateStructureLocalService
 		).updateLayoutPageTemplateStructureData(
 			Mockito.anyLong(), Mockito.anyLong(), Mockito.anyLong(),
-			argumentCaptor.capture()
+			Mockito.anyLong(), argumentCaptor.capture()
 		);
 
 		LayoutStructure layoutStructure = LayoutStructure.of(
@@ -440,9 +453,11 @@ public class DropZoneFragmentEntryLinkListenerTest {
 
 			String itemId = dropZoneIdItemIdKeyValuePairs[i].getValue();
 
-			if (!Validator.isBlank(itemId)) {
-				Assert.assertEquals(itemId, layoutStructureItem.getItemId());
+			if (Validator.isBlank(itemId)) {
+				continue;
 			}
+
+			Assert.assertEquals(itemId, layoutStructureItem.getItemId());
 		}
 
 		for (String deletedItemId : deletedItemIds) {
@@ -522,6 +537,21 @@ public class DropZoneFragmentEntryLinkListenerTest {
 		ReflectionTestUtil.setFieldValue(
 			_dropZoneFragmentEntryLinkListener,
 			"_fragmentEntryProcessorRegistry", _fragmentEntryProcessorRegistry);
+
+		FragmentEntryConfigurationParser fragmentEntryConfigurationParser =
+			Mockito.mock(FragmentEntryConfigurationParser.class);
+
+		Mockito.when(
+			fragmentEntryConfigurationParser.getFragmentConfigurationFields(
+				Mockito.nullable(JSONObject.class))
+		).thenReturn(
+			Collections.emptyList()
+		);
+
+		ReflectionTestUtil.setFieldValue(
+			_dropZoneFragmentEntryLinkListener,
+			"_fragmentEntryConfigurationParser",
+			fragmentEntryConfigurationParser);
 	}
 
 	private void _setUpFragmentEntryProcessorRegistry(

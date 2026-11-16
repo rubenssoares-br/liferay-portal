@@ -28,16 +28,15 @@ import com.liferay.portal.kernel.portlet.PortletIdCodec;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
-import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.servlet.PortletServlet;
 import com.liferay.portal.kernel.template.TemplateConstants;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
 import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
-import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -46,6 +45,9 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.ScopeUtil;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
@@ -57,12 +59,14 @@ import com.liferay.segments.service.SegmentsExperienceLocalService;
 import com.liferay.segments.service.SegmentsExperienceService;
 import com.liferay.segments.test.util.SegmentsTestUtil;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletPreferences;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Iterator;
 import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletPreferences;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -89,7 +93,7 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 
 	@Before
 	public void setUp() throws Exception {
-		_group = GroupTestUtil.addGroup();
+		_group = _groupLocalService.getGroup(TestPropsValues.getGroupId());
 
 		_layout = LayoutTestUtil.addTypeContentLayout(_group);
 
@@ -125,8 +129,7 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 				ddmTemplate.getTemplateKey();
 
 		_setUpPortletPreferences(
-			assetVocabulary1.getVocabularyId(), _addPortletToLayout(),
-			displayStyle);
+			assetVocabulary1, _addPortletToLayout(), displayStyle);
 
 		AssetVocabulary assetVocabulary2 = AssetTestUtil.addVocabulary(
 			_group.getGroupId());
@@ -134,8 +137,8 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 		long segmentsExperienceId = _addSegmentsExperience();
 
 		_setUpPortletPreferences(
-			assetVocabulary2.getVocabularyId(),
-			_getPortletId(segmentsExperienceId), displayStyle);
+			assetVocabulary2, _getPortletId(segmentsExperienceId),
+			displayStyle);
 
 		ContentLayoutTestUtil.publishLayout(_draftLayout, _layout);
 
@@ -147,9 +150,19 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 		Assert.assertTrue(html.contains(assetVocabulary1.getName()));
 		Assert.assertFalse(html.contains(assetVocabulary2.getName()));
 
+		SegmentsExperience draftLayoutSegmentsExperience =
+			_segmentsExperienceLocalService.fetchSegmentsExperience(
+				segmentsExperienceId);
+
+		SegmentsExperience publishLayoutSegmentsExperience =
+			_segmentsExperienceLocalService.fetchSegmentsExperience(
+				draftLayoutSegmentsExperience.getGroupId(),
+				draftLayoutSegmentsExperience.getSegmentsExperienceKey(),
+				_layout.getPlid());
+
 		html = ContentLayoutTestUtil.getRenderLayoutHTML(
 			_layout, _layoutServiceContextHelper, _layoutStructureProvider,
-			segmentsExperienceId);
+			publishLayoutSegmentsExperience.getSegmentsExperienceId());
 
 		Assert.assertFalse(html.contains(assetVocabulary1.getName()));
 		Assert.assertTrue(html.contains(assetVocabulary2.getName()));
@@ -161,44 +174,13 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 			ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
 				"{}", _draftLayout,
 				_segmentsExperienceLocalService.
-					fetchDefaultSegmentsExperienceId(_layout.getPlid()));
+					fetchDefaultSegmentsExperienceId(_draftLayout.getPlid()));
 
-		String name = RandomTestUtil.randomString(10);
+		_testAddSegmentsExperiment(
+			sourceFragmentEntryLink,
+			_groupLocalService.getCompanyGroup(TestPropsValues.getCompanyId()));
 
-		SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
-			_group.getGroupId());
-
-		JSONObject responseJSONObject = _addSegmentsExperience(
-			name, segmentsEntry.getSegmentsEntryId());
-
-		JSONObject segmentsExperienceJSONObject =
-			responseJSONObject.getJSONObject("segmentsExperience");
-
-		Assert.assertEquals(name, segmentsExperienceJSONObject.get("name"));
-		Assert.assertEquals(
-			segmentsEntry.getSegmentsEntryId(),
-			GetterUtil.getLong(
-				segmentsExperienceJSONObject.get("segmentsEntryId")));
-
-		long segmentsExperienceId = GetterUtil.getLong(
-			segmentsExperienceJSONObject.get("segmentsExperienceId"));
-
-		SegmentsExperience segmentsExperience =
-			_segmentsExperienceService.getSegmentsExperience(
-				segmentsExperienceId);
-
-		Assert.assertTrue(segmentsExperience.isActive());
-		Assert.assertEquals(
-			name, segmentsExperience.getName(LocaleUtil.getDefault()));
-		Assert.assertEquals(
-			segmentsEntry.getSegmentsEntryId(),
-			segmentsExperience.getSegmentsEntryId());
-		Assert.assertEquals(
-			segmentsExperienceId, segmentsExperience.getSegmentsExperienceId());
-
-		_assertFragmentEntryLinks(
-			responseJSONObject.getJSONObject("fragmentEntryLinks"),
-			sourceFragmentEntryLink);
+		_testAddSegmentsExperiment(sourceFragmentEntryLink, _group);
 	}
 
 	private String _addPortletToLayout() throws Exception {
@@ -221,22 +203,23 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 
 	private long _addSegmentsExperience() throws Exception {
 		JSONObject responseJSONObject = _addSegmentsExperience(
-			RandomTestUtil.randomString(), 0);
+			RandomTestUtil.randomString(), null, null);
 
 		JSONObject segmentsExperienceJSONObject =
 			responseJSONObject.getJSONObject("segmentsExperience");
 
-		return GetterUtil.getLong(
-			segmentsExperienceJSONObject.get("segmentsExperienceId"));
+		return segmentsExperienceJSONObject.getLong("segmentsExperienceId");
 	}
 
-	private JSONObject _addSegmentsExperience(String name, long segmentsEntryId)
+	private JSONObject _addSegmentsExperience(
+			String name, String segmentsEntryERC, String segmentsEntryScopeERC)
 		throws Exception {
 
 		return ReflectionTestUtil.invoke(
 			_mvcActionCommand, "addSegmentsExperience",
 			new Class<?>[] {ActionRequest.class, ActionResponse.class},
-			_getMockLiferayPortletActionRequest(name, segmentsEntryId),
+			_getMockLiferayPortletActionRequest(
+				name, segmentsEntryERC, segmentsEntryScopeERC),
 			new MockLiferayPortletActionResponse());
 	}
 
@@ -256,19 +239,31 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 			_fragmentEntryLinkLocalService.getFragmentEntryLink(
 				GetterUtil.getLong(iterator.next()));
 
+		Assert.assertTrue(
+			Validator.isNull(
+				targetFragmentEntryLink.getOriginalFragmentEntryLinkERC()));
 		Assert.assertEquals(
-			0, targetFragmentEntryLink.getOriginalFragmentEntryLinkId());
+			sourceFragmentEntryLink.getFragmentEntryERC(),
+			targetFragmentEntryLink.getFragmentEntryERC());
 
-		Assert.assertEquals(
-			sourceFragmentEntryLink.getFragmentEntryId(),
-			targetFragmentEntryLink.getFragmentEntryId());
+		Long groupId1 = ScopeUtil.getItemGroupId(
+			sourceFragmentEntryLink.getCompanyId(),
+			sourceFragmentEntryLink.getFragmentEntryScopeERC(),
+			sourceFragmentEntryLink.getGroupId());
+		Long groupId2 = ScopeUtil.getItemGroupId(
+			targetFragmentEntryLink.getCompanyId(),
+			targetFragmentEntryLink.getFragmentEntryScopeERC(),
+			targetFragmentEntryLink.getGroupId());
+
+		Assert.assertEquals(groupId1, groupId2);
+
 		Assert.assertEquals(
 			sourceFragmentEntryLink.getHtml(),
 			targetFragmentEntryLink.getHtml());
 	}
 
 	private MockLiferayPortletActionRequest _getMockLiferayPortletActionRequest(
-			String name, long segmentsEntryId)
+			String name, String segmentsEntryERC, String segmentsEntryScopeERC)
 		throws Exception {
 
 		MockLiferayPortletActionRequest mockLiferayPortletActionRequest =
@@ -280,13 +275,28 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 		mockLiferayPortletActionRequest.addParameter(
 			"plid", String.valueOf(_draftLayout.getPlid()));
 		mockLiferayPortletActionRequest.addParameter(
-			"segmentsEntryId", String.valueOf(segmentsEntryId));
+			"segmentsEntryERC", String.valueOf(segmentsEntryERC));
+		mockLiferayPortletActionRequest.addParameter(
+			"segmentsEntryScopeERC", String.valueOf(segmentsEntryScopeERC));
 		mockLiferayPortletActionRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_CONFIG, null);
+			JavaConstants.JAKARTA_PORTLET_CONFIG, null);
+
+		HttpServletRequest httpServletRequest = new MockHttpServletRequest();
+
+		ThemeDisplay themeDisplay = _getThemeDisplay();
+
+		httpServletRequest.setAttribute(WebKeys.THEME_DISPLAY, themeDisplay);
+
+		httpServletRequest.setAttribute(
+			WebKeys.USER_ID, TestPropsValues.getUserId());
+
+		mockLiferayPortletActionRequest.setAttribute(
+			PortletServlet.PORTLET_SERVLET_REQUEST, httpServletRequest);
+
 		mockLiferayPortletActionRequest.setAttribute(
 			WebKeys.LAYOUT, _draftLayout);
 		mockLiferayPortletActionRequest.setAttribute(
-			WebKeys.THEME_DISPLAY, _getThemeDisplay());
+			WebKeys.THEME_DISPLAY, themeDisplay);
 
 		return mockLiferayPortletActionRequest;
 	}
@@ -306,8 +316,8 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 		Assert.assertEquals(
 			FragmentConstants.TYPE_PORTLET, fragmentEntryLink.getType());
 
-		JSONObject editableValuesJSONObject = _jsonFactory.createJSONObject(
-			fragmentEntryLink.getEditableValues());
+		JSONObject editableValuesJSONObject =
+			fragmentEntryLink.getEditableValuesJSONObject();
 
 		return PortletIdCodec.encode(
 			editableValuesJSONObject.getString("portletId"),
@@ -330,7 +340,7 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 		themeDisplay.setRequest(new MockHttpServletRequest());
 		themeDisplay.setScopeGroupId(_group.getGroupId());
 		themeDisplay.setServerName("localhost");
-		themeDisplay.setServerPort(8080);
+		themeDisplay.setServerPort(PortalUtil.getPortalServerPort(false));
 		themeDisplay.setSiteGroupId(_group.getGroupId());
 		themeDisplay.setUser(TestPropsValues.getUser());
 
@@ -338,7 +348,8 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 	}
 
 	private void _setUpPortletPreferences(
-			long assetVocabularyId, String portletId, String displayStyle)
+			AssetVocabulary assetVocabulary, String portletId,
+			String displayStyle)
 		throws Exception {
 
 		PortletPreferences portletPreferences =
@@ -347,14 +358,90 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 		portletPreferences.setValue(
 			"allAssetVocabularies", Boolean.FALSE.toString());
 		portletPreferences.setValue(
-			"assetVocabularyIds", String.valueOf(assetVocabularyId));
+			"assetVocabularyExternalReferenceCodes_" +
+				_group.getExternalReferenceCode(),
+			assetVocabulary.getExternalReferenceCode());
+		portletPreferences.setValue(
+			"assetVocabularyGroupExternalReferenceCodes",
+			_group.getExternalReferenceCode());
 		portletPreferences.setValue("displayStyle", displayStyle);
 		portletPreferences.setValue(
-			"displayStyleGroupId", String.valueOf(_group.getGroupId()));
-		portletPreferences.setValue(
-			"displayStyleGroupKey", _group.getGroupKey());
+			"displayStyleGroupExternalReferenceCode",
+			_group.getExternalReferenceCode());
 
 		portletPreferences.store();
+	}
+
+	private void _testAddSegmentsExperiment(
+			FragmentEntryLink fragmentEntryLink, Group group)
+		throws Exception {
+
+		String name = RandomTestUtil.randomString(10);
+
+		SegmentsEntry segmentsEntry = SegmentsTestUtil.addSegmentsEntry(
+			group.getGroupId());
+
+		String segmentsEntryScopeERC =
+			ScopeUtil.getItemScopeExternalReferenceCode(
+				segmentsEntry.getGroupId(), _draftLayout.getGroupId());
+
+		JSONObject responseJSONObject = _addSegmentsExperience(
+			name, segmentsEntry.getExternalReferenceCode(),
+			segmentsEntryScopeERC);
+
+		JSONObject segmentsExperienceJSONObject =
+			responseJSONObject.getJSONObject("segmentsExperience");
+
+		Assert.assertEquals(name, segmentsExperienceJSONObject.get("name"));
+		Assert.assertEquals(
+			segmentsEntry.getExternalReferenceCode(),
+			segmentsExperienceJSONObject.getString("segmentsEntryERC"));
+
+		if (segmentsEntry.getGroupId() == _draftLayout.getGroupId()) {
+			Assert.assertTrue(
+				Validator.isNull(
+					segmentsExperienceJSONObject.getString(
+						"segmentsEntryScopeERC")));
+		}
+		else {
+			Assert.assertEquals(
+				segmentsEntryScopeERC,
+				segmentsExperienceJSONObject.getString(
+					"segmentsEntryScopeERC"));
+		}
+
+		long segmentsExperienceId = segmentsExperienceJSONObject.getLong(
+			"segmentsExperienceId");
+
+		SegmentsExperience segmentsExperience =
+			_segmentsExperienceService.getSegmentsExperience(
+				segmentsExperienceId);
+
+		Assert.assertTrue(segmentsExperience.isActive());
+		Assert.assertFalse(segmentsExperience.isDefault());
+		Assert.assertEquals(
+			name, segmentsExperience.getName(LocaleUtil.getDefault()));
+		Assert.assertEquals(
+			segmentsEntry.getExternalReferenceCode(),
+			segmentsExperience.getSegmentsEntryERC());
+
+		if (segmentsEntry.getGroupId() == segmentsExperience.getGroupId()) {
+			Assert.assertTrue(
+				Validator.isNull(
+					segmentsExperience.getSegmentsEntryScopeERC()));
+		}
+		else {
+			Assert.assertEquals(
+				segmentsEntryScopeERC,
+				segmentsExperience.getSegmentsEntryScopeERC());
+		}
+
+		Assert.assertEquals(
+			segmentsExperienceId, segmentsExperience.getSegmentsExperienceId());
+
+		_assertFragmentEntryLinks(
+			responseJSONObject.getJSONObject("fragmentEntryLinks"),
+			fragmentEntryLink);
 	}
 
 	@Inject
@@ -365,16 +452,15 @@ public class AddSegmentsExperienceMVCActionCommandTest {
 	@Inject
 	private FragmentEntryLinkLocalService _fragmentEntryLinkLocalService;
 
-	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject
+	private GroupLocalService _groupLocalService;
 
 	@Inject
 	private JSONFactory _jsonFactory;
 
 	private Layout _layout;
-
-	@Inject
-	private LayoutLocalService _layoutLocalService;
 
 	@Inject
 	private LayoutServiceContextHelper _layoutServiceContextHelper;

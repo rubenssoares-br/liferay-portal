@@ -8,6 +8,7 @@ package com.liferay.object.rest.internal.graphql.dto.v1_0;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.constants.ObjectRelationshipConstants;
 import com.liferay.object.entry.util.ObjectEntryDTOConverterUtil;
+import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.model.ObjectRelationship;
@@ -66,6 +67,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -82,7 +84,9 @@ public class ObjectDefinitionGraphQLDTOContributor
 		ObjectDefinitionLocalService objectDefinitionLocalService,
 		ObjectEntryManager objectEntryManager,
 		ObjectFieldLocalService objectFieldLocalService,
+		List<ObjectField> objectFields,
 		ObjectRelationshipLocalService objectRelationshipLocalService,
+		List<ObjectRelationship> objectRelationships,
 		ObjectScopeProvider objectScopeProvider,
 		SystemObjectDefinitionManagerRegistry
 			systemObjectDefinitionManagerRegistry) {
@@ -100,6 +104,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 			GraphQLDTOProperty.of("dateModified", true, Date.class));
 		graphQLDTOProperties.add(
 			GraphQLDTOProperty.of("externalReferenceCode", String.class));
+		graphQLDTOProperties.add(GraphQLDTOProperty.of("id", true, Long.class));
 		graphQLDTOProperties.add(
 			GraphQLDTOProperty.of("status", true, String.class));
 		graphQLDTOProperties.add(
@@ -108,11 +113,18 @@ public class ObjectDefinitionGraphQLDTOContributor
 		List<GraphQLDTOProperty> relationshipGraphQLDTOProperties =
 			new ArrayList<>();
 
-		List<ObjectField> objectFields =
-			objectFieldLocalService.getObjectFields(
+		if (objectFields == null) {
+			objectFields = objectFieldLocalService.getObjectFields(
 				objectDefinition.getObjectDefinitionId());
+		}
+
+		List<ObjectField> finalObjectFields = objectFields;
 
 		for (ObjectField objectField : objectFields) {
+			if (ObjectFieldUtil.isMetadata(objectField.getName())) {
+				continue;
+			}
+
 			if (Objects.equals(
 					objectField.getBusinessType(),
 					ObjectFieldConstants.BUSINESS_TYPE_ATTACHMENT)) {
@@ -120,6 +132,15 @@ public class ObjectDefinitionGraphQLDTOContributor
 				graphQLDTOProperties.add(
 					GraphQLDTOProperty.of(
 						objectField.getName(), FileEntry.class));
+			}
+			else if (Objects.equals(
+						objectField.getBusinessType(),
+						ObjectFieldConstants.
+							BUSINESS_TYPE_MULTISELECT_PICKLIST)) {
+
+				graphQLDTOProperties.add(
+					GraphQLDTOProperty.of(
+						objectField.getName(), ListEntry[].class));
 			}
 			else if (objectField.getListTypeDefinitionId() != 0) {
 				graphQLDTOProperties.add(
@@ -159,9 +180,11 @@ public class ObjectDefinitionGraphQLDTOContributor
 			}
 		}
 
-		List<ObjectRelationship> objectRelationships =
-			objectRelationshipLocalService.getObjectRelationships(
-				objectDefinition.getObjectDefinitionId());
+		if (objectRelationships == null) {
+			objectRelationships =
+				objectRelationshipLocalService.getObjectRelationships(
+					objectDefinition.getObjectDefinitionId());
+		}
 
 		for (ObjectRelationship objectRelationship : objectRelationships) {
 			if (!Objects.equals(
@@ -180,7 +203,8 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 		return new ObjectDefinitionGraphQLDTOContributor(
 			objectDefinition.getCompanyId(),
-			entityModelProvider.getEntityModel(objectDefinition),
+			() -> entityModelProvider.getEntityModel(
+				objectDefinition, finalObjectFields),
 			extensionProviderRegistry, graphQLDTOProperties,
 			StringUtil.removeSubstring(
 				objectDefinition.getPKObjectFieldName(), "c_"),
@@ -197,16 +221,20 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 		return _toMap(
 			_objectEntryManager.addObjectEntry(
-				dtoConverterContext, _objectDefinition, _toObjectEntry(dto),
+				dtoConverterContext, _cloneObjectDefinition(),
+				_toObjectEntry(dto),
 				(String)dtoConverterContext.getAttribute("scopeKey")));
 	}
 
 	@Override
-	public boolean deleteDTO(long id) throws Exception {
+	public boolean deleteDTO(DTOConverterContext dtoConverterContext, long id)
+		throws Exception {
+
 		DefaultObjectEntryManager defaultObjectEntryManager =
 			DefaultObjectEntryManagerProvider.provide(_objectEntryManager);
 
-		defaultObjectEntryManager.deleteObjectEntry(_objectDefinition, id);
+		defaultObjectEntryManager.deleteObjectEntry(
+			_cloneObjectDefinition(), id);
 
 		return true;
 	}
@@ -231,7 +259,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 		return _toMap(
 			defaultObjectEntryManager.getObjectEntry(
-				dtoConverterContext, _objectDefinition, id));
+				dtoConverterContext, _cloneObjectDefinition(), id));
 	}
 
 	@Override
@@ -242,7 +270,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 		Page<ObjectEntry> page = _objectEntryManager.getObjectEntries(
 			(Long)dtoConverterContext.getAttribute("companyId"),
-			_objectDefinition,
+			_cloneObjectDefinition(),
 			(String)dtoConverterContext.getAttribute("scopeKey"), aggregation,
 			dtoConverterContext,
 			(String)dtoConverterContext.getAttribute("filter"), pagination,
@@ -256,7 +284,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 	@Override
 	public EntityModel getEntityModel() {
-		return _entityModel;
+		return _entityModelSupplier.get();
 	}
 
 	@Override
@@ -288,7 +316,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 			DefaultObjectEntryManagerProvider.provide(_objectEntryManager);
 
 		ObjectEntry objectEntry = defaultObjectEntryManager.getObjectEntry(
-			dtoConverterContext, _objectDefinition, id);
+			dtoConverterContext, _cloneObjectDefinition(), id);
 
 		Map<String, Object> properties = objectEntry.getProperties();
 
@@ -297,9 +325,11 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 		if (Validator.isNull(objectRelationshipObjectFieldName)) {
 			Page<ObjectEntry> page =
-				defaultObjectEntryManager.getObjectEntryRelatedObjectEntries(
-					dtoConverterContext, _objectDefinition, id,
-					relationshipName,
+				defaultObjectEntryManager.getRelatedObjectEntries(
+					dtoConverterContext, id,
+					_objectRelationshipLocalService.getObjectRelationship(
+						_objectDefinition.getObjectDefinitionId(),
+						relationshipName),
 					Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS));
 
 			return (T)TransformUtil.transform(
@@ -396,12 +426,12 @@ public class ObjectDefinitionGraphQLDTOContributor
 
 		return _toMap(
 			defaultObjectEntryManager.updateObjectEntry(
-				dtoConverterContext, _objectDefinition, id,
+				dtoConverterContext, _cloneObjectDefinition(), id,
 				_toObjectEntry(dto)));
 	}
 
 	private ObjectDefinitionGraphQLDTOContributor(
-		long companyId, EntityModel entityModel,
+		long companyId, Supplier<EntityModel> entityModelSupplier,
 		ExtensionProviderRegistry extensionProviderRegistry,
 		List<GraphQLDTOProperty> graphQLDTOProperties, String idName,
 		ObjectDefinition objectDefinition,
@@ -416,7 +446,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 		String typeName) {
 
 		_companyId = companyId;
-		_entityModel = entityModel;
+		_entityModelSupplier = entityModelSupplier;
 		_extensionProviderRegistry = extensionProviderRegistry;
 		_graphQLDTOProperties = graphQLDTOProperties;
 		_idName = idName;
@@ -430,6 +460,10 @@ public class ObjectDefinitionGraphQLDTOContributor
 		_systemObjectDefinitionManagerRegistry =
 			systemObjectDefinitionManagerRegistry;
 		_typeName = typeName;
+	}
+
+	private ObjectDefinition _cloneObjectDefinition() {
+		return (ObjectDefinition)_objectDefinition.clone();
 	}
 
 	private String _getObjectRelationshipObjectFieldName(
@@ -604,7 +638,7 @@ public class ObjectDefinitionGraphQLDTOContributor
 		).build();
 
 	private final long _companyId;
-	private final EntityModel _entityModel;
+	private final Supplier<EntityModel> _entityModelSupplier;
 	private final ExtensionProviderRegistry _extensionProviderRegistry;
 	private final List<GraphQLDTOProperty> _graphQLDTOProperties;
 	private final String _idName;

@@ -7,12 +7,12 @@ import ClayButton from '@clayui/button';
 import ClayDropDown, {Align} from '@clayui/drop-down';
 import ClayIcon from '@clayui/icon';
 import classNames from 'classnames';
-import {FeatureIndicator} from 'frontend-js-components-web';
 import React, {useRef} from 'react';
 
 import {getLayoutDataItemPropTypes} from '../../../prop_types/index';
 import {ITEM_ACTIVATION_ORIGINS} from '../../config/constants/itemActivationOrigins';
-import {useCopiedItemIds} from '../../contexts/ClipboardContext';
+import {useClipboard} from '../../contexts/ClipboardContext';
+import {useIsDisabledCollectionItem} from '../../contexts/CollectionItemContext';
 import {
 	useActiveItemIds,
 	useHoverItem,
@@ -22,7 +22,7 @@ import {
 	useSelectMultipleItems,
 } from '../../contexts/ControlsContext';
 import {
-	useMovementTarget,
+	useIsMovementTarget,
 	useMovementTargetPosition,
 } from '../../contexts/KeyboardMovementContext';
 import {
@@ -34,24 +34,23 @@ import {useGetWidgets} from '../../contexts/WidgetsContext';
 import {useLayoutKeyboardNavigation} from '../../hooks/app_hooks/useLayoutKeyboardNavigation';
 import selectCanUpdatePageStructure from '../../selectors/selectCanUpdatePageStructure';
 import selectLayoutDataItemLabel from '../../selectors/selectLayoutDataItemLabel';
-import pasteItem from '../../thunks/pasteItem';
-import canBeCopied from '../../utils/canBeCopied';
+import pasteItems from '../../thunks/pasteItems';
 import {TARGET_POSITIONS} from '../../utils/drag_and_drop/constants/targetPositions';
-import {
-	useDropTarget,
-	useIsDroppable,
-} from '../../utils/drag_and_drop/useDragAndDrop';
+import {useDropTarget} from '../../utils/drag_and_drop/useDragAndDrop';
+import {isMovementValid} from '../../utils/isMovementValid';
+import toMovementItem from '../../utils/toMovementItem';
 import useDropContainerId from '../../utils/useDropContainerId';
 import {TopperLabel} from './TopperLabel';
 
 export default function ({activable = true, children, ...props}) {
 	const canUpdatePageStructure = useSelector(selectCanUpdatePageStructure);
+	const isDisabledCollectionItem = useIsDisabledCollectionItem();
 
-	if (!canUpdatePageStructure) {
+	if (!canUpdatePageStructure || isDisabledCollectionItem) {
 		return children;
 	}
 
-	if (Liferay.FeatureFlags['LPD-18221'] && activable) {
+	if (activable) {
 		return (
 			<ActivableTopperEmptyWrapper {...props}>
 				{children}
@@ -82,7 +81,7 @@ const TopperEmpty = ({children, className, item}) => {
 	const containerRef = useRef(null);
 
 	const {isOverTarget, targetPosition, targetRef} = useDropTarget(item);
-	const {itemId: movementTargetItemId} = useMovementTarget();
+	const isKeyboardTarget = useIsMovementTarget();
 	const movementTargetPosition = useMovementTargetPosition();
 
 	const dropTargetPosition = targetPosition || movementTargetPosition;
@@ -91,10 +90,8 @@ const TopperEmpty = ({children, className, item}) => {
 	const realChildren = isFragment ? children.props.children : children;
 
 	const dropContainerId = useDropContainerId();
-	const isDroppable = useIsDroppable();
 
-	const isValidDrop =
-		(isDroppable && isOverTarget) || movementTargetItemId === item.itemId;
+	const isValidDrop = isOverTarget || isKeyboardTarget(item.itemId);
 
 	return React.Children.map(realChildren, (child) => {
 		if (!child) {
@@ -147,12 +144,14 @@ const ActivableTopperEmpty = ({
 	isActive,
 	isHovered,
 	item,
+	options = [],
 	itemElement,
+	shouldIgnoreEvents = () => {},
 }) => {
 	const containerRef = useRef(null);
 
 	const {isOverTarget, targetPosition, targetRef} = useDropTarget(item);
-	const {itemId: movementTargetItemId} = useMovementTarget();
+	const isKeyboardTarget = useIsMovementTarget();
 	const movementTargetPosition = useMovementTargetPosition();
 
 	const dropTargetPosition = targetPosition || movementTargetPosition;
@@ -161,10 +160,8 @@ const ActivableTopperEmpty = ({
 	const realChildren = isFragment ? children.props.children : children;
 
 	const dropContainerId = useDropContainerId();
-	const isDroppable = useIsDroppable();
 
-	const isValidDrop =
-		(isDroppable && isOverTarget) || movementTargetItemId === item.itemId;
+	const isValidDrop = isOverTarget || isKeyboardTarget(item.itemId);
 
 	const hoverItem = useHoverItem();
 	const selectItem = useSelectItem();
@@ -200,6 +197,10 @@ const ActivableTopperEmpty = ({
 						}
 					),
 					onClick: (event) => {
+						if (shouldIgnoreEvents(event)) {
+							return;
+						}
+
 						event.stopPropagation();
 
 						selectItem(item.itemId, {
@@ -207,6 +208,10 @@ const ActivableTopperEmpty = ({
 						});
 					},
 					onMouseLeave: (event) => {
+						if (shouldIgnoreEvents(event)) {
+							return;
+						}
+
 						event.stopPropagation();
 
 						if (isHovered) {
@@ -216,6 +221,10 @@ const ActivableTopperEmpty = ({
 						}
 					},
 					onMouseOver: (event) => {
+						if (shouldIgnoreEvents(event)) {
+							return;
+						}
+
 						event.stopPropagation();
 
 						hoverItem(item.itemId, {
@@ -243,13 +252,13 @@ const ActivableTopperEmpty = ({
 					tabIndex: isFocusable ? 0 : -1,
 				})}
 
-				{isActive ||
-				(isHovered && Liferay.FeatureFlags['LPD-32075']) ? (
+				{isActive || isHovered ? (
 					<TopperEmptyLabel
 						isActive={isActive}
 						isHovered={isHovered && !isActive}
 						item={item}
 						itemElement={itemElement}
+						options={options}
 					/>
 				) : null}
 			</>
@@ -257,8 +266,14 @@ const ActivableTopperEmpty = ({
 	});
 };
 
-const TopperEmptyLabel = ({isActive, isHovered, item, itemElement}) => {
-	const copiedItemIds = useCopiedItemIds();
+const TopperEmptyLabel = ({
+	isActive,
+	isHovered,
+	item,
+	itemElement,
+	options,
+}) => {
+	const clipboard = useClipboard();
 	const activeItemIds = useActiveItemIds();
 
 	const selectItems = useSelectMultipleItems();
@@ -315,29 +330,28 @@ const TopperEmptyLabel = ({isActive, isHovered, item, itemElement}) => {
 						>
 							<ClayDropDown.ItemList>
 								<ClayDropDown.Item
-									disabled={!copiedItemIds?.length}
+									disabled={!clipboard?.length}
 									onClick={(event) => {
 										event.stopPropagation();
 
 										if (
-											copiedItemIds.every(
-												(copiedItemId) =>
-													!!layoutData.items[
-														copiedItemId
-													] &&
-													!!item &&
-													canBeCopied(
-														copiedItemId,
-														fragmentEntryLinks,
-														item.itemId,
+											isMovementValid({
+												fragmentEntryLinks,
+												getWidgets,
+												layoutData,
+												sources: clipboard.map((id) =>
+													toMovementItem(
+														id,
 														layoutData,
-														getWidgets
+														fragmentEntryLinks
 													)
-											)
+												),
+												targetId: item.itemId,
+											})
 										) {
 											dispatch(
-												pasteItem({
-													copiedItemIds,
+												pasteItems({
+													clipboard,
 													parentItemId: item.itemId,
 													selectItems,
 												})
@@ -347,11 +361,22 @@ const TopperEmptyLabel = ({isActive, isHovered, item, itemElement}) => {
 									symbolLeft="paste"
 								>
 									{Liferay.Language.get('paste')}
-
-									<span className="ml-2">
-										<FeatureIndicator type="beta" />
-									</span>
 								</ClayDropDown.Item>
+
+								{options.map((option, index) => (
+									<ClayDropDown.Item
+										disabled={option.disabled}
+										key={index}
+										onClick={(event) => {
+											event.stopPropagation();
+
+											option.onClick();
+										}}
+										symbolLeft={option.symbol}
+									>
+										{option.label}
+									</ClayDropDown.Item>
+								))}
 							</ClayDropDown.ItemList>
 						</ClayDropDown>
 					</li>

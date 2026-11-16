@@ -22,7 +22,9 @@ components:
                     readOnly: true
                     type: string
                 description:
-                    type: string
+                    additionalProperties:
+                        type: string
+                    type: object
                 errorMessage:
                     additionalProperties:
                         type: string
@@ -69,6 +71,9 @@ components:
                     type: boolean
                 className:
                     type: string
+                creator:
+                    $ref: ../../headless/headless-delivery/headless-delivery-impl/rest-openapi.yaml#Creator
+                    readOnly: true
                 dateCreated:
                     format: date
                     readOnly: true
@@ -79,19 +84,36 @@ components:
                     type: string
                 defaultLanguageId:
                     type: string
+                description:
+                    additionalProperties:
+                        type: string
+                    type: object
                 enableCategorization:
                     type: boolean
                 enableComments:
                     type: boolean
+                enableFormContainer:
+                    type: boolean
+                enableFriendlyURLCustomization:
+                    type: boolean
                 enableIndexSearch:
                     type: boolean
                 enableLocalization:
+                    readOnly: true
                     type: boolean
                 enableObjectEntryDraft:
                     type: boolean
                 enableObjectEntryHistory:
                     type: boolean
+                enableObjectEntrySchedule:
+                    type: boolean
+                enableObjectEntrySubscription:
+                    type: boolean
+                enableObjectEntryVersioning:
+                    type: boolean
                 externalReferenceCode:
+                    type: string
+                friendlyURLSeparator:
                     type: string
                 id:
                     format: int64
@@ -108,6 +130,10 @@ components:
                 objectActions:
                     items:
                         $ref: "#/components/schemas/ObjectAction"
+                    type: array
+                objectDefinitionSettings:
+                    items:
+                        $ref: "#/components/schemas/ObjectDefinitionSetting"
                     type: array
                 objectFields:
                     items:
@@ -138,6 +164,10 @@ components:
                 parameterRequired:
                     readOnly: true
                     type: boolean
+                permissions:
+                    items:
+                        type: permission
+                    type: array
                 pluralLabel:
                     additionalProperties:
                         type: string
@@ -160,6 +190,24 @@ components:
                     type: boolean
                 titleObjectFieldName:
                     type: string
+                workflowDefinitionLinks:
+                    items:
+                        $ref: "#/components/schemas/WorkflowDefinitionLink"
+                    type: array
+            type: object
+        ObjectDefinitionSetting:
+            properties:
+                id:
+                    format: int64
+                    readOnly: true
+                    type: integer
+                name:
+                    type: string
+                objectDefinitionId:
+                    format: int64
+                    type: integer
+                value:
+                    type: object
             type: object
         ObjectField:
             properties:
@@ -174,11 +222,15 @@ components:
                     readOnly: true
                     type: object
                 businessType:
-                    enum: [Aggregation, Attachment, AutoIncrement, Boolean, Date, DateTime, Decimal, Encrypted, Formula, Integer, LongInteger, LongText, MultiselectPicklist, Picklist, PrecisionDecimal, Relationship, RichText, Text]
+                    enum: [Aggregation, Assignee, Attachment, AutoIncrement, Boolean, Date, DateTime, Decimal, EmailAddress, Encrypted, Formula, Integer, Location, LongInteger, LongText, MultiselectPicklist, PhoneNumber, Picklist, PrecisionDecimal, Relationship, RichText, Text]
                     type: string
                 defaultValue:
                     deprecated: true
                     type: string
+                description:
+                    additionalProperties:
+                        type: string
+                    type: object
                 externalReferenceCode:
                     type: string
                 id:
@@ -206,6 +258,10 @@ components:
                     type: string
                 objectDefinitionExternalReferenceCode1:
                     type: string
+                objectDefinitionScope1:
+                    type: string
+                objectDefinitionSystem1:
+                    type: boolean
                 objectFieldSettings:
                     items:
                         $ref: "#/components/schemas/ObjectFieldSetting"
@@ -355,7 +411,7 @@ components:
                     format: int32
                     type: integer
                 type:
-                    enum: [categorization, regular]
+                    enum: [categorization, regular, seo]
                     type: string
             type: object
         ObjectLayoutColumn:
@@ -422,6 +478,10 @@ components:
                 deletionType:
                     enum: [cascade, disassociate, prevent]
                     type: string
+                description:
+                    additionalProperties:
+                        type: string
+                    type: object
                 edge:
                     type: boolean
                 externalReferenceCode:
@@ -449,6 +509,8 @@ components:
                 objectDefinitionModifiable2:
                     type: boolean
                 objectDefinitionName2:
+                    type: string
+                objectDefinitionScope2:
                     type: string
                 objectDefinitionSystem2:
                     type: boolean
@@ -576,6 +638,8 @@ components:
                     type: string
                 defaultObjectView:
                     type: boolean
+                externalReferenceCode:
+                    type: string
                 id:
                     format: int64
                     readOnly: true
@@ -660,14 +724,20 @@ components:
                 label_i18n:
                     type: string
             type: object
+        WorkflowDefinitionLink:
+            properties:
+                groupExternalReferenceCode:
+                    type: string
+                workflowDefinitionName:
+                    type: string
+            type: object
 info:
     description:
-        "A Java client JAR is available for use with the group ID 'com.liferay', artifact ID
-        'com.liferay.object.admin.rest.client', and version '1.0.71'."
+        "A Java client JAR is available for use with the group ID 'com.liferay', artifact ID 'com.liferay.object.admin.rest.client', and version '1.0.93'."
     license:
-        name: "Apache 2.0"
-        url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-    title: "Object"
+        name: Apache 2.0
+        url: http://www.apache.org/licenses/LICENSE-2.0.html
+    title: Object
     version: v1.0
 openapi: 3.0.1
 paths:
@@ -675,12 +745,12 @@ paths:
         delete:
             operationId: deleteObjectAction
             parameters:
-                - in: path
-                  name: objectActionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectActionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -690,12 +760,12 @@ paths:
         get:
             operationId: getObjectAction
             parameters:
-                - in: path
-                  name: objectActionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectActionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -709,12 +779,12 @@ paths:
         patch:
             operationId: patchObjectAction
             parameters:
-                - in: path
-                  name: objectActionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectActionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -736,12 +806,12 @@ paths:
         put:
             operationId: putObjectAction
             parameters:
-                - in: path
-                  name: objectActionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectActionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -764,36 +834,36 @@ paths:
         get:
             operationId: getObjectDefinitionsPage
             parameters:
-                - in: query
-                  name: aggregationTerms
-                  schema:
-                      items:
-                          type: string
-                      type: array
-                - in: query
-                  name: filter
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: query
+                    name: aggregationTerms
+                    schema:
+                        items:
+                            type: string
+                        type: array
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -829,14 +899,28 @@ paths:
                                 $ref: "#/components/schemas/ObjectDefinition"
             tags: ["ObjectDefinition"]
     "/object-definitions/by-external-reference-code/{externalReferenceCode}":
+        delete:
+            operationId: deleteObjectDefinitionByExternalReferenceCode
+            parameters:
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+            responses:
+                204:
+                    content:
+                        application/json: {}
+                        application/xml: {}
+            tags: ["ObjectDefinition"]
         get:
             operationId: getObjectDefinitionByExternalReferenceCode
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -850,11 +934,11 @@ paths:
         put:
             operationId: putObjectDefinitionByExternalReferenceCode
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -877,27 +961,27 @@ paths:
         get:
             operationId: getObjectDefinitionByExternalReferenceCodeObjectActionsPage
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -915,11 +999,11 @@ paths:
         post:
             operationId: postObjectDefinitionByExternalReferenceCodeObjectAction
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -942,31 +1026,31 @@ paths:
         get:
             operationId: getObjectDefinitionByExternalReferenceCodeObjectFieldsPage
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
-                - in: query
-                  name: filter
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -984,11 +1068,11 @@ paths:
         post:
             operationId: postObjectDefinitionByExternalReferenceCodeObjectField
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -1011,31 +1095,31 @@ paths:
         get:
             operationId: getObjectDefinitionByExternalReferenceCodeObjectLayoutsPage
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1053,11 +1137,11 @@ paths:
         post:
             operationId: postObjectDefinitionByExternalReferenceCodeObjectLayout
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -1080,31 +1164,31 @@ paths:
         get:
             operationId: getObjectDefinitionByExternalReferenceCodeObjectRelationshipsPage
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
-                - in: query
-                  name: filter
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1122,11 +1206,11 @@ paths:
         post:
             operationId: postObjectDefinitionByExternalReferenceCodeObjectRelationship
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -1149,31 +1233,31 @@ paths:
         get:
             operationId: getObjectDefinitionByExternalReferenceCodeObjectValidationRulesPage
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1181,6 +1265,7 @@ paths:
                             schema:
                                 items:
                                     $ref: "#/components/schemas/ObjectValidationRule"
+                                type: array
                         application/xml:
                             schema:
                                 items:
@@ -1190,11 +1275,11 @@ paths:
         post:
             operationId: postObjectDefinitionByExternalReferenceCodeObjectValidationRule
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -1217,31 +1302,31 @@ paths:
         get:
             operationId: getObjectDefinitionByExternalReferenceCodeObjectViewsPage
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1259,11 +1344,11 @@ paths:
         post:
             operationId: postObjectDefinitionByExternalReferenceCodeObjectView
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -1286,12 +1371,12 @@ paths:
         delete:
             operationId: deleteObjectDefinition
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -1301,12 +1386,12 @@ paths:
         get:
             operationId: getObjectDefinition
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -1320,12 +1405,12 @@ paths:
         patch:
             operationId: patchObjectDefinition
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1347,12 +1432,12 @@ paths:
         put:
             operationId: putObjectDefinition
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1375,28 +1460,28 @@ paths:
         get:
             operationId: getObjectDefinitionObjectActionsPage
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1414,12 +1499,12 @@ paths:
         post:
             operationId: postObjectDefinitionObjectAction
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1442,32 +1527,32 @@ paths:
         get:
             operationId: getObjectDefinitionObjectFieldsPage
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
-                - in: query
-                  name: filter
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1485,12 +1570,12 @@ paths:
         post:
             operationId: postObjectDefinitionObjectField
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1513,32 +1598,32 @@ paths:
         get:
             operationId: getObjectDefinitionObjectLayoutsPage
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1556,12 +1641,12 @@ paths:
         post:
             operationId: postObjectDefinitionObjectLayout
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1584,32 +1669,32 @@ paths:
         get:
             operationId: getObjectDefinitionObjectRelationshipsPage
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
-                - in: query
-                  name: filter
-                  schema:
-                      type: string
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: filter
+                    schema:
+                        type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1627,12 +1712,12 @@ paths:
         post:
             operationId: postObjectDefinitionObjectRelationship
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1655,32 +1740,32 @@ paths:
         get:
             operationId: getObjectDefinitionObjectValidationRulesPage
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1698,12 +1783,12 @@ paths:
         post:
             operationId: postObjectDefinitionObjectValidationRule
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1726,32 +1811,32 @@ paths:
         get:
             operationId: getObjectDefinitionObjectViewsPage
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: query
-                  name: sort
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: query
+                    name: sort
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1769,12 +1854,12 @@ paths:
         post:
             operationId: postObjectDefinitionObjectView
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1797,12 +1882,12 @@ paths:
         post:
             operationId: postObjectDefinitionPublish
             parameters:
-                - in: path
-                  name: objectDefinitionId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectDefinitionId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -1817,12 +1902,12 @@ paths:
         delete:
             operationId: deleteObjectField
             parameters:
-                - in: path
-                  name: objectFieldId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFieldId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -1832,12 +1917,12 @@ paths:
         get:
             operationId: getObjectField
             parameters:
-                - in: path
-                  name: objectFieldId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFieldId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -1851,12 +1936,12 @@ paths:
         patch:
             operationId: patchObjectField
             parameters:
-                - in: path
-                  name: objectFieldId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFieldId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1878,12 +1963,12 @@ paths:
         put:
             operationId: putObjectField
             parameters:
-                - in: path
-                  name: objectFieldId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFieldId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -1906,22 +1991,22 @@ paths:
         get:
             operationId: getObjectFoldersPage
             parameters:
-                - in: query
-                  name: page
-                  schema:
-                      type: integer
-                - in: query
-                  name: pageSize
-                  schema:
-                      type: integer
-                - in: query
-                  name: search
-                  schema:
-                      type: string
-                - in: header
-                  name: Accept-Language
-                  schema:
-                      type: string
+                -   in: query
+                    name: page
+                    schema:
+                        type: integer
+                -   in: query
+                    name: pageSize
+                    schema:
+                        type: integer
+                -   in: query
+                    name: search
+                    schema:
+                        type: string
+                -   in: header
+                    name: Accept-Language
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1960,11 +2045,11 @@ paths:
         get:
             operationId: getObjectFolderByExternalReferenceCode
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             responses:
                 200:
                     content:
@@ -1978,11 +2063,11 @@ paths:
         put:
             operationId: putObjectFolderByExternalReferenceCode
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -2005,12 +2090,12 @@ paths:
         delete:
             operationId: deleteObjectFolder
             parameters:
-                - in: path
-                  name: objectFolderId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFolderId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -2020,12 +2105,12 @@ paths:
         get:
             operationId: getObjectFolder
             parameters:
-                - in: path
-                  name: objectFolderId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFolderId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -2039,12 +2124,12 @@ paths:
         patch:
             operationId: patchObjectFolder
             parameters:
-                - in: path
-                  name: objectFolderId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFolderId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2066,12 +2151,12 @@ paths:
         put:
             operationId: putObjectFolder
             parameters:
-                - in: path
-                  name: objectFolderId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectFolderId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2094,12 +2179,12 @@ paths:
         delete:
             operationId: deleteObjectLayout
             parameters:
-                - in: path
-                  name: objectLayoutId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectLayoutId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -2109,12 +2194,12 @@ paths:
         get:
             operationId: getObjectLayout
             parameters:
-                - in: path
-                  name: objectLayoutId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectLayoutId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -2128,12 +2213,12 @@ paths:
         put:
             operationId: putObjectLayout
             parameters:
-                - in: path
-                  name: objectLayoutId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectLayoutId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2156,11 +2241,11 @@ paths:
         put:
             operationId: putObjectRelationshipByExternalReferenceCode
             parameters:
-                - in: path
-                  name: externalReferenceCode
-                  required: true
-                  schema:
-                      type: string
+                -   in: path
+                    name: externalReferenceCode
+                    required: true
+                    schema:
+                        type: string
             requestBody:
                 content:
                     application/json:
@@ -2183,12 +2268,12 @@ paths:
         delete:
             operationId: deleteObjectRelationship
             parameters:
-                - in: path
-                  name: objectRelationshipId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectRelationshipId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -2198,12 +2283,12 @@ paths:
         get:
             operationId: getObjectRelationship
             parameters:
-                - in: path
-                  name: objectRelationshipId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectRelationshipId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -2217,12 +2302,12 @@ paths:
         put:
             operationId: putObjectRelationship
             parameters:
-                - in: path
-                  name: objectRelationshipId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectRelationshipId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2245,12 +2330,12 @@ paths:
         delete:
             operationId: deleteObjectValidationRule
             parameters:
-                - in: path
-                  name: objectValidationRuleId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectValidationRuleId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -2260,12 +2345,12 @@ paths:
         get:
             operationId: getObjectValidationRule
             parameters:
-                - in: path
-                  name: objectValidationRuleId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectValidationRuleId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -2279,12 +2364,12 @@ paths:
         patch:
             operationId: patchObjectValidationRule
             parameters:
-                - in: path
-                  name: objectValidationRuleId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectValidationRuleId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2306,12 +2391,12 @@ paths:
         put:
             operationId: putObjectValidationRule
             parameters:
-                - in: path
-                  name: objectValidationRuleId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectValidationRuleId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2334,12 +2419,12 @@ paths:
         delete:
             operationId: deleteObjectView
             parameters:
-                - in: path
-                  name: objectViewId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectViewId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 204:
                     content:
@@ -2349,12 +2434,12 @@ paths:
         get:
             operationId: getObjectView
             parameters:
-                - in: path
-                  name: objectViewId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectViewId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:
@@ -2368,12 +2453,12 @@ paths:
         put:
             operationId: putObjectView
             parameters:
-                - in: path
-                  name: objectViewId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectViewId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             requestBody:
                 content:
                     application/json:
@@ -2396,12 +2481,12 @@ paths:
         post:
             operationId: postObjectViewCopy
             parameters:
-                - in: path
-                  name: objectViewId
-                  required: true
-                  schema:
-                      format: int64
-                      type: integer
+                -   in: path
+                    name: objectViewId
+                    required: true
+                    schema:
+                        format: int64
+                        type: integer
             responses:
                 200:
                     content:

@@ -5,11 +5,14 @@
 
 package com.liferay.portal.test.rule;
 
-import com.liferay.portal.kernel.db.partition.DBPartition;
+import com.liferay.petra.string.CharPool;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.model.Company;
+import com.liferay.portal.kernel.model.VirtualHost;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.VirtualHostLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.PropsValues;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.util.PortalInstances;
 
 import org.junit.rules.TestRule;
@@ -26,22 +29,56 @@ public class DBPartitionTestRule implements TestRule {
 
 	@Override
 	public Statement apply(Statement statement, Description description) {
-		if (!DBPartition.isPartitionEnabled()) {
+		if (!PropsValues.DATABASE_PARTITION_ENABLED) {
 			return statement;
 		}
 
 		try {
-			Company company = CompanyLocalServiceUtil.fetchCompanyByVirtualHost(
-				TestPropsValues.COMPANY_WEB_ID);
+			VirtualHost virtualHost =
+				VirtualHostLocalServiceUtil.fetchVirtualHost(
+					TestPropsValues.COMPANY_WEB_ID);
 
-			if (company == null) {
-				PortalInstances.addCompany(
-					"",
-					() -> CompanyLocalServiceUtil.addCompany(
-						null, TestPropsValues.COMPANY_WEB_ID,
-						TestPropsValues.COMPANY_WEB_ID,
-						TestPropsValues.COMPANY_WEB_ID, 0, true, true, null,
-						null, null, null, null, null));
+			if (virtualHost != null) {
+				return statement;
+			}
+
+			String companyWebId;
+
+			if (TestPropsValues.DATABASE_PARTITION_COPY) {
+				companyWebId = StringUtil.replaceLast(
+					TestPropsValues.COMPANY_WEB_ID, CharPool.PERIOD, "-copy.");
+			}
+			else {
+				companyWebId = TestPropsValues.COMPANY_WEB_ID;
+			}
+
+			PortalInstances.addCompany(
+				"",
+				() -> CompanyLocalServiceUtil.addCompany(
+					null, companyWebId, companyWebId, companyWebId, 0, true,
+					true, null, null, null, null, null, null));
+
+			virtualHost = VirtualHostLocalServiceUtil.getVirtualHost(
+				companyWebId);
+
+			if (TestPropsValues.DATABASE_PARTITION_COPY) {
+				CompanyLocalServiceUtil.copyDBPartitionCompany(
+					virtualHost.getCompanyId(), null,
+					TestPropsValues.COMPANY_WEB_ID,
+					TestPropsValues.COMPANY_WEB_ID,
+					TestPropsValues.COMPANY_WEB_ID);
+			}
+			else if (TestPropsValues.DATABASE_PARTITION_EXPORT_AND_IMPORT) {
+				CompanyLocalServiceUtil.exportCompany(
+					virtualHost.getCompanyId());
+
+				CompanyLocalServiceUtil.deleteCompany(
+					virtualHost.getCompanyId());
+
+				CompanyLocalServiceUtil.addDBPartitionCompany(
+					virtualHost.getCompanyId(), TestPropsValues.COMPANY_WEB_ID,
+					TestPropsValues.COMPANY_WEB_ID,
+					TestPropsValues.COMPANY_WEB_ID);
 			}
 		}
 		catch (PortalException portalException) {

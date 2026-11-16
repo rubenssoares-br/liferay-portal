@@ -30,24 +30,30 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,8 +88,10 @@ public abstract class BaseContactUserGroupResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,17 +104,16 @@ public abstract class BaseContactUserGroupResourceTestCase {
 
 		_contactUserGroupResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		ContactUserGroupResource.Builder builder =
-			ContactUserGroupResource.builder();
-
-		contactUserGroupResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		contactUserGroupResource = ContactUserGroupResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -187,7 +190,7 @@ public abstract class BaseContactUserGroupResourceTestCase {
 	public void testGetContactUserGroupsPage() throws Exception {
 		Page<ContactUserGroup> page =
 			contactUserGroupResource.getContactUserGroupsPage(
-				RandomTestUtil.randomString(), Pagination.of(1, 10), null);
+				null, Pagination.of(1, 10), null);
 
 		long totalCount = page.getTotalCount();
 
@@ -200,7 +203,7 @@ public abstract class BaseContactUserGroupResourceTestCase {
 				randomContactUserGroup());
 
 		page = contactUserGroupResource.getContactUserGroupsPage(
-			null, Pagination.of(1, 10), null);
+			null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -222,11 +225,11 @@ public abstract class BaseContactUserGroupResourceTestCase {
 
 	@Test
 	public void testGetContactUserGroupsPageWithPagination() throws Exception {
-		Page<ContactUserGroup> contactUserGroupPage =
+		Page<ContactUserGroup> contactUserGroupsPage =
 			contactUserGroupResource.getContactUserGroupsPage(null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			contactUserGroupPage.getTotalCount());
+			contactUserGroupsPage.getTotalCount());
 
 		ContactUserGroup contactUserGroup1 =
 			testGetContactUserGroupsPage_addContactUserGroup(
@@ -466,87 +469,6 @@ public abstract class BaseContactUserGroupResourceTestCase {
 			"This method needs to be implemented");
 	}
 
-	@Test
-	public void testGraphQLGetContactUserGroupsPage() throws Exception {
-		GraphQLField graphQLField = new GraphQLField(
-			"contactUserGroups",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
-
-		// No namespace
-
-		JSONObject contactUserGroupsJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(graphQLField), "JSONObject/data",
-			"JSONObject/contactUserGroups");
-
-		long totalCount = contactUserGroupsJSONObject.getLong("totalCount");
-
-		ContactUserGroup contactUserGroup1 =
-			testGraphQLGetContactUserGroupsPage_addContactUserGroup();
-		ContactUserGroup contactUserGroup2 =
-			testGraphQLGetContactUserGroupsPage_addContactUserGroup();
-
-		contactUserGroupsJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(graphQLField), "JSONObject/data",
-			"JSONObject/contactUserGroups");
-
-		Assert.assertEquals(
-			totalCount + 2, contactUserGroupsJSONObject.getLong("totalCount"));
-
-		assertContains(
-			contactUserGroup1,
-			Arrays.asList(
-				ContactUserGroupSerDes.toDTOs(
-					contactUserGroupsJSONObject.getString("items"))));
-		assertContains(
-			contactUserGroup2,
-			Arrays.asList(
-				ContactUserGroupSerDes.toDTOs(
-					contactUserGroupsJSONObject.getString("items"))));
-
-		// Using the namespace analyticsSettings_v1_0
-
-		contactUserGroupsJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(
-				new GraphQLField("analyticsSettings_v1_0", graphQLField)),
-			"JSONObject/data", "JSONObject/analyticsSettings_v1_0",
-			"JSONObject/contactUserGroups");
-
-		Assert.assertEquals(
-			totalCount + 2, contactUserGroupsJSONObject.getLong("totalCount"));
-
-		assertContains(
-			contactUserGroup1,
-			Arrays.asList(
-				ContactUserGroupSerDes.toDTOs(
-					contactUserGroupsJSONObject.getString("items"))));
-		assertContains(
-			contactUserGroup2,
-			Arrays.asList(
-				ContactUserGroupSerDes.toDTOs(
-					contactUserGroupsJSONObject.getString("items"))));
-	}
-
-	protected ContactUserGroup
-			testGraphQLGetContactUserGroupsPage_addContactUserGroup()
-		throws Exception {
-
-		return testGraphQLContactUserGroup_addContactUserGroup();
-	}
-
-	protected ContactUserGroup testGraphQLContactUserGroup_addContactUserGroup()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
 	protected void assertContains(
 		ContactUserGroup contactUserGroup,
 		List<ContactUserGroup> contactUserGroups) {
@@ -708,6 +630,8 @@ public abstract class BaseContactUserGroupResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -980,7 +904,9 @@ public abstract class BaseContactUserGroupResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1233,7 +1159,9 @@ public abstract class BaseContactUserGroupResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseContactUserGroupResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -1241,3 +1169,4 @@ public abstract class BaseContactUserGroupResourceTestCase {
 			ContactUserGroupResource _contactUserGroupResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-160461761

@@ -51,6 +51,8 @@ import com.liferay.portal.kernel.xml.Document;
 import com.liferay.portal.kernel.xml.Element;
 import com.liferay.portal.kernel.xml.SAXReaderUtil;
 import com.liferay.portal.security.permission.SimplePermissionChecker;
+import com.liferay.portal.test.log.LogCapture;
+import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
@@ -144,6 +146,7 @@ public class DDLExporterTest {
 
 		try (ByteArrayInputStream byteArrayInputStream =
 				new ByteArrayInputStream(bytes);
+
 			BufferedReader bufferedReader = new BufferedReader(
 				new InputStreamReader(byteArrayInputStream))) {
 
@@ -252,6 +255,7 @@ public class DDLExporterTest {
 
 		try (ByteArrayInputStream byteArrayInputStream =
 				new ByteArrayInputStream(bytes);
+
 			BufferedReader bufferedReader = new BufferedReader(
 				new InputStreamReader(byteArrayInputStream))) {
 
@@ -316,6 +320,7 @@ public class DDLExporterTest {
 
 		try (ByteArrayInputStream byteArrayInputStream =
 				new ByteArrayInputStream(bytes);
+
 			BufferedReader bufferedReader = new BufferedReader(
 				new InputStreamReader(byteArrayInputStream))) {
 
@@ -361,13 +366,16 @@ public class DDLExporterTest {
 
 		DDLExporter ddlExporter = _ddlExporterFactory.getDDLExporter("xls");
 
-		byte[] bytes = ddlExporter.export(recordSet.getRecordSetId());
+		try (LogCapture logCapture = LoggerTestUtil.configureLog4JLogger(
+				"org.apache.poi.POIDocument", LoggerTestUtil.WARN)) {
 
-		try (ByteArrayInputStream byteArrayInputStream =
-				new ByteArrayInputStream(bytes);
-			HSSFWorkbook workbook = new HSSFWorkbook(byteArrayInputStream)) {
+			ByteArrayInputStream byteArrayInputStream =
+				new ByteArrayInputStream(
+					ddlExporter.export(recordSet.getRecordSetId()));
 
-			Sheet sheet = workbook.getSheetAt(0);
+			HSSFWorkbook hssfWorkbook = new HSSFWorkbook(byteArrayInputStream);
+
+			Sheet sheet = hssfWorkbook.getSheetAt(0);
 
 			Row row = sheet.getRow(0);
 
@@ -540,17 +548,6 @@ public class DDLExporterTest {
 		return ddmFormField;
 	}
 
-	protected void createDDMFormFields(DDMForm ddmForm) {
-		for (DDMFormFieldType ddmFormFieldType : DDMFormFieldType.values()) {
-			String fieldName = "Field" + ddmFormFieldType.ordinal();
-
-			ddmForm.addDDMFormField(
-				createDDMFormField(
-					fieldName, ddmFormFieldType.getValue(),
-					_ddmFormFieldDataTypes.get(ddmFormFieldType)));
-		}
-	}
-
 	protected Value createDDMFormFieldValue(String valueString) {
 		Value value = new LocalizedValue(_defaultLocale);
 
@@ -568,6 +565,17 @@ public class DDLExporterTest {
 			ddmFormValues.addDDMFormFieldValue(
 				DDMFormValuesTestUtil.createDDMFormFieldValue(
 					fieldName, fieldValue));
+		}
+	}
+
+	protected void createDDMFormFields(DDMForm ddmForm) {
+		for (DDMFormFieldType ddmFormFieldType : DDMFormFieldType.values()) {
+			String fieldName = "Field" + ddmFormFieldType.ordinal();
+
+			ddmForm.addDDMFormField(
+				createDDMFormField(
+					fieldName, ddmFormFieldType.getValue(),
+					_ddmFormFieldDataTypes.get(ddmFormFieldType)));
 		}
 	}
 
@@ -730,10 +738,11 @@ public class DDLExporterTest {
 			});
 	}
 
-	@Inject
-	private static DDLExporterFactory _ddlExporterFactory;
-
 	private Set<Locale> _availableLocales;
+
+	@Inject
+	private DDLExporterFactory _ddlExporterFactory;
+
 	private Map<DDMFormFieldType, String> _ddmFormFieldDataTypes;
 	private final Locale _defaultLocale = LocaleUtil.US;
 	private Map<DDMFormFieldType, String> _fieldValues;

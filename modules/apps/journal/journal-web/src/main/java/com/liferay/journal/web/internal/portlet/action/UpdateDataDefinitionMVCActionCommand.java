@@ -9,7 +9,6 @@ import com.liferay.data.engine.field.type.util.LocalizedValueUtil;
 import com.liferay.data.engine.rest.dto.v2_0.DataDefinition;
 import com.liferay.data.engine.rest.dto.v2_0.DataDefinitionField;
 import com.liferay.data.engine.rest.dto.v2_0.DataLayout;
-import com.liferay.data.engine.rest.resource.exception.DataDefinitionValidationException;
 import com.liferay.data.engine.rest.resource.v2_0.DataDefinitionResource;
 import com.liferay.dynamic.data.mapping.model.DDMFormField;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
@@ -21,18 +20,16 @@ import com.liferay.journal.service.persistence.JournalArticleUtil;
 import com.liferay.journal.web.internal.exception.DDMStructureValidationModelListenerException;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseTransactionalMVCActionCommand;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
-import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Localization;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -42,57 +39,13 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + JournalPortletKeys.JOURNAL,
+		"jakarta.portlet.name=" + JournalPortletKeys.JOURNAL,
 		"mvc.command.name=/journal/update_data_definition"
 	},
 	service = MVCActionCommand.class
 )
 public class UpdateDataDefinitionMVCActionCommand
 	extends BaseTransactionalMVCActionCommand {
-
-	@Override
-	public boolean processAction(
-			ActionRequest actionRequest, ActionResponse actionResponse)
-		throws PortletException {
-
-		try {
-			return super.processAction(actionRequest, actionResponse);
-		}
-		catch (PortletException portletException) {
-			if (portletException.getCause() instanceof
-					DataDefinitionValidationException) {
-
-				DataDefinitionValidationException
-					dataDefinitionValidationException =
-						(DataDefinitionValidationException)
-							portletException.getCause();
-
-				SessionErrors.add(
-					actionRequest, dataDefinitionValidationException.getClass(),
-					dataDefinitionValidationException);
-			}
-			else if (portletException.getCause() instanceof
-						DDMStructureValidationModelListenerException) {
-
-				DDMStructureValidationModelListenerException
-					ddmStructureValidationModelListenerException =
-						(DDMStructureValidationModelListenerException)
-							portletException.getCause();
-
-				SessionErrors.add(
-					actionRequest,
-					ddmStructureValidationModelListenerException.getClass(),
-					ddmStructureValidationModelListenerException);
-
-				hideDefaultErrorMessage(actionRequest);
-			}
-			else {
-				throw portletException;
-			}
-		}
-
-		return false;
-	}
 
 	@Override
 	protected void doTransactionalCommand(
@@ -119,7 +72,17 @@ public class UpdateDataDefinitionMVCActionCommand
 		DataDefinition dataDefinition = DataDefinition.toDTO(
 			dataDefinitionString);
 
-		_restoreDefaultValues(dataDefinitionId, dataDefinition);
+		DDMStructure ddmStructure = _ddmStructureLocalService.getDDMStructure(
+			dataDefinitionId);
+
+		Map<String, DDMFormField> ddmFormFieldsMap =
+			ddmStructure.getFullHierarchyDDMFormFieldsMap(true);
+
+		for (DataDefinitionField dataDefinitionField :
+				dataDefinition.getDataDefinitionFields()) {
+
+			_restoreDefaultValues(dataDefinitionField, ddmFormFieldsMap);
+		}
 
 		dataDefinition.setDataDefinitionKey(
 			() -> ParamUtil.getString(actionRequest, "structureKey"));
@@ -131,8 +94,17 @@ public class UpdateDataDefinitionMVCActionCommand
 				_localization.getLocalizationMap(
 					actionRequest, "description")));
 
-		dataDefinitionResource.putDataDefinition(
-			dataDefinitionId, dataDefinition);
+		try {
+			dataDefinitionResource.putDataDefinition(
+				dataDefinitionId, dataDefinition);
+		}
+		catch (DDMStructureValidationModelListenerException
+					ddmStructureValidationModelListenerException) {
+
+			hideDefaultErrorMessage(actionRequest);
+
+			throw ddmStructureValidationModelListenerException;
+		}
 
 		List<JournalArticle> journalArticles =
 			_journalArticleLocalService.getStructureArticles(dataDefinitionId);
@@ -143,26 +115,29 @@ public class UpdateDataDefinitionMVCActionCommand
 	}
 
 	private void _restoreDefaultValues(
-			long dataDefinitionId, DataDefinition dataDefinition)
-		throws Exception {
+		DataDefinitionField dataDefinitionField,
+		Map<String, DDMFormField> ddmFormFieldsMap) {
 
-		DDMStructure ddmStructure = _ddmStructureLocalService.getDDMStructure(
-			dataDefinitionId);
+		DDMFormField ddmFormField = ddmFormFieldsMap.get(
+			dataDefinitionField.getName());
 
-		Map<String, DDMFormField> ddmFormFieldsMap =
-			ddmStructure.getFullHierarchyDDMFormFieldsMap(true);
+		if (ddmFormField != null) {
+			dataDefinitionField.setDefaultValue(
+				() -> LocalizedValueUtil.toLocalizedValuesMap(
+					ddmFormField.getPredefinedValue()));
+		}
 
-		for (DataDefinitionField dataDefinitionField :
-				dataDefinition.getDataDefinitionFields()) {
+		DataDefinitionField[] nestedDataDefinitionFields =
+			dataDefinitionField.getNestedDataDefinitionFields();
 
-			DDMFormField ddmFormField = ddmFormFieldsMap.get(
-				dataDefinitionField.getName());
+		if (nestedDataDefinitionFields == null) {
+			return;
+		}
 
-			if (ddmFormField != null) {
-				dataDefinitionField.setDefaultValue(
-					() -> LocalizedValueUtil.toLocalizedValuesMap(
-						ddmFormField.getPredefinedValue()));
-			}
+		for (DataDefinitionField nestedDataDefinitionField :
+				nestedDataDefinitionFields) {
+
+			_restoreDefaultValues(nestedDataDefinitionField, ddmFormFieldsMap);
 		}
 	}
 

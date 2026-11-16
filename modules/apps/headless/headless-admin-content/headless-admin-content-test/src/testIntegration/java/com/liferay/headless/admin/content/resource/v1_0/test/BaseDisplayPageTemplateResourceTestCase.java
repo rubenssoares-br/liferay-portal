@@ -29,24 +29,30 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,10 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -85,8 +87,10 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -99,17 +103,16 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 
 		_displayPageTemplateResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		DisplayPageTemplateResource.Builder builder =
-			DisplayPageTemplateResource.builder();
-
-		displayPageTemplateResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		displayPageTemplateResource = DisplayPageTemplateResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -189,6 +192,23 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 	}
 
 	@Test
+	public void testGetSiteDisplayPageTemplate() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testGraphQLGetSiteDisplayPageTemplate() throws Exception {
+		Assert.assertTrue(false);
+	}
+
+	@Test
+	public void testGraphQLGetSiteDisplayPageTemplateNotFound()
+		throws Exception {
+
+		Assert.assertTrue(true);
+	}
+
+	@Test
 	public void testGetSiteDisplayPageTemplatesPage() throws Exception {
 		Long siteId = testGetSiteDisplayPageTemplatesPage_getSiteId();
 		Long irrelevantSiteId =
@@ -228,7 +248,7 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 				siteId, randomDisplayPageTemplate());
 
 		page = displayPageTemplateResource.getSiteDisplayPageTemplatesPage(
-			siteId, Pagination.of(1, 10), null);
+			siteId, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -256,12 +276,12 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 
 		Long siteId = testGetSiteDisplayPageTemplatesPage_getSiteId();
 
-		Page<DisplayPageTemplate> displayPageTemplatePage =
+		Page<DisplayPageTemplate> displayPageTemplatesPage =
 			displayPageTemplateResource.getSiteDisplayPageTemplatesPage(
 				siteId, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			displayPageTemplatePage.getTotalCount());
+			displayPageTemplatesPage.getTotalCount());
 
 		DisplayPageTemplate displayPageTemplate1 =
 			testGetSiteDisplayPageTemplatesPage_addDisplayPageTemplate(
@@ -534,28 +554,6 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 		throws Exception {
 
 		return irrelevantGroup.getGroupId();
-	}
-
-	@Test
-	public void testGraphQLGetSiteDisplayPageTemplatesPage() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGetSiteDisplayPageTemplate() throws Exception {
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGraphQLGetSiteDisplayPageTemplate() throws Exception {
-		Assert.assertTrue(true);
-	}
-
-	@Test
-	public void testGraphQLGetSiteDisplayPageTemplateNotFound()
-		throws Exception {
-
-		Assert.assertTrue(true);
 	}
 
 	protected void assertContains(
@@ -1154,13 +1152,11 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1170,8 +1166,7 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(displayPageTemplate.getDateCreated()));
+				sb.append(_format.format(displayPageTemplate.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -1186,13 +1181,11 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1203,7 +1196,7 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 				sb.append(" ");
 
 				sb.append(
-					_dateFormat.format(displayPageTemplate.getDateModified()));
+					_format.format(displayPageTemplate.getDateModified()));
 			}
 
 			return sb.toString();
@@ -1380,7 +1373,9 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1643,7 +1638,9 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseDisplayPageTemplateResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -1651,3 +1648,4 @@ public abstract class BaseDisplayPageTemplateResourceTestCase {
 			DisplayPageTemplateResource _displayPageTemplateResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-977838320

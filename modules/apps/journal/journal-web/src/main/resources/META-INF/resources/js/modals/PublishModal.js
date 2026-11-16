@@ -6,7 +6,7 @@
 import ClayAlert from '@clayui/alert';
 import ClayButton from '@clayui/button';
 import ClayModal, {useModal} from '@clayui/modal';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 
 import PermissionsOptions from '../PermissionsOptions';
 import ScheduleOptions from '../ScheduleOptions';
@@ -14,6 +14,7 @@ import ScheduleOptions from '../ScheduleOptions';
 export default function PublishModal({
 	actionButton,
 	articleId,
+	buttonDisabled,
 	displayDate: defaultDisplayDate,
 	onCloseModal,
 	onPublishButtonClick,
@@ -21,6 +22,7 @@ export default function PublishModal({
 	portletNamespace,
 	showPermissionsOptions,
 	timeZone,
+	use12Hours,
 	workflowEnabled,
 }) {
 	const formId = `${portletNamespace}fm1`;
@@ -40,10 +42,47 @@ export default function PublishModal({
 	const [displayDate, setDisplayDate] = useState(defaultDisplayDate);
 	const [dateError, setDateError] = useState('');
 	const [showErrorAlert, setShowErrorAlert] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	useEffect(() => {
+		const handler = Liferay.on('ddmFormError', (event) => {
+			if (event.error?.statusCode && isSubmitting) {
+				onClose();
+			}
+		});
+
+		return () => handler.detach();
+	}, [isSubmitting, onClose]);
+
+	const handleButtonClick = () => {
+		if (isSubmitting) {
+			return;
+		}
+
+		if (!displayDate && actionButton === 'schedule') {
+			setDateError(Liferay.Language.get('please-enter-a-valid-date'));
+			setShowErrorAlert(true);
+
+			return;
+		}
+
+		if (dateError) {
+			setShowErrorAlert(true);
+
+			return;
+		}
+
+		setIsSubmitting(true);
+		onPublishButtonClick(actionButton);
+	};
 
 	return (
 		<ClayModal className="m-0" observer={observer} size="md">
-			<ClayModal.Header>{heading}</ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
+				{heading}
+			</ClayModal.Header>
 
 			<ClayModal.Body className="m-0">
 				{showErrorAlert && dateError ? (
@@ -67,6 +106,7 @@ export default function PublishModal({
 						setDisplayDate={setDisplayDate}
 						setError={setDateError}
 						timeZone={timeZone}
+						use12Hours={use12Hours}
 					/>
 				) : null}
 
@@ -89,27 +129,10 @@ export default function PublishModal({
 						</ClayButton>
 
 						<ClayButton
+							disabled={buttonDisabled}
 							displayType="primary"
 							form={formId}
-							onClick={() => {
-								if (
-									!displayDate &&
-									actionButton === 'schedule'
-								) {
-									setDateError(
-										Liferay.Language.get(
-											'please-enter-a-valid-date'
-										)
-									);
-									setShowErrorAlert(true);
-								}
-								else if (dateError) {
-									setShowErrorAlert(true);
-								}
-								else {
-									onPublishButtonClick(actionButton);
-								}
-							}}
+							onClick={handleButtonClick}
 							type={
 								dateError ||
 								(!displayDate && actionButton === 'schedule')
@@ -148,7 +171,7 @@ function getLabels({actionButton, articleId, workflowEnabled}) {
 		return {
 			button: workflowEnabled
 				? Liferay.Language.get('submit-for-workflow')
-				: Liferay.Language.get('schedule'),
+				: Liferay.Language.get('schedule[verb]'),
 			description: articleId
 				? workflowEnabled
 					? Liferay.Language.get(

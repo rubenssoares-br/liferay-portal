@@ -5,12 +5,12 @@
 
 package com.liferay.portal.dao.db;
 
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.db.DBType;
 import com.liferay.portal.kernel.dao.db.Index;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -81,6 +81,21 @@ public class PostgreSQLDB extends BaseDB {
 	}
 
 	@Override
+	public String getCharacterSet(Connection connection) throws SQLException {
+		try (PreparedStatement preparedStatement = connection.prepareStatement(
+				"show server_encoding")) {
+
+			try (ResultSet resultSet = preparedStatement.executeQuery()) {
+				if (resultSet.next()) {
+					return resultSet.getString(1);
+				}
+			}
+		}
+
+		return StringPool.BLANK;
+	}
+
+	@Override
 	public List<Index> getIndexes(Connection connection) throws SQLException {
 		List<Index> indexes = new ArrayList<>();
 
@@ -99,6 +114,7 @@ public class PostgreSQLDB extends BaseDB {
 
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
 				sql);
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
@@ -126,8 +142,15 @@ public class PostgreSQLDB extends BaseDB {
 	@Override
 	public String getRecreateSQL(String databaseName) {
 		return StringBundler.concat(
-			"drop database ", databaseName, ";\n", "create database ",
-			databaseName, " encoding = 'UNICODE';\n");
+			"drop database ", databaseName, ";\ncreate database ", databaseName,
+			" encoding = 'UTF8';\n");
+	}
+
+	@Override
+	public boolean isSupportsCharacterSet(Connection connection)
+		throws SQLException {
+
+		return Objects.equals(getCharacterSet(connection), "UTF8");
 	}
 
 	@Override
@@ -207,11 +230,13 @@ public class PostgreSQLDB extends BaseDB {
 			sb.append("new.");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(")");
@@ -255,11 +280,13 @@ public class PostgreSQLDB extends BaseDB {
 			sb.append("new.");
 			sb.append(sourceColumnNames[i]);
 
-			if (defaultValue != null) {
-				sb.append(", ");
-				sb.append(defaultValue);
-				sb.append(")");
+			if (defaultValue == null) {
+				continue;
 			}
+
+			sb.append(", ");
+			sb.append(defaultValue);
+			sb.append(")");
 		}
 
 		sb.append(" where ");
@@ -305,6 +332,40 @@ public class PostgreSQLDB extends BaseDB {
 	@Override
 	protected String getIndexColumnName(String indexColumnName) {
 		return StringUtil.replaceFirst(indexColumnName, "left\"(", "left(");
+	}
+
+	@Override
+	protected String getLockedQueryInfosSQL() {
+		return StringBundler.concat(
+			"select extract(epoch from (clock_timestamp() - ",
+			"pg_catalog.pg_stat_activity.query_start)) * 1000 as duration, ",
+			"pg_catalog.pg_stat_activity.pid as id, ",
+			"substring(pg_catalog.pg_stat_activity.query, 1, 4000) as query, ",
+			"pg_catalog.pg_stat_activity.datname as schema_, ",
+			"pg_catalog.pg_stat_activity.wait_event_type as state from ",
+			"pg_catalog.pg_stat_activity where ",
+			"pg_catalog.pg_stat_activity.pid != pg_backend_pid() and ",
+			"extract(epoch from (clock_timestamp() - ",
+			"pg_catalog.pg_stat_activity.query_start)) * 1000 >= ? and ",
+			"pg_catalog.pg_stat_activity.wait_event_type = 'Lock'");
+	}
+
+	@Override
+	protected String getLongRunningQueryInfosSQL() {
+		return StringBundler.concat(
+			"select extract(epoch from (clock_timestamp() - ",
+			"pg_catalog.pg_stat_activity.query_start)) * 1000 as duration, ",
+			"pg_catalog.pg_stat_activity.pid as id, ",
+			"substring(pg_catalog.pg_stat_activity.query, 1, 4000) as query, ",
+			"pg_catalog.pg_stat_activity.datname as schema_, ",
+			"pg_catalog.pg_stat_activity.wait_event_type as state from ",
+			"pg_catalog.pg_stat_activity where ",
+			"pg_catalog.pg_stat_activity.pid != pg_backend_pid() and ",
+			"pg_catalog.pg_stat_activity.state = 'active' and extract(epoch ",
+			"from (clock_timestamp() - ",
+			"pg_catalog.pg_stat_activity.query_start)) * 1000 >= ? and (",
+			"pg_catalog.pg_stat_activity.wait_event_type is null or ",
+			"pg_catalog.pg_stat_activity.wait_event_type != 'Lock')");
 	}
 
 	@Override

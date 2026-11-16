@@ -8,21 +8,31 @@ package com.liferay.headless.admin.site.internal.dto.v1_0.converter;
 import com.liferay.headless.admin.site.dto.v1_0.ClassSubtypeReference;
 import com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplate;
 import com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateFolder;
-import com.liferay.headless.admin.site.dto.v1_0.ItemExternalReference;
-import com.liferay.headless.admin.site.dto.v1_0.PageSpecification;
-import com.liferay.info.item.InfoItemFormVariation;
-import com.liferay.info.item.InfoItemServiceRegistry;
-import com.liferay.info.item.provider.InfoItemFormVariationsProvider;
+import com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateOpenGraphSettings;
+import com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateSEOSettings;
+import com.liferay.headless.admin.site.dto.v1_0.DisplayPageTemplateSettings;
+import com.liferay.headless.admin.site.dto.v1_0.SitemapSettings;
+import com.liferay.headless.admin.site.dto.v1_0.util.ThumbnailURLReferenceUtil;
+import com.liferay.headless.admin.site.internal.dto.v1_0.util.CreatorUtil;
+import com.liferay.headless.admin.site.internal.dto.v1_0.util.SubtypeUtil;
+import com.liferay.layout.admin.kernel.model.LayoutTypePortletConstants;
+import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateCollection;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateCollectionLocalService;
 import com.liferay.portal.kernel.model.Layout;
-import com.liferay.portal.kernel.portletfilerepository.PortletFileRepository;
-import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
+import com.liferay.portal.vulcan.fields.NestedFieldsSupplier;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
+
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -31,7 +41,11 @@ import org.osgi.service.component.annotations.Reference;
  * @author Lourdes Fernández Besada
  */
 @Component(
-	property = "dto.class.name=com.liferay.layout.page.template.model.LayoutPageTemplateEntry",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.layout.page.template.model.LayoutPageTemplateEntry",
+		"dto.class.type=" + LayoutPageTemplateEntryTypeConstants.DISPLAY_PAGE
+	},
 	service = DTOConverter.class
 )
 public class DisplayPageTemplateDTOConverter
@@ -53,18 +67,47 @@ public class DisplayPageTemplateDTOConverter
 
 		return new DisplayPageTemplate() {
 			{
+				setActions(
+					() -> {
+						if (dtoConverterContext == null) {
+							return null;
+						}
+
+						return dtoConverterContext.getActions();
+					});
 				setContentTypeReference(
 					() -> new ClassSubtypeReference() {
 						{
 							setClassName(layoutPageTemplateEntry::getClassName);
 							setSubTypeExternalReference(
-								() -> _getSubtypeItemExternalReference(
-									layoutPageTemplateEntry));
+								() ->
+									SubtypeUtil.getSubtypeItemExternalReference(
+										layoutPageTemplateEntry.getClassName(),
+										layoutPageTemplateEntry.
+											getClassTypeId(),
+										layoutPageTemplateEntry.
+											getClassTypeKey(),
+										layoutPageTemplateEntry.getGroupId()));
 						}
 					});
+				setCreator(
+					() -> CreatorUtil.toCreator(
+						layoutPageTemplateEntry.getUserId(),
+						layoutPageTemplateEntry.getUserName()));
 				setDateCreated(layoutPageTemplateEntry::getCreateDate);
 				setDateModified(layoutPageTemplateEntry::getModifiedDate);
 				setDatePublished(layout::getPublishDate);
+				setDisplayPageTemplateSettings(
+					() -> new DisplayPageTemplateSettings() {
+						{
+							setOpenGraphSettings(
+								() -> _getDisplayPageTemplateOpenGraphSettings(
+									layout));
+							setSeoSettings(
+								() -> _getDisplayPageTemplateSEOSettings(
+									layout));
+						}
+					});
 				setExternalReferenceCode(
 					layoutPageTemplateEntry::getExternalReferenceCode);
 				setFriendlyUrlPath_i18n(
@@ -73,12 +116,6 @@ public class DisplayPageTemplateDTOConverter
 				setKey(layoutPageTemplateEntry::getLayoutPageTemplateEntryKey);
 				setMarkedAsDefault(layoutPageTemplateEntry::isDefaultTemplate);
 				setName(layoutPageTemplateEntry::getName);
-				setPageSpecifications(
-					() -> new PageSpecification[] {
-						_pageSpecificationDTOConverter.toDTO(layout),
-						_pageSpecificationDTOConverter.toDTO(
-							layout.fetchDraftLayout())
-					});
 				setParentFolder(
 					() -> {
 						LayoutPageTemplateCollection
@@ -93,65 +130,100 @@ public class DisplayPageTemplateDTOConverter
 						}
 
 						return _displayPageTemplateFolderDTOConverter.toDTO(
-							layoutPageTemplateCollection);
+							dtoConverterContext, layoutPageTemplateCollection);
 					});
-				setThumbnail(
-					() -> {
-						if (layoutPageTemplateEntry.getPreviewFileEntryId() <=
-								0) {
-
-							return null;
-						}
-
-						FileEntry fileEntry =
-							_portletFileRepository.getPortletFileEntry(
-								layoutPageTemplateEntry.
-									getPreviewFileEntryId());
-
-						if (fileEntry == null) {
-							return null;
-						}
-
-						return new ItemExternalReference() {
-							{
-								setClassName(() -> FileEntry.class.getName());
-								setCollectionType(CollectionType.COLLECTION);
-								setExternalReferenceCode(
-									fileEntry::getExternalReferenceCode);
-							}
-						};
-					});
+				setThumbnailURLReference(
+					() -> NestedFieldsSupplier.supply(
+						"thumbnailURLReference",
+						fieldName ->
+							ThumbnailURLReferenceUtil.
+								getFileEntryThumbnailURLReference(
+									layoutPageTemplateEntry.
+										getPreviewFileEntryId())));
 				setUuid(layoutPageTemplateEntry::getUuid);
 			}
 		};
 	}
 
-	private ItemExternalReference _getSubtypeItemExternalReference(
-		LayoutPageTemplateEntry layoutPageTemplateEntry) {
+	private DisplayPageTemplateOpenGraphSettings
+		_getDisplayPageTemplateOpenGraphSettings(Layout layout) {
 
-		InfoItemFormVariationsProvider<?> infoItemFormVariationsProvider =
-			_infoItemServiceRegistry.getFirstInfoItemService(
-				InfoItemFormVariationsProvider.class,
-				layoutPageTemplateEntry.getClassName());
-
-		if (infoItemFormVariationsProvider == null) {
-			return null;
-		}
-
-		InfoItemFormVariation infoItemFormVariation =
-			infoItemFormVariationsProvider.getInfoItemFormVariation(
-				layoutPageTemplateEntry.getGroupId(),
-				String.valueOf(layoutPageTemplateEntry.getClassTypeId()));
-
-		if (infoItemFormVariation == null) {
-			return null;
-		}
-
-		return new ItemExternalReference() {
+		return new DisplayPageTemplateOpenGraphSettings() {
 			{
-				setCollectionType(CollectionType.COLLECTION);
-				setExternalReferenceCode(
-					infoItemFormVariation::getExternalReferenceCode);
+				setDescriptionTemplate(
+					() -> layout.getTypeSettingsProperty(
+						"mapped-openGraphDescription"));
+				setImageAltTemplate(
+					() -> layout.getTypeSettingsProperty(
+						"mapped-openGraphImageAlt"));
+				setImageTemplate(
+					() -> layout.getTypeSettingsProperty(
+						"mapped-openGraphImage"));
+				setTitleTemplate(
+					() -> layout.getTypeSettingsProperty(
+						"mapped-openGraphTitle"));
+			}
+		};
+	}
+
+	private DisplayPageTemplateSEOSettings _getDisplayPageTemplateSEOSettings(
+		Layout layout) {
+
+		return new DisplayPageTemplateSEOSettings() {
+			{
+				setDescriptionTemplate(
+					() -> layout.getTypeSettingsProperty("mapped-description"));
+				setHtmlTitleTemplate(
+					() -> layout.getTypeSettingsProperty("mapped-title"));
+				setRobots_i18n(
+					() -> {
+						Map<Locale, String> robotsMap = layout.getRobotsMap();
+
+						if (robotsMap.isEmpty()) {
+							return null;
+						}
+
+						return LocalizedMapUtil.getI18nMap(true, robotsMap);
+					});
+				setSitemapSettings(() -> _getSitemapSettings(layout));
+			}
+		};
+	}
+
+	private SitemapSettings _getSitemapSettings(Layout layout) {
+		return new SitemapSettings() {
+			{
+				setChangeFrequency(
+					() -> ChangeFrequency.create(
+						StringUtil.upperCaseFirstLetter(
+							layout.getTypeSettingsProperty(
+								LayoutTypePortletConstants.
+									SITEMAP_CHANGEFREQ))));
+				setInclude(
+					() -> {
+						String include = GetterUtil.getString(
+							layout.getTypeSettingsProperty(
+								LayoutTypePortletConstants.SITEMAP_INCLUDE));
+
+						if (Validator.isNull(include)) {
+							return null;
+						}
+
+						return Objects.equals(include, "1");
+					});
+				setPagePriority(
+					() -> {
+						double pagePriority = GetterUtil.getDouble(
+							layout.getTypeSettingsProperty(
+								LayoutTypePortletConstants.SITEMAP_PRIORITY),
+							-1L);
+
+						if (pagePriority == -1L) {
+							return null;
+						}
+
+						return pagePriority;
+					});
 			}
 		};
 	}
@@ -164,22 +236,10 @@ public class DisplayPageTemplateDTOConverter
 			_displayPageTemplateFolderDTOConverter;
 
 	@Reference
-	private InfoItemServiceRegistry _infoItemServiceRegistry;
-
-	@Reference
 	private LayoutLocalService _layoutLocalService;
 
 	@Reference
 	private LayoutPageTemplateCollectionLocalService
 		_layoutPageTemplateCollectionLocalService;
-
-	@Reference(
-		target = "(component.name=com.liferay.headless.admin.site.internal.dto.v1_0.converter.PageSpecificationDTOConverter)"
-	)
-	private DTOConverter<Layout, PageSpecification>
-		_pageSpecificationDTOConverter;
-
-	@Reference
-	private PortletFileRepository _portletFileRepository;
 
 }

@@ -8,7 +8,6 @@ package com.liferay.account.admin.web.internal.portlet.action;
 import com.liferay.account.constants.AccountPortletKeys;
 import com.liferay.account.exception.DuplicateAccountGroupExternalReferenceCodeException;
 import com.liferay.account.model.AccountGroup;
-import com.liferay.account.service.AccountGroupLocalService;
 import com.liferay.account.service.AccountGroupService;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseTransactionalMVCActionCommand;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
@@ -22,8 +21,8 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -33,7 +32,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + AccountPortletKeys.ACCOUNT_GROUPS_ADMIN,
+		"jakarta.portlet.name=" + AccountPortletKeys.ACCOUNT_GROUPS_ADMIN,
 		"mvc.command.name=/account_admin/edit_account_group"
 	},
 	service = MVCActionCommand.class
@@ -101,14 +100,11 @@ public class EditAccountGroupMVCActionCommand
 		String description = ParamUtil.getString(actionRequest, "description");
 		String name = ParamUtil.getString(actionRequest, "name");
 
-		AccountGroup accountGroup = _accountGroupService.addAccountGroup(
+		return _accountGroupService.addAccountGroup(
+			ParamUtil.getString(actionRequest, "externalReferenceCode"),
 			themeDisplay.getUserId(), description, name,
 			ServiceContextFactory.getInstance(
 				AccountGroup.class.getName(), actionRequest));
-
-		return _accountGroupLocalService.updateExternalReferenceCode(
-			accountGroup.getAccountGroupId(),
-			ParamUtil.getString(actionRequest, "externalReferenceCode"));
 	}
 
 	private void _updateAccountGroup(ActionRequest actionRequest)
@@ -120,18 +116,12 @@ public class EditAccountGroupMVCActionCommand
 		String description = ParamUtil.getString(actionRequest, "description");
 		String name = ParamUtil.getString(actionRequest, "name");
 
-		AccountGroup accountGroup = _accountGroupService.updateAccountGroup(
+		_accountGroupService.updateAccountGroup(
+			ParamUtil.getString(actionRequest, "externalReferenceCode"),
 			accountGroupId, description, name,
 			ServiceContextFactory.getInstance(
 				AccountGroup.class.getName(), actionRequest));
-
-		_accountGroupService.updateExternalReferenceCode(
-			accountGroup.getAccountGroupId(),
-			ParamUtil.getString(actionRequest, "externalReferenceCode"));
 	}
-
-	@Reference
-	private AccountGroupLocalService _accountGroupLocalService;
 
 	@Reference
 	private AccountGroupService _accountGroupService;

@@ -429,7 +429,6 @@ definition {
 	@description = "Verify can that a Form create an empty option in the Select from List"
 	@priority = 3
 	test CanCreateEmptyOption {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 
 		FormsAdmin.addForm();
@@ -954,7 +953,7 @@ definition {
 
 			Open.openInTheNewTab(value1 = "http://localhost:8080");
 
-			SelectWindow(value1 = "title=Home - Liferay DXP");
+			SelectWindow(value1 = "title=Home - Liferay DXP Site - Liferay");
 
 			ProductMenu.gotoPortlet(
 				category = "Content & Data",
@@ -970,7 +969,7 @@ definition {
 		}
 
 		task ("When the Form Page is refreshed") {
-			SelectWindow(value1 = "title=Form Page - Liferay DXP");
+			SelectWindow(value1 = "title=Form Page - Liferay DXP Site - Liferay");
 
 			Refresh();
 		}
@@ -1147,7 +1146,6 @@ definition {
 	@description = "LPS-68362 - Verify that options can be removed"
 	@priority = 3
 	test OptionsCanBeDeleted {
-		property portal.acceptance = "true";
 		property portal.upstream = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";

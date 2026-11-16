@@ -13,11 +13,12 @@ import com.liferay.contacts.exception.DuplicateEntryEmailAddressException;
 import com.liferay.contacts.exception.EntryEmailAddressException;
 import com.liferay.contacts.model.Entry;
 import com.liferay.contacts.service.EntryLocalService;
+import com.liferay.contacts.service.EntryService;
 import com.liferay.contacts.util.ContactsUtil;
 import com.liferay.contacts.web.internal.constants.ContactsPortletKeys;
-import com.liferay.document.library.kernel.service.DLAppLocalService;
+import com.liferay.document.library.kernel.service.DLAppService;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.bean.BeanParamUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.AddressCityException;
 import com.liferay.portal.kernel.exception.AddressStreetException;
@@ -44,6 +45,7 @@ import com.liferay.portal.kernel.model.BaseModel;
 import com.liferay.portal.kernel.model.Contact;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
+import com.liferay.portal.kernel.model.ListTypeConstants;
 import com.liferay.portal.kernel.model.Release;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
@@ -58,12 +60,14 @@ import com.liferay.portal.kernel.portlet.bridges.mvc.MVCPortlet;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.service.UserNotificationEventLocalService;
 import com.liferay.portal.kernel.service.UserService;
+import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.theme.PortletDisplay;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
@@ -85,6 +89,20 @@ import com.liferay.social.kernel.model.SocialRequestConstants;
 import com.liferay.social.kernel.service.SocialRelationLocalService;
 import com.liferay.social.kernel.service.SocialRequestLocalService;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.Portlet;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 import java.io.InputStream;
 
 import java.net.URLEncoder;
@@ -96,15 +114,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.Portlet;
-import javax.portlet.PortletException;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
-
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
@@ -112,6 +121,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Ryan Park
  * @author Jonathan Lee
  * @author Eudaldo Alonso
+ * @deprecated As of Cavanaugh (7.4.x)
  */
 @Component(
 	configurationPid = "com.liferay.users.admin.configuration.UserFileUploadsConfiguration",
@@ -123,21 +133,22 @@ import org.osgi.service.component.annotations.Reference;
 		"com.liferay.portlet.header-portlet-css=/css/main.css",
 		"com.liferay.portlet.header-portlet-javascript=/js/legacy/main.js",
 		"com.liferay.portlet.icon=/icons/contacts_center.png",
-		"javax.portlet.display-name=Contacts Center",
-		"javax.portlet.expiration-cache=0",
-		"javax.portlet.info.keywords=Contacts Center",
-		"javax.portlet.info.short-title=Contacts Center",
-		"javax.portlet.info.title=Contacts Center",
-		"javax.portlet.init-param.config-template=/configuration.jsp",
-		"javax.portlet.init-param.view-template=/view.jsp",
-		"javax.portlet.name=" + ContactsPortletKeys.CONTACTS_CENTER,
-		"javax.portlet.portlet-mode=text/html;config",
-		"javax.portlet.resource-bundle=content.Language",
-		"javax.portlet.security-role-ref=administrator,power-user,user",
-		"javax.portlet.version=3.0"
+		"jakarta.portlet.display-name=Contacts Center",
+		"jakarta.portlet.expiration-cache=0",
+		"jakarta.portlet.info.keywords=Contacts Center",
+		"jakarta.portlet.info.short-title=Contacts Center",
+		"jakarta.portlet.info.title=Contacts Center",
+		"jakarta.portlet.init-param.config-template=/configuration.jsp",
+		"jakarta.portlet.init-param.view-template=/view.jsp",
+		"jakarta.portlet.name=" + ContactsPortletKeys.CONTACTS_CENTER,
+		"jakarta.portlet.portlet-mode=text/html;config",
+		"jakarta.portlet.resource-bundle=content.Language",
+		"jakarta.portlet.security-role-ref=administrator,power-user,user",
+		"jakarta.portlet.version=4.0"
 	},
 	service = Portlet.class
 )
+@Deprecated
 public class ContactsCenterPortlet extends MVCPortlet {
 
 	public void addSocialRelation(
@@ -176,10 +187,12 @@ public class ContactsCenterPortlet extends MVCPortlet {
 			socialRelationLocalService.addRelation(
 				themeDisplay.getUserId(), userId, type);
 
-			if (blocked) {
-				socialRelationLocalService.addRelation(
-					userId, themeDisplay.getUserId(), type);
+			if (!blocked) {
+				continue;
 			}
+
+			socialRelationLocalService.addRelation(
+				userId, themeDisplay.getUserId(), type);
 		}
 	}
 
@@ -234,18 +247,11 @@ public class ContactsCenterPortlet extends MVCPortlet {
 			ResourceRequest resourceRequest, ResourceResponse resourceResponse)
 		throws Exception {
 
-		long[] userIds = StringUtil.split(
-			ParamUtil.getString(resourceRequest, "userIds"), 0L);
-
-		List<User> users = new ArrayList<>(userIds.length);
-
-		for (long userId : userIds) {
-			User user = userService.getUserById(userId);
-
-			users.add(user);
-		}
-
-		String vCards = ContactsUtil.getVCards(users);
+		String vCards = ContactsUtil.getVCards(
+			TransformUtil.transformToList(
+				StringUtil.split(
+					ParamUtil.getString(resourceRequest, "userIds"), 0L),
+				userId -> userService.getUserById(userId)));
 
 		PortletResponseUtil.sendFile(
 			resourceRequest, resourceResponse, "vcards.vcf",
@@ -374,6 +380,29 @@ public class ContactsCenterPortlet extends MVCPortlet {
 		}
 	}
 
+	@Override
+	public void render(
+			RenderRequest renderRequest, RenderResponse renderResponse)
+		throws IOException, PortletException {
+
+		ThemeDisplay themeDisplay = (ThemeDisplay)renderRequest.getAttribute(
+			WebKeys.THEME_DISPLAY);
+
+		long userId = ParamUtil.getLong(renderRequest, "userId");
+
+		if (!themeDisplay.isSignedIn() && (userId > 0) &&
+			!_isMember(themeDisplay, userId)) {
+
+			SessionErrors.add(renderRequest, PrincipalException.class);
+
+			include("/error.jsp", renderRequest, renderResponse);
+
+			return;
+		}
+
+		super.render(renderRequest, renderResponse);
+	}
+
 	public void requestSocialRelation(
 			ActionRequest actionRequest, ActionResponse actionResponse)
 		throws Exception {
@@ -427,6 +456,18 @@ public class ContactsCenterPortlet extends MVCPortlet {
 			ResourceRequest resourceRequest, ResourceResponse resourceResponse)
 		throws PortletException {
 
+		ThemeDisplay themeDisplay = (ThemeDisplay)resourceRequest.getAttribute(
+			WebKeys.THEME_DISPLAY);
+
+		if (!themeDisplay.isSignedIn()) {
+			HttpServletResponse httpServletResponse =
+				portal.getHttpServletResponse(resourceResponse);
+
+			httpServletResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);
+
+			return;
+		}
+
 		try {
 			String resourceID = resourceRequest.getResourceID();
 
@@ -478,7 +519,7 @@ public class ContactsCenterPortlet extends MVCPortlet {
 			Entry entry = null;
 
 			if (entryId > 0) {
-				entry = entryLocalService.getEntry(entryId);
+				entry = entryService.getEntry(entryId);
 
 				if (entry.getUserId() == themeDisplay.getUserId()) {
 					entry = entryLocalService.updateEntry(
@@ -715,13 +756,19 @@ public class ContactsCenterPortlet extends MVCPortlet {
 		announcementsDeliveryLocalService;
 
 	@Reference
-	protected DLAppLocalService dlAppLocalService;
+	protected DLAppService dlAppService;
 
 	@Reference
 	protected EntryLocalService entryLocalService;
 
 	@Reference
+	protected EntryService entryService;
+
+	@Reference
 	protected File file;
+
+	@Reference
+	protected GroupLocalService groupLocalService;
 
 	@Reference
 	protected JSONFactory jsonFactory;
@@ -837,7 +884,7 @@ public class ContactsCenterPortlet extends MVCPortlet {
 		if (filterBy.equals(ContactsConstants.FILTER_BY_DEFAULT) &&
 			!portletId.equals(ContactsPortletKeys.MEMBERS)) {
 
-			List<BaseModel<?>> contacts =
+			List<BaseModel<?>> baseModels =
 				entryLocalService.searchUsersAndContacts(
 					themeDisplay.getCompanyId(), themeDisplay.getUserId(),
 					keywords, start, end);
@@ -848,16 +895,16 @@ public class ContactsCenterPortlet extends MVCPortlet {
 
 			jsonObject.put("count", contactsCount);
 
-			for (BaseModel<?> contact : contacts) {
+			for (BaseModel<?> baseModel : baseModels) {
 				JSONObject contactJSONObject = null;
 
-				if (contact instanceof User) {
+				if (baseModel instanceof User) {
 					contactJSONObject = _getUserJSONObject(
-						portletResponse, themeDisplay, (User)contact);
+						portletResponse, themeDisplay, (User)baseModel);
 				}
 				else {
 					contactJSONObject = _getEntryJSONObject(
-						portletResponse, themeDisplay, (Entry)contact,
+						portletResponse, themeDisplay, (Entry)baseModel,
 						redirect);
 				}
 
@@ -931,7 +978,7 @@ public class ContactsCenterPortlet extends MVCPortlet {
 				params.put("usersGroups", ContactsUtil.getGroupId(filterBy));
 			}
 
-			List<User> usersList = null;
+			List<User> users1 = null;
 
 			if (filterBy.equals(ContactsConstants.FILTER_BY_ADMINS)) {
 				Role siteAdministratorRole = roleLocalService.getRole(
@@ -943,9 +990,9 @@ public class ContactsCenterPortlet extends MVCPortlet {
 						group.getGroupId(), siteAdministratorRole.getRoleId()
 					});
 
-				Set<User> users = new HashSet<>();
+				Set<User> users2 = new HashSet<>();
 
-				users.addAll(
+				users2.addAll(
 					userLocalService.search(
 						themeDisplay.getCompanyId(), keywords,
 						WorkflowConstants.STATUS_APPROVED, params,
@@ -959,17 +1006,16 @@ public class ContactsCenterPortlet extends MVCPortlet {
 					"userGroupRole",
 					new Long[] {group.getGroupId(), siteOwnerRole.getRoleId()});
 
-				users.addAll(
+				users2.addAll(
 					userLocalService.search(
 						themeDisplay.getCompanyId(), keywords,
 						WorkflowConstants.STATUS_APPROVED, params,
 						QueryUtil.ALL_POS, QueryUtil.ALL_POS,
 						(OrderByComparator)null));
 
-				usersList = new ArrayList<>(users);
+				users1 = new ArrayList<>(users2);
 
-				ListUtil.sort(
-					usersList, UserLastNameComparator.getInstance(true));
+				ListUtil.sort(users1, UserLastNameComparator.getInstance(true));
 			}
 			else {
 				int usersCount = userLocalService.searchCount(
@@ -978,13 +1024,13 @@ public class ContactsCenterPortlet extends MVCPortlet {
 
 				jsonObject.put("count", usersCount);
 
-				usersList = userLocalService.search(
+				users1 = userLocalService.search(
 					themeDisplay.getCompanyId(), keywords,
 					WorkflowConstants.STATUS_APPROVED, params, start, end,
 					UserLastNameComparator.getInstance(true));
 			}
 
-			for (User user : usersList) {
+			for (User user : users1) {
 				jsonArray.put(
 					_getUserJSONObject(portletResponse, themeDisplay, user));
 			}
@@ -1124,6 +1170,29 @@ public class ContactsCenterPortlet extends MVCPortlet {
 		return jsonObject;
 	}
 
+	private boolean _isMember(ThemeDisplay themeDisplay, long userId) {
+		if (!ContactsPortletKeys.MEMBERS.equals(getPortletName())) {
+			return false;
+		}
+
+		User user = userLocalService.fetchUser(userId);
+
+		if ((user == null) || !user.isActive()) {
+			return false;
+		}
+
+		Group group = themeDisplay.getScopeGroup();
+		Layout layout = themeDisplay.getLayout();
+
+		if (group.isUser() && layout.isPublicLayout()) {
+			return socialRelationLocalService.hasRelation(
+				group.getClassPK(), userId,
+				SocialRelationConstants.TYPE_BI_CONNECTION);
+		}
+
+		return groupLocalService.hasUserGroup(userId, group.getGroupId(), true);
+	}
+
 	private void _sendNotificationEvent(SocialRequest socialRequest)
 		throws Exception {
 
@@ -1168,7 +1237,8 @@ public class ContactsCenterPortlet extends MVCPortlet {
 
 		UsersAdminUtil.updateAddresses(
 			Contact.class.getName(), user.getContactId(),
-			UsersAdminUtil.getAddresses(actionRequest));
+			UsersAdminUtil.getAddresses(actionRequest),
+			ListTypeConstants.CONTACT_ADDRESS);
 	}
 
 	private void _updateArchived(long userId, long userNotificationEventId)
@@ -1232,39 +1302,40 @@ public class ContactsCenterPortlet extends MVCPortlet {
 		long fileEntryId = ParamUtil.getLong(actionRequest, "fileEntryId");
 
 		if (!deleteLogo && (fileEntryId > 0)) {
-			FileEntry fileEntry = dlAppLocalService.getFileEntry(fileEntryId);
+			FileEntry fileEntry = dlAppService.getFileEntry(fileEntryId);
 
 			try (InputStream inputStream = fileEntry.getContentStream()) {
 				portraitBytes = file.getBytes(inputStream);
 			}
 		}
 
-		String comments = BeanParamUtil.getString(
-			user, actionRequest, "comments");
-		String emailAddress = BeanParamUtil.getString(
-			user, actionRequest, "emailAddress");
-		String firstName = BeanParamUtil.getString(
-			user, actionRequest, "firstName");
-		String jobTitle = BeanParamUtil.getString(
-			user, actionRequest, "jobTitle");
-		String lastName = BeanParamUtil.getString(
-			user, actionRequest, "lastName");
-		String middleName = BeanParamUtil.getString(
-			user, actionRequest, "middleName");
-		String screenName = BeanParamUtil.getString(
-			user, actionRequest, "screenName");
+		String comments = ParamUtil.getString(
+			actionRequest, "comments", user.getComments());
+		String emailAddress = ParamUtil.getString(
+			actionRequest, "emailAddress", user.getEmailAddress());
+		String firstName = ParamUtil.getString(
+			actionRequest, "firstName", user.getFirstName());
+		String jobTitle = ParamUtil.getString(
+			actionRequest, "jobTitle", user.getJobTitle());
+		String lastName = ParamUtil.getString(
+			actionRequest, "lastName", user.getLastName());
+		String middleName = ParamUtil.getString(
+			actionRequest, "middleName", user.getMiddleName());
+		String screenName = ParamUtil.getString(
+			actionRequest, "screenName", user.getScreenName());
 
 		Contact contact = user.getContact();
 
-		String facebookSn = BeanParamUtil.getString(
-			contact, actionRequest, "facebookSn");
-		String jabberSn = BeanParamUtil.getString(
-			contact, actionRequest, "jabberSn");
-		String skypeSn = BeanParamUtil.getString(
-			contact, actionRequest, "skypeSn");
-		String smsSn = BeanParamUtil.getString(contact, actionRequest, "smsSn");
-		String twitterSn = BeanParamUtil.getString(
-			contact, actionRequest, "twitterSn");
+		String facebookSn = ParamUtil.getString(
+			actionRequest, "facebookSn", contact.getFacebookSn());
+		String jabberSn = ParamUtil.getString(
+			actionRequest, "jabberSn", contact.getJabberSn());
+		String skypeSn = ParamUtil.getString(
+			actionRequest, "skypeSn", contact.getSkypeSn());
+		String smsSn = ParamUtil.getString(
+			actionRequest, "smsSn", contact.getSmsSn());
+		String twitterSn = ParamUtil.getString(
+			actionRequest, "twitterSn", contact.getTwitterSn());
 
 		Calendar cal = CalendarFactoryUtil.getCalendar();
 

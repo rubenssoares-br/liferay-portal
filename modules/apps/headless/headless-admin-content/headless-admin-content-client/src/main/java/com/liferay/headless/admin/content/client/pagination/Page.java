@@ -8,6 +8,8 @@ package com.liferay.headless.admin.content.client.pagination;
 import com.liferay.headless.admin.content.client.aggregation.Facet;
 import com.liferay.headless.admin.content.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -16,8 +18,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -324,3 +324,4 @@ public class Page<T> {
 	private long _totalCount;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1380980841

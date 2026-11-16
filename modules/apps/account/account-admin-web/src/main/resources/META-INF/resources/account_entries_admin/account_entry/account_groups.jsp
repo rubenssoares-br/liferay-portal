@@ -31,7 +31,7 @@ renderResponse.setTitle(accountEntryDisplay.getName());
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.account.admin.web.internal.display.AccountGroupDisplay"
-			keyProperty="accountGroupId"
+			keyPropertyName="accountGroupId"
 			modelVar="accountGroupDisplay"
 		>
 			<liferay-ui:search-container-column-text
@@ -45,6 +45,16 @@ renderResponse.setTitle(accountEntryDisplay.getName());
 				name="description"
 				value="<%= HtmlUtil.escape(accountGroupDisplay.getDescription()) %>"
 			/>
+
+			<liferay-ui:search-container-column-text
+				cssClass="table-cell-expand"
+				name="status"
+			>
+				<clay:label
+					displayType="<%= WorkflowConstants.getStatusStyle(accountGroupDisplay.getStatus()) %>"
+					label="<%= WorkflowConstants.getStatusLabel(accountGroupDisplay.getStatus()) %>"
+				/>
+			</liferay-ui:search-container-column-text>
 		</liferay-ui:search-container-row>
 
 		<liferay-ui:search-iterator

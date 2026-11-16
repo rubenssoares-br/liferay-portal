@@ -16,6 +16,7 @@ import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.util.FriendlyURLNormalizer;
 
 import java.util.Locale;
 import java.util.Map;
@@ -39,9 +40,9 @@ public class CPSpecificationOptionServiceImpl
 	@Override
 	public CPSpecificationOption addCPSpecificationOption(
 			String externalReferenceCode, long cpOptionCategoryId,
-			long listTypeDefinitionId, Map<Locale, String> titleMap,
+			long[] listTypeDefinitionIds, Map<Locale, String> titleMap,
 			Map<Locale, String> descriptionMap, boolean facetable, String key,
-			double priority, ServiceContext serviceContext)
+			double priority, boolean visible, ServiceContext serviceContext)
 		throws PortalException {
 
 		PortletResourcePermission portletResourcePermission =
@@ -54,8 +55,8 @@ public class CPSpecificationOptionServiceImpl
 
 		return cpSpecificationOptionLocalService.addCPSpecificationOption(
 			externalReferenceCode, getUserId(), cpOptionCategoryId,
-			listTypeDefinitionId, titleMap, descriptionMap, facetable, key,
-			priority, serviceContext);
+			listTypeDefinitionIds, titleMap, descriptionMap, facetable, key,
+			priority, visible, serviceContext);
 	}
 
 	@Override
@@ -75,8 +76,8 @@ public class CPSpecificationOptionServiceImpl
 		throws PortalException {
 
 		CPSpecificationOption cpSpecificationOption =
-			cpSpecificationOptionLocalService.fetchCPSpecificationOption(
-				companyId, key);
+			cpSpecificationOptionPersistence.fetchByC_K(
+				companyId, _friendlyURLNormalizer.normalize(key));
 
 		if (cpSpecificationOption != null) {
 			_cpSpecificationOptionModelResourcePermission.check(
@@ -93,9 +94,8 @@ public class CPSpecificationOptionServiceImpl
 		throws PortalException {
 
 		CPSpecificationOption cpSpecificationOption =
-			cpSpecificationOptionLocalService.
-				fetchCPSpecificationOptionByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			cpSpecificationOptionPersistence.fetchByERC_C(
+				externalReferenceCode, companyId);
 
 		if (cpSpecificationOption != null) {
 			_cpSpecificationOptionModelResourcePermission.check(
@@ -115,7 +115,7 @@ public class CPSpecificationOptionServiceImpl
 		_cpSpecificationOptionModelResourcePermission.check(
 			getPermissionChecker(), cpSpecificationOptionId, ActionKeys.VIEW);
 
-		return cpSpecificationOptionLocalService.getCPSpecificationOption(
+		return cpSpecificationOptionPersistence.findByPrimaryKey(
 			cpSpecificationOptionId);
 	}
 
@@ -125,8 +125,8 @@ public class CPSpecificationOptionServiceImpl
 		throws PortalException {
 
 		CPSpecificationOption cpSpecificationOption =
-			cpSpecificationOptionLocalService.getCPSpecificationOption(
-				companyId, key);
+			cpSpecificationOptionPersistence.findByC_K(
+				companyId, _friendlyURLNormalizer.normalize(key));
 
 		_cpSpecificationOptionModelResourcePermission.check(
 			getPermissionChecker(), cpSpecificationOption, ActionKeys.VIEW);
@@ -137,20 +137,20 @@ public class CPSpecificationOptionServiceImpl
 	@Override
 	public BaseModelSearchResult<CPSpecificationOption>
 			searchCPSpecificationOptions(
-				long companyId, Boolean facetable, String keywords, int start,
-				int end, Sort sort)
+				long companyId, Boolean facetable, Boolean visible,
+				String keywords, int start, int end, Sort sort)
 		throws PortalException {
 
 		return cpSpecificationOptionLocalService.searchCPSpecificationOptions(
-			companyId, facetable, keywords, start, end, sort);
+			companyId, facetable, visible, keywords, start, end, sort);
 	}
 
 	@Override
 	public CPSpecificationOption updateCPSpecificationOption(
 			String externalReferenceCode, long cpSpecificationOptionId,
-			long cpOptionCategoryId, long listTypeDefinitionId,
+			long cpOptionCategoryId, long[] listTypeDefinitionIds,
 			Map<Locale, String> titleMap, Map<Locale, String> descriptionMap,
-			boolean facetable, String key, double priority,
+			boolean facetable, String key, double priority, boolean visible,
 			ServiceContext serviceContext)
 		throws PortalException {
 
@@ -159,8 +159,8 @@ public class CPSpecificationOptionServiceImpl
 
 		return cpSpecificationOptionLocalService.updateCPSpecificationOption(
 			externalReferenceCode, cpSpecificationOptionId, cpOptionCategoryId,
-			listTypeDefinitionId, titleMap, descriptionMap, facetable, key,
-			priority, serviceContext);
+			listTypeDefinitionIds, titleMap, descriptionMap, facetable, key,
+			priority, visible, serviceContext);
 	}
 
 	@Reference(
@@ -168,5 +168,8 @@ public class CPSpecificationOptionServiceImpl
 	)
 	private ModelResourcePermission<CPSpecificationOption>
 		_cpSpecificationOptionModelResourcePermission;
+
+	@Reference
+	private FriendlyURLNormalizer _friendlyURLNormalizer;
 
 }

@@ -13,7 +13,9 @@ import com.liferay.fragment.model.FragmentComposition;
 import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.service.FragmentCompositionService;
 import com.liferay.layout.content.page.editor.constants.ContentPageEditorPortletKeys;
+import com.liferay.layout.content.page.editor.web.internal.exception.FormContainerParentItemRequiredException;
 import com.liferay.layout.content.page.editor.web.internal.exception.NoninstanceablePortletException;
+import com.liferay.layout.content.page.editor.web.internal.manager.FormItemManager;
 import com.liferay.layout.content.page.editor.web.internal.manager.FragmentEntryLinkManager;
 import com.liferay.layout.content.page.editor.web.internal.util.layout.structure.LayoutStructureUtil;
 import com.liferay.layout.importer.LayoutsImporter;
@@ -35,13 +37,13 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
 import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -51,7 +53,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
+		"jakarta.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 		"mvc.command.name=/layout_content_page_editor/add_fragment_entry_links"
 	},
 	service = MVCActionCommand.class
@@ -82,7 +84,18 @@ public class AddFragmentEntryLinksMVCActionCommand
 
 		String errorMessage = "an-unexpected-error-occurred";
 
-		if (exception.getCause() instanceof NoninstanceablePortletException) {
+		if (exception instanceof FormContainerParentItemRequiredException) {
+			ThemeDisplay themeDisplay =
+				(ThemeDisplay)actionRequest.getAttribute(WebKeys.THEME_DISPLAY);
+
+			errorMessage = _language.get(
+				themeDisplay.getLocale(),
+				"this-form-component-can-only-be-placed-inside-a-mapped-form-" +
+					"container");
+		}
+		else if (exception.getCause() instanceof
+					NoninstanceablePortletException) {
+
 			ThemeDisplay themeDisplay =
 				(ThemeDisplay)actionRequest.getAttribute(WebKeys.THEME_DISPLAY);
 
@@ -161,9 +174,13 @@ public class AddFragmentEntryLinksMVCActionCommand
 
 			List<FragmentEntryLink> fragmentEntryLinks =
 				_layoutsImporter.importPageElement(
-					themeDisplay.getLayout(), layoutStructure, parentItemId,
+					themeDisplay.getUserId(), themeDisplay.getLayout(),
+					layoutStructure, parentItemId,
 					fragmentComposition.getData(), position, false,
 					segmentsExperienceId);
+
+			_formItemManager.checkFormContainerParentItemRequired(
+				fragmentEntryLinks, layoutStructure, parentItemId);
 
 			for (FragmentEntryLink fragmentEntryLink : fragmentEntryLinks) {
 				for (FragmentEntryLinkListener fragmentEntryLinkListener :
@@ -210,6 +227,9 @@ public class AddFragmentEntryLinksMVCActionCommand
 			);
 		}
 	}
+
+	@Reference
+	private FormItemManager _formItemManager;
 
 	@Reference
 	private FragmentCollectionContributorRegistry

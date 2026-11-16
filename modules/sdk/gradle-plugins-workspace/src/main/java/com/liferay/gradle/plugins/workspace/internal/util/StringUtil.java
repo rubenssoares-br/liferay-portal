@@ -127,6 +127,14 @@ public class StringUtil {
 		);
 	}
 
+	public static String normalizeFilePath(String s) {
+		if (s == null) {
+			return null;
+		}
+
+		return s.replace('\\', '/');
+	}
+
 	public static String quote(Object object) {
 		return "\"" + object + "\"";
 	}
@@ -145,13 +153,15 @@ public class StringUtil {
 
 			offset += count;
 
-			if (offset == buffer.length) {
-				byte[] newBuffer = new byte[buffer.length << 1];
-
-				System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
-
-				buffer = newBuffer;
+			if (offset != buffer.length) {
+				continue;
 			}
+
+			byte[] newBuffer = new byte[buffer.length << 1];
+
+			System.arraycopy(buffer, 0, newBuffer, 0, buffer.length);
+
+			buffer = newBuffer;
 		}
 
 		if (offset == 0) {
@@ -214,13 +224,15 @@ public class StringUtil {
 				return s.toLowerCase(Locale.getDefault());
 			}
 
-			if ((c >= 'A') && (c <= 'Z')) {
-				if (sb == null) {
-					sb = new StringBuilder(s);
-				}
-
-				sb.setCharAt(i, (char)(c + 32));
+			if ((c < 'A') || (c > 'Z')) {
+				continue;
 			}
+
+			if (sb == null) {
+				sb = new StringBuilder(s);
+			}
+
+			sb.setCharAt(i, (char)(c + 32));
 		}
 
 		if (sb == null) {

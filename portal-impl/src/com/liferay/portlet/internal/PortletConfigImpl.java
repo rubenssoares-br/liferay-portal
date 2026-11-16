@@ -21,6 +21,10 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.language.LanguageResources;
 import com.liferay.portlet.StrutsResourceBundle;
 
+import jakarta.portlet.PortletContext;
+import jakarta.portlet.PortletMode;
+import jakarta.portlet.WindowState;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -32,10 +36,6 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.portlet.PortletContext;
-import javax.portlet.PortletMode;
-import javax.portlet.WindowState;
 
 import javax.xml.namespace.QName;
 
@@ -91,10 +91,12 @@ public class PortletConfigImpl implements LiferayPortletConfig {
 
 			String name = portletAppContainerRuntimeOption.getKey();
 
-			if (!name.startsWith(className)) {
-				containerRuntimeOptions.put(
-					name, portletAppContainerRuntimeOption.getValue());
+			if (name.startsWith(className)) {
+				continue;
 			}
+
+			containerRuntimeOptions.put(
+				name, portletAppContainerRuntimeOption.getValue());
 		}
 
 		// PLT 8.4: If the deployment descriptor contains
@@ -107,11 +109,13 @@ public class PortletConfigImpl implements LiferayPortletConfig {
 
 			String name = portletAppContainerRuntimeOption.getKey();
 
-			if (name.startsWith(_containerRuntimeOptionPrefix)) {
-				containerRuntimeOptions.put(
-					name.substring(_containerRuntimeOptionPrefix.length()),
-					portletAppContainerRuntimeOption.getValue());
+			if (!name.startsWith(_containerRuntimeOptionPrefix)) {
+				continue;
 			}
+
+			containerRuntimeOptions.put(
+				name.substring(_containerRuntimeOptionPrefix.length()),
+				portletAppContainerRuntimeOption.getValue());
 		}
 
 		Set<String> keySet = containerRuntimeOptions.keySet();

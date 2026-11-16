@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
-import {fireEvent, render, screen} from '@testing-library/react';
+import '@testing-library/jest-dom';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 
@@ -82,7 +82,7 @@ describe('The ObjectFoldersSidebar component should', () => {
 			/>
 		);
 
-		expect(screen.getAllByRole('listitem')).toHaveLength(2);
+		expect(screen.getAllByRole('menuitem')).toHaveLength(2);
 
 		expect(screen.getByText('Folder 1')).toBeInTheDocument();
 
@@ -92,7 +92,9 @@ describe('The ObjectFoldersSidebar component should', () => {
 			screen.getByRole('button', {name: 'object-folder-actions'})
 		);
 
-		const menuItem = screen.getAllByRole('menuitem');
+		const menuItem = within(screen.getByRole('menu')).getAllByRole(
+			'menuitem'
+		);
 
 		expect(menuItem).toHaveLength(2);
 

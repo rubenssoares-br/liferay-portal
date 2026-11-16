@@ -19,6 +19,7 @@ import com.liferay.commerce.product.exception.CPDefinitionIgnoreSKUCombinationsE
 import com.liferay.commerce.product.exception.CPInstanceDeliverySubscriptionLengthException;
 import com.liferay.commerce.product.exception.CPInstanceJsonException;
 import com.liferay.commerce.product.exception.CPInstanceMaxPriceValueException;
+import com.liferay.commerce.product.exception.CPInstancePriceException;
 import com.liferay.commerce.product.exception.CPInstanceReplacementCPInstanceUuidException;
 import com.liferay.commerce.product.exception.CPInstanceSkuException;
 import com.liferay.commerce.product.exception.DuplicateCPInstanceException;
@@ -42,7 +43,6 @@ import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.servlet.SessionErrors;
-import com.liferay.portal.kernel.settings.SystemSettingsLocator;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.TransactionConfig;
@@ -57,6 +57,10 @@ import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletException;
+
 import java.math.BigDecimal;
 
 import java.util.Calendar;
@@ -64,10 +68,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -77,7 +77,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CPPortletKeys.CP_DEFINITIONS,
+		"jakarta.portlet.name=" + CPPortletKeys.CP_DEFINITIONS,
 		"mvc.command.name=/cp_definitions/edit_cp_instance"
 	},
 	service = MVCActionCommand.class
@@ -126,6 +126,7 @@ public class EditCPInstanceMVCActionCommand extends BaseMVCActionCommand {
 					CPInstanceDeliverySubscriptionLengthException ||
 				throwable instanceof CPInstanceJsonException ||
 				throwable instanceof CPInstanceMaxPriceValueException ||
+				throwable instanceof CPInstancePriceException ||
 				throwable instanceof
 					CPInstanceReplacementCPInstanceUuidException ||
 				throwable instanceof CPInstanceSkuException ||
@@ -249,10 +250,11 @@ public class EditCPInstanceMVCActionCommand extends BaseMVCActionCommand {
 		double depth = ParamUtil.getDouble(actionRequest, "depth");
 		double weight = ParamUtil.getDouble(actionRequest, "weight");
 		BigDecimal price = _commercePriceFormatter.parse(
-			actionRequest, "price");
+			actionRequest, false, CPInstance.class.getName(), "price");
 		BigDecimal promoPrice = _commercePriceFormatter.parse(
-			actionRequest, "promoPrice");
-		BigDecimal cost = _commercePriceFormatter.parse(actionRequest, "cost");
+			actionRequest, false, CPInstance.class.getName(), "promoPrice");
+		BigDecimal cost = _commercePriceFormatter.parse(
+			actionRequest, false, CPInstance.class.getName(), "cost");
 		int displayDateMonth = ParamUtil.getInteger(
 			actionRequest, "displayDateMonth");
 		int displayDateDay = ParamUtil.getInteger(
@@ -433,15 +435,17 @@ public class EditCPInstanceMVCActionCommand extends BaseMVCActionCommand {
 				cpInstance.getPromoPrice(), cpInstance.getCost(),
 				serviceContext);
 
-			if (Objects.equals(
+			if (!Objects.equals(
 					_getCommercePricingConfigurationKey(),
 					CommercePricingConstants.VERSION_2_0)) {
 
-				_updateCommercePriceEntries(
-					cpInstance, cpInstance.getPrice(), false,
-					cpInstance.getPromoPrice(),
-					ServiceContextFactory.getInstance(actionRequest));
+				continue;
 			}
+
+			_updateCommercePriceEntries(
+				cpInstance, cpInstance.getPrice(), false,
+				cpInstance.getPromoPrice(),
+				ServiceContextFactory.getInstance(actionRequest));
 		}
 	}
 
@@ -467,10 +471,8 @@ public class EditCPInstanceMVCActionCommand extends BaseMVCActionCommand {
 
 	private String _getCommercePricingConfigurationKey() throws Exception {
 		CommercePricingConfiguration commercePricingConfiguration =
-			_configurationProvider.getConfiguration(
-				CommercePricingConfiguration.class,
-				new SystemSettingsLocator(
-					CommercePricingConstants.SERVICE_NAME));
+			_configurationProvider.getSystemConfiguration(
+				CommercePricingConfiguration.class);
 
 		return commercePricingConfiguration.commercePricingCalculationKey();
 	}
@@ -513,12 +515,6 @@ public class EditCPInstanceMVCActionCommand extends BaseMVCActionCommand {
 				cpInstance.getCPInstanceUuid(),
 				commercePriceList.getCommercePriceListId(), price,
 				priceOnApplication, null, null, serviceContext);
-		}
-		else {
-			_commercePriceEntryLocalService.updatePricingInfo(
-				commercePriceEntry.getCommercePriceEntryId(),
-				commercePriceEntry.isBulkPricing(), price, priceOnApplication,
-				null, null, serviceContext);
 		}
 	}
 

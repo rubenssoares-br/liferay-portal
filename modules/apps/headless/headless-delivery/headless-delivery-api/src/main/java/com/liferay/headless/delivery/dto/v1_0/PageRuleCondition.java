@@ -11,24 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -38,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a definition of a Page Rule Condition.",
 	value = "PageRuleCondition"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a definition of a Page Rule Condition."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "PageRuleCondition")
@@ -51,30 +57,32 @@ public class PageRuleCondition implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageRuleCondition.class, json);
 	}
 
-	@Schema(description = "The page rule condition's description.")
-	public String getCondition() {
-		if (_conditionSupplier != null) {
-			condition = _conditionSupplier.get();
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page rule condition's field."
+	)
+	public String getField() {
+		if (_fieldSupplier != null) {
+			field = _fieldSupplier.get();
 
-			_conditionSupplier = null;
+			_fieldSupplier = null;
 		}
 
-		return condition;
+		return field;
 	}
 
-	public void setCondition(String condition) {
-		this.condition = condition;
+	public void setField(String field) {
+		this.field = field;
 
-		_conditionSupplier = null;
+		_fieldSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setCondition(
-		UnsafeSupplier<String, Exception> conditionUnsafeSupplier) {
+	public void setField(
+		UnsafeSupplier<String, Exception> fieldUnsafeSupplier) {
 
-		_conditionSupplier = () -> {
+		_fieldSupplier = () -> {
 			try {
-				return conditionUnsafeSupplier.get();
+				return fieldUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -85,14 +93,16 @@ public class PageRuleCondition implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "The page rule condition's description.")
+	@GraphQLField(description = "The page rule condition's field.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String condition;
+	protected String field;
 
 	@JsonIgnore
-	private Supplier<String> _conditionSupplier;
+	private Supplier<String> _fieldSupplier;
 
-	@Schema(description = "The page rule condition's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page rule condition's ID."
+	)
 	public String getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -131,7 +141,51 @@ public class PageRuleCondition implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _idSupplier;
 
-	@Schema(description = "The page rule condition's type.")
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public Options getOptions() {
+		if (_optionsSupplier != null) {
+			options = _optionsSupplier.get();
+
+			_optionsSupplier = null;
+		}
+
+		return options;
+	}
+
+	public void setOptions(Options options) {
+		this.options = options;
+
+		_optionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setOptions(
+		UnsafeSupplier<Options, Exception> optionsUnsafeSupplier) {
+
+		_optionsSupplier = () -> {
+			try {
+				return optionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Options options;
+
+	@JsonIgnore
+	private Supplier<Options> _optionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page rule condition's type."
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -170,47 +224,6 @@ public class PageRuleCondition implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema(description = "The page rule condition's value.")
-	public String getValue() {
-		if (_valueSupplier != null) {
-			value = _valueSupplier.get();
-
-			_valueSupplier = null;
-		}
-
-		return value;
-	}
-
-	public void setValue(String value) {
-		this.value = value;
-
-		_valueSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setValue(
-		UnsafeSupplier<String, Exception> valueUnsafeSupplier) {
-
-		_valueSupplier = () -> {
-			try {
-				return valueUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(description = "The page rule condition's value.")
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String value;
-
-	@JsonIgnore
-	private Supplier<String> _valueSupplier;
-
 	@Override
 	public boolean equals(Object object) {
 		if (this == object) {
@@ -238,18 +251,18 @@ public class PageRuleCondition implements Serializable {
 
 		sb.append("{");
 
-		String condition = getCondition();
+		String field = getField();
 
-		if (condition != null) {
+		if (field != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"condition\": ");
+			sb.append("\"field\": ");
 
 			sb.append("\"");
 
-			sb.append(_escape(condition));
+			sb.append(_escape(field));
 
 			sb.append("\"");
 		}
@@ -270,6 +283,18 @@ public class PageRuleCondition implements Serializable {
 			sb.append("\"");
 		}
 
+		Options options = getOptions();
+
+		if (options != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"options\": ");
+
+			sb.append(String.valueOf(options));
+		}
+
 		String type = getType();
 
 		if (type != null) {
@@ -286,29 +311,13 @@ public class PageRuleCondition implements Serializable {
 			sb.append("\"");
 		}
 
-		String value = getValue();
-
-		if (value != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"value\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(value));
-
-			sb.append("\"");
-		}
-
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.PageRuleCondition",
 		name = "x-class-name"
 	)
@@ -395,6 +404,27 @@ public class PageRuleCondition implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -403,3 +433,4 @@ public class PageRuleCondition implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1651343099

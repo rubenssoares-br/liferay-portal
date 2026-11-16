@@ -1,8 +1,10 @@
 @component-name = "portal-search"
 definition {
 
+	property browser.chrome.version = "139.0";
+	property portal.acceptance = "true";
 	property portal.release = "true";
-	property portal.suite.search.engine = "elasticsearch7";
+	property portal.suite.search.engine = "elasticsearch8,opensearch2";
 	property portal.upstream = "true";
 	property testray.main.component.name = "Web Search";
 
@@ -197,7 +199,7 @@ definition {
 					locator1 = "WCEditWebContent#TEXT_INPUT",
 					value1 = "Liferay ${order}");
 
-				PortletEntry.publish();
+				WebContent.publishWithPermissions();
 			}
 		}
 
@@ -348,8 +350,6 @@ definition {
 
 	@priority = 3
 	test AssertCategoryFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		JSONCategory.addVocabulary(
 			groupName = "Guest",
 			title = "Vocabulary");
@@ -502,8 +502,6 @@ definition {
 
 	@priority = 3
 	test AssertCustomFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		for (var count : list "1,2,3") {
 			JSONDocument.addFileWithUploadedFile(
 				dmDocumentTitle = "dm title ${count}",
@@ -576,8 +574,6 @@ definition {
 	@description = "This is a use case for LPS-170111. When configuring the Folder Facet, facet terms are present with different display templates"
 	@priority = 3
 	test AssertFolderFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		task ("Add the folders and populate them with files") {
 			for (var folder : list "Product,Engineering,Company") {
 				JSONFolder.addFolder(
@@ -655,8 +651,6 @@ definition {
 
 	@priority = 3
 	test AssertModifiedFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		task ("Create the Web Contents") {
 			for (var count : list "1,2,3") {
 				JSONWebcontent.addWebContent(
@@ -790,8 +784,6 @@ definition {
 
 	@priority = 3
 	test AssertSiteFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		for (var siteName : list "Community,Engineering,Product") {
 			HeadlessSite.addSite(siteName = ${siteName});
 
@@ -864,8 +856,6 @@ definition {
 
 	@priority = 3
 	test AssertTagFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		JSONWebcontent.addWebContent(
 			assetTagNames = "engineering,product,2021,2022",
 			content = "WC Content 1",
@@ -957,8 +947,6 @@ definition {
 
 	@priority = 3
 	test AssertTypeFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		JSONWebcontent.addWebContent(
 			content = "WC WebContent Content",
 			groupName = "Guest",
@@ -1031,8 +1019,6 @@ definition {
 
 	@priority = 3
 	test AssertUserFacetTermsWithDifferentDisplayTemplates {
-		property portal.acceptance = "true";
-
 		for (var count : list "1,2,3") {
 			JSONUser.addUser(
 				userEmailAddress = "userea${count}@liferay.com",
@@ -1805,7 +1791,7 @@ definition {
 				structureName = "Test Structure",
 				webContentTitle = "Test Structure WebContent");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Create a basic web content article") {
@@ -1875,7 +1861,7 @@ definition {
 				structureName = "Test Structure",
 				webContentTitle = "WC Title");
 
-			PortletEntry.publish();
+			WebContent.publishWithPermissions();
 		}
 
 		task ("Add the Custom Facet to the search page") {
@@ -2055,8 +2041,6 @@ definition {
 
 	@priority = 4
 	test SearchUsingCustomFacet {
-		property portal.acceptance = "true";
-
 		JSONWebcontent.addWebContent(
 			content = "WC Content",
 			groupName = "Guest",
@@ -2096,9 +2080,7 @@ definition {
 
 		WebContentNavigator.gotoEditCP(webContentTitle = "WebContent Title 1");
 
-		WebContent.addCP(webContentTitle = "WebContent Title 1.1");
-
-		PortletEntry.publish();
+		WebContent.editCP(webContentTitleEdit = "WebContent Title 1.1");
 
 		WebContent.viewVersion(
 			version = "1.1",
@@ -2160,7 +2142,7 @@ definition {
 			webContentText = "Unlocalized text field",
 			webContentTitle = "WC Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		WebContent.viewWithStructureCP(
 			webContentText = "Unlocalized text field",
@@ -2762,6 +2744,8 @@ definition {
 	@description = "This is a use case for LPS-185631."
 	@priority = 4
 	test ViewDefaultEmptySearchResultsAndPaginationConfiguration {
+		property custom.properties = "search.container.page.delta.values=4,20,40,60";
+
 		task ("Assert 'Show Default Empty Result Message' and 'Show Default Pagination' are checked by default within the Search Results widget configuration") {
 			SearchPage.openSearchPage();
 

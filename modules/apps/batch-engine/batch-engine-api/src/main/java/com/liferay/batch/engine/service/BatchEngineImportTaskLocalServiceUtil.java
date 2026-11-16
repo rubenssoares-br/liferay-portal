@@ -334,20 +334,6 @@ public class BatchEngineImportTaskLocalServiceUtil {
 	}
 
 	public static List<BatchEngineImportTask> getBatchEngineImportTasks(
-		long companyId, int start, int end) {
-
-		return getService().getBatchEngineImportTasks(companyId, start, end);
-	}
-
-	public static List<BatchEngineImportTask> getBatchEngineImportTasks(
-		long companyId, int start, int end,
-		OrderByComparator<BatchEngineImportTask> orderByComparator) {
-
-		return getService().getBatchEngineImportTasks(
-			companyId, start, end, orderByComparator);
-	}
-
-	public static List<BatchEngineImportTask> getBatchEngineImportTasks(
 		String executeStatus) {
 
 		return getService().getBatchEngineImportTasks(executeStatus);
@@ -360,10 +346,6 @@ public class BatchEngineImportTaskLocalServiceUtil {
 	 */
 	public static int getBatchEngineImportTasksCount() {
 		return getService().getBatchEngineImportTasksCount();
-	}
-
-	public static int getBatchEngineImportTasksCount(long companyId) {
-		return getService().getBatchEngineImportTasksCount(companyId);
 	}
 
 	public static
@@ -428,6 +410,15 @@ public class BatchEngineImportTaskLocalServiceUtil {
 		return getService().updateBatchEngineImportTask(batchEngineImportTask);
 	}
 
+	public static BatchEngineImportTask updateBatchEngineImportTask(
+		BatchEngineImportTask batchEngineImportTask,
+		com.liferay.batch.engine.BatchEngineTaskItemDelegate<?>
+			batchEngineTaskItemDelegate) {
+
+		return getService().updateBatchEngineImportTask(
+			batchEngineImportTask, batchEngineTaskItemDelegate);
+	}
+
 	public static BatchEngineImportTaskLocalService getService() {
 		return _serviceSnapshot.get();
 	}
@@ -438,3 +429,4 @@ public class BatchEngineImportTaskLocalServiceUtil {
 			BatchEngineImportTaskLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:317049917

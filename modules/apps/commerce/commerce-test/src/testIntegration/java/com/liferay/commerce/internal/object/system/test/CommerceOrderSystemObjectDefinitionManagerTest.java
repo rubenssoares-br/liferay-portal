@@ -34,12 +34,16 @@ import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.rule.Sync;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
+import com.liferay.portal.kernel.util.BigDecimalUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 
+import java.math.BigDecimal;
+
+import java.util.Date;
 import java.util.Map;
 
 import org.junit.After;
@@ -87,7 +91,7 @@ public class CommerceOrderSystemObjectDefinitionManagerTest {
 		_commerceOrderLocalService.deleteCommerceOrders(
 			_commerceChannel.getGroupId());
 
-		CentralizedThreadLocal.clearShortLivedThreadLocals();
+		CentralizedThreadLocal.clearShortLivedCentralizedThreadLocals();
 	}
 
 	@Test
@@ -142,23 +146,33 @@ public class CommerceOrderSystemObjectDefinitionManagerTest {
 			variables.get("channelId"));
 		Assert.assertEquals(
 			_commerceCurrency.getCode(), variables.get("currencyCode"));
-		Assert.assertEquals(
-			commerceOrder.getOrderDate(
-			).getTime(),
-			variables.get("orderDate"));
+
+		Date orderDate = commerceOrder.getOrderDate();
+
+		Assert.assertEquals(orderDate.getTime(), variables.get("orderDate"));
+
 		Assert.assertEquals(
 			commerceOrder.getOrderStatus(), variables.get("orderStatus"));
 		Assert.assertEquals(
 			String.valueOf(commerceOrder.getCommerceOrderTypeId()),
 			variables.get("orderTypeId"));
 		Assert.assertEquals(
-			commerceOrder.getShippingAmount(), variables.get("shippingAmount"));
-		Assert.assertEquals(
-			commerceOrder.getTaxAmount(), variables.get("taxAmount"));
-		Assert.assertEquals(commerceOrder.getTotal(), variables.get("total"));
+			String.valueOf(commerceOrder.getCommercePaymentMethodKey()),
+			variables.get("paymentMethod"));
+		Assert.assertTrue(
+			BigDecimalUtil.eq(
+				commerceOrder.getShippingAmount(),
+				new BigDecimal(
+					String.valueOf(variables.get("shippingAmount")))));
+		Assert.assertTrue(
+			BigDecimalUtil.eq(
+				commerceOrder.getTaxAmount(),
+				new BigDecimal(String.valueOf(variables.get("taxAmount")))));
+		Assert.assertTrue(
+			BigDecimalUtil.eq(
+				commerceOrder.getTotal(),
+				new BigDecimal(String.valueOf(variables.get("total")))));
 	}
-
-	private static User _user;
 
 	@DeleteAfterTestRun
 	private CommerceChannel _commerceChannel;
@@ -193,5 +207,7 @@ public class CommerceOrderSystemObjectDefinitionManagerTest {
 	@Inject
 	private SystemObjectDefinitionManagerRegistry
 		_systemObjectDefinitionManagerRegistry;
+
+	private User _user;
 
 }

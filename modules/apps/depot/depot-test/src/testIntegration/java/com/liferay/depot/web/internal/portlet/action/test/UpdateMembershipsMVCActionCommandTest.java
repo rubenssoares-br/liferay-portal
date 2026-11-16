@@ -6,6 +6,7 @@
 package com.liferay.depot.web.internal.portlet.action.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.constants.DepotRolesConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
@@ -49,6 +50,10 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import jakarta.portlet.ActionRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -56,10 +61,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.portlet.ActionRequest;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -90,7 +91,7 @@ public class UpdateMembershipsMVCActionCommandTest {
 			HashMapBuilder.put(
 				LocaleUtil.getDefault(), RandomTestUtil.randomString()
 			).build(),
-			Collections.emptyMap(),
+			Collections.emptyMap(), DepotConstants.TYPE_ASSET_LIBRARY,
 			ServiceContextTestUtil.getServiceContext(
 				TestPropsValues.getGroupId(), TestPropsValues.getUserId()));
 		_user = UserTestUtil.addUser();
@@ -294,9 +295,9 @@ public class UpdateMembershipsMVCActionCommandTest {
 	private void _updateUser(Set<Long> groupIds, User user) throws Exception {
 		Contact contact = user.getContact();
 
-		Calendar birthdayCal = CalendarFactoryUtil.getCalendar();
+		Calendar calendar = CalendarFactoryUtil.getCalendar();
 
-		birthdayCal.setTime(user.getBirthday());
+		calendar.setTime(user.getBirthday());
 
 		_userLocalService.updateUser(
 			user.getUserId(), user.getPassword(), null, null,
@@ -305,8 +306,8 @@ public class UpdateMembershipsMVCActionCommandTest {
 			user.getTimeZoneId(), user.getGreeting(), user.getComments(),
 			user.getFirstName(), user.getMiddleName(), user.getLastName(),
 			contact.getPrefixListTypeId(), contact.getSuffixListTypeId(),
-			user.isFemale(), birthdayCal.get(Calendar.MONTH),
-			birthdayCal.get(Calendar.DATE), birthdayCal.get(Calendar.YEAR),
+			user.isFemale(), calendar.get(Calendar.MONTH),
+			calendar.get(Calendar.DATE), calendar.get(Calendar.YEAR),
 			contact.getSmsSn(), contact.getFacebookSn(), contact.getJabberSn(),
 			contact.getSkypeSn(), contact.getTwitterSn(), user.getJobTitle(),
 			ArrayUtil.toLongArray(groupIds), user.getOrganizationIds(), null,
@@ -397,16 +398,16 @@ public class UpdateMembershipsMVCActionCommandTest {
 
 		@Override
 		public Object getAttribute(String name) {
-			if (Objects.equals(name, WebKeys.THEME_DISPLAY)) {
-				try {
-					return _getThemeDisplay();
-				}
-				catch (Exception exception) {
-					throw new AssertionError(exception);
-				}
+			if (!Objects.equals(name, WebKeys.THEME_DISPLAY)) {
+				return null;
 			}
 
-			return null;
+			try {
+				return _getThemeDisplay();
+			}
+			catch (Exception exception) {
+				throw new AssertionError(exception);
+			}
 		}
 
 		@Override

@@ -14,30 +14,31 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -46,6 +47,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "Represents a document shortcut.", value = "DocumentShortcut"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a document shortcut."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "DocumentShortcut")
@@ -59,7 +63,7 @@ public class DocumentShortcut implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(DocumentShortcut.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Block of actions allowed by the user making the request."
 	)
 	@Valid
@@ -106,7 +110,7 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The key of the asset library to which the document shortcut is scoped."
 	)
 	public String getAssetLibraryKey() {
@@ -151,7 +155,9 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _assetLibraryKeySupplier;
 
-	@Schema(description = "The document shortcut's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The document shortcut's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -192,7 +198,7 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The last time a field of the document shortcut changed."
 	)
 	public Date getDateModified() {
@@ -237,7 +243,9 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The document shortcut's external reference code.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The document shortcut's external reference code."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -280,7 +288,9 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The document shortcut's folder ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The document shortcut's folder ID."
+	)
 	public Long getFolderId() {
 		if (_folderIdSupplier != null) {
 			folderId = _folderIdSupplier.get();
@@ -321,7 +331,9 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _folderIdSupplier;
 
-	@Schema(description = "The document shortcut's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The document shortcut's ID."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -360,7 +372,7 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The ID of the site to which this document shortcut is scoped."
 	)
 	public Long getSiteId() {
@@ -405,7 +417,7 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The ID of the document to which this shortcut is scoped."
 	)
 	public Long getTargetDocumentId() {
@@ -450,7 +462,7 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _targetDocumentIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The title of the document to which this shortcut is scoped."
 	)
 	public String getTitle() {
@@ -495,10 +507,10 @@ public class DocumentShortcut implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@JsonGetter("viewableBy")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A write-only property that specifies the default permissions."
 	)
+	@JsonGetter("viewableBy")
 	@Valid
 	public ViewableBy getViewableBy() {
 		if (_viewableBySupplier != null) {
@@ -733,9 +745,7 @@ public class DocumentShortcut implements Serializable {
 			sb.append("\"viewableBy\": ");
 
 			sb.append("\"");
-
 			sb.append(viewableBy);
-
 			sb.append("\"");
 		}
 
@@ -744,8 +754,8 @@ public class DocumentShortcut implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.DocumentShortcut",
 		name = "x-class-name"
 	)
@@ -870,6 +880,27 @@ public class DocumentShortcut implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -878,3 +909,4 @@ public class DocumentShortcut implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1217954777

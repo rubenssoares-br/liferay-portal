@@ -6,21 +6,24 @@
 package com.liferay.headless.admin.user.client.serdes.v1_0;
 
 import com.liferay.headless.admin.user.client.dto.v1_0.Account;
-import com.liferay.headless.admin.user.client.dto.v1_0.CustomField;
+import com.liferay.headless.admin.user.client.dto.v1_0.AccountGroupBrief;
+import com.liferay.headless.admin.user.client.dto.v1_0.AccountRole;
 import com.liferay.headless.admin.user.client.dto.v1_0.PostalAddress;
+import com.liferay.headless.admin.user.client.dto.v1_0.TaxonomyCategoryBrief;
 import com.liferay.headless.admin.user.client.dto.v1_0.UserAccount;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
+
+import jakarta.annotation.Generated;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -63,6 +66,46 @@ public class AccountSerDes {
 			sb.append(String.valueOf(account.getAccountContactInformation()));
 		}
 
+		if (account.getAccountGroupBriefs() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"accountGroupBriefs\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < account.getAccountGroupBriefs().length; i++) {
+				sb.append(String.valueOf(account.getAccountGroupBriefs()[i]));
+
+				if ((i + 1) < account.getAccountGroupBriefs().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		if (account.getAccountRoles() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"accountRoles\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < account.getAccountRoles().length; i++) {
+				sb.append(String.valueOf(account.getAccountRoles()[i]));
+
+				if ((i + 1) < account.getAccountRoles().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (account.getAccountUserAccounts() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -93,6 +136,16 @@ public class AccountSerDes {
 			sb.append(_toJSON(account.getActions()));
 		}
 
+		if (account.getCreator() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(account.getCreator()));
+		}
+
 		if (account.getCustomFields() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -103,7 +156,7 @@ public class AccountSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < account.getCustomFields().length; i++) {
-				sb.append(String.valueOf(account.getCustomFields()[i]));
+				sb.append(account.getCustomFields()[i]);
 
 				if ((i + 1) < account.getCustomFields().length) {
 					sb.append(", ");
@@ -252,6 +305,40 @@ public class AccountSerDes {
 			sb.append(account.getId());
 		}
 
+		if (account.getKeywords() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"keywords\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < account.getKeywords().length; i++) {
+				sb.append(_toJSON(account.getKeywords()[i]));
+
+				if ((i + 1) < account.getKeywords().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		if (account.getLogoBase64() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"logoBase64\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(account.getLogoBase64()));
+
+			sb.append("\"");
+		}
+
 		if (account.getLogoExternalReferenceCode() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -386,6 +473,26 @@ public class AccountSerDes {
 			sb.append(account.getParentAccountId());
 		}
 
+		if (account.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < account.getPermissions().length; i++) {
+				sb.append(account.getPermissions()[i]);
+
+				if ((i + 1) < account.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (account.getPostalAddresses() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -430,6 +537,29 @@ public class AccountSerDes {
 			sb.append("\"");
 		}
 
+		if (account.getTaxonomyCategoryBriefs() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"taxonomyCategoryBriefs\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < account.getTaxonomyCategoryBriefs().length;
+				 i++) {
+
+				sb.append(
+					String.valueOf(account.getTaxonomyCategoryBriefs()[i]));
+
+				if ((i + 1) < account.getTaxonomyCategoryBriefs().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (account.getType() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -438,9 +568,7 @@ public class AccountSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(account.getType());
-
 			sb.append("\"");
 		}
 
@@ -474,6 +602,22 @@ public class AccountSerDes {
 				String.valueOf(account.getAccountContactInformation()));
 		}
 
+		if (account.getAccountGroupBriefs() == null) {
+			map.put("accountGroupBriefs", null);
+		}
+		else {
+			map.put(
+				"accountGroupBriefs",
+				String.valueOf(account.getAccountGroupBriefs()));
+		}
+
+		if (account.getAccountRoles() == null) {
+			map.put("accountRoles", null);
+		}
+		else {
+			map.put("accountRoles", String.valueOf(account.getAccountRoles()));
+		}
+
 		if (account.getAccountUserAccounts() == null) {
 			map.put("accountUserAccounts", null);
 		}
@@ -488,6 +632,13 @@ public class AccountSerDes {
 		}
 		else {
 			map.put("actions", String.valueOf(account.getActions()));
+		}
+
+		if (account.getCreator() == null) {
+			map.put("creator", null);
+		}
+		else {
+			map.put("creator", String.valueOf(account.getCreator()));
 		}
 
 		if (account.getCustomFields() == null) {
@@ -583,6 +734,20 @@ public class AccountSerDes {
 			map.put("id", String.valueOf(account.getId()));
 		}
 
+		if (account.getKeywords() == null) {
+			map.put("keywords", null);
+		}
+		else {
+			map.put("keywords", String.valueOf(account.getKeywords()));
+		}
+
+		if (account.getLogoBase64() == null) {
+			map.put("logoBase64", null);
+		}
+		else {
+			map.put("logoBase64", String.valueOf(account.getLogoBase64()));
+		}
+
 		if (account.getLogoExternalReferenceCode() == null) {
 			map.put("logoExternalReferenceCode", null);
 		}
@@ -659,6 +824,13 @@ public class AccountSerDes {
 				String.valueOf(account.getParentAccountId()));
 		}
 
+		if (account.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put("permissions", String.valueOf(account.getPermissions()));
+		}
+
 		if (account.getPostalAddresses() == null) {
 			map.put("postalAddresses", null);
 		}
@@ -680,6 +852,15 @@ public class AccountSerDes {
 		}
 		else {
 			map.put("taxId", String.valueOf(account.getTaxId()));
+		}
+
+		if (account.getTaxonomyCategoryBriefs() == null) {
+			map.put("taxonomyCategoryBriefs", null);
+		}
+		else {
+			map.put(
+				"taxonomyCategoryBriefs",
+				String.valueOf(account.getTaxonomyCategoryBriefs()));
 		}
 
 		if (account.getType() == null) {
@@ -712,12 +893,23 @@ public class AccountSerDes {
 				return false;
 			}
 			else if (Objects.equals(
+						jsonParserFieldName, "accountGroupBriefs")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "accountRoles")) {
+				return false;
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "accountUserAccounts")) {
 
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "actions")) {
 				return true;
+			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "customFields")) {
 				return false;
@@ -764,6 +956,12 @@ public class AccountSerDes {
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "keywords")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "logoBase64")) {
+				return false;
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "logoExternalReferenceCode")) {
 
@@ -799,6 +997,9 @@ public class AccountSerDes {
 			else if (Objects.equals(jsonParserFieldName, "parentAccountId")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "postalAddresses")) {
 				return false;
 			}
@@ -806,6 +1007,11 @@ public class AccountSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "taxId")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "taxonomyCategoryBriefs")) {
+
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -827,6 +1033,41 @@ public class AccountSerDes {
 					account.setAccountContactInformation(
 						AccountContactInformationSerDes.toDTO(
 							(String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "accountGroupBriefs")) {
+
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					AccountGroupBrief[] accountGroupBriefsArray =
+						new AccountGroupBrief[jsonParserFieldValues.length];
+
+					for (int i = 0; i < accountGroupBriefsArray.length; i++) {
+						accountGroupBriefsArray[i] =
+							AccountGroupBriefSerDes.toDTO(
+								(String)jsonParserFieldValues[i]);
+					}
+
+					account.setAccountGroupBriefs(accountGroupBriefsArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "accountRoles")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					AccountRole[] accountRolesArray =
+						new AccountRole[jsonParserFieldValues.length];
+
+					for (int i = 0; i < accountRolesArray.length; i++) {
+						accountRolesArray[i] = AccountRoleSerDes.toDTO(
+							(String)jsonParserFieldValues[i]);
+					}
+
+					account.setAccountRoles(accountRolesArray);
 				}
 			}
 			else if (Objects.equals(
@@ -853,17 +1094,27 @@ public class AccountSerDes {
 						(Map<String, Map<String, String>>)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				if (jsonParserFieldValue != null) {
+					account.setCreator(
+						CreatorSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "customFields")) {
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.admin.user.client.custom.field.
+						CustomField[] customFieldsArray = new
+						com.liferay.headless.admin.user.client.custom.field.
+							CustomField[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.admin.user.client.custom.field.
+								CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					account.setCustomFields(customFieldsArray);
@@ -939,6 +1190,17 @@ public class AccountSerDes {
 					account.setId(Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "keywords")) {
+				if (jsonParserFieldValue != null) {
+					account.setKeywords(
+						toStrings((Object[])jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "logoBase64")) {
+				if (jsonParserFieldValue != null) {
+					account.setLogoBase64((String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(
 						jsonParserFieldName, "logoExternalReferenceCode")) {
 
@@ -999,6 +1261,26 @@ public class AccountSerDes {
 						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.user.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.user.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.user.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					account.setPermissions(permissionsArray);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "postalAddresses")) {
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
@@ -1024,6 +1306,28 @@ public class AccountSerDes {
 			else if (Objects.equals(jsonParserFieldName, "taxId")) {
 				if (jsonParserFieldValue != null) {
 					account.setTaxId((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "taxonomyCategoryBriefs")) {
+
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					TaxonomyCategoryBrief[] taxonomyCategoryBriefsArray =
+						new TaxonomyCategoryBrief[jsonParserFieldValues.length];
+
+					for (int i = 0; i < taxonomyCategoryBriefsArray.length;
+						 i++) {
+
+						taxonomyCategoryBriefsArray[i] =
+							TaxonomyCategoryBriefSerDes.toDTO(
+								(String)jsonParserFieldValues[i]);
+					}
+
+					account.setTaxonomyCategoryBriefs(
+						taxonomyCategoryBriefsArray);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -1077,6 +1381,16 @@ public class AccountSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -1109,3 +1423,4 @@ public class AccountSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1424208437

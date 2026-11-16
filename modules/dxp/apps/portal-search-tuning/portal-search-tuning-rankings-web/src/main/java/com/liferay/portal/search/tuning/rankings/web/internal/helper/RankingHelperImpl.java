@@ -7,6 +7,7 @@ package com.liferay.portal.search.tuning.rankings.web.internal.helper;
 
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.service.JournalArticleLocalService;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -66,9 +67,11 @@ public class RankingHelperImpl implements RankingHelper {
 		}
 
 		for (String alias : aliases) {
-			if (!Validator.isBlank(alias)) {
-				queryStrings.add(alias);
+			if (Validator.isBlank(alias)) {
+				continue;
 			}
+
+			queryStrings.add(alias);
 		}
 
 		return ListUtil.sort(new ArrayList<>(queryStrings));
@@ -76,17 +79,17 @@ public class RankingHelperImpl implements RankingHelper {
 
 	@Override
 	public List<String> translateDocumentIds(List<String> documentIds) {
-		List<String> ids = new ArrayList<>();
+		return TransformUtil.transform(
+			documentIds,
+			documentId -> {
+				String id = getDocumentId(documentId);
 
-		for (String documentId : documentIds) {
-			String id = getDocumentId(documentId);
+				if (!Validator.isBlank(id)) {
+					return id;
+				}
 
-			if (!Validator.isBlank(id)) {
-				ids.add(id);
-			}
-		}
-
-		return ids;
+				return null;
+			});
 	}
 
 	@Reference

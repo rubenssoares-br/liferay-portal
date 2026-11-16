@@ -5,29 +5,63 @@
 
 import React from 'react';
 
-import {IInlineEditingSettings, IItemsActions} from '.';
+import {
+	EConfigInURLKeys,
+	IConfigInURLUpdaterThunk,
+	IDataSetData,
+	IFDSState,
+	IInlineEditingSettings,
+	IInternalRenderer,
+	IItemsActions,
+	TRenderer,
+	TSort,
+} from './utils/types';
+import {IUserConfiguration} from './views/ViewsContext';
 
 export interface IFrontendDataSetContext {
 	actionParameterName?: string | null;
+	allItemsSelectedActive: boolean;
 	apiURL?: string;
 	appURL?: string;
 	applyItemInlineUpdates: Function;
 	createInlineItem: Function;
 	customDataRenderers?: Array<any>;
-	customRenderers?: {tableCell?: Array<TRenderer>};
-	executeAsyncItemAction: Function;
+	customRenderers?: {
+		listSection?: Array<IInternalRenderer>;
+		tableCell?: Array<TRenderer>;
+	};
+	executeAsyncItemAction: ({
+		errorMessage,
+		method,
+		requestBody,
+		setActionItemLoading,
+		successMessage,
+		url,
+	}: {
+		errorMessage?: string;
+		method?: string;
+		requestBody?: string;
+		setActionItemLoading?: (loading: boolean) => void;
+		successMessage?: string;
+		url: string;
+	}) => Promise<void>;
+	forceSortsUpdate: (sorts: TSort[]) => void;
 	formId?: string;
 	formName?: string;
+	globalFDSState: IFDSState;
+	hideManagementBarInEmptyState?: boolean;
 	highlightItems: Function;
-	highlightedItemsValue?: string;
-	id?: string;
+	highlightedItemsValue?: Array<string>;
+	id: string;
+	infoPanelId?: string;
+	infoPanelOpen?: boolean;
 	inlineAddingSettings?: {
 		apiURL?: string;
 		defaultBodyContent?: object;
 	};
 	inlineEditingSettings?: IInlineEditingSettings;
-	itemsActions?: IItemsActions[];
-	itemsChanges?: Array<any>;
+	itemsActions?: Array<IItemsActions>;
+	itemsChanges?: {[key: string]: any};
 	loadData: Function;
 	modalId?: string;
 	namespace?: string;
@@ -35,66 +69,81 @@ export interface IFrontendDataSetContext {
 	nestedItemsReferenceKey?: string;
 	onActionDropdownItemClick: Function;
 	onBulkActionItemClick: Function;
-	onSelect: Function;
+	onClearResultsBar: () => void;
+	onClearSearch: () => void;
+	onFilterChange: Function;
+	onInfoPanelToggleButtonClick: Function;
+	onItemsChange: ({itemKey, items}: {itemKey: string; items: any}) => void;
+	onSearch: ({query}: {query: string}) => void;
+	onSnapshotChange: Function;
+	onViewChange: (viewName: string) => void;
 	openModal: Function;
 	openSidePanel: Function;
 	portletId?: string;
+	saveDataSetUserConfigurationURL?: string;
+	searchAsYouType: boolean;
 	searchParam?: string;
-	selectItems: Function;
+	searchSuggestionsEnabled: boolean;
+	searching: boolean;
 	selectable?: boolean;
-	selectedItemsKey?: string;
+	selectedItems?: Array<any>;
+	selectedItemsKey: string;
 	selectedItemsValue?: Array<any>;
-	selectionType?: string;
+	selectionType?: 'single' | 'multiple';
+	showBulkActionsManagementBar: boolean;
+	showBulkActionsManagementBarActions: boolean;
+	showInfoPanel: boolean;
 	sidePanelId?: string;
-	sorts?: Array<TRenderer>;
+	sorts?: Array<TSort>;
 	style?: string;
 	toggleItemInlineEdit: Function;
 	uniformActionsDisplay?: boolean;
-	updateDataSetItems: Function;
+	updateActiveSorts: IConfigInURLUpdaterThunk<EConfigInURLKeys.ACTIVE_SORTS>;
+	updateAdditionalAPIURLParameters: (parameters: string) => void;
+	updateDataSetItems: ({
+		items,
+		lastPage,
+		page,
+		pageSize,
+		totalCount,
+	}: IDataSetData) => void;
+	updateFilters: IConfigInURLUpdaterThunk<EConfigInURLKeys.ACTIVE_FILTERS>;
 	updateItem: Function;
-	updateSearchParam: Function;
+	updateUserConfiguration: (
+		configuration: IUserConfiguration
+	) => Promise<void>;
+	updateView: IConfigInURLUpdaterThunk<EConfigInURLKeys.VIEW_NAME>;
+	updateVisibleFields: IConfigInURLUpdaterThunk<EConfigInURLKeys.VISIBLE_FIELDS>;
 }
-
-export interface IHTMLElementBuilder {
-	(args: any): HTMLElement;
-}
-
-export interface IClientExtensionRenderer {
-	externalReferenceCode?: string;
-	htmlElementBuilder?: IHTMLElementBuilder;
-	name?: string;
-	type: 'clientExtension';
-	url?: string;
-}
-
-export interface IInternalRenderer {
-	component: React.ComponentType<any>;
-	label?: string;
-	name?: string;
-	type: 'internal';
-	url?: string;
-}
-
-export type TRenderer = IClientExtensionRenderer | IInternalRenderer;
 
 const FrontendDataSetContext = React.createContext({
+	allItemsSelectedActive: false,
 	applyItemInlineUpdates: () => {},
 	createInlineItem: () => {},
 	executeAsyncItemAction: () => {},
+	forceSortsUpdate: () => {},
+	hideManagementBarInEmptyState: false,
 	highlightItems: () => {},
+	id: '',
 	loadData: () => {},
 	onActionDropdownItemClick: () => {},
 	onBulkActionItemClick: () => {},
-	onSelect: () => {},
+	onFilterChange: () => {},
+	onInfoPanelToggleButtonClick: () => {},
+	onItemsChange: () => {},
+	onSearch: () => {},
+	onSnapshotChange: () => {},
 	openModal: () => {},
 	openSidePanel: () => {},
-	selectItems: () => {},
+	searchAsYouType: false,
+	searchSuggestionsEnabled: false,
 	selectable: false,
+	selectedItems: [],
 	selectedItemsValue: [],
 	toggleItemInlineEdit: () => {},
+	updateAdditionalAPIURLParameters: () => {},
 	updateDataSetItems: () => {},
 	updateItem: () => {},
-	updateSearchParam: () => {},
-} as IFrontendDataSetContext);
+} as unknown as IFrontendDataSetContext);
 
 export default FrontendDataSetContext;

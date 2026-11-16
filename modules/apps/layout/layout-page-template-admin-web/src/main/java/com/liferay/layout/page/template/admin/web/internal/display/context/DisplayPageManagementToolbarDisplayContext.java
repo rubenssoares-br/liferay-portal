@@ -18,29 +18,28 @@ import com.liferay.layout.page.template.admin.web.internal.security.permission.r
 import com.liferay.layout.page.template.admin.web.internal.security.permission.resource.LayoutPageTemplatePermission;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateActionKeys;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateConstants;
-import com.liferay.layout.page.template.item.selector.criterion.LayoutPageTemplateCollectionTreeNodeItemSelectorCriterion;
+import com.liferay.layout.page.template.item.selector.LayoutPageTemplateCollectionTreeNodeItemSelectorCriterion;
 import com.liferay.layout.page.template.model.LayoutPageTemplateCollection;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
 import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
+import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.RequestBackedPortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.portlet.url.builder.ResourceURLBuilder;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
-import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -67,7 +66,6 @@ public class DisplayPageManagementToolbarDisplayContext
 	@Override
 	public List<DropdownItem> getActionDropdownItems() {
 		return DropdownItemListBuilder.addGroup(
-			() -> FeatureFlagManagerUtil.isEnabled("LPS-189856"),
 			dropdownGroupItem -> {
 				dropdownGroupItem.setDropdownItems(
 					DropdownItemListBuilder.add(
@@ -117,7 +115,6 @@ public class DisplayPageManagementToolbarDisplayContext
 				dropdownGroupItem.setSeparator(true);
 			}
 		).addGroup(
-			() -> FeatureFlagManagerUtil.isEnabled("LPS-189856"),
 			dropdownGroupItem -> {
 				dropdownGroupItem.setDropdownItems(
 					DropdownItemListBuilder.add(
@@ -250,7 +247,6 @@ public class DisplayPageManagementToolbarDisplayContext
 	@Override
 	public CreationMenu getCreationMenu() {
 		return CreationMenuBuilder.addDropdownItem(
-			() -> FeatureFlagManagerUtil.isEnabled("LPS-189856"),
 			dropdownItem -> {
 				dropdownItem.putData("action", "addDisplayPageCollection");
 				dropdownItem.putData(
@@ -264,9 +260,8 @@ public class DisplayPageManagementToolbarDisplayContext
 						_themeDisplay.getURLCurrent()
 					).setParameter(
 						"layoutPageTemplateCollectionId",
-						ParamUtil.getLong(
-							httpServletRequest,
-							"layoutPageTemplateCollectionId")
+						_displayPageDisplayContext.
+							getLayoutPageTemplateCollectionId()
 					).buildString());
 				dropdownItem.setIcon("folder");
 				dropdownItem.setLabel(
@@ -283,9 +278,8 @@ public class DisplayPageManagementToolbarDisplayContext
 						_themeDisplay.getURLCurrent()
 					).setParameter(
 						"layoutPageTemplateCollectionId",
-						ParamUtil.getLong(
-							httpServletRequest,
-							"layoutPageTemplateCollectionId")
+						_displayPageDisplayContext.
+							getLayoutPageTemplateCollectionId()
 					).buildString());
 				dropdownItem.setLabel(
 					LanguageUtil.get(
@@ -301,11 +295,7 @@ public class DisplayPageManagementToolbarDisplayContext
 
 	@Override
 	public String getInfoPanelId() {
-		if (FeatureFlagManagerUtil.isEnabled("LPS-189856")) {
-			return "infoPanelId";
-		}
-
-		return null;
+		return "infoPanelId";
 	}
 
 	@Override
@@ -325,15 +315,10 @@ public class DisplayPageManagementToolbarDisplayContext
 
 	@Override
 	public Boolean isShowCreationMenu() {
-		if (LayoutPageTemplatePermission.contains(
-				_themeDisplay.getPermissionChecker(),
-				_themeDisplay.getSiteGroupId(),
-				LayoutPageTemplateActionKeys.ADD_LAYOUT_PAGE_TEMPLATE_ENTRY)) {
-
-			return true;
-		}
-
-		return false;
+		return LayoutPageTemplatePermission.contains(
+			_themeDisplay.getPermissionChecker(),
+			_themeDisplay.getSiteGroupId(),
+			LayoutPageTemplateActionKeys.ADD_LAYOUT_PAGE_TEMPLATE_ENTRY);
 	}
 
 	@Override
@@ -342,39 +327,31 @@ public class DisplayPageManagementToolbarDisplayContext
 	}
 
 	private String _getDeleteSelectedEntriesURL() {
-		if (FeatureFlagManagerUtil.isEnabled("LPS-189856")) {
-			return PortletURLBuilder.createActionURL(
-				liferayPortletResponse
-			).setActionName(
-				"/layout_page_template_admin/delete_layout_page_template_" +
-					"entries_and_layout_page_template_collections"
-			).setTabs1(
-				"display-page-templates"
-			).setParameter(
-				"layoutPageTemplateCollectionId",
-				ParamUtil.getLong(
-					httpServletRequest, "layoutPageTemplateCollectionId")
-			).buildString();
-		}
-
 		return PortletURLBuilder.createActionURL(
 			liferayPortletResponse
 		).setActionName(
-			"/layout_page_template_admin/delete_layout_page_template_entry"
-		).setRedirect(
-			_themeDisplay.getURLCurrent()
+			"/layout_page_template_admin/delete_layout_page_template_" +
+				"entries_and_layout_page_template_collections"
 		).setTabs1(
 			"display-page-templates"
+		).setParameter(
+			"layoutPageTemplateCollectionId",
+			_displayPageDisplayContext.getLayoutPageTemplateCollectionId()
 		).buildString();
 	}
 
 	private String _getExportDisplayPageURL() {
-		return ResourceURLBuilder.createResourceURL(
-			liferayPortletResponse
-		).setResourceID(
-			"/layout_page_template_admin/export_layout_page_template_entries_" +
-				"and_layout_page_template_collections"
-		).buildString();
+		LiferayPortletURL exportDisplayPageURL =
+			(LiferayPortletURL)ResourceURLBuilder.createResourceURL(
+				liferayPortletResponse
+			).setResourceID(
+				"/layout_page_template_admin/export_layout_page_template_" +
+					"entries_and_layout_page_template_collections"
+			).buildResourceURL();
+
+		exportDisplayPageURL.setCopyCurrentRenderParameters(false);
+
+		return exportDisplayPageURL.toString();
 	}
 
 	private String _getItemSelectorURL() {

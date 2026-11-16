@@ -26,7 +26,7 @@ export class TempFileMissingError extends Error {
 
 export default function createTempFile(
 	name: string,
-	content: string = ''
+	content: Buffer | string = ''
 ): string {
 	fs.mkdirSync(TMP_DIR, {recursive: true});
 
@@ -36,9 +36,15 @@ export default function createTempFile(
 		throw new Error(`Temporary file ${name} already exists`);
 	}
 
-	fs.writeFileSync(filePath, content, 'utf-8');
+	fs.writeFileSync(filePath, content);
 
 	return filePath;
+}
+
+export function createTempDir(): string {
+	fs.mkdirSync(TMP_DIR, {recursive: true});
+
+	return fs.mkdtempSync(path.join(TMP_DIR, 'dir-'));
 }
 
 export function readTempFile(name: string): string {

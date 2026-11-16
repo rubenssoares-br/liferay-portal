@@ -105,12 +105,6 @@ public class LayoutSEOSiteLocalServiceUtil {
 		return getService().deleteLayoutSEOSite(layoutSEOSiteId);
 	}
 
-	public static void deleteLayoutSEOSite(String uuid, long groupId)
-		throws com.liferay.layout.seo.exception.NoSuchSiteException {
-
-		getService().deleteLayoutSEOSite(uuid, groupId);
-	}
-
 	/**
 	 * @throws PortalException
 	 */
@@ -388,3 +382,4 @@ public class LayoutSEOSiteLocalServiceUtil {
 			LayoutSEOSiteLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:667253132

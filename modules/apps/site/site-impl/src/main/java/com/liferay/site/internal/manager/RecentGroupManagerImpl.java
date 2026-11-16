@@ -5,11 +5,17 @@
 
 package com.liferay.site.internal.manager;
 
+import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutConstants;
+import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.portlet.PortalPreferences;
+import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
@@ -17,29 +23,36 @@ import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.permission.GroupPermissionUtil;
 import com.liferay.portal.kernel.service.permission.LayoutPermissionUtil;
+import com.liferay.portal.kernel.servlet.PortletSessionListenerManager;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.SessionClicks;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.site.constants.SiteWebKeys;
 import com.liferay.site.manager.RecentGroupManager;
 import com.liferay.site.provider.GroupURLProvider;
 
+import jakarta.portlet.PortletRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSessionEvent;
+import jakarta.servlet.http.HttpSessionListener;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-import javax.portlet.PortletRequest;
-
-import javax.servlet.http.HttpServletRequest;
-
+import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -67,22 +80,36 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 			return;
 		}
 
-		long liveGroupId = _getLiveGroupId(groupId);
+		Group group = _groupLocalService.fetchGroup(groupId);
 
-		if (liveGroupId <= 0) {
+		if (group == null) {
 			return;
 		}
 
-		Group liveGroup = _groupLocalService.fetchGroup(liveGroupId);
+		Group liveGroup = group;
 
-		if (liveGroup.isLayoutPrototype() || liveGroup.isLayoutSetPrototype()) {
+		if (!group.isStagedRemotely() && group.isStagingGroup()) {
+			liveGroup = _groupLocalService.fetchGroup(group.getLiveGroupId());
+		}
+
+		if (liveGroup.isCMS() || liveGroup.isControlPanel() ||
+			liveGroup.isLayoutPrototype() || liveGroup.isLayoutSetPrototype() ||
+			Objects.equals(GroupConstants.DSR, liveGroup.getGroupKey())) {
+
 			return;
 		}
 
-		String value = _getRecentGroupsValue(httpServletRequest);
+		HttpServletRequest originalHttpServletRequest =
+			_portal.getOriginalServletRequest(httpServletRequest);
+
+		HttpSession httpSession = originalHttpServletRequest.getSession();
+
+		String value = _getRecentGroupsValue(httpServletRequest, httpSession);
 
 		List<Long> groupIds = ListUtil.fromArray(
 			ArrayUtil.toLongArray(StringUtil.split(value, 0L)));
+
+		long liveGroupId = liveGroup.getGroupId();
 
 		if (!groupIds.isEmpty() && (groupIds.get(0) == liveGroupId)) {
 			return;
@@ -95,7 +122,7 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 		groupIds = ListUtil.subList(
 			groupIds, 0, PropsValues.RECENT_GROUPS_MAX_ELEMENTS);
 
-		_setRecentGroupsValue(httpServletRequest, StringUtil.merge(groupIds));
+		_setRecentGroupsValue(httpSession, StringUtil.merge(groupIds));
 	}
 
 	@Override
@@ -108,12 +135,17 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 			return Collections.emptyList();
 		}
 
-		String value = _getRecentGroupsValue(httpServletRequest);
+		HttpServletRequest originalHttpServletRequest =
+			_portal.getOriginalServletRequest(httpServletRequest);
+
+		HttpSession httpSession = originalHttpServletRequest.getSession();
+
+		String value = _getRecentGroupsValue(httpServletRequest, httpSession);
 
 		try {
 			PortletRequest portletRequest =
 				(PortletRequest)httpServletRequest.getAttribute(
-					JavaConstants.JAVAX_PORTLET_REQUEST);
+					JavaConstants.JAKARTA_PORTLET_REQUEST);
 
 			return getRecentGroups(value, portletRequest);
 		}
@@ -122,6 +154,42 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 		}
 
 		return Collections.emptyList();
+	}
+
+	@Activate
+	protected void activate() {
+		_httpSessionListener = new HttpSessionListener() {
+
+			@Override
+			public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
+				HttpSession httpSession = httpSessionEvent.getSession();
+
+				User user = (User)httpSession.getAttribute(WebKeys.USER);
+
+				String recentGroupsValue = (String)httpSession.getAttribute(
+					_SESSION_KEY_RECENT_GROUPS);
+
+				if ((user != null) && (recentGroupsValue != null)) {
+					PortalPreferences portalPreferences =
+						PortletPreferencesFactoryUtil.getPortalPreferences(
+							user.getUserId(), true);
+
+					portalPreferences.setValue(
+						SessionClicks.class.getName(), _KEY_RECENT_GROUPS,
+						recentGroupsValue);
+				}
+			}
+
+		};
+
+		PortletSessionListenerManager.addHttpSessionListener(
+			_httpSessionListener);
+	}
+
+	@Deactivate
+	protected void deactivate() {
+		PortletSessionListenerManager.removeHttpSessionListener(
+			_httpSessionListener);
 	}
 
 	protected List<Group> getRecentGroups(
@@ -143,7 +211,7 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 		for (long groupId : groupIds) {
 			Group group = _groupLocalService.fetchGroup(groupId);
 
-			if ((group == null) ||
+			if ((group == null) || group.isControlPanel() ||
 				!GroupPermissionUtil.contains(
 					permissionChecker, group.getGroupId(), ActionKeys.VIEW) ||
 				!_groupLocalService.isLiveGroupActive(group)) {
@@ -151,27 +219,33 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 				continue;
 			}
 
-			if (!group.isCompany()) {
-				Layout layout = _layoutLocalService.fetchFirstLayout(
-					group.getGroupId(), false,
+			Layout privateLayout = null;
+
+			Layout layout = _layoutLocalService.fetchFirstLayout(
+				group.getGroupId(), false,
+				LayoutConstants.DEFAULT_PARENT_LAYOUT_ID);
+
+			if (layout == null) {
+				privateLayout = _layoutLocalService.fetchFirstLayout(
+					group.getGroupId(), true,
 					LayoutConstants.DEFAULT_PARENT_LAYOUT_ID);
-
-				if (layout == null) {
-					layout = _layoutLocalService.fetchFirstLayout(
-						group.getGroupId(), true,
-						LayoutConstants.DEFAULT_PARENT_LAYOUT_ID);
-
-					if ((layout == null) ||
-						!LayoutPermissionUtil.contains(
-							permissionChecker, layout, true, ActionKeys.VIEW)) {
-
-						continue;
-					}
-				}
 			}
 
-			portletRequest.setAttribute(
-				SiteWebKeys.GROUP_URL_PROVIDER_CONTROL_PANEL, Boolean.TRUE);
+			boolean hasLayout = false;
+
+			if ((layout != null) ||
+				((privateLayout != null) &&
+				 LayoutPermissionUtil.contains(
+					 permissionChecker, privateLayout, true,
+					 ActionKeys.VIEW))) {
+
+				hasLayout = true;
+			}
+
+			if (hasLayout) {
+				portletRequest.setAttribute(
+					SiteWebKeys.GROUP_URL_PROVIDER_CONTROL_PANEL, Boolean.TRUE);
+			}
 
 			if (Validator.isNull(
 					_groupURLProvider.getGroupURL(group, portletRequest))) {
@@ -185,34 +259,35 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 		return groups;
 	}
 
-	private long _getLiveGroupId(long groupId) {
-		Group group = _groupLocalService.fetchGroup(groupId);
-
-		if (group == null) {
-			return 0;
-		}
-
-		if (!group.isStagedRemotely() && group.isStagingGroup()) {
-			return group.getLiveGroupId();
-		}
-
-		return groupId;
-	}
-
 	private String _getRecentGroupsValue(
-		HttpServletRequest httpServletRequest) {
+		HttpServletRequest httpServletRequest, HttpSession httpSession) {
 
-		return SessionClicks.get(httpServletRequest, _KEY_RECENT_GROUPS, null);
+		String recentGroupsValue = SessionClicks.get(
+			httpSession, _KEY_RECENT_GROUPS, null);
+
+		if (recentGroupsValue == null) {
+			recentGroupsValue = SessionClicks.get(
+				httpServletRequest, _KEY_RECENT_GROUPS, null);
+
+			if (recentGroupsValue != null) {
+				_setRecentGroupsValue(httpSession, recentGroupsValue);
+			}
+		}
+
+		return recentGroupsValue;
 	}
 
-	private void _setRecentGroupsValue(
-		HttpServletRequest httpServletRequest, String value) {
-
-		SessionClicks.put(httpServletRequest, _KEY_RECENT_GROUPS, value);
+	private void _setRecentGroupsValue(HttpSession httpSession, String value) {
+		SessionClicks.put(httpSession, _KEY_RECENT_GROUPS, value);
 	}
 
 	private static final String _KEY_RECENT_GROUPS =
 		"com.liferay.site.util_recentGroups";
+
+	private static final String _SESSION_KEY_RECENT_GROUPS =
+		StringBundler.concat(
+			SessionClicks.class.getName(), StringPool.COLON,
+			_KEY_RECENT_GROUPS);
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		RecentGroupManagerImpl.class);
@@ -222,6 +297,8 @@ public class RecentGroupManagerImpl implements RecentGroupManager {
 
 	@Reference
 	private GroupURLProvider _groupURLProvider;
+
+	private HttpSessionListener _httpSessionListener;
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;

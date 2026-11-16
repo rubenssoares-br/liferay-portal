@@ -14,6 +14,7 @@ import {
 } from '@liferay/object-js-components-web';
 import React, {useState} from 'react';
 
+import {Error, getErrorMessage, parseError} from '../../utils/errors';
 import ActionBuilder from './tabs/ActionBuilder';
 import BasicInfo from './tabs/BasicInfo';
 import {useObjectActionForm} from './useObjectActionForm';
@@ -31,7 +32,9 @@ const TABS = [
 
 interface ObjectActionContainerProps {
 	allowScriptContentToBeExecutedOrIncluded: boolean;
+	companyAdmin: boolean;
 	editingObjectAction?: boolean;
+	hasUserNotificationHandler: boolean;
 	isApproved?: boolean;
 	objectAction: Partial<ObjectAction>;
 	objectActionCodeEditorElements: SidebarCategory[];
@@ -40,6 +43,7 @@ interface ObjectActionContainerProps {
 	objectDefinitionExternalReferenceCode: string;
 	objectDefinitionId: number;
 	objectDefinitionsRelationshipsURL: string;
+	objectFields: ObjectField[];
 	readOnly?: boolean;
 	requestParams: {
 		method: 'POST' | 'PUT';
@@ -52,23 +56,15 @@ interface ObjectActionContainerProps {
 	validateExpressionURL: string;
 }
 
-interface ErrorMessage {
-	fieldName: keyof ObjectAction;
-	message?: string;
-	messages?: ErrorMessage[];
-}
-
-interface Error {
-	[key: string]: string | Error;
-}
-
 export type ActionError = FormError<ObjectAction & ObjectActionParameters> & {
 	predefinedValues?: {[key: string]: string};
 };
 
 export function ObjectActionContainer({
 	allowScriptContentToBeExecutedOrIncluded,
+	companyAdmin,
 	editingObjectAction = false,
+	hasUserNotificationHandler,
 	isApproved,
 	objectAction: initialValues,
 	objectActionCodeEditorElements,
@@ -77,6 +73,7 @@ export function ObjectActionContainer({
 	objectDefinitionExternalReferenceCode,
 	objectDefinitionId,
 	objectDefinitionsRelationshipsURL,
+	objectFields,
 	readOnly,
 	requestParams: {method, url},
 	scriptManagementConfigurationPortletURL,
@@ -100,24 +97,23 @@ export function ObjectActionContainer({
 			openToast({message: successMessage});
 		}
 		catch (error) {
-			const {detail} = error as {detail?: string};
-			const details = JSON.parse(detail as string);
-			const newErrors: Error = {};
-
-			const parseError = (details: ErrorMessage[], errors: Error) => {
-				details.forEach(({fieldName, message, messages}) => {
-					if (message) {
-						errors[fieldName] = message;
-					}
-					else {
-						errors[fieldName] = {};
-						parseError(
-							messages as ErrorMessage[],
-							errors[fieldName] as Error
-						);
-					}
-				});
+			const {detail, message} = error as {
+				detail?: string;
+				message?: string;
 			};
+
+			if (!detail) {
+				openToast({
+					message:
+						message || Liferay.Language.get('an-error-occurred'),
+					type: 'danger',
+				});
+
+				return;
+			}
+
+			const details = JSON.parse(detail);
+			const newErrors: Error = {};
 
 			parseError(details, newErrors);
 
@@ -125,21 +121,8 @@ export function ObjectActionContainer({
 
 			const errorMessages = new Set<string>();
 
-			const getErrorMessage = (errors: Error) => {
-				Object.values(errors).forEach((value) => {
-					if (typeof value === 'string') {
-						if (!errorMessages.has(value)) {
-							errorMessages.add(value);
-						}
-					}
-					else {
-						getErrorMessage(value);
-					}
-				});
-			};
-
 			if (newErrors) {
-				getErrorMessage(newErrors);
+				getErrorMessage(newErrors, errorMessages);
 				errorMessages.forEach((message) => {
 					openToast({
 						message,
@@ -216,10 +199,12 @@ export function ObjectActionContainer({
 
 				<ClayTabs.TabPane>
 					<ActionBuilder
+						companyAdmin={companyAdmin}
 						disableGroovyAction={disableGroovyAction}
 						errors={
 							Object.keys(errors).length ? errors : backEndErrors
 						}
+						hasUserNotificationHandler={hasUserNotificationHandler}
 						isApproved={isApproved!}
 						objectActionCodeEditorElements={
 							objectActionCodeEditorElements
@@ -236,6 +221,7 @@ export function ObjectActionContainer({
 						objectDefinitionsRelationshipsURL={
 							objectDefinitionsRelationshipsURL
 						}
+						objectFields={objectFields}
 						scriptManagementConfigurationPortletURL={
 							scriptManagementConfigurationPortletURL
 						}

@@ -249,15 +249,6 @@ public class DLFileEntryTypeLocalServiceWrapper
 	}
 
 	@Override
-	public void deleteFileEntryTypeByExternalReferenceCode(
-			String externalReferenceCode, long groupId)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		_dlFileEntryTypeLocalService.deleteFileEntryTypeByExternalReferenceCode(
-			externalReferenceCode, groupId);
-	}
-
-	@Override
 	public void deleteFileEntryTypes(long groupId)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
@@ -438,10 +429,7 @@ public class DLFileEntryTypeLocalServiceWrapper
 	}
 
 	@Override
-	public DLFileEntryType getBasicDocumentDLFileEntryType()
-		throws com.liferay.document.library.kernel.exception.
-			NoSuchFileEntryTypeException {
-
+	public DLFileEntryType getBasicDocumentDLFileEntryType() {
 		return _dlFileEntryTypeLocalService.getBasicDocumentDLFileEntryType();
 	}
 
@@ -827,3 +815,4 @@ public class DLFileEntryTypeLocalServiceWrapper
 	private DLFileEntryTypeLocalService _dlFileEntryTypeLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:265168410

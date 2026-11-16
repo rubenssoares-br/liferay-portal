@@ -54,6 +54,10 @@ List<DepotEntryGroupRel> depotEntryGroupRels = depotAdminSitesDisplayContext.get
 		</c:if>
 	</clay:content-row>
 
+	<liferay-ui:error exception="<%= DepotEntryGroupRelToGroupException.MustAcceptDepotEntryType.class %>">
+		<liferay-ui:message key="this-connection-is-not-allowed" />
+	</liferay-ui:error>
+
 	<liferay-ui:error exception="<%= DepotEntryGroupRelToGroupException.MustBeLocallyStaged.class %>">
 		<liferay-ui:message key="a-locally-staged-asset-library-cannot-be-connected-to-a-remotely-staged-site" />
 	</liferay-ui:error>
@@ -95,7 +99,7 @@ List<DepotEntryGroupRel> depotEntryGroupRels = depotAdminSitesDisplayContext.get
 
 		<liferay-ui:search-container-row
 			className="com.liferay.depot.model.DepotEntryGroupRel"
-			keyProperty="depotEntryGroupRelId"
+			keyPropertyName="depotEntryGroupRelId"
 			modelVar="depotEntryGroupRel"
 		>
 			<liferay-ui:search-container-column-text

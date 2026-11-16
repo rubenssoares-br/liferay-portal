@@ -111,11 +111,7 @@ public class RolePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		Role newRole = _persistence.create(pk);
-
-		newRole.setMvccVersion(RandomTestUtil.nextLong());
+		Role newRole = addRole();
 
 		newRole.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -147,7 +143,11 @@ public class RolePersistenceTest {
 
 		newRole.setSubtype(RandomTestUtil.randomString());
 
-		_roles.add(_persistence.update(newRole));
+		newRole.setStatus(RandomTestUtil.nextInt());
+
+		newRole = _persistence.update(newRole);
+
+		_roles.add(newRole);
 
 		Role existingRole = _persistence.findByPrimaryKey(
 			newRole.getPrimaryKey());
@@ -180,6 +180,7 @@ public class RolePersistenceTest {
 			existingRole.getDescription(), newRole.getDescription());
 		Assert.assertEquals(existingRole.getType(), newRole.getType());
 		Assert.assertEquals(existingRole.getSubtype(), newRole.getSubtype());
+		Assert.assertEquals(existingRole.getStatus(), newRole.getStatus());
 	}
 
 	@Test(expected = DuplicateRoleExternalReferenceCodeException.class)
@@ -240,15 +241,6 @@ public class RolePersistenceTest {
 		_persistence.countByType(RandomTestUtil.nextInt());
 
 		_persistence.countByType(0);
-	}
-
-	@Test
-	public void testCountBySubtype() throws Exception {
-		_persistence.countBySubtype("");
-
-		_persistence.countBySubtype("null");
-
-		_persistence.countBySubtype((String)null);
 	}
 
 	@Test
@@ -354,7 +346,7 @@ public class RolePersistenceTest {
 			"externalReferenceCode", true, "roleId", true, "companyId", true,
 			"userId", true, "userName", true, "createDate", true,
 			"modifiedDate", true, "classNameId", true, "classPK", true, "name",
-			true, "title", true, "type", true, "subtype", true);
+			true, "type", true, "subtype", true, "status", true);
 	}
 
 	@Test
@@ -669,8 +661,6 @@ public class RolePersistenceTest {
 
 		Role role = _persistence.create(pk);
 
-		role.setMvccVersion(RandomTestUtil.nextLong());
-
 		role.setCtCollectionId(RandomTestUtil.nextLong());
 
 		role.setUuid(RandomTestUtil.randomString());
@@ -701,6 +691,8 @@ public class RolePersistenceTest {
 
 		role.setSubtype(RandomTestUtil.randomString());
 
+		role.setStatus(RandomTestUtil.nextInt());
+
 		_roles.add(_persistence.update(role));
 
 		return role;
@@ -711,3 +703,4 @@ public class RolePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1293982567

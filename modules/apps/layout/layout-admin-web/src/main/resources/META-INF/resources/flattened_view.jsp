@@ -13,7 +13,7 @@
 >
 	<liferay-ui:search-container-row
 		className="com.liferay.portal.kernel.model.Layout"
-		keyProperty="plid"
+		keyPropertyName="plid"
 		modelVar="layout"
 	>
 		<liferay-ui:search-container-column-text
@@ -21,7 +21,7 @@
 			href="<%= layoutsAdminDisplayContext.getEditOrViewLayoutURL(layout) %>"
 			name="title"
 			target="<%= layoutsAdminDisplayContext.getTarget(layout) %>"
-			value="<%= layout.getName(locale) %>"
+			value="<%= HtmlUtil.escapeAttribute(layout.getName(locale)) %>"
 		/>
 
 		<liferay-ui:search-container-column-text

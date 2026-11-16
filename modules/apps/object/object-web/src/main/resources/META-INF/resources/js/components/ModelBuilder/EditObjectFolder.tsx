@@ -43,6 +43,7 @@ import {LeftSidebarItem, ObjectRelationshipEdgeData} from './types';
 import {updatePreviousURLParam} from './utils';
 
 import './EditObjectFolder.scss';
+import ModalDeletionNotAllowed from '../ModalDeletionNotAllowed';
 import {ModalMoveObjectDefinition} from '../ViewObjectDefinitions/ModalMoveObjectDefinition';
 
 interface EditObjectFolder {
@@ -64,6 +65,8 @@ export default function EditObjectFolder({
 			deletedObjectDefinition,
 			editObjectDefinitionURL,
 			elements,
+			hasDepotEntry,
+			hasUnsavedObjectFolderItemPositions,
 			isLoadingObjectFolder,
 			learnResourceContext,
 			leftSidebarItems,
@@ -228,8 +231,8 @@ export default function EditObjectFolder({
 	}, [showChangesSaved]);
 
 	useEffect(() => {
-		if (Object.keys(selectedObjectFolder).length) {
-			const makeFetch = async () =>
+		if (hasUnsavedObjectFolderItemPositions) {
+			const makeFetch = async () => {
 				await API.putObjectFolderByExternalReferenceCode({
 					externalReferenceCode:
 						selectedObjectFolder.externalReferenceCode,
@@ -239,11 +242,19 @@ export default function EditObjectFolder({
 					objectFolderItems: selectedObjectFolder.objectFolderItems,
 				});
 
+				dispatch({
+					payload: {
+						updatedHasUnsavedObjectFolderItemPositions: false,
+					},
+					type: TYPES.SET_HAS_UNSAVED_OBJECT_FOLDER_ITEM_POSITIONS,
+				});
+			};
+
 			makeFetch();
 		}
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedObjectFolder.objectFolderItems?.length]);
+	}, [hasUnsavedObjectFolderItemPositions]);
 
 	Liferay.on('beforeNavigate', (event) => {
 		const URLparams = new URL(event.path).searchParams;
@@ -312,6 +323,7 @@ export default function EditObjectFolder({
 						creationLanguageId={
 							selectedObjectDefinitionNode.data.defaultLanguageId
 						}
+						hasDepotEntry={hasDepotEntry}
 						objectDefinitionExternalReferenceCode={
 							selectedObjectDefinitionNode.data
 								.externalReferenceCode
@@ -361,7 +373,7 @@ export default function EditObjectFolder({
 								type: TYPES.SET_SHOW_ALL_OBJECT_FIELDS,
 							});
 						}}
-						setVisibility={() =>
+						setVisible={() =>
 							dispatch({
 								payload: {
 									updatedModelBuilderModals: {
@@ -388,6 +400,7 @@ export default function EditObjectFolder({
 								type: TYPES.UPDATE_VISIBILITY_MODEL_BUILDER_MODALS,
 							});
 						}}
+						learnResources={learnResourceContext}
 						objectDefinitionExternalReferenceCode1={
 							selectedObjectDefinitionNode.data
 								.externalReferenceCode
@@ -470,6 +483,36 @@ export default function EditObjectFolder({
 								return element;
 							}) as Elements<ObjectDefinitionNodeData>;
 
+							const updatedSelectedObjectFolderItems =
+								selectedObjectFolder.objectFolderItems.map(
+									(objectFolderItem) => {
+										if (
+											objectFolderItem.objectDefinitionExternalReferenceCode ===
+											selectedObjectDefinitionNode.data
+												?.externalReferenceCode
+										) {
+											return {
+												...objectFolderItem,
+												objectDefinitionExternalReferenceCode:
+													externalReferenceCode,
+											};
+										}
+
+										return objectFolderItem;
+									}
+								);
+
+							dispatch({
+								payload: {
+									updatedSelectedObjectFolder: {
+										...selectedObjectFolder,
+										objectFolderItems:
+											updatedSelectedObjectFolderItems,
+									},
+								},
+								type: TYPES.SET_SELECTED_OBJECT_FOLDER_DETAILS,
+							});
+
 							dispatch({
 								payload: {
 									newElements: updatedElements,
@@ -547,6 +590,31 @@ export default function EditObjectFolder({
 						}}
 					/>
 				)}
+
+			{modelBuilderModals.objectDefinitionOnRootModelDeletionNotAllowed && (
+				<ModalDeletionNotAllowed
+					content={
+						<span
+							dangerouslySetInnerHTML={{
+								__html: Liferay.Language.get(
+									'to-delete-this-object-you-must-first-disable-inheritance-and-delete-its-relationships'
+								),
+							}}
+						/>
+					}
+					onModalClose={() =>
+						dispatch({
+							payload: {
+								updatedModelBuilderModals: {
+									objectDefinitionOnRootModelDeletionNotAllowed:
+										false,
+								},
+							},
+							type: TYPES.UPDATE_VISIBILITY_MODEL_BUILDER_MODALS,
+						})
+					}
+				/>
+			)}
 
 			{modelBuilderModals.publishObjectDefinitions && (
 				<ModalPublishObjectDefinitions

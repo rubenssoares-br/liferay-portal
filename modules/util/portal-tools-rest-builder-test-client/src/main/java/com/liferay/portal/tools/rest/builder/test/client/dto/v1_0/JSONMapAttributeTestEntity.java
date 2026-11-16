@@ -8,12 +8,12 @@ package com.liferay.portal.tools.rest.builder.test.client.dto.v1_0;
 import com.liferay.portal.tools.rest.builder.test.client.function.UnsafeSupplier;
 import com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0.JSONMapAttributeTestEntitySerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -146,3 +146,4 @@ public class JSONMapAttributeTestEntity implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2066636218

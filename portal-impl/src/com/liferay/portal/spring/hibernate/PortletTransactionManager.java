@@ -5,7 +5,7 @@
 
 package com.liferay.portal.spring.hibernate;
 
-import com.liferay.portal.kernel.db.partition.DBPartition;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.sql.Connection;
 
@@ -22,7 +22,6 @@ import org.hibernate.internal.SessionFactoryImpl;
 import org.hibernate.internal.SessionImpl;
 import org.hibernate.jdbc.Work;
 
-import org.springframework.orm.hibernate5.SessionHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
@@ -69,7 +68,7 @@ public class PortletTransactionManager implements PlatformTransactionManager {
 
 			transactionStatus = transactionStatusWrapper._transactionStatus;
 
-			transactionStatusWrapper.reset();
+			transactionStatusWrapper.reset(false);
 		}
 		catch (Throwable throwable2) {
 			throwable1 = throwable2;
@@ -153,7 +152,7 @@ public class PortletTransactionManager implements PlatformTransactionManager {
 			_createSessionHolder(portletSession, portalSessionHolder),
 			resources);
 
-		if (DBPartition.isPartitionEnabled()) {
+		if (PropsValues.DATABASE_PARTITION_ENABLED) {
 			LastSessionRecorderUtil.addPortletSession(portletSession);
 		}
 
@@ -178,7 +177,7 @@ public class PortletTransactionManager implements PlatformTransactionManager {
 
 			transactionStatus = transactionStatusWrapper._transactionStatus;
 
-			transactionStatusWrapper.reset();
+			transactionStatusWrapper.reset(true);
 		}
 		finally {
 			_portalTransactionManager.rollback(transactionStatus);
@@ -291,11 +290,16 @@ public class PortletTransactionManager implements PlatformTransactionManager {
 			_transactionStatus.releaseSavepoint(savepoint);
 		}
 
-		public void reset() {
+		public void reset(boolean rollback) {
 			try {
-				_portletSession.flush();
+				if (rollback) {
+					_portletSession.clear();
+				}
+				else {
+					_portletSession.flush();
+				}
 
-				if (DBPartition.isPartitionEnabled()) {
+				if (PropsValues.DATABASE_PARTITION_ENABLED) {
 					LastSessionRecorderUtil.removePortletSession(
 						_portletSession);
 				}

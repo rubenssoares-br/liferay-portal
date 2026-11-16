@@ -26,6 +26,7 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.MethodParameter;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ProxyUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
@@ -35,7 +36,9 @@ import com.liferay.portal.remote.json.web.service.JSONWebServiceActionMapping;
 import com.liferay.portal.remote.json.web.service.JSONWebServiceActionsManager;
 import com.liferay.portal.remote.json.web.service.exception.NoSuchJSONWebServiceException;
 import com.liferay.portal.spring.aop.AopInvocationHandler;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -49,9 +52,6 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -72,6 +72,57 @@ import org.osgi.util.tracker.ServiceTrackerCustomizer;
 @Component(service = JSONWebServiceActionsManager.class)
 public class JSONWebServiceActionsManagerImpl
 	implements JSONWebServiceActionsManager {
+
+	public static Class<?> getTargetClass(Object service) {
+		while (true) {
+			if (ProxyUtil.isProxyClass(service.getClass())) {
+				InvocationHandler invocationHandler =
+					ProxyUtil.getInvocationHandler(service);
+
+				if (invocationHandler instanceof AopInvocationHandler) {
+					AopInvocationHandler aopInvocationHandler =
+						(AopInvocationHandler)invocationHandler;
+
+					service = aopInvocationHandler.getTarget();
+				}
+				else if (invocationHandler instanceof ClassLoaderBeanHandler) {
+					ClassLoaderBeanHandler classLoaderBeanHandler =
+						(ClassLoaderBeanHandler)invocationHandler;
+
+					Object bean = classLoaderBeanHandler.getBean();
+
+					if (bean instanceof ServiceWrapper) {
+						ServiceWrapper<?> serviceWrapper =
+							(ServiceWrapper<?>)bean;
+
+						service = serviceWrapper.getWrappedService();
+					}
+					else {
+						service = bean;
+					}
+				}
+				else {
+					if (_log.isDebugEnabled()) {
+						_log.debug(
+							"Unable to handle proxy of type " +
+								invocationHandler);
+					}
+
+					return null;
+				}
+			}
+			else if (service instanceof ServiceWrapper) {
+				ServiceWrapper<?> serviceWrapper = (ServiceWrapper<?>)service;
+
+				service = serviceWrapper.getWrappedService();
+			}
+			else {
+				break;
+			}
+		}
+
+		return service.getClass();
+	}
 
 	@Override
 	public Set<String> getContextNames() {
@@ -272,11 +323,13 @@ public class JSONWebServiceActionsManagerImpl
 			methodParameterName = StringUtil.toLowerCase(methodParameterName);
 
 			for (String parameterName : parameterNames) {
-				if (StringUtil.equalsIgnoreCase(
+				if (!StringUtil.equalsIgnoreCase(
 						parameterName, methodParameterName)) {
 
-					matched++;
+					continue;
 				}
+
+				matched++;
 			}
 		}
 
@@ -420,13 +473,15 @@ public class JSONWebServiceActionsManagerImpl
 			int count = _countMatchedParameters(
 				parameterNames, jsonWebServiceActionConfigMethodParameters);
 
-			if ((count > max) &&
-				((hint != -1) || (count >= methodParametersCount))) {
+			if ((count <= max) ||
+				((hint == -1) && (count < methodParametersCount))) {
 
-				max = count;
-
-				matchedJSONWebServiceActionConfig = jsonWebServiceActionConfig;
+				continue;
 			}
+
+			max = count;
+
+			matchedJSONWebServiceActionConfig = jsonWebServiceActionConfig;
 		}
 
 		if (_log.isDebugEnabled()) {
@@ -468,45 +523,6 @@ public class JSONWebServiceActionsManagerImpl
 		return index;
 	}
 
-	private Class<?> _getTargetClass(Object service) {
-		while (ProxyUtil.isProxyClass(service.getClass())) {
-			InvocationHandler invocationHandler =
-				ProxyUtil.getInvocationHandler(service);
-
-			if (invocationHandler instanceof AopInvocationHandler) {
-				AopInvocationHandler aopInvocationHandler =
-					(AopInvocationHandler)invocationHandler;
-
-				service = aopInvocationHandler.getTarget();
-			}
-			else if (invocationHandler instanceof ClassLoaderBeanHandler) {
-				ClassLoaderBeanHandler classLoaderBeanHandler =
-					(ClassLoaderBeanHandler)invocationHandler;
-
-				Object bean = classLoaderBeanHandler.getBean();
-
-				if (bean instanceof ServiceWrapper) {
-					ServiceWrapper<?> serviceWrapper = (ServiceWrapper<?>)bean;
-
-					service = serviceWrapper.getWrappedService();
-				}
-				else {
-					service = bean;
-				}
-			}
-			else {
-				if (_log.isDebugEnabled()) {
-					_log.debug(
-						"Unable to handle proxy of type " + invocationHandler);
-				}
-
-				return null;
-			}
-		}
-
-		return service.getClass();
-	}
-
 	private void _processBean(
 		String contextName, String contextPath, Object bean) {
 
@@ -515,7 +531,7 @@ public class JSONWebServiceActionsManagerImpl
 		}
 
 		JSONWebService jsonWebService = AnnotationLocator.locate(
-			_getTargetClass(bean), JSONWebService.class);
+			getTargetClass(bean), JSONWebService.class);
 
 		if (jsonWebService == null) {
 			return;
@@ -559,16 +575,15 @@ public class JSONWebServiceActionsManagerImpl
 					serviceBeanClass, method);
 
 				if (!JSONWebServiceNamingUtil.isIncludedPath(
-						contextName, contextPath, path)) {
+						contextName, contextPath, path) ||
+					!JSONWebServiceNamingUtil.isIncludedMethod(method)) {
 
 					continue;
 				}
 
-				if (JSONWebServiceNamingUtil.isIncludedMethod(method)) {
-					_registerJSONWebServiceAction(
-						contextName, contextPath, bean, serviceBeanClass,
-						method, path, httpMethod);
-				}
+				_registerJSONWebServiceAction(
+					contextName, contextPath, bean, serviceBeanClass, method,
+					path, httpMethod);
 			}
 		}
 		catch (Exception exception) {
@@ -694,12 +709,15 @@ public class JSONWebServiceActionsManagerImpl
 		for (JSONWebServiceActionConfig jsonWebServiceActionConfig :
 				_signatureIndexedJSONWebServiceActionConfigs.values()) {
 
-			if ((actionObject ==
-					jsonWebServiceActionConfig.getActionObject()) &&
-				_removeJSONWebServiceActionConfig(jsonWebServiceActionConfig)) {
+			if ((actionObject !=
+					jsonWebServiceActionConfig.getActionObject()) ||
+				!_removeJSONWebServiceActionConfig(
+					jsonWebServiceActionConfig)) {
 
-				count++;
+				continue;
 			}
+
+			count++;
 		}
 
 		return count;

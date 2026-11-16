@@ -76,9 +76,9 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 		{"userId", Types.BIGINT}, {"userName", Types.VARCHAR},
 		{"createDate", Types.TIMESTAMP}, {"modifiedDate", Types.TIMESTAMP},
 		{"classNameId", Types.BIGINT}, {"classPK", Types.BIGINT},
-		{"name", Types.VARCHAR}, {"title", Types.VARCHAR},
+		{"name", Types.VARCHAR}, {"title", Types.CLOB},
 		{"description", Types.CLOB}, {"type_", Types.INTEGER},
-		{"subtype", Types.VARCHAR}
+		{"subtype", Types.VARCHAR}, {"status", Types.INTEGER}
 	};
 
 	public static final Map<String, Integer> TABLE_COLUMNS_MAP =
@@ -98,16 +98,21 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 		TABLE_COLUMNS_MAP.put("classNameId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("classPK", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("name", Types.VARCHAR);
-		TABLE_COLUMNS_MAP.put("title", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("title", Types.CLOB);
 		TABLE_COLUMNS_MAP.put("description", Types.CLOB);
 		TABLE_COLUMNS_MAP.put("type_", Types.INTEGER);
 		TABLE_COLUMNS_MAP.put("subtype", Types.VARCHAR);
+		TABLE_COLUMNS_MAP.put("status", Types.INTEGER);
 	}
 
 	public static final String TABLE_SQL_CREATE =
-		"create table Role_ (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,roleId LONG not null,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,classNameId LONG,classPK LONG,name VARCHAR(75) null,title STRING null,description TEXT null,type_ INTEGER,subtype VARCHAR(75) null,primary key (roleId, ctCollectionId))";
+		"create table Role_ (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,roleId LONG not null,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,classNameId LONG,classPK LONG,name VARCHAR(75) null,title TEXT null,description TEXT null,type_ INTEGER,subtype VARCHAR(75) null,status INTEGER,primary key (roleId, ctCollectionId))";
 
 	public static final String TABLE_SQL_DROP = "drop table Role_";
+
+	public static final String ENTITY_ALIAS = "role_";
+
+	public static final String FILTER_PK_COLUMN_NAME = "roleId";
 
 	public static final String ORDER_BY_JPQL = " ORDER BY role_.name ASC";
 
@@ -221,7 +226,7 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 	public static final boolean FINDER_CACHE_ENABLED_USERS_ROLES = true;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.Role"));
 
 	public RoleModelImpl() {
@@ -332,6 +337,7 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 			attributeGetterFunctions.put("description", Role::getDescription);
 			attributeGetterFunctions.put("type", Role::getType);
 			attributeGetterFunctions.put("subtype", Role::getSubtype);
+			attributeGetterFunctions.put("status", Role::getStatus);
 
 			_attributeGetterFunctions = Collections.unmodifiableMap(
 				attributeGetterFunctions);
@@ -384,6 +390,8 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 				"type", (BiConsumer<Role, Integer>)Role::setType);
 			attributeSetterBiConsumers.put(
 				"subtype", (BiConsumer<Role, String>)Role::setSubtype);
+			attributeSetterBiConsumers.put(
+				"status", (BiConsumer<Role, Integer>)Role::setStatus);
 
 			_attributeSetterBiConsumers = Collections.unmodifiableMap(
 				(Map)attributeSetterBiConsumers);
@@ -979,6 +987,21 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 		return getColumnOriginalValue("subtype");
 	}
 
+	@JSON
+	@Override
+	public int getStatus() {
+		return _status;
+	}
+
+	@Override
+	public void setStatus(int status) {
+		if (_columnOriginalValues == Collections.EMPTY_MAP) {
+			_setColumnOriginalValues();
+		}
+
+		_status = status;
+	}
+
 	@Override
 	public StagedModelType getStagedModelType() {
 		return new StagedModelType(
@@ -1146,6 +1169,7 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 		roleImpl.setDescription(getDescription());
 		roleImpl.setType(getType());
 		roleImpl.setSubtype(getSubtype());
+		roleImpl.setStatus(getStatus());
 
 		roleImpl.resetOriginalValues();
 
@@ -1179,6 +1203,7 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 			this.<String>getColumnOriginalValue("description"));
 		roleImpl.setType(this.<Integer>getColumnOriginalValue("type_"));
 		roleImpl.setSubtype(this.<String>getColumnOriginalValue("subtype"));
+		roleImpl.setStatus(this.<Integer>getColumnOriginalValue("status"));
 
 		return roleImpl;
 	}
@@ -1346,6 +1371,8 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 			roleCacheModel.subtype = null;
 		}
 
+		roleCacheModel.status = getStatus();
+
 		return roleCacheModel;
 	}
 
@@ -1426,6 +1453,7 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 	private String _descriptionCurrentLanguageId;
 	private int _type;
 	private String _subtype;
+	private int _status;
 
 	public <T> T getColumnValue(String columnName) {
 		columnName = _attributeNames.getOrDefault(columnName, columnName);
@@ -1475,6 +1503,7 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 		_columnOriginalValues.put("description", _description);
 		_columnOriginalValues.put("type_", _type);
 		_columnOriginalValues.put("subtype", _subtype);
+		_columnOriginalValues.put("status", _status);
 	}
 
 	private static final Map<String, String> _attributeNames;
@@ -1534,6 +1563,8 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 
 		columnBitmasks.put("subtype", 65536L);
 
+		columnBitmasks.put("status", 131072L);
+
 		_columnBitmasks = Collections.unmodifiableMap(columnBitmasks);
 	}
 
@@ -1541,3 +1572,4 @@ public class RoleModelImpl extends BaseModelImpl<Role> implements RoleModel {
 	private Role _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-165960579

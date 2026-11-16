@@ -8,7 +8,8 @@ import ClayLayout from '@clayui/layout';
 import ClayList from '@clayui/list';
 import {ClayModalProvider, Context as ClayModalContext} from '@clayui/modal';
 import ClayProgressBar from '@clayui/progress-bar';
-import {fetch, localStorage, openToast} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {fetch, localStorage} from 'frontend-js-web';
 import React, {
 	useCallback,
 	useContext,
@@ -60,7 +61,17 @@ function IndexerListItem({
 			<ClayList.ItemField className="index-action-wrapper">
 				{typeof progressPercentage === 'number' &&
 				progressPercentage >= 0 ? (
-					<ClayProgressBar value={progressPercentage} />
+					<ClayProgressBar
+						messages={{
+							ariaLabelAttention: Liferay.Language.get(
+								'attention-value-is-at-x'
+							),
+							ariaLabelComplete: Liferay.Language.get('complete'),
+							ariaLabelInProgress:
+								Liferay.Language.get('progress-x'),
+						}}
+						value={progressPercentage}
+					/>
 				) : (
 					<ClayButton
 						className="save-server-button"
@@ -76,6 +87,39 @@ function IndexerListItem({
 	);
 }
 
+function IndexerCategories({categories, cmd, disabled, onClick, progressMap}) {
+	return Object.keys(categories)
+		.sort()
+		.map((category) => (
+			<React.Fragment key={category}>
+				<ClayList.Header>{category}</ClayList.Header>
+
+				{categories[category].map(
+					({className, displayName, enabled = true}) => (
+						<IndexerListItem
+							className={className}
+							cmd={cmd}
+							disabled={disabled || !enabled}
+							displayName={displayName}
+							id={className}
+							key={className}
+							onClick={onClick}
+							progressPercentage={progressMap[className]}
+						/>
+					)
+				)}
+			</React.Fragment>
+		));
+}
+
+function getFailedReindexBackgroundTasksCount(htmlDocument, portletNamespace) {
+	const failedReindexBackgroundTasksCount = htmlDocument.documentElement
+		.querySelector(`#${portletNamespace}failedReindexBackgroundTasksCount`)
+		?.innerHTML?.trim();
+
+	return parseInt(failedReindexBackgroundTasksCount, 10) || 0;
+}
+
 function IndexActions({
 	controlMenuCategoryKey,
 	indexersMap = {},
@@ -84,7 +128,7 @@ function IndexActions({
 	initialScope,
 	concurrentModeSupported = true,
 	virtualInstances = [],
-	indexReindexerNames = [],
+	indexReindexersMap = {},
 	omniadmin,
 	portletNamespace,
 	redirectURL = '',
@@ -107,6 +151,10 @@ function IndexActions({
 	);
 
 	const [state, dispatch] = useContext(ClayModalContext);
+
+	const failedReindexBackgroundTasksCountRef = useRef(
+		getFailedReindexBackgroundTasksCount(document, portletNamespace)
+	);
 
 	const intervalRef = useRef(null);
 
@@ -221,12 +269,35 @@ function IndexActions({
 
 							_handleSyncIconRemove();
 
-							openToast({
-								message: Liferay.Language.get(
-									'reindexing-finished-successfully'
-								),
-								type: 'success',
-							});
+							const failedReindexBackgroundTasksCount =
+								getFailedReindexBackgroundTasksCount(
+									htmlDocument,
+									portletNamespace
+								);
+
+							if (
+								failedReindexBackgroundTasksCount >
+								failedReindexBackgroundTasksCountRef.current
+							) {
+								openToast({
+									message:
+										Liferay.Language.get(
+											'reindexing-failed'
+										),
+									type: 'danger',
+								});
+							}
+							else {
+								openToast({
+									message: Liferay.Language.get(
+										'reindexing-finished-successfully'
+									),
+									type: 'success',
+								});
+							}
+
+							failedReindexBackgroundTasksCountRef.current =
+								failedReindexBackgroundTasksCount;
 						}
 					})
 					.catch(() => {
@@ -473,6 +544,10 @@ function IndexActions({
 		return !!Object.keys(backgroundTaskMap).length;
 	};
 
+	const _isReindexDisabled =
+		executionMode === EXECUTION_MODES.CONCURRENT.value ||
+		_isBackgroundTaskRunning(['portal', 'spellCheckDictionaries']);
+
 	useEffect(() => {
 		const backgroundTaskMapString = document
 			.querySelector(`#${portletNamespace}classNameToBackgroundTaskMap`)
@@ -540,14 +615,7 @@ function IndexActions({
 
 								<IndexerListItem
 									cmd="reindexDictionaries"
-									disabled={
-										executionMode ===
-											EXECUTION_MODES.CONCURRENT.value ||
-										_isBackgroundTaskRunning([
-											'portal',
-											'spellCheckDictionaries',
-										])
-									}
+									disabled={_isReindexDisabled}
 									displayName={Liferay.Language.get(
 										'all-spell-check-dictionaries'
 									)}
@@ -555,84 +623,20 @@ function IndexActions({
 									onClick={_handleIndexerItemClick}
 								/>
 
-								{Object.keys(indexersMap)
-									.sort()
-									.map((category) => (
-										<React.Fragment key={category}>
-											<ClayList.Header>
-												{category}
-											</ClayList.Header>
+								<IndexerCategories
+									categories={indexersMap}
+									disabled={_isReindexDisabled}
+									onClick={_handleIndexerItemClick}
+									progressMap={backgroundTaskMap}
+								/>
 
-											{indexersMap[category].map(
-												({
-													className,
-													displayName,
-													enabled,
-												}) => (
-													<IndexerListItem
-														className={className}
-														disabled={
-															!enabled ||
-															executionMode ===
-																EXECUTION_MODES
-																	.CONCURRENT
-																	.value ||
-															_isBackgroundTaskRunning(
-																[
-																	'portal',
-																	'spellCheckDictionaries',
-																]
-															)
-														}
-														displayName={
-															displayName
-														}
-														id={className}
-														key={className}
-														onClick={
-															_handleIndexerItemClick
-														}
-														progressPercentage={
-															backgroundTaskMap[
-																className
-															]
-														}
-													/>
-												)
-											)}
-										</React.Fragment>
-									))}
-
-								{!!indexReindexerNames.length && (
-									<ClayList.Header>
-										{Liferay.Language.get('search-tuning')}
-									</ClayList.Header>
-								)}
-
-								{indexReindexerNames.map(
-									({className, displayName}) => (
-										<IndexerListItem
-											className={className}
-											cmd="reindexIndexReindexer"
-											disabled={
-												executionMode ===
-													EXECUTION_MODES.CONCURRENT
-														.value ||
-												_isBackgroundTaskRunning([
-													'portal',
-													'spellCheckDictionaries',
-												])
-											}
-											displayName={displayName}
-											id={className}
-											key={className}
-											onClick={_handleIndexerItemClick}
-											progressPercentage={
-												backgroundTaskMap[className]
-											}
-										/>
-									)
-								)}
+								<IndexerCategories
+									categories={indexReindexersMap}
+									cmd="reindexIndexReindexer"
+									disabled={_isReindexDisabled}
+									onClick={_handleIndexerItemClick}
+									progressMap={backgroundTaskMap}
+								/>
 							</ClayList>
 						</div>
 					</ClayLayout.Col>
@@ -651,7 +655,7 @@ export default function ({
 	const {
 		concurrentModeSupported,
 		controlMenuCategoryKey,
-		indexReindexerNames,
+		indexReindexersMap,
 		indexersMap,
 		initialCompanyIds,
 		initialExecutionMode,
@@ -666,7 +670,7 @@ export default function ({
 			<IndexActions
 				concurrentModeSupported={concurrentModeSupported}
 				controlMenuCategoryKey={controlMenuCategoryKey}
-				indexReindexerNames={indexReindexerNames}
+				indexReindexersMap={indexReindexersMap}
 				indexersMap={indexersMap}
 				initialCompanyIds={initialCompanyIds}
 				initialExecutionMode={initialExecutionMode}

@@ -6,17 +6,21 @@
 package com.liferay.object.internal.model.listener;
 
 import com.liferay.account.model.AccountEntryOrganizationRel;
-import com.liferay.object.internal.search.ObjectEntryBatchReindexer;
 import com.liferay.object.model.ObjectDefinition;
+import com.liferay.object.model.ObjectField;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMapFactory;
+import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery;
+import com.liferay.portal.kernel.dao.orm.RestrictionsFactoryUtil;
 import com.liferay.portal.kernel.exception.ModelListenerException;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.ModelListener;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
-import com.liferay.portal.search.batch.DynamicQueryBatchIndexingActionableFactory;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.search.indexer.IndexerDocumentBuilder;
 
 import org.osgi.framework.BundleContext;
@@ -38,7 +42,7 @@ public class AccountEntryOrganizationRelModelListener
 			AccountEntryOrganizationRel accountEntryOrganizationRel)
 		throws ModelListenerException {
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				_reindex(accountEntryOrganizationRel);
 
@@ -51,7 +55,7 @@ public class AccountEntryOrganizationRelModelListener
 			AccountEntryOrganizationRel accountEntryOrganizationRel)
 		throws ModelListenerException {
 
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				_reindex(accountEntryOrganizationRel);
 
@@ -71,40 +75,70 @@ public class AccountEntryOrganizationRelModelListener
 	}
 
 	private void _reindex(
-		AccountEntryOrganizationRel accountEntryOrganizationRel) {
+			AccountEntryOrganizationRel accountEntryOrganizationRel)
+		throws PortalException {
 
 		for (ObjectDefinition objectDefinition :
 				_objectDefinitionLocalService.getObjectDefinitions(true)) {
 
-			if (!objectDefinition.isEnableIndexSearch()) {
+			if ((objectDefinition.getCompanyId() !=
+					accountEntryOrganizationRel.getCompanyId()) ||
+				!objectDefinition.isEnableIndexSearch() ||
+				objectDefinition.isUnmodifiableSystemObject()) {
+
 				continue;
 			}
 
-			ObjectEntryBatchReindexer objectEntryBatchReindexer =
-				new ObjectEntryBatchReindexer(
-					_dynamicQueryBatchIndexingActionableFactory,
-					_objectEntryLocalService, objectDefinition);
+			ObjectField objectField = _objectFieldLocalService.fetchObjectField(
+				objectDefinition.getAccountEntryRestrictedObjectFieldId());
+
+			if (objectField == null) {
+				continue;
+			}
+
+			IndexableActionableDynamicQuery indexableActionableDynamicQuery =
+				_objectEntryLocalService.getIndexableActionableDynamicQuery();
+
+			indexableActionableDynamicQuery.setAddCriteriaMethod(
+				dynamicQuery -> {
+					dynamicQuery.add(
+						RestrictionsFactoryUtil.eq(
+							"objectDefinitionId",
+							objectDefinition.getObjectDefinitionId()));
+					dynamicQuery.add(
+						RestrictionsFactoryUtil.eqProperty(
+							"objectEntryId", "headObjectEntryId"));
+					dynamicQuery.add(
+						RestrictionsFactoryUtil.sqlRestriction(
+							StringBundler.concat(
+								"this_.objectEntryId in (select ",
+								objectDefinition.getPKObjectFieldDBColumnName(),
+								" from ", objectField.getDBTableName(),
+								" where ", objectField.getDBColumnName(), " = ",
+								accountEntryOrganizationRel.getAccountEntryId(),
+								")")));
+				});
+			indexableActionableDynamicQuery.setCompanyId(
+				accountEntryOrganizationRel.getCompanyId());
 
 			IndexerDocumentBuilder indexerDocumentBuilder =
-				_serviceTrackerMap.getService(
-					objectEntryBatchReindexer.getClassName());
+				_serviceTrackerMap.getService(objectDefinition.getClassName());
 
-			objectEntryBatchReindexer.reindex(
-				indexerDocumentBuilder,
-				accountEntryOrganizationRel.getAccountEntryId(),
-				accountEntryOrganizationRel.getCompanyId());
+			indexableActionableDynamicQuery.setPerformActionMethod(
+				indexerDocumentBuilder::getDocument);
+
+			indexableActionableDynamicQuery.performActions();
 		}
 	}
-
-	@Reference
-	private DynamicQueryBatchIndexingActionableFactory
-		_dynamicQueryBatchIndexingActionableFactory;
 
 	@Reference
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Reference
 	private ObjectEntryLocalService _objectEntryLocalService;
+
+	@Reference
+	private ObjectFieldLocalService _objectFieldLocalService;
 
 	private ServiceTrackerMap<String, IndexerDocumentBuilder>
 		_serviceTrackerMap;

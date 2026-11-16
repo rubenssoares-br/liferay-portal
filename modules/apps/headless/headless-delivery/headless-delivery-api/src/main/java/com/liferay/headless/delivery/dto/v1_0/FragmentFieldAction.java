@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -41,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a fragment field with an action.",
 	value = "FragmentFieldAction"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a fragment field with an action."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "FragmentFieldAction")
@@ -55,7 +58,7 @@ public class FragmentFieldAction implements Serializable {
 			FragmentFieldAction.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The fragment field's action. Must be mapped to an external value."
 	)
 	@Valid
@@ -101,7 +104,7 @@ public class FragmentFieldAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _actionSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The action execution result in case the action fails."
 	)
 	@Valid
@@ -148,7 +151,7 @@ public class FragmentFieldAction implements Serializable {
 	@JsonIgnore
 	private Supplier<ActionExecutionResult> _onErrorSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The action execution result in case the action succeeds."
 	)
 	@Valid
@@ -195,7 +198,9 @@ public class FragmentFieldAction implements Serializable {
 	@JsonIgnore
 	private Supplier<ActionExecutionResult> _onSuccessSupplier;
 
-	@Schema(description = "The fragment field's text.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The fragment field's text."
+	)
 	@Valid
 	public Object getText() {
 		if (_textSupplier != null) {
@@ -271,17 +276,7 @@ public class FragmentFieldAction implements Serializable {
 
 			sb.append("\"action\": ");
 
-			if (action instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)action));
-			}
-			else if (action instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)action));
-				sb.append("\"");
-			}
-			else {
-				sb.append(action);
-			}
+			sb.append(_toJSON(action));
 		}
 
 		ActionExecutionResult onError = getOnError();
@@ -317,17 +312,7 @@ public class FragmentFieldAction implements Serializable {
 
 			sb.append("\"text\": ");
 
-			if (text instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)text));
-			}
-			else if (text instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)text));
-				sb.append("\"");
-			}
-			else {
-				sb.append(text);
-			}
+			sb.append(_toJSON(text));
 		}
 
 		sb.append("}");
@@ -335,8 +320,8 @@ public class FragmentFieldAction implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.FragmentFieldAction",
 		name = "x-class-name"
 	)
@@ -423,6 +408,27 @@ public class FragmentFieldAction implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -431,3 +437,4 @@ public class FragmentFieldAction implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:737925791

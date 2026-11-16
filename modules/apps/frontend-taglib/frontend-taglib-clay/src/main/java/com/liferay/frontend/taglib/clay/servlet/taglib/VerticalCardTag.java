@@ -14,12 +14,12 @@ import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.taglib.util.TagResourceBundleUtil;
 
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspWriter;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.JspWriter;
 
 /**
  * @author Julien Castelain
@@ -82,16 +82,6 @@ public class VerticalCardTag extends BaseCardTag {
 		return _imageSrc;
 	}
 
-	public List<LabelItem> getLabels() {
-		VerticalCard verticalCard = getVerticalCard();
-
-		if ((_labels == null) && (verticalCard != null)) {
-			return verticalCard.getLabels();
-		}
-
-		return _labels;
-	}
-
 	/**
 	 * @deprecated As of Cavanaugh (7.4.x), with no direct replacement
 	 */
@@ -104,6 +94,16 @@ public class VerticalCardTag extends BaseCardTag {
 		}
 
 		return _labelStylesMap;
+	}
+
+	public List<LabelItem> getLabels() {
+		VerticalCard verticalCard = getVerticalCard();
+
+		if ((_labels == null) && (verticalCard != null)) {
+			return verticalCard.getLabels();
+		}
+
+		return _labels;
 	}
 
 	public String getStickerCssClass() {
@@ -289,16 +289,16 @@ public class VerticalCardTag extends BaseCardTag {
 		_imageSrc = imageSrc;
 	}
 
-	public void setLabels(List<LabelItem> labels) {
-		_labels = labels;
-	}
-
 	/**
 	 * @deprecated As of Cavanaugh (7.4.x), with no direct replacement
 	 */
 	@Deprecated
 	public void setLabelStylesMap(Map<String, String> labelStylesMap) {
 		_labelStylesMap = labelStylesMap;
+	}
+
+	public void setLabels(List<LabelItem> labels) {
+		_labels = labels;
 	}
 
 	public void setShowSticker(Boolean showSticker) {
@@ -362,8 +362,8 @@ public class VerticalCardTag extends BaseCardTag {
 		_flushVertical = null;
 		_imageAlt = null;
 		_imageSrc = null;
-		_labels = null;
 		_labelStylesMap = null;
+		_labels = null;
 		_showSticker = null;
 		_stickerCssClass = null;
 		_stickerIcon = null;
@@ -625,7 +625,7 @@ public class VerticalCardTag extends BaseCardTag {
 			jspWriter.write("<p class=\"card-subtitle\"><span class=\"");
 			jspWriter.write("text-truncate-inline\"><span class=\"");
 			jspWriter.write("text-truncate\">");
-			jspWriter.write(subtitle);
+			jspWriter.write(HtmlUtil.escape(subtitle));
 			jspWriter.write("</span></span></p>");
 		}
 
@@ -717,8 +717,8 @@ public class VerticalCardTag extends BaseCardTag {
 	private Boolean _flushVertical;
 	private String _imageAlt;
 	private String _imageSrc;
-	private List<LabelItem> _labels;
 	private Map<String, String> _labelStylesMap;
+	private List<LabelItem> _labels;
 	private Boolean _showSticker;
 	private String _stickerCssClass;
 	private String _stickerIcon;

@@ -140,6 +140,11 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 
 		WebDriver.Options options = webDriver.manage();
 
+		WebDriver.Timeouts timeouts = options.timeouts();
+
+		timeouts.pageLoadTimeout(
+			Duration.ofSeconds(poshiProperties.timeoutPageLoadWait));
+
 		options.deleteAllCookies();
 
 		String browserResolution = poshiProperties.browserResolution;
@@ -207,14 +212,7 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 
 		Future<Void> future = executorService.submit(antCommands);
 
-		try {
-			future.get(150, TimeUnit.SECONDS);
-		}
-		catch (ExecutionException executionException) {
-			throw executionException;
-		}
-		catch (TimeoutException timeoutException) {
-		}
+		future.get(150, TimeUnit.SECONDS);
 	}
 
 	@Override
@@ -371,7 +369,7 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 		List<Rule> violations = results.getViolations();
 
 		if (violations.isEmpty()) {
-			System.out.println("No accessiblity violations were found");
+			System.out.println("No accessibility violations were found");
 
 			return;
 		}
@@ -392,7 +390,7 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 		}
 
 		if (rules.isEmpty()) {
-			System.out.println("No accessiblity violations were found");
+			System.out.println("No accessibility violations were found");
 
 			return;
 		}
@@ -1428,9 +1426,11 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 		for (int i = 0; i < allSelectedOptionsWebElements.size(); i++) {
 			WebElement webElement = allSelectedOptionsWebElements.get(i);
 
-			if (webElement != null) {
-				selectedOptionsWebElements[i] = webElement.getText();
+			if (webElement == null) {
+				continue;
 			}
+
+			selectedOptionsWebElements[i] = webElement.getText();
 		}
 
 		return selectedOptionsWebElements;
@@ -1649,11 +1649,7 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 	public boolean isHTMLSourceTextPresent(String value) throws Exception {
 		String pageSource = getPageSource();
 
-		if (pageSource.contains(value)) {
-			return true;
-		}
-
-		return false;
+		return pageSource.contains(value);
 	}
 
 	@Override
@@ -2738,9 +2734,11 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 			for (int i = 0; i < tokens.length; i++) {
 				keyboard.type(tokens[i]);
 
-				if ((i + 1) < tokens.length) {
-					keyboard.type(Key.ENTER);
+				if ((i + 1) >= tokens.length) {
+					continue;
 				}
+
+				keyboard.type(Key.ENTER);
 			}
 
 			if (value.endsWith("${line.separator}")) {
@@ -2903,16 +2901,17 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 
 			retryCount++;
 
-			if (retryCount < maxRetries) {
-				String message =
-					"Actual typed value: '" + typedValue +
-						"' did not match expected typed value: '" + value +
-							"'.";
-
-				System.out.println(
-					message + " Retrying LiferaySelenium.type() attempt #" +
-						(retryCount + 1) + ".");
+			if (retryCount >= maxRetries) {
+				continue;
 			}
+
+			String message =
+				"Actual typed value: '" + typedValue +
+					"' did not match expected typed value: '" + value + "'.";
+
+			System.out.println(
+				message + " Retrying LiferaySelenium.type() attempt #" +
+					(retryCount + 1) + ".");
 		}
 	}
 
@@ -3050,10 +3049,10 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 			List<CharSequence> charSequences = new ArrayList<>();
 
 			for (String key : value.split(",")) {
-				CharSequence charSequence = key;
+				CharSequence charSequence = _keysMap.get(key);
 
-				if (_keysMap.containsKey(key)) {
-					charSequence = _keysMap.get(key);
+				if (charSequence == null) {
+					charSequence = key;
 				}
 
 				charSequences.add(charSequence);
@@ -3525,7 +3524,7 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 		sb.append(eventType);
 		sb.append("');event.initEvent('");
 		sb.append(event);
-		sb.append("', true, false);element.dispatchEvent(event);");
+		sb.append("', true, true);element.dispatchEvent(event);");
 
 		javascriptExecutor.executeScript(sb.toString(), webElement);
 	}
@@ -3556,6 +3555,32 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 
 	protected By getBy(String locator) {
 		return LiferaySeleniumUtil.getBy(locator);
+	}
+
+	protected String getCSSSource(String htmlSource) throws Exception {
+		org.jsoup.nodes.Document htmlDocument = Jsoup.parse(htmlSource);
+
+		Elements elements = htmlDocument.select("link[type=text/css]");
+
+		StringBuilder sb = new StringBuilder();
+
+		for (Element element : elements) {
+			String href = element.attr("href");
+
+			if (!href.contains(poshiProperties.portalURL)) {
+				href = poshiProperties.portalURL + href;
+			}
+
+			Connection connection = Jsoup.connect(href);
+
+			org.jsoup.nodes.Document document = connection.get();
+
+			sb.append(document.text());
+
+			sb.append("\n");
+		}
+
+		return sb.toString();
 	}
 
 	protected Condition getConfirmationCondition(String pattern) {
@@ -3607,32 +3632,6 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 		};
 	}
 
-	protected String getCSSSource(String htmlSource) throws Exception {
-		org.jsoup.nodes.Document htmlDocument = Jsoup.parse(htmlSource);
-
-		Elements elements = htmlDocument.select("link[type=text/css]");
-
-		StringBuilder sb = new StringBuilder();
-
-		for (Element element : elements) {
-			String href = element.attr("href");
-
-			if (!href.contains(poshiProperties.portalURL)) {
-				href = poshiProperties.portalURL + href;
-			}
-
-			Connection connection = Jsoup.connect(href);
-
-			org.jsoup.nodes.Document document = connection.get();
-
-			sb.append(document.text());
-
-			sb.append("\n");
-		}
-
-		return sb.toString();
-	}
-
 	protected String getDefaultWindowHandle() {
 		return _defaultWindowHandle;
 	}
@@ -3655,7 +3654,7 @@ public abstract class BaseWebDriverImpl implements LiferaySelenium, WebDriver {
 	protected String getEditorName(String locator) {
 		String titleAttribute = getAttribute(locator + "@title");
 
-		if (titleAttribute.contains("Rich Text Editor,")) {
+		if (titleAttribute.contains("Rich Text Editor")) {
 			int x = titleAttribute.indexOf(",");
 
 			int y = titleAttribute.indexOf(",", x + 1);

@@ -23,18 +23,22 @@ import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -42,12 +46,15 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,8 +89,10 @@ public abstract class BaseStructuredContentResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,17 +105,16 @@ public abstract class BaseStructuredContentResourceTestCase {
 
 		_structuredContentResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		StructuredContentResource.Builder builder =
-			StructuredContentResource.builder();
-
-		structuredContentResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		structuredContentResource = StructuredContentResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -198,6 +202,161 @@ public abstract class BaseStructuredContentResourceTestCase {
 	}
 
 	@Test
+	public void testDeleteStructuredContentByVersion() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		StructuredContent structuredContent =
+			testDeleteStructuredContentByVersion_addStructuredContent();
+
+		assertHttpResponseStatusCode(
+			204,
+			structuredContentResource.
+				deleteStructuredContentByVersionHttpResponse(
+					structuredContent.getId(),
+					testDeleteStructuredContentByVersion_getVersion()));
+
+		assertHttpResponseStatusCode(
+			404,
+			structuredContentResource.getStructuredContentByVersionHttpResponse(
+				structuredContent.getId(),
+				testDeleteStructuredContentByVersion_getVersion()));
+		assertHttpResponseStatusCode(
+			404,
+			structuredContentResource.getStructuredContentByVersionHttpResponse(
+				0L, testDeleteStructuredContentByVersion_getVersion()));
+	}
+
+	protected StructuredContent
+			testDeleteStructuredContentByVersion_addStructuredContent()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Double testDeleteStructuredContentByVersion_getVersion()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLDeleteStructuredContentByVersion() throws Exception {
+
+		// Using the configured namespace admin
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		StructuredContent structuredContent1 =
+			testGraphQLDeleteStructuredContentByVersion_addStructuredContent();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"admin",
+						new GraphQLField(
+							"deleteStructuredContentByVersion",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"structuredContentId",
+										structuredContent1.getId());
+
+									put(
+										"version",
+										testGraphQLDeleteStructuredContentByVersion_getVersion());
+								}
+							}))),
+				"JSONObject/data", "JSONObject/admin",
+				"Object/deleteStructuredContentByVersion"));
+
+		JSONArray errorsJSONArray1 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"admin",
+					new GraphQLField(
+						"structuredContentByVersion",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"structuredContentId",
+									structuredContent1.getId());
+
+								put(
+									"version",
+									testGraphQLDeleteStructuredContentByVersion_getVersion());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray1.length() > 0);
+
+		// Using the namespace headlessAdminContent_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		StructuredContent structuredContent2 =
+			testGraphQLDeleteStructuredContentByVersion_addStructuredContent();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessAdminContent_v1_0",
+						new GraphQLField(
+							"deleteStructuredContentByVersion",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"structuredContentId",
+										structuredContent2.getId());
+
+									put(
+										"version",
+										testGraphQLDeleteStructuredContentByVersion_getVersion());
+								}
+							}))),
+				"JSONObject/data", "JSONObject/headlessAdminContent_v1_0",
+				"Object/deleteStructuredContentByVersion"));
+
+		JSONArray errorsJSONArray2 = JSONUtil.getValueAsJSONArray(
+			invokeGraphQLQuery(
+				new GraphQLField(
+					"headlessAdminContent_v1_0",
+					new GraphQLField(
+						"structuredContentByVersion",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"structuredContentId",
+									structuredContent2.getId());
+
+								put(
+									"version",
+									testGraphQLDeleteStructuredContentByVersion_getVersion());
+							}
+						},
+						getGraphQLFields()))),
+			"JSONArray/errors");
+
+		Assert.assertTrue(errorsJSONArray2.length() > 0);
+	}
+
+	protected Double testGraphQLDeleteStructuredContentByVersion_getVersion()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected StructuredContent
+			testGraphQLDeleteStructuredContentByVersion_addStructuredContent()
+		throws Exception {
+
+		return testGraphQLStructuredContent_addStructuredContent();
+	}
+
+	@Test
 	public void testGetSiteStructuredContentsPage() throws Exception {
 		Long siteId = testGetSiteStructuredContentsPage_getSiteId();
 		Long irrelevantSiteId =
@@ -238,7 +397,8 @@ public abstract class BaseStructuredContentResourceTestCase {
 				siteId, randomStructuredContent());
 
 		page = structuredContentResource.getSiteStructuredContentsPage(
-			siteId, null, null, null, null, Pagination.of(1, 10), null);
+			siteId, null, null, null, null,
+			Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -363,12 +523,12 @@ public abstract class BaseStructuredContentResourceTestCase {
 
 		Long siteId = testGetSiteStructuredContentsPage_getSiteId();
 
-		Page<StructuredContent> structuredContentPage =
+		Page<StructuredContent> structuredContentsPage =
 			structuredContentResource.getSiteStructuredContentsPage(
 				siteId, null, null, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			structuredContentPage.getTotalCount());
+			structuredContentsPage.getTotalCount());
 
 		StructuredContent structuredContent1 =
 			testGetSiteStructuredContentsPage_addStructuredContent(
@@ -642,145 +802,6 @@ public abstract class BaseStructuredContentResourceTestCase {
 	}
 
 	@Test
-	public void testGraphQLGetSiteStructuredContentsPage() throws Exception {
-		Long siteId = testGetSiteStructuredContentsPage_getSiteId();
-
-		GraphQLField graphQLField = new GraphQLField(
-			"structuredContents",
-			new HashMap<String, Object>() {
-				{
-					put("page", 1);
-					put("pageSize", 10);
-
-					put("siteKey", "\"" + siteId + "\"");
-				}
-			},
-			new GraphQLField("items", getGraphQLFields()),
-			new GraphQLField("page"), new GraphQLField("totalCount"));
-
-		// No namespace
-
-		JSONObject structuredContentsJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(graphQLField), "JSONObject/data",
-			"JSONObject/structuredContents");
-
-		long totalCount = structuredContentsJSONObject.getLong("totalCount");
-
-		StructuredContent structuredContent1 =
-			testGraphQLGetSiteStructuredContentsPage_addStructuredContent();
-		StructuredContent structuredContent2 =
-			testGraphQLGetSiteStructuredContentsPage_addStructuredContent();
-
-		structuredContentsJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(graphQLField), "JSONObject/data",
-			"JSONObject/structuredContents");
-
-		Assert.assertEquals(
-			totalCount + 2, structuredContentsJSONObject.getLong("totalCount"));
-
-		assertContains(
-			structuredContent1,
-			Arrays.asList(
-				StructuredContentSerDes.toDTOs(
-					structuredContentsJSONObject.getString("items"))));
-		assertContains(
-			structuredContent2,
-			Arrays.asList(
-				StructuredContentSerDes.toDTOs(
-					structuredContentsJSONObject.getString("items"))));
-
-		// Using the namespace headlessAdminContent_v1_0
-
-		structuredContentsJSONObject = JSONUtil.getValueAsJSONObject(
-			invokeGraphQLQuery(
-				new GraphQLField("headlessAdminContent_v1_0", graphQLField)),
-			"JSONObject/data", "JSONObject/headlessAdminContent_v1_0",
-			"JSONObject/structuredContents");
-
-		Assert.assertEquals(
-			totalCount + 2, structuredContentsJSONObject.getLong("totalCount"));
-
-		assertContains(
-			structuredContent1,
-			Arrays.asList(
-				StructuredContentSerDes.toDTOs(
-					structuredContentsJSONObject.getString("items"))));
-		assertContains(
-			structuredContent2,
-			Arrays.asList(
-				StructuredContentSerDes.toDTOs(
-					structuredContentsJSONObject.getString("items"))));
-	}
-
-	protected StructuredContent
-			testGraphQLGetSiteStructuredContentsPage_addStructuredContent()
-		throws Exception {
-
-		return testGraphQLStructuredContent_addStructuredContent();
-	}
-
-	@Test
-	public void testPostSiteStructuredContentDraft() throws Exception {
-		StructuredContent randomStructuredContent = randomStructuredContent();
-
-		StructuredContent postStructuredContent =
-			testPostSiteStructuredContentDraft_addStructuredContent(
-				randomStructuredContent);
-
-		assertEquals(randomStructuredContent, postStructuredContent);
-		assertValid(postStructuredContent);
-	}
-
-	protected StructuredContent
-			testPostSiteStructuredContentDraft_addStructuredContent(
-				StructuredContent structuredContent)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testDeleteStructuredContentByVersion() throws Exception {
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		StructuredContent structuredContent =
-			testDeleteStructuredContentByVersion_addStructuredContent();
-
-		assertHttpResponseStatusCode(
-			204,
-			structuredContentResource.
-				deleteStructuredContentByVersionHttpResponse(
-					structuredContent.getId(),
-					testDeleteStructuredContentByVersion_getVersion()));
-
-		assertHttpResponseStatusCode(
-			404,
-			structuredContentResource.getStructuredContentByVersionHttpResponse(
-				structuredContent.getId(),
-				testDeleteStructuredContentByVersion_getVersion()));
-
-		assertHttpResponseStatusCode(
-			404,
-			structuredContentResource.getStructuredContentByVersionHttpResponse(
-				0L, testDeleteStructuredContentByVersion_getVersion()));
-	}
-
-	protected Double testDeleteStructuredContentByVersion_getVersion()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected StructuredContent
-			testDeleteStructuredContentByVersion_addStructuredContent()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetStructuredContentByVersion() throws Exception {
 		StructuredContent postStructuredContent =
 			testGetStructuredContentByVersion_addStructuredContent();
@@ -794,15 +815,15 @@ public abstract class BaseStructuredContentResourceTestCase {
 		assertValid(getStructuredContent);
 	}
 
-	protected Double testGetStructuredContentByVersion_getVersion()
+	protected StructuredContent
+			testGetStructuredContentByVersion_addStructuredContent()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
-	protected StructuredContent
-			testGetStructuredContentByVersion_addStructuredContent()
+	protected Double testGetStructuredContentByVersion_getVersion()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -814,7 +835,7 @@ public abstract class BaseStructuredContentResourceTestCase {
 		StructuredContent structuredContent =
 			testGraphQLGetStructuredContentByVersion_addStructuredContent();
 
-		// No namespace
+		// Using the configured namespace admin
 
 		Assert.assertTrue(
 			equals(
@@ -823,20 +844,22 @@ public abstract class BaseStructuredContentResourceTestCase {
 					JSONUtil.getValueAsString(
 						invokeGraphQLQuery(
 							new GraphQLField(
-								"structuredContentByVersion",
-								new HashMap<String, Object>() {
-									{
-										put(
-											"structuredContentId",
-											structuredContent.getId());
+								"admin",
+								new GraphQLField(
+									"structuredContentByVersion",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"structuredContentId",
+												structuredContent.getId());
 
-										put(
-											"version",
-											testGraphQLGetStructuredContentByVersion_getVersion());
-									}
-								},
-								getGraphQLFields())),
-						"JSONObject/data",
+											put(
+												"version",
+												testGraphQLGetStructuredContentByVersion_getVersion());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data", "JSONObject/admin",
 						"Object/structuredContentByVersion"))));
 
 		// Using the namespace headlessAdminContent_v1_0
@@ -882,23 +905,25 @@ public abstract class BaseStructuredContentResourceTestCase {
 		Long irrelevantStructuredContentId = RandomTestUtil.randomLong();
 		Double irrelevantVersion = RandomTestUtil.randomDouble();
 
-		// No namespace
+		// Using the configured namespace admin
 
 		Assert.assertEquals(
 			"Not Found",
 			JSONUtil.getValueAsString(
 				invokeGraphQLQuery(
 					new GraphQLField(
-						"structuredContentByVersion",
-						new HashMap<String, Object>() {
-							{
-								put(
-									"structuredContentId",
-									irrelevantStructuredContentId);
-								put("version", irrelevantVersion);
-							}
-						},
-						getGraphQLFields())),
+						"admin",
+						new GraphQLField(
+							"structuredContentByVersion",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"structuredContentId",
+										irrelevantStructuredContentId);
+									put("version", irrelevantVersion);
+								}
+							},
+							getGraphQLFields()))),
 				"JSONArray/errors", "Object/0", "JSONObject/extensions",
 				"Object/code"));
 
@@ -1020,6 +1045,27 @@ public abstract class BaseStructuredContentResourceTestCase {
 		throws Exception {
 
 		return null;
+	}
+
+	@Test
+	public void testPostSiteStructuredContentDraft() throws Exception {
+		StructuredContent randomStructuredContent = randomStructuredContent();
+
+		StructuredContent postStructuredContent =
+			testPostSiteStructuredContentDraft_addStructuredContent(
+				randomStructuredContent);
+
+		assertEquals(randomStructuredContent, postStructuredContent);
+		assertValid(postStructuredContent);
+	}
+
+	protected StructuredContent
+			testPostSiteStructuredContentDraft_addStructuredContent(
+				StructuredContent structuredContent)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Rule
@@ -1454,6 +1500,10 @@ public abstract class BaseStructuredContentResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		graphQLFields.add(new GraphQLField("siteId"));
 
@@ -2094,13 +2144,11 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -2110,8 +2158,7 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(structuredContent.getDateCreated()));
+				sb.append(_format.format(structuredContent.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -2126,13 +2173,11 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -2142,8 +2187,7 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(structuredContent.getDateExpired()));
+				sb.append(_format.format(structuredContent.getDateExpired()));
 			}
 
 			return sb.toString();
@@ -2158,13 +2202,11 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -2174,8 +2216,7 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(structuredContent.getDateModified()));
+				sb.append(_format.format(structuredContent.getDateModified()));
 			}
 
 			return sb.toString();
@@ -2190,13 +2231,11 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -2206,8 +2245,7 @@ public abstract class BaseStructuredContentResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(structuredContent.getDatePublished()));
+				sb.append(_format.format(structuredContent.getDatePublished()));
 			}
 
 			return sb.toString();
@@ -2589,7 +2627,9 @@ public abstract class BaseStructuredContentResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2867,7 +2907,9 @@ public abstract class BaseStructuredContentResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseStructuredContentResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -2875,3 +2917,4 @@ public abstract class BaseStructuredContentResourceTestCase {
 			StructuredContentResource _structuredContentResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:552102945

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 
 import {getObjectFieldBusinessTypeLabel} from '../../utils/getObjectFieldBusinessTypeLabel';
 
@@ -54,6 +54,12 @@ describe('Check the return for all object field business types)', () => {
 		);
 	});
 
+	it('returns email address language key', () => {
+		expect(getObjectFieldBusinessTypeLabel('EmailAddress')).toStrictEqual(
+			'email-address'
+		);
+	});
+
 	it('returns encrypted language key', () => {
 		expect(getObjectFieldBusinessTypeLabel('Encrypted')).toStrictEqual(
 			'encrypted'
@@ -72,6 +78,12 @@ describe('Check the return for all object field business types)', () => {
 		);
 	});
 
+	it('returns location language key', () => {
+		expect(getObjectFieldBusinessTypeLabel('Location')).toStrictEqual(
+			'location[place]'
+		);
+	});
+
 	it('returns long text language key', () => {
 		expect(getObjectFieldBusinessTypeLabel('LongText')).toStrictEqual(
 			'long-text'
@@ -84,7 +96,13 @@ describe('Check the return for all object field business types)', () => {
 		).toStrictEqual('multiselect-picklist');
 	});
 
-	it('returns Picklist language key', () => {
+	it('returns phone number language key', () => {
+		expect(getObjectFieldBusinessTypeLabel('PhoneNumber')).toStrictEqual(
+			'phone-number'
+		);
+	});
+
+	it('returns picklist language key', () => {
 		expect(getObjectFieldBusinessTypeLabel('Picklist')).toStrictEqual(
 			'picklist'
 		);

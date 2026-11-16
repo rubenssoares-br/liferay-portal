@@ -8,15 +8,16 @@ package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.ProductOptionValue;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.math.BigDecimal;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -56,6 +57,20 @@ public class ProductOptionValueSerDes {
 			sb.append("\"deltaPrice\": ");
 
 			sb.append(productOptionValue.getDeltaPrice());
+		}
+
+		if (productOptionValue.getExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(productOptionValue.getExternalReferenceCode()));
+
+			sb.append("\"");
 		}
 
 		if (productOptionValue.getId() != null) {
@@ -191,6 +206,15 @@ public class ProductOptionValueSerDes {
 				String.valueOf(productOptionValue.getDeltaPrice()));
 		}
 
+		if (productOptionValue.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(productOptionValue.getExternalReferenceCode()));
+		}
+
 		if (productOptionValue.getId() == null) {
 			map.put("id", null);
 		}
@@ -284,6 +308,11 @@ public class ProductOptionValueSerDes {
 			if (Objects.equals(jsonParserFieldName, "deltaPrice")) {
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
@@ -326,6 +355,14 @@ public class ProductOptionValueSerDes {
 				if (jsonParserFieldValue != null) {
 					productOptionValue.setDeltaPrice(
 						new BigDecimal((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					productOptionValue.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
@@ -428,6 +465,16 @@ public class ProductOptionValueSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -460,3 +507,4 @@ public class ProductOptionValueSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1303541031

@@ -17,11 +17,11 @@ import com.liferay.portal.kernel.workflow.WorkflowException;
 import com.liferay.portal.workflow.kaleo.designer.web.constants.KaleoDesignerPortletKeys;
 import com.liferay.portal.workflow.kaleo.model.KaleoDefinitionVersion;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 
@@ -30,7 +30,7 @@ import org.osgi.service.component.annotations.Component;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + KaleoDesignerPortletKeys.KALEO_DESIGNER,
+		"jakarta.portlet.name=" + KaleoDesignerPortletKeys.KALEO_DESIGNER,
 		"mvc.command.name=/kaleo_designer/duplicate_workflow_definition"
 	},
 	service = MVCActionCommand.class
@@ -56,20 +56,20 @@ public class DuplicateWorkflowDefinitionMVCActionCommand
 		Map<Locale, String> titleMap = localization.getLocalizationMap(
 			actionRequest, randomNamespace + "title");
 
-		validateTitle(actionRequest, titleMap);
+		validateTitle(titleMap);
 
 		String name = ParamUtil.getString(actionRequest, "name");
 		String content = ParamUtil.getString(actionRequest, "content");
 
 		if ((workflowDefinition != null) && workflowDefinition.isActive()) {
 			workflowDefinitionManager.deployWorkflowDefinition(
-				null, themeDisplay.getCompanyId(), themeDisplay.getUserId(),
-				getTitle(actionRequest, titleMap), name, content.getBytes());
+				content.getBytes(), themeDisplay.getCompanyId(), null, name,
+				getTitle(titleMap), themeDisplay.getUserId());
 		}
 		else {
 			workflowDefinitionManager.saveWorkflowDefinition(
-				null, themeDisplay.getCompanyId(), themeDisplay.getUserId(),
-				getTitle(actionRequest, titleMap), name, content.getBytes());
+				content.getBytes(), themeDisplay.getCompanyId(), null, name,
+				getTitle(titleMap), themeDisplay.getUserId());
 		}
 
 		KaleoDefinitionVersion kaleoDefinitionVersion =

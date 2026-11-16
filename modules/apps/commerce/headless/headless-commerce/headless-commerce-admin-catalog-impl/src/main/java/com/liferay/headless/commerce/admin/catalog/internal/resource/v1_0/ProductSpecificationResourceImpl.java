@@ -16,8 +16,9 @@ import com.liferay.headless.commerce.admin.catalog.dto.v1_0.Product;
 import com.liferay.headless.commerce.admin.catalog.dto.v1_0.ProductSpecification;
 import com.liferay.headless.commerce.admin.catalog.internal.dto.v1_0.converter.constants.DTOConverterConstants;
 import com.liferay.headless.commerce.admin.catalog.internal.util.v1_0.ProductSpecificationUtil;
+import com.liferay.headless.commerce.admin.catalog.internal.util.v1_0.ProductUtil;
 import com.liferay.headless.commerce.admin.catalog.resource.v1_0.ProductSpecificationResource;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
@@ -84,7 +85,8 @@ public class ProductSpecificationResourceImpl
 		CPDefinition cpDefinition =
 			_cpDefinitionService.
 				fetchCPDefinitionByCProductExternalReferenceCode(
-					externalReferenceCode, contextCompany.getCompanyId());
+					externalReferenceCode, contextCompany.getCompanyId(),
+					false);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
@@ -103,7 +105,7 @@ public class ProductSpecificationResourceImpl
 		throws Exception {
 
 		CPDefinition cpDefinition =
-			_cpDefinitionService.fetchCPDefinitionByCProductId(id);
+			_cpDefinitionService.fetchCPDefinitionByCProductId(id, false);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
@@ -114,20 +116,20 @@ public class ProductSpecificationResourceImpl
 			cpDefinitionSpecificationOptionValues =
 				_cpDefinitionSpecificationOptionValueService.
 					getCPDefinitionSpecificationOptionValues(
-						cpDefinition.getCPDefinitionId(),
+						cpDefinition.getCPDefinitionId(), null,
 						pagination.getStartPosition(),
 						pagination.getEndPosition(), null);
 
-		int totalItems =
+		int totalCount =
 			_cpDefinitionSpecificationOptionValueService.
 				getCPDefinitionSpecificationOptionValuesCount(
-					cpDefinition.getCPDefinitionId());
+					cpDefinition.getCPDefinitionId(), null);
 
 		return Page.of(
 			_toProductSpecifications(
 				cpDefinitionSpecificationOptionValues,
 				contextAcceptLanguage.getPreferredLocale()),
-			pagination, totalItems);
+			pagination, totalCount);
 	}
 
 	@Override
@@ -201,9 +203,9 @@ public class ProductSpecificationResourceImpl
 		throws Exception {
 
 		CPDefinition cpDefinition =
-			_cpDefinitionService.
-				fetchCPDefinitionByCProductExternalReferenceCode(
-					externalReferenceCode, contextCompany.getCompanyId());
+			ProductUtil.fetchCPDefinitionByCProductExternalReferenceCode(
+				externalReferenceCode, contextCompany.getCompanyId(),
+				_cpDefinitionService);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(
@@ -220,8 +222,8 @@ public class ProductSpecificationResourceImpl
 			Long id, ProductSpecification productSpecification)
 		throws Exception {
 
-		CPDefinition cpDefinition =
-			_cpDefinitionService.fetchCPDefinitionByCProductId(id);
+		CPDefinition cpDefinition = ProductUtil.fetchCPDefinitionByCProductId(
+			id, _cpDefinitionService);
 
 		if (cpDefinition == null) {
 			throw new NoSuchCPDefinitionException(

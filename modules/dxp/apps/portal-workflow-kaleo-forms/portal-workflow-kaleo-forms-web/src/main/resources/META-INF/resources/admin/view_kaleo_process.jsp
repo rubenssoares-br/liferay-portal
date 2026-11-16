@@ -24,7 +24,6 @@ KaleoProcess kaleoProcess = kaleoFormsViewRecordsDisplayContext.getKaleoProcess(
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems="<%= kaleoFormsViewRecordsDisplayContext.getNavigationItems() %>"
 />
 
@@ -53,6 +52,8 @@ KaleoProcess kaleoProcess = kaleoFormsViewRecordsDisplayContext.getKaleoProcess(
 	sortingURL="<%= kaleoFormsViewRecordsDisplayContext.getSortingURL() %>"
 />
 
+<%@ include file="/admin/deprecated_warning.jspf" %>
+
 <clay:container-fluid
 	id='<%= liferayPortletResponse.getNamespace() + "formContainer" %>'
 >
@@ -79,7 +80,7 @@ KaleoProcess kaleoProcess = kaleoFormsViewRecordsDisplayContext.getKaleoProcess(
 		>
 			<liferay-ui:search-container-row
 				className="com.liferay.dynamic.data.lists.model.DDLRecord"
-				keyProperty="recordId"
+				keyPropertyName="recordId"
 				modelVar="record"
 			>
 

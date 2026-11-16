@@ -93,8 +93,9 @@ public class CommercePriceListCommerceAccountGroupRelLocalServiceUtil {
 	}
 
 	public static void
-		deleteCommercePriceListAccountGroupRelsByCommercePriceListId(
-			long commercePriceListId) {
+			deleteCommercePriceListAccountGroupRelsByCommercePriceListId(
+				long commercePriceListId)
+		throws PortalException {
 
 		getService().
 			deleteCommercePriceListAccountGroupRelsByCommercePriceListId(
@@ -369,20 +370,6 @@ public class CommercePriceListCommerceAccountGroupRelLocalServiceUtil {
 		return getService().getCommercePriceListCommerceAccountGroupRelsCount();
 	}
 
-	public static int getCommercePriceListCommerceAccountGroupRelsCount(
-		long commercePriceListId) {
-
-		return getService().getCommercePriceListCommerceAccountGroupRelsCount(
-			commercePriceListId);
-	}
-
-	public static int getCommercePriceListCommerceAccountGroupRelsCount(
-		long commercePriceListId, String name) {
-
-		return getService().getCommercePriceListCommerceAccountGroupRelsCount(
-			commercePriceListId, name);
-	}
-
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
 		getExportActionableDynamicQuery(
 			com.liferay.exportimport.kernel.lar.PortletDataContext
@@ -458,3 +445,4 @@ public class CommercePriceListCommerceAccountGroupRelLocalServiceUtil {
 				CommercePriceListCommerceAccountGroupRelLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-819434837

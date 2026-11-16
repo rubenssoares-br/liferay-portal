@@ -116,11 +116,7 @@ public class JournalFolderPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		JournalFolder newJournalFolder = _persistence.create(pk);
-
-		newJournalFolder.setMvccVersion(RandomTestUtil.nextLong());
+		JournalFolder newJournalFolder = addJournalFolder();
 
 		newJournalFolder.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -161,7 +157,9 @@ public class JournalFolderPersistenceTest {
 
 		newJournalFolder.setStatusDate(RandomTestUtil.nextDate());
 
-		_journalFolders.add(_persistence.update(newJournalFolder));
+		newJournalFolder = _persistence.update(newJournalFolder);
+
+		_journalFolders.add(newJournalFolder);
 
 		JournalFolder existingJournalFolder = _persistence.findByPrimaryKey(
 			newJournalFolder.getPrimaryKey());
@@ -281,13 +279,6 @@ public class JournalFolderPersistenceTest {
 	}
 
 	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
-	}
-
-	@Test
 	public void testCountByG_P() throws Exception {
 		_persistence.countByG_P(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
@@ -302,14 +293,6 @@ public class JournalFolderPersistenceTest {
 		_persistence.countByG_N(0L, "null");
 
 		_persistence.countByG_N(0L, (String)null);
-	}
-
-	@Test
-	public void testCountByC_NotS() throws Exception {
-		_persistence.countByC_NotS(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByC_NotS(0L, 0);
 	}
 
 	@Test
@@ -732,8 +715,6 @@ public class JournalFolderPersistenceTest {
 
 		JournalFolder journalFolder = _persistence.create(pk);
 
-		journalFolder.setMvccVersion(RandomTestUtil.nextLong());
-
 		journalFolder.setCtCollectionId(RandomTestUtil.nextLong());
 
 		journalFolder.setUuid(RandomTestUtil.randomString());
@@ -783,3 +764,4 @@ public class JournalFolderPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:899219659

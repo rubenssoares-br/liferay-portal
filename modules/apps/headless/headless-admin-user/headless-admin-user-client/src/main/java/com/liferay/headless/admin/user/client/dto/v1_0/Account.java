@@ -8,13 +8,13 @@ package com.liferay.headless.admin.user.client.dto.v1_0;
 import com.liferay.headless.admin.user.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.user.client.serdes.v1_0.AccountSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -51,6 +51,49 @@ public class Account implements Cloneable, Serializable {
 	}
 
 	protected AccountContactInformation accountContactInformation;
+
+	public AccountGroupBrief[] getAccountGroupBriefs() {
+		return accountGroupBriefs;
+	}
+
+	public void setAccountGroupBriefs(AccountGroupBrief[] accountGroupBriefs) {
+		this.accountGroupBriefs = accountGroupBriefs;
+	}
+
+	public void setAccountGroupBriefs(
+		UnsafeSupplier<AccountGroupBrief[], Exception>
+			accountGroupBriefsUnsafeSupplier) {
+
+		try {
+			accountGroupBriefs = accountGroupBriefsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected AccountGroupBrief[] accountGroupBriefs;
+
+	public AccountRole[] getAccountRoles() {
+		return accountRoles;
+	}
+
+	public void setAccountRoles(AccountRole[] accountRoles) {
+		this.accountRoles = accountRoles;
+	}
+
+	public void setAccountRoles(
+		UnsafeSupplier<AccountRole[], Exception> accountRolesUnsafeSupplier) {
+
+		try {
+			accountRoles = accountRolesUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected AccountRole[] accountRoles;
 
 	public UserAccount[] getAccountUserAccounts() {
 		return accountUserAccounts;
@@ -96,16 +139,44 @@ public class Account implements Cloneable, Serializable {
 
 	protected Map<String, Map<String, String>> actions;
 
-	public CustomField[] getCustomFields() {
+	public Creator getCreator() {
+		return creator;
+	}
+
+	public void setCreator(Creator creator) {
+		this.creator = creator;
+	}
+
+	public void setCreator(
+		UnsafeSupplier<Creator, Exception> creatorUnsafeSupplier) {
+
+		try {
+			creator = creatorUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Creator creator;
+
+	public com.liferay.headless.admin.user.client.custom.field.CustomField[]
+		getCustomFields() {
+
 		return customFields;
 	}
 
-	public void setCustomFields(CustomField[] customFields) {
+	public void setCustomFields(
+		com.liferay.headless.admin.user.client.custom.field.CustomField[]
+			customFields) {
+
 		this.customFields = customFields;
 	}
 
 	public void setCustomFields(
-		UnsafeSupplier<CustomField[], Exception> customFieldsUnsafeSupplier) {
+		UnsafeSupplier
+			<com.liferay.headless.admin.user.client.custom.field.CustomField[],
+			 Exception> customFieldsUnsafeSupplier) {
 
 		try {
 			customFields = customFieldsUnsafeSupplier.get();
@@ -115,7 +186,8 @@ public class Account implements Cloneable, Serializable {
 		}
 	}
 
-	protected CustomField[] customFields;
+	protected com.liferay.headless.admin.user.client.custom.field.CustomField[]
+		customFields;
 
 	public Date getDateCreated() {
 		return dateCreated;
@@ -338,6 +410,48 @@ public class Account implements Cloneable, Serializable {
 
 	protected Long id;
 
+	public String[] getKeywords() {
+		return keywords;
+	}
+
+	public void setKeywords(String[] keywords) {
+		this.keywords = keywords;
+	}
+
+	public void setKeywords(
+		UnsafeSupplier<String[], Exception> keywordsUnsafeSupplier) {
+
+		try {
+			keywords = keywordsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String[] keywords;
+
+	public String getLogoBase64() {
+		return logoBase64;
+	}
+
+	public void setLogoBase64(String logoBase64) {
+		this.logoBase64 = logoBase64;
+	}
+
+	public void setLogoBase64(
+		UnsafeSupplier<String, Exception> logoBase64UnsafeSupplier) {
+
+		try {
+			logoBase64 = logoBase64UnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String logoBase64;
+
 	public String getLogoExternalReferenceCode() {
 		return logoExternalReferenceCode;
 	}
@@ -537,6 +651,35 @@ public class Account implements Cloneable, Serializable {
 
 	protected Long parentAccountId;
 
+	public com.liferay.headless.admin.user.client.permission.Permission[]
+		getPermissions() {
+
+		return permissions;
+	}
+
+	public void setPermissions(
+		com.liferay.headless.admin.user.client.permission.Permission[]
+			permissions) {
+
+		this.permissions = permissions;
+	}
+
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.headless.admin.user.client.permission.Permission[],
+			 Exception> permissionsUnsafeSupplier) {
+
+		try {
+			permissions = permissionsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected com.liferay.headless.admin.user.client.permission.Permission[]
+		permissions;
+
 	public PostalAddress[] getPostalAddresses() {
 		return postalAddresses;
 	}
@@ -600,6 +743,30 @@ public class Account implements Cloneable, Serializable {
 	}
 
 	protected String taxId;
+
+	public TaxonomyCategoryBrief[] getTaxonomyCategoryBriefs() {
+		return taxonomyCategoryBriefs;
+	}
+
+	public void setTaxonomyCategoryBriefs(
+		TaxonomyCategoryBrief[] taxonomyCategoryBriefs) {
+
+		this.taxonomyCategoryBriefs = taxonomyCategoryBriefs;
+	}
+
+	public void setTaxonomyCategoryBriefs(
+		UnsafeSupplier<TaxonomyCategoryBrief[], Exception>
+			taxonomyCategoryBriefsUnsafeSupplier) {
+
+		try {
+			taxonomyCategoryBriefs = taxonomyCategoryBriefsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected TaxonomyCategoryBrief[] taxonomyCategoryBriefs;
 
 	public Type getType() {
 		return type;
@@ -694,3 +861,4 @@ public class Account implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1705201603

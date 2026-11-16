@@ -17,10 +17,10 @@ import com.liferay.portal.kernel.security.pwd.Toolkit;
 import com.liferay.portal.kernel.service.PasswordTrackerLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.PwdGenerator;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.words.WordsUtil;
-import com.liferay.portal.util.PropsValues;
 
 import java.util.Arrays;
 import java.util.Date;
@@ -93,7 +93,7 @@ public class PasswordPolicyToolkit extends BasicToolkit {
 		if (PropsValues.PASSWORDS_PASSWORDPOLICYTOOLKIT_GENERATOR.equals(
 				"static")) {
 
-			return generateStatic(passwordPolicy);
+			return PropsValues.PASSWORDS_PASSWORDPOLICYTOOLKIT_STATIC;
 		}
 
 		return generateDynamic(passwordPolicy);
@@ -274,10 +274,6 @@ public class PasswordPolicyToolkit extends BasicToolkit {
 		return RandomUtil.shuffle(new SecureRandom(), sb.toString());
 	}
 
-	protected String generateStatic(PasswordPolicy passwordPolicy) {
-		return PropsValues.PASSWORDS_PASSWORDPOLICYTOOLKIT_STATIC;
-	}
-
 	protected String getRandomString(int count, char[] chars) {
 		Random random = new SecureRandom();
 
@@ -304,9 +300,11 @@ public class PasswordPolicyToolkit extends BasicToolkit {
 		int count = 0;
 
 		for (int i = 0; i < s.length(); i++) {
-			if (Arrays.binarySearch(chars, s.charAt(i)) >= 0) {
-				count++;
+			if (Arrays.binarySearch(chars, s.charAt(i)) < 0) {
+				continue;
 			}
+
+			count++;
 		}
 
 		return count;

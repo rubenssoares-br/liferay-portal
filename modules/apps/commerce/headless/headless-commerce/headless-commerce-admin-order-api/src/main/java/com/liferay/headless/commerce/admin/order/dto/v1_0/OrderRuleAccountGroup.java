@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("OrderRuleAccountGroup")
+@GraphQLName(
+	description = "Binding between an order rule and an account group. Identifies an account group the rule applies to.",
+	value = "OrderRuleAccountGroup"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Binding between an order rule and an account group. Identifies an account group the rule applies to.",
+	requiredProperties = {"accountGroupId", "orderRuleId"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"accountGroupId", "orderRuleId"})
 @XmlRootElement(name = "OrderRuleAccountGroup")
 public class OrderRuleAccountGroup implements Serializable {
 
@@ -54,7 +61,7 @@ public class OrderRuleAccountGroup implements Serializable {
 			OrderRuleAccountGroup.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public OrderAccountGroup getAccountGroup() {
 		if (_accountGroupSupplier != null) {
@@ -97,7 +104,10 @@ public class OrderRuleAccountGroup implements Serializable {
 	@JsonIgnore
 	private Supplier<OrderAccountGroup> _accountGroupSupplier;
 
-	@Schema(example = "DAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the account group. Used as a lookup key when the numeric account group ID is not supplied.",
+		example = "AB-34098-789-N"
+	)
 	public String getAccountGroupExternalReferenceCode() {
 		if (_accountGroupExternalReferenceCodeSupplier != null) {
 			accountGroupExternalReferenceCode =
@@ -136,7 +146,9 @@ public class OrderRuleAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the account group. Used as a lookup key when the numeric account group ID is not supplied."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String accountGroupExternalReferenceCode;
 
@@ -144,7 +156,10 @@ public class OrderRuleAccountGroup implements Serializable {
 	private Supplier<String> _accountGroupExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the account group (FK identifier).",
+		example = "30130"
+	)
 	public Long getAccountGroupId() {
 		if (_accountGroupIdSupplier != null) {
 			accountGroupId = _accountGroupIdSupplier.get();
@@ -178,7 +193,9 @@ public class OrderRuleAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the account group (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long accountGroupId;
@@ -186,7 +203,9 @@ public class OrderRuleAccountGroup implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _accountGroupIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions (delete). Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -222,7 +241,7 @@ public class OrderRuleAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Map of HATEOAS actions (delete). Read-only.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
@@ -230,7 +249,10 @@ public class OrderRuleAccountGroup implements Serializable {
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the order rule account group relationship (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getOrderRuleAccountGroupId() {
 		if (_orderRuleAccountGroupIdSupplier != null) {
 			orderRuleAccountGroupId = _orderRuleAccountGroupIdSupplier.get();
@@ -264,14 +286,19 @@ public class OrderRuleAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the order rule account group relationship (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long orderRuleAccountGroupId;
 
 	@JsonIgnore
 	private Supplier<Long> _orderRuleAccountGroupIdSupplier;
 
-	@Schema(example = "PAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the parent order rule.",
+		example = "AB-34098-789-N"
+	)
 	public String getOrderRuleExternalReferenceCode() {
 		if (_orderRuleExternalReferenceCodeSupplier != null) {
 			orderRuleExternalReferenceCode =
@@ -309,7 +336,9 @@ public class OrderRuleAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the parent order rule."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String orderRuleExternalReferenceCode;
 
@@ -317,7 +346,10 @@ public class OrderRuleAccountGroup implements Serializable {
 	private Supplier<String> _orderRuleExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent order rule (FK identifier).",
+		example = "30130"
+	)
 	public Long getOrderRuleId() {
 		if (_orderRuleIdSupplier != null) {
 			orderRuleId = _orderRuleIdSupplier.get();
@@ -351,7 +383,9 @@ public class OrderRuleAccountGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent order rule (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long orderRuleId;
@@ -486,8 +520,8 @@ public class OrderRuleAccountGroup implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.order.dto.v1_0.OrderRuleAccountGroup",
 		name = "x-class-name"
 	)
@@ -574,6 +608,27 @@ public class OrderRuleAccountGroup implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -582,3 +637,4 @@ public class OrderRuleAccountGroup implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1528989829

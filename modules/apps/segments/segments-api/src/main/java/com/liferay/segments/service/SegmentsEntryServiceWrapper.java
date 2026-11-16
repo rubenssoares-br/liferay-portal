@@ -30,21 +30,7 @@ public class SegmentsEntryServiceWrapper
 
 	@Override
 	public SegmentsEntry addSegmentsEntry(
-			String segmentsEntryKey,
-			java.util.Map<java.util.Locale, String> nameMap,
-			java.util.Map<java.util.Locale, String> descriptionMap,
-			boolean active, String criteria,
-			com.liferay.portal.kernel.service.ServiceContext serviceContext)
-		throws com.liferay.portal.kernel.exception.PortalException {
-
-		return _segmentsEntryService.addSegmentsEntry(
-			segmentsEntryKey, nameMap, descriptionMap, active, criteria,
-			serviceContext);
-	}
-
-	@Override
-	public SegmentsEntry addSegmentsEntry(
-			String segmentsEntryKey,
+			String externalReferenceCode, String segmentsEntryKey,
 			java.util.Map<java.util.Locale, String> nameMap,
 			java.util.Map<java.util.Locale, String> descriptionMap,
 			boolean active, String criteria, String source,
@@ -52,8 +38,8 @@ public class SegmentsEntryServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _segmentsEntryService.addSegmentsEntry(
-			segmentsEntryKey, nameMap, descriptionMap, active, criteria, source,
-			serviceContext);
+			externalReferenceCode, segmentsEntryKey, nameMap, descriptionMap,
+			active, criteria, source, serviceContext);
 	}
 
 	@Override
@@ -82,6 +68,15 @@ public class SegmentsEntryServiceWrapper
 			segmentsEntryId, classPKs);
 	}
 
+	@Override
+	public SegmentsEntry fetchSegmentsEntryByExternalReferenceCode(
+			String segmentsEntryERC, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _segmentsEntryService.fetchSegmentsEntryByExternalReferenceCode(
+			segmentsEntryERC, groupId);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -108,8 +103,26 @@ public class SegmentsEntryServiceWrapper
 	}
 
 	@Override
+	public java.util.List<SegmentsEntry> getSegmentsEntries(
+		long groupId, String[] sources, int[] types, int start, int end,
+		com.liferay.portal.kernel.util.OrderByComparator<SegmentsEntry>
+			orderByComparator) {
+
+		return _segmentsEntryService.getSegmentsEntries(
+			groupId, sources, types, start, end, orderByComparator);
+	}
+
+	@Override
 	public int getSegmentsEntriesCount(long groupId) {
 		return _segmentsEntryService.getSegmentsEntriesCount(groupId);
+	}
+
+	@Override
+	public int getSegmentsEntriesCount(
+		long groupId, String[] sources, int[] types) {
+
+		return _segmentsEntryService.getSegmentsEntriesCount(
+			groupId, sources, types);
 	}
 
 	@Override
@@ -120,19 +133,30 @@ public class SegmentsEntryServiceWrapper
 	}
 
 	@Override
+	public SegmentsEntry getSegmentsEntryByExternalReferenceCode(
+			String segmentsEntryERC, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _segmentsEntryService.getSegmentsEntryByExternalReferenceCode(
+			segmentsEntryERC, groupId);
+	}
+
+	@Override
 	public com.liferay.portal.kernel.search.BaseModelSearchResult<SegmentsEntry>
 			searchSegmentsEntries(
-				long companyId, long groupId, String keywords, int start,
+				long companyId, long groupId, String keywords,
+				java.util.LinkedHashMap<String, Object> params, int start,
 				int end, com.liferay.portal.kernel.search.Sort sort)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _segmentsEntryService.searchSegmentsEntries(
-			companyId, groupId, keywords, start, end, sort);
+			companyId, groupId, keywords, params, start, end, sort);
 	}
 
 	@Override
 	public SegmentsEntry updateSegmentsEntry(
-			long segmentsEntryId, String segmentsEntryKey,
+			String externalReferenceCode, long segmentsEntryId,
+			String segmentsEntryKey,
 			java.util.Map<java.util.Locale, String> nameMap,
 			java.util.Map<java.util.Locale, String> descriptionMap,
 			boolean active, String criteria,
@@ -140,8 +164,8 @@ public class SegmentsEntryServiceWrapper
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _segmentsEntryService.updateSegmentsEntry(
-			segmentsEntryId, segmentsEntryKey, nameMap, descriptionMap, active,
-			criteria, serviceContext);
+			externalReferenceCode, segmentsEntryId, segmentsEntryKey, nameMap,
+			descriptionMap, active, criteria, serviceContext);
 	}
 
 	@Override
@@ -157,3 +181,4 @@ public class SegmentsEntryServiceWrapper
 	private SegmentsEntryService _segmentsEntryService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1654911328

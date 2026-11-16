@@ -6,6 +6,7 @@
 package com.liferay.asset.display.page.internal.portlet;
 
 import com.liferay.asset.display.page.portlet.BaseAssetDisplayPageFriendlyURLResolver;
+import com.liferay.design.library.util.DesignLibraryUtil;
 import com.liferay.info.item.ClassPKInfoItemIdentifier;
 import com.liferay.info.item.ERCInfoItemIdentifier;
 import com.liferay.info.item.InfoItemIdentifier;
@@ -16,7 +17,6 @@ import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringPool;
 import com.liferay.petra.string.StringUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.FriendlyURLResolver;
 import com.liferay.portal.kernel.portlet.constants.FriendlyURLResolverConstants;
@@ -25,10 +25,10 @@ import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 
@@ -71,7 +71,7 @@ public class CustomAssetDisplayPageFriendlyURLResolver
 
 	@Override
 	public boolean isURLSeparatorConfigurable() {
-		return FeatureFlagManagerUtil.isEnabled("LPD-11147");
+		return true;
 	}
 
 	@Override
@@ -90,7 +90,7 @@ public class CustomAssetDisplayPageFriendlyURLResolver
 
 		if (Validator.isNumber(parts[2])) {
 			infoItemIdentifier = new ClassPKInfoItemIdentifier(
-				GetterUtil.getLong(parts[2]));
+				GetterUtil.getLong(parts[2]), getVersion(params));
 		}
 		else {
 			infoItemIdentifier = new ERCInfoItemIdentifier(parts[2]);
@@ -98,15 +98,15 @@ public class CustomAssetDisplayPageFriendlyURLResolver
 
 		return layoutDisplayPageProvider.getLayoutDisplayPageObjectProvider(
 			new InfoItemReference(
-				portal.getClassName(GetterUtil.getLong(parts[1])),
-				infoItemIdentifier));
+				layoutDisplayPageProvider.getClassName(), infoItemIdentifier));
 	}
 
 	@Override
 	protected Layout getLayoutDisplayPageObjectProviderLayout(
-		long groupId, String friendlyURL,
-		LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider,
-		LayoutDisplayPageProvider<?> layoutDisplayPageProvider) {
+			long groupId, String friendlyURL,
+			LayoutDisplayPageObjectProvider<?> layoutDisplayPageObjectProvider,
+			LayoutDisplayPageProvider<?> layoutDisplayPageProvider)
+		throws PortalException {
 
 		String[] parts = _getPathParts(friendlyURL);
 
@@ -114,13 +114,14 @@ public class CustomAssetDisplayPageFriendlyURLResolver
 			return null;
 		}
 
-		return layoutLocalService.fetchLayoutByFriendlyURL(
-			groupId, false, StringPool.SLASH + parts[0]);
+		return getVirtualLayout(
+			groupId,
+			_fetchLayoutByFriendlyURL(groupId, StringPool.SLASH + parts[0]));
 	}
 
 	@Override
 	protected LayoutDisplayPageProvider<?> getLayoutDisplayPageProvider(
-		String friendlyURL) {
+		long companyId, String friendlyURL) {
 
 		String[] parts = _getPathParts(friendlyURL);
 
@@ -130,12 +131,35 @@ public class CustomAssetDisplayPageFriendlyURLResolver
 
 		return layoutDisplayPageProviderRegistry.
 			getLayoutDisplayPageProviderByClassName(
-				portal.getClassName(GetterUtil.getLong(parts[1])));
+				companyId, portal.getClassName(GetterUtil.getLong(parts[1])));
 	}
 
 	@Override
 	protected boolean useOriginalFriendlyURL() {
 		return false;
+	}
+
+	private Layout _fetchLayoutByFriendlyURL(long groupId, String friendlyURL) {
+		Layout layout = layoutLocalService.fetchLayoutByFriendlyURL(
+			groupId, false, friendlyURL);
+
+		if (layout != null) {
+			return layout;
+		}
+
+		for (long connectedGroupId :
+				DesignLibraryUtil.fetchConnectedDesignLibraryGroupIds(
+					groupId)) {
+
+			layout = layoutLocalService.fetchLayoutByFriendlyURL(
+				connectedGroupId, false, friendlyURL);
+
+			if (layout != null) {
+				return layout;
+			}
+		}
+
+		return null;
 	}
 
 	private String[] _getPathParts(String path) {

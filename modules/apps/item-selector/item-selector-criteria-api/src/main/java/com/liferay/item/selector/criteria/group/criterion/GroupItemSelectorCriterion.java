@@ -6,6 +6,7 @@
 package com.liferay.item.selector.criteria.group.criterion;
 
 import com.liferay.item.selector.BaseItemSelectorCriterion;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
 
 /**
  * @author Adolfo Pérez
@@ -17,6 +18,14 @@ public class GroupItemSelectorCriterion extends BaseItemSelectorCriterion {
 
 	public GroupItemSelectorCriterion(boolean privateLayout) {
 		_privateLayout = privateLayout;
+	}
+
+	public String getActionId() {
+		return _actionId;
+	}
+
+	public int getDepotEntryType() {
+		return _depotEntryType;
 	}
 
 	public long[] getExcludedGroupIds() {
@@ -55,6 +64,10 @@ public class GroupItemSelectorCriterion extends BaseItemSelectorCriterion {
 		return _includeLayoutScopes;
 	}
 
+	public boolean isIncludeLayoutSetPrototypes() {
+		return _includeLayoutSetPrototypes;
+	}
+
 	public boolean isIncludeMySites() {
 		return _includeMySites;
 	}
@@ -79,8 +92,16 @@ public class GroupItemSelectorCriterion extends BaseItemSelectorCriterion {
 		return _privateLayout;
 	}
 
+	public void setActionId(String actionId) {
+		_actionId = actionId;
+	}
+
 	public void setAllowNavigation(boolean allowNavigation) {
 		_allowNavigation = allowNavigation;
+	}
+
+	public void setDepotEntryType(int depotEntryType) {
+		_depotEntryType = depotEntryType;
 	}
 
 	public void setExcludedGroupIds(long[] excludedGroupIds) {
@@ -105,6 +126,12 @@ public class GroupItemSelectorCriterion extends BaseItemSelectorCriterion {
 
 	public void setIncludeLayoutScopes(boolean includeLayoutScopes) {
 		_includeLayoutScopes = includeLayoutScopes;
+	}
+
+	public void setIncludeLayoutSetPrototypes(
+		boolean includeLayoutSetPrototypes) {
+
+		_includeLayoutSetPrototypes = includeLayoutSetPrototypes;
 	}
 
 	public void setIncludeMySites(boolean includeMySites) {
@@ -141,13 +168,16 @@ public class GroupItemSelectorCriterion extends BaseItemSelectorCriterion {
 		_target = target;
 	}
 
+	private String _actionId = ActionKeys.VIEW;
 	private boolean _allowNavigation = true;
+	private int _depotEntryType;
 	private long[] _excludedGroupIds;
 	private boolean _includeAllVisibleGroups;
 	private boolean _includeChildSites;
 	private boolean _includeCompany = true;
 	private boolean _includeFormsSite;
 	private boolean _includeLayoutScopes;
+	private boolean _includeLayoutSetPrototypes;
 	private boolean _includeMySites = true;
 	private boolean _includeParentSites;
 	private boolean _includeRecentSites = true;

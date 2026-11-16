@@ -351,6 +351,11 @@ public class RepositoryLocalServiceWrapper
 		return _repositoryLocalService.getRepositories(start, end);
 	}
 
+	@Override
+	public java.util.List<Repository> getRepositories(String portletId) {
+		return _repositoryLocalService.getRepositories(portletId);
+	}
+
 	/**
 	 * Returns all the repositories matching the UUID and company.
 	 *
@@ -458,6 +463,13 @@ public class RepositoryLocalServiceWrapper
 	}
 
 	@Override
+	public boolean isHidden(long repositoryId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _repositoryLocalService.isHidden(repositoryId);
+	}
+
+	@Override
 	public void updateRepository(
 			long repositoryId, String name, String description)
 		throws com.liferay.portal.kernel.exception.PortalException {
@@ -532,3 +544,4 @@ public class RepositoryLocalServiceWrapper
 	private RepositoryLocalService _repositoryLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:830024770

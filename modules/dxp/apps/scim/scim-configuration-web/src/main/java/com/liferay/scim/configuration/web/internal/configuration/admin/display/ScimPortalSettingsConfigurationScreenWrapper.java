@@ -15,18 +15,26 @@ import com.liferay.oauth2.provider.service.OAuth2AuthorizationLocalService;
 import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.OrderByComparatorFactoryUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.settings.configuration.admin.display.PortalSettingsConfigurationScreenContributor;
 import com.liferay.portal.settings.configuration.admin.display.PortalSettingsConfigurationScreenFactory;
 import com.liferay.scim.configuration.web.internal.constants.ScimWebKeys;
 import com.liferay.scim.rest.util.ScimClientUtil;
+
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletSession;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.text.Format;
 
@@ -35,10 +43,6 @@ import java.util.Dictionary;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
@@ -123,15 +127,6 @@ public class ScimPortalSettingsConfigurationScreenWrapper
 		}
 
 		@Override
-		public boolean isVisible() {
-			if (!FeatureFlagManagerUtil.isEnabled("LPS-96845")) {
-				return false;
-			}
-
-			return true;
-		}
-
-		@Override
 		public void setAttributes(
 			HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse) {
@@ -202,9 +197,27 @@ public class ScimPortalSettingsConfigurationScreenWrapper
 				OAuth2Authorization oAuth2Authorization =
 					oAuth2Authorizations.get(0);
 
-				httpServletRequest.setAttribute(
-					ScimWebKeys.SCIM_OAUTH2_ACCESS_TOKEN,
-					oAuth2Authorization.getAccessTokenContent());
+				if (PropsValues.FIPS_ENABLED) {
+					PortletRequest portletRequest =
+						(PortletRequest)httpServletRequest.getAttribute(
+							JavaConstants.JAKARTA_PORTLET_REQUEST);
+
+					PortletSession portletSession =
+						portletRequest.getPortletSession();
+
+					httpServletRequest.setAttribute(
+						ScimWebKeys.SCIM_OAUTH2_ACCESS_TOKEN,
+						portletSession.getAttribute(
+							ScimWebKeys.SCIM_OAUTH2_ACCESS_TOKEN));
+
+					portletSession.removeAttribute(
+						ScimWebKeys.SCIM_OAUTH2_ACCESS_TOKEN);
+				}
+				else {
+					httpServletRequest.setAttribute(
+						ScimWebKeys.SCIM_OAUTH2_ACCESS_TOKEN,
+						oAuth2Authorization.getAccessTokenContent());
+				}
 
 				Date accessTokenExpirationDate =
 					oAuth2Authorization.getAccessTokenExpirationDate();

@@ -7,12 +7,14 @@ package com.liferay.item.selector.internal.provider;
 
 import com.liferay.item.selector.provider.GroupItemSelectorProvider;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Organization;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.GuestOrUserUtil;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
@@ -54,11 +56,20 @@ public class GroupItemSelectorProviderImpl
 	}
 
 	@Override
+	public String getGroupType() {
+		return "site";
+	}
+
+	@Override
 	public List<Group> getGroups(
 		long companyId, long groupId, String keywords, int start, int end) {
 
 		LinkedHashMap<String, Object> groupParams =
 			LinkedHashMapBuilder.<String, Object>put(
+				"actionId", ActionKeys.VIEW
+			).put(
+				"active", Boolean.TRUE
+			).put(
 				"site", Boolean.TRUE
 			).build();
 
@@ -91,13 +102,10 @@ public class GroupItemSelectorProviderImpl
 			LinkedHashMapBuilder.<String, Object>put(
 				"actionId", ActionKeys.VIEW
 			).put(
+				"active", Boolean.TRUE
+			).put(
 				"site", Boolean.TRUE
 			).build());
-	}
-
-	@Override
-	public String getGroupType() {
-		return "site";
 	}
 
 	@Override
@@ -107,7 +115,18 @@ public class GroupItemSelectorProviderImpl
 
 	@Override
 	public String getLabel(Locale locale) {
+		if (FeatureFlagManagerUtil.isEnabled(
+				CompanyThreadLocal.getNonsystemCompanyId(), "LPD-81022")) {
+
+			return _language.get(locale, "sites");
+		}
+
 		return _language.get(locale, "site");
+	}
+
+	@Override
+	public boolean isGroupType(Group group) {
+		return !group.isDepot();
 	}
 
 	private long[] _getClassNameIds() {

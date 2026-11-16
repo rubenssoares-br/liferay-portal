@@ -65,7 +65,7 @@ public class DLAppServiceWhenCopyingWithDLFileEntryTypeTest
 		super.setUp();
 
 		DDMStructure ddmStructure = _ddmStructureLocalService.addStructure(
-			group.getCreatorUserId(), group.getGroupId(),
+			null, group.getCreatorUserId(), group.getGroupId(),
 			DDMStructureConstants.DEFAULT_PARENT_STRUCTURE_ID,
 			PortalUtil.getClassNameId(DLFileEntryMetadata.class),
 			StringPool.BLANK,
@@ -180,7 +180,7 @@ public class DLAppServiceWhenCopyingWithDLFileEntryTypeTest
 	}
 
 	@Test
-	public void testCopyFileEntryShouldNotCopyDLFileEntryTypeUnlessDLFileEntryTypeAvailable()
+	public void testCopyFileEntryShouldNotCopyDLFileEntryTypeFromUnrelatedGroup()
 		throws Exception {
 
 		FileEntry fileEntry1 = _addFileEntry(
@@ -193,18 +193,40 @@ public class DLAppServiceWhenCopyingWithDLFileEntryTypeTest
 			dlFileEntry1.getFileEntryTypeId());
 
 		FileEntry fileEntry2 = dlAppService.copyFileEntry(
-			fileEntry1.getFileEntryId(), _newParentFolder.getFolderId(),
-			_newParentFolder.getGroupId(),
+			fileEntry1.getFileEntryId(), _targetParentFolder.getFolderId(),
+			_targetParentFolder.getGroupId(),
 			DLFileEntryTypeConstants.FILE_ENTRY_TYPE_ID_BASIC_DOCUMENT,
-			new long[] {group.getGroupId()},
+			new long[] {_targetParentFolder.getGroupId()},
 			ServiceContextTestUtil.getServiceContext(
-				_newParentFolder.getGroupId()));
+				_targetParentFolder.getGroupId()));
 
 		DLFileEntry dlFileEntry2 = (DLFileEntry)fileEntry2.getModel();
 
 		Assert.assertEquals(
 			DLFileEntryTypeConstants.FILE_ENTRY_TYPE_ID_BASIC_DOCUMENT,
 			dlFileEntry2.getFileEntryTypeId());
+	}
+
+	@Test(expected = InvalidFileEntryTypeException.class)
+	public void testCopyFileEntryShouldNotCopyDLFileEntryTypeUnlessDLFileEntryTypeAvailable()
+		throws Exception {
+
+		FileEntry fileEntry1 = _addFileEntry(
+			group.getGroupId(), DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+
+		DLFileEntry dlFileEntry1 = (DLFileEntry)fileEntry1.getModel();
+
+		Assert.assertEquals(
+			_dlFileEntryType.getFileEntryTypeId(),
+			dlFileEntry1.getFileEntryTypeId());
+
+		dlAppService.copyFileEntry(
+			fileEntry1.getFileEntryId(), _targetParentFolder.getFolderId(),
+			_targetParentFolder.getGroupId(),
+			_dlFileEntryType.getFileEntryTypeId(),
+			new long[] {group.getGroupId()},
+			ServiceContextTestUtil.getServiceContext(
+				_targetParentFolder.getGroupId()));
 	}
 
 	@Test(expected = InvalidFileEntryTypeException.class)
@@ -309,9 +331,6 @@ public class DLAppServiceWhenCopyingWithDLFileEntryTypeTest
 			null, serviceContext);
 	}
 
-	@Inject
-	private static DLFileEntryTypeLocalService _dlFileEntryTypeLocalService;
-
 	@DeleteAfterTestRun
 	private Group _childGroup;
 
@@ -319,6 +338,10 @@ public class DLAppServiceWhenCopyingWithDLFileEntryTypeTest
 	private DDMStructureLocalService _ddmStructureLocalService;
 
 	private DLFileEntryType _dlFileEntryType;
+
+	@Inject
+	private DLFileEntryTypeLocalService _dlFileEntryTypeLocalService;
+
 	private Folder _newParentFolder;
 	private Folder _targetParentFolder;
 

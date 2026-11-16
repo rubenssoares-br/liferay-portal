@@ -74,7 +74,7 @@ public class CPConfigurationListModelImpl
 		{"userName", Types.VARCHAR}, {"createDate", Types.TIMESTAMP},
 		{"modifiedDate", Types.TIMESTAMP},
 		{"parentCPConfigurationListId", Types.BIGINT},
-		{"masterCPConfigurationList", Types.BOOLEAN}, {"name", Types.VARCHAR},
+		{"master", Types.BOOLEAN}, {"name", Types.VARCHAR},
 		{"priority", Types.DOUBLE}, {"displayDate", Types.TIMESTAMP},
 		{"expirationDate", Types.TIMESTAMP},
 		{"lastPublishDate", Types.TIMESTAMP}, {"status", Types.INTEGER},
@@ -98,7 +98,7 @@ public class CPConfigurationListModelImpl
 		TABLE_COLUMNS_MAP.put("createDate", Types.TIMESTAMP);
 		TABLE_COLUMNS_MAP.put("modifiedDate", Types.TIMESTAMP);
 		TABLE_COLUMNS_MAP.put("parentCPConfigurationListId", Types.BIGINT);
-		TABLE_COLUMNS_MAP.put("masterCPConfigurationList", Types.BOOLEAN);
+		TABLE_COLUMNS_MAP.put("master", Types.BOOLEAN);
 		TABLE_COLUMNS_MAP.put("name", Types.VARCHAR);
 		TABLE_COLUMNS_MAP.put("priority", Types.DOUBLE);
 		TABLE_COLUMNS_MAP.put("displayDate", Types.TIMESTAMP);
@@ -111,10 +111,12 @@ public class CPConfigurationListModelImpl
 	}
 
 	public static final String TABLE_SQL_CREATE =
-		"create table CPConfigurationList (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,CPConfigurationListId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,parentCPConfigurationListId LONG,masterCPConfigurationList BOOLEAN,name VARCHAR(75) null,priority DOUBLE,displayDate DATE null,expirationDate DATE null,lastPublishDate DATE null,status INTEGER,statusByUserId LONG,statusByUserName VARCHAR(75) null,statusDate DATE null,primary key (CPConfigurationListId, ctCollectionId))";
+		"create table CPConfigurationList (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,CPConfigurationListId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,parentCPConfigurationListId LONG,master BOOLEAN,name VARCHAR(75) null,priority DOUBLE,displayDate DATE null,expirationDate DATE null,lastPublishDate DATE null,status INTEGER,statusByUserId LONG,statusByUserName VARCHAR(75) null,statusDate DATE null,primary key (CPConfigurationListId, ctCollectionId))";
 
 	public static final String TABLE_SQL_DROP =
 		"drop table CPConfigurationList";
+
+	public static final String ENTITY_ALIAS = "cpConfigurationList";
 
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY cpConfigurationList.createDate DESC, cpConfigurationList.displayDate DESC, cpConfigurationList.priority DESC";
@@ -138,57 +140,46 @@ public class CPConfigurationListModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long DISPLAYDATE_COLUMN_BITMASK = 2L;
+	public static final long EXTERNALREFERENCECODE_COLUMN_BITMASK = 2L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long EXTERNALREFERENCECODE_COLUMN_BITMASK = 4L;
+	public static final long GROUPID_COLUMN_BITMASK = 4L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long GROUPID_COLUMN_BITMASK = 8L;
+	public static final long MASTER_COLUMN_BITMASK = 8L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long MASTERCPCONFIGURATIONLIST_COLUMN_BITMASK = 16L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long PARENTCPCONFIGURATIONLISTID_COLUMN_BITMASK = 32L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long STATUS_COLUMN_BITMASK = 64L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 128L;
+	public static final long UUID_COLUMN_BITMASK = 16L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long CREATEDATE_COLUMN_BITMASK = 256L;
+	public static final long CREATEDATE_COLUMN_BITMASK = 32L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long PRIORITY_COLUMN_BITMASK = 512L;
+	public static final long DISPLAYDATE_COLUMN_BITMASK = 64L;
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
+	 *		#getColumnBitmask(String)}
+	 */
+	@Deprecated
+	public static final long PRIORITY_COLUMN_BITMASK = 128L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
@@ -327,8 +318,7 @@ public class CPConfigurationListModelImpl
 				"parentCPConfigurationListId",
 				CPConfigurationList::getParentCPConfigurationListId);
 			attributeGetterFunctions.put(
-				"masterCPConfigurationList",
-				CPConfigurationList::getMasterCPConfigurationList);
+				"master", CPConfigurationList::getMaster);
 			attributeGetterFunctions.put("name", CPConfigurationList::getName);
 			attributeGetterFunctions.put(
 				"priority", CPConfigurationList::getPriority);
@@ -414,9 +404,9 @@ public class CPConfigurationListModelImpl
 				(BiConsumer<CPConfigurationList, Long>)
 					CPConfigurationList::setParentCPConfigurationListId);
 			attributeSetterBiConsumers.put(
-				"masterCPConfigurationList",
+				"master",
 				(BiConsumer<CPConfigurationList, Boolean>)
-					CPConfigurationList::setMasterCPConfigurationList);
+					CPConfigurationList::setMaster);
 			attributeSetterBiConsumers.put(
 				"name",
 				(BiConsumer<CPConfigurationList, String>)
@@ -716,37 +706,25 @@ public class CPConfigurationListModelImpl
 		_parentCPConfigurationListId = parentCPConfigurationListId;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public long getOriginalParentCPConfigurationListId() {
-		return GetterUtil.getLong(
-			this.<Long>getColumnOriginalValue("parentCPConfigurationListId"));
+	@JSON
+	@Override
+	public boolean getMaster() {
+		return _master;
 	}
 
 	@JSON
 	@Override
-	public boolean getMasterCPConfigurationList() {
-		return _masterCPConfigurationList;
-	}
-
-	@JSON
-	@Override
-	public boolean isMasterCPConfigurationList() {
-		return _masterCPConfigurationList;
+	public boolean isMaster() {
+		return _master;
 	}
 
 	@Override
-	public void setMasterCPConfigurationList(
-		boolean masterCPConfigurationList) {
-
+	public void setMaster(boolean master) {
 		if (_columnOriginalValues == Collections.EMPTY_MAP) {
 			_setColumnOriginalValues();
 		}
 
-		_masterCPConfigurationList = masterCPConfigurationList;
+		_master = master;
 	}
 
 	/**
@@ -754,9 +732,9 @@ public class CPConfigurationListModelImpl
 	 *             #getColumnOriginalValue(String)}
 	 */
 	@Deprecated
-	public boolean getOriginalMasterCPConfigurationList() {
+	public boolean getOriginalMaster() {
 		return GetterUtil.getBoolean(
-			this.<Boolean>getColumnOriginalValue("masterCPConfigurationList"));
+			this.<Boolean>getColumnOriginalValue("master"));
 	}
 
 	@JSON
@@ -809,15 +787,6 @@ public class CPConfigurationListModelImpl
 		_displayDate = displayDate;
 	}
 
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public Date getOriginalDisplayDate() {
-		return getColumnOriginalValue("displayDate");
-	}
-
 	@JSON
 	@Override
 	public Date getExpirationDate() {
@@ -861,16 +830,6 @@ public class CPConfigurationListModelImpl
 		}
 
 		_status = status;
-	}
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public int getOriginalStatus() {
-		return GetterUtil.getInteger(
-			this.<Integer>getColumnOriginalValue("status"));
 	}
 
 	@JSON
@@ -1098,8 +1057,7 @@ public class CPConfigurationListModelImpl
 		cpConfigurationListImpl.setModifiedDate(getModifiedDate());
 		cpConfigurationListImpl.setParentCPConfigurationListId(
 			getParentCPConfigurationListId());
-		cpConfigurationListImpl.setMasterCPConfigurationList(
-			isMasterCPConfigurationList());
+		cpConfigurationListImpl.setMaster(isMaster());
 		cpConfigurationListImpl.setName(getName());
 		cpConfigurationListImpl.setPriority(getPriority());
 		cpConfigurationListImpl.setDisplayDate(getDisplayDate());
@@ -1144,8 +1102,8 @@ public class CPConfigurationListModelImpl
 			this.<Date>getColumnOriginalValue("modifiedDate"));
 		cpConfigurationListImpl.setParentCPConfigurationListId(
 			this.<Long>getColumnOriginalValue("parentCPConfigurationListId"));
-		cpConfigurationListImpl.setMasterCPConfigurationList(
-			this.<Boolean>getColumnOriginalValue("masterCPConfigurationList"));
+		cpConfigurationListImpl.setMaster(
+			this.<Boolean>getColumnOriginalValue("master"));
 		cpConfigurationListImpl.setName(
 			this.<String>getColumnOriginalValue("name"));
 		cpConfigurationListImpl.setPriority(
@@ -1330,8 +1288,7 @@ public class CPConfigurationListModelImpl
 		cpConfigurationListCacheModel.parentCPConfigurationListId =
 			getParentCPConfigurationListId();
 
-		cpConfigurationListCacheModel.masterCPConfigurationList =
-			isMasterCPConfigurationList();
+		cpConfigurationListCacheModel.master = isMaster();
 
 		cpConfigurationListCacheModel.name = getName();
 
@@ -1469,7 +1426,7 @@ public class CPConfigurationListModelImpl
 	private Date _modifiedDate;
 	private boolean _setModifiedDate;
 	private long _parentCPConfigurationListId;
-	private boolean _masterCPConfigurationList;
+	private boolean _master;
 	private String _name;
 	private double _priority;
 	private Date _displayDate;
@@ -1525,8 +1482,7 @@ public class CPConfigurationListModelImpl
 		_columnOriginalValues.put("modifiedDate", _modifiedDate);
 		_columnOriginalValues.put(
 			"parentCPConfigurationListId", _parentCPConfigurationListId);
-		_columnOriginalValues.put(
-			"masterCPConfigurationList", _masterCPConfigurationList);
+		_columnOriginalValues.put("master", _master);
 		_columnOriginalValues.put("name", _name);
 		_columnOriginalValues.put("priority", _priority);
 		_columnOriginalValues.put("displayDate", _displayDate);
@@ -1583,7 +1539,7 @@ public class CPConfigurationListModelImpl
 
 		columnBitmasks.put("parentCPConfigurationListId", 2048L);
 
-		columnBitmasks.put("masterCPConfigurationList", 4096L);
+		columnBitmasks.put("master", 4096L);
 
 		columnBitmasks.put("name", 8192L);
 
@@ -1610,3 +1566,4 @@ public class CPConfigurationListModelImpl
 	private CPConfigurationList _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:633942113

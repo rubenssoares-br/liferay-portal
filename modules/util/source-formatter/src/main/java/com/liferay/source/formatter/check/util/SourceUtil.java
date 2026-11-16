@@ -5,11 +5,11 @@
 
 package com.liferay.source.formatter.check.util;
 
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -81,8 +81,10 @@ public class SourceUtil {
 		Matcher matcher = _annotationMemberValuePairPattern.matcher(annotation);
 
 		while (matcher.find()) {
+			String annotationMemberValue = StringUtil.trim(matcher.group(2));
+
 			annotationMemberValuePair.put(
-				matcher.group(1), StringUtil.unquote(matcher.group(2)));
+				matcher.group(1), StringUtil.unquote(annotationMemberValue));
 		}
 
 		return annotationMemberValuePair;
@@ -152,6 +154,16 @@ public class SourceUtil {
 		}
 
 		return sb.toString();
+	}
+
+	public static String getLeadingSpaces(String line) {
+		for (int i = 0; i < line.length(); i++) {
+			if (line.charAt(i) != CharPool.SPACE) {
+				return line.substring(0, i);
+			}
+		}
+
+		return line;
 	}
 
 	public static String getLine(String content, int lineNumber) {
@@ -264,19 +276,17 @@ public class SourceUtil {
 				return true;
 			}
 
-			if (s1.charAt(s1.length() - j) != s2.charAt(s2.length() - j)) {
-				char[] chars1 = s1.toCharArray();
-				char[] chars2 = s2.toCharArray();
-
-				Arrays.sort(chars1);
-				Arrays.sort(chars2);
-
-				if (!Arrays.equals(chars1, chars2)) {
-					return false;
-				}
-
-				return true;
+			if (s1.charAt(s1.length() - j) == s2.charAt(s2.length() - j)) {
+				continue;
 			}
+
+			char[] chars1 = s1.toCharArray();
+			char[] chars2 = s2.toCharArray();
+
+			Arrays.sort(chars1);
+			Arrays.sort(chars2);
+
+			return Arrays.equals(chars1, chars2);
 		}
 	}
 
@@ -392,10 +402,10 @@ public class SourceUtil {
 		return stripQuotes(s, CharPool.APOSTROPHE, CharPool.QUOTE);
 	}
 
-	public static String stripQuotes(String s, char... delimeters) {
-		List<Character> delimetersList = ListUtil.fromArray(delimeters);
+	public static String stripQuotes(String s, char... delimiters) {
+		List<Character> delimitersList = ListUtil.fromArray(delimiters);
 
-		char delimeter = CharPool.SPACE;
+		char delimiter = CharPool.SPACE;
 		boolean insideQuotes = false;
 
 		StringBundler sb = new StringBundler();
@@ -404,16 +414,15 @@ public class SourceUtil {
 			char c = s.charAt(i);
 
 			if (insideQuotes) {
-				if (c == delimeter) {
+				if (c == delimiter) {
 					int precedingBackSlashCount = 0;
 
 					for (int j = i - 1; j >= 0; j--) {
-						if (s.charAt(j) == CharPool.BACK_SLASH) {
-							precedingBackSlashCount += 1;
-						}
-						else {
+						if (s.charAt(j) != CharPool.BACK_SLASH) {
 							break;
 						}
+
+						precedingBackSlashCount += 1;
 					}
 
 					if ((precedingBackSlashCount == 0) ||
@@ -423,8 +432,8 @@ public class SourceUtil {
 					}
 				}
 			}
-			else if (delimetersList.contains(c)) {
-				delimeter = c;
+			else if (delimitersList.contains(c)) {
+				delimiter = c;
 				insideQuotes = true;
 			}
 			else {
@@ -456,7 +465,7 @@ public class SourceUtil {
 	}
 
 	private static final Pattern _annotationMemberValuePairPattern =
-		Pattern.compile("(\\w+) = (\".*?\"|.*(?=[,\\)\\s]))");
+		Pattern.compile("(\\w+) = ([\\s\\S]+?(?=(,\\s+\\w+ = )|\\)))");
 	private static final Pattern _modifierPattern = Pattern.compile(
 		"[^\n]\n(\t*)(public|protected|private)");
 

@@ -12,6 +12,7 @@ import AttributesPage from './AttributesPage';
 import ConnectPage from './ConnectPage';
 import PeoplePage from './PeoplePage';
 import PropertiesPage from './PropertiesPage';
+import RecommendationsPage from './RecommendationsPage';
 
 export interface IGenericPageProps {
 	title: string;
@@ -21,6 +22,7 @@ enum EPages {
 	Attributes = 'ATTRIBUTES',
 	People = 'PEOPLE',
 	Properties = 'PROPERTIES',
+	Recommendations = 'RECOMMENDATIONS',
 	WorkspaceConnection = 'WORKSPACE_CONNECTION',
 }
 
@@ -47,6 +49,14 @@ const PAGES: IPages<IGenericPageProps, EPages>[] = [
 	},
 ];
 
+if (Liferay.FeatureFlags['LPD-20640']) {
+	PAGES.push({
+		Component: RecommendationsPage,
+		key: EPages.Recommendations,
+		title: Liferay.Language.get('recommendations'),
+	});
+}
+
 const DefaultPage: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 	const [activePage, setActivePage] = useState(EPages.WorkspaceConnection);
 
@@ -67,6 +77,7 @@ const DefaultPage: React.FC<React.HTMLAttributes<HTMLElement>> = () => {
 			<ClayLayout.Row>
 				<ClayLayout.Col size={3}>
 					<ClayVerticalNav
+						aria-label=""
 						items={PAGES.map(({key, title: label}) => {
 							return {
 								active: activePage === key,

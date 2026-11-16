@@ -24,8 +24,12 @@ import com.liferay.exportimport.kernel.model.ExportImportConfiguration;
 import com.liferay.exportimport.kernel.service.ExportImportConfigurationLocalServiceUtil;
 import com.liferay.exportimport.kernel.service.ExportImportLocalServiceUtil;
 import com.liferay.exportimport.kernel.staging.StagingUtil;
+import com.liferay.exportimport.test.util.ExportImportTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.background.task.model.BackgroundTask;
+import com.liferay.portal.background.task.service.BackgroundTaskLocalService;
+import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskConstants;
 import com.liferay.portal.kernel.exception.LocaleException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
@@ -49,7 +53,10 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Time;
+import com.liferay.portal.test.rule.Inject;
 import com.liferay.portlet.display.template.constants.PortletDisplayTemplateConstants;
+
+import jakarta.portlet.PortletPreferences;
 
 import java.io.Serializable;
 
@@ -63,8 +70,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.PortletPreferences;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -357,8 +363,7 @@ public abstract class BasePortletExportImportTestCase
 
 	protected void exportImportPortlet(String portletId) throws Exception {
 		exportImportPortlet(
-			portletId, new LinkedHashMap<String, String[]>(),
-			new LinkedHashMap<String, String[]>(), true);
+			portletId, new LinkedHashMap<>(), new LinkedHashMap<>(), true);
 	}
 
 	protected void exportImportPortlet(
@@ -366,8 +371,8 @@ public abstract class BasePortletExportImportTestCase
 		throws Exception {
 
 		exportImportPortlet(
-			portletId, new LinkedHashMap<String, String[]>(),
-			new LinkedHashMap<String, String[]>(), portletStagingInProcess);
+			portletId, new LinkedHashMap<>(), new LinkedHashMap<>(),
+			portletStagingInProcess);
 	}
 
 	protected void exportImportPortlet(
@@ -468,8 +473,7 @@ public abstract class BasePortletExportImportTestCase
 	protected void exportPortlet(String portletId, Layout layout)
 		throws Exception {
 
-		exportPortlet(
-			portletId, new LinkedHashMap<String, String[]>(), false, layout);
+		exportPortlet(portletId, new LinkedHashMap<>(), false, layout);
 	}
 
 	protected void exportPortlet(
@@ -543,14 +547,14 @@ public abstract class BasePortletExportImportTestCase
 		return LayoutTestUtil.getPortletPreferences(importedLayout, portletId);
 	}
 
-	protected void importPortlet(String portletId, Layout layout)
+	protected ExportImportConfiguration importPortlet(
+			String portletId, Layout layout)
 		throws Exception {
 
-		importPortlet(
-			portletId, new LinkedHashMap<String, String[]>(), false, layout);
+		return importPortlet(portletId, new LinkedHashMap<>(), false, layout);
 	}
 
-	protected void importPortlet(
+	protected ExportImportConfiguration importPortlet(
 			String portletId, Map<String, String[]> importParameterMap,
 			boolean portletStagingInProcess, Layout layout)
 		throws Exception {
@@ -622,6 +626,8 @@ public abstract class BasePortletExportImportTestCase
 		finally {
 			ExportImportThreadLocal.setPortletStagingInProcess(false);
 		}
+
+		return exportImportConfiguration;
 	}
 
 	protected boolean isVersioningEnabled() {
@@ -652,8 +658,20 @@ public abstract class BasePortletExportImportTestCase
 						TYPE_PUBLISH_PORTLET_LOCAL,
 					settingsMap);
 
-		StagingUtil.publishPortlet(
+		long backgroundTaskId = StagingUtil.publishPortlet(
 			TestPropsValues.getUserId(), exportImportConfiguration);
+
+		ExportImportTestUtil.retryAssert(
+			1, TimeUnit.SECONDS, 5, TimeUnit.SECONDS,
+			() -> {
+				BackgroundTask backgroundTask =
+					_backgroundTaskLocalService.getBackgroundTask(
+						backgroundTaskId);
+
+				Assert.assertEquals(
+					BackgroundTaskConstants.STATUS_SUCCESSFUL,
+					backgroundTask.getStatus());
+			});
 	}
 
 	protected void testExportImportAvailableLocales(
@@ -850,5 +868,8 @@ public abstract class BasePortletExportImportTestCase
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		BasePortletExportImportTestCase.class);
+
+	@Inject
+	private BackgroundTaskLocalService _backgroundTaskLocalService;
 
 }

@@ -35,7 +35,7 @@ FormInstancePermissionCheckerHelper formInstancePermissionCheckerHelper = ddmFor
 				>
 					<liferay-ui:search-container-row
 						className="com.liferay.dynamic.data.mapping.model.DDMFormInstance"
-						keyProperty="formInstanceId"
+						keyPropertyName="formInstanceId"
 						modelVar="formInstance"
 					>
 						<portlet:renderURL var="rowURL">
@@ -155,7 +155,7 @@ FormInstancePermissionCheckerHelper formInstancePermissionCheckerHelper = ddmFor
 												<c:when test="<%= ddmFormAdminDisplayContext.isFormPublished(formInstance) %>">
 													<clay:label
 														displayType="success"
-														label="available"
+														label="available[status]"
 													/>
 												</c:when>
 												<c:otherwise>

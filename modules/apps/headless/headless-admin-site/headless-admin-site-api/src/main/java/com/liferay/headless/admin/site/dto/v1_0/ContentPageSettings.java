@@ -6,24 +6,32 @@
 package com.liferay.headless.admin.site.dto.v1_0;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
+import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
+import java.util.function.Supplier;
 
 /**
  * @author Rubén Pulido
@@ -33,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "The settings of a content page.",
 	value = "ContentPageSettings"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "The settings of a content page."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ContentPageSettings")
@@ -46,6 +57,189 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(
 			ContentPageSettings.class, json);
 	}
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of custom meta tags this page has."
+	)
+	@Valid
+	public CustomMetaTag[] getCustomMetaTags() {
+		if (_customMetaTagsSupplier != null) {
+			customMetaTags = _customMetaTagsSupplier.get();
+
+			_customMetaTagsSupplier = null;
+		}
+
+		return customMetaTags;
+	}
+
+	public void setCustomMetaTags(CustomMetaTag[] customMetaTags) {
+		this.customMetaTags = customMetaTags;
+
+		_customMetaTagsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCustomMetaTags(
+		UnsafeSupplier<CustomMetaTag[], Exception>
+			customMetaTagsUnsafeSupplier) {
+
+		_customMetaTagsSupplier = () -> {
+			try {
+				return customMetaTagsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "A list of custom meta tags this page has.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected CustomMetaTag[] customMetaTags;
+
+	@JsonIgnore
+	private Supplier<CustomMetaTag[]> _customMetaTagsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The portlet ID of the asset publisher configured as the default for this page, if any."
+	)
+	public String getDefaultAssetPublisherPortletId() {
+		if (_defaultAssetPublisherPortletIdSupplier != null) {
+			defaultAssetPublisherPortletId =
+				_defaultAssetPublisherPortletIdSupplier.get();
+
+			_defaultAssetPublisherPortletIdSupplier = null;
+		}
+
+		return defaultAssetPublisherPortletId;
+	}
+
+	public void setDefaultAssetPublisherPortletId(
+		String defaultAssetPublisherPortletId) {
+
+		this.defaultAssetPublisherPortletId = defaultAssetPublisherPortletId;
+
+		_defaultAssetPublisherPortletIdSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDefaultAssetPublisherPortletId(
+		UnsafeSupplier<String, Exception>
+			defaultAssetPublisherPortletIdUnsafeSupplier) {
+
+		_defaultAssetPublisherPortletIdSupplier = () -> {
+			try {
+				return defaultAssetPublisherPortletIdUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "The portlet ID of the asset publisher configured as the default for this page, if any."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String defaultAssetPublisherPortletId;
+
+	@JsonIgnore
+	private Supplier<String> _defaultAssetPublisherPortletIdSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's Open Graph settings."
+	)
+	@Valid
+	public OpenGraphSettings getOpenGraphSettings() {
+		if (_openGraphSettingsSupplier != null) {
+			openGraphSettings = _openGraphSettingsSupplier.get();
+
+			_openGraphSettingsSupplier = null;
+		}
+
+		return openGraphSettings;
+	}
+
+	public void setOpenGraphSettings(OpenGraphSettings openGraphSettings) {
+		this.openGraphSettings = openGraphSettings;
+
+		_openGraphSettingsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setOpenGraphSettings(
+		UnsafeSupplier<OpenGraphSettings, Exception>
+			openGraphSettingsUnsafeSupplier) {
+
+		_openGraphSettingsSupplier = () -> {
+			try {
+				return openGraphSettingsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The page's Open Graph settings.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected OpenGraphSettings openGraphSettings;
+
+	@JsonIgnore
+	private Supplier<OpenGraphSettings> _openGraphSettingsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The page's SEO settings."
+	)
+	@Valid
+	public SEOSettings getSeoSettings() {
+		if (_seoSettingsSupplier != null) {
+			seoSettings = _seoSettingsSupplier.get();
+
+			_seoSettingsSupplier = null;
+		}
+
+		return seoSettings;
+	}
+
+	public void setSeoSettings(SEOSettings seoSettings) {
+		this.seoSettings = seoSettings;
+
+		_seoSettingsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setSeoSettings(
+		UnsafeSupplier<SEOSettings, Exception> seoSettingsUnsafeSupplier) {
+
+		_seoSettingsSupplier = () -> {
+			try {
+				return seoSettingsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The page's SEO settings.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected SEOSettings seoSettings;
+
+	@JsonIgnore
+	private Supplier<SEOSettings> _seoSettingsSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -96,29 +290,21 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 			sb.append("]");
 		}
 
-		Boolean hiddenFromNavigation = getHiddenFromNavigation();
+		String defaultAssetPublisherPortletId =
+			getDefaultAssetPublisherPortletId();
 
-		if (hiddenFromNavigation != null) {
+		if (defaultAssetPublisherPortletId != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"hiddenFromNavigation\": ");
+			sb.append("\"defaultAssetPublisherPortletId\": ");
 
-			sb.append(hiddenFromNavigation);
-		}
+			sb.append("\"");
 
-		NavigationMenuSettings navigationMenuSettings =
-			getNavigationMenuSettings();
+			sb.append(_escape(defaultAssetPublisherPortletId));
 
-		if (navigationMenuSettings != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"navigationMenuSettings\": ");
-
-			sb.append(String.valueOf(navigationMenuSettings));
+			sb.append("\"");
 		}
 
 		OpenGraphSettings openGraphSettings = getOpenGraphSettings();
@@ -145,6 +331,42 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 			sb.append(String.valueOf(seoSettings));
 		}
 
+		Boolean hiddenFromNavigation = getHiddenFromNavigation();
+
+		if (hiddenFromNavigation != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"hiddenFromNavigation\": ");
+
+			sb.append(hiddenFromNavigation);
+		}
+
+		SitePageNavigationSettings navigationSettings = getNavigationSettings();
+
+		if (navigationSettings != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"navigationSettings\": ");
+
+			sb.append(String.valueOf(navigationSettings));
+		}
+
+		Integer priority = getPriority();
+
+		if (priority != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"priority\": ");
+
+			sb.append(priority);
+		}
+
 		Type type = getType();
 
 		if (type != null) {
@@ -155,9 +377,7 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -166,8 +386,8 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.ContentPageSettings",
 		name = "x-class-name"
 	)
@@ -254,6 +474,27 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -262,3 +503,4 @@ public class ContentPageSettings extends PageSettings implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1874836159

@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Describes a specific language in the platform.",
 	value = "Language"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Describes a specific language in the platform."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Language")
@@ -53,7 +57,9 @@ public class Language implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Language.class, json);
 	}
 
-	@Schema(description = "The language's contry name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The language's contry name."
+	)
 	public String getCountryName() {
 		if (_countryNameSupplier != null) {
 			countryName = _countryNameSupplier.get();
@@ -94,7 +100,9 @@ public class Language implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _countryNameSupplier;
 
-	@Schema(description = "The localized language's country name values.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized language's country name values."
+	)
 	@Valid
 	public Map<String, String> getCountryName_i18n() {
 		if (_countryName_i18nSupplier != null) {
@@ -137,7 +145,9 @@ public class Language implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _countryName_i18nSupplier;
 
-	@Schema(description = "The language's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The language's ID."
+	)
 	public String getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -176,7 +186,7 @@ public class Language implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _idSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether the language has benn marked as default language."
 	)
 	public Boolean getMarkedAsDefault() {
@@ -221,7 +231,9 @@ public class Language implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _markedAsDefaultSupplier;
 
-	@Schema(description = "The language's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The language's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -260,7 +272,9 @@ public class Language implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(description = "The localized language's name values.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized language's name values."
+	)
 	@Valid
 	public Map<String, String> getName_i18n() {
 		if (_name_i18nSupplier != null) {
@@ -419,8 +433,8 @@ public class Language implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.Language",
 		name = "x-class-name"
 	)
@@ -507,6 +521,27 @@ public class Language implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -515,3 +550,4 @@ public class Language implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-355297159

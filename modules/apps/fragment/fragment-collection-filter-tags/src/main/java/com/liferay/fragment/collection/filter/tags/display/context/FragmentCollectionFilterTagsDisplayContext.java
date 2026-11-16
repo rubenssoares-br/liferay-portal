@@ -20,9 +20,9 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.util.Map;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
 
 /**
  * @author Pablo Molina
@@ -30,18 +30,22 @@ import javax.servlet.http.HttpServletRequest;
 public class FragmentCollectionFilterTagsDisplayContext {
 
 	public FragmentCollectionFilterTagsDisplayContext(
-		String configuration,
+		JSONObject configurationJSONObject,
 		FragmentEntryConfigurationParser fragmentEntryConfigurationParser,
 		FragmentRendererContext fragmentRendererContext,
 		HttpServletRequest httpServletRequest) {
 
-		_configuration = configuration;
+		_configurationJSONObject = configurationJSONObject;
 		_fragmentEntryConfigurationParser = fragmentEntryConfigurationParser;
 		_fragmentRendererContext = fragmentRendererContext;
 
 		_fragmentEntryLink = fragmentRendererContext.getFragmentEntryLink();
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
+	}
+
+	public String getFragmentEntryLinkNamespace() {
+		return _fragmentRendererContext.getFragmentElementId();
 	}
 
 	public String getHelpText() {
@@ -53,7 +57,8 @@ public class FragmentCollectionFilterTagsDisplayContext {
 
 		JSONObject defaultValuesJSONObject =
 			_fragmentEntryConfigurationParser.
-				getConfigurationDefaultValuesJSONObject(_configuration);
+				getConfigurationDefaultValuesJSONObject(
+					_configurationJSONObject);
 
 		return defaultValuesJSONObject.getString("helpText", StringPool.BLANK);
 	}
@@ -79,6 +84,8 @@ public class FragmentCollectionFilterTagsDisplayContext {
 			"fragmentEntryLinkId",
 			String.valueOf(_fragmentEntryLink.getFragmentEntryLinkId())
 		).put(
+			"fragmentEntryLinkNamespace", getFragmentEntryLinkNamespace()
+		).put(
 			"groupIds",
 			ArrayUtil.toStringArray(
 				SiteConnectedGroupGroupProviderUtil.
@@ -100,8 +107,8 @@ public class FragmentCollectionFilterTagsDisplayContext {
 		).put(
 			"targetCollections",
 			_fragmentEntryConfigurationParser.getConfigurationFieldValue(
-				_fragmentEntryLink.getEditableValues(), "targetCollections",
-				FragmentConfigurationFieldDataType.ARRAY)
+				_fragmentEntryLink.getEditableValuesJSONObject(),
+				"targetCollections", FragmentConfigurationFieldDataType.ARRAY)
 		).build();
 
 		return _props;
@@ -121,11 +128,12 @@ public class FragmentCollectionFilterTagsDisplayContext {
 
 	private Object _getFieldValue(String fieldName) {
 		return _fragmentEntryConfigurationParser.getFieldValue(
-			_configuration, _fragmentEntryLink.getEditableValues(),
+			_configurationJSONObject,
+			_fragmentEntryLink.getEditableValuesJSONObject(),
 			_fragmentRendererContext.getLocale(), fieldName);
 	}
 
-	private final String _configuration;
+	private final JSONObject _configurationJSONObject;
 	private final FragmentEntryConfigurationParser
 		_fragmentEntryConfigurationParser;
 	private final FragmentEntryLink _fragmentEntryLink;

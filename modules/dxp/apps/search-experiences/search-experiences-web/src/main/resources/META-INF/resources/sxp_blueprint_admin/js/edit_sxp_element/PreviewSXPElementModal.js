@@ -102,7 +102,9 @@ export default function PreviewSXPElementModal({
 					observer={observer}
 					size="lg"
 				>
-					<ClayModal.Header>
+					<ClayModal.Header
+						closeButtonAriaLabel={Liferay.Language.get('close')}
+					>
 						{Liferay.Language.get('preview-configuration')}
 					</ClayModal.Header>
 
@@ -169,7 +171,7 @@ export default function PreviewSXPElementModal({
 				borderless
 				displayType="secondary"
 				onClick={_handleOpenModal}
-				small
+				size="sm"
 			>
 				{Liferay.Language.get('preview')}
 			</ClayButton>

@@ -31,7 +31,7 @@ portletDisplay.setURLBack(backURL);
 	bean="<%= commercePaymentEntry %>"
 	beanIdLabel='<%= (commercePaymentEntry == null) ? null : "id" %>'
 	externalReferenceCode="<%= (commercePaymentEntry == null) ? StringPool.BLANK : commercePaymentEntry.getExternalReferenceCode() %>"
-	externalReferenceCodeEditUrl="<%= (commercePaymentEntry == null) ? null : editCommercePaymentEntryExternalReferenceCodeURL %>"
+	externalReferenceCodeEditURL="<%= (commercePaymentEntry == null) ? null : editCommercePaymentEntryExternalReferenceCodeURL %>"
 	model="<%= CommercePaymentEntry.class %>"
 	title="<%= (commercePaymentEntry == null) ? StringPool.BLANK : String.valueOf(commercePaymentEntry.getCommercePaymentEntryId()) %>"
 />
@@ -102,7 +102,7 @@ portletDisplay.setURLBack(backURL);
 								elementClasses="py-3"
 								title='<%= LanguageUtil.get(request, "payment-method") %>'
 							>
-								<p class="mb-0"><%= commercePaymentEntryDisplayContext.getPaymentMethod() %></p>
+								<p class="mb-0"><%= HtmlUtil.escape(commercePaymentEntryDisplayContext.getPaymentMethod()) %></p>
 							</commerce-ui:info-box>
 
 							<commerce-ui:info-box
@@ -165,19 +165,21 @@ portletDisplay.setURLBack(backURL);
 								<portlet:param name="commercePaymentEntryId" value="<%= String.valueOf(commercePaymentEntryDisplayContext.getCommercePaymentEntryId()) %>" />
 							</liferay-portlet:renderURL>
 
-							<commerce-ui:modal
-								id="commerce-payment-entry-note-modal"
-								refreshPageOnClose="<%= true %>"
-								size="lg"
-								title='<%= LanguageUtil.get(request, "comment") %>'
-								url="<%= editCommercePaymentEntryNoteURL %>"
-							/>
-
 							<c:if test="<%= commercePaymentEntry != null %>">
 								<commerce-ui:info-box
+									actionContext='<%=
+										HashMapBuilder.<String, Object>put(
+											"containerCssClasses", "modal-height-md"
+										).put(
+											"namespace", liferayPortletResponse.getNamespace()
+										).put(
+											"refreshOnClose", true
+										).put(
+											"size", "md"
+										).build()
+									%>'
 									actionLabel='<%= commercePaymentEntryDisplayContext.hasCommercePaymentEntryModelPermission(ActionKeys.UPDATE) ? LanguageUtil.get(request, Validator.isNull(note) ? "add" : "edit") : null %>'
-									actionTargetId="commerce-payment-entry-note-modal"
-									actionUrl="<%= commercePaymentEntryDisplayContext.hasCommercePaymentEntryModelPermission(ActionKeys.UPDATE) ? editCommercePaymentEntryNoteURL : null %>"
+									actionURL="<%= commercePaymentEntryDisplayContext.hasCommercePaymentEntryModelPermission(ActionKeys.UPDATE) ? editCommercePaymentEntryNoteURL : null %>"
 									elementClasses="py-3"
 									title='<%= LanguageUtil.get(request, "comment") %>'
 								>

@@ -25,11 +25,13 @@ portletDisplay.setURLBack(
 renderResponse.setTitle(LanguageUtil.format(request, "edit-x", objectDefinition.getLabel(locale, true), false));
 %>
 
-<div id="<portlet:namespace />EditObjectDefinition">
+<div class="edit-object-definition-wrapper" id="<portlet:namespace />EditObjectDefinition">
 	<react:component
 		module="{EditObjectDetails} from object-web"
 		props='<%=
 			HashMapBuilder.<String, Object>put(
+				"allowStandaloneObjectEntry", objectDefinition.isAllowStandaloneObjectEntry()
+			).put(
 				"backURL", portletDisplay.getURLBack()
 			).put(
 				"companies", objectDefinitionsDetailsDisplayContext.getScopeJSONArray("company")
@@ -42,13 +44,15 @@ renderResponse.setTitle(LanguageUtil.format(request, "edit-x", objectDefinition.
 			).put(
 				"isApproved", objectDefinition.isApproved()
 			).put(
+				"isEnableObjectEntrySchedule", objectDefinition.isEnableObjectEntrySchedule()
+			).put(
 				"isRootDescendantNode", objectDefinition.isRootDescendantNode()
 			).put(
 				"isRootNode", objectDefinition.isRootNode()
 			).put(
 				"label", LocalizationUtil.getLocalizationMap(objectDefinition.getLabel())
 			).put(
-				"learnResourceContext", LearnMessageUtil.getReactDataJSONObject("frontend-js-components-web")
+				"learnResources", LearnMessageUtil.getReactDataJSONObject("object-web")
 			).put(
 				"nonRelationshipObjectFieldsInfo", objectDefinitionsDetailsDisplayContext.getNonrelationshipObjectFieldsInfo()
 			).put(

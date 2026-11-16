@@ -8,9 +8,7 @@ package com.liferay.feature.flag.test.util;
 import com.liferay.portal.kernel.feature.flag.FeatureFlagManager;
 import com.liferay.portal.kernel.feature.flag.constants.FeatureFlagConstants;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsUtil;
-import com.liferay.portal.util.PropsImpl;
 
 import java.util.Objects;
 import java.util.Properties;
@@ -40,12 +38,14 @@ public class FeatureFlagTestHelper {
 		Bundle featureFlagWebBundle = null;
 
 		for (Bundle curBundle : bundleContext.getBundles()) {
-			if (Objects.equals(
+			if (!Objects.equals(
 					curBundle.getSymbolicName(),
 					"com.liferay.feature.flag.web")) {
 
-				featureFlagWebBundle = curBundle;
+				continue;
 			}
+
+			featureFlagWebBundle = curBundle;
 		}
 
 		Assert.assertNotNull(featureFlagWebBundle);
@@ -63,11 +63,7 @@ public class FeatureFlagTestHelper {
 
 		Assert.assertNotNull(_featureFlagManager);
 
-		_oldProps = PropsUtil.getProps();
-
-		PropsImpl propsImpl = new PropsImpl();
-
-		Properties properties = propsImpl.getProperties();
+		Properties properties = PropsUtil.getProperties();
 
 		properties.setProperty(
 			FeatureFlagConstants.getKey(FEATURE_FLAG_KEY_1),
@@ -81,8 +77,6 @@ public class FeatureFlagTestHelper {
 		properties.setProperty(
 			FeatureFlagConstants.getKey(FEATURE_FLAG_KEY_SYSTEM, "system"),
 			Boolean.TRUE.toString());
-
-		PropsUtil.setProps(propsImpl);
 
 		_clearCache();
 	}
@@ -101,8 +95,6 @@ public class FeatureFlagTestHelper {
 	}
 
 	public void tearDown() {
-		PropsUtil.setProps(_oldProps);
-
 		_clearCache();
 	}
 
@@ -113,6 +105,5 @@ public class FeatureFlagTestHelper {
 
 	private final FeatureFlagManager _featureFlagManager;
 	private final Object _featureFlagsBagProviderObject;
-	private final Props _oldProps;
 
 }

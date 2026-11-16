@@ -24,14 +24,20 @@ import objectDefinitionSystemDataRenderer from './FDSDataRenderers/ObjectDefinit
 import ObjectFolderCardHeader from './ObjectFolderCardHeader';
 import ObjectFoldersSideBar from './ObjectFoldersSidebar';
 import {
+	canCreateInObjectFolder,
 	deleteObjectDefinition,
+	getDefaultObjectFolder,
+	getObjectDefinitionsFilter,
 	getObjectFolderActions,
 } from './objectDefinitionUtil';
 
 import './ViewObjectDefinitions.scss';
 import {ViewObjectDefinitionsModals} from './ViewObjectDefinitionsModals';
 
-import type {IItemsActions} from '@liferay/frontend-data-set-web';
+import type {
+	ICreationActionItem,
+	IItemsActions,
+} from '@liferay/frontend-data-set-web';
 
 import type {FDSItem, IFDSTableProps} from '../../utils/fds';
 
@@ -52,7 +58,7 @@ interface ViewObjectDefinitionsProps extends IFDSTableProps {
 	modelBuilderURL: string;
 	nameMaxLength: string;
 	objectDefinitionsCreationMenu: {
-		primaryItems?: any[];
+		primaryItems: Array<ICreationActionItem>;
 		secondaryItems?: any[];
 	};
 	objectDefinitionsFDSActionDropdownItems: IItemsActions[];
@@ -166,7 +172,6 @@ export default function ViewObjectDefinitions({
 		addObjectDefinition: false,
 		addObjectField: false,
 		addObjectFolder: false,
-		bindToRootObjectDefinition: false,
 		deleteObjectDefinition: false,
 		deleteObjectFolder: false,
 		editObjectFolder: false,
@@ -174,7 +179,6 @@ export default function ViewObjectDefinitions({
 		moveObjectDefinition: false,
 		objectDefinitionOnRootModelDeletionNotAllowed: false,
 		objectFieldDeletionNotAllowed: false,
-		unbindFromRootObjectDefinition: false,
 	});
 
 	const [updatedFDSItemsActions, setUpdatedFDSItemsActions] = useState(
@@ -201,15 +205,16 @@ export default function ViewObjectDefinitions({
 	}
 
 	const getURL = (selectedObjectFolderExternalReferenceCode: string) => {
-		let url: string = '';
-
-		if (selectedObjectFolderExternalReferenceCode) {
-			url = `/o/object-admin/v1.0/object-definitions?${stringUtils.stringToURLParameterFormat(
-				`filter=objectFolderExternalReferenceCode eq '${selectedObjectFolderExternalReferenceCode}'`
-			)}`;
+		if (!selectedObjectFolderExternalReferenceCode) {
+			return '';
 		}
 
-		return url;
+		return `/o/object-admin/v1.0/object-definitions?${stringUtils.stringToURLParameterFormat(
+			`filter=${getObjectDefinitionsFilter(
+				selectedObjectFolderExternalReferenceCode,
+				!!Liferay.FeatureFlags['LPD-94989']
+			)}`
+		)}`;
 	};
 
 	const onActionDropdownItemClick = useCallback(
@@ -220,10 +225,7 @@ export default function ViewObjectDefinitions({
 			action: {data: {id: string}};
 			itemData: ObjectDefinition;
 		}) => {
-			if (
-				action.data.id === 'bind' &&
-				Liferay.FeatureFlags['LPS-187142']
-			) {
+			if (action.data.id === 'bind') {
 				setSelectedObjectDefinition(itemData);
 
 				setShowModal((previousState) => ({
@@ -234,8 +236,11 @@ export default function ViewObjectDefinitions({
 
 			if (action.data.id === 'deleteObjectDefinition') {
 				if (
-					itemData.rootObjectDefinitionExternalReferenceCode &&
-					Liferay.FeatureFlags['LPS-187142']
+					itemData.objectDefinitionSettings?.some(
+						(setting) =>
+							setting.name ===
+							'rootObjectDefinitionExternalReferenceCodes'
+					)
 				) {
 					setSelectedObjectDefinition(itemData);
 
@@ -266,10 +271,7 @@ export default function ViewObjectDefinitions({
 				}));
 			}
 
-			if (
-				action.data.id === 'unbind' &&
-				Liferay.FeatureFlags['LPS-187142']
-			) {
+			if (action.data.id === 'unbind') {
 				setSelectedObjectDefinition(itemData);
 
 				setShowModal((previousState) => ({
@@ -289,7 +291,7 @@ export default function ViewObjectDefinitions({
 
 		window.history.replaceState(null, '', currentURL.href);
 
-		setSelectedObjectFolder(allObjectFolders.items[0]);
+		setSelectedObjectFolder(getDefaultObjectFolder(allObjectFolders.items));
 	};
 
 	useEffect(() => {
@@ -380,18 +382,16 @@ export default function ViewObjectDefinitions({
 	const fields = useMemo(() => {
 		const updatedTableFields = [...tableFields];
 
-		if (Liferay.FeatureFlags['LPS-187142']) {
-			const inheritanceField = {
-				contentRenderer: 'objectDefinitionInheritanceDataRenderer',
-				expand: false,
-				fieldName: 'permissionInheritance',
-				label: Liferay.Language.get('permission-inheritance'),
-				localizeLabel: true,
-				sortable: false,
-			};
+		const inheritanceField = {
+			contentRenderer: 'objectDefinitionInheritanceDataRenderer',
+			expand: false,
+			fieldName: 'permissionInheritance',
+			label: Liferay.Language.get('permission-inheritance'),
+			localizeLabel: true,
+			sortable: false,
+		};
 
-			updatedTableFields.splice(1, 0, inheritanceField);
-		}
+		updatedTableFields.splice(1, 0, inheritanceField);
 
 		return updatedTableFields;
 	}, []);
@@ -471,7 +471,9 @@ export default function ViewObjectDefinitions({
 												: undefined
 										}
 										creationMenu={
-											selectedObjectFolder
+											canCreateInObjectFolder(
+												selectedObjectFolder
+											)
 												? objectDefinitionsCreationMenu
 												: undefined
 										}
@@ -486,7 +488,7 @@ export default function ViewObjectDefinitions({
 											description: Liferay.Language.get(
 												'create-your-first-object-or-import-an-existing-one-to-start-working-with-object-folders'
 											),
-											image: '/states/empty_state.svg',
+											symbol: 'empty-state',
 											title: Liferay.Language.get(
 												'no-objects-created-yet'
 											),
@@ -526,7 +528,6 @@ export default function ViewObjectDefinitions({
 
 			{objectFoldersRequestInfo && selectedObjectFolder && (
 				<ViewObjectDefinitionsModals
-					baseResourceURL={baseResourceURL}
 					deletedObjectDefinition={deletedObjectDefinition}
 					learnResourceContext={learnResourceContext}
 					modalImportProperties={modalImportProperties}

@@ -5,16 +5,17 @@
 
 package com.liferay.headless.admin.site.internal.dto.v1_0.converter;
 
-import com.liferay.headless.admin.site.dto.v1_0.ItemExternalReference;
 import com.liferay.headless.admin.site.dto.v1_0.MasterPage;
-import com.liferay.headless.admin.site.dto.v1_0.PageSpecification;
+import com.liferay.headless.admin.site.dto.v1_0.util.ThumbnailURLReferenceUtil;
+import com.liferay.headless.admin.site.internal.dto.v1_0.util.AssetUtil;
+import com.liferay.headless.admin.site.internal.dto.v1_0.util.CreatorUtil;
+import com.liferay.layout.page.template.constants.LayoutPageTemplateEntryTypeConstants;
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.portal.kernel.model.Layout;
-import com.liferay.portal.kernel.portletfilerepository.PortletFileRepository;
-import com.liferay.portal.kernel.repository.model.FileEntry;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
+import com.liferay.portal.vulcan.fields.NestedFieldsSupplier;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -23,7 +24,11 @@ import org.osgi.service.component.annotations.Reference;
  * @author Lourdes Fernández Besada
  */
 @Component(
-	property = "dto.class.name=com.liferay.layout.page.template.model.LayoutPageTemplateEntry",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.layout.page.template.model.LayoutPageTemplateEntry",
+		"dto.class.type=" + LayoutPageTemplateEntryTypeConstants.MASTER_LAYOUT
+	},
 	service = DTOConverter.class
 )
 public class MasterPageDTOConverter
@@ -45,46 +50,43 @@ public class MasterPageDTOConverter
 
 		return new MasterPage() {
 			{
+				setActions(
+					() -> {
+						if (dtoConverterContext == null) {
+							return null;
+						}
+
+						return dtoConverterContext.getActions();
+					});
+				setCreator(
+					() -> CreatorUtil.toCreator(
+						layoutPageTemplateEntry.getUserId(),
+						layoutPageTemplateEntry.getUserName()));
 				setDateCreated(layoutPageTemplateEntry::getCreateDate);
 				setDateModified(layoutPageTemplateEntry::getModifiedDate);
 				setDatePublished(layout::getPublishDate);
 				setExternalReferenceCode(
 					layoutPageTemplateEntry::getExternalReferenceCode);
 				setKey(layoutPageTemplateEntry::getLayoutPageTemplateEntryKey);
+				setKeywords(
+					() -> AssetUtil.getKeywords(
+						Layout.class.getName(),
+						layoutPageTemplateEntry.getPlid()));
 				setMarkedAsDefault(layoutPageTemplateEntry::isDefaultTemplate);
 				setName(layoutPageTemplateEntry::getName);
-				setPageSpecifications(
-					() -> new PageSpecification[] {
-						_pageSpecificationDTOConverter.toDTO(layout),
-						_pageSpecificationDTOConverter.toDTO(
-							layout.fetchDraftLayout())
-					});
-				setThumbnail(
-					() -> {
-						if (layoutPageTemplateEntry.getPreviewFileEntryId() <=
-								0) {
-
-							return null;
-						}
-
-						FileEntry fileEntry =
-							_portletFileRepository.getPortletFileEntry(
-								layoutPageTemplateEntry.
-									getPreviewFileEntryId());
-
-						if (fileEntry == null) {
-							return null;
-						}
-
-						return new ItemExternalReference() {
-							{
-								setClassName(() -> FileEntry.class.getName());
-								setCollectionType(CollectionType.COLLECTION);
-								setExternalReferenceCode(
-									fileEntry::getExternalReferenceCode);
-							}
-						};
-					});
+				setTaxonomyCategoryBriefs(
+					() -> AssetUtil.getTaxonomyCategoryBriefs(
+						Layout.class.getName(),
+						layoutPageTemplateEntry.getPlid(),
+						layoutPageTemplateEntry.getGroupId()));
+				setThumbnailURLReference(
+					() -> NestedFieldsSupplier.supply(
+						"thumbnailURLReference",
+						fieldName ->
+							ThumbnailURLReferenceUtil.
+								getFileEntryThumbnailURLReference(
+									layoutPageTemplateEntry.
+										getPreviewFileEntryId())));
 				setUuid(layoutPageTemplateEntry::getUuid);
 			}
 		};
@@ -92,14 +94,5 @@ public class MasterPageDTOConverter
 
 	@Reference
 	private LayoutLocalService _layoutLocalService;
-
-	@Reference(
-		target = "(component.name=com.liferay.headless.admin.site.internal.dto.v1_0.converter.PageSpecificationDTOConverter)"
-	)
-	private DTOConverter<Layout, PageSpecification>
-		_pageSpecificationDTOConverter;
-
-	@Reference
-	private PortletFileRepository _portletFileRepository;
 
 }

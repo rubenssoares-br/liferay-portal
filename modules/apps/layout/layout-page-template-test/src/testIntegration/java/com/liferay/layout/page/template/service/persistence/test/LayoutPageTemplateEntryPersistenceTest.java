@@ -121,12 +121,8 @@ public class LayoutPageTemplateEntryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
 		LayoutPageTemplateEntry newLayoutPageTemplateEntry =
-			_persistence.create(pk);
-
-		newLayoutPageTemplateEntry.setMvccVersion(RandomTestUtil.nextLong());
+			addLayoutPageTemplateEntry();
 
 		newLayoutPageTemplateEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -157,6 +153,9 @@ public class LayoutPageTemplateEntryPersistenceTest {
 
 		newLayoutPageTemplateEntry.setClassTypeId(RandomTestUtil.nextLong());
 
+		newLayoutPageTemplateEntry.setClassTypeKey(
+			RandomTestUtil.randomString());
+
 		newLayoutPageTemplateEntry.setName(RandomTestUtil.randomString());
 
 		newLayoutPageTemplateEntry.setType(RandomTestUtil.nextInt());
@@ -184,8 +183,10 @@ public class LayoutPageTemplateEntryPersistenceTest {
 
 		newLayoutPageTemplateEntry.setStatusDate(RandomTestUtil.nextDate());
 
-		_layoutPageTemplateEntries.add(
-			_persistence.update(newLayoutPageTemplateEntry));
+		newLayoutPageTemplateEntry = _persistence.update(
+			newLayoutPageTemplateEntry);
+
+		_layoutPageTemplateEntries.add(newLayoutPageTemplateEntry);
 
 		LayoutPageTemplateEntry existingLayoutPageTemplateEntry =
 			_persistence.findByPrimaryKey(
@@ -239,6 +240,9 @@ public class LayoutPageTemplateEntryPersistenceTest {
 		Assert.assertEquals(
 			existingLayoutPageTemplateEntry.getClassTypeId(),
 			newLayoutPageTemplateEntry.getClassTypeId());
+		Assert.assertEquals(
+			existingLayoutPageTemplateEntry.getClassTypeKey(),
+			newLayoutPageTemplateEntry.getClassTypeKey());
 		Assert.assertEquals(
 			existingLayoutPageTemplateEntry.getName(),
 			newLayoutPageTemplateEntry.getName());
@@ -369,15 +373,6 @@ public class LayoutPageTemplateEntryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_N() throws Exception {
-		_persistence.countByG_N(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_N(0L, "null");
-
-		_persistence.countByG_N(0L, (String)null);
-	}
-
-	@Test
 	public void testCountByG_T() throws Exception {
 		_persistence.countByG_T(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
@@ -495,19 +490,33 @@ public class LayoutPageTemplateEntryPersistenceTest {
 	@Test
 	public void testCountByG_C_C_T() throws Exception {
 		_persistence.countByG_C_C_T(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "",
+			RandomTestUtil.nextInt());
 
-		_persistence.countByG_C_C_T(0L, 0L, 0L, 0);
+		_persistence.countByG_C_C_T(0L, 0L, "null", 0);
+
+		_persistence.countByG_C_C_T(0L, 0L, (String)null, 0);
+	}
+
+	@Test
+	public void testCountByG_C_C_TArrayable() throws Exception {
+		_persistence.countByG_C_C_T(
+			new long[] {RandomTestUtil.nextLong(), 0L},
+			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
+			RandomTestUtil.nextInt());
 	}
 
 	@Test
 	public void testCountByG_C_C_D() throws Exception {
 		_persistence.countByG_C_C_D(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "",
+			RandomTestUtil.randomBoolean());
 
-		_persistence.countByG_C_C_D(0L, 0L, 0L, RandomTestUtil.randomBoolean());
+		_persistence.countByG_C_C_D(
+			0L, 0L, "null", RandomTestUtil.randomBoolean());
+
+		_persistence.countByG_C_C_D(
+			0L, 0L, (String)null, RandomTestUtil.randomBoolean());
 	}
 
 	@Test
@@ -549,45 +558,61 @@ public class LayoutPageTemplateEntryPersistenceTest {
 	@Test
 	public void testCountByG_C_C_LikeN_T() throws Exception {
 		_persistence.countByG_C_C_LikeN_T(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt());
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "", "",
+			RandomTestUtil.nextInt());
 
-		_persistence.countByG_C_C_LikeN_T(0L, 0L, 0L, "null", 0);
+		_persistence.countByG_C_C_LikeN_T(0L, 0L, "null", "null", 0);
 
-		_persistence.countByG_C_C_LikeN_T(0L, 0L, 0L, (String)null, 0);
+		_persistence.countByG_C_C_LikeN_T(
+			0L, 0L, (String)null, (String)null, 0);
+	}
+
+	@Test
+	public void testCountByG_C_C_LikeN_TArrayable() throws Exception {
+		_persistence.countByG_C_C_LikeN_T(
+			new long[] {RandomTestUtil.nextLong(), 0L},
+			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(), RandomTestUtil.nextInt());
 	}
 
 	@Test
 	public void testCountByG_C_C_T_S() throws Exception {
 		_persistence.countByG_C_C_T_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt(),
-			RandomTestUtil.nextInt());
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "",
+			RandomTestUtil.nextInt(), RandomTestUtil.nextInt());
 
-		_persistence.countByG_C_C_T_S(0L, 0L, 0L, 0, 0);
+		_persistence.countByG_C_C_T_S(0L, 0L, "null", 0, 0);
+
+		_persistence.countByG_C_C_T_S(0L, 0L, (String)null, 0, 0);
 	}
 
 	@Test
-	public void testCountByG_C_C_D_S() throws Exception {
-		_persistence.countByG_C_C_D_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByG_C_C_D_S(
-			0L, 0L, 0L, RandomTestUtil.randomBoolean(), 0);
+	public void testCountByG_C_C_T_SArrayable() throws Exception {
+		_persistence.countByG_C_C_T_S(
+			new long[] {RandomTestUtil.nextLong(), 0L},
+			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
+			RandomTestUtil.nextInt(), RandomTestUtil.nextInt());
 	}
 
 	@Test
 	public void testCountByG_C_C_LikeN_T_S() throws Exception {
 		_persistence.countByG_C_C_LikeN_T_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt(),
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "", "",
+			RandomTestUtil.nextInt(), RandomTestUtil.nextInt());
+
+		_persistence.countByG_C_C_LikeN_T_S(0L, 0L, "null", "null", 0, 0);
+
+		_persistence.countByG_C_C_LikeN_T_S(
+			0L, 0L, (String)null, (String)null, 0, 0);
+	}
+
+	@Test
+	public void testCountByG_C_C_LikeN_T_SArrayable() throws Exception {
+		_persistence.countByG_C_C_LikeN_T_S(
+			new long[] {RandomTestUtil.nextLong(), 0L},
+			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(), RandomTestUtil.nextInt(),
 			RandomTestUtil.nextInt());
-
-		_persistence.countByG_C_C_LikeN_T_S(0L, 0L, 0L, "null", 0, 0);
-
-		_persistence.countByG_C_C_LikeN_T_S(0L, 0L, 0L, (String)null, 0, 0);
 	}
 
 	@Test
@@ -659,8 +684,8 @@ public class LayoutPageTemplateEntryPersistenceTest {
 			true, "userId", true, "userName", true, "createDate", true,
 			"modifiedDate", true, "layoutPageTemplateCollectionId", true,
 			"layoutPageTemplateEntryKey", true, "classNameId", true,
-			"classTypeId", true, "name", true, "type", true,
-			"previewFileEntryId", true, "defaultTemplate", true,
+			"classTypeId", true, "classTypeKey", true, "name", true, "type",
+			true, "previewFileEntryId", true, "defaultTemplate", true,
 			"layoutPrototypeId", true, "plid", true, "lastPublishDate", true,
 			"status", true, "statusByUserId", true, "statusByUserName", true,
 			"statusDate", true);
@@ -1030,8 +1055,6 @@ public class LayoutPageTemplateEntryPersistenceTest {
 		LayoutPageTemplateEntry layoutPageTemplateEntry = _persistence.create(
 			pk);
 
-		layoutPageTemplateEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		layoutPageTemplateEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		layoutPageTemplateEntry.setUuid(RandomTestUtil.randomString());
@@ -1060,6 +1083,8 @@ public class LayoutPageTemplateEntryPersistenceTest {
 		layoutPageTemplateEntry.setClassNameId(RandomTestUtil.nextLong());
 
 		layoutPageTemplateEntry.setClassTypeId(RandomTestUtil.nextLong());
+
+		layoutPageTemplateEntry.setClassTypeKey(RandomTestUtil.randomString());
 
 		layoutPageTemplateEntry.setName(RandomTestUtil.randomString());
 
@@ -1098,3 +1123,4 @@ public class LayoutPageTemplateEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2037673519

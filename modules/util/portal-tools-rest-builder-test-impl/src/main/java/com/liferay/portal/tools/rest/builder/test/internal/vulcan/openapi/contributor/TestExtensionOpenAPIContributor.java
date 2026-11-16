@@ -26,7 +26,9 @@ public class TestExtensionOpenAPIContributor implements OpenAPIContributor {
 	@Override
 	public void contribute(OpenAPI openAPI, OpenAPIContext openAPIContext) {
 		if ((openAPIContext == null) ||
-			!Objects.equals(openAPIContext.getPath(), "/o/test/")) {
+			!Objects.equals(
+				openAPIContext.getPath(),
+				"/o/portal-tools-rest-builder-test/")) {
 
 			return;
 		}
@@ -36,6 +38,10 @@ public class TestExtensionOpenAPIContributor implements OpenAPIContributor {
 		Map<String, Schema> schemas = components.getSchemas();
 
 		Schema testEntitySchema = schemas.get("TestEntity");
+
+		if (testEntitySchema == null) {
+			return;
+		}
 
 		testEntitySchema.addExtension("x-test", true);
 	}

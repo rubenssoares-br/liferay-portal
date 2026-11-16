@@ -11,18 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,18 +37,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Rafael Praxedes
  * @generated
  */
 @Generated("")
 @GraphQLName(description = "https://www.schema.org/Task", value = "Task")
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "https://www.schema.org/Task"
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Task")
 public class Task implements Serializable {
@@ -54,7 +58,7 @@ public class Task implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Task.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getAssetTitle() {
 		if (_assetTitleSupplier != null) {
 			assetTitle = _assetTitleSupplier.get();
@@ -95,7 +99,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _assetTitleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getAssetTitle_i18n() {
 		if (_assetTitle_i18nSupplier != null) {
@@ -138,7 +142,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _assetTitle_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getAssetType() {
 		if (_assetTypeSupplier != null) {
 			assetType = _assetTypeSupplier.get();
@@ -179,7 +183,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _assetTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getAssetType_i18n() {
 		if (_assetType_i18nSupplier != null) {
@@ -222,7 +226,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _assetType_i18nSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Assignee getAssignee() {
 		if (_assigneeSupplier != null) {
@@ -264,7 +268,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Assignee> _assigneeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getClassName() {
 		if (_classNameSupplier != null) {
 			className = _classNameSupplier.get();
@@ -305,7 +309,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _classNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getClassPK() {
 		if (_classPKSupplier != null) {
 			classPK = _classPKSupplier.get();
@@ -346,7 +350,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _classPKSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getCompleted() {
 		if (_completedSupplier != null) {
 			completed = _completedSupplier.get();
@@ -387,7 +391,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _completedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getCompletionUserId() {
 		if (_completionUserIdSupplier != null) {
 			completionUserId = _completionUserIdSupplier.get();
@@ -428,7 +432,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _completionUserIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateCompletion() {
 		if (_dateCompletionSupplier != null) {
 			dateCompletion = _dateCompletionSupplier.get();
@@ -469,7 +473,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCompletionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -510,7 +514,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -551,7 +555,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getDuration() {
 		if (_durationSupplier != null) {
 			duration = _durationSupplier.get();
@@ -592,7 +596,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _durationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -631,7 +635,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getInstanceId() {
 		if (_instanceIdSupplier != null) {
 			instanceId = _instanceIdSupplier.get();
@@ -672,7 +676,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _instanceIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getLabel() {
 		if (_labelSupplier != null) {
 			label = _labelSupplier.get();
@@ -713,7 +717,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _labelSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -752,7 +756,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getNodeId() {
 		if (_nodeIdSupplier != null) {
 			nodeId = _nodeIdSupplier.get();
@@ -793,7 +797,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _nodeIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getProcessId() {
 		if (_processIdSupplier != null) {
 			processId = _processIdSupplier.get();
@@ -834,7 +838,7 @@ public class Task implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _processIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getProcessVersion() {
 		if (_processVersionSupplier != null) {
 			processVersion = _processVersionSupplier.get();
@@ -1186,8 +1190,8 @@ public class Task implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.portal.workflow.metrics.rest.dto.v1_0.Task",
 		name = "x-class-name"
 	)
@@ -1274,6 +1278,27 @@ public class Task implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1282,3 +1307,4 @@ public class Task implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:78881121

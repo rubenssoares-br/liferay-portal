@@ -156,7 +156,11 @@ public class CallFunction
 			JSONArray jsonArray = jsonFactory.createJSONArray(
 				String.valueOf(value));
 
-			return (String)jsonArray.get(0);
+			return jsonArray.join(
+				StringPool.COMMA_AND_SPACE
+			).replaceAll(
+				StringPool.QUOTE, StringPool.BLANK
+			);
 		}
 		catch (JSONException jsonException) {
 			if (_log.isDebugEnabled()) {
@@ -168,11 +172,11 @@ public class CallFunction
 	}
 
 	protected void setDDMFormFieldOptions(
-		String field, List<KeyValuePair> options) {
+		String field, List<KeyValuePair> optionKeyValuePairs) {
 
 		UpdateFieldPropertyRequest.Builder builder =
 			UpdateFieldPropertyRequest.Builder.newBuilder(
-				field, "options", options);
+				field, "options", optionKeyValuePairs);
 
 		_ddmExpressionObserver.updateFieldProperty(builder.build());
 	}
@@ -223,6 +227,10 @@ public class CallFunction
 
 	private void _extractDDMFormFieldValue(
 		String expression, Map<String, String> parameters) {
+
+		if (Validator.isNull(expression)) {
+			return;
+		}
 
 		String[] tokens = StringUtil.split(expression, CharPool.EQUAL);
 

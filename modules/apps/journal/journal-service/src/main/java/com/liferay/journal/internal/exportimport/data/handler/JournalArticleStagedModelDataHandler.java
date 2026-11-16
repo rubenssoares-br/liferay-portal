@@ -16,7 +16,9 @@ import com.liferay.changeset.service.ChangesetCollectionLocalService;
 import com.liferay.changeset.service.ChangesetEntryLocalService;
 import com.liferay.document.library.kernel.exception.NoSuchFileException;
 import com.liferay.document.library.kernel.model.DLFileEntry;
+import com.liferay.document.library.kernel.model.DLFolder;
 import com.liferay.document.library.kernel.service.DLAppLocalService;
+import com.liferay.document.library.kernel.service.DLFolderLocalService;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.dynamic.data.mapping.model.DDMTemplate;
 import com.liferay.dynamic.data.mapping.service.DDMStructureLocalService;
@@ -31,6 +33,7 @@ import com.liferay.exportimport.kernel.lar.ManifestSummary;
 import com.liferay.exportimport.kernel.lar.PortletDataContext;
 import com.liferay.exportimport.kernel.lar.PortletDataException;
 import com.liferay.exportimport.kernel.lar.PortletDataHandlerControl;
+import com.liferay.exportimport.kernel.lar.PortletDataHandlerKeys;
 import com.liferay.exportimport.kernel.lar.StagedModelDataHandler;
 import com.liferay.exportimport.kernel.lar.StagedModelDataHandlerUtil;
 import com.liferay.exportimport.kernel.lar.StagedModelModifiedDateComparator;
@@ -85,7 +88,6 @@ import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.Portal;
-import com.liferay.portal.kernel.util.StreamUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.SubscriptionSender;
 import com.liferay.portal.kernel.util.Validator;
@@ -94,6 +96,7 @@ import com.liferay.portal.kernel.xml.Element;
 import com.liferay.portlet.documentlibrary.lar.FileEntryUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 
 import java.util.Calendar;
@@ -361,11 +364,10 @@ public class JournalArticleStagedModelDataHandler
 		Map<String, String[]> parameterMap =
 			portletDataContext.getParameterMap();
 
-		String versionHistoryControlName =
-			PortletDataHandlerControl.getNamespacedControlName(
-				"journal", "version-history");
+		String namespacedName = PortletDataHandlerControl.getNamespacedName(
+			"journal", "version-history");
 
-		if ((parameterMap.get(versionHistoryControlName) != null) &&
+		if ((parameterMap.get(namespacedName) != null) &&
 			!portletDataContext.getBooleanParameter(
 				"journal", "version-history")) {
 
@@ -632,20 +634,13 @@ public class JournalArticleStagedModelDataHandler
 
 		String articleId = article.getArticleId();
 
-		boolean autoArticleId = false;
-
-		List<JournalArticle> articles = _journalArticleLocalService.getArticles(
-			portletDataContext.getScopeGroupId(), articleId);
-
-		if (!articles.isEmpty()) {
-			autoArticleId = true;
-		}
-
 		Map<String, String> articleIds =
 			(Map<String, String>)portletDataContext.getNewPrimaryKeysMap(
 				JournalArticle.class + ".articleId");
 
 		String newArticleId = articleIds.get(articleId);
+
+		boolean autoArticleId = false;
 
 		if (Validator.isNotNull(newArticleId)) {
 
@@ -653,19 +648,14 @@ public class JournalArticleStagedModelDataHandler
 			// article id
 
 			articleId = newArticleId;
-			autoArticleId = false;
 		}
+		else {
+			int articlesCount = _journalArticleLocalService.getArticlesCount(
+				portletDataContext.getScopeGroupId(), articleId);
 
-		String externalReferenceCode = article.getExternalReferenceCode();
-
-		JournalArticle articleByERC =
-			_journalArticleLocalService.
-				fetchLatestArticleByExternalReferenceCode(
-					portletDataContext.getScopeGroupId(),
-					externalReferenceCode);
-
-		if (articleByERC != null) {
-			externalReferenceCode = newArticleId;
+			if (articlesCount > 0) {
+				autoArticleId = true;
+			}
 		}
 
 		String content = portletDataContext.getZipEntryAsString(
@@ -882,7 +872,14 @@ public class JournalArticleStagedModelDataHandler
 						}
 					}
 					finally {
-						StreamUtil.cleanUp(true, inputStream);
+						try {
+							inputStream.close();
+						}
+						catch (IOException ioException) {
+							if (_log.isWarnEnabled()) {
+								_log.warn(ioException);
+							}
+						}
 					}
 				}
 			}
@@ -946,7 +943,7 @@ public class JournalArticleStagedModelDataHandler
 
 				if (existingArticleVersion == null) {
 					importedArticle = _journalArticleLocalService.addArticle(
-						externalReferenceCode, userId,
+						article.getExternalReferenceCode(), userId,
 						portletDataContext.getScopeGroupId(), folderId,
 						article.getClassNameId(), classPK, articleId,
 						autoArticleId, article.getVersion(),
@@ -997,7 +994,11 @@ public class JournalArticleStagedModelDataHandler
 				}
 			}
 			else {
+				String externalReferenceCode =
+					article.getExternalReferenceCode();
+
 				if (Validator.isNull(newArticleId)) {
+					externalReferenceCode = StringPool.BLANK;
 					articleId = StringPool.BLANK;
 					autoArticleId = true;
 				}
@@ -1086,6 +1087,22 @@ public class JournalArticleStagedModelDataHandler
 					serviceContext);
 			}
 
+			importedArticle.setModifiedDate(article.getModifiedDate());
+
+			if (!StringUtil.equals(
+					PortletDataHandlerKeys.DATA_STRATEGY_COPY_AS_NEW,
+					portletDataContext.getDataStrategy())) {
+
+				importedArticle.setExternalReferenceCode(
+					article.getExternalReferenceCode());
+			}
+
+			importedArticle.setStatusByUserId(article.getStatusByUserId());
+			importedArticle.setStatusByUserName(article.getStatusByUserName());
+
+			importedArticle = _journalArticleLocalService.updateJournalArticle(
+				importedArticle);
+
 			if (_isUpdateAsset(
 					importedArticle.getGroupId(),
 					importedArticle.getArticleId(),
@@ -1127,7 +1144,7 @@ public class JournalArticleStagedModelDataHandler
 				if (!ExportImportThreadLocal.isStagingInProcess() ||
 					!exportVersionHistory) {
 
-					_updateArticleVersions(importedArticle);
+					_updateArticleVersions(importedArticle, portletDataContext);
 				}
 
 				if (Validator.isNull(newArticleId)) {
@@ -1154,6 +1171,10 @@ public class JournalArticleStagedModelDataHandler
 			finally {
 				ServiceContextThreadLocal.popServiceContext();
 			}
+
+			_renameDLFolder(
+				importedArticle.getGroupId(), article.getResourcePrimKey(),
+				importedArticle.getResourcePrimKey(), serviceContext);
 
 			portletDataContext.importClassedModel(article, importedArticle);
 		}
@@ -1428,13 +1449,15 @@ public class JournalArticleStagedModelDataHandler
 				_assetDisplayPageEntryLocalService.fetchAssetDisplayPageEntry(
 					assetDisplayPageEntryId);
 
-			if (existingAssetDisplayPageEntry != null) {
-				existingAssetDisplayPageEntry.setClassPK(
-					importedArticle.getResourcePrimKey());
-
-				_assetDisplayPageEntryLocalService.updateAssetDisplayPageEntry(
-					existingAssetDisplayPageEntry);
+			if (existingAssetDisplayPageEntry == null) {
+				continue;
 			}
+
+			existingAssetDisplayPageEntry.setClassPK(
+				importedArticle.getResourcePrimKey());
+
+			_assetDisplayPageEntryLocalService.updateAssetDisplayPageEntry(
+				existingAssetDisplayPageEntry);
 		}
 	}
 
@@ -1475,22 +1498,32 @@ public class JournalArticleStagedModelDataHandler
 				_friendlyURLEntryLocalService.fetchFriendlyURLEntry(
 					friendlyURLEntryId);
 
-			if (existingFriendlyURLEntry != null) {
-				existingFriendlyURLEntry.setClassPK(
-					importedArticle.getResourcePrimKey());
-
-				_friendlyURLEntryLocalService.updateFriendlyURLEntry(
-					existingFriendlyURLEntry);
+			if (existingFriendlyURLEntry == null) {
+				continue;
 			}
+
+			existingFriendlyURLEntry.setClassPK(
+				importedArticle.getResourcePrimKey());
+
+			_friendlyURLEntryLocalService.updateFriendlyURLEntry(
+				existingFriendlyURLEntry);
 		}
 	}
 
-	private boolean _isExpireAllArticleVersions(long companyId)
+	private boolean _isExpireAllArticleVersions(
+			PortletDataContext portletDataContext)
 		throws PortalException {
+
+		if (portletDataContext.getBooleanParameter(
+				"journal", "version-history", false)) {
+
+			return false;
+		}
 
 		JournalServiceConfiguration journalServiceConfiguration =
 			_configurationProvider.getCompanyConfiguration(
-				JournalServiceConfiguration.class, companyId);
+				JournalServiceConfiguration.class,
+				portletDataContext.getCompanyId());
 
 		return journalServiceConfiguration.expireAllArticleVersionsEnabled();
 	}
@@ -1526,6 +1559,59 @@ public class JournalArticleStagedModelDataHandler
 		}
 
 		return false;
+	}
+
+	private void _renameDLFolder(
+		long groupId, long existingResourcePrimKey, long newResourcePrimKey,
+		ServiceContext serviceContext) {
+
+		if (existingResourcePrimKey == newResourcePrimKey) {
+			return;
+		}
+
+		try {
+			DLFolder dlFolder = _dlFolderLocalService.fetchFolder(
+				groupId, JournalFolderConstants.DEFAULT_PARENT_FOLDER_ID,
+				JournalConstants.RESOURCE_NAME);
+
+			if (dlFolder == null) {
+				if (_log.isWarnEnabled()) {
+					_log.warn(
+						"Unable to get document library folder for group " +
+							groupId);
+				}
+
+				return;
+			}
+
+			DLFolder newDLFolder = _dlFolderLocalService.fetchFolder(
+				groupId, dlFolder.getFolderId(),
+				String.valueOf(newResourcePrimKey));
+
+			if (newDLFolder != null) {
+				return;
+			}
+
+			DLFolder existingDLFolder = _dlFolderLocalService.fetchFolder(
+				groupId, dlFolder.getFolderId(),
+				String.valueOf(existingResourcePrimKey));
+
+			if (existingDLFolder != null) {
+				_dlAppLocalService.updateFolder(
+					existingDLFolder.getFolderId(),
+					existingDLFolder.getParentFolderId(),
+					String.valueOf(newResourcePrimKey),
+					existingDLFolder.getDescription(), serviceContext);
+			}
+		}
+		catch (Exception exception) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to rename document library folder for article " +
+						newResourcePrimKey,
+					exception);
+			}
+		}
 	}
 
 	private void _sendUndeliveredUserNotificationEvents(
@@ -1693,11 +1779,25 @@ public class JournalArticleStagedModelDataHandler
 		}
 	}
 
-	private void _updateArticleVersions(JournalArticle article)
+	private void _updateArticleVersions(
+			JournalArticle article, PortletDataContext portletDataContext)
 		throws PortalException {
 
 		boolean expireAllArticleVersions = _isExpireAllArticleVersions(
-			article.getCompanyId());
+			portletDataContext);
+
+		Map<String, Long> folderIds =
+			(Map<String, Long>)portletDataContext.getNewPrimaryKeysMap(
+				JournalArticle.class + ".folderId");
+
+		String key = StringBundler.concat(
+			article.getGroupId(), StringPool.POUND, article.getArticleId());
+
+		long folderId = GetterUtil.getLong(folderIds.get(key), -1);
+
+		if (!expireAllArticleVersions && (folderId == article.getFolderId())) {
+			return;
+		}
 
 		List<JournalArticle> articles = _journalArticleLocalService.getArticles(
 			article.getGroupId(), article.getArticleId());
@@ -1730,10 +1830,14 @@ public class JournalArticleStagedModelDataHandler
 				update = true;
 			}
 
-			if (update) {
-				_journalArticleLocalService.updateJournalArticle(curArticle);
+			if (!update) {
+				continue;
 			}
+
+			_journalArticleLocalService.updateJournalArticle(curArticle);
 		}
+
+		folderIds.put(key, article.getFolderId());
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
@@ -1769,6 +1873,9 @@ public class JournalArticleStagedModelDataHandler
 
 	@Reference
 	private DLAppLocalService _dlAppLocalService;
+
+	@Reference
+	private DLFolderLocalService _dlFolderLocalService;
 
 	@Reference(target = "(content.processor.type=DLReferences)")
 	private ExportImportContentProcessor<String>

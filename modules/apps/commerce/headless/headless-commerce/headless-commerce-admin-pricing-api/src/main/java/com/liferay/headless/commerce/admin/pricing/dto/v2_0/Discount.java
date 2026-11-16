@@ -11,12 +11,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
@@ -25,6 +33,8 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,27 +42,22 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Discount")
-@JsonFilter("Liferay.Vulcan")
-@Schema(
+@GraphQLName(
+	description = "Promotional discount program scoped to a single company. Backed by discount; carries the target slice (subtotal, total, products, categories, skus, product-groups, order-types, or shipping), the limitation policy that caps reuse, an optional couponCode gate, the percentage tiers (or fixed-amount cap), and the cascading rel collections (account-group, account, category, channel, order-type, product, product-group, sku, rule). Workflow-aware -- the runtime only honours discounts whose status is approved (Approved).",
+	value = "Discount"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Promotional discount program scoped to a single company. Backed by discount; carries the target slice (subtotal, total, products, categories, skus, product-groups, order-types, or shipping), the limitation policy that caps reuse, an optional couponCode gate, the percentage tiers (or fixed-amount cap), and the cascading rel collections (account-group, account, category, channel, order-type, product, product-group, sku, rule). Workflow-aware -- the runtime only honours discounts whose status is approved (Approved).",
 	requiredProperties = {
 		"level", "limitationType", "target", "title", "usePercentage"
 	}
 )
+@JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Discount")
 public class Discount implements Serializable {
 
@@ -64,7 +69,9 @@ public class Discount implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Discount.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -100,14 +107,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether the discount is currently enabled. When false the price calculation engine skips the discount during cart evaluation.",
+		example = "true"
+	)
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -141,14 +153,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether the discount is currently enabled. When false the price calculation engine skips the discount during cart evaluation."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean active;
 
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Pre-formatted display string of the monetary amount, in the parent record's currency. Read-only.",
+		example = "$10.00"
+	)
 	public String getAmountFormatted() {
 		if (_amountFormattedSupplier != null) {
 			amountFormatted = _amountFormattedSupplier.get();
@@ -182,14 +199,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Pre-formatted display string of the monetary amount, in the parent record's currency. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String amountFormatted;
 
 	@JsonIgnore
 	private Supplier<String> _amountFormattedSupplier;
 
-	@Schema(example = "SAVE20")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Optional coupon code that the buyer must supply at checkout when `useCouponCode` is true. Case-sensitive; ignored when `useCouponCode` is false.",
+		example = "SAVE20"
+	)
 	public String getCouponCode() {
 		if (_couponCodeSupplier != null) {
 			couponCode = _couponCodeSupplier.get();
@@ -223,14 +245,65 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Optional coupon code that the buyer must supply at checkout when `useCouponCode` is true. Case-sensitive; ignored when `useCouponCode` is false."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String couponCode;
 
 	@JsonIgnore
 	private Supplier<String> _couponCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "User who created the discount. Read-only; embedded through the `creator` nested field."
+	)
+	@Valid
+	public Creator getCreator() {
+		if (_creatorSupplier != null) {
+			creator = _creatorSupplier.get();
+
+			_creatorSupplier = null;
+		}
+
+		return creator;
+	}
+
+	public void setCreator(Creator creator) {
+		this.creator = creator;
+
+		_creatorSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCreator(
+		UnsafeSupplier<Creator, Exception> creatorUnsafeSupplier) {
+
+		_creatorSupplier = () -> {
+			try {
+				return creatorUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "User who created the discount. Read-only; embedded through the `creator` nested field."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Creator creator;
+
+	@JsonIgnore
+	private Supplier<Creator> _creatorSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form Expando custom fields attached to the underlying discount entity. Keys are Expando attribute names; values follow each attribute's declared column type.",
+		example = "{priority=high, segment=B2B}"
+	)
 	@Valid
 	public Map<String, ?> getCustomFields() {
 		if (_customFieldsSupplier != null) {
@@ -265,14 +338,110 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form Expando custom fields attached to the underlying discount entity. Keys are Expando attribute names; values follow each attribute's declared column type."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, ?> customFields;
 
 	@JsonIgnore
 	private Supplier<Map<String, ?>> _customFieldsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Creation timestamp in ISO 8601 (UTC). Read-only; set when the discount is first persisted. Filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
+	public Date getDateCreated() {
+		if (_dateCreatedSupplier != null) {
+			dateCreated = _dateCreatedSupplier.get();
+
+			_dateCreatedSupplier = null;
+		}
+
+		return dateCreated;
+	}
+
+	public void setDateCreated(Date dateCreated) {
+		this.dateCreated = dateCreated;
+
+		_dateCreatedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDateCreated(
+		UnsafeSupplier<Date, Exception> dateCreatedUnsafeSupplier) {
+
+		_dateCreatedSupplier = () -> {
+			try {
+				return dateCreatedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Creation timestamp in ISO 8601 (UTC). Read-only; set when the discount is first persisted. Filterable and sortable via the OData query parameter."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date dateCreated;
+
+	@JsonIgnore
+	private Supplier<Date> _dateCreatedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Last modification timestamp in ISO 8601 (UTC). Read-only; updated on each save. Filterable and sortable via the OData query parameter.",
+		example = "2017-07-21"
+	)
+	public Date getDateModified() {
+		if (_dateModifiedSupplier != null) {
+			dateModified = _dateModifiedSupplier.get();
+
+			_dateModifiedSupplier = null;
+		}
+
+		return dateModified;
+	}
+
+	public void setDateModified(Date dateModified) {
+		this.dateModified = dateModified;
+
+		_dateModifiedSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDateModified(
+		UnsafeSupplier<Date, Exception> dateModifiedUnsafeSupplier) {
+
+		_dateModifiedSupplier = () -> {
+			try {
+				return dateModifiedUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Last modification timestamp in ISO 8601 (UTC). Read-only; updated on each save. Filterable and sortable via the OData query parameter."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date dateModified;
+
+	@JsonIgnore
+	private Supplier<Date> _dateModifiedSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Account-group bindings cascaded on upsert. Each entry attaches the discount to one AccountGroup; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountAccountGroup[] getDiscountAccountGroups() {
 		if (_discountAccountGroupsSupplier != null) {
@@ -310,14 +479,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Account-group bindings cascaded on upsert. Each entry attaches the discount to one AccountGroup; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountAccountGroup[] discountAccountGroups;
 
 	@JsonIgnore
 	private Supplier<DiscountAccountGroup[]> _discountAccountGroupsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Account bindings cascaded on upsert. Each entry attaches the discount to one Account; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountAccount[] getDiscountAccounts() {
 		if (_discountAccountsSupplier != null) {
@@ -353,14 +526,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Account bindings cascaded on upsert. Each entry attaches the discount to one Account; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountAccount[] discountAccounts;
 
 	@JsonIgnore
 	private Supplier<DiscountAccount[]> _discountAccountsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "AssetCategory bindings cascaded on upsert. Each entry restricts the discount to one category; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountCategory[] getDiscountCategories() {
 		if (_discountCategoriesSupplier != null) {
@@ -396,14 +573,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "AssetCategory bindings cascaded on upsert. Each entry restricts the discount to one category; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountCategory[] discountCategories;
 
 	@JsonIgnore
 	private Supplier<DiscountCategory[]> _discountCategoriesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Channel bindings cascaded on upsert. Each entry restricts the discount to one channel; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountChannel[] getDiscountChannels() {
 		if (_discountChannelsSupplier != null) {
@@ -439,14 +620,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Channel bindings cascaded on upsert. Each entry restricts the discount to one channel; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountChannel[] discountChannels;
 
 	@JsonIgnore
 	private Supplier<DiscountChannel[]> _discountChannelsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Order-type bindings cascaded on upsert. Each entry restricts the discount to one order type; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountOrderType[] getDiscountOrderTypes() {
 		if (_discountOrderTypesSupplier != null) {
@@ -482,14 +667,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Order-type bindings cascaded on upsert. Each entry restricts the discount to one order type; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountOrderType[] discountOrderTypes;
 
 	@JsonIgnore
 	private Supplier<DiscountOrderType[]> _discountOrderTypesSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "product group bindings cascaded on upsert. Each entry restricts the discount to one product group; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountProductGroup[] getDiscountProductGroups() {
 		if (_discountProductGroupsSupplier != null) {
@@ -527,14 +716,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "product group bindings cascaded on upsert. Each entry restricts the discount to one product group; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountProductGroup[] discountProductGroups;
 
 	@JsonIgnore
 	private Supplier<DiscountProductGroup[]> _discountProductGroupsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "product bindings cascaded on upsert. Each entry restricts the discount to one product; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@Valid
 	public DiscountProduct[] getDiscountProducts() {
 		if (_discountProductsSupplier != null) {
@@ -570,14 +763,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "product bindings cascaded on upsert. Each entry restricts the discount to one product; supplying this array on POST/PUT replaces the previous bindings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountProduct[] discountProducts;
 
 	@JsonIgnore
 	private Supplier<DiscountProduct[]> _discountProductsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Validator rules cascaded on upsert. Each entry attaches a pre-qualification, post-qualification, or target validator; supplying this array on POST/PUT replaces the previous rules."
+	)
 	@Valid
 	public DiscountRule[] getDiscountRules() {
 		if (_discountRulesSupplier != null) {
@@ -612,14 +809,65 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Validator rules cascaded on upsert. Each entry attaches a pre-qualification, post-qualification, or target validator; supplying this array on POST/PUT replaces the previous rules."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected DiscountRule[] discountRules;
 
 	@JsonIgnore
 	private Supplier<DiscountRule[]> _discountRulesSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "SKU bindings cascaded on upsert. Each entry restricts the discount to one SKU; supplying this array on POST/PUT replaces the previous bindings."
+	)
+	@Valid
+	public DiscountSku[] getDiscountSkus() {
+		if (_discountSkusSupplier != null) {
+			discountSkus = _discountSkusSupplier.get();
+
+			_discountSkusSupplier = null;
+		}
+
+		return discountSkus;
+	}
+
+	public void setDiscountSkus(DiscountSku[] discountSkus) {
+		this.discountSkus = discountSkus;
+
+		_discountSkusSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setDiscountSkus(
+		UnsafeSupplier<DiscountSku[], Exception> discountSkusUnsafeSupplier) {
+
+		_discountSkusSupplier = () -> {
+			try {
+				return discountSkusUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "SKU bindings cascaded on upsert. Each entry restricts the discount to one SKU; supplying this array on POST/PUT replaces the previous bindings."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected DiscountSku[] discountSkus;
+
+	@JsonIgnore
+	private Supplier<DiscountSku[]> _discountSkusSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date and time when the discount becomes effective. ISO 8601.",
+		example = "2017-07-21"
+	)
 	public Date getDisplayDate() {
 		if (_displayDateSupplier != null) {
 			displayDate = _displayDateSupplier.get();
@@ -653,14 +901,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Date and time when the discount becomes effective. ISO 8601."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date displayDate;
 
 	@JsonIgnore
 	private Supplier<Date> _displayDateSupplier;
 
-	@Schema(example = "2017-08-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date and time when the discount expires. ISO 8601; the runtime stops honoring the discount past this date.",
+		example = "2017-08-21"
+	)
 	public Date getExpirationDate() {
 		if (_expirationDateSupplier != null) {
 			expirationDate = _expirationDateSupplier.get();
@@ -694,14 +947,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Date and time when the discount expires. ISO 8601; the runtime stops honoring the discount past this date."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date expirationDate;
 
 	@JsonIgnore
 	private Supplier<Date> _expirationDateSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per discount within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -735,7 +993,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per discount within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -743,7 +1003,10 @@ public class Discount implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the discount. Server-assigned and stable.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -775,14 +1038,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the discount. Server-assigned and stable."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "L1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Level qualifier (`L1`, `L2`, `L3`, `L4`) that selects which percentageLevel applies when usePercentage is true.",
+		example = "L1"
+	)
 	public String getLevel() {
 		if (_levelSupplier != null) {
 			level = _levelSupplier.get();
@@ -816,7 +1084,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Level qualifier (`L1`, `L2`, `L3`, `L4`) that selects which percentageLevel applies when usePercentage is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String level;
@@ -825,7 +1095,10 @@ public class Discount implements Serializable {
 	private Supplier<String> _levelSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum number of times the discount may be used in total when limitationType is `limited`. Zero means unlimited.",
+		example = "0"
+	)
 	public Integer getLimitationTimes() {
 		if (_limitationTimesSupplier != null) {
 			limitationTimes = _limitationTimesSupplier.get();
@@ -859,7 +1132,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Maximum number of times the discount may be used in total when limitationType is `limited`. Zero means unlimited."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer limitationTimes;
 
@@ -867,7 +1142,10 @@ public class Discount implements Serializable {
 	private Supplier<Integer> _limitationTimesSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Maximum number of times the discount may be used per account when limitationType is `limited-for-accounts` or `limited-for-accounts-and-total`.",
+		example = "0"
+	)
 	public Integer getLimitationTimesPerAccount() {
 		if (_limitationTimesPerAccountSupplier != null) {
 			limitationTimesPerAccount =
@@ -905,14 +1183,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Maximum number of times the discount may be used per account when limitationType is `limited-for-accounts` or `limited-for-accounts-and-total`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer limitationTimesPerAccount;
 
 	@JsonIgnore
 	private Supplier<Integer> _limitationTimesPerAccountSupplier;
 
-	@Schema(example = "unlimited")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Caps how often the discount may be redeemed. One of `unlimited`, `limited`, `limited-for-accounts`, `limited-for-accounts-and-total`.",
+		example = "unlimited"
+	)
 	public String getLimitationType() {
 		if (_limitationTypeSupplier != null) {
 			limitationType = _limitationTypeSupplier.get();
@@ -946,7 +1229,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Caps how often the discount may be redeemed. One of `unlimited`, `limited`, `limited-for-accounts`, `limited-for-accounts-and-total`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String limitationType;
@@ -955,7 +1240,10 @@ public class Discount implements Serializable {
 	private Supplier<String> _limitationTypeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "25")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Fixed-amount cap on the discount payout, in the order's currency. Mutually exclusive with the percentage levels.",
+		example = "25"
+	)
 	@Valid
 	public BigDecimal getMaximumDiscountAmount() {
 		if (_maximumDiscountAmountSupplier != null) {
@@ -991,14 +1279,18 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Fixed-amount cap on the discount payout, in the order's currency. Mutually exclusive with the percentage levels."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal maximumDiscountAmount;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _maximumDiscountAmountSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date value. ISO 8601.", example = "2017-07-21"
+	)
 	public Date getModifiedDate() {
 		if (_modifiedDateSupplier != null) {
 			modifiedDate = _modifiedDateSupplier.get();
@@ -1032,14 +1324,17 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Date value. ISO 8601.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Date modifiedDate;
 
 	@JsonIgnore
 	private Supplier<Date> _modifiedDateSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the discount has no expiration date and expirationDate is ignored.",
+		example = "true"
+	)
 	public Boolean getNeverExpire() {
 		if (_neverExpireSupplier != null) {
 			neverExpire = _neverExpireSupplier.get();
@@ -1073,7 +1368,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the discount has no expiration date and expirationDate is ignored."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean neverExpire;
 
@@ -1081,7 +1378,10 @@ public class Discount implements Serializable {
 	private Supplier<Boolean> _neverExpireSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "5")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Read-only counter of how many times the discount has been used.",
+		example = "5"
+	)
 	public Integer getNumberOfUse() {
 		if (_numberOfUseSupplier != null) {
 			numberOfUse = _numberOfUseSupplier.get();
@@ -1115,7 +1415,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Read-only counter of how many times the discount has been used."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer numberOfUse;
 
@@ -1123,7 +1425,10 @@ public class Discount implements Serializable {
 	private Supplier<Integer> _numberOfUseSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "20")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Percentage discount applied when `level` is `L1` and usePercentage is true.",
+		example = "20"
+	)
 	@Valid
 	public BigDecimal getPercentageLevel1() {
 		if (_percentageLevel1Supplier != null) {
@@ -1158,7 +1463,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Percentage discount applied when `level` is `L1` and usePercentage is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal percentageLevel1;
 
@@ -1166,7 +1473,10 @@ public class Discount implements Serializable {
 	private Supplier<BigDecimal> _percentageLevel1Supplier;
 
 	@DecimalMin("0")
-	@Schema(example = "0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Percentage discount applied when `level` is `L2` and usePercentage is true.",
+		example = "0"
+	)
 	@Valid
 	public BigDecimal getPercentageLevel2() {
 		if (_percentageLevel2Supplier != null) {
@@ -1201,7 +1511,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Percentage discount applied when `level` is `L2` and usePercentage is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal percentageLevel2;
 
@@ -1209,7 +1521,10 @@ public class Discount implements Serializable {
 	private Supplier<BigDecimal> _percentageLevel2Supplier;
 
 	@DecimalMin("0")
-	@Schema(example = "0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Percentage discount applied when `level` is `L3` and usePercentage is true.",
+		example = "0"
+	)
 	@Valid
 	public BigDecimal getPercentageLevel3() {
 		if (_percentageLevel3Supplier != null) {
@@ -1244,7 +1559,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Percentage discount applied when `level` is `L3` and usePercentage is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal percentageLevel3;
 
@@ -1252,7 +1569,10 @@ public class Discount implements Serializable {
 	private Supplier<BigDecimal> _percentageLevel3Supplier;
 
 	@DecimalMin("0")
-	@Schema(example = "0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Percentage discount applied when `level` is `L4` and usePercentage is true.",
+		example = "0"
+	)
 	@Valid
 	public BigDecimal getPercentageLevel4() {
 		if (_percentageLevel4Supplier != null) {
@@ -1287,14 +1607,66 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Percentage discount applied when `level` is `L4` and usePercentage is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal percentageLevel4;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _percentageLevel4Supplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public com.liferay.portal.vulcan.permission.Permission[] getPermissions() {
+		if (_permissionsSupplier != null) {
+			permissions = _permissionsSupplier.get();
+
+			_permissionsSupplier = null;
+		}
+
+		return permissions;
+	}
+
+	public void setPermissions(
+		com.liferay.portal.vulcan.permission.Permission[] permissions) {
+
+		this.permissions = permissions;
+
+		_permissionsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.permission.Permission[], Exception>
+				permissionsUnsafeSupplier) {
+
+		_permissionsSupplier = () -> {
+			try {
+				return permissionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.permission.Permission[] permissions;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.permission.Permission[]>
+		_permissionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, all attached discount rules must pass for the discount to apply; when false, any single passing rule activates the discount.",
+		example = "true"
+	)
 	public Boolean getRulesConjunction() {
 		if (_rulesConjunctionSupplier != null) {
 			rulesConjunction = _rulesConjunctionSupplier.get();
@@ -1328,14 +1700,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, all attached discount rules must pass for the discount to apply; when false, any single passing rule activates the discount."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean rulesConjunction;
 
 	@JsonIgnore
 	private Supplier<Boolean> _rulesConjunctionSupplier;
 
-	@Schema(example = "subtotal")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Which order slice the discount applies to. One of `subtotal`, `total`, `products`, `categories`, `skus`, `product-groups`, `shipping`.",
+		example = "subtotal"
+	)
 	public String getTarget() {
 		if (_targetSupplier != null) {
 			target = _targetSupplier.get();
@@ -1369,7 +1746,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Which order slice the discount applies to. One of `subtotal`, `total`, `products`, `categories`, `skus`, `product-groups`, `shipping`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String target;
@@ -1377,7 +1756,56 @@ public class Discount implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _targetSupplier;
 
-	@Schema(example = "20% Off")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Key of the order slice the discount applies to. One of `subtotal`, `total`, `products`, `categories`, `skus`, `product-groups`, `shipping`. Takes precedence over `target` on input.",
+		example = "subtotal"
+	)
+	public String getTargetKey() {
+		if (_targetKeySupplier != null) {
+			targetKey = _targetKeySupplier.get();
+
+			_targetKeySupplier = null;
+		}
+
+		return targetKey;
+	}
+
+	public void setTargetKey(String targetKey) {
+		this.targetKey = targetKey;
+
+		_targetKeySupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTargetKey(
+		UnsafeSupplier<String, Exception> targetKeyUnsafeSupplier) {
+
+		_targetKeySupplier = () -> {
+			try {
+				return targetKeyUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Key of the order slice the discount applies to. One of `subtotal`, `total`, `products`, `categories`, `skus`, `product-groups`, `shipping`. Takes precedence over `target` on input."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String targetKey;
+
+	@JsonIgnore
+	private Supplier<String> _targetKeySupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Human-readable name of the discount; shown in admin and used as the fallback label at checkout.",
+		example = "20% Off"
+	)
 	public String getTitle() {
 		if (_titleSupplier != null) {
 			title = _titleSupplier.get();
@@ -1411,7 +1839,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Human-readable name of the discount; shown in admin and used as the fallback label at checkout."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String title;
@@ -1419,7 +1849,10 @@ public class Discount implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the discount is gated by `couponCode` and is only applied when the buyer supplies the matching code at checkout.",
+		example = "true"
+	)
 	public Boolean getUseCouponCode() {
 		if (_useCouponCodeSupplier != null) {
 			useCouponCode = _useCouponCodeSupplier.get();
@@ -1453,14 +1886,19 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the discount is gated by `couponCode` and is only applied when the buyer supplies the matching code at checkout."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean useCouponCode;
 
 	@JsonIgnore
 	private Supplier<Boolean> _useCouponCodeSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the discount payout is calculated using `percentageLevel1..4` keyed by `level`; when false, the payout is `maximumDiscountAmount`.",
+		example = "true"
+	)
 	public Boolean getUsePercentage() {
 		if (_usePercentageSupplier != null) {
 			usePercentage = _usePercentageSupplier.get();
@@ -1494,7 +1932,9 @@ public class Discount implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the discount payout is calculated using `percentageLevel1..4` keyed by `level`; when false, the payout is `maximumDiscountAmount`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Boolean usePercentage;
@@ -1588,6 +2028,18 @@ public class Discount implements Serializable {
 			sb.append("\"");
 		}
 
+		Creator creator = getCreator();
+
+		if (creator != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(creator));
+		}
+
 		Map<String, ?> customFields = getCustomFields();
 
 		if (customFields != null) {
@@ -1598,6 +2050,38 @@ public class Discount implements Serializable {
 			sb.append("\"customFields\": ");
 
 			sb.append(_toJSON(customFields));
+		}
+
+		Date dateCreated = getDateCreated();
+
+		if (dateCreated != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateCreated\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(dateCreated));
+
+			sb.append("\"");
+		}
+
+		Date dateModified = getDateModified();
+
+		if (dateModified != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"dateModified\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(dateModified));
+
+			sb.append("\"");
 		}
 
 		DiscountAccountGroup[] discountAccountGroups =
@@ -1771,6 +2255,28 @@ public class Discount implements Serializable {
 				sb.append(String.valueOf(discountRules[i]));
 
 				if ((i + 1) < discountRules.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		DiscountSku[] discountSkus = getDiscountSkus();
+
+		if (discountSkus != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"discountSkus\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < discountSkus.length; i++) {
+				sb.append(String.valueOf(discountSkus[i]));
+
+				if ((i + 1) < discountSkus.length) {
 					sb.append(", ");
 				}
 			}
@@ -1994,6 +2500,29 @@ public class Discount implements Serializable {
 			sb.append(percentageLevel4);
 		}
 
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
+
+		if (permissions != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
+
+				if ((i + 1) < permissions.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		Boolean rulesConjunction = getRulesConjunction();
 
 		if (rulesConjunction != null) {
@@ -2018,6 +2547,22 @@ public class Discount implements Serializable {
 			sb.append("\"");
 
 			sb.append(_escape(target));
+
+			sb.append("\"");
+		}
+
+		String targetKey = getTargetKey();
+
+		if (targetKey != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"targetKey\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(targetKey));
 
 			sb.append("\"");
 		}
@@ -2067,8 +2612,8 @@ public class Discount implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v2_0.Discount",
 		name = "x-class-name"
 	)
@@ -2155,6 +2700,27 @@ public class Discount implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -2163,3 +2729,4 @@ public class Discount implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1896216327

@@ -80,32 +80,33 @@ public class UpgradeDocumentLibraryTest {
 
 	@Test
 	public void testUpgrade() throws Exception {
-		Connection connection = DataAccess.getConnection();
+		try (Connection connection = DataAccess.getConnection()) {
+			long classNameId = _getClassNameId(
+				RawMetadataProcessor.class.getName(), connection);
 
-		long classNameId = _getClassNameId(
-			RawMetadataProcessor.class.getName(), connection);
+			try {
+				StartupHelperUtil.setUpgrading(true);
 
-		try {
-			StartupHelperUtil.setUpgrading(true);
+				_updateClassName(_CLASS_NAME, classNameId, connection);
 
-			_updateClassName(_CLASS_NAME, classNameId, connection);
+				Assert.assertEquals(
+					_CLASS_NAME, _getValue(classNameId, connection));
 
-			Assert.assertEquals(
-				_CLASS_NAME, _getValue(classNameId, connection));
+				UpgradeProcess upgradeProcess = new UpgradeDocumentLibrary();
 
-			UpgradeProcess upgradeProcess = new UpgradeDocumentLibrary();
+				upgradeProcess.upgrade();
 
-			upgradeProcess.upgrade();
+				Assert.assertEquals(
+					RawMetadataProcessor.class.getName(),
+					_getValue(classNameId, connection));
+			}
+			finally {
+				_updateClassName(
+					RawMetadataProcessor.class.getName(), classNameId,
+					connection);
 
-			Assert.assertEquals(
-				RawMetadataProcessor.class.getName(),
-				_getValue(classNameId, connection));
-		}
-		finally {
-			_updateClassName(
-				RawMetadataProcessor.class.getName(), classNameId, connection);
-
-			StartupHelperUtil.setUpgrading(_upgrading);
+				StartupHelperUtil.setUpgrading(_upgrading);
+			}
 		}
 	}
 
@@ -139,7 +140,7 @@ public class UpgradeDocumentLibraryTest {
 
 			resultSet.next();
 
-			return resultSet.getString(1);
+			return resultSet.getString("value");
 		}
 	}
 
@@ -163,9 +164,9 @@ public class UpgradeDocumentLibraryTest {
 	private static final Version _ORIGINAL_SCHEMA_VERSION = new Version(
 		7, 0, 0);
 
-	private static Version _currentSchemaVersion;
 	private static StopWatch _originalStopWatch;
 
+	private Version _currentSchemaVersion;
 	private boolean _upgrading;
 
 }

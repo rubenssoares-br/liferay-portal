@@ -26,7 +26,7 @@ ViewPrpKBArticlesDisplayContext viewPrpKBArticlesDisplayContext = new ViewPrpKBA
 >
 	<liferay-ui:search-container-row
 		className="com.liferay.asset.kernel.model.AssetEntry"
-		keyProperty="entryId"
+		keyPropertyName="entryId"
 		modelVar="assetEntry"
 	>
 		<liferay-portlet:renderURL varImpl="rowURL">
@@ -88,7 +88,7 @@ ViewPrpKBArticlesDisplayContext viewPrpKBArticlesDisplayContext = new ViewPrpKBA
 				buffer.append(viewCount);
 
 				buffer.append(StringPool.SPACE);
-				buffer.append((viewCount == 1) ? LanguageUtil.get(request, "view") : LanguageUtil.get(request, "views"));
+				buffer.append((viewCount == 1) ? LanguageUtil.get(request, "view[count]") : LanguageUtil.get(request, "views"));
 				%>
 
 			</liferay-ui:search-container-column-text>

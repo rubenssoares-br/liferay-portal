@@ -110,11 +110,7 @@ public class ResourcePermissionPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		ResourcePermission newResourcePermission = _persistence.create(pk);
-
-		newResourcePermission.setMvccVersion(RandomTestUtil.nextLong());
+		ResourcePermission newResourcePermission = addResourcePermission();
 
 		newResourcePermission.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -136,7 +132,9 @@ public class ResourcePermissionPersistenceTest {
 
 		newResourcePermission.setViewActionId(RandomTestUtil.randomBoolean());
 
-		_resourcePermissions.add(_persistence.update(newResourcePermission));
+		newResourcePermission = _persistence.update(newResourcePermission);
+
+		_resourcePermissions.add(newResourcePermission);
 
 		ResourcePermission existingResourcePermission =
 			_persistence.findByPrimaryKey(
@@ -305,29 +303,6 @@ public class ResourcePermissionPersistenceTest {
 		_persistence.countByC_N_S_R_V(
 			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
 			RandomTestUtil.nextInt(),
-			new long[] {RandomTestUtil.nextLong(), 0L},
-			RandomTestUtil.randomBoolean());
-	}
-
-	@Test
-	public void testCountByC_N_S_P_R_V() throws Exception {
-		_persistence.countByC_N_S_P_R_V(
-			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt(),
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.randomBoolean());
-
-		_persistence.countByC_N_S_P_R_V(
-			0L, "null", 0, 0L, 0L, RandomTestUtil.randomBoolean());
-
-		_persistence.countByC_N_S_P_R_V(
-			0L, (String)null, 0, 0L, 0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
-	public void testCountByC_N_S_P_R_VArrayable() throws Exception {
-		_persistence.countByC_N_S_P_R_V(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
-			RandomTestUtil.nextInt(), RandomTestUtil.nextLong(),
 			new long[] {RandomTestUtil.nextLong(), 0L},
 			RandomTestUtil.randomBoolean());
 	}
@@ -672,8 +647,6 @@ public class ResourcePermissionPersistenceTest {
 
 		ResourcePermission resourcePermission = _persistence.create(pk);
 
-		resourcePermission.setMvccVersion(RandomTestUtil.nextLong());
-
 		resourcePermission.setCtCollectionId(RandomTestUtil.nextLong());
 
 		resourcePermission.setCompanyId(RandomTestUtil.nextLong());
@@ -705,3 +678,4 @@ public class ResourcePermissionPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1842114578

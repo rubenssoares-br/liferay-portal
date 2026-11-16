@@ -21,12 +21,11 @@ import com.liferay.portal.kernel.portlet.PortletProvider;
 import com.liferay.portal.kernel.portlet.PortletProviderUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
-import com.liferay.portal.kernel.service.CountryService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Riccardo Alberti
@@ -44,7 +43,7 @@ public class CommercePaymentMethodGroupRelQualifiersDisplayContext
 			commercePaymentMethodGroupRelQualifierService,
 		CommercePaymentMethodRegistry commercePaymentMethodRegistry,
 		CommercePaymentIntegrationRegistry commercePaymentIntegrationRegistry,
-		CountryService countryService, HttpServletRequest httpServletRequest) {
+		HttpServletRequest httpServletRequest) {
 
 		super(
 			commerceChannelLocalService, commercePaymentMethodGroupRelService,

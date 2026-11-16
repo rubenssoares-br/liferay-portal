@@ -5,13 +5,13 @@
 
 import ClayMultiStepNav from '@clayui/multi-step-nav';
 import {commerceEvents} from 'commerce-frontend-js';
-import {openToast} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
 import React, {useCallback, useEffect, useState} from 'react';
 
 import {getOrder} from './util';
 
 const StepTracker = ({isOpen, orderId, stepModels}) => {
-	const [steps, setSteps] = useState(stepModels);
+	const [steps, setSteps] = useState([]);
 
 	const onStatusChange = useCallback(
 		({order = null}) => {
@@ -34,10 +34,8 @@ const StepTracker = ({isOpen, orderId, stepModels}) => {
 	);
 
 	useEffect(() => {
-		onStatusChange({order: {steps}});
-
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+		onStatusChange({order: {steps: stepModels}});
+	}, [onStatusChange, stepModels]);
 
 	useEffect(() => {
 		Liferay.on(commerceEvents.ORDER_INFORMATION_ALTERED, onStatusChange);
@@ -50,8 +48,13 @@ const StepTracker = ({isOpen, orderId, stepModels}) => {
 		};
 	}, [onStatusChange]);
 
-	return (
-		<ClayMultiStepNav indicatorLabel="top">
+	return steps.length <= 1 ? (
+		<></>
+	) : (
+		<ClayMultiStepNav
+			indicatorLabel="top"
+			{...{'aria-hidden': true, 'tabindex': -1}}
+		>
 			{steps.map(({label, state}, i) => {
 				const complete = state === 'completed';
 
@@ -66,6 +69,9 @@ const StepTracker = ({isOpen, orderId, stepModels}) => {
 
 						<ClayMultiStepNav.Indicator
 							complete={complete}
+							innerRef={(ref) => {
+								ref?.setAttribute('tabindex', '-1');
+							}}
 							subTitle={label}
 						/>
 					</ClayMultiStepNav.Item>

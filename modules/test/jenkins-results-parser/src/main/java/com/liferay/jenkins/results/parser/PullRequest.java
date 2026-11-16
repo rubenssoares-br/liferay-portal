@@ -19,6 +19,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -30,7 +31,8 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -58,14 +60,14 @@ public class PullRequest {
 	public static boolean isValidGitHubPullRequestURL(String gitHubURL) {
 		Matcher matcher = _gitHubPullRequestURLPattern.matcher(gitHubURL);
 
-		if (matcher.find()) {
-			return true;
-		}
-
-		return false;
+		return matcher.find();
 	}
 
 	public Comment addComment(String body) {
+		if (!isUpdateEnabled()) {
+			return new Comment(new JSONObject());
+		}
+
 		body = body.replaceAll("(\\>)\\s+(\\<)", "$1$2");
 		body = body.replace("&quot;", "\\&quot;");
 
@@ -96,10 +98,10 @@ public class PullRequest {
 
 			NotificationUtil.sendSlackNotification(
 				sb.toString(), "#ci-notifications", ":liferay-ci:",
-				"Secondary Rate Limit exceeded", "Liferay CI");
+				"Secondary rate limit exceeded", "Liferay CI");
 
 			throw new GitHubSecondaryRateLimitRuntimeException(
-				gitHubSecondaryRateLimitRuntimeException.getGitHubApiUrl(),
+				gitHubSecondaryRateLimitRuntimeException.getGitHubAPIURL(),
 				gitHubSecondaryRateLimitRuntimeException.getRetryAfterSeconds(),
 				sb.toString(), gitHubSecondaryRateLimitRuntimeException);
 		}
@@ -110,51 +112,56 @@ public class PullRequest {
 		}
 	}
 
-	public boolean addLabel(GitHubRemoteGitRepository.Label label) {
-		if ((label == null) || hasLabel(label.getName())) {
-			return true;
+	public void addLabel(GitHubRemoteGitRepository.Label label) {
+		addLabels(Arrays.asList(label));
+	}
+
+	public void addLabels(List<GitHubRemoteGitRepository.Label> labels) {
+		if (!isUpdateEnabled() || (labels == null) || labels.isEmpty()) {
+			return;
 		}
 
-		GitHubRemoteGitRepository gitHubRemoteGitRepository =
-			getGitHubRemoteGitRepository();
+		List<GitHubRemoteGitRepository.Label> newLabels = new ArrayList<>();
 
-		GitHubRemoteGitRepository.Label gitRepositoryLabel =
-			gitHubRemoteGitRepository.getLabel(label.getName());
+		for (GitHubRemoteGitRepository.Label label : labels) {
+			if ((label == null) || hasLabel(label.getName())) {
+				continue;
+			}
 
-		if (gitRepositoryLabel == null) {
-			System.out.println(
-				JenkinsResultsParserUtil.combine(
-					"GitHubRemoteGitRepository.Label ", label.getName(),
-					" does not exist in ", getGitHubRemoteGitRepositoryName()));
+			newLabels.add(label);
+		}
 
-			return false;
+		if (newLabels.isEmpty()) {
+			return;
 		}
 
 		JSONArray jsonArray = new JSONArray();
 
-		jsonArray.put(label.getName());
+		for (GitHubRemoteGitRepository.Label newLabel : newLabels) {
+			jsonArray.put(newLabel.getName());
+		}
 
-		String gitHubApiUrl = JenkinsResultsParserUtil.getGitHubApiUrl(
+		String gitHubAPIURL = JenkinsResultsParserUtil.getGitHubAPIURL(
 			getGitHubRemoteGitRepositoryName(), getOwnerUsername(),
 			"issues/" + getNumber() + "/labels");
 
 		try {
 			JenkinsResultsParserUtil.toString(
-				gitHubApiUrl, false, HttpRequestMethod.POST,
+				gitHubAPIURL, false, HttpRequestMethod.POST,
 				jsonArray.toString());
 		}
 		catch (IOException ioException) {
-			System.out.println("Unable to add label " + label.getName());
+			System.out.println("Unable to add labels " + jsonArray);
 
 			ioException.printStackTrace();
-
-			return false;
 		}
-
-		return true;
 	}
 
 	public void close() {
+		if (!isUpdateEnabled()) {
+			return;
+		}
+
 		if (Objects.equals(getState(), "open")) {
 			JSONObject postContentJSONObject = new JSONObject();
 
@@ -175,21 +182,82 @@ public class PullRequest {
 		_jsonObject.put("state", "closed");
 	}
 
+	public void copyLabelsToPullRequest(PullRequest pullRequest) {
+		if (pullRequest == null) {
+			return;
+		}
+
+		refresh();
+
+		pullRequest.addLabels(getLabels());
+	}
+
+	public void copyStatusesToPullRequest(PullRequest pullRequest) {
+		if (pullRequest == null) {
+			return;
+		}
+
+		JSONObject senderSHAStatusJSONObject = getSenderSHAStatusJSONObject();
+
+		if (senderSHAStatusJSONObject == null) {
+			return;
+		}
+
+		JSONArray statusesJSONArray = senderSHAStatusJSONObject.optJSONArray(
+			"statuses");
+
+		if ((statusesJSONArray == null) || statusesJSONArray.isEmpty()) {
+			return;
+		}
+
+		GitHubRemoteGitCommit gitHubRemoteGitCommit =
+			pullRequest.getGitHubRemoteGitCommit();
+
+		for (int i = 0; i < statusesJSONArray.length(); i++) {
+			JSONObject statusJSONObject = statusesJSONArray.getJSONObject(i);
+
+			String state = statusJSONObject.getString("state");
+			String context = statusJSONObject.getString("context");
+			String description = statusJSONObject.optString(
+				"description", null);
+			String targetURL = statusJSONObject.optString("target_url", null);
+
+			GitHubRemoteGitCommit.Status status =
+				GitHubRemoteGitCommit.Status.valueOf(state.toUpperCase());
+
+			gitHubRemoteGitCommit.setStatus(
+				status, context, description, targetURL);
+		}
+	}
+
 	public String forward(
-		String commentBody, String consoleURL, String forwardReceiverUsername,
-		String forwardBranchName, String forwardSenderUsername,
-		File gitRepositoryDir) {
+			String commentBody, String consoleURL,
+			String forwardReceiverUsername, String forwardBranchName,
+			String forwardSenderUsername, File gitRepositoryDir)
+		throws ForwardPullRequestException {
+
+		if (!isUpdateEnabled()) {
+			return null;
+		}
 
 		GitWorkingDirectory gitWorkingDirectory =
 			GitWorkingDirectoryFactory.newGitWorkingDirectory(
 				getUpstreamRemoteGitBranchName(),
 				gitRepositoryDir.getAbsolutePath(), getGitRepositoryName());
 
+		String senderSHA = getSenderSHA();
+
+		if (!gitWorkingDirectory.localSHAExists(senderSHA)) {
+			RemoteGitRef senderRemoteGitRef =
+				gitWorkingDirectory.getRemoteGitRef(
+					getSenderBranchName(), getSenderRemoteURL(), true);
+
+			gitWorkingDirectory.fetch(senderRemoteGitRef);
+		}
+
 		LocalGitBranch forwardLocalGitBranch =
-			gitWorkingDirectory.getRebasedLocalGitBranch(
-				forwardBranchName, getSenderBranchName(), getSenderRemoteURL(),
-				getSenderSHA(), getUpstreamRemoteGitBranchName(),
-				getUpstreamBranchSHA());
+			gitWorkingDirectory.createLocalGitBranch(
+				forwardBranchName, true, senderSHA);
 
 		RemoteGitBranch forwardRemoteGitBranch =
 			gitWorkingDirectory.pushToRemoteGitRepository(
@@ -199,6 +267,41 @@ public class PullRequest {
 
 		if (forwardRemoteGitBranch == null) {
 			throw new RuntimeException("Unable to push branch to GitHub");
+		}
+
+		String compareAPIURL = JenkinsResultsParserUtil.getGitHubAPIURL(
+			getGitRepositoryName(), forwardReceiverUsername,
+			JenkinsResultsParserUtil.combine(
+				"compare/", getUpstreamRemoteGitBranchName(), "...",
+				forwardSenderUsername, ":", forwardBranchName));
+
+		int aheadBy = -1;
+
+		try {
+			JSONObject compareJSONObject =
+				JenkinsResultsParserUtil.toJSONObject(compareAPIURL);
+
+			aheadBy = compareJSONObject.getInt("ahead_by");
+		}
+		catch (IOException ioException) {
+			System.out.println(
+				"Unable to compare branches: " + ioException.getMessage());
+		}
+
+		if (aheadBy == 0) {
+			StringBuilder sb = new StringBuilder();
+
+			sb.append("`ci:forward` could not forward this pull ");
+			sb.append("request because every commit on this pull request is ");
+			sb.append("already present on `");
+			sb.append(forwardReceiverUsername);
+			sb.append("/");
+			sb.append(getGitRepositoryName());
+			sb.append(":");
+			sb.append(getUpstreamRemoteGitBranchName());
+			sb.append("`.");
+
+			throw new ForwardPullRequestException(sb.toString(), false, null);
 		}
 
 		return gitWorkingDirectory.createPullRequest(
@@ -246,19 +349,24 @@ public class PullRequest {
 
 		_comments = new ArrayList<>();
 
-		String gitHubApiUrl = JenkinsResultsParserUtil.getGitHubApiUrl(
-			getGitHubRemoteGitRepositoryName(), getOwnerUsername(),
-			"issues/" + getNumber() + "/comments?per_page=100&page=");
+		URIBuilder uriBuilder = JenkinsResultsParserUtil.newURIBuilder(
+			JenkinsResultsParserUtil.getGitHubAPIURL(
+				getGitHubRemoteGitRepositoryName(), getOwnerUsername(),
+				"issues/" + getNumber() + "/comments"));
+
+		uriBuilder.addParameter("per_page", "100");
 
 		for (int pageNumber = 1;
 			 pageNumber <=
 				 JenkinsResultsParserUtil.PAGES_GITHUB_API_PAGES_SIZE_MAX;
 			 pageNumber++) {
 
+			uriBuilder.setParameter("page", String.valueOf(pageNumber));
+
 			try {
 				JSONArray commentJSONArray =
 					JenkinsResultsParserUtil.toJSONArray(
-						gitHubApiUrl + pageNumber, false);
+						uriBuilder.toString(), false);
 
 				if (commentJSONArray.length() == 0) {
 					break;
@@ -315,14 +423,15 @@ public class PullRequest {
 		for (int i = 0; i < statusesJSONArray.length(); i++) {
 			JSONObject jsonObject = statusesJSONArray.getJSONObject(i);
 
-			Matcher matcher = _liferayContextPattern.matcher(
-				jsonObject.getString("context"));
+			String testSuiteName = jsonObject.getString("context");
 
-			if (!matcher.find()) {
-				continue;
+			if (!Objects.equals(testSuiteName, "default")) {
+				Matcher matcher = _liferayContextPattern.matcher(testSuiteName);
+
+				if (matcher.find()) {
+					testSuiteName = matcher.group("testSuiteName");
+				}
 			}
-
-			String testSuiteName = matcher.group("testSuiteName");
 
 			if (testSuiteNames.contains(testSuiteName)) {
 				continue;
@@ -365,19 +474,25 @@ public class PullRequest {
 
 				_fileNames.add(fileName);
 
-				if (fileName.endsWith("/ci-merge")) {
-					String patch = fileJSONObject.getString("patch");
-
-					Matcher matcher = _ciMergeSHAPattern.matcher(patch);
-
-					if (matcher.find()) {
-						String sha = matcher.group(1);
-
-						if (!matcher.find()) {
-							_ciMergeSHA = sha;
-						}
-					}
+				if (!fileName.endsWith("/ci-merge")) {
+					continue;
 				}
+
+				String patch = fileJSONObject.getString("patch");
+
+				Matcher matcher = _ciMergeSHAPattern.matcher(patch);
+
+				if (!matcher.find()) {
+					continue;
+				}
+
+				String sha = matcher.group(1);
+
+				if (matcher.find()) {
+					continue;
+				}
+
+				_ciMergeSHA = sha;
 			}
 
 			return _fileNames;
@@ -481,6 +596,35 @@ public class PullRequest {
 			getSenderUsername(), "-", getNumber(), "-", getSenderBranchName());
 	}
 
+	public String getMergeableState() {
+		Retryable<String> retryable = new Retryable<String>(false, 5, 5, true) {
+
+			@Override
+			public String execute() {
+				if (_firstAttempt) {
+					_firstAttempt = false;
+				}
+				else {
+					_refreshJSONObject();
+				}
+
+				String mergeableState = _jsonObject.getString(
+					"mergeable_state");
+
+				if (mergeableState.equals("unknown")) {
+					throw new RuntimeException("Mergeable state is unknown");
+				}
+
+				return mergeableState;
+			}
+
+			private boolean _firstAttempt = true;
+
+		};
+
+		return retryable.executeWithRetries();
+	}
+
 	public String getNumber() {
 		return String.valueOf(_number);
 	}
@@ -497,14 +641,19 @@ public class PullRequest {
 		for (int i = 0; i < statusesJSONArray.length(); i++) {
 			JSONObject jsonObject = statusesJSONArray.getJSONObject(i);
 
-			Matcher matcher = _liferayContextPattern.matcher(
-				jsonObject.getString("context"));
+			String testSuiteName = jsonObject.getString("context");
 
-			if (!matcher.find()) {
-				continue;
+			if (!Objects.equals(testSuiteName, "default")) {
+				Matcher matcher = _liferayContextPattern.matcher(testSuiteName);
+
+				if (matcher.find()) {
+					testSuiteName = matcher.group("testSuiteName");
+				}
 			}
 
-			String testSuiteName = matcher.group("testSuiteName");
+			if (JenkinsResultsParserUtil.isNullOrEmpty(testSuiteName)) {
+				testSuiteName = "default";
+			}
 
 			if (testSuiteNames.contains(testSuiteName) ||
 				!Objects.equals(jsonObject.getString("state"), "success")) {
@@ -540,8 +689,12 @@ public class PullRequest {
 
 	public RemoteGitBranch getSenderRemoteGitBranch() {
 		if (_senderRemoteGitBranch == null) {
-			_senderRemoteGitBranch = GitUtil.getRemoteGitBranch(
-				getSenderBranchName(), new File(""), getSenderRemoteURL());
+			_senderRemoteGitBranch =
+				(RemoteGitBranch)GitBranchFactory.newRemoteGitRef(
+					GitRepositoryFactory.getRemoteGitRepository(
+						"github.com", getGitHubRemoteGitRepositoryName(),
+						getSenderUsername()),
+					getSenderBranchName(), getSenderSHA(), "heads");
 		}
 
 		return _senderRemoteGitBranch;
@@ -559,20 +712,6 @@ public class PullRequest {
 		return headJSONObject.getString("sha");
 	}
 
-	public JSONArray getSenderSHAStatusesJSONArray() {
-		JSONArray statusesJSONArray = null;
-
-		try {
-			statusesJSONArray = JenkinsResultsParserUtil.toJSONArray(
-				_jsonObject.getString("statuses_url"));
-		}
-		catch (IOException ioException) {
-			throw new RuntimeException(ioException);
-		}
-
-		return statusesJSONArray;
-	}
-
 	public JSONObject getSenderSHAStatusJSONObject() {
 		JSONObject statusJSONObject = null;
 
@@ -588,6 +727,20 @@ public class PullRequest {
 		}
 
 		return statusJSONObject;
+	}
+
+	public JSONArray getSenderSHAStatusesJSONArray() {
+		JSONArray statusesJSONArray = null;
+
+		try {
+			statusesJSONArray = JenkinsResultsParserUtil.toJSONArray(
+				_jsonObject.getString("statuses_url"));
+		}
+		catch (IOException ioException) {
+			throw new RuntimeException(ioException);
+		}
+
+		return statusesJSONArray;
 	}
 
 	public String getSenderUsername() {
@@ -611,6 +764,11 @@ public class PullRequest {
 
 	public String getTitle() {
 		return _jsonObject.getString("title");
+	}
+
+	public String getURL() {
+		return getURL(
+			getReceiverUsername(), getGitRepositoryName(), getNumber());
 	}
 
 	public String getUpstreamBranchSHA() {
@@ -639,11 +797,6 @@ public class PullRequest {
 		JSONObject baseJSONObject = _jsonObject.getJSONObject("base");
 
 		return baseJSONObject.getString("ref");
-	}
-
-	public String getURL() {
-		return getURL(
-			getReceiverUsername(), getGitRepositoryName(), getNumber());
 	}
 
 	public boolean hasLabel(String labelName) {
@@ -675,7 +828,8 @@ public class PullRequest {
 
 		String requiredCompletedTestSuiteNames =
 			JenkinsResultsParserUtil.getProperty(
-				buildProperties, propertyName, getGitRepositoryName());
+				buildProperties, propertyName, getGitRepositoryName(),
+				getRefName());
 
 		if (JenkinsResultsParserUtil.isNullOrEmpty(
 				requiredCompletedTestSuiteNames)) {
@@ -715,7 +869,8 @@ public class PullRequest {
 
 		String requiredPassingTestSuiteNames =
 			JenkinsResultsParserUtil.getProperty(
-				buildProperties, propertyName, getGitRepositoryName());
+				buildProperties, propertyName, getGitRepositoryName(),
+				getRefName());
 
 		if (JenkinsResultsParserUtil.isNullOrEmpty(
 				requiredPassingTestSuiteNames)) {
@@ -768,6 +923,29 @@ public class PullRequest {
 		return false;
 	}
 
+	public boolean isUpdateEnabled() {
+		Properties buildProperties = null;
+
+		try {
+			buildProperties = JenkinsResultsParserUtil.getBuildProperties();
+		}
+		catch (IOException ioException) {
+			throw new RuntimeException(ioException);
+		}
+
+		String gitHubPullRequestUpdateEnabled =
+			JenkinsResultsParserUtil.getProperty(
+				buildProperties, "github.pull.request.update.enabled");
+
+		if (JenkinsResultsParserUtil.isNullOrEmpty(
+				gitHubPullRequestUpdateEnabled)) {
+
+			return true;
+		}
+
+		return Boolean.parseBoolean(gitHubPullRequestUpdateEnabled);
+	}
+
 	public boolean isValidCIMergeFile() {
 		List<String> fileNames = getFileNames();
 
@@ -779,6 +957,10 @@ public class PullRequest {
 	}
 
 	public void lock() {
+		if (!isUpdateEnabled()) {
+			return;
+		}
+
 		try {
 			JenkinsResultsParserUtil.toString(
 				getIssueURL() + "/lock", false, HttpRequestMethod.PUT);
@@ -803,6 +985,10 @@ public class PullRequest {
 	}
 
 	public void removeComment(String id) {
+		if (!isUpdateEnabled()) {
+			return;
+		}
+
 		String editCommentURL = _jsonObject.getString("issue_url");
 
 		editCommentURL = editCommentURL.replaceFirst("issues/\\d+", "issues");
@@ -821,20 +1007,25 @@ public class PullRequest {
 	}
 
 	public void removeLabel(String labelName) {
-		if (!hasLabel(labelName)) {
+		if (!isUpdateEnabled() || !hasLabel(labelName)) {
 			return;
 		}
 
-		String path = JenkinsResultsParserUtil.combine(
-			"issues/", getNumber(), "/labels/",
-			JenkinsResultsParserUtil.fixURL(labelName));
+		URIBuilder uriBuilder = JenkinsResultsParserUtil.newURIBuilder(
+			JenkinsResultsParserUtil.getGitHubAPIURL(
+				getGitHubRemoteGitRepositoryName(), getOwnerUsername(),
+				"issues/" + getNumber() + "/labels"));
 
-		String gitHubApiUrl = JenkinsResultsParserUtil.getGitHubApiUrl(
-			getGitHubRemoteGitRepositoryName(), getOwnerUsername(), path);
+		List<String> pathSegments = new ArrayList<>(
+			uriBuilder.getPathSegments());
+
+		pathSegments.add(labelName);
+
+		uriBuilder.setPathSegments(pathSegments);
 
 		try {
 			JenkinsResultsParserUtil.toString(
-				gitHubApiUrl, false, HttpRequestMethod.DELETE);
+				uriBuilder.toString(), false, HttpRequestMethod.DELETE);
 
 			_labels = null;
 		}
@@ -866,6 +1057,10 @@ public class PullRequest {
 		String testSuiteName, TestSuiteStatus testSuiteStatus, String targetURL,
 		String senderSHA) {
 
+		if (!isUpdateEnabled()) {
+			return;
+		}
+
 		StringBuilder sb = new StringBuilder();
 
 		sb.append("ci:test");
@@ -884,9 +1079,11 @@ public class PullRequest {
 		for (GitHubRemoteGitRepository.Label label : getLabels()) {
 			String name = label.getName();
 
-			if (name.startsWith(testSuiteLabelPrefix)) {
-				oldLabelNames.add(label.getName());
+			if (!name.startsWith(testSuiteLabelPrefix)) {
+				continue;
 			}
+
+			oldLabelNames.add(label.getName());
 		}
 
 		for (String oldLabelName : oldLabelNames) {
@@ -946,8 +1143,11 @@ public class PullRequest {
 
 		sb.append("\"");
 
-		if ((testSuiteStatus == TestSuiteStatus.ERROR) ||
-			(testSuiteStatus == TestSuiteStatus.FAILURE)) {
+		if (testSuiteStatus == TestSuiteStatus.BYPASSED) {
+			sb.append(" was BYPASSED.");
+		}
+		else if ((testSuiteStatus == TestSuiteStatus.ERROR) ||
+				 (testSuiteStatus == TestSuiteStatus.FAILURE)) {
 
 			sb.append(" has FAILED.");
 		}
@@ -967,6 +1167,10 @@ public class PullRequest {
 	}
 
 	public Comment updateComment(String body, String id) {
+		if (!isUpdateEnabled()) {
+			return null;
+		}
+
 		JSONObject jsonObject = new JSONObject();
 
 		body = body.replaceAll("(\\>)\\s+(\\<)", "$1$2");
@@ -1007,7 +1211,7 @@ public class PullRequest {
 		}
 
 		public String getBody() {
-			return _commentJSONObject.getString("body");
+			return _commentJSONObject.optString("body");
 		}
 
 		public Date getCreatedDate() {
@@ -1024,13 +1228,13 @@ public class PullRequest {
 		}
 
 		public String getId() {
-			return String.valueOf(_commentJSONObject.getLong("id"));
+			return String.valueOf(_commentJSONObject.optLong("id"));
 		}
 
 		public Date getModifiedDate() {
 			try {
 				return _UtcIso8601SimpleDateFormat.parse(
-					_commentJSONObject.getString("modified_at"));
+					_commentJSONObject.optString("modified_at"));
 			}
 			catch (ParseException parseException) {
 				throw new RuntimeException(
@@ -1042,7 +1246,7 @@ public class PullRequest {
 
 		public URL getURL() {
 			try {
-				return new URL(_commentJSONObject.getString("html_url"));
+				return new URL(_commentJSONObject.optString("html_url"));
 			}
 			catch (MalformedURLException malformedURLException) {
 				throw new RuntimeException(malformedURLException);
@@ -1071,10 +1275,28 @@ public class PullRequest {
 
 	}
 
+	public static class ForwardPullRequestException extends Exception {
+
+		public ForwardPullRequestException(
+			String message, boolean retryable, Throwable throwable) {
+
+			super(message, throwable);
+
+			_retryable = retryable;
+		}
+
+		public boolean isRetryable() {
+			return _retryable;
+		}
+
+		private final boolean _retryable;
+
+	}
+
 	public static enum TestSuiteStatus {
 
-		ERROR("fccdcc"), FAILURE("fccdcc"), MISSING("eeeeee"),
-		PENDING("fff4c9"), SUCCESS("c7e8cb");
+		BYPASSED("bcf5db"), ERROR("fccdcc"), FAILURE("fccdcc"),
+		MISSING("eeeeee"), PENDING("fff4c9"), SUCCESS("c7e8cb");
 
 		public String getColor() {
 			return _color;
@@ -1119,8 +1341,8 @@ public class PullRequest {
 		refresh();
 	}
 
-	protected String getGitHubApiUrl() {
-		return JenkinsResultsParserUtil.getGitHubApiUrl(
+	protected String getGitHubAPIURL() {
+		return JenkinsResultsParserUtil.getGitHubAPIURL(
 			_gitHubRemoteGitRepositoryName, _ownerUsername, "pulls/" + _number);
 	}
 
@@ -1149,21 +1371,23 @@ public class PullRequest {
 	}
 
 	private void _initCommits() {
-		String commitsURL = _jsonObject.getString("commits_url");
-
 		_gitHubRemoteGitCommits = new ArrayList<>();
 
 		try {
+			URIBuilder uriBuilder = JenkinsResultsParserUtil.newURIBuilder(
+				_jsonObject.getString("commits_url"));
+
+			uriBuilder.addParameter("per_page", "100");
+
 			for (int pageNumber = 1;
 				 pageNumber <=
 					 JenkinsResultsParserUtil.PAGES_GITHUB_API_PAGES_SIZE_MAX;
 				 pageNumber++) {
 
+				uriBuilder.setParameter("page", String.valueOf(pageNumber));
+
 				JSONArray commitsJSONArray =
-					JenkinsResultsParserUtil.toJSONArray(
-						JenkinsResultsParserUtil.combine(
-							commitsURL, "?per_page=100&page=",
-							String.valueOf(pageNumber)));
+					JenkinsResultsParserUtil.toJSONArray(uriBuilder.toString());
 
 				if (commitsJSONArray.length() == 0) {
 					break;
@@ -1229,16 +1453,18 @@ public class PullRequest {
 
 			Issue issue = gitHubRemoteGitCommit.getJIRAIssue();
 
-			if (issue != null) {
-				_jiraIssues.add(issue);
+			if (issue == null) {
+				continue;
 			}
+
+			_jiraIssues.add(issue);
 		}
 	}
 
 	private void _refreshJSONObject() {
 		try {
 			_jsonObject = JenkinsResultsParserUtil.toJSONObject(
-				getGitHubApiUrl(), false);
+				getGitHubAPIURL(), false);
 		}
 		catch (IOException ioException) {
 			throw new RuntimeException(ioException);
@@ -1254,7 +1480,7 @@ public class PullRequest {
 			"https://github.com/(?<owner>[^/]+)/",
 			"(?<gitHubRemoteGitRepositoryName>[^/]+)/pull/(?<number>\\d+)"));
 	private static final Pattern _liferayContextPattern = Pattern.compile(
-		"liferay/ci:test:(?<testSuiteName>[^:]+)");
+		"liferay/ci:test(:(?<testSuiteName>[^:]+))?");
 
 	private Boolean _autoCloseCommentAvailable;
 	private String _ciMergeSHA = "";

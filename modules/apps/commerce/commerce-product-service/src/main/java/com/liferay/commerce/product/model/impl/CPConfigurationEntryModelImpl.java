@@ -71,14 +71,15 @@ public class CPConfigurationEntryModelImpl
 	public static final Object[][] TABLE_COLUMNS = {
 		{"mvccVersion", Types.BIGINT}, {"ctCollectionId", Types.BIGINT},
 		{"uuid_", Types.VARCHAR}, {"externalReferenceCode", Types.VARCHAR},
-		{"CPConfigurationEntryId", Types.BIGINT}, {"companyId", Types.BIGINT},
-		{"userId", Types.BIGINT}, {"userName", Types.VARCHAR},
-		{"createDate", Types.TIMESTAMP}, {"modifiedDate", Types.TIMESTAMP},
-		{"classNameId", Types.BIGINT}, {"classPK", Types.BIGINT},
-		{"CPConfigurationListId", Types.BIGINT},
+		{"CPConfigurationEntryId", Types.BIGINT}, {"groupId", Types.BIGINT},
+		{"companyId", Types.BIGINT}, {"userId", Types.BIGINT},
+		{"userName", Types.VARCHAR}, {"createDate", Types.TIMESTAMP},
+		{"modifiedDate", Types.TIMESTAMP}, {"classNameId", Types.BIGINT},
+		{"classPK", Types.BIGINT}, {"CPConfigurationListId", Types.BIGINT},
 		{"CPTaxCategoryId", Types.BIGINT},
 		{"allowedOrderQuantities", Types.VARCHAR},
 		{"backOrders", Types.BOOLEAN},
+		{"commerceAvailabilityEstimateId", Types.BIGINT},
 		{"CPDefinitionInventoryEngine", Types.VARCHAR}, {"depth", Types.DOUBLE},
 		{"displayAvailability", Types.BOOLEAN},
 		{"displayStockQuantity", Types.BOOLEAN},
@@ -90,8 +91,8 @@ public class CPConfigurationEntryModelImpl
 		{"multipleOrderQuantity", Types.DECIMAL},
 		{"purchasable", Types.BOOLEAN}, {"shippable", Types.BOOLEAN},
 		{"shippingExtraPrice", Types.DOUBLE}, {"shipSeparately", Types.BOOLEAN},
-		{"taxExempt", Types.BOOLEAN}, {"visible", Types.BOOLEAN},
-		{"weight", Types.DOUBLE}, {"width", Types.DOUBLE}
+		{"taxExempt", Types.BOOLEAN}, {"weight", Types.DOUBLE},
+		{"width", Types.DOUBLE}
 	};
 
 	public static final Map<String, Integer> TABLE_COLUMNS_MAP =
@@ -103,6 +104,7 @@ public class CPConfigurationEntryModelImpl
 		TABLE_COLUMNS_MAP.put("uuid_", Types.VARCHAR);
 		TABLE_COLUMNS_MAP.put("externalReferenceCode", Types.VARCHAR);
 		TABLE_COLUMNS_MAP.put("CPConfigurationEntryId", Types.BIGINT);
+		TABLE_COLUMNS_MAP.put("groupId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("companyId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("userId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("userName", Types.VARCHAR);
@@ -114,6 +116,7 @@ public class CPConfigurationEntryModelImpl
 		TABLE_COLUMNS_MAP.put("CPTaxCategoryId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("allowedOrderQuantities", Types.VARCHAR);
 		TABLE_COLUMNS_MAP.put("backOrders", Types.BOOLEAN);
+		TABLE_COLUMNS_MAP.put("commerceAvailabilityEstimateId", Types.BIGINT);
 		TABLE_COLUMNS_MAP.put("CPDefinitionInventoryEngine", Types.VARCHAR);
 		TABLE_COLUMNS_MAP.put("depth", Types.DOUBLE);
 		TABLE_COLUMNS_MAP.put("displayAvailability", Types.BOOLEAN);
@@ -130,16 +133,17 @@ public class CPConfigurationEntryModelImpl
 		TABLE_COLUMNS_MAP.put("shippingExtraPrice", Types.DOUBLE);
 		TABLE_COLUMNS_MAP.put("shipSeparately", Types.BOOLEAN);
 		TABLE_COLUMNS_MAP.put("taxExempt", Types.BOOLEAN);
-		TABLE_COLUMNS_MAP.put("visible", Types.BOOLEAN);
 		TABLE_COLUMNS_MAP.put("weight", Types.DOUBLE);
 		TABLE_COLUMNS_MAP.put("width", Types.DOUBLE);
 	}
 
 	public static final String TABLE_SQL_CREATE =
-		"create table CPConfigurationEntry (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,CPConfigurationEntryId LONG not null,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,classNameId LONG,classPK LONG,CPConfigurationListId LONG,CPTaxCategoryId LONG,allowedOrderQuantities VARCHAR(75) null,backOrders BOOLEAN,CPDefinitionInventoryEngine VARCHAR(75) null,depth DOUBLE,displayAvailability BOOLEAN,displayStockQuantity BOOLEAN,freeShipping BOOLEAN,height DOUBLE,lowStockActivity VARCHAR(75) null,maxOrderQuantity BIGDECIMAL null,minOrderQuantity BIGDECIMAL null,minStockQuantity BIGDECIMAL null,multipleOrderQuantity BIGDECIMAL null,purchasable BOOLEAN,shippable BOOLEAN,shippingExtraPrice DOUBLE,shipSeparately BOOLEAN,taxExempt BOOLEAN,visible BOOLEAN,weight DOUBLE,width DOUBLE,primary key (CPConfigurationEntryId, ctCollectionId))";
+		"create table CPConfigurationEntry (mvccVersion LONG default 0 not null,ctCollectionId LONG default 0 not null,uuid_ VARCHAR(75) null,externalReferenceCode VARCHAR(75) null,CPConfigurationEntryId LONG not null,groupId LONG,companyId LONG,userId LONG,userName VARCHAR(75) null,createDate DATE null,modifiedDate DATE null,classNameId LONG,classPK LONG,CPConfigurationListId LONG,CPTaxCategoryId LONG,allowedOrderQuantities VARCHAR(75) null,backOrders BOOLEAN,commerceAvailabilityEstimateId LONG,CPDefinitionInventoryEngine VARCHAR(75) null,depth DOUBLE,displayAvailability BOOLEAN,displayStockQuantity BOOLEAN,freeShipping BOOLEAN,height DOUBLE,lowStockActivity VARCHAR(75) null,maxOrderQuantity BIGDECIMAL null,minOrderQuantity BIGDECIMAL null,minStockQuantity BIGDECIMAL null,multipleOrderQuantity BIGDECIMAL null,purchasable BOOLEAN,shippable BOOLEAN,shippingExtraPrice DOUBLE,shipSeparately BOOLEAN,taxExempt BOOLEAN,weight DOUBLE,width DOUBLE,primary key (CPConfigurationEntryId, ctCollectionId))";
 
 	public static final String TABLE_SQL_DROP =
 		"drop table CPConfigurationEntry";
+
+	public static final String ENTITY_ALIAS = "cpConfigurationEntry";
 
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY cpConfigurationEntry.createDate DESC";
@@ -163,26 +167,44 @@ public class CPConfigurationEntryModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long COMPANYID_COLUMN_BITMASK = 2L;
+	public static final long CLASSNAMEID_COLUMN_BITMASK = 2L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long EXTERNALREFERENCECODE_COLUMN_BITMASK = 4L;
+	public static final long CLASSPK_COLUMN_BITMASK = 4L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 8L;
+	public static final long COMPANYID_COLUMN_BITMASK = 8L;
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
+	 */
+	@Deprecated
+	public static final long EXTERNALREFERENCECODE_COLUMN_BITMASK = 16L;
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
+	 */
+	@Deprecated
+	public static final long GROUPID_COLUMN_BITMASK = 32L;
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
+	 */
+	@Deprecated
+	public static final long UUID_COLUMN_BITMASK = 64L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long CREATEDATE_COLUMN_BITMASK = 16L;
+	public static final long CREATEDATE_COLUMN_BITMASK = 128L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
@@ -306,6 +328,8 @@ public class CPConfigurationEntryModelImpl
 				"CPConfigurationEntryId",
 				CPConfigurationEntry::getCPConfigurationEntryId);
 			attributeGetterFunctions.put(
+				"groupId", CPConfigurationEntry::getGroupId);
+			attributeGetterFunctions.put(
 				"companyId", CPConfigurationEntry::getCompanyId);
 			attributeGetterFunctions.put(
 				"userId", CPConfigurationEntry::getUserId);
@@ -329,6 +353,9 @@ public class CPConfigurationEntryModelImpl
 				CPConfigurationEntry::getAllowedOrderQuantities);
 			attributeGetterFunctions.put(
 				"backOrders", CPConfigurationEntry::getBackOrders);
+			attributeGetterFunctions.put(
+				"commerceAvailabilityEstimateId",
+				CPConfigurationEntry::getCommerceAvailabilityEstimateId);
 			attributeGetterFunctions.put(
 				"CPDefinitionInventoryEngine",
 				CPConfigurationEntry::getCPDefinitionInventoryEngine);
@@ -366,8 +393,6 @@ public class CPConfigurationEntryModelImpl
 				"shipSeparately", CPConfigurationEntry::getShipSeparately);
 			attributeGetterFunctions.put(
 				"taxExempt", CPConfigurationEntry::getTaxExempt);
-			attributeGetterFunctions.put(
-				"visible", CPConfigurationEntry::getVisible);
 			attributeGetterFunctions.put(
 				"weight", CPConfigurationEntry::getWeight);
 			attributeGetterFunctions.put(
@@ -412,6 +437,10 @@ public class CPConfigurationEntryModelImpl
 				(BiConsumer<CPConfigurationEntry, Long>)
 					CPConfigurationEntry::setCPConfigurationEntryId);
 			attributeSetterBiConsumers.put(
+				"groupId",
+				(BiConsumer<CPConfigurationEntry, Long>)
+					CPConfigurationEntry::setGroupId);
+			attributeSetterBiConsumers.put(
 				"companyId",
 				(BiConsumer<CPConfigurationEntry, Long>)
 					CPConfigurationEntry::setCompanyId);
@@ -455,6 +484,10 @@ public class CPConfigurationEntryModelImpl
 				"backOrders",
 				(BiConsumer<CPConfigurationEntry, Boolean>)
 					CPConfigurationEntry::setBackOrders);
+			attributeSetterBiConsumers.put(
+				"commerceAvailabilityEstimateId",
+				(BiConsumer<CPConfigurationEntry, Long>)
+					CPConfigurationEntry::setCommerceAvailabilityEstimateId);
 			attributeSetterBiConsumers.put(
 				"CPDefinitionInventoryEngine",
 				(BiConsumer<CPConfigurationEntry, String>)
@@ -519,10 +552,6 @@ public class CPConfigurationEntryModelImpl
 				"taxExempt",
 				(BiConsumer<CPConfigurationEntry, Boolean>)
 					CPConfigurationEntry::setTaxExempt);
-			attributeSetterBiConsumers.put(
-				"visible",
-				(BiConsumer<CPConfigurationEntry, Boolean>)
-					CPConfigurationEntry::setVisible);
 			attributeSetterBiConsumers.put(
 				"weight",
 				(BiConsumer<CPConfigurationEntry, Double>)
@@ -639,6 +668,30 @@ public class CPConfigurationEntryModelImpl
 		}
 
 		_CPConfigurationEntryId = CPConfigurationEntryId;
+	}
+
+	@JSON
+	@Override
+	public long getGroupId() {
+		return _groupId;
+	}
+
+	@Override
+	public void setGroupId(long groupId) {
+		if (_columnOriginalValues == Collections.EMPTY_MAP) {
+			_setColumnOriginalValues();
+		}
+
+		_groupId = groupId;
+	}
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
+	 *             #getColumnOriginalValue(String)}
+	 */
+	@Deprecated
+	public long getOriginalGroupId() {
+		return GetterUtil.getLong(this.<Long>getColumnOriginalValue("groupId"));
 	}
 
 	@JSON
@@ -788,6 +841,16 @@ public class CPConfigurationEntryModelImpl
 		_classNameId = classNameId;
 	}
 
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
+	 *             #getColumnOriginalValue(String)}
+	 */
+	@Deprecated
+	public long getOriginalClassNameId() {
+		return GetterUtil.getLong(
+			this.<Long>getColumnOriginalValue("classNameId"));
+	}
+
 	@JSON
 	@Override
 	public long getClassPK() {
@@ -801,6 +864,15 @@ public class CPConfigurationEntryModelImpl
 		}
 
 		_classPK = classPK;
+	}
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
+	 *             #getColumnOriginalValue(String)}
+	 */
+	@Deprecated
+	public long getOriginalClassPK() {
+		return GetterUtil.getLong(this.<Long>getColumnOriginalValue("classPK"));
 	}
 
 	@JSON
@@ -882,6 +954,23 @@ public class CPConfigurationEntryModelImpl
 		}
 
 		_backOrders = backOrders;
+	}
+
+	@JSON
+	@Override
+	public long getCommerceAvailabilityEstimateId() {
+		return _commerceAvailabilityEstimateId;
+	}
+
+	@Override
+	public void setCommerceAvailabilityEstimateId(
+		long commerceAvailabilityEstimateId) {
+
+		if (_columnOriginalValues == Collections.EMPTY_MAP) {
+			_setColumnOriginalValues();
+		}
+
+		_commerceAvailabilityEstimateId = commerceAvailabilityEstimateId;
 	}
 
 	@JSON
@@ -1180,27 +1269,6 @@ public class CPConfigurationEntryModelImpl
 
 	@JSON
 	@Override
-	public boolean getVisible() {
-		return _visible;
-	}
-
-	@JSON
-	@Override
-	public boolean isVisible() {
-		return _visible;
-	}
-
-	@Override
-	public void setVisible(boolean visible) {
-		if (_columnOriginalValues == Collections.EMPTY_MAP) {
-			_setColumnOriginalValues();
-		}
-
-		_visible = visible;
-	}
-
-	@JSON
-	@Override
 	public double getWeight() {
 		return _weight;
 	}
@@ -1301,6 +1369,7 @@ public class CPConfigurationEntryModelImpl
 			getExternalReferenceCode());
 		cpConfigurationEntryImpl.setCPConfigurationEntryId(
 			getCPConfigurationEntryId());
+		cpConfigurationEntryImpl.setGroupId(getGroupId());
 		cpConfigurationEntryImpl.setCompanyId(getCompanyId());
 		cpConfigurationEntryImpl.setUserId(getUserId());
 		cpConfigurationEntryImpl.setUserName(getUserName());
@@ -1314,6 +1383,8 @@ public class CPConfigurationEntryModelImpl
 		cpConfigurationEntryImpl.setAllowedOrderQuantities(
 			getAllowedOrderQuantities());
 		cpConfigurationEntryImpl.setBackOrders(isBackOrders());
+		cpConfigurationEntryImpl.setCommerceAvailabilityEstimateId(
+			getCommerceAvailabilityEstimateId());
 		cpConfigurationEntryImpl.setCPDefinitionInventoryEngine(
 			getCPDefinitionInventoryEngine());
 		cpConfigurationEntryImpl.setDepth(getDepth());
@@ -1334,7 +1405,6 @@ public class CPConfigurationEntryModelImpl
 		cpConfigurationEntryImpl.setShippingExtraPrice(getShippingExtraPrice());
 		cpConfigurationEntryImpl.setShipSeparately(isShipSeparately());
 		cpConfigurationEntryImpl.setTaxExempt(isTaxExempt());
-		cpConfigurationEntryImpl.setVisible(isVisible());
 		cpConfigurationEntryImpl.setWeight(getWeight());
 		cpConfigurationEntryImpl.setWidth(getWidth());
 
@@ -1358,6 +1428,8 @@ public class CPConfigurationEntryModelImpl
 			this.<String>getColumnOriginalValue("externalReferenceCode"));
 		cpConfigurationEntryImpl.setCPConfigurationEntryId(
 			this.<Long>getColumnOriginalValue("CPConfigurationEntryId"));
+		cpConfigurationEntryImpl.setGroupId(
+			this.<Long>getColumnOriginalValue("groupId"));
 		cpConfigurationEntryImpl.setCompanyId(
 			this.<Long>getColumnOriginalValue("companyId"));
 		cpConfigurationEntryImpl.setUserId(
@@ -1380,6 +1452,9 @@ public class CPConfigurationEntryModelImpl
 			this.<String>getColumnOriginalValue("allowedOrderQuantities"));
 		cpConfigurationEntryImpl.setBackOrders(
 			this.<Boolean>getColumnOriginalValue("backOrders"));
+		cpConfigurationEntryImpl.setCommerceAvailabilityEstimateId(
+			this.<Long>getColumnOriginalValue(
+				"commerceAvailabilityEstimateId"));
 		cpConfigurationEntryImpl.setCPDefinitionInventoryEngine(
 			this.<String>getColumnOriginalValue("CPDefinitionInventoryEngine"));
 		cpConfigurationEntryImpl.setDepth(
@@ -1412,8 +1487,6 @@ public class CPConfigurationEntryModelImpl
 			this.<Boolean>getColumnOriginalValue("shipSeparately"));
 		cpConfigurationEntryImpl.setTaxExempt(
 			this.<Boolean>getColumnOriginalValue("taxExempt"));
-		cpConfigurationEntryImpl.setVisible(
-			this.<Boolean>getColumnOriginalValue("visible"));
 		cpConfigurationEntryImpl.setWeight(
 			this.<Double>getColumnOriginalValue("weight"));
 		cpConfigurationEntryImpl.setWidth(
@@ -1525,6 +1598,8 @@ public class CPConfigurationEntryModelImpl
 		cpConfigurationEntryCacheModel.CPConfigurationEntryId =
 			getCPConfigurationEntryId();
 
+		cpConfigurationEntryCacheModel.groupId = getGroupId();
+
 		cpConfigurationEntryCacheModel.companyId = getCompanyId();
 
 		cpConfigurationEntryCacheModel.userId = getUserId();
@@ -1579,6 +1654,9 @@ public class CPConfigurationEntryModelImpl
 
 		cpConfigurationEntryCacheModel.backOrders = isBackOrders();
 
+		cpConfigurationEntryCacheModel.commerceAvailabilityEstimateId =
+			getCommerceAvailabilityEstimateId();
+
 		cpConfigurationEntryCacheModel.CPDefinitionInventoryEngine =
 			getCPDefinitionInventoryEngine();
 
@@ -1631,8 +1709,6 @@ public class CPConfigurationEntryModelImpl
 		cpConfigurationEntryCacheModel.shipSeparately = isShipSeparately();
 
 		cpConfigurationEntryCacheModel.taxExempt = isTaxExempt();
-
-		cpConfigurationEntryCacheModel.visible = isVisible();
 
 		cpConfigurationEntryCacheModel.weight = getWeight();
 
@@ -1705,6 +1781,7 @@ public class CPConfigurationEntryModelImpl
 	private String _uuid;
 	private String _externalReferenceCode;
 	private long _CPConfigurationEntryId;
+	private long _groupId;
 	private long _companyId;
 	private long _userId;
 	private String _userName;
@@ -1717,6 +1794,7 @@ public class CPConfigurationEntryModelImpl
 	private long _CPTaxCategoryId;
 	private String _allowedOrderQuantities;
 	private boolean _backOrders;
+	private long _commerceAvailabilityEstimateId;
 	private String _CPDefinitionInventoryEngine;
 	private double _depth;
 	private boolean _displayAvailability;
@@ -1733,7 +1811,6 @@ public class CPConfigurationEntryModelImpl
 	private double _shippingExtraPrice;
 	private boolean _shipSeparately;
 	private boolean _taxExempt;
-	private boolean _visible;
 	private double _weight;
 	private double _width;
 
@@ -1774,6 +1851,7 @@ public class CPConfigurationEntryModelImpl
 			"externalReferenceCode", _externalReferenceCode);
 		_columnOriginalValues.put(
 			"CPConfigurationEntryId", _CPConfigurationEntryId);
+		_columnOriginalValues.put("groupId", _groupId);
 		_columnOriginalValues.put("companyId", _companyId);
 		_columnOriginalValues.put("userId", _userId);
 		_columnOriginalValues.put("userName", _userName);
@@ -1787,6 +1865,8 @@ public class CPConfigurationEntryModelImpl
 		_columnOriginalValues.put(
 			"allowedOrderQuantities", _allowedOrderQuantities);
 		_columnOriginalValues.put("backOrders", _backOrders);
+		_columnOriginalValues.put(
+			"commerceAvailabilityEstimateId", _commerceAvailabilityEstimateId);
 		_columnOriginalValues.put(
 			"CPDefinitionInventoryEngine", _CPDefinitionInventoryEngine);
 		_columnOriginalValues.put("depth", _depth);
@@ -1806,7 +1886,6 @@ public class CPConfigurationEntryModelImpl
 		_columnOriginalValues.put("shippingExtraPrice", _shippingExtraPrice);
 		_columnOriginalValues.put("shipSeparately", _shipSeparately);
 		_columnOriginalValues.put("taxExempt", _taxExempt);
-		_columnOriginalValues.put("visible", _visible);
 		_columnOriginalValues.put("weight", _weight);
 		_columnOriginalValues.put("width", _width);
 	}
@@ -1842,65 +1921,67 @@ public class CPConfigurationEntryModelImpl
 
 		columnBitmasks.put("CPConfigurationEntryId", 16L);
 
-		columnBitmasks.put("companyId", 32L);
+		columnBitmasks.put("groupId", 32L);
 
-		columnBitmasks.put("userId", 64L);
+		columnBitmasks.put("companyId", 64L);
 
-		columnBitmasks.put("userName", 128L);
+		columnBitmasks.put("userId", 128L);
 
-		columnBitmasks.put("createDate", 256L);
+		columnBitmasks.put("userName", 256L);
 
-		columnBitmasks.put("modifiedDate", 512L);
+		columnBitmasks.put("createDate", 512L);
 
-		columnBitmasks.put("classNameId", 1024L);
+		columnBitmasks.put("modifiedDate", 1024L);
 
-		columnBitmasks.put("classPK", 2048L);
+		columnBitmasks.put("classNameId", 2048L);
 
-		columnBitmasks.put("CPConfigurationListId", 4096L);
+		columnBitmasks.put("classPK", 4096L);
 
-		columnBitmasks.put("CPTaxCategoryId", 8192L);
+		columnBitmasks.put("CPConfigurationListId", 8192L);
 
-		columnBitmasks.put("allowedOrderQuantities", 16384L);
+		columnBitmasks.put("CPTaxCategoryId", 16384L);
 
-		columnBitmasks.put("backOrders", 32768L);
+		columnBitmasks.put("allowedOrderQuantities", 32768L);
 
-		columnBitmasks.put("CPDefinitionInventoryEngine", 65536L);
+		columnBitmasks.put("backOrders", 65536L);
 
-		columnBitmasks.put("depth", 131072L);
+		columnBitmasks.put("commerceAvailabilityEstimateId", 131072L);
 
-		columnBitmasks.put("displayAvailability", 262144L);
+		columnBitmasks.put("CPDefinitionInventoryEngine", 262144L);
 
-		columnBitmasks.put("displayStockQuantity", 524288L);
+		columnBitmasks.put("depth", 524288L);
 
-		columnBitmasks.put("freeShipping", 1048576L);
+		columnBitmasks.put("displayAvailability", 1048576L);
 
-		columnBitmasks.put("height", 2097152L);
+		columnBitmasks.put("displayStockQuantity", 2097152L);
 
-		columnBitmasks.put("lowStockActivity", 4194304L);
+		columnBitmasks.put("freeShipping", 4194304L);
 
-		columnBitmasks.put("maxOrderQuantity", 8388608L);
+		columnBitmasks.put("height", 8388608L);
 
-		columnBitmasks.put("minOrderQuantity", 16777216L);
+		columnBitmasks.put("lowStockActivity", 16777216L);
 
-		columnBitmasks.put("minStockQuantity", 33554432L);
+		columnBitmasks.put("maxOrderQuantity", 33554432L);
 
-		columnBitmasks.put("multipleOrderQuantity", 67108864L);
+		columnBitmasks.put("minOrderQuantity", 67108864L);
 
-		columnBitmasks.put("purchasable", 134217728L);
+		columnBitmasks.put("minStockQuantity", 134217728L);
 
-		columnBitmasks.put("shippable", 268435456L);
+		columnBitmasks.put("multipleOrderQuantity", 268435456L);
 
-		columnBitmasks.put("shippingExtraPrice", 536870912L);
+		columnBitmasks.put("purchasable", 536870912L);
 
-		columnBitmasks.put("shipSeparately", 1073741824L);
+		columnBitmasks.put("shippable", 1073741824L);
 
-		columnBitmasks.put("taxExempt", 2147483648L);
+		columnBitmasks.put("shippingExtraPrice", 2147483648L);
 
-		columnBitmasks.put("visible", 4294967296L);
+		columnBitmasks.put("shipSeparately", 4294967296L);
 
-		columnBitmasks.put("weight", 8589934592L);
+		columnBitmasks.put("taxExempt", 8589934592L);
 
-		columnBitmasks.put("width", 17179869184L);
+		columnBitmasks.put("weight", 17179869184L);
+
+		columnBitmasks.put("width", 34359738368L);
 
 		_columnBitmasks = Collections.unmodifiableMap(columnBitmasks);
 	}
@@ -1909,3 +1990,4 @@ public class CPConfigurationEntryModelImpl
 	private CPConfigurationEntry _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1211568564

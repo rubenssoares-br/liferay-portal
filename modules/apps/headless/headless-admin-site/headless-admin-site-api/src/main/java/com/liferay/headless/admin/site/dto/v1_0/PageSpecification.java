@@ -16,26 +16,27 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -43,8 +44,11 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName(
-	description = "A page specification of a content page, content page template, widget page, or widget page template. A content page may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status. A widget page contains only 1 page specification in published status.",
+	description = "A page specification of a content page, content page template, widget page, or widget page template. A content page will contain 1 page specification for its draft layout and 1 page specification for its published layout. A widget page contains only 1 page specification for its published layout.",
 	value = "PageSpecification"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A page specification of a content page, content page template, widget page, or widget page template. A content page will contain 1 page specification for its draft layout and 1 page specification for its published layout. A widget page contains only 1 page specification for its published layout."
 )
 @JsonFilter("Liferay.Vulcan")
 @JsonSubTypes(
@@ -54,13 +58,29 @@ import javax.xml.bind.annotation.XmlRootElement;
 			value = ContentPageSpecification.class
 		),
 		@JsonSubTypes.Type(
+			name = "EmbeddedPageSpecification",
+			value = EmbeddedPageSpecification.class
+		),
+		@JsonSubTypes.Type(
+			name = "LinkToPagePageSpecification",
+			value = LinkToPagePageSpecification.class
+		),
+		@JsonSubTypes.Type(
+			name = "LinkToURLPageSpecification",
+			value = LinkToURLPageSpecification.class
+		),
+		@JsonSubTypes.Type(
+			name = "PageSetPageSpecification",
+			value = PageSetPageSpecification.class
+		),
+		@JsonSubTypes.Type(
 			name = "WidgetPageSpecification",
 			value = WidgetPageSpecification.class
 		)
 	}
 )
 @JsonTypeInfo(
-	include = JsonTypeInfo.As.PROPERTY, property = "type",
+	include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type",
 	use = JsonTypeInfo.Id.NAME, visible = true
 )
 @XmlRootElement(name = "PageSpecification")
@@ -74,7 +94,60 @@ public abstract class PageSpecification implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PageSpecification.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Custom fields associated with the page specification. Not available if this page specification belongs to a utility page."
+	)
+	@Valid
+	public com.liferay.portal.vulcan.custom.field.CustomField[]
+		getCustomFields() {
+
+		if (_customFieldsSupplier != null) {
+			customFields = _customFieldsSupplier.get();
+
+			_customFieldsSupplier = null;
+		}
+
+		return customFields;
+	}
+
+	public void setCustomFields(
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields) {
+
+		this.customFields = customFields;
+
+		_customFieldsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCustomFields(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.custom.field.CustomField[], Exception>
+				customFieldsUnsafeSupplier) {
+
+		_customFieldsSupplier = () -> {
+			try {
+				return customFieldsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Custom fields associated with the page specification. Not available if this page specification belongs to a utility page."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.custom.field.CustomField[] customFields;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.custom.field.CustomField[]>
+		_customFieldsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The page specification's external reference code, unique per site."
 	)
 	public String getExternalReferenceCode() {
@@ -119,31 +192,41 @@ public abstract class PageSpecification implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
-	@Valid
-	public Settings getSettings() {
-		if (_settingsSupplier != null) {
-			settings = _settingsSupplier.get();
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The site template page specification's external reference code."
+	)
+	public String getSiteTemplatePageSpecificationExternalReferenceCode() {
+		if (_siteTemplatePageSpecificationExternalReferenceCodeSupplier !=
+				null) {
 
-			_settingsSupplier = null;
+			siteTemplatePageSpecificationExternalReferenceCode =
+				_siteTemplatePageSpecificationExternalReferenceCodeSupplier.
+					get();
+
+			_siteTemplatePageSpecificationExternalReferenceCodeSupplier = null;
 		}
 
-		return settings;
+		return siteTemplatePageSpecificationExternalReferenceCode;
 	}
 
-	public void setSettings(Settings settings) {
-		this.settings = settings;
+	public void setSiteTemplatePageSpecificationExternalReferenceCode(
+		String siteTemplatePageSpecificationExternalReferenceCode) {
 
-		_settingsSupplier = null;
+		this.siteTemplatePageSpecificationExternalReferenceCode =
+			siteTemplatePageSpecificationExternalReferenceCode;
+
+		_siteTemplatePageSpecificationExternalReferenceCodeSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setSettings(
-		UnsafeSupplier<Settings, Exception> settingsUnsafeSupplier) {
+	public void setSiteTemplatePageSpecificationExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			siteTemplatePageSpecificationExternalReferenceCodeUnsafeSupplier) {
 
-		_settingsSupplier = () -> {
+		_siteTemplatePageSpecificationExternalReferenceCodeSupplier = () -> {
 			try {
-				return settingsUnsafeSupplier.get();
+				return siteTemplatePageSpecificationExternalReferenceCodeUnsafeSupplier.
+					get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -154,15 +237,76 @@ public abstract class PageSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "The site template page specification's external reference code."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Settings settings;
+	protected String siteTemplatePageSpecificationExternalReferenceCode;
 
 	@JsonIgnore
-	private Supplier<Settings> _settingsSupplier;
+	private Supplier<String>
+		_siteTemplatePageSpecificationExternalReferenceCodeSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The status of the page specification."
+	)
+	@JsonGetter("status")
+	@Valid
+	public Status getStatus() {
+		if (_statusSupplier != null) {
+			status = _statusSupplier.get();
+
+			_statusSupplier = null;
+		}
+
+		return status;
+	}
+
+	@JsonIgnore
+	public String getStatusAsString() {
+		Status status = getStatus();
+
+		if (status == null) {
+			return null;
+		}
+
+		return status.toString();
+	}
+
+	public void setStatus(Status status) {
+		this.status = status;
+
+		_statusSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setStatus(
+		UnsafeSupplier<Status, Exception> statusUnsafeSupplier) {
+
+		_statusSupplier = () -> {
+			try {
+				return statusUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The status of the page specification.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Status status;
+
+	@JsonIgnore
+	private Supplier<Status> _statusSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The type of the page specification."
+	)
 	@JsonGetter("type")
-	@Schema(description = "The type of the page specification.")
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -240,6 +384,29 @@ public abstract class PageSpecification implements Serializable {
 
 		sb.append("{");
 
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields =
+			getCustomFields();
+
+		if (customFields != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"customFields\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < customFields.length; i++) {
+				sb.append(customFields[i]);
+
+				if ((i + 1) < customFields.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		String externalReferenceCode = getExternalReferenceCode();
 
 		if (externalReferenceCode != null) {
@@ -256,16 +423,37 @@ public abstract class PageSpecification implements Serializable {
 			sb.append("\"");
 		}
 
-		Settings settings = getSettings();
+		String siteTemplatePageSpecificationExternalReferenceCode =
+			getSiteTemplatePageSpecificationExternalReferenceCode();
 
-		if (settings != null) {
+		if (siteTemplatePageSpecificationExternalReferenceCode != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"settings\": ");
+			sb.append(
+				"\"siteTemplatePageSpecificationExternalReferenceCode\": ");
 
-			sb.append(String.valueOf(settings));
+			sb.append("\"");
+
+			sb.append(
+				_escape(siteTemplatePageSpecificationExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
+		Status status = getStatus();
+
+		if (status != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"status\": ");
+
+			sb.append("\"");
+			sb.append(status);
+			sb.append("\"");
 		}
 
 		Type type = getType();
@@ -278,9 +466,7 @@ public abstract class PageSpecification implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -289,17 +475,59 @@ public abstract class PageSpecification implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.PageSpecification",
 		name = "x-class-name"
 	)
 	public String xClassName;
 
+	@GraphQLName("Status")
+	public static enum Status {
+
+		APPROVED("Approved"), DRAFT("Draft");
+
+		@JsonCreator
+		public static Status create(String value) {
+			if ((value == null) || value.equals("")) {
+				return null;
+			}
+
+			for (Status status : values()) {
+				if (Objects.equals(status.getValue(), value)) {
+					return status;
+				}
+			}
+
+			throw new IllegalArgumentException("Invalid enum value: " + value);
+		}
+
+		@JsonValue
+		public String getValue() {
+			return _value;
+		}
+
+		@Override
+		public String toString() {
+			return _value;
+		}
+
+		private Status(String value) {
+			_value = value;
+		}
+
+		private final String _value;
+
+	}
+
 	@GraphQLName("Type")
 	public static enum Type {
 
 		CONTENT_PAGE_SPECIFICATION("ContentPageSpecification"),
+		EMBEDDED_PAGE_SPECIFICATION("EmbeddedPageSpecification"),
+		LINK_TO_PAGE_PAGE_SPECIFICATION("LinkToPagePageSpecification"),
+		LINK_TO_URL_PAGE_SPECIFICATION("LinkToURLPageSpecification"),
+		PAGE_SET_PAGE_SPECIFICATION("PageSetPageSpecification"),
 		WIDGET_PAGE_SPECIFICATION("WidgetPageSpecification");
 
 		@JsonCreator
@@ -416,6 +644,27 @@ public abstract class PageSpecification implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -424,3 +673,4 @@ public abstract class PageSpecification implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:756786297

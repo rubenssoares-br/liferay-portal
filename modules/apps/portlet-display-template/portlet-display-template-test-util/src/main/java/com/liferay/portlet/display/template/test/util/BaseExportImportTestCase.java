@@ -25,7 +25,7 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portlet.display.template.PortletDisplayTemplate;
 
-import javax.portlet.PortletPreferences;
+import jakarta.portlet.PortletPreferences;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -74,7 +74,7 @@ public abstract class BaseExportImportTestCase
 		Assert.assertNotNull(
 			DDMTemplateLocalServiceUtil.getTemplate(
 				importedGroup.getGroupId(), classNameId,
-				ddmTemplate.getTemplateKey()));
+				ddmTemplate.getTemplateKey(), false));
 
 		Assert.assertEquals(
 			PortletDisplayTemplate.DISPLAY_STYLE_PREFIX +

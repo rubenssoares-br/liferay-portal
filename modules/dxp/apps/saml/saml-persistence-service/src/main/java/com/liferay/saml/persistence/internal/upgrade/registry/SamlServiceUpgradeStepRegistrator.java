@@ -13,6 +13,7 @@ import com.liferay.portal.upgrade.release.ReleaseRenamingUpgradeStep;
 import com.liferay.saml.persistence.internal.upgrade.v2_4_0.util.SamlPeerBindingTable;
 import com.liferay.saml.persistence.internal.upgrade.v3_0_1.SamlSpIdpConnectionDataUpgradeProcess;
 import com.liferay.saml.persistence.internal.upgrade.v3_0_2.SamlPeerBindingUpgradeProcess;
+import com.liferay.saml.persistence.internal.upgrade.v3_2_0.util.SamlIbSloMessageTable;
 
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.Component;
@@ -77,8 +78,6 @@ public class SamlServiceUpgradeStepRegistrator
 
 		registry.register(
 			"1.1.4", "2.0.0",
-			UpgradeProcessFactory.addColumns(
-				"SamlSpSession", "samlIdpEntityId VARCHAR(1024) null"),
 			new com.liferay.saml.persistence.internal.upgrade.v2_0_0.
 				SamlSpSessionDataUpgradeProcess(_configurationAdmin));
 
@@ -107,9 +106,12 @@ public class SamlServiceUpgradeStepRegistrator
 				"VARCHAR(1024) null"));
 
 		registry.register(
-			"2.4.1", "2.5.0",
+			"2.4.1", "2.4.2",
 			new com.liferay.saml.persistence.internal.upgrade.v3_0_0.
-				SamlIdpSpSessionUpgradeProcess(),
+				SamlIdpSpSessionUpgradeProcess());
+
+		registry.register(
+			"2.4.2", "2.5.0",
 			new com.liferay.saml.persistence.internal.upgrade.v3_0_0.
 				SamlSpSessionUpgradeProcess());
 
@@ -134,13 +136,7 @@ public class SamlServiceUpgradeStepRegistrator
 			"3.0.0", "3.0.1", new SamlSpIdpConnectionDataUpgradeProcess());
 
 		registry.register(
-			"3.0.1", "3.0.2", new SamlPeerBindingUpgradeProcess(),
-			UpgradeProcessFactory.alterColumnType(
-				"SamlPeerBinding", "samlNameIdFormat", "VARCHAR(128) null"),
-			UpgradeProcessFactory.alterColumnType(
-				"SamlPeerBinding", "samlNameIdValue", "VARCHAR(1024) null"),
-			UpgradeProcessFactory.alterColumnType(
-				"SamlPeerBinding", "samlPeerEntityId", "VARCHAR(1024) null"));
+			"3.0.1", "3.0.2", new SamlPeerBindingUpgradeProcess());
 
 		registry.register(
 			"3.0.2", "3.0.3",
@@ -152,6 +148,18 @@ public class SamlServiceUpgradeStepRegistrator
 			UpgradeProcessFactory.alterColumnType(
 				"SamlPeerBinding", "samlNameIdNameQualifier",
 				"VARCHAR(1024) null"));
+
+		registry.register(
+			"3.0.4", "3.1.0",
+			UpgradeProcessFactory.addColumns(
+				"SamlSpAuthRequest", "samlRelayState VARCHAR(2048) null"));
+
+		registry.register("3.1.0", "3.2.0", SamlIbSloMessageTable.create());
+
+		registry.register(
+			"3.2.0", "3.2.1",
+			UpgradeProcessFactory.alterColumnType(
+				"SamlSpMessage", "samlIdpResponseKey", "VARCHAR(256) null"));
 	}
 
 	@Reference

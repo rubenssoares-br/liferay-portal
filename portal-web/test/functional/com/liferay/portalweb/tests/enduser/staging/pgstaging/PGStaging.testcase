@@ -1,6 +1,7 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property ci.retries.disabled = "true";
 	property portal.release = "true";
 	property portal.upstream = "true";
@@ -10,6 +11,14 @@ definition {
 		TestCase.setUpPortalInstance();
 
 		User.firstLoginPG();
+
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
+		}
+
+		task ("Enable the Staging Page Variations deprecation feature flag") {
+			Staging.enablePageVariationsFeatureFlag();
+		}
 
 		task ("Enable dynamic and manual selection") {
 			AssetPublisherPortlet.enableDynamicAndManualSelection();
@@ -35,7 +44,7 @@ definition {
 
 	@priority = 3
 	test ActivateDeactivateRemoteStagingInOnePortal {
-		property app.server.types = "jboss,tcserver,tomcat,weblogic,wildfly";
+		property app.server.types = "jboss,tomcat,weblogic,wildfly";
 		property custom.properties = "auth.verifier.TunnelAuthVerifier.hosts.allowed=${line.separator}tunneling.servlet.shared.secret=1234567890123456";
 		property database.types = "db2,hypersonic,mariadb,mysql,oracle,postgresql,sqlserver";
 		property environment.acceptance = "true";
@@ -179,8 +188,6 @@ definition {
 
 	@priority = 3
 	test AddDMDocumentWCArticleStagingLocalLive {
-		property testray.component.names = "Training";
-
 		JSONLayout.addWidgetToPublicLayout(
 			groupName = "Site Name",
 			layoutName = "Staging Test Page",
@@ -219,7 +226,7 @@ definition {
 			webContentContent = "Web Content Content",
 			webContentTitle = "Web Content Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		Navigator.gotoStagedSitePage(
 			pageName = "Staging Test Page",
@@ -312,7 +319,6 @@ definition {
 	@priority = 3
 	test AssertNoEditLink {
 		property portal.acceptance = "true";
-		property testray.component.names = "Training";
 
 		JSONLayout.addPublicLayout(
 			groupName = "Site Name",
@@ -504,6 +510,10 @@ definition {
 
 	@priority = 3
 	test LayoutScope {
+		task ("Enable Scope Configuration") {
+			Portlet.enableScopeConfiguration();
+		}
+
 		JSONLayout.addWidgetToPublicLayout(
 			groupName = "Site Name",
 			layoutName = "Staging Test Page",
@@ -535,7 +545,7 @@ definition {
 
 		Navigator.openSiteURL(siteName = "Site Name");
 
-		Navigator.gotoStagedView();
+		ProductMenu.gotoStagingSite(site = "Site Name");
 
 		PagesAdmin.changeLogo(
 			logoFile = "Document_3.png",
@@ -570,9 +580,11 @@ definition {
 
 	@priority = 3
 	test PublishPrivatePage {
-		property custom.properties = "feature.flag.LPD-38869=true";
 		property portal.acceptance = "true";
-		property testray.component.names = "Training";
+
+		task ("Enable private pages") {
+			PagesAdmin.enablePrivatePages();
+		}
 
 		JSONStaging.enableLocalStaging(
 			branchingPrivate = "true",
@@ -649,7 +661,7 @@ definition {
 			imageSourceURL = ${dmDocumentURL},
 			navTab = "URL");
 
-		PortletEntry.publish();
+		WebContent.publishExistingWCArticleWithPermissions();
 
 		JSONStaging.enableLocalStaging(
 			branchingPrivate = "true",
@@ -732,7 +744,7 @@ definition {
 			pageName = "Staging Test Page",
 			pageType = "Pages");
 
-		PortletEntry.publish();
+		WebContent.publishExistingWCArticleWithPermissions();
 
 		Navigator.openStagingSiteURL(siteName = "Site Name");
 

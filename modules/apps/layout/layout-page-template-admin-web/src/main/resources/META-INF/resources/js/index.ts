@@ -7,6 +7,12 @@
 
 export {default as ActionsComponentPropsTransformer} from './ActionsComponentPropsTransformer';
 
+export {default as AddDisplayPageTemplateDesignLibraryModalContent} from './AddDisplayPageTemplateDesignLibraryModalContent';
+
+export {default as AddLayoutPageTemplateEntryDesignLibraryModalContent} from './AddLayoutPageTemplateEntryDesignLibraryModalContent';
+
+export {default as AddMasterPageDesignLibraryModalContent} from './AddMasterPageDesignLibraryModalContent';
+
 export {default as ImportPageTemplates} from './ImportPageTemplates';
 
 // @ts-ignore

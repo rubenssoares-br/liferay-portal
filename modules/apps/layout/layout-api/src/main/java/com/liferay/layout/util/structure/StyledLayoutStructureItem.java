@@ -9,7 +9,9 @@ import com.liferay.document.library.kernel.service.DLAppLocalServiceUtil;
 import com.liferay.document.library.util.DLURLHelperUtil;
 import com.liferay.layout.responsive.ViewportSize;
 import com.liferay.petra.lang.HashUtil;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
@@ -21,7 +23,9 @@ import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.util.Validator;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -139,6 +143,10 @@ public abstract class StyledLayoutStructureItem extends LayoutStructureItem {
 		return StringUtil.merge(getCssClasses(), StringPool.SPACE);
 	}
 
+	public JSONObject getStylesJSONObject() {
+		return stylesJSONObject;
+	}
+
 	public String getUniqueCssClass() {
 		return LAYOUT_STRUCTURE_ITEM_CSS_CLASS_PREFIX + getItemId();
 	}
@@ -225,12 +233,6 @@ public abstract class StyledLayoutStructureItem extends LayoutStructureItem {
 
 		JSONObject styleValueJSONObject = (JSONObject)styleValue;
 
-		long fileEntryId = styleValueJSONObject.getLong("fileEntryId");
-
-		if (fileEntryId <= 0) {
-			return styleValueJSONObject;
-		}
-
 		ServiceContext serviceContext =
 			ServiceContextThreadLocal.getServiceContext();
 
@@ -244,24 +246,89 @@ public abstract class StyledLayoutStructureItem extends LayoutStructureItem {
 			return styleValueJSONObject;
 		}
 
-		try {
-			FileEntry fileEntry = DLAppLocalServiceUtil.getFileEntry(
-				fileEntryId);
+		FileEntry fileEntry = _getFileEntry(
+			themeDisplay.getCompanyId(), styleValueJSONObject,
+			themeDisplay.getScopeGroupId());
 
+		if (fileEntry == null) {
+			return styleValueJSONObject;
+		}
+
+		try {
 			styleValueJSONObject.put(
 				"url",
 				DLURLHelperUtil.getPreviewURL(
 					fileEntry, fileEntry.getFileVersion(), themeDisplay,
 					StringPool.BLANK, false, false));
 		}
-		catch (Exception exception) {
+		catch (PortalException portalException) {
 			if (_log.isDebugEnabled()) {
-				_log.debug(
-					"Unable to get file entry  " + fileEntryId, exception);
+				_log.debug(portalException);
 			}
 		}
 
 		return styleValueJSONObject;
+	}
+
+	private FileEntry _getFileEntry(
+		long companyId, JSONObject jsonObject, long scopeGroupId) {
+
+		String externalReferenceCode = jsonObject.getString(
+			"externalReferenceCode");
+		String fieldId = jsonObject.getString("fieldId");
+		long fileEntryId = jsonObject.getLong("fileEntryId");
+
+		if ((Validator.isNull(externalReferenceCode) ||
+			 Validator.isNotNull(fieldId)) &&
+			(fileEntryId <= 0)) {
+
+			return null;
+		}
+
+		if (fileEntryId > 0) {
+			try {
+				return DLAppLocalServiceUtil.getFileEntry(fileEntryId);
+			}
+			catch (Exception exception) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(
+						"Unable to get file entry  " + fileEntryId, exception);
+				}
+
+				return null;
+			}
+		}
+
+		String scopeExternalReferenceCode = jsonObject.getString(
+			"scopeExternalReferenceCode");
+
+		Long groupId = ScopeUtil.getItemGroupId(
+			companyId, scopeExternalReferenceCode, scopeGroupId);
+
+		if (groupId == null) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					StringBundler.concat(
+						"Unable to resolve group ID for file entry with ",
+						"external reference code ", externalReferenceCode,
+						" using scope external reference code ",
+						scopeExternalReferenceCode));
+			}
+
+			return null;
+		}
+
+		try {
+			return DLAppLocalServiceUtil.fetchFileEntryByExternalReferenceCode(
+				groupId, externalReferenceCode);
+		}
+		catch (Exception exception) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(exception);
+			}
+		}
+
+		return null;
 	}
 
 	private void _updateCustomCSSViewports(
@@ -288,23 +355,25 @@ public abstract class StyledLayoutStructureItem extends LayoutStructureItem {
 			CommonStylesUtil.getAvailableStyleNames();
 
 		for (String styleName : availableStyleNames) {
-			if (newJSONObject.has(styleName)) {
-				Object styleValue = newJSONObject.get(styleName);
+			if (!newJSONObject.has(styleName)) {
+				continue;
+			}
 
-				if (Objects.equals(
-						styleValue,
-						CommonStylesUtil.getDefaultStyleValue(styleName))) {
+			Object styleValue = newJSONObject.get(styleName);
 
-					currentJSONObject.remove(styleName);
+			if (Objects.equals(
+					styleValue,
+					CommonStylesUtil.getDefaultStyleValue(styleName))) {
+
+				currentJSONObject.remove(styleName);
+			}
+			else {
+				if (Objects.equals(styleName, "backgroundImage")) {
+					styleValue = _getBackgroundImageStyleValueJSONObject(
+						styleValue);
 				}
-				else {
-					if (Objects.equals(styleName, "backgroundImage")) {
-						styleValue = _getBackgroundImageStyleValueJSONObject(
-							styleValue);
-					}
 
-					currentJSONObject.put(styleName, styleValue);
-				}
+				currentJSONObject.put(styleName, styleValue);
 			}
 		}
 	}
@@ -340,10 +409,12 @@ public abstract class StyledLayoutStructureItem extends LayoutStructureItem {
 				JSONFactoryUtil.createJSONObject());
 
 		for (String styleName : availableStyleNames) {
-			if (newStylesJSONObject.has(styleName)) {
-				currentViewportStyleJSONObject.put(
-					styleName, newStylesJSONObject.get(styleName));
+			if (!newStylesJSONObject.has(styleName)) {
+				continue;
 			}
+
+			currentViewportStyleJSONObject.put(
+				styleName, newStylesJSONObject.get(styleName));
 		}
 
 		viewportStyleJSONObjects.put(

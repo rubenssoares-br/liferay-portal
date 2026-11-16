@@ -24,10 +24,31 @@ import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClass
 public interface SitemapCompanyConfiguration {
 
 	@Meta.AD(
+		deflt = "false", name = "cached-generation-enabled", required = false
+	)
+	public boolean cachedGenerationEnabled();
+
+	@Meta.AD(deflt = "", name = "company-sitemap-group-ids", required = false)
+	public String[] companySitemapGroupIds();
+
+	@Meta.AD(
+		deflt = "", name = "company-sitemap-object-definition-ids",
+		required = false
+	)
+	public String[] companySitemapObjectDefinitionIds();
+
+	@Meta.AD(
 		deflt = "true", name = "include-category-urls-in-the-xml-sitemap",
 		required = false
 	)
 	public boolean includeCategories();
+
+	@Meta.AD(
+		deflt = "true",
+		name = "include-commerce-product-urls-in-the-xml-sitemap",
+		required = false
+	)
+	public boolean includeCommerceProducts();
 
 	@Meta.AD(
 		deflt = "true", name = "include-page-urls-in-the-xml-sitemap",
@@ -47,8 +68,8 @@ public interface SitemapCompanyConfiguration {
 	public boolean xmlSitemapIndexEnabled();
 
 	@Meta.AD(
-		deflt = "", name = "sites-included-in-the-xml-sitemap", required = false
+		deflt = "page-layout", name = "xml-sitemap-index-mode", required = false
 	)
-	public String[] companySitemapGroupIds();
+	public String xmlSitemapIndexMode();
 
 }

@@ -14,7 +14,7 @@ import com.liferay.blogs.exception.NoSuchEntryException;
 import com.liferay.blogs.model.BlogsEntry;
 import com.liferay.blogs.settings.BlogsGroupServiceSettings;
 import com.liferay.blogs.web.internal.display.context.BlogsEditEntryDisplayContext;
-import com.liferay.change.tracking.spi.constants.CTTimelineKeys;
+import com.liferay.change.tracking.spi.history.util.CTTimelineUtil;
 import com.liferay.depot.group.provider.SiteConnectedGroupGroupProvider;
 import com.liferay.item.selector.ItemSelector;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
@@ -27,13 +27,13 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Map;
-
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -47,9 +47,9 @@ import org.osgi.service.component.annotations.Reference;
 @Component(
 	configurationPid = "com.liferay.blogs.configuration.BlogsFileUploadsConfiguration",
 	property = {
-		"javax.portlet.name=" + BlogsPortletKeys.BLOGS,
-		"javax.portlet.name=" + BlogsPortletKeys.BLOGS_ADMIN,
-		"javax.portlet.name=" + BlogsPortletKeys.BLOGS_AGGREGATOR,
+		"jakarta.portlet.name=" + BlogsPortletKeys.BLOGS,
+		"jakarta.portlet.name=" + BlogsPortletKeys.BLOGS_ADMIN,
+		"jakarta.portlet.name=" + BlogsPortletKeys.BLOGS_AGGREGATOR,
 		"mvc.command.name=/blogs/edit_entry"
 	},
 	service = MVCRenderCommand.class
@@ -74,10 +74,8 @@ public class EditEntryMVCRenderCommand implements MVCRenderCommand {
 					themeDisplay.getPermissionChecker(), entry,
 					ActionKeys.UPDATE);
 
-				httpServletRequest.setAttribute(
-					CTTimelineKeys.CLASS_NAME, BlogsEntry.class.getName());
-				httpServletRequest.setAttribute(
-					CTTimelineKeys.CLASS_PK, entry.getPrimaryKey());
+				CTTimelineUtil.setCTTimelineKeys(
+					renderRequest, BlogsEntry.class, entry.getPrimaryKey());
 			}
 
 			httpServletRequest.setAttribute(

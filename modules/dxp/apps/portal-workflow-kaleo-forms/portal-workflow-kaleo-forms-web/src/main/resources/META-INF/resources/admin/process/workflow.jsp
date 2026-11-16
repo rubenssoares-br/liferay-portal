@@ -141,7 +141,7 @@ if (Validator.isNotNull(workflowDefinition)) {
 		<c:otherwise>
 			<liferay-ui:search-container-row
 				className="com.liferay.portal.workflow.kaleo.model.KaleoDefinitionVersion"
-				keyProperty="kaleoDefinitionVersionId"
+				keyPropertyName="kaleoDefinitionVersionId"
 				modelVar="kaleoDefinitionVersion"
 			>
 				<liferay-ui:search-container-row-parameter
@@ -213,13 +213,11 @@ if (Validator.isNotNull(workflowDefinition)) {
 	);
 
 	window['<portlet:namespace />editWorkflow'] = (uri) => {
-		Liferay.Util.openWindow({
-			dialog: {
-				destroyOnHide: true,
-				modal: true,
-			},
+		Liferay.Util.openModal({
+			containerProps: {},
+			iframeBodyCssClass: '',
 			title: '<liferay-ui:message key="workflow" />',
-			uri: uri,
+			url: uri,
 		});
 	};
 </aui:script>

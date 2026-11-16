@@ -30,6 +30,7 @@ TrashManagementToolbarDisplayContext trashManagementToolbarDisplayContext = new 
 
 	<clay:container-fluid
 		cssClass="sidenav-content"
+		size="xxxl"
 	>
 		<c:if test="<%= Validator.isNull(trashDisplayContext.getKeywords()) %>">
 			<liferay-site-navigation:breadcrumb
@@ -100,7 +101,7 @@ TrashManagementToolbarDisplayContext trashManagementToolbarDisplayContext = new 
 			>
 				<liferay-ui:search-container-row
 					className="com.liferay.trash.model.TrashEntry"
-					keyProperty="entryId"
+					keyPropertyName="entryId"
 					modelVar="trashEntry"
 					rowVar="row"
 				>

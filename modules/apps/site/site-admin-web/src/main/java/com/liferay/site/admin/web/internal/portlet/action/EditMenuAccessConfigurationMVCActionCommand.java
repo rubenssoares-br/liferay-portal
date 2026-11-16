@@ -18,11 +18,11 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.site.configuration.manager.MenuAccessConfigurationManager;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -32,7 +32,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ConfigurationAdminPortletKeys.SITE_SETTINGS,
+		"jakarta.portlet.name=" + ConfigurationAdminPortletKeys.SITE_SETTINGS,
 		"mvc.command.name=/site_settings/edit_menu_access_configuration"
 	},
 	service = MVCActionCommand.class
@@ -55,18 +55,22 @@ public class EditMenuAccessConfigurationMVCActionCommand
 		String[] roleSearchContainerPrimaryKeys = ParamUtil.getStringValues(
 			actionRequest, "roleSearchContainerPrimaryKeys");
 
-		List<String> roleIds = new ArrayList<>();
+		List<String> roleExternalReferenceCodes = new ArrayList<>();
 
 		for (String roleId : roleSearchContainerPrimaryKeys) {
 			Role role = _roleLocalService.fetchRole(Long.valueOf(roleId));
 
-			if (role != null) {
-				roleIds.add(roleId);
+			if (role == null) {
+				continue;
 			}
+
+			roleExternalReferenceCodes.add(role.getExternalReferenceCode());
 		}
 
 		_menuAccessConfigurationManager.updateMenuAccessConfiguration(
-			themeDisplay.getScopeGroupId(), ArrayUtil.toStringArray(roleIds),
+			themeDisplay.getScopeGroupId(),
+			roleExternalReferenceCodes.isEmpty() ? null :
+				ArrayUtil.toStringArray(roleExternalReferenceCodes),
 			ParamUtil.getBoolean(actionRequest, "showControlMenuByRole"));
 	}
 

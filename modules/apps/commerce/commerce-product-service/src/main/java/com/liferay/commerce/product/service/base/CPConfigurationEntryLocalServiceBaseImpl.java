@@ -18,8 +18,7 @@ import com.liferay.petra.sql.dsl.query.DSLQuery;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.db.DB;
 import com.liferay.portal.kernel.dao.db.DBManagerUtil;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdate;
-import com.liferay.portal.kernel.dao.jdbc.SqlUpdateFactoryUtil;
+import com.liferay.portal.kernel.dao.jdbc.CurrentConnectionUtil;
 import com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DefaultActionableDynamicQuery;
 import com.liferay.portal.kernel.dao.orm.DynamicQuery;
@@ -47,6 +46,8 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PortalUtil;
 
 import java.io.Serializable;
+
+import java.sql.Connection;
 
 import java.util.List;
 
@@ -140,11 +141,13 @@ public abstract class CPConfigurationEntryLocalServiceBaseImpl
 	 *
 	 * @param cpConfigurationEntry the cp configuration entry
 	 * @return the cp configuration entry that was removed
+	 * @throws PortalException
 	 */
 	@Indexable(type = IndexableType.DELETE)
 	@Override
 	public CPConfigurationEntry deleteCPConfigurationEntry(
-		CPConfigurationEntry cpConfigurationEntry) {
+			CPConfigurationEntry cpConfigurationEntry)
+		throws PortalException {
 
 		return cpConfigurationEntryPersistence.remove(cpConfigurationEntry);
 	}
@@ -259,18 +262,17 @@ public abstract class CPConfigurationEntryLocalServiceBaseImpl
 	}
 
 	/**
-	 * Returns the cp configuration entry with the matching UUID and company.
+	 * Returns the cp configuration entry matching the UUID and group.
 	 *
 	 * @param uuid the cp configuration entry's UUID
-	 * @param companyId the primary key of the company
+	 * @param groupId the primary key of the group
 	 * @return the matching cp configuration entry, or <code>null</code> if a matching cp configuration entry could not be found
 	 */
 	@Override
-	public CPConfigurationEntry fetchCPConfigurationEntryByUuidAndCompanyId(
-		String uuid, long companyId) {
+	public CPConfigurationEntry fetchCPConfigurationEntryByUuidAndGroupId(
+		String uuid, long groupId) {
 
-		return cpConfigurationEntryPersistence.fetchByUuid_C_First(
-			uuid, companyId, null);
+		return cpConfigurationEntryPersistence.fetchByUUID_G(uuid, groupId);
 	}
 
 	@Override
@@ -490,20 +492,54 @@ public abstract class CPConfigurationEntryLocalServiceBaseImpl
 	}
 
 	/**
-	 * Returns the cp configuration entry with the matching UUID and company.
+	 * Returns all the cp configuration entries matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the cp configuration entries
+	 * @param companyId the primary key of the company
+	 * @return the matching cp configuration entries, or an empty list if no matches were found
+	 */
+	@Override
+	public List<CPConfigurationEntry>
+		getCPConfigurationEntriesByUuidAndCompanyId(
+			String uuid, long companyId) {
+
+		return cpConfigurationEntryPersistence.findByUuid_C(uuid, companyId);
+	}
+
+	/**
+	 * Returns a range of cp configuration entries matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the cp configuration entries
+	 * @param companyId the primary key of the company
+	 * @param start the lower bound of the range of cp configuration entries
+	 * @param end the upper bound of the range of cp configuration entries (not inclusive)
+	 * @param orderByComparator the comparator to order the results by (optionally <code>null</code>)
+	 * @return the range of matching cp configuration entries, or an empty list if no matches were found
+	 */
+	@Override
+	public List<CPConfigurationEntry>
+		getCPConfigurationEntriesByUuidAndCompanyId(
+			String uuid, long companyId, int start, int end,
+			OrderByComparator<CPConfigurationEntry> orderByComparator) {
+
+		return cpConfigurationEntryPersistence.findByUuid_C(
+			uuid, companyId, start, end, orderByComparator);
+	}
+
+	/**
+	 * Returns the cp configuration entry matching the UUID and group.
 	 *
 	 * @param uuid the cp configuration entry's UUID
-	 * @param companyId the primary key of the company
+	 * @param groupId the primary key of the group
 	 * @return the matching cp configuration entry
 	 * @throws PortalException if a matching cp configuration entry could not be found
 	 */
 	@Override
-	public CPConfigurationEntry getCPConfigurationEntryByUuidAndCompanyId(
-			String uuid, long companyId)
+	public CPConfigurationEntry getCPConfigurationEntryByUuidAndGroupId(
+			String uuid, long groupId)
 		throws PortalException {
 
-		return cpConfigurationEntryPersistence.findByUuid_C_First(
-			uuid, companyId, null);
+		return cpConfigurationEntryPersistence.findByUUID_G(uuid, groupId);
 	}
 
 	/**
@@ -610,19 +646,23 @@ public abstract class CPConfigurationEntryLocalServiceBaseImpl
 	 * @param sql the sql query
 	 */
 	protected void runSQL(String sql) {
+		DataSource dataSource = cpConfigurationEntryPersistence.getDataSource();
+
+		DB db = DBManagerUtil.getDB();
+
+		Connection currentConnection = CurrentConnectionUtil.getConnection(
+			dataSource);
+
 		try {
-			DataSource dataSource =
-				cpConfigurationEntryPersistence.getDataSource();
+			if (currentConnection != null) {
+				db.runSQL(currentConnection, new String[] {sql});
 
-			DB db = DBManagerUtil.getDB();
+				return;
+			}
 
-			sql = db.buildSQL(sql);
-			sql = PortalUtil.transformSQL(sql);
-
-			SqlUpdate sqlUpdate = SqlUpdateFactoryUtil.getSqlUpdate(
-				dataSource, sql);
-
-			sqlUpdate.update();
+			try (Connection connection = dataSource.getConnection()) {
+				db.runSQL(connection, new String[] {sql});
+			}
 		}
 		catch (Exception exception) {
 			throw new SystemException(exception);
@@ -642,3 +682,4 @@ public abstract class CPConfigurationEntryLocalServiceBaseImpl
 		CPConfigurationEntryLocalServiceBaseImpl.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:952008203

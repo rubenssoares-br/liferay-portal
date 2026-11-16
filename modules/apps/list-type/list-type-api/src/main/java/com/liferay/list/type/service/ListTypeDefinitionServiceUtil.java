@@ -34,11 +34,13 @@ public class ListTypeDefinitionServiceUtil {
 	public static ListTypeDefinition addListTypeDefinition(
 			String externalReferenceCode, Map<java.util.Locale, String> nameMap,
 			boolean system,
-			List<com.liferay.list.type.model.ListTypeEntry> listTypeEntries)
+			List<com.liferay.list.type.model.ListTypeEntry> listTypeEntries,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addListTypeDefinition(
-			externalReferenceCode, nameMap, system, listTypeEntries);
+			externalReferenceCode, nameMap, system, listTypeEntries,
+			serviceContext);
 	}
 
 	public static ListTypeDefinition deleteListTypeDefinition(
@@ -81,13 +83,22 @@ public class ListTypeDefinitionServiceUtil {
 	}
 
 	public static List<ListTypeDefinition> getListTypeDefinitions(
-		int start, int end) {
+			int start, int end)
+		throws PortalException {
 
 		return getService().getListTypeDefinitions(start, end);
 	}
 
-	public static int getListTypeDefinitionsCount() {
+	public static int getListTypeDefinitionsCount() throws PortalException {
 		return getService().getListTypeDefinitionsCount();
+	}
+
+	public static ListTypeDefinition getOrAddEmptyListTypeDefinition(
+			String externalReferenceCode, boolean system)
+		throws PortalException {
+
+		return getService().getOrAddEmptyListTypeDefinition(
+			externalReferenceCode, system);
 	}
 
 	/**
@@ -102,12 +113,13 @@ public class ListTypeDefinitionServiceUtil {
 	public static ListTypeDefinition updateListTypeDefinition(
 			String externalReferenceCode, long listTypeDefinitionId,
 			Map<java.util.Locale, String> nameMap,
-			List<com.liferay.list.type.model.ListTypeEntry> listTypeEntries)
+			List<com.liferay.list.type.model.ListTypeEntry> listTypeEntries,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().updateListTypeDefinition(
 			externalReferenceCode, listTypeDefinitionId, nameMap,
-			listTypeEntries);
+			listTypeEntries, serviceContext);
 	}
 
 	public static ListTypeDefinitionService getService() {
@@ -120,3 +132,4 @@ public class ListTypeDefinitionServiceUtil {
 			ListTypeDefinitionService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2059298506

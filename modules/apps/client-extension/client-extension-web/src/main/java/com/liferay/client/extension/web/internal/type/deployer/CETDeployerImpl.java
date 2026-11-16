@@ -34,17 +34,18 @@ import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.portlet.ConfigurationAction;
 import com.liferay.portal.kernel.portlet.FriendlyURLMapper;
 import com.liferay.portal.kernel.service.PortletLocalService;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
+
+import jakarta.portlet.Portlet;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.Portlet;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -143,6 +144,12 @@ public class CETDeployerImpl implements CETDeployer {
 						friendlyURLMapping, portletId)));
 		}
 
+		serviceRegistrations.add(
+			_register(
+				Portlet.class,
+				new CustomElementCETPortlet(
+					customElementCET, _portal, portletId)));
+
 		if (Validator.isNotNull(customElementCET.getPanelAppOrder()) &&
 			Validator.isNotNull(customElementCET.getPanelCategoryKey())) {
 
@@ -153,19 +160,14 @@ public class CETDeployerImpl implements CETDeployer {
 						portletId,
 						() -> _portletLocalService.getPortletById(portletId)),
 					HashMapDictionaryBuilder.<String, Object>put(
-						"panel.app.order:Integer",
-						customElementCET.getPanelAppOrder()
+						"panel.app.order",
+						GetterUtil.getInteger(
+							customElementCET.getPanelAppOrder())
 					).put(
 						"panel.category.key",
 						customElementCET.getPanelCategoryKey()
 					).build()));
 		}
-
-		serviceRegistrations.add(
-			_register(
-				Portlet.class,
-				new CustomElementCETPortlet(
-					customElementCET, _portal, portletId)));
 
 		return serviceRegistrations;
 	}
@@ -177,6 +179,7 @@ public class CETDeployerImpl implements CETDeployer {
 			_register(
 				EditorConfigContributor.class,
 				new CETEditorConfigContributor(
+					editorConfigContributorCET.getCompanyId(),
 					editorConfigContributorCET.getEditorConfigKeys(),
 					editorConfigContributorCET.getEditorNames(),
 					editorConfigContributorCET.getPortletNames(),
@@ -221,7 +224,8 @@ public class CETDeployerImpl implements CETDeployer {
 			_register(
 				JSImportMapsContributor.class,
 				new ClientExtensionJSImportMapsContributor(
-					jsImportMapsEntryCET.getBareSpecifier(), _jsonFactory,
+					jsImportMapsEntryCET.getBareSpecifier(),
+					jsImportMapsEntryCET.getCompanyId(), _jsonFactory,
 					jsImportMapsEntryCET.getURL())));
 	}
 
@@ -253,7 +257,7 @@ public class CETDeployerImpl implements CETDeployer {
 
 	private static final Snapshot<CommerceCETDeployer>
 		_commerceCETDeployerSnapshot = new Snapshot<>(
-			CETDeployer.class, CommerceCETDeployer.class);
+			CETDeployerImpl.class, CommerceCETDeployer.class);
 
 	private BundleContext _bundleContext;
 

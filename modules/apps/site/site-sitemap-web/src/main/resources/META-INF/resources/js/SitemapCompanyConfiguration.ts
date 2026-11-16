@@ -3,12 +3,17 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {delegate, openSelectionModal, sub} from 'frontend-js-web';
+import {openSelectionModal} from 'frontend-js-components-web';
+import {delegate, fetch, sub} from 'frontend-js-web';
 
 interface Props {
 	groupSelectorURL: string;
+	isRegenerateSitemapInProgress: boolean;
 	namespace: string;
-	selectEventName: string;
+	objectDefinitionSelectorURL: string;
+	regenerateSitemapInProgressURL: string;
+	selectGroupEventName: string;
+	selectObjectDefinitionEventName: string;
 }
 
 type SelectedItem = {
@@ -19,26 +24,82 @@ type SelectedItem = {
 
 export default function ({
 	groupSelectorURL,
+	isRegenerateSitemapInProgress,
 	namespace,
-	selectEventName,
+	objectDefinitionSelectorURL,
+	regenerateSitemapInProgressURL,
+	selectGroupEventName,
+	selectObjectDefinitionEventName,
 }: Props) {
+	const form = document.getElementById(
+		`${namespace}fm`
+	) as HTMLFormElement | null;
+
 	const groupIdsInput = document.getElementById(
 		`${namespace}groupsSearchContainerPrimaryKeys`
 	) as HTMLInputElement;
+
+	const objectDefinitionIdsInput = document.getElementById(
+		`${namespace}objectDefinitionsSearchContainerPrimaryKeys`
+	) as HTMLInputElement;
+
+	const onDemandRadio =
+		document
+			.getElementById(`${namespace}cachedGenerationEnabledOnDemand`)
+			?.querySelector<HTMLInputElement>('input') ?? null;
+
+	const scheduledCachedRadio =
+		document
+			.getElementById(
+				`${namespace}cachedGenerationEnabledScheduledCached`
+			)
+			?.querySelector<HTMLInputElement>('input') ?? null;
+
+	const selectObjectDefinitionButton = document.getElementById(
+		`${namespace}selectObjectDefinitionLink`
+	) as HTMLButtonElement;
 
 	const selectSiteButton = document.getElementById(
 		`${namespace}selectSiteLink`
 	) as HTMLButtonElement;
 
+	const xmlSitemapIndexEnabledCheckbox = document.getElementById(
+		`${namespace}xmlSitemapIndexEnabled`
+	) as HTMLInputElement;
+
+	const xmlSitemapIndexModeSelect = document.getElementById(
+		`${namespace}xmlSitemapIndexMode`
+	) as HTMLSelectElement;
+
+	const onXmlSitemapIndexEnabledChange = () => {
+		xmlSitemapIndexModeSelect.disabled =
+			!xmlSitemapIndexEnabledCheckbox.checked;
+	};
+
+	xmlSitemapIndexEnabledCheckbox.addEventListener(
+		'change',
+		onXmlSitemapIndexEnabledChange
+	);
+
 	// @ts-ignore
 
-	const searchContainer = Liferay.SearchContainer.get(
+	const groupsSearchContainer = Liferay.SearchContainer.get(
 		`${namespace}groupsSearchContainer`
 	);
 
-	const searchContainerContentBox = searchContainer.get('contentBox');
+	const groupsSearchContainerContentBox =
+		groupsSearchContainer.get('contentBox');
 
-	const getGroupIds = (searchContainer: any) => {
+	// @ts-ignore
+
+	const objectDefinitionsSearchContainer = Liferay.SearchContainer.get(
+		`${namespace}objectDefinitionsSearchContainer`
+	);
+
+	const objectDefinitionsSearchContainerContentBox =
+		objectDefinitionsSearchContainer.get('contentBox');
+
+	const getSearchContainerData = (searchContainer: any) => {
 		const searchContainerData = searchContainer.getData();
 
 		return !searchContainerData.length
@@ -46,8 +107,102 @@ export default function ({
 			: searchContainerData.split(',');
 	};
 
-	const onSelectClick = () => {
-		const groupIds = getGroupIds(searchContainer);
+	const onRemoveObjectDefinition =
+		objectDefinitionsSearchContainerContentBox.delegate(
+			'click',
+			({currentTarget: removeButton}: {currentTarget: any}) => {
+				objectDefinitionsSearchContainer.deleteRow(
+					removeButton.ancestor('tr'),
+					removeButton.attr('data-rowid')
+				);
+
+				const objectDefinitionIds = getSearchContainerData(
+					objectDefinitionsSearchContainer
+				);
+
+				objectDefinitionIdsInput.value = objectDefinitionIds.join(',');
+			},
+			'.remove-button'
+		);
+
+	const onRemoveSite = groupsSearchContainerContentBox.delegate(
+		'click',
+		({currentTarget: removeButton}: {currentTarget: any}) => {
+			groupsSearchContainer.deleteRow(
+				removeButton.ancestor('tr'),
+				removeButton.attr('data-rowid')
+			);
+
+			const groupIds = getSearchContainerData(groupsSearchContainer);
+
+			groupIdsInput.value = groupIds.join(',');
+		},
+		'.remove-button'
+	);
+
+	const onSelectObjectDefinitionClick = () => {
+		const objectDefinitionIds = getSearchContainerData(
+			objectDefinitionsSearchContainer
+		);
+
+		openSelectionModal({
+			onSelect: (selectedItem) => {
+				if (selectedItem) {
+
+					// @ts-ignore
+
+					const values = JSON.parse(selectedItem.value);
+
+					const label = values.label;
+					const objectDefinitionId =
+						values.objectDefinitionId.toString();
+
+					const rowColumns = [];
+
+					const title = sub(Liferay.Language.get('remove-x'), label);
+
+					const removeIcon =
+						Liferay.Util.getLexiconIconTpl('times-circle');
+
+					const removeButton = `<button
+						aria-label="${title}"
+						class="btn btn-monospaced btn-outline-borderless btn-outline-secondary
+							btn-sm lfr-portal-tooltip remove-button text-secondary" 
+						data-rowid="${objectDefinitionId}" 
+						type="button" 
+						title="${title}"
+					>
+						<span class="inline-item">${removeIcon}</span>
+					</button>`;
+
+					rowColumns.push(
+						`<span class="text-truncate">${label}</span>`
+					);
+					rowColumns.push(removeButton);
+
+					objectDefinitionsSearchContainer.addRow(
+						rowColumns,
+						objectDefinitionId
+					);
+					objectDefinitionsSearchContainer.updateDataStore();
+
+					objectDefinitionIds.push(objectDefinitionId);
+					objectDefinitionIdsInput!.value =
+						objectDefinitionIds.join(',');
+				}
+			},
+			selectEventName: selectObjectDefinitionEventName,
+			selectedData: [objectDefinitionIds],
+			title: sub(
+				Liferay.Language.get('select-x'),
+				Liferay.Language.get('object')
+			),
+			url: objectDefinitionSelectorURL,
+		});
+	};
+
+	const onSelectSiteClick = () => {
+		const groupIds = getSearchContainerData(groupsSearchContainer);
 
 		openSelectionModal({
 			onSelect: (selectedItem: SelectedItem) => {
@@ -57,6 +212,11 @@ export default function ({
 						groupid: entityId,
 						hasvirtualhost: hasVirtualHost,
 					} = selectedItem;
+
+					if (groupIds.includes(entityId)) {
+						return;
+					}
+
 					const rowColumns = [];
 
 					const title = sub(
@@ -113,14 +273,14 @@ export default function ({
 					rowColumns.push(siteName);
 					rowColumns.push(removeButton);
 
-					searchContainer.addRow(rowColumns, entityId);
-					searchContainer.updateDataStore();
+					groupsSearchContainer.addRow(rowColumns, entityId);
+					groupsSearchContainer.updateDataStore();
 
 					groupIds.push(entityId);
 					groupIdsInput!.value = groupIds.join(',');
 				}
 			},
-			selectEventName,
+			selectEventName: selectGroupEventName,
 			selectedData: [groupIds],
 			title: sub(
 				Liferay.Language.get('select-x'),
@@ -130,32 +290,142 @@ export default function ({
 		});
 	};
 
-	const onRemoveSite = searchContainerContentBox.delegate(
+	const selectObjectDefinitionDelegate = delegate(
+		selectObjectDefinitionButton,
 		'click',
-		({currentTarget: removeButton}: {currentTarget: any}) => {
-			searchContainer.deleteRow(
-				removeButton.ancestor('tr'),
-				removeButton.attr('data-rowid')
-			);
-
-			const groupIds = getGroupIds(searchContainer);
-
-			groupIdsInput.value = groupIds.join(',');
-		},
-		'.remove-button'
+		'.btn',
+		onSelectObjectDefinitionClick
 	);
 
-	const selectDelegate = delegate(
+	const selectSiteDelegate = delegate(
 		selectSiteButton,
 		'click',
 		'.btn',
-		onSelectClick
+		onSelectSiteClick
 	);
+
+	let regenerationPollIntervalId: number | undefined;
+	let saveAndGenerateButton: HTMLButtonElement | null = null;
+	let saveAndGenerateItem: HTMLDivElement | null = null;
+
+	const onGenerationModeChange = () => {
+		const scheduledCached = Boolean(scheduledCachedRadio?.checked);
+
+		saveAndGenerateItem?.classList.toggle('hide', !scheduledCached);
+	};
+
+	const onSaveAndGenerateClick = () => {
+		const saveAndGenerateInput = document.getElementById(
+			`${namespace}saveAndGenerate`
+		) as HTMLInputElement | null;
+
+		if (saveAndGenerateInput) {
+			saveAndGenerateInput.value = 'true';
+		}
+
+		form?.submit();
+	};
+
+	if (form && scheduledCachedRadio && onDemandRadio) {
+		const btnGroup = form.querySelector('.sheet-footer .btn-group');
+
+		if (btnGroup) {
+			saveAndGenerateButton = document.createElement('button');
+
+			saveAndGenerateButton.className = 'btn btn-primary';
+			saveAndGenerateButton.textContent =
+				Liferay.Language.get('save-and-generate');
+			saveAndGenerateButton.type = 'button';
+
+			saveAndGenerateButton.addEventListener(
+				'click',
+				onSaveAndGenerateClick
+			);
+
+			saveAndGenerateItem = document.createElement('div');
+
+			saveAndGenerateItem.className = 'btn-group-item';
+
+			saveAndGenerateItem.appendChild(saveAndGenerateButton);
+
+			btnGroup.insertBefore(saveAndGenerateItem, btnGroup.firstChild);
+		}
+
+		onDemandRadio.addEventListener('change', onGenerationModeChange);
+		scheduledCachedRadio.addEventListener('change', onGenerationModeChange);
+
+		onGenerationModeChange();
+	}
+
+	if (isRegenerateSitemapInProgress && form) {
+		const controls = form.querySelectorAll<HTMLInputElement>(
+			'button, input, select, textarea'
+		);
+
+		controls.forEach((control) => {
+			control.disabled = true;
+		});
+
+		const cancelButton = form.querySelector('.sheet-footer a');
+
+		cancelButton?.classList.add('disabled');
+		cancelButton?.setAttribute('aria-disabled', 'true');
+
+		const btnGroup = form.querySelector('.sheet-footer .btn-group');
+
+		if (btnGroup) {
+			const loadingItem = document.createElement('div');
+
+			loadingItem.className = 'btn-group-item';
+			loadingItem.innerHTML =
+				'<span aria-hidden="true" class="loading-animation loading-animation-sm"></span>';
+
+			btnGroup.appendChild(loadingItem);
+		}
+
+		regenerationPollIntervalId = window.setInterval(() => {
+			if (document.hidden) {
+				return;
+			}
+
+			fetch(regenerateSitemapInProgressURL)
+				.then((response) => response.json())
+				.then((json) => {
+					if (!json.isRegenerateSitemapInProgress) {
+						window.clearInterval(regenerationPollIntervalId);
+
+						window.location.reload();
+					}
+				});
+		}, 3000);
+	}
 
 	return {
 		dispose() {
-			onRemoveSite.dispose();
-			selectDelegate.dispose();
+			onDemandRadio?.removeEventListener(
+				'change',
+				onGenerationModeChange
+			);
+			onRemoveObjectDefinition.detach();
+			onRemoveSite.detach();
+			saveAndGenerateButton?.removeEventListener(
+				'click',
+				onSaveAndGenerateClick
+			);
+			scheduledCachedRadio?.removeEventListener(
+				'change',
+				onGenerationModeChange
+			);
+			selectObjectDefinitionDelegate.dispose();
+			selectSiteDelegate.dispose();
+			xmlSitemapIndexEnabledCheckbox.removeEventListener(
+				'change',
+				onXmlSitemapIndexEnabledChange
+			);
+
+			if (regenerationPollIntervalId) {
+				window.clearInterval(regenerationPollIntervalId);
+			}
 		},
 	};
 }

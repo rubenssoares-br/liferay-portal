@@ -6,17 +6,33 @@ const COLORS = [
 	'#f8f38d',
 	'#08cad1',
 	'#9d94ff',
-	'#c780e8'
+	'#c780e8',
+	'#4472c4',
+    '#ed7d31',
+    '#70ad47',
+    '#ffc000',
+    '#a5a5a5',
+    '#636363',
+    '#ff85a1',
+    '#4bacc6',
+    '#8064a2',
+    '#9bbb59'
 ];
 
 const MAX_WEEKLY_SERVER_DURATION_MILLIS = 2370 * 7 * 24 * 60 * 60 * 1000;
 
+function addDateText(element, date) {
+	let dateText = document.createTextNode("Generated " + timeago.format(date) + " on " + date)
+
+	element.appendChild(dateText);
+}
+
 function addReportName() {
-	var headerElement = document.getElementById('report-name');
+	let headerElement = document.getElementById('report-name');
 
 	headerElement.textContent = reportName;
 
-	var titleElement = document.getElementById('title');
+	let titleElement = document.getElementById('title');
 
 	titleElement.textContent = reportName;
 }
@@ -28,9 +44,11 @@ function addTotalColumn(tableElement) {
 
 	totalHeaderElement.textContent = 'Total';
 
+	totalHeaderElement.classList.add('total-col');
+
 	theadElement.appendChild(totalHeaderElement);
 
-	var rowElements = tableElement.querySelectorAll('tbody tr');
+	let rowElements = tableElement.querySelectorAll('tbody tr');
 
 	rowElements.forEach(rowElement => {
 		let totalValue = 0;
@@ -49,6 +67,8 @@ function addTotalColumn(tableElement) {
 
 		totalCellElement.setAttribute('data-value', totalValue);
 
+		totalCellElement.classList.add('total-col');
+
 		if (cellElements[1].textContent.includes('Duration')) {
 			totalValue = getReadableDuration(totalValue);
 		}
@@ -56,6 +76,160 @@ function addTotalColumn(tableElement) {
 		totalCellElement.textContent = totalValue;
 
 		rowElement.appendChild(totalCellElement);
+	});
+}
+
+function getDynamicMax(datasets) {
+    let indexTotals = [];
+
+    datasets.forEach(dataset => {
+        let data = dataset.data;
+
+        data.forEach((dataValue, i) => {
+            let indexTotal = parseFloat(dataValue) || 0;
+            indexTotals[i] = (indexTotals[i] || 0) + indexTotal;
+        });
+    });
+
+    let maxIndexTotal = Math.max(...indexTotals, 0);
+
+    return Math.round(maxIndexTotal * 1.10);
+}
+
+
+function createBarChartFromTable(chartTitle, dataSuffix, elementID, metricName, tableElement) {
+	headerElements = tableElement.querySelectorAll('thead tr th');
+
+	let xLabels = [];
+
+	let testSuiteReport = false;
+
+	if (chartTitle == 'Daily Server Duration by Test Suite') {
+		testSuiteReport = true;
+	}
+
+	headerElements.forEach(headerElement => {
+		if (headerElement.classList.contains('col-1') || headerElement.classList.contains('col-2')) {
+			return;
+		}
+
+		if (headerElement.textContent.trim() === 'Total' && testSuiteReport) {
+			return;
+		}
+
+		xLabels.push(headerElement.textContent);
+	});
+
+	let datasets = [];
+	let rowElements = tableElement.querySelectorAll('tbody tr');
+
+	rowElements.forEach(rowElement => {
+		let cellElements = rowElement.querySelectorAll('td');
+
+		if ((cellElements[0].textContent === 'All') || (cellElements[0].textContent === '[Total]') || (cellElements[0].textContent === '[Unknown]')) {
+			return;
+		}
+
+		if (cellElements[1].textContent !== metricName) {
+			return;
+		}
+
+		let dataValues = [];
+
+		cellElements.forEach(cellElement => {
+			if (cellElement.classList.contains('col-1') || cellElement.classList.contains('col-2') || cellElement.classList.contains('total-col')) {
+				return;
+			}
+
+			let dataValue = cellElement.getAttribute('data-value');
+
+			if (testSuiteReport) {
+				dataValue = dataValue / 3600000;
+			}
+
+			dataValues.push(Math.round(dataValue));
+		});
+
+		let color = getColor(datasets.length);
+
+		let dataset = {
+			backgroundColor: color,
+			borderColor: color,
+			data: dataValues,
+			label: cellElements[0].textContent
+		};
+
+		datasets.push(dataset);
+	});
+
+	let yMax = 100;
+
+	if (testSuiteReport) {
+		yMax = getDynamicMax(datasets);
+	}
+
+	let barChart = new Chart(document.getElementById(elementID), {
+		data: {
+			datasets: datasets,
+			labels: xLabels
+		},
+		options: {
+			maintainAspectRatio: false,
+			plugins: {
+				title: {
+					display: true,
+					font: {
+						size: 14
+					},
+					text: chartTitle
+				},
+				tooltip: {
+					callbacks: {
+						label: function(context) {
+					        let label = context.dataset.label;
+					        let dataDenomination = context.dataset.data[context.dataIndex];
+					        let totaldataDenomination = 0;
+
+					        for (let i = 0; i < context.chart.data.datasets.length; i++) {
+					            totaldataDenomination += parseFloat(context.chart.data.datasets[i].data[context.dataIndex]);
+					        }
+
+					        if (context.datasetIndex != 0) {
+					            return label + ' : ' + dataDenomination + dataSuffix;
+					        }
+					        else {
+					            return [label + ' : ' + dataDenomination + dataSuffix, "Total : " + totaldataDenomination.toFixed(2) + dataSuffix];
+					        }
+						}
+					},
+					itemSort: function(a, b) {
+						return b.datasetIndex - a.datasetIndex;
+					},
+					mode: 'index'
+				}
+			},
+			responsive: true,
+			scales: {
+				x: {
+					stacked: true
+				},
+				y: {
+					beginAtZero: true,
+					max: yMax,
+					stacked: true,
+					ticks: {
+						callback: function(value) {
+							return value + dataSuffix;
+						}
+					},
+					title: {
+						display: true,
+						text: dataSuffix
+					}
+				}
+			}
+		},
+		type: 'bar'
 	});
 }
 

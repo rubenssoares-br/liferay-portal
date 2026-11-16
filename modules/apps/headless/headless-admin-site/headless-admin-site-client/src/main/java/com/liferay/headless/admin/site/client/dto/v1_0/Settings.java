@@ -8,11 +8,12 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.SettingsSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
+import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -65,16 +66,16 @@ public class Settings implements Cloneable, Serializable {
 
 	protected String css;
 
-	public Object getFavIcon() {
+	public FavIcon getFavIcon() {
 		return favIcon;
 	}
 
-	public void setFavIcon(Object favIcon) {
+	public void setFavIcon(FavIcon favIcon) {
 		this.favIcon = favIcon;
 	}
 
 	public void setFavIcon(
-		UnsafeSupplier<Object, Exception> favIconUnsafeSupplier) {
+		UnsafeSupplier<FavIcon, Exception> favIconUnsafeSupplier) {
 
 		try {
 			favIcon = favIconUnsafeSupplier.get();
@@ -84,7 +85,7 @@ public class Settings implements Cloneable, Serializable {
 		}
 	}
 
-	protected Object favIcon;
+	protected FavIcon favIcon;
 
 	public ClientExtension[] getGlobalCSSClientExtensions() {
 		return globalCSSClientExtensions;
@@ -136,6 +137,27 @@ public class Settings implements Cloneable, Serializable {
 
 	protected ClientExtension[] globalJSClientExtensions;
 
+	public IconImageURL getIconImageURL() {
+		return iconImageURL;
+	}
+
+	public void setIconImageURL(IconImageURL iconImageURL) {
+		this.iconImageURL = iconImageURL;
+	}
+
+	public void setIconImageURL(
+		UnsafeSupplier<IconImageURL, Exception> iconImageURLUnsafeSupplier) {
+
+		try {
+			iconImageURL = iconImageURLUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected IconImageURL iconImageURL;
+
 	public String getJavascript() {
 		return javascript;
 	}
@@ -157,47 +179,55 @@ public class Settings implements Cloneable, Serializable {
 
 	protected String javascript;
 
-	public MasterPage getMasterPage() {
-		return masterPage;
+	public ItemExternalReference getMasterPageItemExternalReference() {
+		return masterPageItemExternalReference;
 	}
 
-	public void setMasterPage(MasterPage masterPage) {
-		this.masterPage = masterPage;
+	public void setMasterPageItemExternalReference(
+		ItemExternalReference masterPageItemExternalReference) {
+
+		this.masterPageItemExternalReference = masterPageItemExternalReference;
 	}
 
-	public void setMasterPage(
-		UnsafeSupplier<MasterPage, Exception> masterPageUnsafeSupplier) {
+	public void setMasterPageItemExternalReference(
+		UnsafeSupplier<ItemExternalReference, Exception>
+			masterPageItemExternalReferenceUnsafeSupplier) {
 
 		try {
-			masterPage = masterPageUnsafeSupplier.get();
+			masterPageItemExternalReference =
+				masterPageItemExternalReferenceUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected MasterPage masterPage;
+	protected ItemExternalReference masterPageItemExternalReference;
 
-	public StyleBook getStyleBook() {
-		return styleBook;
+	public ItemExternalReference getStyleBookItemExternalReference() {
+		return styleBookItemExternalReference;
 	}
 
-	public void setStyleBook(StyleBook styleBook) {
-		this.styleBook = styleBook;
+	public void setStyleBookItemExternalReference(
+		ItemExternalReference styleBookItemExternalReference) {
+
+		this.styleBookItemExternalReference = styleBookItemExternalReference;
 	}
 
-	public void setStyleBook(
-		UnsafeSupplier<StyleBook, Exception> styleBookUnsafeSupplier) {
+	public void setStyleBookItemExternalReference(
+		UnsafeSupplier<ItemExternalReference, Exception>
+			styleBookItemExternalReferenceUnsafeSupplier) {
 
 		try {
-			styleBook = styleBookUnsafeSupplier.get();
+			styleBookItemExternalReference =
+				styleBookItemExternalReferenceUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected StyleBook styleBook;
+	protected ItemExternalReference styleBookItemExternalReference;
 
 	public ClientExtension getThemeCSSClientExtension() {
 		return themeCSSClientExtension;
@@ -245,16 +275,17 @@ public class Settings implements Cloneable, Serializable {
 
 	protected String themeName;
 
-	public Object getThemeSettings() {
+	public Map<String, String> getThemeSettings() {
 		return themeSettings;
 	}
 
-	public void setThemeSettings(Object themeSettings) {
+	public void setThemeSettings(Map<String, String> themeSettings) {
 		this.themeSettings = themeSettings;
 	}
 
 	public void setThemeSettings(
-		UnsafeSupplier<Object, Exception> themeSettingsUnsafeSupplier) {
+		UnsafeSupplier<Map<String, String>, Exception>
+			themeSettingsUnsafeSupplier) {
 
 		try {
 			themeSettings = themeSettingsUnsafeSupplier.get();
@@ -264,7 +295,7 @@ public class Settings implements Cloneable, Serializable {
 		}
 	}
 
-	protected Object themeSettings;
+	protected Map<String, String> themeSettings;
 
 	public ClientExtension getThemeSpritemapClientExtension() {
 		return themeSpritemapClientExtension;
@@ -323,3 +354,4 @@ public class Settings implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:472063387

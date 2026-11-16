@@ -13,8 +13,7 @@ import com.liferay.portal.tools.service.builder.test.model.ERCVersionedEntryTabl
 import com.liferay.portal.tools.service.builder.test.model.impl.ERCVersionedEntryImpl;
 import com.liferay.portal.tools.service.builder.test.model.impl.ERCVersionedEntryModelImpl;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Objects;
 
 /**
  * The arguments resolver class for retrieving value from ERCVersionedEntry.
@@ -50,29 +49,10 @@ public class ERCVersionedEntryModelArgumentsResolver
 		ERCVersionedEntryModelImpl ercVersionedEntryModelImpl =
 			(ERCVersionedEntryModelImpl)baseModel;
 
-		long columnBitmask = ercVersionedEntryModelImpl.getColumnBitmask();
+		if (!checkColumn ||
+			_hasModifiedColumns(ercVersionedEntryModelImpl, columnNames)) {
 
-		if (!checkColumn || (columnBitmask == 0)) {
-			return _getValue(ercVersionedEntryModelImpl, columnNames, original);
-		}
-
-		Long finderPathColumnBitmask = _finderPathColumnBitmasksCache.get(
-			finderPath);
-
-		if (finderPathColumnBitmask == null) {
-			finderPathColumnBitmask = 0L;
-
-			for (String columnName : columnNames) {
-				finderPathColumnBitmask |=
-					ercVersionedEntryModelImpl.getColumnBitmask(columnName);
-			}
-
-			_finderPathColumnBitmasksCache.put(
-				finderPath, finderPathColumnBitmask);
-		}
-
-		if ((columnBitmask & finderPathColumnBitmask) != 0) {
-			return _getValue(ercVersionedEntryModelImpl, columnNames, original);
+			return _getValue(ercVersionedEntryModelImpl, finderPath, original);
 		}
 
 		return null;
@@ -90,28 +70,51 @@ public class ERCVersionedEntryModelArgumentsResolver
 
 	private static Object[] _getValue(
 		ERCVersionedEntryModelImpl ercVersionedEntryModelImpl,
-		String[] columnNames, boolean original) {
+		FinderPath finderPath, boolean original) {
+
+		String[] columnNames = finderPath.getColumnNames();
 
 		Object[] arguments = new Object[columnNames.length];
 
 		for (int i = 0; i < arguments.length; i++) {
 			String columnName = columnNames[i];
 
+			Object value;
+
 			if (original) {
-				arguments[i] =
-					ercVersionedEntryModelImpl.getColumnOriginalValue(
-						columnName);
-			}
-			else {
-				arguments[i] = ercVersionedEntryModelImpl.getColumnValue(
+				value = ercVersionedEntryModelImpl.getColumnOriginalValue(
 					columnName);
 			}
+			else {
+				value = ercVersionedEntryModelImpl.getColumnValue(columnName);
+			}
+
+			arguments[i] = finderPath.normalizeArgument(i, value);
 		}
 
 		return arguments;
 	}
 
-	private static final Map<FinderPath, Long> _finderPathColumnBitmasksCache =
-		new ConcurrentHashMap<>();
+	private static boolean _hasModifiedColumns(
+		ERCVersionedEntryModelImpl ercVersionedEntryModelImpl,
+		String[] columnNames) {
+
+		if (columnNames.length == 0) {
+			return false;
+		}
+
+		for (String columnName : columnNames) {
+			if (!Objects.equals(
+					ercVersionedEntryModelImpl.getColumnOriginalValue(
+						columnName),
+					ercVersionedEntryModelImpl.getColumnValue(columnName))) {
+
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:312962337

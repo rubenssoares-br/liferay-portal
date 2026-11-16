@@ -5,7 +5,7 @@
 
 package com.liferay.sample;
 
-import com.liferay.client.extension.util.spring.boot.BaseRestController;
+import com.liferay.client.extension.util.spring.boot3.BaseRestController;
 
 import org.json.JSONObject;
 
@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author Andrea Sbarra
@@ -38,8 +39,11 @@ public class ActionRestController extends BaseRestController {
 				).put(
 					"purchaseOrderNumber", jsonObject.getString("pon")
 				).toString(),
-				"/o/headless-commerce-delivery-cart/v1.0/carts/" +
-					jsonObject.getLong("commerceOrderId")),
+				UriComponentsBuilder.fromPath(
+					"/o/headless-commerce-delivery-cart/v1.0/carts/" +
+						jsonObject.getLong("commerceOrderId")
+				).build(
+				).toUri()),
 			HttpStatus.OK);
 	}
 

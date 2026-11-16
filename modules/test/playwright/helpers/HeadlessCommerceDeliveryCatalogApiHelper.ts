@@ -27,6 +27,12 @@ export class HeadlessCommerceDeliveryCatalogApiHelper {
 		this.basePath = 'headless-commerce-delivery-catalog/v1.0/';
 	}
 
+	async deleteWishList(wishListId: number) {
+		return this.apiHelpers.delete(
+			`${this.apiHelpers.baseUrl}${this.basePath}/wishlists/${wishListId}`
+		);
+	}
+
 	async getChannelProductAttachmentsPage(
 		channelId: number,
 		productId: number
@@ -46,6 +52,16 @@ export class HeadlessCommerceDeliveryCatalogApiHelper {
 		);
 	}
 
+	async getChannelProductSkusPage(
+		channelId: number,
+		productId: number,
+		searchParams = new URLSearchParams()
+	) {
+		return this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${this.basePath}/channels/${channelId}/products/${productId}/skus?${searchParams.toString()}`
+		);
+	}
+
 	async postWishList(
 		wishList: TWishList,
 		channelId: number,
@@ -55,7 +71,7 @@ export class HeadlessCommerceDeliveryCatalogApiHelper {
 			`${this.apiHelpers.baseUrl}${this.basePath}/channels/${channelId}/wishlists?nestedFields=wishListItems&wishListItems.accountId=${accountId}&accountId=${accountId}`,
 			{
 				data: {
-					defaultWishList: true,
+					defaultWishList: wishList.defaultWishList ?? true,
 					name: wishList.name,
 					wishListItems: wishList.wishListItems,
 				},
@@ -72,9 +88,14 @@ export class HeadlessCommerceDeliveryCatalogApiHelper {
 		return postWishList;
 	}
 
-	async deleteWishList(wishListId: number) {
-		return this.apiHelpers.delete(
-			`${this.apiHelpers.baseUrl}${this.basePath}/wishlists/${wishListId}`
+	async postWishListItem(
+		wishListId: number,
+		wishListItem: TWishListItem,
+		accountId: number
+	): Promise<TWishListItem> {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/wishlists/${wishListId}/wishlist-items?accountId=${accountId}`,
+			{data: wishListItem}
 		);
 	}
 }

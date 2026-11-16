@@ -1,19 +1,21 @@
 {
-	"@generated": "65cbaac150b74de0363d7a8b0078043935bfee66",
+	"@generated": "650fe2c3f5d512e5e9c4e273bbbe682f8dd7adf0",
 	"@readonly": "** AUTO-GENERATED: DO NOT EDIT **",
 	"compilerOptions": {
 		"allowSyntheticDefaultImports": true,
-		"baseUrl": ".",
 		"checkJs": false,
 		"composite": true,
 		"declarationDir": "../../../../../../../../.tsc/types",
 		"emitDeclarationOnly": true,
 		"jsx": "react",
-		"module": "es6",
+		"module": "es2022",
 		"moduleResolution": "node",
 		"paths": {
 			"@liferay/frontend-js-state-web": [
-				"../../../../../../frontend-js-state-web/src/main/resources/META-INF/resources/index.ts"
+				"../../../../../../frontend-js-state-web/src/main/resources/META-INF/resources/main/index.ts"
+			],
+			"@liferay/frontend-js-state-web/react": [
+				"../../../../../../frontend-js-state-web/src/main/resources/META-INF/resources/react/index.ts"
 			],
 			"@liferay/frontend-js-walkthrough-web": [
 				"../../../../../../frontend-js-walkthrough-web/src/main/resources/META-INF/resources/index.js"
@@ -40,9 +42,6 @@
 	"references": [
 		{
 			"path": "../../../../../../frontend-js-state-web/src/main/resources/META-INF/resources/tsconfig.json"
-		},
-		{
-			"path": "../../../../../../frontend-js-walkthrough-web/src/main/resources/META-INF/resources/tsconfig.json"
 		},
 		{
 			"path": "../../../../../../frontend-js-components-web/src/main/resources/META-INF/resources/tsconfig.json"

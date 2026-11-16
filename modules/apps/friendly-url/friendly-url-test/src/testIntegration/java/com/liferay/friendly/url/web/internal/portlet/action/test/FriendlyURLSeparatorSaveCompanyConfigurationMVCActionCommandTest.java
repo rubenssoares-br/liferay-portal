@@ -36,9 +36,9 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.FriendlyURLNormalizer;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.model.impl.LayoutImpl;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -61,7 +61,6 @@ import org.osgi.service.cm.ConfigurationAdmin;
 /**
  * @author Mikel Lorza
  */
-@FeatureFlags("LPD-11147")
 @RunWith(Arquillian.class)
 @Sync
 public class FriendlyURLSeparatorSaveCompanyConfigurationMVCActionCommandTest {
@@ -114,7 +113,7 @@ public class FriendlyURLSeparatorSaveCompanyConfigurationMVCActionCommandTest {
 
 		_assertRedirectURL(
 			JournalArticle.class.getName(),
-			"friendly-url-separator-error-can-not-be-a-number",
+			"friendly-url-separator-error-cannot-be-a-number",
 			friendlyURLSeparators, mockActionResponse.getRedirect());
 	}
 
@@ -375,7 +374,8 @@ public class FriendlyURLSeparatorSaveCompanyConfigurationMVCActionCommandTest {
 			WebKeys.THEME_DISPLAY, _getThemeDisplay());
 
 		mockLiferayPortletActionRequest.setParameter(
-			"redirect", "http://localhost:8080");
+			"redirect",
+			"http://localhost:" + PortalUtil.getPortalServerPort(false));
 
 		for (Map.Entry<String, String> friendlyURLSeparator :
 				friendlyURLSeparators.entrySet()) {
@@ -392,7 +392,8 @@ public class FriendlyURLSeparatorSaveCompanyConfigurationMVCActionCommandTest {
 
 		for (FriendlyURLResolver friendlyURLResolver :
 				FriendlyURLResolverRegistryUtil.
-					getFriendlyURLResolversAsCollection()) {
+					getFriendlyURLResolversAsCollection(
+						_company.getCompanyId())) {
 
 			if (!friendlyURLResolver.isURLSeparatorConfigurable()) {
 				continue;
@@ -433,47 +434,60 @@ public class FriendlyURLSeparatorSaveCompanyConfigurationMVCActionCommandTest {
 			Map<String, String> friendlyURLSeparators)
 		throws Exception {
 
-		ConfigurationTestUtil.updateConfiguration(
-			FriendlyURLSeparatorCompanyConfiguration.class.getName(),
-			() -> {
-				_mvcActionCommand.processAction(
-					_getMockLiferayPortletActionRequest(friendlyURLSeparators),
-					new MockLiferayPortletActionResponse());
-
-				Configuration configuration =
-					_configurationAdmin.getConfiguration(
-						FriendlyURLSeparatorCompanyConfiguration.class.
-							getName(),
-						StringPool.QUESTION);
-
-				configuration.update();
-			});
-
-		JSONObject jsonObject = _jsonFactory.createJSONObject(
+		JSONObject originalFriendlyURLSeparatorsJSONObject =
 			_friendlyURLSeparatorConfigurationManager.
-				getFriendlyURLSeparatorsJSON(_company.getCompanyId()));
+				getFriendlyURLSeparatorsJSONObject(_company.getCompanyId());
 
-		for (Map.Entry<String, String> friendlyURLSeparator :
-				friendlyURLSeparators.entrySet()) {
+		try {
+			ConfigurationTestUtil.updateConfiguration(
+				FriendlyURLSeparatorCompanyConfiguration.class.getName(),
+				() -> {
+					_mvcActionCommand.processAction(
+						_getMockLiferayPortletActionRequest(
+							friendlyURLSeparators),
+						new MockLiferayPortletActionResponse());
 
-			String normalizedFriendlyURLSeparator =
-				_friendlyURLNormalizer.normalizeWithPeriodsAndSlashes(
-					friendlyURLSeparator.getValue());
+					Configuration configuration =
+						_configurationAdmin.getConfiguration(
+							FriendlyURLSeparatorCompanyConfiguration.class.
+								getName(),
+							StringPool.QUESTION);
 
-			Assert.assertEquals(
-				StringPool.SLASH + normalizedFriendlyURLSeparator +
-					StringPool.SLASH,
-				jsonObject.get(friendlyURLSeparator.getKey()));
+					configuration.update();
+				});
+
+			JSONObject jsonObject =
+				_friendlyURLSeparatorConfigurationManager.
+					getFriendlyURLSeparatorsJSONObject(_company.getCompanyId());
+
+			for (Map.Entry<String, String> friendlyURLSeparator :
+					friendlyURLSeparators.entrySet()) {
+
+				String normalizedFriendlyURLSeparator =
+					_friendlyURLNormalizer.normalizeWithPeriodsAndSlashes(
+						friendlyURLSeparator.getValue());
+
+				Assert.assertEquals(
+					StringPool.SLASH + normalizedFriendlyURLSeparator +
+						StringPool.SLASH,
+					jsonObject.get(friendlyURLSeparator.getKey()));
+			}
+		}
+		finally {
+			_friendlyURLSeparatorConfigurationManager.
+				updateFriendlyURLSeparatorCompanyConfiguration(
+					_company.getCompanyId(),
+					originalFriendlyURLSeparatorsJSONObject.toString());
 		}
 	}
-
-	@Inject
-	private static ConfigurationAdmin _configurationAdmin;
 
 	private Company _company;
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	@Inject
+	private ConfigurationAdmin _configurationAdmin;
 
 	@Inject
 	private FriendlyURLNormalizer _friendlyURLNormalizer;

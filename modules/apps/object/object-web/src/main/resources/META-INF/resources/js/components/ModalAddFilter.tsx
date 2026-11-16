@@ -5,7 +5,6 @@
 
 import ClayButton from '@clayui/button';
 import ClayModal from '@clayui/modal';
-import {Observer} from '@clayui/modal/lib/types';
 import {
 	API,
 	DatePicker,
@@ -32,6 +31,8 @@ import {
 } from '../utils/filter';
 
 import './ModalAddFilter.scss';
+
+import type {Observer} from '@clayui/modal/src/types';
 
 interface ModalAddFilterProps {
 	aggregationFilter?: boolean;
@@ -152,11 +153,12 @@ export function ModalAddFilter({
 
 	const filterByItems = useMemo(() => {
 		return objectFields.map(({id, label, name}) => ({
-			label: stringUtils.getLocalizableLabel(
-				creationLanguageId as Liferay.Language.Locale,
-				label,
-				name
-			),
+			label: stringUtils.getLocalizableLabel({
+				fallbackLabel: name,
+				fallbackLanguageId:
+					creationLanguageId as Liferay.Language.Locale,
+				labels: label,
+			}),
 			value: id,
 		})) as LabelValueObject<number>[];
 	}, [creationLanguageId, objectFields]);
@@ -264,9 +266,9 @@ export function ModalAddFilter({
 							system,
 							titleObjectFieldName,
 						},
-					] = await API.getObjectDefinitions(
-						`filter=name eq '${value}'`
-					);
+					] = await API.getObjectDefinitions({
+						filter: `name eq '${value}'`,
+					});
 
 					const titleObjectField = objectFields.find(
 						(objectField) =>
@@ -496,7 +498,11 @@ export function ModalAddFilter({
 			disableAutoClose={disableAutoClose}
 			observer={observer}
 		>
-			<ClayModal.Header>{header}</ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
+				{header}
+			</ClayModal.Header>
 
 			<ClayModal.Body>
 				{!editingFilter && (
@@ -542,6 +548,7 @@ export function ModalAddFilter({
 					!aggregationRelationshipOrDateFieldBusinessType && (
 						<SingleSelect
 							error={errors.selectedFilterType}
+							id="modalAddFilterType"
 							items={
 								selectedFilterBy?.businessType === 'Integer' ||
 								selectedFilterBy?.businessType === 'LongInteger'
@@ -562,6 +569,7 @@ export function ModalAddFilter({
 					!disableDateValues && (
 						<SingleSelect
 							error={errors.selectedFilterType}
+							id="modalAddFilterType"
 							items={filterOperators.dateOperators}
 							label={Liferay.Language.get('filter-type')}
 							onSelectionChange={(value) =>
@@ -577,6 +585,7 @@ export function ModalAddFilter({
 						selectedFilterBy?.businessType === 'LongInteger') && (
 						<Input
 							error={errors.value}
+							id="modalAddFilterValue"
 							label={Liferay.Language.get('value')}
 							onChange={({target: {value}}) => {
 								const newValue = value.replace(/[\D]/g, '');
@@ -605,6 +614,7 @@ export function ModalAddFilter({
 							<div className="col-lg-6">
 								<DatePicker
 									error={errors.startDate}
+									id="modalAddFilterStartDate"
 									label={Liferay.Language.get('start')}
 									onChange={(value) => {
 										setItems([
@@ -628,6 +638,7 @@ export function ModalAddFilter({
 							<div className="col-lg-6">
 								<DatePicker
 									error={errors.endDate}
+									id="modalAddFilterEndDate"
 									label={Liferay.Language.get('end')}
 									onChange={(value) => {
 										setItems([

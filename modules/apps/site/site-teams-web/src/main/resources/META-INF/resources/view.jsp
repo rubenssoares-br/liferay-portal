@@ -22,14 +22,14 @@ SiteTeamsManagementToolbarDisplayContext siteTeamsManagementToolbarDisplayContex
 	<portlet:param name="redirect" value="<%= currentURL %>" />
 </portlet:actionURL>
 
-<aui:form action="<%= deleteTeamsURL %>" cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form action="<%= deleteTeamsURL %>" cssClass="container-fluid" name="fm">
 	<liferay-ui:search-container
 		searchContainer="<%= siteTeamsDisplayContext.getSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.portal.kernel.model.Team"
 			escapedModel="<%= true %>"
-			keyProperty="teamId"
+			keyPropertyName="teamId"
 			modelVar="team"
 		>
 

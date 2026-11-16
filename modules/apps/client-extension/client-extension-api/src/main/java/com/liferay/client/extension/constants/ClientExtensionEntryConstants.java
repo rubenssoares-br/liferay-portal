@@ -10,6 +10,9 @@ package com.liferay.client.extension.constants;
  */
 public class ClientExtensionEntryConstants {
 
+	public static final String TYPE_AUDIENCES_CUSTOM_ATTRIBUTES =
+		"audiencesCustomAttributes";
+
 	public static final String TYPE_COMMERCE_CHECKOUT_STEP =
 		"commerceCheckoutStep";
 
@@ -21,6 +24,9 @@ public class ClientExtensionEntryConstants {
 	public static final String TYPE_FDS_CELL_RENDERER = "fdsCellRenderer";
 
 	public static final String TYPE_FDS_FILTER = "fdsFilter";
+
+	public static final String TYPE_FDS_VISUALIZATION_MODE =
+		"fdsVisualizationMode";
 
 	public static final String TYPE_GLOBAL_CSS = "globalCSS";
 

@@ -78,12 +78,12 @@ public class CPDefinitionSpecificationOptionValueTableReferenceDefinitionTest
 		_cpSpecificationOption =
 			_cpSpecificationOptionLocalService.addCPSpecificationOption(
 				RandomTestUtil.randomString(), TestPropsValues.getUserId(),
-				_cpOptionCategory.getCPOptionCategoryId(), 0,
+				_cpOptionCategory.getCPOptionCategoryId(), null,
 				RandomTestUtil.randomLocaleStringMap(),
 				RandomTestUtil.randomLocaleStringMap(), true,
 				CPDefinitionSpecificationOptionValueTableReferenceDefinitionTest.class.
 					getSimpleName(),
-				RandomTestUtil.randomDouble(), _serviceContext);
+				RandomTestUtil.randomDouble(), true, _serviceContext);
 	}
 
 	@Override
@@ -94,7 +94,7 @@ public class CPDefinitionSpecificationOptionValueTableReferenceDefinitionTest
 				_cpSpecificationOption.getCPSpecificationOptionId(),
 				_cpOptionCategory.getCPOptionCategoryId(),
 				RandomTestUtil.randomDouble(),
-				RandomTestUtil.randomLocaleStringMap(), _serviceContext);
+				RandomTestUtil.randomLocaleStringMap(), true, _serviceContext);
 	}
 
 	@Inject

@@ -51,7 +51,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Petteri Karttunen
  */
 @Component(
-	property = "javax.portlet.name=" + CustomFacetPortletKeys.CUSTOM_FACET,
+	property = "jakarta.portlet.name=" + CustomFacetPortletKeys.CUSTOM_FACET,
 	service = PortletSharedSearchContributor.class
 )
 public class CustomFacetPortletSharedSearchContributor
@@ -203,32 +203,6 @@ public class CustomFacetPortletSharedSearchContributor
 			));
 	}
 
-	private void _contributeWithDateRangeFacet(
-		CustomFacetPortletPreferences customFacetPortletPreferences,
-		String fieldToAggregate,
-		PortletSharedSearchSettings portletSharedSearchSettings,
-		JSONArray rangesJSONArray, String[] selectedRanges) {
-
-		_dateRangeFacetSearchContributor.contribute(
-			portletSharedSearchSettings.getFederatedSearchRequestBuilder(
-				customFacetPortletPreferences.getFederatedSearchKey()),
-			dateRangeFacetBuilder -> dateRangeFacetBuilder.aggregationName(
-				portletSharedSearchSettings.getPortletId()
-			).field(
-				fieldToAggregate
-			).format(
-				"yyyyMMddHHmmss"
-			).frequencyThreshold(
-				customFacetPortletPreferences.getFrequencyThreshold()
-			).order(
-				customFacetPortletPreferences.getOrder()
-			).rangesJSONArray(
-				rangesJSONArray
-			).selectedRanges(
-				selectedRanges
-			));
-	}
-
 	private void _contributeWithDDMField(
 		String aggregationField, String aggregationType,
 		CustomFacetPortletPreferences customFacetPortletPreferences,
@@ -300,6 +274,32 @@ public class CustomFacetPortletSharedSearchContributor
 				portletSharedSearchSettings, selectedRanges));
 	}
 
+	private void _contributeWithDateRangeFacet(
+		CustomFacetPortletPreferences customFacetPortletPreferences,
+		String fieldToAggregate,
+		PortletSharedSearchSettings portletSharedSearchSettings,
+		JSONArray rangesJSONArray, String[] selectedRanges) {
+
+		_dateRangeFacetSearchContributor.contribute(
+			portletSharedSearchSettings.getFederatedSearchRequestBuilder(
+				customFacetPortletPreferences.getFederatedSearchKey()),
+			dateRangeFacetBuilder -> dateRangeFacetBuilder.aggregationName(
+				portletSharedSearchSettings.getPortletId()
+			).field(
+				fieldToAggregate
+			).format(
+				"yyyyMMddHHmmss"
+			).frequencyThreshold(
+				customFacetPortletPreferences.getFrequencyThreshold()
+			).order(
+				customFacetPortletPreferences.getOrder()
+			).rangesJSONArray(
+				rangesJSONArray
+			).selectedRanges(
+				selectedRanges
+			));
+	}
+
 	private void _contributeWithNestedFacet(
 		JSONObject additionalFacetConfigurationDataJSONObject,
 		Aggregation childAggregation, Filter childAggregationValuesFilter,
@@ -327,6 +327,8 @@ public class CustomFacetPortletSharedSearchContributor
 				filterValue
 			).frequencyThreshold(
 				customFacetPortletPreferences.getFrequencyThreshold()
+			).maxTerms(
+				customFacetPortletPreferences.getMaxTerms()
 			).path(
 				path
 			).selectedValues(
@@ -449,6 +451,26 @@ public class CustomFacetPortletSharedSearchContributor
 		return null;
 	}
 
+	private String _getDDMFieldArrayFieldToAggregate(
+		String[] ddmFieldArrayParts) {
+
+		if ((ddmFieldArrayParts.length == 4) &&
+			ddmFieldArrayParts[3].equals("keyword_lowercase")) {
+
+			return _withNestedPath(
+				StringBundler.concat(
+					ddmFieldArrayParts[2], StringPool.PERIOD,
+					ddmFieldArrayParts[3]),
+				DDMIndexer.DDM_FIELD_ARRAY);
+		}
+		else if (ddmFieldArrayParts.length == 3) {
+			return _withNestedPath(
+				ddmFieldArrayParts[2], DDMIndexer.DDM_FIELD_ARRAY);
+		}
+
+		return null;
+	}
+
 	private Filter _getDateRangeChildAggregationFilter(
 		String aggregationField, List<String> selectedRanges) {
 
@@ -478,26 +500,6 @@ public class CustomFacetPortletSharedSearchContributor
 		}
 
 		return booleanFilter;
-	}
-
-	private String _getDDMFieldArrayFieldToAggregate(
-		String[] ddmFieldArrayParts) {
-
-		if ((ddmFieldArrayParts.length == 4) &&
-			ddmFieldArrayParts[3].equals("keyword_lowercase")) {
-
-			return _withNestedPath(
-				StringBundler.concat(
-					ddmFieldArrayParts[2], StringPool.PERIOD,
-					ddmFieldArrayParts[3]),
-				DDMIndexer.DDM_FIELD_ARRAY);
-		}
-		else if (ddmFieldArrayParts.length == 3) {
-			return _withNestedPath(
-				ddmFieldArrayParts[2], DDMIndexer.DDM_FIELD_ARRAY);
-		}
-
-		return null;
 	}
 
 	private Locale _getLocaleFromSuffix(String string) {

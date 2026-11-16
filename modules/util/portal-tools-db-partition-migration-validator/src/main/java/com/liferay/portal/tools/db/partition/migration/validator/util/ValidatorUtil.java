@@ -45,9 +45,11 @@ public class ValidatorUtil {
 		List<String> failedServletContextNames = new ArrayList<>();
 
 		for (Release release : liferayDatabase.getReleases()) {
-			if (release.getState() != 0) {
-				failedServletContextNames.add(release.getServletContextName());
+			if (release.getState() == 0) {
+				continue;
 			}
+
+			failedServletContextNames.add(release.getServletContextName());
 		}
 
 		return failedServletContextNames;
@@ -84,8 +86,7 @@ public class ValidatorUtil {
 				StringBundler.concat(
 					"Company name ", sourceCompany.getCompanyName(),
 					" already exists in the target database. You must set a ",
-					"different value in ",
-					"DBPartitionInsertVirtualInstanceConfiguration.config."));
+					"different value in the portal instance import request."));
 		}
 
 		if (Objects.equals(
@@ -96,8 +97,7 @@ public class ValidatorUtil {
 				StringBundler.concat(
 					"Virtual host ", sourceCompany.getVirtualHostname(),
 					" already exists in the target database. You must set a ",
-					"different value in ",
-					"DBPartitionInsertVirtualInstanceConfiguration.config."));
+					"different value in the portal instance import request."));
 		}
 
 		if (Objects.equals(company.getWebId(), sourceCompany.getWebId())) {
@@ -105,8 +105,7 @@ public class ValidatorUtil {
 				StringBundler.concat(
 					"Web ID ", sourceCompany.getWebId(),
 					" already exists in the target database. You must set a ",
-					"different value in ",
-					"DBPartitionInsertVirtualInstanceConfiguration.config."));
+					"different value in the portal instance import request."));
 		}
 	}
 
@@ -142,10 +141,8 @@ public class ValidatorUtil {
 			targetLiferayDatabase.getTableNames());
 
 		for (String sourcePartitionedTableName : sourcePartitionedTableNames) {
-			if (targetPartitionedTableNames.contains(
+			if (targetPartitionedTableNames.remove(
 					sourcePartitionedTableName)) {
-
-				targetPartitionedTableNames.remove(sourcePartitionedTableName);
 
 				continue;
 			}

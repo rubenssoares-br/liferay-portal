@@ -11,34 +11,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Pin")
+@GraphQLName(
+	description = "Coordinates on a product-diagram image that locate a mapped product, used to render interactive shop-by-diagram views.",
+	value = "Pin"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Coordinates on a product-diagram image that locate a mapped product, used to render interactive shop-by-diagram views."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Pin")
 public class Pin implements Serializable {
@@ -52,7 +59,10 @@ public class Pin implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "33130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the diagram pin (FK identifier).",
+		example = "33130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -84,14 +94,14 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Reference to the diagram pin (FK identifier).")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public MappedProduct getMappedProduct() {
 		if (_mappedProductSupplier != null) {
@@ -133,7 +143,10 @@ public class Pin implements Serializable {
 	@JsonIgnore
 	private Supplier<MappedProduct> _mappedProductSupplier;
 
-	@Schema(example = "33.54")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Horizontal coordinate of the pin on the diagram image, expressed as a percentage (0-100) of the image width.",
+		example = "33.54"
+	)
 	public Double getPositionX() {
 		if (_positionXSupplier != null) {
 			positionX = _positionXSupplier.get();
@@ -167,14 +180,19 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Horizontal coordinate of the pin on the diagram image, expressed as a percentage (0-100) of the image width."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double positionX;
 
 	@JsonIgnore
 	private Supplier<Double> _positionXSupplier;
 
-	@Schema(example = "33.54")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Vertical coordinate of the pin on the diagram image, expressed as a percentage (0-100) of the image height.",
+		example = "33.54"
+	)
 	public Double getPositionY() {
 		if (_positionYSupplier != null) {
 			positionY = _positionYSupplier.get();
@@ -208,14 +226,19 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Vertical coordinate of the pin on the diagram image, expressed as a percentage (0-100) of the image height."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double positionY;
 
 	@JsonIgnore
 	private Supplier<Double> _positionYSupplier;
 
-	@Schema(example = "1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form sequence identifier used to order pins within the diagram.",
+		example = "1"
+	)
 	public String getSequence() {
 		if (_sequenceSupplier != null) {
 			sequence = _sequenceSupplier.get();
@@ -249,7 +272,9 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form sequence identifier used to order pins within the diagram."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String sequence;
 
@@ -352,8 +377,8 @@ public class Pin implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.Pin",
 		name = "x-class-name"
 	)
@@ -440,6 +465,27 @@ public class Pin implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -448,3 +494,4 @@ public class Pin implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1485013915

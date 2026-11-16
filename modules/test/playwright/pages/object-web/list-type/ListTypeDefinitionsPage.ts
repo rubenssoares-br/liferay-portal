@@ -5,18 +5,22 @@
 
 import {FrameLocator, Locator, Page} from '@playwright/test';
 
-import {ApplicationsMenuPage} from '../../product-navigation-applications-menu/ApplicationsMenuPage';
+import {PORTLET_URLS} from '../../../utils/portletUrls';
+import {GlobalMenuPage} from '../../product-navigation-applications-menu/GlobalMenuPage';
 
 export class ListTypeDefinitionsPage {
 	readonly addPicklistButton: Locator;
 	readonly addPicklistItemButton: Locator;
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly basicInfoHeading: Locator;
+	readonly deleteActionMenuOption: Locator;
+	readonly deleteButton: Locator;
 	readonly frameLocator: FrameLocator;
 	readonly modalNameInput: Locator;
 	readonly modalSaveButton: Locator;
 	readonly page: Page;
 	readonly picklistItemKey: Locator;
+	readonly picklistItemActionsButton: Locator;
 	readonly picklistItemTranslationButton: Locator;
 	readonly picklistTranslationButton: Locator;
 	readonly sidebarNameInput: Locator;
@@ -31,23 +35,28 @@ export class ListTypeDefinitionsPage {
 		this.addPicklistItemButton = page
 			.frameLocator('iframe')
 			.getByLabel('Add Item');
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
 		this.basicInfoHeading = page
 			.frameLocator('iframe')
 			.getByRole('heading', {name: 'Basic Info'});
+		this.deleteActionMenuOption = page
+			.frameLocator('iframe')
+			.getByRole('menuitem', {name: 'Delete'});
+		this.deleteButton = page.getByRole('button', {name: 'Delete'});
 		this.frameLocator = page.frameLocator('iframe');
+		this.globalMenuPage = new GlobalMenuPage(page);
 		this.modalNameInput = page.getByLabel('Name');
 		this.modalSaveButton = page.getByRole('button', {
 			name: 'Save',
 		});
 		this.page = page;
+		this.picklistItemActionsButton = page
+			.frameLocator('iframe')
+			.getByRole('button', {name: 'Actions'});
 		this.picklistItemKey = page.getByLabel('Key');
-		this.picklistItemTranslationButton = page.getByRole('button', {
-			name: 'en_US',
-		});
+		this.picklistItemTranslationButton = page.getByTitle('en_US');
 		this.picklistTranslationButton = page
 			.frameLocator('iframe')
-			.getByRole('button', {name: 'en_US'});
+			.getByTitle('en_US');
 		this.sidebarNameInput = page.frameLocator('iframe').getByLabel('Name');
 		this.sidebarSaveButton = page
 			.frameLocator('iframe')
@@ -77,8 +86,16 @@ export class ListTypeDefinitionsPage {
 		await this.modalSaveButton.click();
 	}
 
+	async deletePicklistItem() {
+		await this.picklistItemActionsButton.click();
+		await this.deleteActionMenuOption.click();
+		await this.deleteButton.click();
+	}
+
 	async goto() {
-		await this.applicationsMenuPage.goToPicklists();
+		await this.page.goto(`/group/guest${PORTLET_URLS.picklists}`, {
+			waitUntil: 'load',
+		});
 	}
 
 	async translatePicklist(
@@ -91,7 +108,9 @@ export class ListTypeDefinitionsPage {
 
 		await this.page
 			.frameLocator('iframe')
-			.getByRole('menuitem', {name: `${locationCode} Untranslated`})
+			.getByRole('option', {
+				name: `${locationCode} language: Untranslated`,
+			})
 			.click();
 
 		await this.sidebarNameInput.click();
@@ -117,7 +136,9 @@ export class ListTypeDefinitionsPage {
 		await this.picklistItemTranslationButton.click();
 
 		await this.page
-			.getByRole('menuitem', {name: `${locationCode} Untranslated`})
+			.getByRole('option', {
+				name: `${locationCode} language: Untranslated`,
+			})
 			.click();
 
 		await this.modalNameInput.click();

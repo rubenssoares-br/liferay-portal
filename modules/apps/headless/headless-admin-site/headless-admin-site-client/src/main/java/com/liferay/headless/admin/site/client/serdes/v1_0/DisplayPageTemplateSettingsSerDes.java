@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.DisplayPageTemplateSettings;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -150,14 +151,15 @@ public class DisplayPageTemplateSettingsSerDes {
 			if (Objects.equals(jsonParserFieldName, "openGraphSettings")) {
 				if (jsonParserFieldValue != null) {
 					displayPageTemplateSettings.setOpenGraphSettings(
-						OpenGraphSettingsSerDes.toDTO(
+						DisplayPageTemplateOpenGraphSettingsSerDes.toDTO(
 							(String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "seoSettings")) {
 				if (jsonParserFieldValue != null) {
 					displayPageTemplateSettings.setSeoSettings(
-						SEOSettingsSerDes.toDTO((String)jsonParserFieldValue));
+						DisplayPageTemplateSEOSettingsSerDes.toDTO(
+							(String)jsonParserFieldValue));
 				}
 			}
 		}
@@ -205,6 +207,16 @@ public class DisplayPageTemplateSettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -237,3 +249,4 @@ public class DisplayPageTemplateSettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1248045952

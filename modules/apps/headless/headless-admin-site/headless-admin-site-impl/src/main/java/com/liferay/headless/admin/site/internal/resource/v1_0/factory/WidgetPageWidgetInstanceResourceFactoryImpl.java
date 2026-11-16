@@ -1,10 +1,11 @@
 /**
- * SPDX-FileCopyrightText: (c) 2024 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
 package com.liferay.headless.admin.site.internal.resource.v1_0.factory;
 
+import com.liferay.headless.admin.site.internal.resource.v1_0.BaseWidgetPageWidgetInstanceResourceImpl;
 import com.liferay.headless.admin.site.internal.security.permission.LiberalPermissionChecker;
 import com.liferay.headless.admin.site.resource.v1_0.WidgetPageWidgetInstanceResource;
 import com.liferay.portal.kernel.model.Company;
@@ -27,6 +28,15 @@ import com.liferay.portal.odata.filter.ExpressionConvert;
 import com.liferay.portal.odata.filter.FilterParserProvider;
 import com.liferay.portal.odata.sort.SortParserProvider;
 import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.feature.flag.FeatureFlagChecker;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
@@ -37,13 +47,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
-
-import javax.annotation.Generated;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import javax.ws.rs.core.UriInfo;
 
 import org.osgi.service.component.ComponentServiceObjects;
 import org.osgi.service.component.annotations.Component;
@@ -182,6 +185,14 @@ public class WidgetPageWidgetInstanceResourceFactoryImpl
 			UriInfo uriInfo, User user)
 		throws Throwable {
 
+		if (!_featureFlagChecker.isEnabled(
+				user.getCompanyId(),
+				BaseWidgetPageWidgetInstanceResourceImpl.class.getMethod(
+					method.getName(), method.getParameterTypes()))) {
+
+			throw new NotFoundException();
+		}
+
 		String name = PrincipalThreadLocal.getName();
 
 		PrincipalThreadLocal.setName(user.getUserId());
@@ -258,6 +269,9 @@ public class WidgetPageWidgetInstanceResourceFactoryImpl
 		target = "(result.class.name=com.liferay.portal.kernel.search.filter.Filter)"
 	)
 	private ExpressionConvert<Filter> _expressionConvert;
+
+	@Reference
+	private FeatureFlagChecker _featureFlagChecker;
 
 	@Reference
 	private FilterParserProvider _filterParserProvider;
@@ -340,3 +354,4 @@ public class WidgetPageWidgetInstanceResourceFactoryImpl
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-105485241

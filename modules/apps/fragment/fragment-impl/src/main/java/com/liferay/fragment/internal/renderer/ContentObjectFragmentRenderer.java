@@ -5,6 +5,7 @@
 
 package com.liferay.fragment.internal.renderer;
 
+import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.fragment.model.FragmentEntryLink;
 import com.liferay.fragment.renderer.FragmentRenderer;
 import com.liferay.fragment.renderer.FragmentRendererContext;
@@ -23,7 +24,6 @@ import com.liferay.info.item.provider.InfoItemFieldValuesProvider;
 import com.liferay.info.item.provider.InfoItemObjectProvider;
 import com.liferay.info.item.provider.InfoItemObjectVariationProvider;
 import com.liferay.info.item.provider.InfoItemPermissionProvider;
-import com.liferay.info.item.provider.filter.InfoItemServiceFilter;
 import com.liferay.info.item.renderer.InfoItemRenderer;
 import com.liferay.info.item.renderer.InfoItemRendererRegistry;
 import com.liferay.info.item.renderer.InfoItemTemplatedRenderer;
@@ -31,7 +31,6 @@ import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.layout.display.page.constants.LayoutDisplayPageWebKeys;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.Language;
@@ -43,13 +42,13 @@ import com.liferay.portal.kernel.util.Tuple;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.PrintWriter;
 
 import java.util.List;
 import java.util.Locale;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -66,7 +65,7 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 	}
 
 	@Override
-	public String getConfiguration(
+	public JSONObject getConfigurationJSONObject(
 		FragmentRendererContext fragmentRendererContext) {
 
 		return JSONUtil.put(
@@ -90,8 +89,7 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 					_language.format(
 						fragmentRendererContext.getLocale(), "x-options",
 						"content-display", true)
-				))
-		).toString();
+				)));
 	}
 
 	@Override
@@ -128,9 +126,7 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 			className = jsonObject.getString("className");
 
 			displayObject = _getDisplayObject(
-				className, jsonObject.getLong("classPK"),
-				jsonObject.getString("externalReferenceCode"),
-				infoItemReference);
+				httpServletRequest, infoItemReference, jsonObject);
 		}
 		else {
 			displayObject = _getInfoItem(infoItemReference);
@@ -180,16 +176,11 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 			return;
 		}
 
-		String className = StringPool.BLANK;
 		Object displayObject = null;
 
 		if (jsonObject != null) {
-			className = jsonObject.getString("className");
-
 			displayObject = _getDisplayObject(
-				className, jsonObject.getLong("classPK"),
-				jsonObject.getString("externalReferenceCode"),
-				infoItemReference);
+				httpServletRequest, infoItemReference, jsonObject);
 		}
 		else {
 			displayObject = _getInfoItem(infoItemReference);
@@ -204,6 +195,12 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 			}
 
 			return;
+		}
+
+		String className = StringPool.BLANK;
+
+		if (jsonObject != null) {
+			className = jsonObject.getString("className");
 		}
 
 		if (Validator.isNull(className) && (infoItemReference != null)) {
@@ -235,8 +232,8 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 
 		long classPK = _getClassPK(infoItemReference, jsonObject);
 
-		if (!FeatureFlagManagerUtil.isEnabled("LPD-39437") ||
-			!fragmentRendererContext.isViewMode() || (classPK <= 0)) {
+		if (!fragmentRendererContext.isViewMode() || (classPK <= 0) ||
+			!_isAnalyticsEnabled(httpServletRequest)) {
 
 			_render(
 				displayObject, httpServletRequest, httpServletResponse,
@@ -343,55 +340,61 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 	}
 
 	private Object _getDisplayObject(
-		String className, long classPK, String externalReferenceCode,
-		InfoItemReference infoItemReference) {
+		HttpServletRequest httpServletRequest,
+		InfoItemReference infoItemReference, JSONObject jsonObject) {
 
-		InfoItemServiceFilter infoItemServiceFilter = null;
+		long classPK = jsonObject.getLong("classPK");
 
-		if (classPK > 0) {
-			infoItemServiceFilter =
-				ClassPKInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER;
+		InfoItemDetails infoItemDetails =
+			(InfoItemDetails)httpServletRequest.getAttribute(
+				InfoDisplayWebKeys.INFO_ITEM_DETAILS);
+
+		if ((classPK <= 0) && (infoItemDetails != null) &&
+			(infoItemReference != null) &&
+			infoItemReference.equals(infoItemDetails.getInfoItemReference())) {
+
+			Object infoItem = httpServletRequest.getAttribute(
+				InfoDisplayWebKeys.INFO_ITEM);
+
+			if (infoItem != null) {
+				return infoItem;
+			}
 		}
-		else {
-			infoItemServiceFilter =
-				ERCInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER;
-		}
 
-		if (infoItemReference != null) {
-			InfoItemIdentifier infoItemIdentifier =
-				infoItemReference.getInfoItemIdentifier();
+		String externalReferenceCode = jsonObject.getString(
+			"externalReferenceCode");
 
-			infoItemServiceFilter =
-				infoItemIdentifier.getInfoItemServiceFilter();
-		}
-
-		InfoItemObjectProvider<?> infoItemObjectProvider =
-			_infoItemServiceRegistry.getFirstInfoItemService(
-				InfoItemObjectProvider.class, className, infoItemServiceFilter);
-
-		if (infoItemObjectProvider == null) {
+		if ((classPK <= 0) && Validator.isNull(externalReferenceCode)) {
 			return _getInfoItem(infoItemReference);
 		}
 
+		String className = jsonObject.getString("className");
+		InfoItemIdentifier infoItemIdentifier = null;
+		InfoItemObjectProvider<?> infoItemObjectProvider = null;
+
+		if (classPK > 0) {
+			infoItemIdentifier = new ClassPKInfoItemIdentifier(classPK);
+			infoItemObjectProvider =
+				_infoItemServiceRegistry.getFirstInfoItemService(
+					InfoItemObjectProvider.class, className,
+					ClassPKInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER);
+		}
+		else {
+			infoItemIdentifier = new ERCInfoItemIdentifier(
+				externalReferenceCode,
+				jsonObject.getString("scopeExternalReferenceCode", null));
+			infoItemObjectProvider =
+				_infoItemServiceRegistry.getFirstInfoItemService(
+					InfoItemObjectProvider.class, className,
+					ERCInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER);
+		}
+
+		if (infoItemObjectProvider == null) {
+			return null;
+		}
+
 		try {
-			InfoItemIdentifier infoItemIdentifier = null;
-
-			if (classPK > 0) {
-				infoItemIdentifier = new ClassPKInfoItemIdentifier(classPK);
-			}
-			else {
-				infoItemIdentifier = new ERCInfoItemIdentifier(
-					externalReferenceCode);
-			}
-
-			Object infoItem = infoItemObjectProvider.getInfoItem(
-				infoItemIdentifier);
-
-			if (infoItem == null) {
-				return _getInfoItem(infoItemReference);
-			}
-
-			return infoItem;
+			return infoItemObjectProvider.getInfoItem(infoItemIdentifier);
 		}
 		catch (Exception exception) {
 			if (_log.isDebugEnabled()) {
@@ -399,7 +402,7 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 			}
 		}
 
-		return _getInfoItem(infoItemReference);
+		return null;
 	}
 
 	private JSONObject _getFieldValueJSONObject(
@@ -409,8 +412,8 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 			fragmentRendererContext.getFragmentEntryLink();
 
 		return (JSONObject)_fragmentEntryConfigurationParser.getFieldValue(
-			getConfiguration(fragmentRendererContext),
-			fragmentEntryLink.getEditableValues(),
+			getConfigurationJSONObject(fragmentRendererContext),
+			fragmentEntryLink.getEditableValuesJSONObject(),
 			fragmentRendererContext.getLocale(), "itemSelector");
 	}
 
@@ -426,6 +429,10 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 			_infoItemServiceRegistry.getFirstInfoItemService(
 				InfoItemObjectProvider.class, infoItemReference.getClassName(),
 				infoItemIdentifier.getInfoItemServiceFilter());
+
+		if (infoItemObjectProvider == null) {
+			return null;
+		}
 
 		try {
 			return infoItemObjectProvider.getInfoItem(infoItemIdentifier);
@@ -541,6 +548,24 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 		return true;
 	}
 
+	private boolean _isAnalyticsEnabled(HttpServletRequest httpServletRequest) {
+		ThemeDisplay themeDisplay =
+			(ThemeDisplay)httpServletRequest.getAttribute(
+				WebKeys.THEME_DISPLAY);
+
+		try {
+			return _analyticsSettingsManager.isAnalyticsEnabled(
+				themeDisplay.getCompanyId());
+		}
+		catch (Exception exception) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(exception);
+			}
+
+			return false;
+		}
+	}
+
 	private void _render(
 		Object displayObject, HttpServletRequest httpServletRequest,
 		HttpServletResponse httpServletResponse,
@@ -568,6 +593,9 @@ public class ContentObjectFragmentRenderer implements FragmentRenderer {
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		ContentObjectFragmentRenderer.class);
+
+	@Reference
+	private AnalyticsSettingsManager _analyticsSettingsManager;
 
 	@Reference
 	private FragmentEntryConfigurationParser _fragmentEntryConfigurationParser;

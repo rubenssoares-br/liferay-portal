@@ -8,16 +8,17 @@ package com.liferay.notification.rest.client.serdes.v1_0;
 import com.liferay.notification.rest.client.dto.v1_0.NotificationTemplate;
 import com.liferay.notification.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Gabriel Albuquerque
@@ -132,6 +133,16 @@ public class NotificationTemplateSerDes {
 			sb.append(_toJSON(notificationTemplate.getBody()));
 		}
 
+		if (notificationTemplate.getCreator() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(notificationTemplate.getCreator());
+		}
+
 		if (notificationTemplate.getDateCreated() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -186,9 +197,7 @@ public class NotificationTemplateSerDes {
 			sb.append("\"editorType\": ");
 
 			sb.append("\"");
-
 			sb.append(notificationTemplate.getEditorType());
-
 			sb.append("\"");
 		}
 
@@ -267,6 +276,28 @@ public class NotificationTemplateSerDes {
 			sb.append("\"objectDefinitionId\": ");
 
 			sb.append(notificationTemplate.getObjectDefinitionId());
+		}
+
+		if (notificationTemplate.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < notificationTemplate.getPermissions().length;
+				 i++) {
+
+				sb.append(notificationTemplate.getPermissions()[i]);
+
+				if ((i + 1) < notificationTemplate.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
 		}
 
 		if (notificationTemplate.getRecipientType() != null) {
@@ -415,6 +446,14 @@ public class NotificationTemplateSerDes {
 			map.put("body", String.valueOf(notificationTemplate.getBody()));
 		}
 
+		if (notificationTemplate.getCreator() == null) {
+			map.put("creator", null);
+		}
+		else {
+			map.put(
+				"creator", String.valueOf(notificationTemplate.getCreator()));
+		}
+
 		if (notificationTemplate.getDateCreated() == null) {
 			map.put("dateCreated", null);
 		}
@@ -508,6 +547,15 @@ public class NotificationTemplateSerDes {
 				String.valueOf(notificationTemplate.getObjectDefinitionId()));
 		}
 
+		if (notificationTemplate.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put(
+				"permissions",
+				String.valueOf(notificationTemplate.getPermissions()));
+		}
+
 		if (notificationTemplate.getRecipientType() == null) {
 			map.put("recipientType", null);
 		}
@@ -592,6 +640,9 @@ public class NotificationTemplateSerDes {
 			else if (Objects.equals(jsonParserFieldName, "body")) {
 				return true;
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
 				return false;
 			}
@@ -627,6 +678,9 @@ public class NotificationTemplateSerDes {
 			else if (Objects.equals(
 						jsonParserFieldName, "objectDefinitionId")) {
 
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "recipientType")) {
@@ -684,6 +738,12 @@ public class NotificationTemplateSerDes {
 				if (jsonParserFieldValue != null) {
 					notificationTemplate.setBody(
 						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				if (jsonParserFieldValue != null) {
+					notificationTemplate.setCreator(
+						CreatorSerDes.toDTO((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
@@ -752,6 +812,26 @@ public class NotificationTemplateSerDes {
 				if (jsonParserFieldValue != null) {
 					notificationTemplate.setObjectDefinitionId(
 						Long.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.notification.rest.client.permission.Permission[]
+						permissionsArray = new
+						com.liferay.notification.rest.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.notification.rest.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					notificationTemplate.setPermissions(permissionsArray);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "recipientType")) {
@@ -834,6 +914,16 @@ public class NotificationTemplateSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -866,3 +956,4 @@ public class NotificationTemplateSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2104651700

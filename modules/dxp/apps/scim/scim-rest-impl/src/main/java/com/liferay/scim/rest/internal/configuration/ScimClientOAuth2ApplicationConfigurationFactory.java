@@ -14,7 +14,6 @@ import com.liferay.oauth2.provider.util.OAuth2SecureRandomGenerator;
 import com.liferay.osgi.util.configuration.ConfigurationFactoryUtil;
 import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.User;
@@ -28,11 +27,8 @@ import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.scim.rest.internal.provider.ScimClientBearerTokenProvider;
 import com.liferay.scim.rest.util.ScimClientUtil;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
-import javax.ws.rs.core.Application;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -41,8 +37,8 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferencePolicyOption;
 
 /**
  * @author Olivér Kecskeméty
@@ -54,17 +50,18 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 public class ScimClientOAuth2ApplicationConfigurationFactory {
 
 	@Activate
+	@Modified
 	protected void activate(
 			BundleContext bundleContext, Map<String, Object> properties)
 		throws Exception {
 
+		if (_serviceRegistration != null) {
+			return;
+		}
+
 		ConfigurationFactoryUtil.executeAsCompany(
 			_companyLocalService, properties,
 			companyId -> {
-				if (!FeatureFlagManagerUtil.isEnabled(companyId, "LPS-96845")) {
-					return;
-				}
-
 				ScimClientOAuth2ApplicationConfiguration
 					scimClientOAuth2ApplicationConfiguration =
 						ConfigurableUtil.createConfigurable(
@@ -79,9 +76,10 @@ public class ScimClientOAuth2ApplicationConfigurationFactory {
 					BearerTokenProvider.class,
 					new ScimClientBearerTokenProvider(),
 					HashMapDictionaryBuilder.<String, Object>put(
-						"clientId", _oAuth2Application.getClientId()
-					).put(
 						"companyId", companyId.toString()
+					).put(
+						"liferay.oauth2.client.id",
+						_oAuth2Application.getClientId()
 					).build());
 			});
 	}
@@ -144,19 +142,18 @@ public class ScimClientOAuth2ApplicationConfigurationFactory {
 					"Created OAuth2 application: " +
 						oAuth2Application.getName());
 			}
+
+			return _oAuth2ApplicationLocalService.updateScopeAliases(
+				oAuth2Application.getUserId(), oAuth2Application.getUserName(),
+				oAuth2Application.getOAuth2ApplicationId(),
+				ListUtil.fromArray("Liferay.Scim.REST.everything"));
 		}
 
-		return _oAuth2ApplicationLocalService.updateScopeAliases(
-			oAuth2Application.getUserId(), oAuth2Application.getUserName(),
-			oAuth2Application.getOAuth2ApplicationId(),
-			ListUtil.fromArray("Liferay.Scim.REST.everything"));
+		return oAuth2Application;
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		ScimClientOAuth2ApplicationConfigurationFactory.class);
-
-	@Reference(policyOption = ReferencePolicyOption.GREEDY)
-	private Collection<Application> _applications;
 
 	@Reference
 	private CompanyLocalService _companyLocalService;

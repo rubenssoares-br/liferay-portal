@@ -17,8 +17,9 @@ export class ModelBuilderLeftSidebarPage {
 		this.collapseOtherFoldersButton = page.getByRole('button', {
 			name: 'Other Folders',
 		});
-		this.createNewObjectDefinitionButton =
-			page.getByText('Create New Object');
+		this.createNewObjectDefinitionButton = page
+			.getByText('Create New Object')
+			.first();
 		this.goToFolderButton = page.getByRole('button', {
 			exact: true,
 			name: 'Go to Folder',
@@ -43,10 +44,13 @@ export class ModelBuilderLeftSidebarPage {
 	async clickObjectDefinitionActionsButtonInSidebar(
 		objectDefinitionLabel: string
 	) {
-		await this.sidebarItems
-			.filter({hasText: objectDefinitionLabel})
-			.getByLabel('Actions')
-			.click();
+		const sidebarItem = this.sidebarItems.filter({
+			hasText: objectDefinitionLabel,
+		});
+
+		await sidebarItem.hover();
+
+		await sidebarItem.getByLabel('Actions').click();
 	}
 
 	getOtherObjectFolderLocator(objectFolderLabel: string) {

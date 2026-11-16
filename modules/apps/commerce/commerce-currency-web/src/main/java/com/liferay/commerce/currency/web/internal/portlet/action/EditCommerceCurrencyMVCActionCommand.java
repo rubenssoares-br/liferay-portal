@@ -11,6 +11,7 @@ import com.liferay.commerce.currency.constants.CommerceCurrencyPortletKeys;
 import com.liferay.commerce.currency.exception.CommerceCurrencyCodeException;
 import com.liferay.commerce.currency.exception.CommerceCurrencyFractionDigitsException;
 import com.liferay.commerce.currency.exception.CommerceCurrencyNameException;
+import com.liferay.commerce.currency.exception.CommerceCurrencyRateException;
 import com.liferay.commerce.currency.exception.DuplicateCommerceCurrencyException;
 import com.liferay.commerce.currency.exception.NoSuchCurrencyException;
 import com.liferay.commerce.currency.model.CommerceCurrency;
@@ -28,13 +29,13 @@ import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.Localization;
 import com.liferay.portal.kernel.util.ParamUtil;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.math.BigDecimal;
 
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -42,10 +43,11 @@ import org.osgi.service.component.annotations.Reference;
 /**
  * @author Andrea Di Giorgi
  * @author Alessio Antonio Rendina
+ * @author Luca Pellizzon
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CommerceCurrencyPortletKeys.COMMERCE_CURRENCY,
+		"jakarta.portlet.name=" + CommerceCurrencyPortletKeys.COMMERCE_CURRENCY,
 		"mvc.command.name=/commerce_currency/edit_commerce_currency"
 	},
 	service = MVCActionCommand.class
@@ -90,6 +92,7 @@ public class EditCommerceCurrencyMVCActionCommand extends BaseMVCActionCommand {
 					 exception instanceof
 						 CommerceCurrencyFractionDigitsException ||
 					 exception instanceof CommerceCurrencyNameException ||
+					 exception instanceof CommerceCurrencyRateException ||
 					 exception instanceof DuplicateCommerceCurrencyException) {
 
 				hideDefaultErrorMessage(actionRequest);
@@ -122,7 +125,7 @@ public class EditCommerceCurrencyMVCActionCommand extends BaseMVCActionCommand {
 		}
 		else {
 			updateCommerceCurrencyExchangeRateIds = ParamUtil.getLongValues(
-				actionRequest, "rowIds");
+				actionRequest, "id");
 		}
 
 		ServiceContext serviceContext = ServiceContextFactory.getInstance(
@@ -159,7 +162,7 @@ public class EditCommerceCurrencyMVCActionCommand extends BaseMVCActionCommand {
 		}
 		else {
 			deleteCommerceCurrencyIds = ParamUtil.getLongValues(
-				actionRequest, "rowIds");
+				actionRequest, "id");
 		}
 
 		for (long deleteCommerceCurrencyId : deleteCommerceCurrencyIds) {
@@ -174,9 +177,11 @@ public class EditCommerceCurrencyMVCActionCommand extends BaseMVCActionCommand {
 		long commerceCurrencyId = ParamUtil.getLong(
 			actionRequest, "commerceCurrencyId");
 
-		boolean active = ParamUtil.getBoolean(actionRequest, "active");
+		CommerceCurrency commerceCurrency =
+			_commerceCurrencyService.getCommerceCurrency(commerceCurrencyId);
 
-		_commerceCurrencyService.setActive(commerceCurrencyId, active);
+		_commerceCurrencyService.setActive(
+			commerceCurrencyId, !commerceCurrency.isActive());
 	}
 
 	private void _setPrimary(ActionRequest actionRequest)
@@ -214,6 +219,8 @@ public class EditCommerceCurrencyMVCActionCommand extends BaseMVCActionCommand {
 		Map<Locale, String> formatPatternMap = _localization.getLocalizationMap(
 			actionRequest, "formatPattern");
 
+		String externalReferenceCode = ParamUtil.getString(
+			actionRequest, "externalReferenceCode");
 		String roundingMode = ParamUtil.getString(
 			actionRequest, "roundingMode");
 		boolean primary = ParamUtil.getBoolean(actionRequest, "primary");
@@ -227,18 +234,19 @@ public class EditCommerceCurrencyMVCActionCommand extends BaseMVCActionCommand {
 			String code = ParamUtil.getString(actionRequest, "code");
 
 			commerceCurrency = _commerceCurrencyService.addCommerceCurrency(
-				code, nameMap, symbol, new BigDecimal(rate), formatPatternMap,
-				maxFractionDigits, minFractionDigits, roundingMode, primary,
-				priority, active);
+				externalReferenceCode, code, nameMap, symbol,
+				new BigDecimal(rate), formatPatternMap, maxFractionDigits,
+				minFractionDigits, roundingMode, primary, priority, active);
 		}
 		else {
 			ServiceContext serviceContext = ServiceContextFactory.getInstance(
 				CommerceCurrency.class.getName(), actionRequest);
 
 			commerceCurrency = _commerceCurrencyService.updateCommerceCurrency(
-				commerceCurrencyId, nameMap, symbol, new BigDecimal(rate),
-				formatPatternMap, maxFractionDigits, minFractionDigits,
-				roundingMode, primary, priority, active, serviceContext);
+				externalReferenceCode, commerceCurrencyId, nameMap, symbol,
+				new BigDecimal(rate), formatPatternMap, maxFractionDigits,
+				minFractionDigits, roundingMode, primary, priority, active,
+				serviceContext);
 		}
 
 		return commerceCurrency;

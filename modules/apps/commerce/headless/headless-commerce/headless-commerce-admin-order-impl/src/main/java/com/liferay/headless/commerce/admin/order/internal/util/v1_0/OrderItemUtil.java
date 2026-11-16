@@ -102,6 +102,7 @@ public class OrderItemUtil {
 					commerceOrder.getCommerceOrderId(),
 					cpInstance.getCPInstanceId(),
 					GetterUtil.getString(orderItem.getUnitOfMeasure()),
+					GetterUtil.getString(orderItem.getOptions()),
 					BigDecimal.valueOf(
 						GetterUtil.get(orderItem.getQuantity(), 0)),
 					BigDecimalUtil.get(
@@ -125,6 +126,10 @@ public class OrderItemUtil {
 			else {
 				shippingAddressId = commerceOrderItem.getShippingAddressId();
 			}
+		}
+
+		if (shippingAddressId > 0) {
+			commerceAddressService.getCommerceAddress(shippingAddressId);
 		}
 
 		String deliveryGroupName = GetterUtil.getString(
@@ -338,6 +343,7 @@ public class OrderItemUtil {
 					commerceOrder.getCommerceOrderId(),
 					cpInstance.getCPInstanceId(),
 					GetterUtil.getString(orderItem.getUnitOfMeasure()),
+					GetterUtil.getString(orderItem.getOptions(), json),
 					quantity,
 					BigDecimalUtil.get(
 						orderItem.getShippedQuantity(), shippedQuantity),
@@ -361,6 +367,10 @@ public class OrderItemUtil {
 			else if (commerceOrderItem != null) {
 				shippingAddressId = commerceOrderItem.getShippingAddressId();
 			}
+		}
+
+		if (shippingAddressId > 0) {
+			commerceAddressService.getCommerceAddress(shippingAddressId);
 		}
 
 		String deliveryGroupName = GetterUtil.getString(

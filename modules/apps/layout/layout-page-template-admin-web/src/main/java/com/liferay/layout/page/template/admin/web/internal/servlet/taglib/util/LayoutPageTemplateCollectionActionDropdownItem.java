@@ -12,10 +12,12 @@ import com.liferay.item.selector.criteria.UUIDItemSelectorReturnType;
 import com.liferay.layout.page.template.admin.web.internal.constants.LayoutPageTemplateAdminWebKeys;
 import com.liferay.layout.page.template.admin.web.internal.security.permission.resource.LayoutPageTemplateCollectionPermission;
 import com.liferay.layout.page.template.constants.LayoutPageTemplateCollectionTypeConstants;
-import com.liferay.layout.page.template.item.selector.criterion.LayoutPageTemplateCollectionTreeNodeItemSelectorCriterion;
+import com.liferay.layout.page.template.item.selector.LayoutPageTemplateCollectionTreeNodeItemSelectorCriterion;
 import com.liferay.layout.page.template.model.LayoutPageTemplateCollection;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.portlet.LiferayPortletURL;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.portlet.RequestBackedPortletURLFactoryUtil;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
@@ -25,11 +27,11 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.taglib.security.PermissionsURLTag;
 
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
-
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Víctor Galán
@@ -116,6 +118,19 @@ public class LayoutPageTemplateCollectionActionDropdownItem {
 							dropdownItem.putData(
 								"action", "copyLayoutPageTemplateCollection");
 							dropdownItem.putData(
+								"copySelectedEntriesURL",
+								PortletURLBuilder.createActionURL(
+									_renderResponse
+								).setActionName(
+									StringBundler.concat(
+										"/layout_page_template_admin",
+										"/copy_layout_page_template_entries",
+										"_and_layout_page_template",
+										"_collections")
+								).setRedirect(
+									_themeDisplay.getURLCurrent()
+								).buildString());
+							dropdownItem.putData(
 								"itemSelectorURL", _getItemSelectorURL());
 							dropdownItem.putData(
 								"layoutPageTemplateCollectionId",
@@ -168,6 +183,19 @@ public class LayoutPageTemplateCollectionActionDropdownItem {
 							dropdownItem.putData(
 								"layoutPageTemplateCollectionName",
 								_layoutPageTemplateCollection.getName());
+							dropdownItem.putData(
+								"moveSelectedEntriesURL",
+								PortletURLBuilder.createActionURL(
+									_renderResponse
+								).setActionName(
+									StringBundler.concat(
+										"/layout_page_template_admin",
+										"/move_layout_page_template_entries",
+										"_and_layout_page_template",
+										"_collections")
+								).setRedirect(
+									_themeDisplay.getURLCurrent()
+								).buildString());
 							dropdownItem.setIcon("move-folder");
 							dropdownItem.setLabel(
 								LanguageUtil.get(_httpServletRequest, "move"));
@@ -271,15 +299,22 @@ public class LayoutPageTemplateCollectionActionDropdownItem {
 	}
 
 	private String _getExportLayoutPageTemplateCollectionURL() {
-		return ResourceURLBuilder.createResourceURL(
-			_renderResponse
-		).setParameter(
-			"layoutPageTemplateCollectionsIds",
-			_layoutPageTemplateCollection.getLayoutPageTemplateCollectionId()
-		).setResourceID(
-			"/layout_page_template_admin/export_layout_page_template_" +
-				"entries_and_layout_page_template_collections"
-		).buildString();
+		LiferayPortletURL exportLayoutPageTemplateCollectionURL =
+			(LiferayPortletURL)ResourceURLBuilder.createResourceURL(
+				_renderResponse
+			).setParameter(
+				"layoutPageTemplateCollectionsIds",
+				_layoutPageTemplateCollection.
+					getLayoutPageTemplateCollectionId()
+			).setResourceID(
+				"/layout_page_template_admin/export_layout_page_template_" +
+					"entries_and_layout_page_template_collections"
+			).buildResourceURL();
+
+		exportLayoutPageTemplateCollectionURL.setCopyCurrentRenderParameters(
+			false);
+
+		return exportLayoutPageTemplateCollectionURL.toString();
 	}
 
 	private String _getItemSelectorURL() {

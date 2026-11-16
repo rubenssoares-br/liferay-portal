@@ -38,6 +38,11 @@ public class SQLServerSQLTransformerLogicTest
 	}
 
 	@Override
+	protected String getBitwiseOrTransformedSQL() {
+		return "select (foo | bar) from Foo";
+	}
+
+	@Override
 	protected String getBooleanTransformedSQL() {
 		return "select * from Foo where foo = 0 and bar = 1";
 	}
@@ -56,6 +61,22 @@ public class SQLServerSQLTransformerLogicTest
 			"select CAST(foo || (CAST(foo AS NVARCHAR(MAX)) || (bar || foo)) ",
 			"AS NVARCHAR(MAX)), CAST(foo || (bar || foo) AS NVARCHAR(MAX)) ",
 			"from Foo");
+	}
+
+	@Override
+	protected String getInstrTransformedSQL() {
+		return "select CHARINDEX('fooText', foo) from Foo";
+	}
+
+	@Override
+	protected String getInstrWithPostColumnModificatorTransformedSQL() {
+		return "select CHARINDEX(CHR(10), foo COLLATE " +
+			"Latin1_General_100_BIN2) from Foo";
+	}
+
+	@Override
+	protected String getInstrWithPreColumnModificatorTransformedSQL() {
+		return "select CHARINDEX(CHAR(10), BINARY foo) from Foo";
 	}
 
 	@Override

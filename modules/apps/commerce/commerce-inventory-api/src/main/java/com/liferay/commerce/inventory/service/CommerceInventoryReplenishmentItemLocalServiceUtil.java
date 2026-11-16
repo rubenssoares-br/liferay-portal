@@ -352,15 +352,6 @@ public class CommerceInventoryReplenishmentItemLocalServiceUtil {
 	}
 
 	public static List<CommerceInventoryReplenishmentItem>
-		getCommerceInventoryReplenishmentItemsByCommerceInventoryWarehouseId(
-			long commerceInventoryWarehouseId, int start, int end) {
-
-		return getService().
-			getCommerceInventoryReplenishmentItemsByCommerceInventoryWarehouseId(
-				commerceInventoryWarehouseId, start, end);
-	}
-
-	public static List<CommerceInventoryReplenishmentItem>
 		getCommerceInventoryReplenishmentItemsByCompanyIdSkuAndUnitOfMeasureKey(
 			long companyId, String sku, String unitOfMeasureKey, int start,
 			int end, boolean replacePermissionCheck) {
@@ -389,22 +380,11 @@ public class CommerceInventoryReplenishmentItemLocalServiceUtil {
 			commerceInventoryWarehouseId, sku, unitOfMeasureKey);
 	}
 
-	public static int
-		getCommerceInventoryReplenishmentItemsCountByCommerceInventoryWarehouseId(
-			long commerceInventoryWarehouseId) {
+	public static List<Long> getCommerceInventoryWarehouseIds(
+		long companyId, String sku, String unitOfMeasureKey) {
 
-		return getService().
-			getCommerceInventoryReplenishmentItemsCountByCommerceInventoryWarehouseId(
-				commerceInventoryWarehouseId);
-	}
-
-	public static int
-		getCommerceInventoryReplenishmentItemsCountByCompanyIdSkuAndUnitOfMeasureKey(
-			long companyId, String sku, String unitOfMeasureKey) {
-
-		return getService().
-			getCommerceInventoryReplenishmentItemsCountByCompanyIdSkuAndUnitOfMeasureKey(
-				companyId, sku, unitOfMeasureKey);
+		return getService().getCommerceInventoryWarehouseIds(
+			companyId, sku, unitOfMeasureKey);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
@@ -483,3 +463,4 @@ public class CommerceInventoryReplenishmentItemLocalServiceUtil {
 				CommerceInventoryReplenishmentItemLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1694088232

@@ -28,10 +28,12 @@ import com.liferay.portal.kernel.portlet.PortletConfigFactoryUtil;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCResourceCommand;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.PortletLocalService;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.portlet.MockLiferayResourceRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayResourceResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.DataGuard;
 import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -66,6 +68,7 @@ import org.junit.runner.RunWith;
 /**
  * @author Feliphe Marinho
  */
+@DataGuard(scope = DataGuard.Scope.METHOD)
 @RunWith(Arquillian.class)
 public class GetGroovyScriptUsesMVCResourceCommandTest {
 
@@ -81,7 +84,7 @@ public class GetGroovyScriptUsesMVCResourceCommandTest {
 		_mockLiferayResourceRequest = new MockLiferayResourceRequest();
 
 		_mockLiferayResourceRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_CONFIG,
+			JavaConstants.JAKARTA_PORTLET_CONFIG,
 			PortletConfigFactoryUtil.create(
 				_portletLocalService.getPortletById(
 					ConfigurationAdminPortletKeys.SYSTEM_SETTINGS),
@@ -238,7 +241,7 @@ public class GetGroovyScriptUsesMVCResourceCommandTest {
 		_objectActionLocalService.addObjectAction(
 			RandomTestUtil.randomString(), userId,
 			objectDefinition.getObjectDefinitionId(), active, StringPool.BLANK,
-			RandomTestUtil.randomString(),
+			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 			LocalizedMapUtil.getLocalizedMap(label),
 			RandomTestUtil.randomString(), objectActionExecutorKey,
@@ -273,12 +276,14 @@ public class GetGroovyScriptUsesMVCResourceCommandTest {
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.addCustomObjectDefinition(
-				userId, 0, null, false, true, false, false,
+				null, userId, 0, null, null, true, false, true, false, true,
+				false, false, false, false, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				ObjectDefinitionTestUtil.getRandomName(), null, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				false, ObjectDefinitionConstants.SCOPE_COMPANY,
 				ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
 				Arrays.asList(
 					new TextObjectFieldBuilder(
 					).labelMap(
@@ -286,7 +291,8 @@ public class GetGroovyScriptUsesMVCResourceCommandTest {
 							RandomTestUtil.randomString())
 					).name(
 						"textObjectField"
-					).build()));
+					).build()),
+				Collections.emptyList(), new ServiceContext());
 
 		return _objectDefinitionLocalService.publishCustomObjectDefinition(
 			TestPropsValues.getUserId(),
@@ -327,30 +333,26 @@ public class GetGroovyScriptUsesMVCResourceCommandTest {
 		throws Exception {
 
 		_workflowDefinitionManager.deployWorkflowDefinition(
-			null, companyId, userId,
+			_getContentBytes("workflow-definition-2.json"), companyId, null,
 			companyName + "PublishedGroovyWorkflowDefinition",
-			companyName + "PublishedGroovyWorkflowDefinition",
-			_getContentBytes("workflow-definition-2.json"));
+			companyName + "PublishedGroovyWorkflowDefinition", userId);
 		_workflowDefinitionManager.deployWorkflowDefinition(
-			null, companyId, userId,
+			_getContentBytes("workflow-definition-3.json"), companyId, null,
 			companyName + "PublishedJavaWorkflowDefinition",
-			companyName + "PublishedJavaWorkflowDefinition",
-			_getContentBytes("workflow-definition-3.json"));
+			companyName + "PublishedJavaWorkflowDefinition", userId);
 		_workflowDefinitionManager.deployWorkflowDefinition(
-			null, companyId, userId,
-			companyName + "PublishedWorkflowDefinition", StringUtil.randomId(),
-			_getContentBytes("workflow-definition-1.json"));
+			_getContentBytes("workflow-definition-1.json"), companyId, null,
+			StringUtil.randomId(), companyName + "PublishedWorkflowDefinition",
+			userId);
 
 		_workflowDefinitionManager.saveWorkflowDefinition(
-			null, companyId, userId,
-			companyName + "UnpublishedGroovyWorkflowDefinition",
+			_getContentBytes("workflow-definition-2.json"), companyId, null,
 			StringUtil.randomId(),
-			_getContentBytes("workflow-definition-2.json"));
+			companyName + "UnpublishedGroovyWorkflowDefinition", userId);
 		_workflowDefinitionManager.saveWorkflowDefinition(
-			null, companyId, userId,
-			companyName + "UnpublishedJavaWorkflowDefinition",
+			_getContentBytes("workflow-definition-3.json"), companyId, null,
 			StringUtil.randomId(),
-			_getContentBytes("workflow-definition-3.json"));
+			companyName + "UnpublishedJavaWorkflowDefinition", userId);
 	}
 
 	private byte[] _getContentBytes(String fileName) throws Exception {

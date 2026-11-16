@@ -14,19 +14,18 @@ import com.liferay.portal.kernel.model.Ticket;
 import com.liferay.portal.kernel.model.TicketConstants;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.TicketLocalService;
-import com.liferay.portal.kernel.servlet.SessionErrors;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.io.IOException;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -62,12 +61,9 @@ public class CTReviewChangesServlet extends HttpServlet {
 		Ticket ticket = _getTicket(httpServletRequest);
 
 		if (ticket == null) {
-			SessionErrors.add(httpServletRequest, NoSuchTicketException.class);
-
-			httpServletResponse.setStatus(HttpServletResponse.SC_NOT_FOUND);
-
-			httpServletResponse.sendRedirect(
-				Portal.PATH_MAIN + "/portal/status");
+			_portal.sendError(
+				new NoSuchTicketException(), httpServletRequest,
+				httpServletResponse);
 
 			return;
 		}

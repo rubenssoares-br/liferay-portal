@@ -116,8 +116,6 @@ public class StyleBookEntryVersionPersistenceTest {
 		StyleBookEntryVersion newStyleBookEntryVersion = _persistence.create(
 			pk);
 
-		newStyleBookEntryVersion.setMvccVersion(RandomTestUtil.nextLong());
-
 		newStyleBookEntryVersion.setCtCollectionId(RandomTestUtil.nextLong());
 
 		newStyleBookEntryVersion.setVersion(RandomTestUtil.nextInt());
@@ -144,6 +142,9 @@ public class StyleBookEntryVersionPersistenceTest {
 		newStyleBookEntryVersion.setDefaultStyleBookEntry(
 			RandomTestUtil.randomBoolean());
 
+		newStyleBookEntryVersion.setFrontendTokenDefinition(
+			RandomTestUtil.randomString());
+
 		newStyleBookEntryVersion.setFrontendTokensValues(
 			RandomTestUtil.randomString());
 
@@ -157,8 +158,10 @@ public class StyleBookEntryVersionPersistenceTest {
 
 		newStyleBookEntryVersion.setThemeId(RandomTestUtil.randomString());
 
-		_styleBookEntryVersions.add(
-			_persistence.update(newStyleBookEntryVersion));
+		newStyleBookEntryVersion = _persistence.update(
+			newStyleBookEntryVersion);
+
+		_styleBookEntryVersions.add(newStyleBookEntryVersion);
 
 		StyleBookEntryVersion existingStyleBookEntryVersion =
 			_persistence.findByPrimaryKey(
@@ -208,6 +211,9 @@ public class StyleBookEntryVersionPersistenceTest {
 		Assert.assertEquals(
 			existingStyleBookEntryVersion.isDefaultStyleBookEntry(),
 			newStyleBookEntryVersion.isDefaultStyleBookEntry());
+		Assert.assertEquals(
+			existingStyleBookEntryVersion.getFrontendTokenDefinition(),
+			newStyleBookEntryVersion.getFrontendTokenDefinition());
 		Assert.assertEquals(
 			existingStyleBookEntryVersion.getFrontendTokensValues(),
 			newStyleBookEntryVersion.getFrontendTokensValues());
@@ -312,20 +318,22 @@ public class StyleBookEntryVersionPersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_D() throws Exception {
-		_persistence.countByG_D(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
+	public void testCountByG_N() throws Exception {
+		_persistence.countByG_N(RandomTestUtil.nextLong(), "");
 
-		_persistence.countByG_D(0L, RandomTestUtil.randomBoolean());
+		_persistence.countByG_N(0L, "null");
+
+		_persistence.countByG_N(0L, (String)null);
 	}
 
 	@Test
-	public void testCountByG_D_Version() throws Exception {
-		_persistence.countByG_D_Version(
-			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean(),
-			RandomTestUtil.nextInt());
+	public void testCountByG_N_Version() throws Exception {
+		_persistence.countByG_N_Version(
+			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt());
 
-		_persistence.countByG_D_Version(0L, RandomTestUtil.randomBoolean(), 0);
+		_persistence.countByG_N_Version(0L, "null", 0);
+
+		_persistence.countByG_N_Version(0L, (String)null, 0);
 	}
 
 	@Test
@@ -364,6 +372,69 @@ public class StyleBookEntryVersionPersistenceTest {
 		_persistence.countByG_SBEK_Version(0L, "null", 0);
 
 		_persistence.countByG_SBEK_Version(0L, (String)null, 0);
+	}
+
+	@Test
+	public void testCountByG_T() throws Exception {
+		_persistence.countByG_T(RandomTestUtil.nextLong(), "");
+
+		_persistence.countByG_T(0L, "null");
+
+		_persistence.countByG_T(0L, (String)null);
+	}
+
+	@Test
+	public void testCountByG_T_Version() throws Exception {
+		_persistence.countByG_T_Version(
+			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt());
+
+		_persistence.countByG_T_Version(0L, "null", 0);
+
+		_persistence.countByG_T_Version(0L, (String)null, 0);
+	}
+
+	@Test
+	public void testCountByG_D_T() throws Exception {
+		_persistence.countByG_D_T(
+			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean(), "");
+
+		_persistence.countByG_D_T(0L, RandomTestUtil.randomBoolean(), "null");
+
+		_persistence.countByG_D_T(
+			0L, RandomTestUtil.randomBoolean(), (String)null);
+	}
+
+	@Test
+	public void testCountByG_D_T_Version() throws Exception {
+		_persistence.countByG_D_T_Version(
+			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean(), "",
+			RandomTestUtil.nextInt());
+
+		_persistence.countByG_D_T_Version(
+			0L, RandomTestUtil.randomBoolean(), "null", 0);
+
+		_persistence.countByG_D_T_Version(
+			0L, RandomTestUtil.randomBoolean(), (String)null, 0);
+	}
+
+	@Test
+	public void testCountByG_LikeN_T() throws Exception {
+		_persistence.countByG_LikeN_T(RandomTestUtil.nextLong(), "", "");
+
+		_persistence.countByG_LikeN_T(0L, "null", "null");
+
+		_persistence.countByG_LikeN_T(0L, (String)null, (String)null);
+	}
+
+	@Test
+	public void testCountByG_LikeN_T_Version() throws Exception {
+		_persistence.countByG_LikeN_T_Version(
+			RandomTestUtil.nextLong(), "", "", RandomTestUtil.nextInt());
+
+		_persistence.countByG_LikeN_T_Version(0L, "null", "null", 0);
+
+		_persistence.countByG_LikeN_T_Version(
+			0L, (String)null, (String)null, 0);
 	}
 
 	@Test
@@ -720,8 +791,6 @@ public class StyleBookEntryVersionPersistenceTest {
 
 		StyleBookEntryVersion styleBookEntryVersion = _persistence.create(pk);
 
-		styleBookEntryVersion.setMvccVersion(RandomTestUtil.nextLong());
-
 		styleBookEntryVersion.setCtCollectionId(RandomTestUtil.nextLong());
 
 		styleBookEntryVersion.setVersion(RandomTestUtil.nextInt());
@@ -748,6 +817,9 @@ public class StyleBookEntryVersionPersistenceTest {
 		styleBookEntryVersion.setDefaultStyleBookEntry(
 			RandomTestUtil.randomBoolean());
 
+		styleBookEntryVersion.setFrontendTokenDefinition(
+			RandomTestUtil.randomString());
+
 		styleBookEntryVersion.setFrontendTokensValues(
 			RandomTestUtil.randomString());
 
@@ -771,3 +843,4 @@ public class StyleBookEntryVersionPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1489380020

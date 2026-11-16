@@ -6,8 +6,8 @@
 import {ClayButtonWithIcon} from '@clayui/button';
 import ClayDropDown, {Align} from '@clayui/drop-down';
 import {useIsMounted} from '@liferay/frontend-js-react-web';
+import {uuidv4} from 'frontend-js-web';
 import React, {useState} from 'react';
-import {v4 as uuidv4} from 'uuid';
 
 import {SELECT_SEGMENTS_EXPERIENCE} from '../../../plugins/experience/actions';
 import {UNDO_TYPES} from '../../config/constants/undoTypes';
@@ -119,13 +119,13 @@ export default function UndoHistory() {
 				onActiveChange={setActive}
 				trigger={
 					<ClayButtonWithIcon
-						aria-label={Liferay.Language.get('history')}
+						aria-label={Liferay.Language.get('draft-history')}
 						aria-pressed={active}
 						disabled={!undoHistory.length && !redoHistory.length}
 						displayType="secondary"
 						size="sm"
 						symbol="time"
-						title={Liferay.Language.get('history')}
+						title={Liferay.Language.get('draft-history')}
 					/>
 				}
 			>

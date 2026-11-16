@@ -29,7 +29,7 @@
 		<c:choose>
 			<c:when test="<%= jsonObject == null %>">
 				<div class="alert <%= (backgroundTask.getStatus() == BackgroundTaskConstants.STATUS_FAILED) ? "alert-danger" : StringPool.BLANK %> publish-error">
-					<liferay-ui:message arguments="<%= backgroundTaskStatusMessage %>" key="unable-to-execute-process-x" translateArguments="<%= false %>" />
+					<liferay-ui:message key="an-unexpected-error-occurred" />
 				</div>
 			</c:when>
 			<c:otherwise>
@@ -68,7 +68,7 @@
 								<li>
 									<%= messageListItemJSONObject.getString("type") %>
 
-									<%= messageListItemJSONObject.getString("site") %>:
+									<%= HtmlUtil.escape(messageListItemJSONObject.getString("site")) %>:
 
 									<strong><%= HtmlUtil.escape(messageListItemJSONObject.getString("name")) %></strong>
 

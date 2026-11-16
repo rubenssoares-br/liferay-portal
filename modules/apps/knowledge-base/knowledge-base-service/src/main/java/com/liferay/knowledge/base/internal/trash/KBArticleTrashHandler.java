@@ -27,7 +27,7 @@ import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.trash.TrashHelper;
 import com.liferay.trash.constants.TrashActionKeys;
 
-import javax.portlet.PortletRequest;
+import jakarta.portlet.PortletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -101,12 +101,6 @@ public class KBArticleTrashHandler extends BaseKBTrashHandler {
 	}
 
 	@Override
-	public TrashedModel getTrashedModel(long classPK) {
-		return kbArticleLocalService.fetchLatestKBArticle(
-			classPK, WorkflowConstants.STATUS_ANY);
-	}
-
-	@Override
 	public TrashRenderer getTrashRenderer(long classPK) throws PortalException {
 		AssetRendererFactory<KBArticle> assetRendererFactory =
 			AssetRendererFactoryRegistryUtil.getAssetRendererFactoryByClassName(
@@ -115,6 +109,12 @@ public class KBArticleTrashHandler extends BaseKBTrashHandler {
 		return (TrashRenderer)assetRendererFactory.getAssetRenderer(
 			(KBArticle)getTrashedModel(classPK),
 			AssetRendererFactory.TYPE_LATEST_APPROVED);
+	}
+
+	@Override
+	public TrashedModel getTrashedModel(long classPK) {
+		return kbArticleLocalService.fetchLatestKBArticle(
+			classPK, WorkflowConstants.STATUS_ANY);
 	}
 
 	@Override

@@ -29,7 +29,7 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.struts.FindStrutsAction;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -170,14 +170,13 @@ public class KBArticlePortletLayoutFinderTest {
 		return themeDisplay;
 	}
 
-	private static String[] _portletIds;
-
 	@DeleteAfterTestRun
 	private Group _group;
 
 	private long _kbArticleGroupId;
 	private Layout _kbLayout;
 	private PermissionChecker _originalPermissionChecker;
+	private String[] _portletIds;
 	private PortletLayoutFinder _portletLayoutFinder;
 
 }

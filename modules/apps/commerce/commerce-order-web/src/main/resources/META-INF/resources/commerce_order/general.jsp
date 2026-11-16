@@ -52,7 +52,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).build()
 						%>'
 						actionLabel='<%= hasPermission ? LanguageUtil.get(request, Validator.isNull(name) ? "add" : "edit") : null %>'
-						actionUrl="<%= hasPermission ? editNameURL: null %>"
+						actionURL="<%= hasPermission ? editNameURL: null %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "name") %>'
 					>
@@ -67,6 +67,11 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							</c:otherwise>
 						</c:choose>
 					</commerce-ui:info-box>
+
+					<liferay-portlet:renderURL var="viewAccountValidationsURL" windowState="<%= LiferayWindowState.POP_UP.toString() %>">
+						<portlet:param name="mvcRenderCommandName" value="/commerce_order/view_commerce_order_account_validations" />
+						<portlet:param name="commerceOrderId" value="<%= String.valueOf(commerceOrderEditDisplayContext.getCommerceOrderId()) %>" />
+					</liferay-portlet:renderURL>
 
 					<%
 					AccountEntry accountEntry = commerceOrder.getAccountEntry();
@@ -83,7 +88,55 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 								</span>
 							</c:when>
 							<c:otherwise>
-								<p class="mb-0" data-qa-id="commerceOrderAccountEntryName"><%= HtmlUtil.escape(accountEntry.getName()) %></p>
+								<div class="align-items-center d-flex">
+									<p class="mb-0" data-qa-id="commerceOrderAccountEntryName"><%= HtmlUtil.escape(accountEntry.getName()) %></p>
+
+									<c:if test="<%= commerceOrderEditDisplayContext.isValidationButtonVisible() %>">
+
+										<%
+										String validationButtonCssClass = commerceOrderEditDisplayContext.getValidationButtonCssClass();
+
+										String validationButtonIcon = "check-circle-full";
+										String validationButtonLabel = "all-account-validations-have-succeeded";
+
+										if (Objects.equals(validationButtonCssClass, "text-danger")) {
+											validationButtonIcon = "warning-full";
+											validationButtonLabel = "one-or-more-validations-have-failed-for-this-account";
+										}
+										else if (Objects.equals(validationButtonCssClass, "text-info")) {
+											validationButtonIcon = "info-circle";
+											validationButtonLabel = "account-validations-were-skipped-because-no-validator-is-active-for-the-account";
+										}
+										else if (Objects.equals(validationButtonCssClass, "text-secondary")) {
+											validationButtonIcon = "time";
+											validationButtonLabel = "one-or-more-account-validations-are-pending";
+										}
+										%>
+
+										<clay:button
+											aria-label="<%= LanguageUtil.get(request, validationButtonLabel) %>"
+											cssClass='<%= "ml-2 p-0 " + validationButtonCssClass %>'
+											displayType="unstyled"
+											icon="<%= validationButtonIcon %>"
+											id='<%= liferayPortletResponse.getNamespace() + "accountValidationsWarning" %>'
+											title="<%= LanguageUtil.get(request, validationButtonLabel) %>"
+										/>
+
+										<liferay-frontend:component
+											context='<%=
+												HashMapBuilder.<String, Object>put(
+													"title", LanguageUtil.get(request, "account-validation-results")
+												).put(
+													"url", viewAccountValidationsURL
+												).put(
+													"warningButtonId", liferayPortletResponse.getNamespace() + "accountValidationsWarning"
+												).build()
+											%>'
+											module="{accountValidations} from commerce-order-web"
+										/>
+									</c:if>
+								</div>
+
 								<p class="mb-0">#<%= accountEntry.getAccountEntryId() %></p>
 							</c:otherwise>
 						</c:choose>
@@ -109,7 +162,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).build()
 						%>'
 						actionLabel='<%= hasPermission ? LanguageUtil.get(request, Validator.isNull(purchaseOrderNumber) ? "add" : "edit") : null %>'
-						actionUrl="<%= hasPermission ? editPurchaseOrderNumberURL: null %>"
+						actionURL="<%= hasPermission ? editPurchaseOrderNumberURL: null %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "purchase-order-number") %>'
 					>
@@ -178,7 +231,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).build()
 						%>'
 						actionLabel="<%= billingCommerceAddressActionLabel %>"
-						actionUrl="<%= billingCommerceAddressActionURL %>"
+						actionURL="<%= billingCommerceAddressActionURL %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "billing-address") %>'
 					>
@@ -189,6 +242,12 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 								</span>
 							</c:when>
 							<c:otherwise>
+								<c:if test="<%= !Validator.isBlank(billingCommerceAddress.getSubtype()) %>">
+									<p class="mb-0">
+										<%= HtmlUtil.escape(billingCommerceAddress.getSubtype(locale)) %>
+									</p>
+								</c:if>
+
 								<p class="mb-0">
 									<%= HtmlUtil.escape(billingCommerceAddress.getStreet1()) %>
 								</p>
@@ -242,7 +301,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 					<commerce-ui:info-box
 						actionContext='<%=
 							HashMapBuilder.<String, Object>put(
-								"containerCssClasses", "modal-height-md"
+								"containerCssClasses", "modal-height-lg"
 							).put(
 								"namespace", liferayPortletResponse.getNamespace()
 							).put(
@@ -254,7 +313,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).build()
 						%>'
 						actionLabel="<%= shippingCommerceAddressActionLabel %>"
-						actionUrl="<%= shippingCommerceAddressActionURL %>"
+						actionURL="<%= shippingCommerceAddressActionURL %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "shipping-address") %>'
 					>
@@ -265,6 +324,12 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 								</span>
 							</c:when>
 							<c:otherwise>
+								<c:if test="<%= !Validator.isBlank(shippingCommerceAddress.getSubtype()) %>">
+									<p class="mb-0">
+										<%= HtmlUtil.escape(shippingCommerceAddress.getSubtype(locale)) %>
+									</p>
+								</c:if>
+
 								<p class="mb-0">
 									<%= HtmlUtil.escape(shippingCommerceAddress.getStreet1()) %>
 								</p>
@@ -300,13 +365,13 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).put(
 								"refreshOnClose", true
 							).put(
-								"size", "xl"
+								"size", "md"
 							).put(
 								"title", (commerceOrder.getPaymentCommerceTermEntryId() == 0) ? LanguageUtil.get(request, "payment-terms") : LanguageUtil.get(request, "edit-payment-terms")
 							).build()
 						%>'
 						actionLabel='<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPaymentTermsPermission() ? LanguageUtil.get(request, (commerceOrder.getPaymentCommerceTermEntryId() == 0) ? "add" : "edit") : null %>'
-						actionUrl="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPaymentTermsPermission() ? editPaymentTermsURL : null %>"
+						actionURL="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPaymentTermsPermission() ? editPaymentTermsURL : null %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "payment-terms") %>'
 					>
@@ -338,13 +403,13 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).put(
 								"refreshOnClose", true
 							).put(
-								"size", "xl"
+								"size", "md"
 							).put(
 								"title", (commerceOrder.getDeliveryCommerceTermEntryId() == 0) ? LanguageUtil.get(request, "delivery-terms") : LanguageUtil.get(request, "edit-delivery-terms")
 							).build()
 						%>'
 						actionLabel='<%= commerceOrderEditDisplayContext.hasManageCommerceOrderDeliveryTermsPermission() ? LanguageUtil.get(request, (commerceOrder.getDeliveryCommerceTermEntryId() == 0) ? "add" : "edit") : null %>'
-						actionUrl="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderDeliveryTermsPermission() ? editDeliveryTermsURL : null %>"
+						actionURL="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderDeliveryTermsPermission() ? editDeliveryTermsURL : null %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "delivery-terms") %>'
 					>
@@ -401,7 +466,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).build()
 						%>'
 						actionLabel="<%= requestedDeliveryDateActionLabel %>"
-						actionUrl="<%= requestedDeliveryDateActionURL %>"
+						actionURL="<%= requestedDeliveryDateActionURL %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "requested-delivery-date") %>'
 					>
@@ -448,7 +513,7 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 							).build()
 						%>'
 						actionLabel='<%= hasPermission ? LanguageUtil.get(request, Validator.isNull(printedNote) ? "add" : "edit") : null %>'
-						actionUrl="<%= hasPermission ? editPrintedNoteURL: null %>"
+						actionURL="<%= hasPermission ? editPrintedNoteURL: null %>"
 						elementClasses="py-3"
 						title='<%= LanguageUtil.get(request, "printed-note") %>'
 					>
@@ -490,9 +555,9 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 				%>'
 				dataProviderKey="<%= CommerceOrderFDSNames.ORDER_ITEMS %>"
 				id="<%= CommerceOrderFDSNames.ORDER_ITEMS %>"
-				itemsPerPage="<%= 10 %>"
 				nestedItemsKey="orderItemId"
 				nestedItemsReferenceKey="orderItems"
+				propsTransformer="{CommerceOrderItemsFDSPropsTransformer} from commerce-order-web"
 			/>
 		</commerce-ui:panel>
 	</div>
@@ -503,18 +568,29 @@ boolean hasPermission = commerceOrderEditDisplayContext.hasModelPermission(comme
 			<portlet:param name="commerceOrderId" value="<%= String.valueOf(commerceOrderEditDisplayContext.getCommerceOrderId()) %>" />
 		</liferay-portlet:renderURL>
 
-		<commerce-ui:modal
-			id="order-summary-modal"
-			refreshPageOnClose="<%= true %>"
-			size="lg"
-			title='<%= LanguageUtil.get(request, "order-summary") %>'
-			url="<%= editOrderSummaryURL %>"
-		/>
+		<liferay-portlet:actionURL name="/commerce_order/edit_commerce_order" var="recalculateOrderSummaryURL">
+			<portlet:param name="<%= Constants.CMD %>" value="recalculateOrderSummary" />
+			<portlet:param name="redirect" value="<%= currentURL %>" />
+			<portlet:param name="commerceOrderId" value="<%= String.valueOf(commerceOrderEditDisplayContext.getCommerceOrderId()) %>" />
+		</liferay-portlet:actionURL>
 
 		<commerce-ui:panel
+			actionContext='<%=
+				HashMapBuilder.<String, Object>put(
+					"containerCssClasses", "modal-height-lg"
+				).put(
+					"namespace", liferayPortletResponse.getNamespace()
+				).put(
+					"refreshOnClose", true
+				).put(
+					"size", "lg"
+				).build()
+			%>'
 			actionLabel='<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPricesPermission() ? LanguageUtil.get(request, "edit") : null %>'
 			actionTargetId="order-summary-modal"
-			actionUrl="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPricesPermission() ? editOrderSummaryURL : null %>"
+			actionURL="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPricesPermission() ? editOrderSummaryURL : null %>"
+			secondaryActionLabel='<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPricesPermission() ? LanguageUtil.get(request, "recalculate") : null %>'
+			secondaryActionURL="<%= commerceOrderEditDisplayContext.hasManageCommerceOrderPricesPermission() ? recalculateOrderSummaryURL : null %>"
 			title='<%= LanguageUtil.get(request, "order-summary") %>'
 		>
 			<div id="summary-root"></div>

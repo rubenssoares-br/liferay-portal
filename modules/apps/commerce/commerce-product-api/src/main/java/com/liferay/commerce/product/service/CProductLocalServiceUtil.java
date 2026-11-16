@@ -52,12 +52,12 @@ public class CProductLocalServiceUtil {
 	}
 
 	public static CProduct addCProduct(
-			String externalReferenceCode, long groupId, long userId,
+			String externalReferenceCode, long userId, long groupId,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addCProduct(
-			externalReferenceCode, groupId, userId, serviceContext);
+			externalReferenceCode, userId, groupId, serviceContext);
 	}
 
 	/**
@@ -410,3 +410,4 @@ public class CProductLocalServiceUtil {
 			CProductLocalServiceUtil.class, CProductLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1725540722

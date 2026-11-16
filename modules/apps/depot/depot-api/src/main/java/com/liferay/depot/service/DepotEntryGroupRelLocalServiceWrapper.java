@@ -34,8 +34,9 @@ public class DepotEntryGroupRelLocalServiceWrapper
 
 	@Override
 	public DepotEntryGroupRel addDepotEntryGroupRel(
-		boolean ddmStructuresAvailable, long depotEntryId, long toGroupId,
-		boolean searchable) {
+			boolean ddmStructuresAvailable, long depotEntryId, long toGroupId,
+			boolean searchable)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryGroupRelLocalService.addDepotEntryGroupRel(
 			ddmStructuresAvailable, depotEntryId, toGroupId, searchable);
@@ -61,7 +62,8 @@ public class DepotEntryGroupRelLocalServiceWrapper
 
 	@Override
 	public DepotEntryGroupRel addDepotEntryGroupRel(
-		long depotEntryId, long toGroupId) {
+			long depotEntryId, long toGroupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryGroupRelLocalService.addDepotEntryGroupRel(
 			depotEntryId, toGroupId);
@@ -69,7 +71,8 @@ public class DepotEntryGroupRelLocalServiceWrapper
 
 	@Override
 	public DepotEntryGroupRel addDepotEntryGroupRel(
-		long depotEntryId, long toGroupId, boolean searchable) {
+			long depotEntryId, long toGroupId, boolean searchable)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryGroupRelLocalService.addDepotEntryGroupRel(
 			depotEntryId, toGroupId, searchable);
@@ -110,10 +113,12 @@ public class DepotEntryGroupRelLocalServiceWrapper
 	 *
 	 * @param depotEntryGroupRel the depot entry group rel
 	 * @return the depot entry group rel that was removed
+	 * @throws PortalException
 	 */
 	@Override
 	public DepotEntryGroupRel deleteDepotEntryGroupRel(
-		DepotEntryGroupRel depotEntryGroupRel) {
+			DepotEntryGroupRel depotEntryGroupRel)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _depotEntryGroupRelLocalService.deleteDepotEntryGroupRel(
 			depotEntryGroupRel);
@@ -360,10 +365,10 @@ public class DepotEntryGroupRelLocalServiceWrapper
 
 	@Override
 	public java.util.List<DepotEntryGroupRel> getDepotEntryGroupRels(
-		long groupId, int start, int end) {
+		long groupId, int type, int start, int end) {
 
 		return _depotEntryGroupRelLocalService.getDepotEntryGroupRels(
-			groupId, start, end);
+			groupId, type, start, end);
 	}
 
 	/**
@@ -422,9 +427,9 @@ public class DepotEntryGroupRelLocalServiceWrapper
 	}
 
 	@Override
-	public int getDepotEntryGroupRelsCount(long groupId) {
+	public int getDepotEntryGroupRelsCount(long groupId, int type) {
 		return _depotEntryGroupRelLocalService.getDepotEntryGroupRelsCount(
-			groupId);
+			groupId, type);
 	}
 
 	@Override
@@ -556,3 +561,4 @@ public class DepotEntryGroupRelLocalServiceWrapper
 	private DepotEntryGroupRelLocalService _depotEntryGroupRelLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:59249127

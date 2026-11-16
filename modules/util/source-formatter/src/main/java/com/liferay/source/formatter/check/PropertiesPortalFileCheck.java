@@ -5,28 +5,24 @@
 
 package com.liferay.source.formatter.check;
 
+import com.liferay.petra.io.unsync.UnsyncBufferedReader;
+import com.liferay.petra.io.unsync.UnsyncStringReader;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedReader;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringReader;
 import com.liferay.portal.kernel.util.NaturalOrderStringComparator;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.source.formatter.processor.PropertiesSourceProcessor;
 
 import java.io.IOException;
 
-import java.net.URL;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-
-import org.apache.commons.io.IOUtils;
 
 /**
  * @author Hugo Huijser
@@ -42,19 +38,11 @@ public class PropertiesPortalFileCheck extends BaseFileCheck {
 
 		String shortFileName = fileName.substring(pos + 1);
 
-		if (absolutePath.contains("/workspaces/") &&
-			!absolutePath.contains("/playwright/") &&
-			shortFileName.equals("portal-ext.properties")) {
-
-			return content;
-		}
-
 		if (shortFileName.equals("test-portal-impl.properties") ||
 			((isPortalSource() || isSubrepository()) &&
 			 shortFileName.startsWith("portal") &&
 			 !shortFileName.contains("-legacy-") &&
 			 !shortFileName.equals("portal-osgi-configuration.properties") &&
-			 !shortFileName.equals("portal-test.properties") &&
 			 !shortFileName.equals("portal-upgrade-database.properties") &&
 			 !shortFileName.equals("portal-upgrade-ext.properties")) ||
 			(!isPortalSource() && !isSubrepository() &&
@@ -87,8 +75,9 @@ public class PropertiesPortalFileCheck extends BaseFileCheck {
 					String propertyKey = StringUtil.extractFirst(
 						StringUtil.trimLeading(line), "=");
 
-					if (!propertyKey.contains("regex") &&
-						!allowedSingleLinePropertyKeys.contains(propertyKey)) {
+					if (!allowedSingleLinePropertyKeys.contains(propertyKey) &&
+						!propertyKey.contains("regex") &&
+						!propertyKey.startsWith("feature.flag.")) {
 
 						line = line.replaceFirst("=", "=\\\\\n        ");
 
@@ -116,7 +105,9 @@ public class PropertiesPortalFileCheck extends BaseFileCheck {
 		for (Map.Entry<String, List<String>> entry : properties.entrySet()) {
 			List<String> values = entry.getValue();
 
-			if (values.size() > 1) {
+			if ((values.size() > 1) && (sb.length() > 0) &&
+				!StringUtil.endsWith(sb.toString(), "\n\n")) {
+
 				sb.append("\n");
 			}
 
@@ -165,15 +156,10 @@ public class PropertiesPortalFileCheck extends BaseFileCheck {
 			return _portalPropertiesContent;
 		}
 
-		ClassLoader classLoader =
-			PropertiesSourceProcessor.class.getClassLoader();
+		_portalPropertiesContent = getGitContent(
+			"portal-impl/src/portal.properties", "master");
 
-		URL url = classLoader.getResource("portal.properties");
-
-		if (url != null) {
-			_portalPropertiesContent = IOUtils.toString(url);
-		}
-		else {
+		if (_portalPropertiesContent == null) {
 			_portalPropertiesContent = StringPool.BLANK;
 		}
 
@@ -276,7 +262,10 @@ public class PropertiesPortalFileCheck extends BaseFileCheck {
 				else {
 					value = line;
 
-					if (value.endsWith(",\\")) {
+					if (value.endsWith(",")) {
+						value = value.substring(0, value.length() - 1);
+					}
+					else if (value.endsWith(",\\")) {
 						value = value.substring(0, value.length() - 2);
 					}
 
@@ -337,14 +326,28 @@ public class PropertiesPortalFileCheck extends BaseFileCheck {
 			}
 		}
 
-		String newContent = StringBundler.concat(
-			_generateProperties(portalPropertiesMap), "\n\n",
-			_generateProperties(propertiesMap), "\n\n",
-			_generateProperties(portalOSGiEnvironmentPropertiesMap));
+		StringBundler sb = new StringBundler(6);
 
-		newContent = StringUtil.replace(newContent, "\n\n\n", "\n\n");
+		for (Map<String, List<String>> map :
+				Arrays.asList(
+					portalPropertiesMap, propertiesMap,
+					portalOSGiEnvironmentPropertiesMap)) {
 
-		newContent = newContent.trim();
+			if (map.isEmpty()) {
+				continue;
+			}
+
+			String propertiesString = _generateProperties(map);
+
+			if (Validator.isBlank(propertiesString)) {
+				continue;
+			}
+
+			sb.append(propertiesString);
+			sb.append("\n\n");
+		}
+
+		String newContent = StringUtil.trim(sb.toString());
 
 		if (!StringUtil.equals(content, newContent)) {
 			return newContent;

@@ -53,9 +53,9 @@ export type LicenseKey = {
 export type LicenseTypePayload = {
 	licenseEntry: {
 		description: string;
-		hostName: string;
-		ipAddresses: string;
-		macAddresses: string;
+		hostName: string | undefined;
+		ipAddresses: string | undefined;
+		macAddresses: string | undefined;
 		orderId: string;
 		productId?: string;
 		productPurchaseKey: string;
@@ -76,28 +76,75 @@ export type SubscriptionsType = {
 	startDate: string;
 };
 
-export type ProjectDataSource = {
-	disableSearch: boolean;
-	items: {
-		contactsSelected: boolean;
-		createDate: number;
-		credentials: {
-			privateKey: string;
-			publicKey: string;
-			type: string;
-		};
-		disabled: boolean;
-		id: string;
-		name: string;
-		provider: {
-			type: string;
-		};
-		providerType: string;
-		sitesSelected: boolean;
-		state: string;
-		status: string;
-		type: number;
-		url: string;
-	}[];
-	total: number;
+export type Product = {
+	dateCreated: string;
+	dateModified: string;
+	externalLinks: ExternalLink[];
+	key: string;
+	name: string;
+	properties: Properties;
+};
+
+export type ProductPurchase = {
+	accountKey: string;
+	dateCreated: string;
+	endDate: string;
+	externalLinks: any[];
+	key: string;
+	originalEndDate: string;
+	perpetual: boolean;
+	product: Product;
+	productConsumptions: any;
+	productKey: string;
+	properties: Properties2;
+	quantity: number;
+	startDate: string;
+	status: string;
+	statusAsString: string;
+};
+
+export type ExternalLink = {
+	dateCreated: string;
+	domain: string;
+	entityId: string;
+	entityName: string;
+	key: string;
+	url: string;
+};
+
+export type Properties = {
+	'display-group-name': string;
+	'display-name': string;
+	'type': string;
+};
+
+export type Properties2 = {
+	licenses: string;
+	sizing: string;
+	version: string;
+};
+
+export type Entitlement = {
+	entitlementDefinitionKey: string;
+	name: string;
+};
+
+export type PostalAddress = {
+	addressCountry: string;
+	addressLocality: string;
+	addressRegion: string;
+	addressType: string;
+	id: number;
+	mailing: boolean;
+	postalCode: string;
+	primary: boolean;
+	streetAddressLine1: string;
+	streetAddressLine2: string;
+	streetAddressLine3: string;
+};
+
+export type AccountProperties = {
+	allowComplimentary: string;
+	allowPermanentLicenses: string;
+	allowSelfProvisioning: string;
 };

@@ -294,28 +294,6 @@ public class PoshiGetterUtil {
 		return returnObject;
 	}
 
-	public static String getNamespacedClassNameFromNamespacedClassCommandName(
-		String namespacedClassCommandName) {
-
-		Matcher matcher = _namespacedClassCommandNamePattern.matcher(
-			namespacedClassCommandName);
-
-		if (matcher.find()) {
-			String namespace = matcher.group("namespace");
-
-			if (Validator.isNull(namespace)) {
-				namespace = PoshiContext.getDefaultNamespace();
-			}
-
-			String className = matcher.group("className");
-
-			return namespace + "." + className;
-		}
-
-		throw new RuntimeException(
-			"Unable to find class name in " + namespacedClassCommandName);
-	}
-
 	public static String getNamespaceFromNamespacedClassCommandName(
 		String namespacedClassCommandName) {
 
@@ -356,6 +334,28 @@ public class PoshiGetterUtil {
 			"Unable to find namespace in " + namespacedClassName);
 	}
 
+	public static String getNamespacedClassNameFromNamespacedClassCommandName(
+		String namespacedClassCommandName) {
+
+		Matcher matcher = _namespacedClassCommandNamePattern.matcher(
+			namespacedClassCommandName);
+
+		if (matcher.find()) {
+			String namespace = matcher.group("namespace");
+
+			if (Validator.isNull(namespace)) {
+				namespace = PoshiContext.getDefaultNamespace();
+			}
+
+			String className = matcher.group("className");
+
+			return namespace + "." + className;
+		}
+
+		throw new RuntimeException(
+			"Unable to find class name in " + namespacedClassCommandName);
+	}
+
 	public static String getProjectDirName() {
 		PoshiProperties poshiProperties = PoshiProperties.getPoshiProperties();
 
@@ -392,8 +392,10 @@ public class PoshiGetterUtil {
 	}
 
 	public static String getUtilityClassName(String simpleClassName) {
-		if (_utilityClassMap.containsKey(simpleClassName)) {
-			return _utilityClassMap.get(simpleClassName);
+		String utilityClassName = _utilityClassMap.get(simpleClassName);
+
+		if (utilityClassName != null) {
+			return utilityClassName;
 		}
 
 		throw new IllegalArgumentException(
@@ -401,11 +403,7 @@ public class PoshiGetterUtil {
 	}
 
 	public static boolean isValidUtilityClass(String className) {
-		if (_utilityClassMap.containsValue(className)) {
-			return true;
-		}
-
-		return false;
+		return _utilityClassMap.containsValue(className);
 	}
 
 	private static Element _preparePoshiXMLElement(

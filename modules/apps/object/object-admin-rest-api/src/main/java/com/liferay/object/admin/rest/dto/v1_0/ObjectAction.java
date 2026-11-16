@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -54,7 +55,7 @@ public class ObjectAction implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ObjectAction.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -97,7 +98,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -138,7 +139,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getConditionExpression() {
 		if (_conditionExpressionSupplier != null) {
 			conditionExpression = _conditionExpressionSupplier.get();
@@ -179,7 +180,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _conditionExpressionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -220,7 +221,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -261,8 +262,9 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema
-	public String getDescription() {
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public Map<String, String> getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
 
@@ -272,7 +274,7 @@ public class ObjectAction implements Serializable {
 		return description;
 	}
 
-	public void setDescription(String description) {
+	public void setDescription(Map<String, String> description) {
 		this.description = description;
 
 		_descriptionSupplier = null;
@@ -280,7 +282,8 @@ public class ObjectAction implements Serializable {
 
 	@JsonIgnore
 	public void setDescription(
-		UnsafeSupplier<String, Exception> descriptionUnsafeSupplier) {
+		UnsafeSupplier<Map<String, String>, Exception>
+			descriptionUnsafeSupplier) {
 
 		_descriptionSupplier = () -> {
 			try {
@@ -297,12 +300,12 @@ public class ObjectAction implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String description;
+	protected Map<String, String> description;
 
 	@JsonIgnore
-	private Supplier<String> _descriptionSupplier;
+	private Supplier<Map<String, String>> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getErrorMessage() {
 		if (_errorMessageSupplier != null) {
@@ -345,7 +348,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _errorMessageSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -386,7 +389,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -425,7 +428,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getLabel() {
 		if (_labelSupplier != null) {
@@ -467,7 +470,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _labelSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -506,7 +509,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getObjectActionExecutorKey() {
 		if (_objectActionExecutorKeySupplier != null) {
 			objectActionExecutorKey = _objectActionExecutorKeySupplier.get();
@@ -548,7 +551,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _objectActionExecutorKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getObjectActionTriggerKey() {
 		if (_objectActionTriggerKeySupplier != null) {
 			objectActionTriggerKey = _objectActionTriggerKeySupplier.get();
@@ -590,7 +593,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _objectActionTriggerKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, ?> getParameters() {
 		if (_parametersSupplier != null) {
@@ -632,7 +635,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, ?>> _parametersSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Status getStatus() {
 		if (_statusSupplier != null) {
@@ -674,7 +677,7 @@ public class ObjectAction implements Serializable {
 	@JsonIgnore
 	private Supplier<Status> _statusSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getSystem() {
 		if (_systemSupplier != null) {
 			system = _systemSupplier.get();
@@ -817,7 +820,7 @@ public class ObjectAction implements Serializable {
 			sb.append("\"");
 		}
 
-		String description = getDescription();
+		Map<String, String> description = getDescription();
 
 		if (description != null) {
 			if (sb.length() > 1) {
@@ -826,11 +829,7 @@ public class ObjectAction implements Serializable {
 
 			sb.append("\"description\": ");
 
-			sb.append("\"");
-
-			sb.append(_escape(description));
-
-			sb.append("\"");
+			sb.append(_toJSON(description));
 		}
 
 		Map<String, String> errorMessage = getErrorMessage();
@@ -974,8 +973,8 @@ public class ObjectAction implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.object.admin.rest.dto.v1_0.ObjectAction",
 		name = "x-class-name"
 	)
@@ -1062,6 +1061,27 @@ public class ObjectAction implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1070,3 +1090,4 @@ public class ObjectAction implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1823630680

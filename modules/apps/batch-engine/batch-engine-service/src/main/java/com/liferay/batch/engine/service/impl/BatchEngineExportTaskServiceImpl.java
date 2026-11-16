@@ -7,6 +7,7 @@ package com.liferay.batch.engine.service.impl;
 
 import com.liferay.batch.engine.model.BatchEngineExportTask;
 import com.liferay.batch.engine.service.base.BatchEngineExportTaskServiceBaseImpl;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.aop.AopService;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -17,7 +18,6 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 import java.io.InputStream;
 import java.io.Serializable;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -40,15 +40,15 @@ public class BatchEngineExportTaskServiceImpl
 	public BatchEngineExportTask addBatchEngineExportTask(
 			String externalReferenceCode, long companyId, long userId,
 			String callbackURL, String className, String contentType,
-			String executeStatus, List<String> fieldNamesList,
+			String executeStatus, List<String> fieldNames,
 			Map<String, Serializable> parameters, String taskItemDelegateName)
 		throws PortalException {
 
-		_checkPermission(companyId);
+		_checkPermission(companyId, userId);
 
 		return batchEngineExportTaskLocalService.addBatchEngineExportTask(
 			externalReferenceCode, companyId, userId, callbackURL, className,
-			contentType, executeStatus, fieldNamesList, parameters,
+			contentType, executeStatus, fieldNames, parameters,
 			taskItemDelegateName);
 	}
 
@@ -58,7 +58,7 @@ public class BatchEngineExportTaskServiceImpl
 		throws PortalException {
 
 		BatchEngineExportTask batchEngineExportTask =
-			batchEngineExportTaskLocalService.getBatchEngineExportTask(
+			batchEngineExportTaskPersistence.findByPrimaryKey(
 				batchEngineExportTaskId);
 
 		_checkPermission(batchEngineExportTask);
@@ -75,9 +75,8 @@ public class BatchEngineExportTaskServiceImpl
 		_checkPermission(companyId);
 
 		BatchEngineExportTask batchEngineExportTask =
-			batchEngineExportTaskLocalService.
-				getBatchEngineExportTaskByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			batchEngineExportTaskPersistence.findByERC_C(
+				externalReferenceCode, companyId);
 
 		_checkPermission(batchEngineExportTask);
 
@@ -92,7 +91,7 @@ public class BatchEngineExportTaskServiceImpl
 		_checkPermission(companyId);
 
 		return _filterBatchEngineExportTasks(
-			batchEngineExportTaskLocalService.getBatchEngineExportTasks(
+			batchEngineExportTaskPersistence.findByCompanyId(
 				companyId, start, end));
 	}
 
@@ -105,7 +104,7 @@ public class BatchEngineExportTaskServiceImpl
 		_checkPermission(companyId);
 
 		return _filterBatchEngineExportTasks(
-			batchEngineExportTaskLocalService.getBatchEngineExportTasks(
+			batchEngineExportTaskPersistence.findByCompanyId(
 				companyId, start, end, orderByComparator));
 	}
 
@@ -117,7 +116,7 @@ public class BatchEngineExportTaskServiceImpl
 
 		List<BatchEngineExportTask> filteredBatchEngineExportTasks =
 			_filterBatchEngineExportTasks(
-				batchEngineExportTaskLocalService.getBatchEngineExportTasks(
+				batchEngineExportTaskPersistence.findByCompanyId(
 					companyId, QueryUtil.ALL_POS, QueryUtil.ALL_POS));
 
 		return filteredBatchEngineExportTasks.size();
@@ -128,7 +127,7 @@ public class BatchEngineExportTaskServiceImpl
 		throws PortalException {
 
 		_checkPermission(
-			batchEngineExportTaskLocalService.getBatchEngineExportTask(
+			batchEngineExportTaskPersistence.findByPrimaryKey(
 				batchEngineExportTaskId));
 
 		return batchEngineExportTaskLocalService.openContentInputStream(
@@ -153,24 +152,33 @@ public class BatchEngineExportTaskServiceImpl
 		}
 	}
 
+	private void _checkPermission(long companyId, long userId)
+		throws PrincipalException {
+
+		_checkPermission(companyId);
+
+		PermissionChecker permissionChecker = getPermissionChecker();
+
+		if (userId != permissionChecker.getUserId()) {
+			throw new PrincipalException();
+		}
+	}
+
 	private List<BatchEngineExportTask> _filterBatchEngineExportTasks(
 			List<BatchEngineExportTask> batchEngineExportTasks)
 		throws PrincipalException {
 
-		List<BatchEngineExportTask> filteredBatchEngineExportTasks =
-			new ArrayList<>();
-
 		PermissionChecker permissionChecker = getPermissionChecker();
 
-		for (BatchEngineExportTask batchEngineExportTask :
-				batchEngineExportTasks) {
+		return TransformUtil.transform(
+			batchEngineExportTasks,
+			batchEngineExportTask -> {
+				if (_hasPermission(batchEngineExportTask, permissionChecker)) {
+					return batchEngineExportTask;
+				}
 
-			if (_hasPermission(batchEngineExportTask, permissionChecker)) {
-				filteredBatchEngineExportTasks.add(batchEngineExportTask);
-			}
-		}
-
-		return filteredBatchEngineExportTasks;
+				return null;
+			});
 	}
 
 	private boolean _hasPermission(

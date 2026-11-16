@@ -11,13 +11,11 @@ import ClayLocalizedInput from '@clayui/localized-input';
 import classNames from 'classnames';
 import {FieldArray, withFormik} from 'formik';
 import {
-	debounce,
-	fetch,
-	navigate,
 	openConfirmModal,
 	openModal,
 	openToast,
-} from 'frontend-js-web';
+} from 'frontend-js-components-web';
+import {debounce, fetch, navigate} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useState} from 'react';
 
@@ -42,6 +40,7 @@ function SegmentEdit({
 	hasUpdatePermission,
 	initialMembersCount,
 	isSegmentationEnabled,
+	learnResources,
 	locale,
 	portletNamespace,
 	previewMembersURL,
@@ -292,6 +291,7 @@ function SegmentEdit({
 					data.isSegmentationDisabledAlertDismissed
 				}
 				isSegmentationEnabled={isSegmentationEnabled}
+				learnResources={learnResources}
 				membersCount={data.membersCount}
 				membersCountLoading={data.membersCountLoading}
 				onAlertClose={handleAlertClose}
@@ -618,7 +618,7 @@ export default withFormik({
 		const errors = {};
 
 		if (!values.name) {
-			errors.name = Liferay.Language.get('segment-name-is-required');
+			errors.name = Liferay.Language.get('name-is-required');
 		}
 
 		return errors;

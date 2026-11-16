@@ -9,13 +9,9 @@ import java.io.IOException;
 
 import java.net.URL;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-
-import org.dom4j.Element;
 
 /**
  * @author Peter Yoo
@@ -25,9 +21,9 @@ public class PullRequestPortalTopLevelBuild
 	implements PortalWorkspaceBuild, PullRequestBuild {
 
 	public PullRequestPortalTopLevelBuild(
-		String url, TopLevelBuild topLevelBuild) {
+		String buildURL, TopLevelBuild topLevelBuild) {
 
-		super(url, topLevelBuild);
+		super(buildURL, topLevelBuild);
 
 		setCompareToUpstream(true);
 
@@ -71,6 +67,17 @@ public class PullRequestPortalTopLevelBuild
 		return super.getBranchName();
 	}
 
+	public String getPortalUpstreamBranchName() {
+		String portalUpstreamBranchName = getParameterValue(
+			"PORTAL_UPSTREAM_BRANCH_NAME");
+
+		if (!JenkinsResultsParserUtil.isNullOrEmpty(portalUpstreamBranchName)) {
+			return portalUpstreamBranchName;
+		}
+
+		return null;
+	}
+
 	@Override
 	public PortalWorkspace getPortalWorkspace() {
 		Workspace workspace = getWorkspace();
@@ -88,16 +95,22 @@ public class PullRequestPortalTopLevelBuild
 			return _pullRequest;
 		}
 
-		StringBuilder sb = new StringBuilder();
+		String pullRequestURL = getParameterValue("PULL_REQUEST_URL");
 
-		sb.append("https://github.com/");
-		sb.append(getParameterValue("GITHUB_RECEIVER_USERNAME"));
-		sb.append("/");
-		sb.append(getBaseGitRepositoryName());
-		sb.append("/pull/");
-		sb.append(getParameterValue("GITHUB_PULL_REQUEST_NUMBER"));
+		if (pullRequestURL == null) {
+			StringBuilder sb = new StringBuilder();
 
-		_pullRequest = PullRequestFactory.newPullRequest(sb.toString(), this);
+			sb.append("https://github.com/");
+			sb.append(getParameterValue("GITHUB_RECEIVER_USERNAME"));
+			sb.append("/");
+			sb.append(getBaseGitRepositoryName());
+			sb.append("/pull/");
+			sb.append(getParameterValue("GITHUB_PULL_REQUEST_NUMBER"));
+
+			pullRequestURL = sb.toString();
+		}
+
+		_pullRequest = PullRequestFactory.newPullRequest(pullRequestURL, this);
 
 		return _pullRequest;
 	}
@@ -173,64 +186,6 @@ public class PullRequestPortalTopLevelBuild
 		return "APPROVED";
 	}
 
-	public String getStableJobResult() {
-		if (_stableJobResult != null) {
-			return _stableJobResult;
-		}
-
-		List<Build> stableJobDownstreamBuilds = getStableJobDownstreamBuilds();
-
-		int stableJobDownstreamBuildsSize = stableJobDownstreamBuilds.size();
-
-		if (stableJobDownstreamBuildsSize == 0) {
-			return null;
-		}
-
-		String result = getResult();
-
-		if (result == null) {
-			return null;
-		}
-
-		if (result.equals("SUCCESS")) {
-			_stableJobResult = result;
-		}
-
-		Job stableJob = _getStableJob();
-
-		if (stableJob == null) {
-			return null;
-		}
-
-		List<String> stableJobBatchNames = new ArrayList<>(
-			stableJob.getBatchNames());
-
-		int stableJobDownstreamBuildsCompletedCount =
-			getJobVariantsDownstreamBuildCount(
-				stableJobBatchNames, null, "completed");
-
-		if (stableJobDownstreamBuildsCompletedCount !=
-				stableJobDownstreamBuildsSize) {
-
-			return null;
-		}
-
-		int stableJobDownstreamBuildsSuccessCount =
-			getJobVariantsDownstreamBuildCount(
-				stableJobBatchNames, "SUCCESS", null);
-
-		if (stableJobDownstreamBuildsSuccessCount ==
-				stableJobDownstreamBuildsSize) {
-
-			_stableJobResult = "SUCCESS";
-		}
-		else {
-			_stableJobResult = "FAILURE";
-		}
-
-		return _stableJobResult;
-	}
-
 	@Override
 	public Workspace getWorkspace() {
 		PullRequest pullRequest = getPullRequest();
@@ -245,10 +200,26 @@ public class PullRequestPortalTopLevelBuild
 			portalWorkspace.setBuildProfile(getBuildProfile());
 			portalWorkspace.setOSBAsahGitHubURL(_getOSBAsahGitHubURL());
 			portalWorkspace.setOSBFaroGitHubURL(_getOSBFaroGitHubURL());
+			portalWorkspace.setPortalUpstreamBranchName(
+				getPortalUpstreamBranchName());
 		}
 
 		WorkspaceGitRepository workspaceGitRepository =
 			workspace.getPrimaryWorkspaceGitRepository();
+
+		String upstreamBranchSHA = _getUpstreamBranchSHA();
+
+		if (JenkinsResultsParserUtil.isSHA(upstreamBranchSHA)) {
+			workspaceGitRepository.setBaseBranchSHA(upstreamBranchSHA);
+		}
+
+		String upstreamBranchUsername = getParameterValue(
+			"GITHUB_UPSTREAM_BRANCH_USERNAME");
+
+		if (!JenkinsResultsParserUtil.isNullOrEmpty(upstreamBranchUsername)) {
+			workspaceGitRepository.setBaseBranchUsername(
+				upstreamBranchUsername);
+		}
 
 		workspaceGitRepository.setGitHubURL(pullRequest.getHtmlURL());
 
@@ -256,12 +227,6 @@ public class PullRequestPortalTopLevelBuild
 
 		if (JenkinsResultsParserUtil.isSHA(senderBranchSHA)) {
 			workspaceGitRepository.setSenderBranchSHA(senderBranchSHA);
-		}
-
-		String upstreamBranchSHA = _getUpstreamBranchSHA();
-
-		if (JenkinsResultsParserUtil.isSHA(upstreamBranchSHA)) {
-			workspaceGitRepository.setBaseBranchSHA(upstreamBranchSHA);
 		}
 
 		return workspace;
@@ -277,193 +242,7 @@ public class PullRequestPortalTopLevelBuild
 			}
 		}
 
-		if (failedDownstreamBuilds.isEmpty()) {
-			return true;
-		}
-
-		return false;
-	}
-
-	protected Element getFailedStableJobSummaryElement() {
-		Job stableJob = _getStableJob();
-
-		if (stableJob == null) {
-			return Dom4JUtil.getNewElement("span");
-		}
-
-		List<String> stableJobBatchNames = new ArrayList<>(
-			stableJob.getBatchNames());
-
-		Element jobSummaryListElement = getJobSummaryListElement(
-			false, stableJobBatchNames);
-
-		int stableJobDownstreamBuildsSuccessCount =
-			getJobVariantsDownstreamBuildCount(
-				stableJobBatchNames, "SUCCESS", null);
-
-		int stableJobDownstreamBuildsCount = getJobVariantsDownstreamBuildCount(
-			stableJobBatchNames, null, null);
-
-		int stableJobDownstreamBuildsFailureCount =
-			stableJobDownstreamBuildsCount -
-				stableJobDownstreamBuildsSuccessCount;
-
-		return Dom4JUtil.getNewElement(
-			"div", null,
-			Dom4JUtil.getNewElement(
-				"h4", null,
-				String.valueOf(stableJobDownstreamBuildsFailureCount),
-				" Failed Jobs:"),
-			jobSummaryListElement);
-	}
-
-	protected List<Build> getStableJobDownstreamBuilds() {
-		Job stableJob = _getStableJob();
-
-		if (stableJob != null) {
-			return getJobVariantsDownstreamBuilds(
-				stableJob.getBatchNames(), null, null);
-		}
-
-		return Collections.emptyList();
-	}
-
-	protected Element getStableJobResultElement() {
-		Job stableJob = _getStableJob();
-
-		if (stableJob == null) {
-			return null;
-		}
-
-		StringBuilder sb = new StringBuilder();
-
-		String stableJobResult = getStableJobResult();
-
-		if (stableJobResult.equals("SUCCESS")) {
-			sb.append(":heavy_check_mark: ");
-		}
-		else {
-			sb.append(":x: ");
-		}
-
-		sb.append("ci:test:stable - ");
-
-		sb.append(
-			getJobVariantsDownstreamBuildCount(
-				new ArrayList<>(stableJob.getBatchNames()), "SUCCESS", null));
-
-		sb.append(" out of ");
-
-		List<Build> stableJobDownstreamBuilds = getStableJobDownstreamBuilds();
-
-		sb.append(stableJobDownstreamBuilds.size());
-
-		sb.append(" jobs passed");
-
-		return Dom4JUtil.getNewElement("h3", null, sb.toString());
-	}
-
-	protected Element getStableJobSuccessSummaryElement() {
-		Job stableJob = _getStableJob();
-
-		if (stableJob == null) {
-			return Dom4JUtil.getNewElement("span");
-		}
-
-		List<String> stableJobBatchNames = new ArrayList<>(
-			stableJob.getBatchNames());
-
-		Element stableJobSummaryListElement = getJobSummaryListElement(
-			true, stableJobBatchNames);
-
-		int stableJobDownstreamBuildsSuccessCount =
-			getJobVariantsDownstreamBuildCount(
-				stableJobBatchNames, "SUCCESS", null);
-
-		return Dom4JUtil.getNewElement(
-			"details", null,
-			Dom4JUtil.getNewElement(
-				"summary", null,
-				Dom4JUtil.getNewElement(
-					"strong", null,
-					String.valueOf(stableJobDownstreamBuildsSuccessCount),
-					" Successful Jobs:")),
-			stableJobSummaryListElement);
-	}
-
-	protected Element getStableJobSummaryElement() {
-		Job stableJob = _getStableJob();
-
-		if (stableJob == null) {
-			return Dom4JUtil.getNewElement("span");
-		}
-
-		List<String> stableJobBatchNames = new ArrayList<>(
-			stableJob.getBatchNames());
-
-		int stableJobDownstreamBuildSuccessCount =
-			getJobVariantsDownstreamBuildCount(
-				stableJobBatchNames, "SUCCESS", null);
-
-		List<Build> stableJobDownstreamBuilds = getStableJobDownstreamBuilds();
-
-		Element detailsElement = Dom4JUtil.getNewElement(
-			"details", null,
-			Dom4JUtil.getNewElement(
-				"summary", null,
-				Dom4JUtil.getNewElement(
-					"strong", null, "ci:test:stable - ",
-					String.valueOf(stableJobDownstreamBuildSuccessCount),
-					" out of ",
-					String.valueOf(stableJobDownstreamBuilds.size()),
-					" jobs PASSED")));
-
-		int stableJobDownstreamBuildCount = getJobVariantsDownstreamBuildCount(
-			stableJobBatchNames, null, null);
-
-		if (stableJobDownstreamBuildSuccessCount <
-				stableJobDownstreamBuildCount) {
-
-			Dom4JUtil.addToElement(
-				detailsElement, getFailedStableJobSummaryElement());
-		}
-
-		if (stableJobDownstreamBuildSuccessCount > 0) {
-			Dom4JUtil.addToElement(
-				detailsElement, getStableJobSuccessSummaryElement());
-		}
-
-		return detailsElement;
-	}
-
-	@Override
-	protected Element getTopGitHubMessageElement() {
-		Element rootElement = super.getTopGitHubMessageElement();
-
-		List<Build> stableJobDownstreamBuilds = new ArrayList<>();
-
-		Job stableJob = _getStableJob();
-
-		if (stableJob != null) {
-			stableJobDownstreamBuilds.addAll(getStableJobDownstreamBuilds());
-		}
-
-		if (!stableJobDownstreamBuilds.isEmpty()) {
-			Dom4JUtil.insertElementAfter(
-				rootElement, null, getStableJobResultElement());
-		}
-
-		Element detailsElement = rootElement.element("details");
-
-		if (!stableJobDownstreamBuilds.isEmpty()) {
-			Element jobSummaryElement = detailsElement.element("details");
-
-			Dom4JUtil.insertElementBefore(
-				detailsElement, jobSummaryElement,
-				getStableJobSummaryElement());
-		}
-
-		return rootElement;
+		return failedDownstreamBuilds.isEmpty();
 	}
 
 	private String _getOSBAsahGitHubURL() {
@@ -513,45 +292,6 @@ public class PullRequestPortalTopLevelBuild
 		return null;
 	}
 
-	private synchronized Job _getStableJob() {
-		if (_stableJob != null) {
-			return _stableJob;
-		}
-
-		String testSuiteName = getTestSuiteName();
-
-		if (!testSuiteName.equals("relevant")) {
-			return null;
-		}
-
-		String branchName = getBranchName();
-		Job.BuildProfile buildProfile = getBuildProfile();
-		String jobName = getJobName();
-		String repositoryName = getBaseGitRepositoryName();
-		String stableTestSuiteName = "stable";
-
-		try {
-			_stableJob = JobFactory.newJob(
-				buildProfile, jobName, null, null, null, branchName, null,
-				repositoryName, stableTestSuiteName, branchName);
-
-			BuildDatabase buildDatabase = BuildDatabaseUtil.getBuildDatabase();
-
-			buildDatabase.putJob(
-				JobFactory.getKey(
-					buildProfile, jobName, null, branchName, null,
-					repositoryName, stableTestSuiteName, branchName),
-				_stableJob);
-		}
-		catch (Exception exception) {
-			System.out.println("Unable to create stable job for " + jobName);
-
-			exception.printStackTrace();
-		}
-
-		return _stableJob;
-	}
-
 	private String _getUpstreamBranchSHA() {
 		String upstreamBranchSHA = getParameterValue(
 			"GITHUB_UPSTREAM_BRANCH_SHA");
@@ -565,6 +305,11 @@ public class PullRequestPortalTopLevelBuild
 
 		if (JenkinsResultsParserUtil.isNullOrEmpty(portalBundlesDistURL)) {
 			return null;
+		}
+
+		if (portalBundlesDistURL.startsWith("s3://")) {
+			return JenkinsResultsParserUtil.getPortalBundleGitCommit(
+				portalBundlesDistURL);
 		}
 
 		try {
@@ -593,7 +338,5 @@ public class PullRequestPortalTopLevelBuild
 	}
 
 	private PullRequest _pullRequest;
-	private Job _stableJob;
-	private String _stableJobResult;
 
 }

@@ -13,14 +13,11 @@ import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.upload.UploadHandler;
 import com.liferay.upload.UploadResponseHandler;
 
-import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 
 /**
@@ -28,7 +25,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + AICreatorOpenAIPortletKeys.AI_CREATOR_OPENAI,
+		"jakarta.portlet.name=" + AICreatorOpenAIPortletKeys.AI_CREATOR_OPENAI,
 		"mvc.command.name=/ai_creator_openai/upload_generations"
 	},
 	service = MVCActionCommand.class
@@ -36,8 +33,7 @@ import org.osgi.service.component.annotations.Reference;
 public class UploadGenerationsMVCActionCommand extends BaseMVCActionCommand {
 
 	@Activate
-	@Modified
-	protected void activate(Map<String, Object> properties) {
+	protected void activate() {
 		_aiCreatorOpenAIFileEntryHandler =
 			new AICreatorOpenAIUploadFileEntryHandler(_dlAppService);
 	}

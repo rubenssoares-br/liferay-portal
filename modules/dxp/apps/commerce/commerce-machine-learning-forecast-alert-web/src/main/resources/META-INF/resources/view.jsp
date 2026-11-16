@@ -23,12 +23,12 @@ CommerceMLForecastAlertEntryListDisplayContext commerceMLForecastAlertEntryListD
 			>
 				<liferay-ui:search-container-row
 					className="com.liferay.commerce.machine.learning.forecast.alert.model.CommerceMLForecastAlertEntry"
-					keyProperty="commerceMLForecastAlertEntryId"
+					keyPropertyName="commerceMLForecastAlertEntryId"
 					modelVar="commerceMLForecastAlertEntry"
 				>
 
 					<%
-					AccountEntry accountEntry = commerceMLForecastAlertEntryListDisplayContext.getAccountEntry(commerceMLForecastAlertEntry.getCommerceAccountId());
+					AccountEntry accountEntry = AccountEntryLocalServiceUtil.fetchAccountEntry(commerceMLForecastAlertEntry.getCommerceAccountId());
 
 					long logoId = accountEntry.getLogoId();
 					%>

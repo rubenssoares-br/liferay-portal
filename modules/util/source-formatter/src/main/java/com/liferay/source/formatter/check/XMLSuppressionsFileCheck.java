@@ -145,44 +145,46 @@ public class XMLSuppressionsFileCheck extends BaseFileCheck {
 
 			File file = new File(expectedFolderName);
 
-			if (!file.exists()) {
-				String relativeValue = _getRelativeValue(
-					originalValue, fileLocation, directoryValue);
-
-				if (relativeValue != null) {
-					return StringUtil.replace(
-						content, "\"" + originalValue + "\"",
-						"\"" + relativeValue + "\"");
-				}
-
-				_addMessage(
-					fileName, content, originalValue, expectedFolderName,
-					"Directory");
+			if (file.exists()) {
+				continue;
 			}
+
+			String relativeValue = _getRelativeValue(
+				originalValue, fileLocation, directoryValue);
+
+			if (relativeValue != null) {
+				return StringUtil.replace(
+					content, "\"" + originalValue + "\"",
+					"\"" + relativeValue + "\"");
+			}
+
+			_addMessage(
+				fileName, content, originalValue, expectedFolderName,
+				"Directory");
 		}
 
 		return content;
 	}
 
 	private String _getRelativeValue(
-		String originalvalue, String fileLocation) {
+		String originalValue, String fileLocation) {
 
 		int x = -1;
 
 		while (true) {
-			x = originalvalue.indexOf(CharPool.SLASH, x + 1);
+			x = originalValue.indexOf(CharPool.SLASH, x + 1);
 
 			if (x == -1) {
 				return null;
 			}
 
-			String s = originalvalue.substring(0, x + 1);
+			String s = originalValue.substring(0, x + 1);
 
 			if (!fileLocation.endsWith(s)) {
 				continue;
 			}
 
-			String relativeValue = originalvalue.substring(x + 1);
+			String relativeValue = originalValue.substring(x + 1);
 
 			File file = new File(
 				fileLocation + StringUtil.replace(relativeValue, "\\.", "."));

@@ -10,16 +10,17 @@ import com.liferay.headless.admin.workflow.client.dto.v1_0.Transition;
 import com.liferay.headless.admin.workflow.client.dto.v1_0.WorkflowDefinition;
 import com.liferay.headless.admin.workflow.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -158,6 +159,21 @@ public class WorkflowDefinitionSerDes {
 			sb.append("\"");
 		}
 
+		if (workflowDefinition.getGroupExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"groupExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(workflowDefinition.getGroupExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
 		if (workflowDefinition.getId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -200,6 +216,52 @@ public class WorkflowDefinitionSerDes {
 			}
 
 			sb.append("]");
+		}
+
+		if (workflowDefinition.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < workflowDefinition.getPermissions().length;
+				 i++) {
+
+				sb.append(workflowDefinition.getPermissions()[i]);
+
+				if ((i + 1) < workflowDefinition.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		if (workflowDefinition.getScope() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"scope\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(workflowDefinition.getScope()));
+
+			sb.append("\"");
+		}
+
+		if (workflowDefinition.getSystem() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"system\": ");
+
+			sb.append(workflowDefinition.getSystem());
 		}
 
 		if (workflowDefinition.getTitle() != null) {
@@ -353,6 +415,16 @@ public class WorkflowDefinitionSerDes {
 				String.valueOf(workflowDefinition.getExternalReferenceCode()));
 		}
 
+		if (workflowDefinition.getGroupExternalReferenceCode() == null) {
+			map.put("groupExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"groupExternalReferenceCode",
+				String.valueOf(
+					workflowDefinition.getGroupExternalReferenceCode()));
+		}
+
 		if (workflowDefinition.getId() == null) {
 			map.put("id", null);
 		}
@@ -372,6 +444,29 @@ public class WorkflowDefinitionSerDes {
 		}
 		else {
 			map.put("nodes", String.valueOf(workflowDefinition.getNodes()));
+		}
+
+		if (workflowDefinition.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put(
+				"permissions",
+				String.valueOf(workflowDefinition.getPermissions()));
+		}
+
+		if (workflowDefinition.getScope() == null) {
+			map.put("scope", null);
+		}
+		else {
+			map.put("scope", String.valueOf(workflowDefinition.getScope()));
+		}
+
+		if (workflowDefinition.getSystem() == null) {
+			map.put("system", null);
+		}
+		else {
+			map.put("system", String.valueOf(workflowDefinition.getSystem()));
 		}
 
 		if (workflowDefinition.getTitle() == null) {
@@ -450,6 +545,11 @@ public class WorkflowDefinitionSerDes {
 
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "groupExternalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
@@ -457,6 +557,15 @@ public class WorkflowDefinitionSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "nodes")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "scope")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "system")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "title")) {
@@ -528,6 +637,14 @@ public class WorkflowDefinitionSerDes {
 						(String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "groupExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					workflowDefinition.setGroupExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				if (jsonParserFieldValue != null) {
 					workflowDefinition.setId(
@@ -552,6 +669,36 @@ public class WorkflowDefinitionSerDes {
 					}
 
 					workflowDefinition.setNodes(nodesArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.workflow.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.workflow.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.workflow.client.
+								permission.Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					workflowDefinition.setPermissions(permissionsArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "scope")) {
+				if (jsonParserFieldValue != null) {
+					workflowDefinition.setScope((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "system")) {
+				if (jsonParserFieldValue != null) {
+					workflowDefinition.setSystem((Boolean)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "title")) {
@@ -631,6 +778,16 @@ public class WorkflowDefinitionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -663,3 +820,4 @@ public class WorkflowDefinitionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:250236148

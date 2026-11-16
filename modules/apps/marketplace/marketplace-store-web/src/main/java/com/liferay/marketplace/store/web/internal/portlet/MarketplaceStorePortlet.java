@@ -5,6 +5,7 @@
 
 package com.liferay.marketplace.store.web.internal.portlet;
 
+import com.liferay.expando.kernel.model.ExpandoValue;
 import com.liferay.expando.kernel.service.ExpandoValueLocalService;
 import com.liferay.marketplace.constants.MarketplaceStorePortletKeys;
 import com.liferay.marketplace.model.App;
@@ -13,7 +14,7 @@ import com.liferay.marketplace.service.AppService;
 import com.liferay.marketplace.store.web.internal.configuration.MarketplaceStoreWebConfigurationValues;
 import com.liferay.marketplace.store.web.internal.constants.MarketplaceConstants;
 import com.liferay.marketplace.store.web.internal.constants.MarketplaceStoreWebKeys;
-import com.liferay.marketplace.store.web.internal.oauth.util.OAuthManager;
+import com.liferay.marketplace.store.web.internal.oauth.api.MarketplaceApi;
 import com.liferay.marketplace.store.web.internal.util.MarketplaceLicenseUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -48,6 +49,20 @@ import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.Portlet;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+import jakarta.portlet.WindowState;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -58,28 +73,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.Portlet;
-import javax.portlet.PortletException;
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
-import javax.portlet.WindowState;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 
+import org.scribe.builder.api.Api;
+import org.scribe.model.OAuthConfig;
 import org.scribe.model.OAuthConstants;
 import org.scribe.model.OAuthRequest;
 import org.scribe.model.Response;
+import org.scribe.model.SignatureType;
 import org.scribe.model.Token;
 import org.scribe.model.Verb;
 import org.scribe.model.Verifier;
@@ -90,6 +92,7 @@ import org.scribe.oauth.OAuthService;
  * @author Joan Kim
  */
 @Component(
+	enabled = false,
 	property = {
 		"com.liferay.portlet.css-class-wrapper=marketplace-portlet",
 		"com.liferay.portlet.display-category=category.hidden",
@@ -101,14 +104,14 @@ import org.scribe.oauth.OAuthService;
 		"com.liferay.portlet.private-session-attributes=false",
 		"com.liferay.portlet.render-weight=50",
 		"com.liferay.portlet.use-default-template=true",
-		"javax.portlet.description=", "javax.portlet.display-name=Store",
-		"javax.portlet.init-param.add-process-action-success-action=false",
-		"javax.portlet.init-param.template-path=/META-INF/resources/",
-		"javax.portlet.init-param.view-template=/view.jsp",
-		"javax.portlet.name=" + MarketplaceStorePortletKeys.MARKETPLACE_STORE,
-		"javax.portlet.resource-bundle=content.Language",
-		"javax.portlet.security-role-ref=administrator",
-		"javax.portlet.version=3.0"
+		"jakarta.portlet.description=", "jakarta.portlet.display-name=Store",
+		"jakarta.portlet.init-param.add-process-action-success-action=false",
+		"jakarta.portlet.init-param.template-path=/META-INF/resources/",
+		"jakarta.portlet.init-param.view-template=/view.jsp",
+		"jakarta.portlet.name=" + MarketplaceStorePortletKeys.MARKETPLACE_STORE,
+		"jakarta.portlet.resource-bundle=content.Language",
+		"jakarta.portlet.security-role-ref=administrator",
+		"jakarta.portlet.version=4.0"
 	},
 	service = Portlet.class
 )
@@ -124,11 +127,11 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		ThemeDisplay themeDisplay = (ThemeDisplay)actionRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
 
-		OAuthService oAuthService = oAuthManager.getOAuthService();
+		OAuthService oAuthService = _getOAuthService();
 
 		Token requestToken = oAuthService.getRequestToken();
 
-		oAuthManager.updateRequestToken(themeDisplay.getUser(), requestToken);
+		_updateRequestToken(themeDisplay.getUser(), requestToken);
 
 		String redirect = oAuthService.getAuthorizationUrl(requestToken);
 
@@ -147,7 +150,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		ThemeDisplay themeDisplay = (ThemeDisplay)actionRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
 
-		oAuthManager.deleteAccessToken(themeDisplay.getUser());
+		_deleteAccessToken(themeDisplay.getUser());
 
 		actionResponse.sendRedirect(
 			PortletURLBuilder.createRenderURL(
@@ -244,7 +247,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 			oAuthRequest, serverNamespace.concat("compatibility"),
 			String.valueOf(ReleaseInfo.getBuildNumber()));
 		addOAuthParameter(
-			oAuthRequest, serverNamespace.concat("javax.portlet.action"),
+			oAuthRequest, serverNamespace.concat("jakarta.portlet.action"),
 			"getPrepackagedApps");
 
 		Map<String, String> prepackagedApps =
@@ -541,11 +544,6 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		writeJSON(actionRequest, actionResponse, jsonObject);
 	}
 
-	@Activate
-	protected void activate() {
-		oAuthManager = new OAuthManager(expandoValueLocalService);
-	}
-
 	protected void addOAuthParameter(
 		OAuthRequest oAuthRequest, String key, String value) {
 
@@ -566,8 +564,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 			ThemeDisplay themeDisplay =
 				(ThemeDisplay)renderRequest.getAttribute(WebKeys.THEME_DISPLAY);
 
-			Token accessToken = oAuthManager.getAccessToken(
-				themeDisplay.getUser());
+			Token accessToken = _getAccessToken(themeDisplay.getUser());
 
 			if (accessToken == null) {
 				include("/login.jsp", renderRequest, renderResponse);
@@ -626,10 +623,10 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 	protected Response getResponse(User user, OAuthRequest oAuthRequest)
 		throws Exception {
 
-		Token token = oAuthManager.getAccessToken(user);
+		Token token = _getAccessToken(user);
 
 		if (token != null) {
-			OAuthService oAuthService = oAuthManager.getOAuthService();
+			OAuthService oAuthService = _getOAuthService();
 
 			oAuthService.signRequest(token, oAuthRequest);
 		}
@@ -650,26 +647,6 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 	protected String getServerPortletURL() {
 		return MarketplaceStoreWebConfigurationValues.MARKETPLACE_URL +
 			"/osb-portlet/mp_server";
-	}
-
-	protected void processPortletParameterMap(
-		PortletRequest portletRequest, PortletResponse portletResponse,
-		Map<String, String[]> parameterMap) {
-
-		parameterMap.put(
-			"clientBuild",
-			new String[] {String.valueOf(MarketplaceConstants.CLIENT_BUILD)});
-
-		if (!parameterMap.containsKey("compatibility")) {
-			parameterMap.put(
-				"compatibility",
-				new String[] {String.valueOf(ReleaseInfo.getBuildNumber())});
-		}
-
-		parameterMap.put(
-			"installedPatches", PatcherValues.INSTALLED_PATCH_NAMES);
-		parameterMap.put(
-			"supportsHotDeploy", new String[] {Boolean.TRUE.toString()});
 	}
 
 	protected void setBaseRequestParameters(
@@ -702,8 +679,6 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 	@Reference
 	protected JSONFactory jsonFactory;
 
-	protected OAuthManager oAuthManager;
-
 	@Reference
 	protected Portal portal;
 
@@ -718,6 +693,40 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 
 			throw new PortletException(principalException);
 		}
+	}
+
+	private void _deleteAccessToken(User user) throws Exception {
+		expandoValueLocalService.deleteValue(
+			user.getCompanyId(), User.class.getName(), "MP", "accessSecret",
+			user.getUserId());
+		expandoValueLocalService.deleteValue(
+			user.getCompanyId(), User.class.getName(), "MP", "accessToken",
+			user.getUserId());
+	}
+
+	private void _deleteRequestToken(User user) throws Exception {
+		expandoValueLocalService.deleteValue(
+			user.getCompanyId(), User.class.getName(), "MP", "requestSecret",
+			user.getUserId());
+		expandoValueLocalService.deleteValue(
+			user.getCompanyId(), User.class.getName(), "MP", "requestToken",
+			user.getUserId());
+	}
+
+	private Token _getAccessToken(User user) throws PortalException {
+		ExpandoValue secretExpandoValue = expandoValueLocalService.fetchValue(
+			user.getCompanyId(), User.class.getName(), "MP", "accessSecret",
+			user.getUserId());
+		ExpandoValue tokenExpandoValue = expandoValueLocalService.fetchValue(
+			user.getCompanyId(), User.class.getName(), "MP", "accessToken",
+			user.getUserId());
+
+		if ((secretExpandoValue == null) || (tokenExpandoValue == null)) {
+			return null;
+		}
+
+		return new Token(
+			tokenExpandoValue.getString(), secretExpandoValue.getString());
 	}
 
 	private JSONObject _getAppJSONObject(App app) throws Exception {
@@ -767,12 +776,59 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		List<App> apps = appLocalService.getInstalledApps();
 
 		for (App app : apps) {
-			if (app.getRemoteAppId() > 0) {
-				jsonArray.put(_getAppJSONObject(app));
+			if (app.getRemoteAppId() <= 0) {
+				continue;
 			}
+
+			jsonArray.put(_getAppJSONObject(app));
 		}
 
 		return jsonArray;
+	}
+
+	private OAuthService _getOAuthService() {
+		Api api = new MarketplaceApi();
+
+		OAuthConfig oAuthConfig = new OAuthConfig(
+			MarketplaceStoreWebConfigurationValues.MARKETPLACE_KEY,
+			MarketplaceStoreWebConfigurationValues.MARKETPLACE_SECRET,
+			MarketplaceStoreWebConfigurationValues.MARKETPLACE_URL,
+			SignatureType.Header, null, null);
+
+		return api.createService(oAuthConfig);
+	}
+
+	private Token _getRequestToken(User user) throws Exception {
+		ExpandoValue secretExpandoValue = expandoValueLocalService.fetchValue(
+			user.getCompanyId(), User.class.getName(), "MP", "requestSecret",
+			user.getUserId());
+		ExpandoValue tokenExpandoValue = expandoValueLocalService.fetchValue(
+			user.getCompanyId(), User.class.getName(), "MP", "requestToken",
+			user.getUserId());
+
+		if ((secretExpandoValue == null) || (tokenExpandoValue == null)) {
+			return null;
+		}
+
+		return new Token(
+			tokenExpandoValue.getString(), secretExpandoValue.getString());
+	}
+
+	private void _processPortletParameterMap(
+		Map<String, String[]> parameterMap) {
+
+		parameterMap.put(
+			"clientBuild",
+			new String[] {String.valueOf(MarketplaceConstants.CLIENT_BUILD)});
+
+		parameterMap.putIfAbsent(
+			"compatibility",
+			new String[] {String.valueOf(ReleaseInfo.getBuildNumber())});
+
+		parameterMap.put(
+			"installedPatches", PatcherValues.INSTALLED_PATCH_NAMES);
+		parameterMap.put(
+			"supportsHotDeploy", new String[] {Boolean.TRUE.toString()});
 	}
 
 	private void _remoteProcessAction(
@@ -785,7 +841,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		OAuthRequest oAuthRequest = new OAuthRequest(
 			Verb.POST, getServerPortletURL());
 
-		_setRequestParameters(actionRequest, actionResponse, oAuthRequest);
+		_setRequestParameters(actionRequest, oAuthRequest);
 
 		addOAuthParameter(oAuthRequest, "p_p_lifecycle", "1");
 		addOAuthParameter(
@@ -820,7 +876,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		OAuthRequest oAuthRequest = new OAuthRequest(
 			Verb.GET, getServerPortletURL());
 
-		_setRequestParameters(renderRequest, renderResponse, oAuthRequest);
+		_setRequestParameters(renderRequest, oAuthRequest);
 
 		Response response = getResponse(themeDisplay.getUser(), oAuthRequest);
 
@@ -841,7 +897,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		OAuthRequest oAuthRequest = new OAuthRequest(
 			Verb.GET, getServerPortletURL());
 
-		_setRequestParameters(resourceRequest, resourceResponse, oAuthRequest);
+		_setRequestParameters(resourceRequest, oAuthRequest);
 
 		addOAuthParameter(oAuthRequest, "p_p_lifecycle", "2");
 		addOAuthParameter(
@@ -871,8 +927,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 	}
 
 	private void _setRequestParameters(
-		PortletRequest portletRequest, PortletResponse portletResponse,
-		OAuthRequest oAuthRequest) {
+		PortletRequest portletRequest, OAuthRequest oAuthRequest) {
 
 		setBaseRequestParameters(portletRequest, oAuthRequest);
 
@@ -880,8 +935,7 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 
 		MapUtil.copy(portletRequest.getParameterMap(), parameterMap);
 
-		processPortletParameterMap(
-			portletRequest, portletResponse, parameterMap);
+		_processPortletParameterMap(parameterMap);
 
 		String serverNamespace = getServerNamespace();
 
@@ -911,17 +965,36 @@ public class MarketplaceStorePortlet extends MVCPortlet {
 		ThemeDisplay themeDisplay = (ThemeDisplay)renderRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
 
-		Token requestToken = oAuthManager.getRequestToken(
-			themeDisplay.getUser());
+		Token requestToken = _getRequestToken(themeDisplay.getUser());
 
-		OAuthService oAuthService = oAuthManager.getOAuthService();
+		OAuthService oAuthService = _getOAuthService();
 
-		oAuthManager.updateAccessToken(
+		_updateAccessToken(
 			themeDisplay.getUser(),
 			oAuthService.getAccessToken(
 				requestToken, new Verifier(oAuthVerifier)));
 
-		oAuthManager.deleteRequestToken(themeDisplay.getUser());
+		_deleteRequestToken(themeDisplay.getUser());
+	}
+
+	private void _updateAccessToken(User user, Token token)
+		throws PortalException {
+
+		expandoValueLocalService.addValue(
+			user.getCompanyId(), User.class.getName(), "MP", "accessSecret",
+			user.getUserId(), token.getSecret());
+		expandoValueLocalService.addValue(
+			user.getCompanyId(), User.class.getName(), "MP", "accessToken",
+			user.getUserId(), token.getToken());
+	}
+
+	private void _updateRequestToken(User user, Token token) throws Exception {
+		expandoValueLocalService.addValue(
+			user.getCompanyId(), User.class.getName(), "MP", "requestSecret",
+			user.getUserId(), token.getSecret());
+		expandoValueLocalService.addValue(
+			user.getCompanyId(), User.class.getName(), "MP", "requestToken",
+			user.getUserId(), token.getToken());
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

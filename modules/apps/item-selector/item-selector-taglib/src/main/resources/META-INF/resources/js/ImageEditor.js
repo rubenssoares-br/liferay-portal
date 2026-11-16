@@ -53,6 +53,7 @@ function ImageEditor({
 	imageId,
 	imageSrc,
 	itemReturnType,
+	mimeType = 'image/png',
 	onCancel = noop,
 	onSave = noop,
 	saveURL,
@@ -95,7 +96,7 @@ function ImageEditor({
 				.then((response) => {
 					onSave(response);
 				});
-		});
+		}, mimeType);
 	};
 
 	const handleZoomIn = () => {
@@ -223,6 +224,7 @@ function ImageEditor({
 					<ClayToolbar.Item>
 						<ClayToolbar.Section>
 							<ClayButtonWithIcon
+								aria-label={Liferay.Language.get('rotate')}
 								displayType={null}
 								onClick={handleRotate}
 								symbol="rotate"
@@ -234,6 +236,9 @@ function ImageEditor({
 						<ClayToolbar.Section>
 							<ClayButton.Group spaced>
 								<ClayButtonWithIcon
+									aria-label={Liferay.Language.get(
+										'zoom-out'
+									)}
 									disabled={disabledZoomOut}
 									displayType={null}
 									onClick={handleZoomOut}
@@ -241,6 +246,7 @@ function ImageEditor({
 								/>
 
 								<ClayButtonWithIcon
+									aria-label={Liferay.Language.get('zoom-in')}
 									disabled={disabledZoomIn}
 									displayType={null}
 									onClick={handleZoomIn}
@@ -274,6 +280,7 @@ ImageEditor.propTypes = {
 	imageId: PropTypes.string.isRequired,
 	imageSrc: PropTypes.string.isRequired,
 	itemReturnType: PropTypes.string,
+	mimeType: PropTypes.string,
 	onCancel: PropTypes.func,
 	onSave: PropTypes.func,
 	saveURL: PropTypes.string.isRequired,

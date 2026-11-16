@@ -12,8 +12,9 @@
 	},
 	"items": [
 		{
-			"defaultLanguageId": "en_US",
+			"className": "com.liferay.object.model.ObjectDefinition#X6Y0",
 			"enableCategorization": true,
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_FUNCTIONAL_COOKIE_ENTRY",
 			"label": {
 				"en_US": "Functional Cookie Entry"
@@ -114,6 +115,7 @@
 			"objectViews": [
 				{
 					"defaultObjectView": true,
+					"externalReferenceCode": "L_FUNCTIONAL_COOKIE_ENTRY_MAIN_OBJECT_VIEW",
 					"name": {
 						"en_US": "Main"
 					},
@@ -181,8 +183,9 @@
 			"system": true
 		},
 		{
-			"defaultLanguageId": "en_US",
+			"className": "com.liferay.object.model.ObjectDefinition#E8D0",
 			"enableCategorization": true,
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_NECESSARY_COOKIE_ENTRY",
 			"label": {
 				"en_US": "Necessary Cookie Entry"
@@ -283,6 +286,7 @@
 			"objectViews": [
 				{
 					"defaultObjectView": true,
+					"externalReferenceCode": "L_NECESSARY_COOKIE_ENTRY_MAIN_OBJECT_VIEW",
 					"name": {
 						"en_US": "Main"
 					},
@@ -350,8 +354,9 @@
 			"system": true
 		},
 		{
-			"defaultLanguageId": "en_US",
+			"className": "com.liferay.object.model.ObjectDefinition#U8H9",
 			"enableCategorization": true,
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_PERFORMANCE_COOKIE_ENTRY",
 			"label": {
 				"en_US": "Performance Cookie Entry"
@@ -452,6 +457,7 @@
 			"objectViews": [
 				{
 					"defaultObjectView": true,
+					"externalReferenceCode": "L_PERFORMANCE_COOKIE_ENTRY_MAIN_OBJECT_VIEW",
 					"name": {
 						"en_US": "Main"
 					},
@@ -519,8 +525,9 @@
 			"system": true
 		},
 		{
-			"defaultLanguageId": "en_US",
+			"className": "com.liferay.object.model.ObjectDefinition#Q9G7",
 			"enableCategorization": true,
+			"enableFormContainer": false,
 			"externalReferenceCode": "L_PERSONALIZATION_COOKIE_ENTRY",
 			"label": {
 				"en_US": "Personalization Cookie Entry"
@@ -621,6 +628,7 @@
 			"objectViews": [
 				{
 					"defaultObjectView": true,
+					"externalReferenceCode": "L_PERSONALIZATION_COOKIE_ENTRY_MAIN_OBJECT_VIEW",
 					"name": {
 						"en_US": "Main"
 					},

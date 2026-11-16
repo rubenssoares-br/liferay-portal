@@ -7,9 +7,10 @@ package com.liferay.layout.display.page.internal;
 
 import com.liferay.layout.display.page.LayoutDisplayPageProvider;
 import com.liferay.layout.display.page.LayoutDisplayPageProviderRegistry;
-import com.liferay.osgi.service.tracker.collections.map.PropertyServiceReferenceComparator;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMapFactory;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Validator;
 
 import java.util.ArrayList;
@@ -28,18 +29,37 @@ public class LayoutDisplayPageProviderRegistryImpl
 
 	@Override
 	public LayoutDisplayPageProvider<?> getLayoutDisplayPageProviderByClassName(
-		String className) {
+		long companyId, String className) {
 
-		return _layoutDisplayPageProviderByClassNameServiceTrackerMap.
-			getService(className);
+		LayoutDisplayPageProvider<?> layoutDisplayPageProvider =
+			_layoutDisplayPageProviderByClassNameServiceTrackerMap.getService(
+				_getKey(companyId, className));
+
+		if (layoutDisplayPageProvider == null) {
+			layoutDisplayPageProvider =
+				_layoutDisplayPageProviderByClassNameServiceTrackerMap.
+					getService(_getKey(0, className));
+		}
+
+		return layoutDisplayPageProvider;
 	}
 
 	@Override
 	public LayoutDisplayPageProvider<?>
-		getLayoutDisplayPageProviderByURLSeparator(String urlSeparator) {
+		getLayoutDisplayPageProviderByURLSeparator(
+			long companyId, String urlSeparator) {
 
-		return _layoutDisplayPageProviderByURLSeparatorServiceTrackerMap.
-			getService(urlSeparator);
+		LayoutDisplayPageProvider<?> layoutDisplayPageProvider =
+			_layoutDisplayPageProviderByURLSeparatorServiceTrackerMap.
+				getService(_getKey(companyId, urlSeparator));
+
+		if (layoutDisplayPageProvider == null) {
+			layoutDisplayPageProvider =
+				_layoutDisplayPageProviderByURLSeparatorServiceTrackerMap.
+					getService(_getKey(0, urlSeparator));
+		}
+
+		return layoutDisplayPageProvider;
 	}
 
 	@Override
@@ -61,13 +81,18 @@ public class LayoutDisplayPageProviderRegistryImpl
 						bundleContext.getService(serviceReference);
 
 					try {
-						emitter.emit(layoutDisplayPageProvider.getClassName());
+						long companyId = GetterUtil.getLong(
+							serviceReference.getProperty("company.id"));
+
+						emitter.emit(
+							_getKey(
+								companyId,
+								layoutDisplayPageProvider.getClassName()));
 					}
 					finally {
 						bundleContext.ungetService(serviceReference);
 					}
-				},
-				new PropertyServiceReferenceComparator<>("service.ranking"));
+				});
 		_layoutDisplayPageProviderByURLSeparatorServiceTrackerMap =
 			ServiceTrackerMapFactory.openSingleValueMap(
 				bundleContext,
@@ -79,14 +104,22 @@ public class LayoutDisplayPageProviderRegistryImpl
 						bundleContext.getService(serviceReference);
 
 					try {
+						long companyId = GetterUtil.getLong(
+							serviceReference.getProperty("company.id"));
+
 						emitter.emit(
-							_getURLSeparator(layoutDisplayPageProvider));
+							_getKey(
+								companyId,
+								_getURLSeparator(layoutDisplayPageProvider)));
 					}
 					finally {
 						bundleContext.ungetService(serviceReference);
 					}
-				},
-				new PropertyServiceReferenceComparator<>("service.ranking"));
+				});
+	}
+
+	private String _getKey(long companyId, String key) {
+		return companyId + StringPool.PERIOD + key;
 	}
 
 	private String _getURLSeparator(

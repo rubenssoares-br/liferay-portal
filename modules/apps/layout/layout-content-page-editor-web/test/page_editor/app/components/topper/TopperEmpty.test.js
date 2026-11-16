@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {cleanup, render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -77,28 +77,20 @@ describe('TopperEmpty', () => {
 	});
 
 	it('renders topper label with topper empty', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
 		renderTopperEmpty({
 			itemType: LAYOUT_DATA_ITEM_TYPES.column,
 		});
 
 		expect(screen.getByText('module')).toBeInTheDocument();
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 
-	it('renders paste options', () => {
-		Liferay.FeatureFlags['LPD-18221'] = true;
-
+	it('renders paste options', async () => {
 		renderTopperEmpty({
 			itemType: LAYOUT_DATA_ITEM_TYPES.column,
 		});
 
-		userEvent.click(screen.getByLabelText('options'));
+		await userEvent.click(screen.getByLabelText('options'));
 
 		expect(screen.getByText('paste')).toBeInTheDocument();
-
-		Liferay.FeatureFlags['LPD-18221'] = false;
 	});
 });

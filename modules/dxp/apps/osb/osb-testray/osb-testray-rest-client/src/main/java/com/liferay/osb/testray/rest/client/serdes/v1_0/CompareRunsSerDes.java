@@ -8,13 +8,14 @@ package com.liferay.osb.testray.rest.client.serdes.v1_0;
 import com.liferay.osb.testray.rest.client.dto.v1_0.CompareRuns;
 import com.liferay.osb.testray.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author José Abelenda
@@ -73,14 +74,7 @@ public class CompareRunsSerDes {
 
 			sb.append("\"values\": ");
 
-			if (compareRuns.getValues() instanceof String) {
-				sb.append("\"");
-				sb.append((String)compareRuns.getValues());
-				sb.append("\"");
-			}
-			else {
-				sb.append(compareRuns.getValues());
-			}
+			sb.append(_toJSON(compareRuns.getValues()));
 		}
 
 		sb.append("}");
@@ -206,6 +200,16 @@ public class CompareRunsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -238,3 +242,4 @@ public class CompareRunsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-561723341

@@ -27,7 +27,7 @@ ViewAccountEntriesManagementToolbarDisplayContext viewAccountEntriesManagementTo
 		>
 			<liferay-ui:search-container-row
 				className="com.liferay.account.admin.web.internal.display.AccountEntryDisplay"
-				keyProperty="accountEntryId"
+				keyPropertyName="accountEntryId"
 				modelVar="accountEntryDisplay"
 			>
 
@@ -55,7 +55,7 @@ ViewAccountEntriesManagementToolbarDisplayContext viewAccountEntriesManagementTo
 					href="<%= rowURL %>"
 					name="name"
 					truncate="<%= true %>"
-					value="<%= accountEntryDisplay.getName() %>"
+					value="<%= HtmlUtil.escape(accountEntryDisplay.getName()) %>"
 				/>
 
 				<liferay-ui:search-container-column-text

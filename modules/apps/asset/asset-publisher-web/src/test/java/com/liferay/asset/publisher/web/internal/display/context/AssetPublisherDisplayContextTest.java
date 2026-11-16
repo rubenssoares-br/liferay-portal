@@ -5,16 +5,22 @@
 
 package com.liferay.asset.publisher.web.internal.display.context;
 
+import com.liferay.asset.kernel.model.AssetEntry;
 import com.liferay.asset.kernel.model.ClassType;
 import com.liferay.asset.kernel.model.ClassTypeReader;
+import com.liferay.asset.list.model.AssetListEntry;
 import com.liferay.asset.publisher.util.AssetPublisherHelper;
 import com.liferay.asset.publisher.web.internal.configuration.AssetPublisherPortletInstanceConfiguration;
 import com.liferay.asset.publisher.web.internal.model.TestClassType;
+import com.liferay.asset.publisher.web.internal.util.DefaultAssetPublisherCustomizer;
+import com.liferay.asset.util.AssetHelper;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
+import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.module.util.SystemBundleUtil;
 import com.liferay.portal.kernel.portlet.LiferayPortletRequest;
+import com.liferay.portal.kernel.portlet.LiferayPortletResponse;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.upgrade.MockPortletPreferences;
@@ -26,6 +32,11 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.AfterClass;
@@ -110,6 +121,85 @@ public class AssetPublisherDisplayContextTest {
 				classType -> classType.getClassTypeId()));
 	}
 
+	@Test
+	public void testGetScopeAssetPublisherAddItemHolders() throws Exception {
+		AssetHelper assetHelper = Mockito.mock(AssetHelper.class);
+
+		AssetListEntry assetListEntry = Mockito.mock(AssetListEntry.class);
+
+		Mockito.when(
+			assetListEntry.getAssetEntrySubtype()
+		).thenReturn(
+			"0,3"
+		);
+
+		long[] classTypeIds = {1L, 2L};
+		long[] expectedClassTypeIds = {1L, 2L, 0L, 3L};
+
+		AssetPublisherDisplayContext assetPublisherDisplayContext =
+			new AssetPublisherDisplayContext(
+				assetHelper, null, null, null, _assetPublisherHelper, null,
+				null, null, null, _portal, _getLiferayPortletRequest(), null,
+				new MockPortletPreferences(), null, null) {
+
+				@Override
+				public AssetListEntry fetchAssetListEntry() {
+					return assetListEntry;
+				}
+
+				@Override
+				public long[] getAllAssetCategoryIds() {
+					return new long[0];
+				}
+
+				@Override
+				public String[] getAllAssetTagNames() {
+					return new String[0];
+				}
+
+				@Override
+				public long[] getClassNameIds() {
+					return new long[0];
+				}
+
+				@Override
+				public long[] getClassTypeIds() {
+					return classTypeIds;
+				}
+
+				@Override
+				public long[] getGroupIds() {
+					return new long[] {RandomTestUtil.randomLong()};
+				}
+
+			};
+
+		assetPublisherDisplayContext.getScopeAssetPublisherAddItemHolders(1);
+
+		Mockito.verify(
+			assetHelper
+		).getAssetPublisherAddItemHolders(
+			Mockito.nullable(LiferayPortletRequest.class),
+			Mockito.nullable(LiferayPortletResponse.class), Mockito.anyLong(),
+			Mockito.any(long[].class),
+			Mockito.argThat(
+				actualClassTypeIds -> Arrays.equals(
+					expectedClassTypeIds, actualClassTypeIds)),
+			Mockito.any(long[].class), Mockito.any(String[].class),
+			Mockito.nullable(String.class)
+		);
+	}
+
+	@Test
+	public void testGetSearchContainer() throws Exception {
+		_testGetSearchContainer(
+			5, 0, AssetPublisherDisplayContext.PAGINATION_TYPE_NONE);
+		_testGetSearchContainer(
+			10, 5, AssetPublisherDisplayContext.PAGINATION_TYPE_REGULAR);
+		_testGetSearchContainer(
+			10, 5, AssetPublisherDisplayContext.PAGINATION_TYPE_SIMPLE);
+	}
+
 	private LiferayPortletRequest _getLiferayPortletRequest() {
 		LiferayPortletRequest liferayPortletRequest = Mockito.mock(
 			LiferayPortletRequest.class);
@@ -154,6 +244,70 @@ public class AssetPublisherDisplayContextTest {
 		PortalUtil portalUtil = new PortalUtil();
 
 		portalUtil.setPortal(_portal);
+	}
+
+	private void _testGetSearchContainer(
+			int expectedEnd, int expectedStart, String paginationType)
+		throws Exception {
+
+		LiferayPortletRequest liferayPortletRequest =
+			_getLiferayPortletRequest();
+
+		Mockito.when(
+			liferayPortletRequest.getParameter(
+				SearchContainer.DEFAULT_CUR_PARAM)
+		).thenReturn(
+			"2"
+		);
+
+		Mockito.when(
+			liferayPortletRequest.getParameter(
+				SearchContainer.DEFAULT_DELTA_PARAM)
+		).thenReturn(
+			"20"
+		);
+
+		LiferayPortletResponse liferayPortletResponse = Mockito.mock(
+			LiferayPortletResponse.class);
+
+		Mockito.when(
+			liferayPortletResponse.createRenderURL()
+		).thenReturn(
+			Mockito.mock(PortletURL.class)
+		);
+
+		Mockito.when(
+			_portal.getHttpServletRequest(liferayPortletRequest)
+		).thenReturn(
+			Mockito.mock(HttpServletRequest.class)
+		);
+
+		Mockito.when(
+			_portal.getLiferayPortletResponse(Mockito.any())
+		).thenReturn(
+			liferayPortletResponse
+		);
+
+		MockPortletPreferences mockPortletPreferences =
+			new MockPortletPreferences();
+
+		mockPortletPreferences.setValue("delta", "5");
+		mockPortletPreferences.setValue("paginationType", paginationType);
+
+		AssetPublisherDisplayContext assetPublisherDisplayContext =
+			new AssetPublisherDisplayContext(
+				null, null, null,
+				new DefaultAssetPublisherCustomizer(null, null),
+				_assetPublisherHelper, null, null, null, null, _portal,
+				liferayPortletRequest, null, mockPortletPreferences, null,
+				null);
+
+		SearchContainer<AssetEntry> searchContainer =
+			assetPublisherDisplayContext.getSearchContainer();
+
+		Assert.assertEquals(5, searchContainer.getDelta());
+		Assert.assertEquals(expectedEnd, searchContainer.getEnd());
+		Assert.assertEquals(expectedStart, searchContainer.getStart());
 	}
 
 	private static MockedStatic<ConfigurationProviderUtil>

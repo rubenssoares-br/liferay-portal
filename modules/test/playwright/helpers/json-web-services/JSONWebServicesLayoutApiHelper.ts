@@ -34,18 +34,22 @@ export class JSONWebServicesLayoutApiHelper {
 	 */
 	async addLayout({
 		externalReferenceCode = '',
+		masterLayoutPageTemplateEntryERC = '',
 		groupId,
-		masterLayoutPlid = '0',
 		options = {type: 'portlet'},
 		parentLayoutId = '0',
+		privateLayout = 'false',
 		title,
+		typeSettings = '',
 	}: {
 		externalReferenceCode?: string;
 		groupId: string;
-		masterLayoutPlid?: string;
-		options?: {publish?: boolean; type: string};
+		masterLayoutPageTemplateEntryERC?: string;
+		options?: {publish?: boolean; type?: string};
 		parentLayoutId?: string;
+		privateLayout?: string;
 		title: string;
+		typeSettings?: string;
 	}): Promise<Layout> {
 		if (options.publish && options.type !== 'content') {
 			throw new TypeError(
@@ -59,7 +63,7 @@ export class JSONWebServicesLayoutApiHelper {
 
 		urlSearchParams.append('externalReferenceCode', externalReferenceCode);
 		urlSearchParams.append('groupId', groupId);
-		urlSearchParams.append('privateLayout', 'false');
+		urlSearchParams.append('privateLayout', privateLayout);
 		urlSearchParams.append('parentLayoutId', parentLayoutId);
 		urlSearchParams.append('localeNamesMap', JSON.stringify({en_US: name}));
 		urlSearchParams.append(
@@ -73,13 +77,17 @@ export class JSONWebServicesLayoutApiHelper {
 		urlSearchParams.append('keywordsMap', JSON.stringify({en_US: ''}));
 		urlSearchParams.append('robotsMap', JSON.stringify({en_US: ''}));
 		urlSearchParams.append('type', options.type);
-		urlSearchParams.append('typeSettings', '');
+		urlSearchParams.append('typeSettings', typeSettings);
 		urlSearchParams.append('hidden', 'false');
 		urlSearchParams.append(
 			'friendlyURLMap',
 			JSON.stringify({en_US: `/${title}`})
 		);
-		urlSearchParams.append('masterLayoutPlid', masterLayoutPlid);
+		urlSearchParams.append(
+			'masterLayoutPageTemplateEntryERC',
+			masterLayoutPageTemplateEntryERC
+		);
+
 		urlSearchParams.append('serviceContext', JSON.stringify({}));
 
 		const layout = await this.apiHelpers.post(
@@ -90,6 +98,12 @@ export class JSONWebServicesLayoutApiHelper {
 				headers: await this.apiHelpers.getJSONWebServicesHeaders(),
 			}
 		);
+
+		// Content layouts are edited through their draft layout
+
+		if (options.type === 'content') {
+			layout.draftLayout = await this.getDraftLayout(layout);
+		}
 
 		// Publish content layouts using UI (since there's no headless method available yet)
 
@@ -102,7 +116,7 @@ export class JSONWebServicesLayoutApiHelper {
 			);
 
 			await page.getByLabel(name, {exact: true}).click();
-			await page.getByLabel('Publish').click();
+			await page.getByLabel('Publish', {exact: true}).click();
 
 			expect(page.getByRole('heading', {name: 'Pages'})).toBeAttached();
 		}
@@ -125,10 +139,67 @@ export class JSONWebServicesLayoutApiHelper {
 		);
 	}
 
+	/**
+	 * Returns the draft layout of the given content layout, which is the one
+	 * serving the page editor. The draft layout carries the external reference
+	 * code of its live layout with a '-draft' suffix.
+	 */
+	async getDraftLayout(layout: Layout): Promise<Layout> {
+		return this.getDraftLayoutByExternalReferenceCode(
+			layout.externalReferenceCode,
+			layout.groupId
+		);
+	}
+
+	/**
+	 * Returns the draft layout of the content layout with the given external
+	 * reference code in the given group.
+	 */
+	async getDraftLayoutByExternalReferenceCode(
+		externalReferenceCode: string,
+		groupId: string
+	): Promise<Layout> {
+		const urlSearchParams = new URLSearchParams();
+
+		urlSearchParams.append(
+			'externalReferenceCode',
+			`${externalReferenceCode}-draft`
+		);
+		urlSearchParams.append('groupId', groupId);
+
+		return this.apiHelpers.post(
+			`${liferayConfig.environment.baseUrl}${this.basePath}/get-layout-by-external-reference-code`,
+			{
+				data: urlSearchParams.toString(),
+				failOnStatusCode: true,
+				headers: await this.apiHelpers.getJSONWebServicesHeaders(),
+			}
+		);
+	}
+
+	async getLayouts(
+		groupId: number,
+		privateLayout: boolean
+	): Promise<Layout[]> {
+		const urlSearchParams = new URLSearchParams();
+
+		urlSearchParams.append('groupId', String(groupId));
+		urlSearchParams.append('privateLayout', String(privateLayout));
+
+		return this.apiHelpers.post(
+			`${liferayConfig.environment.baseUrl}${this.basePath}/get-layouts`,
+			{
+				data: urlSearchParams.toString(),
+				failOnStatusCode: true,
+				headers: await this.apiHelpers.getJSONWebServicesHeaders(),
+			}
+		);
+	}
+
 	async getLayoutsCount(
 		groupId: number,
 		privateLayout: boolean
-	): Promise<void> {
+	): Promise<number> {
 		const urlSearchParams = new URLSearchParams();
 
 		// @ts-ignore

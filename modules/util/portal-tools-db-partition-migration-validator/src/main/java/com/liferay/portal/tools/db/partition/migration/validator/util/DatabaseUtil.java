@@ -13,24 +13,29 @@ import com.liferay.portal.tools.db.partition.migration.validator.LiferayDatabase
 import com.liferay.portal.tools.db.partition.migration.validator.Release;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Luis Ortiz
  */
 public class DatabaseUtil {
 
-	public static LiferayDatabase exportLiferayDatabase(Connection connection)
+	public static LiferayDatabase exportLiferayDatabase(
+			Connection connection, long companyId)
 		throws Exception {
 
 		LiferayDatabase liferayDatabase = new LiferayDatabase();
 
 		liferayDatabase.setCompanies(_getCompanies(connection));
-		liferayDatabase.setExportedCompanyId(_getExportedCompanyId(connection));
+		liferayDatabase.setExportedCompanyId(
+			_getExportedCompanyId(connection, companyId));
 		liferayDatabase.setExportedCompanyDefault(
 			_isDefaultCompany(connection));
 		liferayDatabase.setReleases(_getReleases(connection));
@@ -40,11 +45,7 @@ public class DatabaseUtil {
 	}
 
 	public static boolean isPostgreSQL(String jdbcURL) {
-		if (jdbcURL.indexOf("postgresql") != -1) {
-			return true;
-		}
-
-		return false;
+		return jdbcURL.contains("postgresql");
 	}
 
 	public static String replaceSchemaName(String jdbcURL, String schemaName) {
@@ -64,17 +65,23 @@ public class DatabaseUtil {
 
 		List<Company> companies = new ArrayList<>();
 
+		Map<Long, String> companyNames = _getCompanyNames(connection);
+
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
-				"select Company.companyId, webId, name, hostname from " +
-					"Company left join VirtualHost on Company.companyId = " +
+				"select Company.companyId, webId, hostname from Company left " +
+					"join VirtualHost on Company.companyId = " +
 						"VirtualHost.companyId");
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
+				long companyId = resultSet.getLong("companyId");
+
 				companies.add(
 					new Company(
-						resultSet.getLong(1), resultSet.getString(3),
-						resultSet.getString(4), resultSet.getString(2)));
+						companyId, companyNames.get(companyId),
+						resultSet.getString("hostname"),
+						resultSet.getString("webId")));
 			}
 		}
 
@@ -88,6 +95,7 @@ public class DatabaseUtil {
 
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
 				"select companyId from Company");
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
@@ -98,27 +106,63 @@ public class DatabaseUtil {
 		return companyIds;
 	}
 
-	private static long _getExportedCompanyId(Connection connection)
+	private static Map<Long, String> _getCompanyNames(Connection connection)
 		throws Exception {
 
-		long companyId = 0;
+		Map<Long, String> companyNames = new HashMap<>();
 
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
-				"select companyId from CompanyInfo");
+				"select companyId, name from CompanyInfo");
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
-				if (companyId > 0) {
-					throw new UnsupportedOperationException(
-						"Database schema has to have a single company or " +
-							"database partitioning must be enabled");
-				}
-
-				companyId = resultSet.getLong(1);
+				companyNames.put(
+					resultSet.getLong("companyId"),
+					resultSet.getString("name"));
 			}
 		}
 
-		return companyId;
+		for (String schemaName : _getSchemaNames(connection)) {
+			try (PreparedStatement preparedStatement =
+					connection.prepareStatement(
+						StringBundler.concat(
+							"select companyId, name from ", schemaName,
+							".CompanyInfo"));
+
+				ResultSet resultSet = preparedStatement.executeQuery()) {
+
+				while (resultSet.next()) {
+					companyNames.putIfAbsent(
+						resultSet.getLong("companyId"),
+						resultSet.getString("name"));
+				}
+			}
+			catch (Exception exception) {
+			}
+		}
+
+		return companyNames;
+	}
+
+	private static long _getExportedCompanyId(
+			Connection connection, long companyId)
+		throws Exception {
+
+		try (PreparedStatement preparedStatement = connection.prepareStatement(
+				"select companyId from CompanyInfo");
+
+			ResultSet resultSet = preparedStatement.executeQuery()) {
+
+			while (resultSet.next()) {
+				if (companyId == resultSet.getLong("companyId")) {
+					return companyId;
+				}
+			}
+		}
+
+		throw new IllegalArgumentException(
+			"Company " + companyId + " does not exist");
 	}
 
 	private static List<String> _getPartitionedTableNames(Connection connection)
@@ -131,11 +175,13 @@ public class DatabaseUtil {
 		DBInspector dbInspector = new DBInspector(connection);
 
 		for (String tableName : dbInspector.getTableNames(null)) {
-			if (!dbInspector.isControlTable(tableName) &&
-				!dbInspector.isObjectTable(companyIds, tableName)) {
+			if (dbInspector.isControlTable(tableName) ||
+				dbInspector.isObjectTable(companyIds, tableName)) {
 
-				partitionedTableNames.add(tableName);
+				continue;
 			}
+
+			partitionedTableNames.add(tableName);
 		}
 
 		return partitionedTableNames;
@@ -149,18 +195,46 @@ public class DatabaseUtil {
 		try (PreparedStatement preparedStatement = connection.prepareStatement(
 				"select servletContextName, schemaVersion, state_, verified " +
 					"from Release_");
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			while (resultSet.next()) {
 				releases.add(
 					new Release(
-						Version.parseVersion(resultSet.getString(2)),
-						resultSet.getString(1), resultSet.getInt(3),
-						resultSet.getBoolean(4)));
+						Version.parseVersion(
+							resultSet.getString("schemaVersion")),
+						resultSet.getString("servletContextName"),
+						resultSet.getInt("state_"),
+						resultSet.getBoolean("verified")));
 			}
 		}
 
 		return releases;
+	}
+
+	private static List<String> _getSchemaNames(Connection connection)
+		throws Exception {
+
+		List<String> schemaNames = new ArrayList<>();
+
+		DatabaseMetaData databaseMetaData = connection.getMetaData();
+
+		if (isPostgreSQL(databaseMetaData.getURL())) {
+			try (ResultSet resultSet = databaseMetaData.getSchemas()) {
+				while (resultSet.next()) {
+					schemaNames.add(resultSet.getString("TABLE_SCHEM"));
+				}
+			}
+		}
+		else {
+			try (ResultSet resultSet = databaseMetaData.getCatalogs()) {
+				while (resultSet.next()) {
+					schemaNames.add(resultSet.getString("TABLE_CAT"));
+				}
+			}
+		}
+
+		return schemaNames;
 	}
 
 	private static boolean _isDefaultCompany(Connection connection)

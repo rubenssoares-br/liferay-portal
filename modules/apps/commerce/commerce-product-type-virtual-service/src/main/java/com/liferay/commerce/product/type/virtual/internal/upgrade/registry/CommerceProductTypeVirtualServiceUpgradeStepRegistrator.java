@@ -56,8 +56,7 @@ public class CommerceProductTypeVirtualServiceUpgradeStepRegistrator
 		registry.register(
 			"1.2.0", "2.0.0",
 			UpgradeProcessFactory.alterColumnName(
-				"CPDefinitionVirtualSetting", "sampleUrl",
-				"sampleURL VARCHAR(255) null"));
+				"CPDefinitionVirtualSetting", "sampleUrl", "sampleURL"));
 
 		registry.register("2.0.0", "2.0.1", new DummyUpgradeProcess());
 
@@ -65,12 +64,17 @@ public class CommerceProductTypeVirtualServiceUpgradeStepRegistrator
 			"2.0.1", "3.0.0", new CPDVirtualSettingFileEntryUpgradeProcess());
 
 		registry.register(
-			"3.0.0", "3.0.1",
+			"3.0.0", "3.0.0.step-1",
 			new com.liferay.commerce.product.type.virtual.internal.upgrade.
-				v3_0_1.CPDefinitionVirtualSettingUpgradeProcess(),
+				v3_0_1.CPDefinitionVirtualSettingUpgradeProcess());
+
+		registry.register(
+			"3.0.0.step-1", "3.0.0.step-2",
 			new com.liferay.commerce.product.type.virtual.internal.upgrade.
-				v3_0_1.CPDVirtualSettingFileEntryUpgradeProcess(),
-			new DLFileEntryUpgradeProcess());
+				v3_0_1.CPDVirtualSettingFileEntryUpgradeProcess());
+
+		registry.register(
+			"3.0.0.step-2", "3.0.1", new DLFileEntryUpgradeProcess());
 
 		if (_log.isInfoEnabled()) {
 			_log.info(

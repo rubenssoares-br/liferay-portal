@@ -65,11 +65,13 @@ class LocaleChangedHandler {
 		this._selectedLanguageId = selectedLanguageId;
 
 		if (selectedLanguageId) {
-			this._updateLocalizableInput(
-				'descriptionMapAsXML',
-				this.defaultLanguageId,
-				selectedLanguageId
-			);
+			if (Liferay.FeatureFlags['LPD-11235']) {
+				this._updateLocalizableInput(
+					'descriptionMapAsXML',
+					this.defaultLanguageId,
+					selectedLanguageId
+				);
+			}
 
 			this._updateLocalizableInput(
 				this.contentTitle,
@@ -117,22 +119,22 @@ class LocaleChangedHandler {
 
 				// LPS-92493
 
-				const eventHandler = AOP.before(
-					() => AOP.prevent(),
-					inputComponent,
-					'updateInputLanguage'
-				);
+				const eventHandler = inputComponent.get('editor')
+					? AOP.before(
+							() => AOP.prevent(),
+							inputComponent,
+							'updateInputLanguage'
+						)
+					: null;
 
 				inputComponent.selectFlag(selectedLanguageId);
 				inputComponent.updateInput(inputDefaultValue);
 
-				// setInterval declared in ckeditor.jsp is triggering
-				// the updateInputLanguage function, so with this
-				// we guarantee that this function is not called
-
-				setTimeout(() => {
-					eventHandler.detach();
-				}, 400);
+				if (eventHandler) {
+					setTimeout(() => {
+						eventHandler.detach();
+					}, 400);
+				}
 			}
 		}
 	}

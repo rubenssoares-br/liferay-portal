@@ -7,11 +7,16 @@ package com.liferay.portal.db.partition.db;
 
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.dao.db.DB;
+import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Alberto Chaparro
@@ -30,9 +35,8 @@ public class DBPartitionMySQLDB implements DBPartitionDB {
 			Connection connection, String partitionName)
 		throws SQLException {
 
-		return StringBundler.concat(
-			"create schema if not exists ", partitionName, " character set ",
-			_getSessionCharsetEncoding(connection));
+		return _getCreatePartitionSQL(
+			connection, "create schema ", partitionName);
 	}
 
 	@Override
@@ -63,6 +67,43 @@ public class DBPartitionMySQLDB implements DBPartitionDB {
 	}
 
 	@Override
+	public String[] getRenamePartitionSQLs(
+			Connection connection, String sourcePartitionName,
+			String targetPartitionName)
+		throws SQLException {
+
+		List<String> renamePartitionSQLs = new ArrayList<>();
+
+		renamePartitionSQLs.add(
+			_getCreatePartitionSQL(
+				connection, "create schema if not exists ",
+				targetPartitionName));
+
+		DatabaseMetaData databaseMetaData = connection.getMetaData();
+
+		try (ResultSet resultSet = databaseMetaData.getTables(
+				getCatalog(connection, sourcePartitionName),
+				getSchema(connection, sourcePartitionName), null,
+				new String[] {"TABLE"})) {
+
+			while (resultSet.next()) {
+				String tableName = resultSet.getString("TABLE_NAME");
+
+				renamePartitionSQLs.add(
+					StringBundler.concat(
+						"rename table ",
+						sourcePartitionName + StringPool.PERIOD, tableName,
+						" to ", targetPartitionName, StringPool.PERIOD,
+						tableName, StringPool.SEMICOLON));
+			}
+		}
+
+		renamePartitionSQLs.add(getDropPartitionSQL(sourcePartitionName));
+
+		return renamePartitionSQLs.toArray(new String[0]);
+	}
+
+	@Override
 	public boolean isDDLTransactional() {
 		return false;
 	}
@@ -74,21 +115,15 @@ public class DBPartitionMySQLDB implements DBPartitionDB {
 		connection.setCatalog(partitionName);
 	}
 
-	private String _getSessionCharsetEncoding(Connection connection)
+	private String _getCreatePartitionSQL(
+			Connection connection, String createSchemaSQL, String partitionName)
 		throws SQLException {
 
-		try (PreparedStatement preparedStatement = connection.prepareStatement(
-				"select variable_value from " +
-					"performance_schema.session_variables where " +
-						"variable_name = 'character_set_client'");
-			ResultSet resultSet = preparedStatement.executeQuery()) {
+		DB db = DBManagerUtil.getDB();
 
-			if (resultSet.next()) {
-				return resultSet.getString("variable_value");
-			}
-
-			return "utf8";
-		}
+		return StringBundler.concat(
+			createSchemaSQL, partitionName, " character set ",
+			db.getCharacterSet(connection));
 	}
 
 	private static String _defaultPartitionName;

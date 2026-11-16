@@ -6,10 +6,12 @@
 package com.liferay.analytics.settings.rest.internal.resource.v1_0;
 
 import com.liferay.analytics.settings.configuration.AnalyticsConfiguration;
+import com.liferay.analytics.settings.rest.dto.v1_0.DataSourceLiferayAnalyticsURL;
 import com.liferay.analytics.settings.rest.dto.v1_0.DataSourceToken;
 import com.liferay.analytics.settings.rest.internal.client.AnalyticsCloudClient;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
 import com.liferay.analytics.settings.rest.resource.v1_0.DataSourceResource;
+import com.liferay.oauth2.provider.service.OAuth2ApplicationLocalService;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -38,7 +40,8 @@ public class DataSourceResourceImpl extends BaseDataSourceResourceImpl {
 			_analyticsCloudClient.disconnectAnalyticsDataSource(
 				_configurationProvider.getCompanyConfiguration(
 					AnalyticsConfiguration.class,
-					contextCompany.getCompanyId()));
+					contextCompany.getCompanyId()),
+				_companyLocalService.getCompany(contextUser.getCompanyId()));
 		}
 		catch (Exception exception) {
 			if (_log.isWarnEnabled()) {
@@ -51,23 +54,33 @@ public class DataSourceResourceImpl extends BaseDataSourceResourceImpl {
 	}
 
 	@Override
-	public void postDataSource(DataSourceToken dataSourceToken)
+	public DataSourceLiferayAnalyticsURL postDataSource(
+			DataSourceToken dataSourceToken)
 		throws Exception {
 
 		Map<String, Object> properties =
 			_analyticsCloudClient.connectAnalyticsDataSource(
 				_companyLocalService.getCompany(contextUser.getCompanyId()),
-				dataSourceToken.getToken());
+				dataSourceToken.getToken(), contextUser);
 
 		properties.put("token", dataSourceToken.getToken());
 
 		_analyticsSettingsManager.updateCompanyConfiguration(
 			contextUser.getCompanyId(), properties);
+
+		DataSourceLiferayAnalyticsURL dataSourceLiferayAnalyticsURL =
+			new DataSourceLiferayAnalyticsURL();
+
+		dataSourceLiferayAnalyticsURL.setLiferayAnalyticsURL(
+			() -> String.valueOf(properties.get("liferayAnalyticsURL")));
+
+		return dataSourceLiferayAnalyticsURL;
 	}
 
 	@Activate
 	protected void activate() {
-		_analyticsCloudClient = new AnalyticsCloudClient(_http);
+		_analyticsCloudClient = new AnalyticsCloudClient(
+			_http, _oAuth2ApplicationLocalService);
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(
@@ -86,5 +99,8 @@ public class DataSourceResourceImpl extends BaseDataSourceResourceImpl {
 
 	@Reference
 	private Http _http;
+
+	@Reference
+	private OAuth2ApplicationLocalService _oAuth2ApplicationLocalService;
 
 }

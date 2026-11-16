@@ -45,6 +45,8 @@ public interface WebKeys {
 
 	public static final String ASSET_VOCABULARY = "ASSET_VOCABULARY";
 
+	public static final String AUDIT_SESSION_ID = "AUDIT_SESSION_ID";
+
 	public static final String AUI_SCRIPT_DATA =
 		"LIFERAY_SHARED_AUI_SCRIPT_DATA";
 
@@ -172,6 +174,9 @@ public interface WebKeys {
 	public static final String FACEBOOK_USER_EMAIL_ADDRESS =
 		"FACEBOOK_USER_EMAIL_ADDRESS";
 
+	public static final String FIPS_SESSION_IDLE_TIMEOUT =
+		"FIPS_SESSION_IDLE_TIMEOUT";
+
 	public static final String FORGOT_PASSWORD_REMINDER_ATTEMPTS =
 		"FORGOT_PASSWORD_REMINDER_ATTEMPTS";
 
@@ -188,14 +193,18 @@ public interface WebKeys {
 
 	public static final String FORWARD_URL = "FORWARD_URL";
 
+	public static final String FRIENDLY_URL_GROUP = "FRIENDLY_URL_GROUP";
+
 	public static final String FTL_VARIABLES = "FTL_VARIABLES";
 
 	public static final String GOOGLE_GADGET = "GOOGLE_GADGET";
 
-	public static final String GOOGLE_INCOMPLETE_USER_ID =
-		"GOOGLE_INCOMPLETE_USER_ID";
-
 	public static final String GROUP = "GROUP";
+
+	public static final String GROUP_FRIENDLY_URL = "GROUP_FRIENDLY_URL";
+
+	public static final String HTTP_SERVLET_REQUEST_PORTAL_PREFERENCES =
+		"LIFERAY_SHARED_HTTP_SERVLET_REQUEST_PORTAL_PREFERENCES";
 
 	public static final String HTTPS_INITIAL = "HTTPS_INITIAL";
 
@@ -456,6 +465,9 @@ public interface WebKeys {
 	public static final String PORTAL_SERVLET_URL_PATTERNS =
 		"PORTAL_SERVLET_URL_PATTERNS";
 
+	public static final String PORTAL_STATUS_EXCEPTION =
+		"PORTAL_STATUS_EXCEPTION";
+
 	public static final String PORTLET_AJAX_RENDER = "PORTLET_AJAX_RENDER";
 
 	public static final String PORTLET_BREADCRUMBS =
@@ -544,6 +556,9 @@ public interface WebKeys {
 	public static final String RENDER_PORTLET_RESOURCE =
 		"RENDER_PORTLET_RESOURCE";
 
+	public static final String RENDERING_MAINTENANCE_UTILITY_PAGE =
+		"RENDERING_MAINTENANCE_UTILITY_PAGE";
+
 	public static final String REQUESTED_LAYOUT = "REQUESTED_LAYOUT";
 
 	public static final String RESOURCE_BUNDLE_LOADER =
@@ -617,6 +632,9 @@ public interface WebKeys {
 
 	public static final String SITE_ADMINISTRATION_CATEGORIES_MAP =
 		"SITES_ADMINISTRATION_CATEGORIES_MAP";
+
+	public static final String SITE_VIRTUAL_HOST_RESTRICTED =
+		"SITE_VIRTUAL_HOST_RESTRICTED";
 
 	public static final String SOURCE_NAME = "SOURCE_NAME";
 

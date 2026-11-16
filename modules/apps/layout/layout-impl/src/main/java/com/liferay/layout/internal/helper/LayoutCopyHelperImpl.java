@@ -7,7 +7,7 @@ package com.liferay.layout.internal.helper;
 
 import com.liferay.layout.helper.LayoutCopyHelper;
 import com.liferay.portal.kernel.model.Layout;
-import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -22,30 +22,21 @@ public class LayoutCopyHelperImpl implements LayoutCopyHelper {
 	public Layout copyLayoutContent(Layout sourceLayout, Layout targetLayout)
 		throws Exception {
 
-		return _layoutLocalService.copyLayoutContent(
-			sourceLayout, targetLayout);
+		return _layoutService.copyLayoutContent(sourceLayout, targetLayout);
 	}
 
 	@Override
 	public Layout copyLayoutContent(
-			long segmentsExperienceId, Layout sourceLayout, Layout targetLayout)
+			long sourceSegmentsExperienceId, Layout sourceLayout,
+			long targetSegmentsExperienceId, Layout targetLayout)
 		throws Exception {
 
-		return _layoutLocalService.copyLayoutContent(
-			segmentsExperienceId, sourceLayout, targetLayout);
-	}
-
-	@Override
-	public Layout copyLayoutContent(
-			long[] segmentsExperiencesIds, Layout sourceLayout,
-			Layout targetLayout)
-		throws Exception {
-
-		return _layoutLocalService.copyLayoutContent(
-			segmentsExperiencesIds, sourceLayout, targetLayout);
+		return _layoutService.copyLayoutContent(
+			sourceSegmentsExperienceId, sourceLayout,
+			targetSegmentsExperienceId, targetLayout);
 	}
 
 	@Reference
-	private LayoutLocalService _layoutLocalService;
+	private LayoutService _layoutService;
 
 }

@@ -26,26 +26,8 @@
 	<td></td>
 </tr>
 
-<!--DOCUMENT_CONVERSION-->
-
-<tr>
-	<td>DOCUMENT_CONVERSION_TYPE</td>
-	<td>//a[contains (.,'${key_fileType}')]</td>
-	<td></td>
-</tr>
-<tr>
-	<td></td>
-	<td></td>
-	<td></td>
-</tr>
-
 <!--WEB_CONTENT-->
 
-<tr>
-	<td>WEB_CONTENT_AUDIO</td>
-	<td>//div[contains(@class,'portlet-content')][*//*[contains(@class,'portlet-title')][normalize-space(text())='${key_webContentTitle}']]//audio//source[contains(@src,'${key_audioFileName}')]</td>
-	<td></td>
-</tr>
 <tr>
 	<td>WEB_CONTENT_IMAGE</td>
 	<td>//div[contains(@class,'portlet-content')][*//*[contains(@class,'portlet-title')][normalize-space(text())='${key_webContentTitle}']]//img[contains(@src,'${key_imageFileName}')]</td>
@@ -84,11 +66,6 @@
 <tr>
 	<td>WEB_CONTENT_TRANSLATION_SPAN_LANGUAGE_ENGLISH</td>
 	<td>//div[contains(@class, 'input-localized-palette')]//li//span[contains(@id,'uvlz')]/..//span[contains(text(),'en-US')]</td>
-	<td></td>
-</tr>
-<tr>
-	<td>WEB_CONTENT_VIDEO</td>
-	<td>//div[contains(@class,'video-player')][contains(.,'${key_videoShortcutTitle}')]</td>
 	<td></td>
 </tr>
 </tbody>

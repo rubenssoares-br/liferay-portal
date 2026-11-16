@@ -34,19 +34,19 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+import jakarta.portlet.ResourceURL;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-import javax.portlet.ResourceURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Samuel Trong Tran
@@ -90,7 +90,8 @@ public class PublicationsDisplayContext {
 		return StringBundler.concat(
 			"/o/change-tracking-rest/v1.0/ct-collections?status=",
 			WorkflowConstants.STATUS_DRAFT, "&status=",
-			WorkflowConstants.STATUS_EXPIRED);
+			WorkflowConstants.STATUS_EXPIRED, "&status=",
+			WorkflowConstants.STATUS_INCOMPLETE);
 	}
 
 	public Map<String, Object> getCollaboratorsReactData(
@@ -269,14 +270,14 @@ public class PublicationsDisplayContext {
 					"longDescription",
 					_language.get(
 						_httpServletRequest,
-						"administrators-can-view,-edit,-publish,-and-invite-" +
-							"other-users")
+						"administrators-can-view,-edit,-delete,-publish,-and-" +
+							"invite-other-users")
 				).put(
 					"shortDescription",
 					_language.get(
 						_httpServletRequest,
-						"administrators-can-view,-edit,-publish,-and-invite-" +
-							"other-users")
+						"administrators-can-view,-edit,-delete,-publish,-and-" +
+							"invite-other-users")
 				).put(
 					"value", PublicationRoleConstants.ROLE_ADMIN
 				))
@@ -284,7 +285,19 @@ public class PublicationsDisplayContext {
 			"sharePublicationLink",
 			() -> _publicationHelper.getShareURL(ctCollectionId, _renderRequest)
 		).put(
-			"showShareLinkTab", true
+			"showShareLinkTab",
+			() -> {
+				if ((ctCollectionId ==
+						CTConstants.CT_COLLECTION_ID_PRODUCTION) ||
+					publicationTemplate) {
+
+					return false;
+				}
+
+				return CTCollectionPermission.contains(
+					_themeDisplay.getPermissionChecker(), ctCollectionId,
+					CTActionKeys.INVITE_USERS);
+			}
 		).put(
 			"spritemap", _themeDisplay.getPathThemeSpritemap()
 		).put(
@@ -440,6 +453,19 @@ public class PublicationsDisplayContext {
 				_language.get(_httpServletRequest, "permissions"), "get",
 				"permissions", "modal-permissions"),
 			new FDSActionDropdownItem(
+				PortletURLBuilder.createActionURL(
+					_renderResponse
+				).setActionName(
+					"/change_tracking/reactivate_ct_collection"
+				).setRedirect(
+					_themeDisplay.getURLCurrent()
+				).setParameter(
+					"ctCollectionId", "{id}"
+				).buildString(),
+				"reset", "reactivate",
+				_language.get(_httpServletRequest, "reactivate"), "post",
+				"reactivate", null),
+			new FDSActionDropdownItem(
 				null, "times-circle", "delete",
 				_language.get(_httpServletRequest, "delete"), null, "delete",
 				null),
@@ -456,7 +482,7 @@ public class PublicationsDisplayContext {
 					"schedule", Boolean.TRUE
 				).buildString(),
 				"calendar", "schedule",
-				_language.get(_httpServletRequest, "schedule"), "get",
+				_language.get(_httpServletRequest, "schedule[verb]"), "get",
 				"schedule", null),
 			new FDSActionDropdownItem(
 				PortletURLBuilder.createRenderURL(
@@ -485,6 +511,9 @@ public class PublicationsDisplayContext {
 		}
 		else if (status == WorkflowConstants.STATUS_DENIED) {
 			return "failed";
+		}
+		else if (status == WorkflowConstants.STATUS_INCOMPLETE) {
+			return "pending-approval";
 		}
 		else if (status == WorkflowConstants.STATUS_SCHEDULED) {
 			return "scheduled";
@@ -526,7 +555,7 @@ public class PublicationsDisplayContext {
 					_renderResponse.createRenderURL(), "mvcRenderCommandName",
 					"/change_tracking/view_history");
 				navigationItem.setLabel(
-					_language.get(_httpServletRequest, "history"));
+					_language.get(_httpServletRequest, "history[record]"));
 			}
 		).build();
 	}

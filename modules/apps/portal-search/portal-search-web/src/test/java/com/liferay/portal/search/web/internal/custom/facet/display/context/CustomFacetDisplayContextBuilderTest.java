@@ -11,6 +11,7 @@ import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.facet.collector.TermCollector;
@@ -20,6 +21,7 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.TimeZoneUtil;
+import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.search.web.internal.BaseFacetDisplayContextTestCase;
 import com.liferay.portal.search.web.internal.custom.facet.configuration.CustomFacetPortletInstanceConfiguration;
 import com.liferay.portal.search.web.internal.custom.facet.display.context.builder.CustomFacetDisplayContextBuilder;
@@ -27,6 +29,8 @@ import com.liferay.portal.search.web.internal.facet.display.context.BucketDispla
 import com.liferay.portal.search.web.internal.facet.display.context.FacetDisplayContext;
 import com.liferay.portal.search.web.internal.util.DateRangeFactoryUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Collections;
 import java.util.List;
@@ -225,6 +229,7 @@ public class CustomFacetDisplayContextBuilderTest
 			"some-time-ago", bucketDisplayContext.getBucketText());
 	}
 
+	@Override
 	@Test
 	public void testEmptySearchResults() throws Exception {
 		CustomFacetDisplayContextBuilder customFacetDisplayContextBuilder =
@@ -318,6 +323,40 @@ public class CustomFacetDisplayContextBuilderTest
 	}
 
 	@Test
+	public void testIsRenderNothingFalseWithNoHitsAndRanges() throws Exception {
+		CustomFacetDisplayContextBuilder customFacetDisplayContextBuilder =
+			_createCustomFacetDisplayContextBuilder(_AGGREGATION_TYPE_RANGE);
+
+		_mockFacetConfiguration("one=[200 TO 300]", "two=[400 TO 500]");
+
+		CustomFacetDisplayContext customFacetDisplayContext =
+			customFacetDisplayContextBuilder.totalHits(
+				0
+			).build();
+
+		Assert.assertFalse(customFacetDisplayContext.isRenderNothing());
+	}
+
+	@Test
+	public void testIsRenderNothingFalseWithNoHitsAndTermCollectors()
+		throws Exception {
+
+		setUpTermCollectors(
+			facetCollector,
+			Collections.singletonList(createTermCollector(createTerm(), 0)));
+
+		CustomFacetDisplayContextBuilder customFacetDisplayContextBuilder =
+			_createCustomFacetDisplayContextBuilder(_AGGREGATION_TYPE_TERMS);
+
+		CustomFacetDisplayContext customFacetDisplayContext =
+			customFacetDisplayContextBuilder.totalHits(
+				0
+			).build();
+
+		Assert.assertFalse(customFacetDisplayContext.isRenderNothing());
+	}
+
+	@Test
 	public void testIsRenderNothingFalseWithSelectedDateRange()
 		throws Exception {
 
@@ -386,7 +425,7 @@ public class CustomFacetDisplayContextBuilderTest
 		Assert.assertFalse(bucketDisplayContext.isSelected());
 
 		Assert.assertTrue(facetDisplayContext.isNothingSelected());
-		Assert.assertTrue(facetDisplayContext.isRenderNothing());
+		Assert.assertFalse(facetDisplayContext.isRenderNothing());
 		Assert.assertEquals(
 			parameterValue, facetDisplayContext.getParameterValue());
 	}
@@ -458,6 +497,46 @@ public class CustomFacetDisplayContextBuilderTest
 				"[20180508235959 TO 20180415235959]",
 				"[20180508235959 TO 20180514235959]"
 			});
+	}
+
+	@Override
+	protected FacetDisplayContext getFacetDisplayContext(Group group)
+		throws Exception {
+
+		CustomFacetDisplayContextBuilder customFacetDisplayContextBuilder =
+			new CustomFacetDisplayContextBuilder(
+				_AGGREGATION_TYPE_TERMS, _getHttpServletRequest(group));
+
+		return customFacetDisplayContextBuilder.currentURL(
+			"/search"
+		).facet(
+			facet
+		).frequenciesVisible(
+			true
+		).build();
+	}
+
+	@Override
+	protected void setUpPortletDisplayStyleGroupExternalReferenceCode(
+		String externalReferenceCode) {
+
+		CustomFacetPortletInstanceConfiguration
+			customFacetPortletInstanceConfiguration = Mockito.mock(
+				CustomFacetPortletInstanceConfiguration.class);
+
+		Mockito.when(
+			customFacetPortletInstanceConfiguration.
+				displayStyleGroupExternalReferenceCode()
+		).thenReturn(
+			externalReferenceCode
+		);
+
+		configurationProviderUtilMockedStatic.when(
+			() -> ConfigurationProviderUtil.getPortletInstanceConfiguration(
+				Mockito.any(), Mockito.any())
+		).thenReturn(
+			customFacetPortletInstanceConfiguration
+		);
 	}
 
 	@Override
@@ -545,6 +624,21 @@ public class CustomFacetDisplayContextBuilderTest
 		facetConfiguration.setDataJSONObject(dataJSONObject);
 
 		return facetConfiguration;
+	}
+
+	private HttpServletRequest _getHttpServletRequest(Group group) {
+		HttpServletRequest httpServletRequest = Mockito.mock(
+			HttpServletRequest.class);
+
+		Mockito.doReturn(
+			getThemeDisplay(group)
+		).when(
+			httpServletRequest
+		).getAttribute(
+			WebKeys.THEME_DISPLAY
+		);
+
+		return httpServletRequest;
 	}
 
 	private void _mockFacetConfiguration(String... labelsAndRanges) {

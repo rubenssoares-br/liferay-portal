@@ -12,9 +12,11 @@ export class FormsPage {
 	readonly closeButton: Locator;
 	readonly continueButton: Locator;
 	readonly dataProvidersTab: Locator;
+	readonly elementSetsTab: Locator;
 	readonly emptyResultNewFormButton: Locator;
 	readonly exportImportIframe: FrameLocator;
 	readonly formsHeader: Locator;
+	readonly formsTab: Locator;
 	readonly exportImportOption: Locator;
 	readonly formsOptionsKebab: Locator;
 	readonly importButton: Locator;
@@ -23,6 +25,7 @@ export class FormsPage {
 	readonly managementToolbarNewButton: Locator;
 	readonly managementToolbarSearchForButton: Locator;
 	readonly managementToolbarSelectAllItems: Locator;
+	readonly newFormButton: Locator;
 	readonly page: Page;
 	readonly selectFileButton: Locator;
 
@@ -30,12 +33,16 @@ export class FormsPage {
 		this.exportImportIframe = page.frameLocator(
 			'iframe[title="Export \\/ Import"]'
 		);
-		this.closeButton = page.getByLabel('close', {exact: true});
+		this.closeButton = page.getByLabel('Close', {exact: true});
 		this.continueButton = this.exportImportIframe.getByRole('button', {
 			name: 'Continue',
 		});
 		this.dataProvidersTab = page.getByRole('link', {
 			name: 'Data Providers',
+		});
+		this.elementSetsTab = page.getByRole('link', {
+			exact: true,
+			name: 'Element Sets',
 		});
 		this.emptyResultNewFormButton = page.getByText('New Form', {
 			exact: true,
@@ -48,6 +55,7 @@ export class FormsPage {
 			name: 'Forms',
 		});
 		this.formsOptionsKebab = page.getByLabel('Options');
+		this.formsTab = page.getByRole('link', {name: 'Forms'});
 		this.importButton = this.exportImportIframe.getByRole('button', {
 			name: 'Import',
 		});
@@ -64,6 +72,7 @@ export class FormsPage {
 		this.managementToolbarSelectAllItems = page.getByLabel(
 			'Select All Items on the Page'
 		);
+		this.newFormButton = page.getByRole('link', {name: 'New Form'});
 		this.page = page;
 		this.selectFileButton = this.exportImportIframe.getByRole('button', {
 			name: 'Select File',
@@ -75,8 +84,8 @@ export class FormsPage {
 			.getByRole('button', {name: 'Actions'})
 			.click();
 
-		this.page.once('dialog', (dialog) => {
-			dialog.accept();
+		this.page.once('dialog', async (dialog) => {
+			await dialog.accept();
 		});
 
 		await this.exportImportIframe
@@ -97,9 +106,13 @@ export class FormsPage {
 		await this.managementToolbarNewButton.click();
 	}
 
-	async goTo(siteUrl?: Site['friendlyUrlPath']) {
+	async goTo(siteUrl?: Site['friendlyUrlPath'], tab?: string) {
+		const tabParam = tab
+			? `&_com_liferay_dynamic_data_mapping_form_web_portlet_DDMFormAdminPortlet_currentTab=${tab}`
+			: '';
+
 		await this.page.goto(
-			`/group${siteUrl || '/guest'}${PORTLET_URLS.forms}`,
+			`/group${siteUrl || '/guest'}${PORTLET_URLS.forms}${tabParam}`,
 			{waitUntil: 'networkidle'}
 		);
 	}

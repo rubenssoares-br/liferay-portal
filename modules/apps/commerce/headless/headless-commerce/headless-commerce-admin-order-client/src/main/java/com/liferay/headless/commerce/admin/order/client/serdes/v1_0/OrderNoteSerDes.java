@@ -8,13 +8,17 @@ package com.liferay.headless.commerce.admin.order.client.serdes.v1_0;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.OrderNote;
 import com.liferay.headless.commerce.admin.order.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alessio Antonio Rendina
@@ -44,6 +48,9 @@ public class OrderNoteSerDes {
 
 		sb.append("{");
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ssXX");
+
 		if (orderNote.getAuthor() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -54,6 +61,30 @@ public class OrderNoteSerDes {
 			sb.append("\"");
 
 			sb.append(_escape(orderNote.getAuthor()));
+
+			sb.append("\"");
+		}
+
+		if (orderNote.getAuthorId() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"authorId\": ");
+
+			sb.append(orderNote.getAuthorId());
+		}
+
+		if (orderNote.getAuthorPortraitURL() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"authorPortraitURL\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(orderNote.getAuthorPortraitURL()));
 
 			sb.append("\"");
 		}
@@ -94,6 +125,21 @@ public class OrderNoteSerDes {
 			sb.append("\"id\": ");
 
 			sb.append(orderNote.getId());
+		}
+
+		if (orderNote.getModifiedDate() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"modifiedDate\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				liferayToJSONDateFormat.format(orderNote.getModifiedDate()));
+
+			sb.append("\"");
 		}
 
 		if (orderNote.getOrderExternalReferenceCode() != null) {
@@ -148,11 +194,30 @@ public class OrderNoteSerDes {
 
 		Map<String, String> map = new TreeMap<>();
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ssXX");
+
 		if (orderNote.getAuthor() == null) {
 			map.put("author", null);
 		}
 		else {
 			map.put("author", String.valueOf(orderNote.getAuthor()));
+		}
+
+		if (orderNote.getAuthorId() == null) {
+			map.put("authorId", null);
+		}
+		else {
+			map.put("authorId", String.valueOf(orderNote.getAuthorId()));
+		}
+
+		if (orderNote.getAuthorPortraitURL() == null) {
+			map.put("authorPortraitURL", null);
+		}
+		else {
+			map.put(
+				"authorPortraitURL",
+				String.valueOf(orderNote.getAuthorPortraitURL()));
 		}
 
 		if (orderNote.getContent() == null) {
@@ -176,6 +241,15 @@ public class OrderNoteSerDes {
 		}
 		else {
 			map.put("id", String.valueOf(orderNote.getId()));
+		}
+
+		if (orderNote.getModifiedDate() == null) {
+			map.put("modifiedDate", null);
+		}
+		else {
+			map.put(
+				"modifiedDate",
+				liferayToJSONDateFormat.format(orderNote.getModifiedDate()));
 		}
 
 		if (orderNote.getOrderExternalReferenceCode() == null) {
@@ -221,6 +295,12 @@ public class OrderNoteSerDes {
 			if (Objects.equals(jsonParserFieldName, "author")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "authorId")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "authorPortraitURL")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "content")) {
 				return false;
 			}
@@ -230,6 +310,9 @@ public class OrderNoteSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "modifiedDate")) {
 				return false;
 			}
 			else if (Objects.equals(
@@ -257,6 +340,18 @@ public class OrderNoteSerDes {
 					orderNote.setAuthor((String)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "authorId")) {
+				if (jsonParserFieldValue != null) {
+					orderNote.setAuthorId(
+						Long.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "authorPortraitURL")) {
+				if (jsonParserFieldValue != null) {
+					orderNote.setAuthorPortraitURL(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "content")) {
 				if (jsonParserFieldValue != null) {
 					orderNote.setContent((String)jsonParserFieldValue);
@@ -273,6 +368,12 @@ public class OrderNoteSerDes {
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				if (jsonParserFieldValue != null) {
 					orderNote.setId(Long.valueOf((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "modifiedDate")) {
+				if (jsonParserFieldValue != null) {
+					orderNote.setModifiedDate(
+						toDate((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(
@@ -339,6 +440,16 @@ public class OrderNoteSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -371,3 +482,4 @@ public class OrderNoteSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1323399221

@@ -9,7 +9,10 @@ module.exports = {
 	plugins: require.resolve('@liferay/stylelint-plugin'),
 	rules: {
 		...defaultConfig.rules,
+		'color-hex-length': null,
+		'length-zero-no-unit': null,
 		'liferay/no-block-comments': null,
+		'liferay/no-hardcoded-colors': true,
 		'selector-type-no-unknown': [
 			true,
 			{

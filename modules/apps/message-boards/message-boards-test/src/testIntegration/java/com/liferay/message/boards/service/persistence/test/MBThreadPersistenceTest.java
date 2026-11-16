@@ -116,11 +116,7 @@ public class MBThreadPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		MBThread newMBThread = _persistence.create(pk);
-
-		newMBThread.setMvccVersion(RandomTestUtil.nextLong());
+		MBThread newMBThread = addMBThread();
 
 		newMBThread.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -164,7 +160,9 @@ public class MBThreadPersistenceTest {
 
 		newMBThread.setStatusDate(RandomTestUtil.nextDate());
 
-		_mbThreads.add(_persistence.update(newMBThread));
+		newMBThread = _persistence.update(newMBThread);
+
+		_mbThreads.add(newMBThread);
 
 		MBThread existingMBThread = _persistence.findByPrimaryKey(
 			newMBThread.getPrimaryKey());
@@ -262,13 +260,6 @@ public class MBThreadPersistenceTest {
 	}
 
 	@Test
-	public void testCountByRootMessageId() throws Exception {
-		_persistence.countByRootMessageId(RandomTestUtil.nextLong());
-
-		_persistence.countByRootMessageId(0L);
-	}
-
-	@Test
 	public void testCountByG_C() throws Exception {
 		_persistence.countByG_C(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
@@ -284,44 +275,11 @@ public class MBThreadPersistenceTest {
 	}
 
 	@Test
-	public void testCountByG_NotC() throws Exception {
-		_persistence.countByG_NotC(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByG_NotC(0L, 0L);
-	}
-
-	@Test
 	public void testCountByG_S() throws Exception {
 		_persistence.countByG_S(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
 
 		_persistence.countByG_S(0L, 0);
-	}
-
-	@Test
-	public void testCountByC_P() throws Exception {
-		_persistence.countByC_P(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextDouble());
-
-		_persistence.countByC_P(0L, 0D);
-	}
-
-	@Test
-	public void testCountByL_P() throws Exception {
-		_persistence.countByL_P(
-			RandomTestUtil.nextDate(), RandomTestUtil.nextDouble());
-
-		_persistence.countByL_P(RandomTestUtil.nextDate(), 0D);
-	}
-
-	@Test
-	public void testCountByG_C_L() throws Exception {
-		_persistence.countByG_C_L(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextDate());
-
-		_persistence.countByG_C_L(0L, 0L, RandomTestUtil.nextDate());
 	}
 
 	@Test
@@ -356,24 +314,6 @@ public class MBThreadPersistenceTest {
 			RandomTestUtil.nextLong(),
 			new long[] {RandomTestUtil.nextLong(), 0L},
 			RandomTestUtil.nextInt());
-	}
-
-	@Test
-	public void testCountByG_NotC_S() throws Exception {
-		_persistence.countByG_NotC_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByG_NotC_S(0L, 0L, 0);
-	}
-
-	@Test
-	public void testCountByG_NotC_NotS() throws Exception {
-		_persistence.countByG_NotC_NotS(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.nextInt());
-
-		_persistence.countByG_NotC_NotS(0L, 0L, 0);
 	}
 
 	@Test
@@ -696,20 +636,12 @@ public class MBThreadPersistenceTest {
 			ReflectionTestUtil.<Long>invoke(
 				mbThread, "getColumnOriginalValue",
 				new Class<?>[] {String.class}, "groupId"));
-
-		Assert.assertEquals(
-			Long.valueOf(mbThread.getRootMessageId()),
-			ReflectionTestUtil.<Long>invoke(
-				mbThread, "getColumnOriginalValue",
-				new Class<?>[] {String.class}, "rootMessageId"));
 	}
 
 	protected MBThread addMBThread() throws Exception {
 		long pk = RandomTestUtil.nextLong();
 
 		MBThread mbThread = _persistence.create(pk);
-
-		mbThread.setMvccVersion(RandomTestUtil.nextLong());
 
 		mbThread.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -763,3 +695,4 @@ public class MBThreadPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:301947056

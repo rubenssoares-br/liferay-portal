@@ -14,6 +14,8 @@ import com.liferay.document.library.kernel.processor.DLProcessorThreadLocal;
 import com.liferay.exportimport.kernel.lar.PortletDataContext;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMap;
 import com.liferay.osgi.service.tracker.collections.map.ServiceTrackerMapFactory;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.repository.model.FileEntry;
@@ -38,8 +40,15 @@ public class DLProcessorHelperImpl implements DLProcessorHelper {
 			return;
 		}
 
-		for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
-			if (dlProcessor.isSupported(fileEntry.getMimeType())) {
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileEntry.getCtCollectionId())) {
+
+			for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
+				if (!dlProcessor.isSupported(fileEntry.getMimeType())) {
+					continue;
+				}
+
 				dlProcessor.cleanUp(fileEntry);
 			}
 		}
@@ -51,8 +60,15 @@ public class DLProcessorHelperImpl implements DLProcessorHelper {
 			return;
 		}
 
-		for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
-			if (dlProcessor.isSupported(fileVersion)) {
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileVersion.getCtCollectionId())) {
+
+			for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
+				if (!dlProcessor.isSupported(fileVersion)) {
+					continue;
+				}
+
 				dlProcessor.cleanUp(fileVersion);
 			}
 		}
@@ -68,14 +84,22 @@ public class DLProcessorHelperImpl implements DLProcessorHelper {
 			return;
 		}
 
-		FileVersion latestFileVersion = _getLatestFileVersion(fileEntry, true);
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileEntry.getCtCollectionId())) {
 
-		if (latestFileVersion == null) {
-			return;
-		}
+			FileVersion latestFileVersion = _getLatestFileVersion(
+				fileEntry, true);
 
-		for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
-			if (dlProcessor.isSupported(latestFileVersion)) {
+			if (latestFileVersion == null) {
+				return;
+			}
+
+			for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
+				if (!dlProcessor.isSupported(latestFileVersion)) {
+					continue;
+				}
+
 				dlProcessor.exportGeneratedFiles(
 					portletDataContext, fileEntry, fileEntryElement);
 			}
@@ -109,8 +133,15 @@ public class DLProcessorHelperImpl implements DLProcessorHelper {
 			return;
 		}
 
-		for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
-			if (dlProcessor.isSupported(fileVersion)) {
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileVersion.getCtCollectionId())) {
+
+			for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
+				if (!dlProcessor.isSupported(fileVersion)) {
+					continue;
+				}
+
 				dlProcessor.importGeneratedFiles(
 					portletDataContext, fileEntry, importedFileEntry,
 					fileEntryElement);
@@ -149,15 +180,22 @@ public class DLProcessorHelperImpl implements DLProcessorHelper {
 			return;
 		}
 
-		FileVersion latestFileVersion = _getLatestFileVersion(
-			fileEntry, trusted);
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					fileEntry.getCtCollectionId())) {
 
-		if (latestFileVersion == null) {
-			return;
-		}
+			FileVersion latestFileVersion = _getLatestFileVersion(
+				fileEntry, trusted);
 
-		for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
-			if (dlProcessor.isSupported(latestFileVersion)) {
+			if (latestFileVersion == null) {
+				return;
+			}
+
+			for (DLProcessor dlProcessor : _serviceTrackerMap.values()) {
+				if (!dlProcessor.isSupported(latestFileVersion)) {
+					continue;
+				}
+
 				dlProcessor.trigger(fileVersion, latestFileVersion);
 			}
 		}

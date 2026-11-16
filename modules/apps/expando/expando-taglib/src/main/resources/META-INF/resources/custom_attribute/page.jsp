@@ -640,33 +640,30 @@ ExpandoBridge expandoBridge = ExpandoBridgeFactoryUtil.getExpandoBridge(company.
 							value = ParamUtil.getString(request, "ExpandoAttribute--" + name + "--", String.valueOf(value));
 							%>
 
-							<c:choose>
-								<c:when test="<%= propertyHeight > 0 %>">
-									<textarea
-										class="field form-control lfr-input-text"
-										id="<portlet:namespace /><%= randomNamespace %><%= HtmlUtil.getAUICompatibleId(name) %>"
-										name="<portlet:namespace />ExpandoAttribute--<%= HtmlUtil.escapeAttribute(name) %>--"
-										style="
+							<c:if test="<%= (propertyHeight > 0) || (propertyWidth > 0) %>">
+								<aui:style type="text/css">
+									#<portlet:namespace /><%= randomNamespace %><%= HtmlUtil.getAUICompatibleId(name) %> {
 										<c:if test="<%= propertyHeight > 0 %>">
 											height: <%= propertyHeight %>px;
 										</c:if>
 
 										<c:if test="<%= propertyWidth > 0 %>">
 											width: <%= propertyWidth %>px;
-										</c:if>"
-									><%= HtmlUtil.escape(String.valueOf(value)) %></textarea>
-								</c:when>
-								<c:otherwise>
-									<input
+										</c:if>
+									}
+								</aui:style>
+							</c:if>
+
+							<c:choose>
+								<c:when test="<%= propertyHeight > 0 %>">
+									<textarea
 										class="field form-control lfr-input-text"
 										id="<portlet:namespace /><%= randomNamespace %><%= HtmlUtil.getAUICompatibleId(name) %>"
-										name="<portlet:namespace />ExpandoAttribute--<%= HtmlUtil.escapeAttribute(name) %>--"
-										style="
-										<c:if test="<%= propertyWidth > 0 %>">
-											width: <%= propertyWidth %>px;
-										</c:if>"
-										type="<%= propertySecret ? "password" : "text" %>" value="<%= HtmlUtil.escape(String.valueOf(value)) %>"
-									/>
+										name="<portlet:namespace />ExpandoAttribute--<%= HtmlUtil.escapeAttribute(name) %>--"><%= HtmlUtil.escape(String.valueOf(value)) %></textarea
+									>
+								</c:when>
+								<c:otherwise>
+									<input class="field form-control lfr-input-text" id="<portlet:namespace /><%= randomNamespace %><%= HtmlUtil.getAUICompatibleId(name) %>" name="<portlet:namespace />ExpandoAttribute--<%= HtmlUtil.escapeAttribute(name) %>--" type="<%= propertySecret ? "password" : "text" %>" value="<%= HtmlUtil.escape(String.valueOf(value)) %>" />
 								</c:otherwise>
 							</c:choose>
 						</c:otherwise>

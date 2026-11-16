@@ -27,12 +27,15 @@ import com.liferay.headless.commerce.admin.catalog.dto.v1_0.AttachmentUrl;
 import com.liferay.headless.commerce.admin.catalog.internal.util.DateConfigUtil;
 import com.liferay.headless.commerce.core.util.DateConfig;
 import com.liferay.headless.commerce.core.util.LanguageUtils;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.configuration.module.configuration.ConfigurationProviderUtil;
 import com.liferay.portal.kernel.exception.NoSuchGroupException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Group;
@@ -42,23 +45,31 @@ import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpUtil;
+import com.liferay.portal.kernel.util.InetAddressUtil;
 import com.liferay.portal.kernel.util.MimeTypesUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.TempFileEntryUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
+import com.liferay.portal.security.configuration.URLFetchSecurityCompanyConfiguration;
 import com.liferay.upload.UniqueFileNameProvider;
 
 import java.io.File;
+import java.io.InputStream;
 
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.UnknownHostException;
 
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -88,26 +99,17 @@ public class AttachmentUtil {
 				serviceContext);
 		}
 
-		if (Validator.isNotNull(attachment.getSrc())) {
-			URL url = new URL(attachment.getSrc());
-
-			if (Objects.equals(url.getProtocol(), "file")) {
-				throw new CPAttachmentFileEntryProtocolException(
-					"Unsupported URL protocol");
-			}
-
-			URLConnection urlConnection = url.openConnection();
-
-			urlConnection.connect();
-
-			File file = FileUtil.createTempFile(urlConnection.getInputStream());
-
-			return _addFileEntry(
-				file, attachment.getContentType(), uniqueFileNameProvider,
-				serviceContext);
+		if (Validator.isNull(attachment.getSrc())) {
+			return null;
 		}
 
-		return null;
+		File file = FileUtil.createTempFile(
+			_getInputStream(
+				serviceContext.getCompanyId(), attachment.getSrc()));
+
+		return _addFileEntry(
+			file, attachment.getContentType(), uniqueFileNameProvider,
+			serviceContext);
 	}
 
 	public static FileEntry addFileEntry(
@@ -141,7 +143,8 @@ public class AttachmentUtil {
 		}
 
 		File file = FileUtil.createTempFile(
-			HttpUtil.URLtoInputStream(attachmentUrl.getSrc()));
+			_getInputStream(
+				serviceContext.getCompanyId(), attachmentUrl.getSrc()));
 
 		return _addFileEntry(
 			file, attachmentUrl.getContentType(), uniqueFileNameProvider,
@@ -189,16 +192,25 @@ public class AttachmentUtil {
 			fileEntryId = fileEntry.getFileEntryId();
 		}
 
+		long cpAttachmentFileEntryId = 0;
+
+		if (Validator.isNull(attachmentBase64.getExternalReferenceCode())) {
+			cpAttachmentFileEntryId = GetterUtil.getLong(
+				attachmentBase64.getId());
+		}
+
 		return cpAttachmentFileEntryService.addOrUpdateCPAttachmentFileEntry(
 			attachmentBase64.getExternalReferenceCode(),
 			serviceContext.getScopeGroupId(), classNameId, classPK,
-			GetterUtil.getLong(attachmentBase64.getId()), fileEntryId, false,
-			null, displayDateConfig.getMonth(), displayDateConfig.getDay(),
+			cpAttachmentFileEntryId, fileEntryId, false, null,
+			displayDateConfig.getMonth(), displayDateConfig.getDay(),
 			displayDateConfig.getYear(), displayDateConfig.getHour(),
 			displayDateConfig.getMinute(), expirationDateConfig.getMonth(),
 			expirationDateConfig.getDay(), expirationDateConfig.getYear(),
 			expirationDateConfig.getHour(), expirationDateConfig.getMinute(),
-			GetterUtil.get(attachmentBase64.getNeverExpire(), false),
+			_isNeverExpire(
+				attachmentBase64.getExpirationDate(),
+				attachmentBase64.getNeverExpire()),
 			GetterUtil.get(attachmentBase64.getGalleryEnabled(), true),
 			getTitleMap(null, attachmentBase64.getTitle()),
 			_getJSON(
@@ -251,16 +263,24 @@ public class AttachmentUtil {
 			fileEntryId = fileEntry.getFileEntryId();
 		}
 
+		long cpAttachmentFileEntryId = 0;
+
+		if (Validator.isNull(attachmentUrl.getExternalReferenceCode())) {
+			cpAttachmentFileEntryId = GetterUtil.getLong(attachmentUrl.getId());
+		}
+
 		return cpAttachmentFileEntryService.addOrUpdateCPAttachmentFileEntry(
 			attachmentUrl.getExternalReferenceCode(),
 			serviceContext.getScopeGroupId(), classNameId, classPK,
-			GetterUtil.getLong(attachmentUrl.getId()), fileEntryId, false, null,
+			cpAttachmentFileEntryId, fileEntryId, false, null,
 			displayDateConfig.getMonth(), displayDateConfig.getDay(),
 			displayDateConfig.getYear(), displayDateConfig.getHour(),
 			displayDateConfig.getMinute(), expirationDateConfig.getMonth(),
 			expirationDateConfig.getDay(), expirationDateConfig.getYear(),
 			expirationDateConfig.getHour(), expirationDateConfig.getMinute(),
-			GetterUtil.get(attachmentUrl.getNeverExpire(), false),
+			_isNeverExpire(
+				attachmentUrl.getExpirationDate(),
+				attachmentUrl.getNeverExpire()),
 			GetterUtil.get(attachmentUrl.getGalleryEnabled(), true),
 			getTitleMap(null, attachmentUrl.getTitle()),
 			_getJSON(
@@ -298,6 +318,16 @@ public class AttachmentUtil {
 
 		long fileEntryId = GetterUtil.getLong(attachment.getFileEntryId());
 
+		if (fileEntryId > 0) {
+			FileEntry fileEntry = dlAppLocalService.fetchFileEntry(fileEntryId);
+
+			if ((fileEntry == null) ||
+				(fileEntry.getCompanyId() != serviceContext.getCompanyId())) {
+
+				fileEntryId = 0;
+			}
+		}
+
 		if (fileEntryId == 0) {
 			String fileEntryExternalReferenceCode = GetterUtil.getString(
 				attachment.getFileEntryExternalReferenceCode());
@@ -312,22 +342,37 @@ public class AttachmentUtil {
 				}
 			}
 			else {
+				FileEntry fileEntry = null;
+
 				Group group =
 					groupLocalService.fetchGroupByExternalReferenceCode(
 						attachment.getFileEntryGroupExternalReferenceCode(),
 						serviceContext.getCompanyId());
 
-				if (group == null) {
-					throw new NoSuchGroupException();
+				if (group != null) {
+					fileEntry =
+						dlAppLocalService.fetchFileEntryByExternalReferenceCode(
+							group.getGroupId(), fileEntryExternalReferenceCode);
 				}
 
-				FileEntry fileEntry =
-					dlAppLocalService.fetchFileEntryByExternalReferenceCode(
-						group.getGroupId(),
-						attachment.getFileEntryExternalReferenceCode());
+				if ((fileEntry == null) &&
+					LazyReferencingThreadLocal.isEnabled()) {
+
+					fileEntry = addFileEntry(
+						attachment, uniqueFileNameProvider,
+						dlFileEntryCloneServiceContext);
+				}
 
 				if (fileEntry != null) {
 					fileEntryId = fileEntry.getFileEntryId();
+				}
+				else if (group == null) {
+					String fileEntryGroupExternalReferenceCode =
+						attachment.getFileEntryGroupExternalReferenceCode();
+
+					throw new NoSuchGroupException(
+						"Unable to find group with external reference code " +
+							fileEntryGroupExternalReferenceCode);
 				}
 			}
 		}
@@ -366,9 +411,15 @@ public class AttachmentUtil {
 
 		DateConfig expirationDateConfig = new DateConfig(expirationCalendar);
 
+		long cpAttachmentFileEntryId = 0;
+
+		if (Validator.isNull(attachment.getExternalReferenceCode())) {
+			cpAttachmentFileEntryId = GetterUtil.getLong(attachment.getId());
+		}
+
 		return cpAttachmentFileEntryService.addOrUpdateCPAttachmentFileEntry(
 			attachment.getExternalReferenceCode(), groupId, classNameId,
-			classPK, GetterUtil.getLong(attachment.getId()), fileEntryId,
+			classPK, cpAttachmentFileEntryId, fileEntryId,
 			GetterUtil.get(attachment.getCdnEnabled(), false),
 			GetterUtil.getString(attachment.getCdnURL()),
 			displayDateConfig.getMonth(), displayDateConfig.getDay(),
@@ -376,7 +427,8 @@ public class AttachmentUtil {
 			displayDateConfig.getMinute(), expirationDateConfig.getMonth(),
 			expirationDateConfig.getDay(), expirationDateConfig.getYear(),
 			expirationDateConfig.getHour(), expirationDateConfig.getMinute(),
-			GetterUtil.get(attachment.getNeverExpire(), false),
+			_isNeverExpire(
+				attachment.getExpirationDate(), attachment.getNeverExpire()),
 			GetterUtil.get(attachment.getGalleryEnabled(), true),
 			getTitleMap(null, attachment.getTitle()),
 			_getJSON(
@@ -419,6 +471,16 @@ public class AttachmentUtil {
 
 		long fileEntryId = GetterUtil.getLong(attachment.getFileEntryId());
 
+		if (fileEntryId > 0) {
+			FileEntry fileEntry = dlAppLocalService.fetchFileEntry(fileEntryId);
+
+			if ((fileEntry == null) ||
+				(fileEntry.getCompanyId() != serviceContext.getCompanyId())) {
+
+				fileEntryId = 0;
+			}
+		}
+
 		if (fileEntryId == 0) {
 			String fileEntryExternalReferenceCode = GetterUtil.getString(
 				attachment.getFileEntryExternalReferenceCode());
@@ -427,23 +489,24 @@ public class AttachmentUtil {
 				fileEntryId = cpAttachmentFileEntry.getFileEntryId();
 			}
 			else {
+				FileEntry fileEntry = null;
+
 				Group group =
 					groupLocalService.fetchGroupByExternalReferenceCode(
 						attachment.getFileEntryGroupExternalReferenceCode(),
 						serviceContext.getCompanyId());
 
-				if (group == null) {
-					throw new NoSuchGroupException();
+				if (group != null) {
+					fileEntry =
+						dlAppLocalService.fetchFileEntryByExternalReferenceCode(
+							group.getGroupId(), fileEntryExternalReferenceCode);
 				}
-
-				FileEntry fileEntry =
-					dlAppLocalService.fetchFileEntryByExternalReferenceCode(
-						group.getGroupId(),
-						GetterUtil.getString(
-							attachment.getFileEntryExternalReferenceCode()));
 
 				if (fileEntry != null) {
 					fileEntryId = fileEntry.getFileEntryId();
+				}
+				else {
+					fileEntryId = cpAttachmentFileEntry.getFileEntryId();
 				}
 			}
 		}
@@ -493,7 +556,8 @@ public class AttachmentUtil {
 			displayDateConfig.getMinute(), expirationDateConfig.getMonth(),
 			expirationDateConfig.getDay(), expirationDateConfig.getYear(),
 			expirationDateConfig.getHour(), expirationDateConfig.getMinute(),
-			GetterUtil.get(attachment.getNeverExpire(), false),
+			_isNeverExpire(
+				attachment.getExpirationDate(), attachment.getNeverExpire()),
 			GetterUtil.get(attachment.getGalleryEnabled(), true),
 			getTitleMap(cpAttachmentFileEntry, attachment.getTitle()), options,
 			GetterUtil.getDouble(
@@ -570,6 +634,30 @@ public class AttachmentUtil {
 		}
 	}
 
+	private static InputStream _getInputStream(long companyId, String location)
+		throws Exception {
+
+		_validateURL(companyId, location);
+
+		Http.Options options = new Http.Options();
+
+		options.setFollowRedirects(false);
+		options.setLocation(location);
+
+		InputStream inputStream = HttpUtil.URLtoInputStream(options);
+
+		Http.Response response = options.getResponse();
+
+		if (response.getResponseCode() != HttpURLConnection.HTTP_OK) {
+			throw new CPAttachmentFileEntryProtocolException(
+				StringBundler.concat(
+					"Unable to download ", location, " with response code ",
+					response.getResponseCode()));
+		}
+
+		return inputStream;
+	}
+
 	private static String _getJSON(
 		CPAttachmentFileEntry cpAttachmentFileEntry,
 		CPDefinitionOptionRelService cpDefinitionOptionRelService,
@@ -629,6 +717,79 @@ public class AttachmentUtil {
 		}
 
 		return jsonArray.toString();
+	}
+
+	private static boolean _isNeverExpire(
+		Date expirationDate, Boolean neverExpire) {
+
+		if (neverExpire != null) {
+			return neverExpire;
+		}
+
+		if (LazyReferencingThreadLocal.isEnabled() &&
+			(expirationDate == null)) {
+
+			return true;
+		}
+
+		return false;
+	}
+
+	private static void _validateURL(long companyId, String location)
+		throws Exception {
+
+		URI uri = new URI(location);
+
+		String scheme = StringUtil.toLowerCase(uri.getScheme());
+
+		if (!Objects.equals(scheme, "http") &&
+			!Objects.equals(scheme, "https")) {
+
+			throw new CPAttachmentFileEntryProtocolException(
+				"Unsupported URL protocol");
+		}
+
+		String host = uri.getHost();
+
+		if (Validator.isNull(host)) {
+			throw new CPAttachmentFileEntryProtocolException(
+				"Unable to get the host of URL " + location);
+		}
+
+		URLFetchSecurityCompanyConfiguration
+			urlFetchSecurityCompanyConfiguration =
+				ConfigurationProviderUtil.getCompanyConfiguration(
+					URLFetchSecurityCompanyConfiguration.class, companyId);
+
+		String[] urlHostsAllowed =
+			urlFetchSecurityCompanyConfiguration.urlHostsAllowed();
+
+		if (ArrayUtil.isNotEmpty(urlHostsAllowed) &&
+			!ArrayUtil.contains(urlHostsAllowed, host, true)) {
+
+			throw new CPAttachmentFileEntryProtocolException(
+				"URL host " + host + " is not allowed");
+		}
+
+		if (urlFetchSecurityCompanyConfiguration.
+				urlLocalNetworkAccessEnabled()) {
+
+			return;
+		}
+
+		try {
+			if (InetAddressUtil.isLocalInetAddress(
+					InetAddressUtil.getInetAddressByName(host))) {
+
+				throw new CPAttachmentFileEntryProtocolException(
+					"URL host " + host +
+						" must not resolve to a local network address");
+			}
+		}
+		catch (UnknownHostException unknownHostException) {
+			throw new CPAttachmentFileEntryProtocolException(
+				"Unable to resolve URL host " + host, unknownHostException);
+		}
 	}
 
 	private static final String _TEMP_FILE_NAME =

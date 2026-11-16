@@ -17,6 +17,7 @@ import com.liferay.commerce.order.engine.CommerceOrderEngine;
 import com.liferay.commerce.service.CommerceOrderLocalService;
 import com.liferay.commerce.service.CommerceShipmentItemLocalService;
 import com.liferay.commerce.service.CommerceShipmentLocalService;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
@@ -79,6 +80,7 @@ public class CommerceReturnItemPermissionObjectValidationRuleEngineImplTest
 			List<CommerceInventoryWarehouse> commerceInventoryWarehouses =
 				_commerceInventoryWarehouseLocalService.
 					getCommerceInventoryWarehouses(
+						commerceOrder.getCommerceAccountId(),
 						commerceChannel.getGroupId(),
 						commerceOrderItem.getSku());
 
@@ -121,67 +123,16 @@ public class CommerceReturnItemPermissionObjectValidationRuleEngineImplTest
 		}
 
 		_objectEntry = _objectEntryLocalService.addObjectEntry(
-			commerceReturnObjectDefinition.getUserId(), 0,
+			0, commerceReturnObjectDefinition.getUserId(),
 			commerceReturnObjectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+			null,
 			HashMapBuilder.<String, Serializable>put(
 				"r_accountToCommerceReturns_accountEntryId",
 				accountEntry.getAccountEntryId()
 			).put(
 				"r_commerceOrderToCommerceReturns_commerceOrderId",
 				commerceOrder.getCommerceOrderId()
-			).build(),
-			ServiceContextTestUtil.getServiceContext());
-	}
-
-	@Test
-	public void testUpdateAuthorized() throws Exception {
-		String externalReferenceCode = RandomTestUtil.randomString();
-
-		Map<String, Object> results = _objectValidationRuleEngine.execute(
-			HashMapBuilder.<String, Object>put(
-				"entryDTO",
-				HashMapBuilder.<String, Object>put(
-					"externalReferenceCode", externalReferenceCode
-				).put(
-					"properties",
-					HashMapBuilder.<String, Object>put(
-						"authorized", 1
-					).put(
-						"r_commerceReturnToCommerceReturnItems_l_" +
-							"commerceReturnId",
-						_objectEntry.getObjectEntryId()
-					).build()
-				).build()
-			).put(
-				"originalEntryDTO",
-				HashMapBuilder.<String, Object>put(
-					"externalReferenceCode", externalReferenceCode
-				).put(
-					"properties",
-					HashMapBuilder.<String, Object>put(
-						"authorized", 0
-					).put(
-						"r_commerceReturnToCommerceReturnItems_l_" +
-							"commerceReturnId",
-						_objectEntry.getObjectEntryId()
-					).build()
-				).build()
-			).build(),
-			null);
-
-		Assert.assertFalse(
-			GetterUtil.getBoolean(results.get("validationCriteriaMet")));
-
-		_objectEntryLocalService.updateObjectEntry(
-			_objectEntry.getUserId(), _objectEntry.getObjectEntryId(),
-			HashMapBuilder.<String, Serializable>put(
-				"r_accountToCommerceReturns_accountEntryId",
-				accountEntry.getAccountEntryId()
-			).put(
-				"r_commerceOrderToCommerceReturns_commerceOrderId",
-				commerceOrder.getCommerceOrderId()
-			).put(
-				"returnStatus", CommerceReturnConstants.RETURN_STATUS_PENDING
 			).build(),
 			ServiceContextTestUtil.getServiceContext());
 	}
@@ -226,6 +177,60 @@ public class CommerceReturnItemPermissionObjectValidationRuleEngineImplTest
 
 		Assert.assertFalse(
 			GetterUtil.getBoolean(results.get("validationCriteriaMet")));
+	}
+
+	@Test
+	public void testUpdateAuthorized() throws Exception {
+		String externalReferenceCode = RandomTestUtil.randomString();
+
+		Map<String, Object> results = _objectValidationRuleEngine.execute(
+			HashMapBuilder.<String, Object>put(
+				"entryDTO",
+				HashMapBuilder.<String, Object>put(
+					"externalReferenceCode", externalReferenceCode
+				).put(
+					"properties",
+					HashMapBuilder.<String, Object>put(
+						"authorized", 1
+					).put(
+						"r_commerceReturnToCommerceReturnItems_l_" +
+							"commerceReturnId",
+						_objectEntry.getObjectEntryId()
+					).build()
+				).build()
+			).put(
+				"originalEntryDTO",
+				HashMapBuilder.<String, Object>put(
+					"externalReferenceCode", externalReferenceCode
+				).put(
+					"properties",
+					HashMapBuilder.<String, Object>put(
+						"authorized", 0
+					).put(
+						"r_commerceReturnToCommerceReturnItems_l_" +
+							"commerceReturnId",
+						_objectEntry.getObjectEntryId()
+					).build()
+				).build()
+			).build(),
+			null);
+
+		Assert.assertFalse(
+			GetterUtil.getBoolean(results.get("validationCriteriaMet")));
+
+		_objectEntryLocalService.updateObjectEntry(
+			_objectEntry.getUserId(), _objectEntry.getObjectEntryId(),
+			_objectEntry.getObjectEntryFolderId(),
+			HashMapBuilder.<String, Serializable>put(
+				"r_accountToCommerceReturns_accountEntryId",
+				accountEntry.getAccountEntryId()
+			).put(
+				"r_commerceOrderToCommerceReturns_commerceOrderId",
+				commerceOrder.getCommerceOrderId()
+			).put(
+				"returnStatus", CommerceReturnConstants.RETURN_STATUS_PENDING
+			).build(),
+			ServiceContextTestUtil.getServiceContext());
 	}
 
 	@Test
@@ -303,6 +308,7 @@ public class CommerceReturnItemPermissionObjectValidationRuleEngineImplTest
 
 		_objectEntryLocalService.updateObjectEntry(
 			_objectEntry.getUserId(), _objectEntry.getObjectEntryId(),
+			_objectEntry.getObjectEntryFolderId(),
 			HashMapBuilder.<String, Serializable>put(
 				"r_accountToCommerceReturns_accountEntryId",
 				accountEntry.getAccountEntryId()
@@ -431,6 +437,7 @@ public class CommerceReturnItemPermissionObjectValidationRuleEngineImplTest
 
 		_objectEntryLocalService.updateObjectEntry(
 			_objectEntry.getUserId(), _objectEntry.getObjectEntryId(),
+			_objectEntry.getObjectEntryFolderId(),
 			HashMapBuilder.<String, Serializable>put(
 				"r_accountToCommerceReturns_accountEntryId",
 				accountEntry.getAccountEntryId()

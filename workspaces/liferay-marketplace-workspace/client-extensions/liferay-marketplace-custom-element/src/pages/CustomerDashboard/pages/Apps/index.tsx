@@ -6,19 +6,21 @@
 import ClayButton from '@clayui/button';
 import {ClayPaginationBarWithBasicItems} from '@clayui/pagination-bar';
 import {useState} from 'react';
-import {useOutletContext} from 'react-router-dom';
 
 import {DashboardPage} from '../../../../components/DashBoardPage/DashboardPage';
 import {DashboardEmptyTable} from '../../../../components/DashboardTable/DashboardEmptyTable';
 import Page from '../../../../components/Page';
+import {OrderTypes} from '../../../../enums/Order';
+import i18n from '../../../../i18n';
 import {Liferay} from '../../../../liferay/liferay';
 import {getSiteURL} from '../../../../utils/site';
+import {useCustomerDashboardOutletContext} from '../../CustomerDashboardOutlet';
 import PurchasedAppsTable from '../../components/PurchasedAppsTable';
 import {usePurchasedOrders} from '../../usePurchasedOrders';
 
 const Apps = () => {
 	const [page, setPage] = useState(1);
-	const {selectedAccount} = useOutletContext<any>();
+	const {selectedAccount} = useCustomerDashboardOutletContext();
 
 	const {
 		data: placedOrders = {items: [], pageSize: 1, totalCount: 0},
@@ -26,8 +28,14 @@ const Apps = () => {
 		isLoading,
 	} = usePurchasedOrders({
 		accountId: selectedAccount?.id as number,
-		channelId: Number(Liferay.CommerceContext.commerceChannelId),
-		orderTypeExternalReferenceCodes: ['CLOUDAPP', 'DXPAPP'],
+		orderTypeExternalReferenceCodes: [
+			OrderTypes.CLIENT_EXTENSION,
+			OrderTypes.CLOUD_APP,
+			OrderTypes.COMPOSITE_APP,
+			OrderTypes.DXP_APP,
+			OrderTypes.LOW_CODE_CONFIGURATION,
+			OrderTypes.OTHER,
+		],
 		page,
 		pageSize: 10,
 	});
@@ -42,9 +50,6 @@ const Apps = () => {
 				name: placeOrderItem?.name,
 				productId: order.placedOrderItems[0]?.productId,
 				thumbnail: placeOrderItem?.thumbnail,
-				type: placeOrderItem?.subscription
-					? 'Subscription'
-					: 'Perpetual',
 				virtualURL: placeOrderItem?.virtualItemURLs,
 			};
 		}),
@@ -76,7 +81,7 @@ const Apps = () => {
 				<ClayButton
 					onClick={() => Liferay.Util.navigate(getSiteURL() || '/')}
 				>
-					Add Apps
+					{i18n.translate('browse-catalog')}
 				</ClayButton>
 			}
 			title="My Apps"

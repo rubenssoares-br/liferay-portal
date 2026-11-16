@@ -5,12 +5,12 @@
 
 package com.liferay.portal.cluster.multiple.internal.jgroups;
 
+import com.liferay.petra.io.Deserializer;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.lang.ThreadContextClassLoaderUtil;
 import com.liferay.portal.cluster.multiple.internal.ClusterReceiver;
 import com.liferay.portal.kernel.cluster.Address;
 import com.liferay.portal.kernel.dependency.manager.DependencyManagerSyncUtil;
-import com.liferay.portal.kernel.io.Deserializer;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.AggregateClassLoader;
@@ -23,13 +23,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.jgroups.Message;
-import org.jgroups.ReceiverAdapter;
+import org.jgroups.Receiver;
 import org.jgroups.View;
 
 /**
  * @author Tina Tian
  */
-public class JGroupsReceiver extends ReceiverAdapter {
+public class JGroupsReceiver implements Receiver {
 
 	public JGroupsReceiver(
 		ClusterReceiver clusterReceiver,
@@ -52,7 +52,18 @@ public class JGroupsReceiver extends ReceiverAdapter {
 
 	@Override
 	public void receive(Message message) {
-		byte[] rawBuffer = message.getRawBuffer();
+		byte[] rawBuffer = null;
+
+		if (message.hasArray()) {
+			rawBuffer = message.getArray();
+		}
+		else {
+			if (_log.isWarnEnabled()) {
+				_log.warn("Message does not carry a byte[] payload");
+			}
+
+			return;
+		}
 
 		if (rawBuffer == null) {
 			if (_log.isWarnEnabled()) {

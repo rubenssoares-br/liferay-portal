@@ -12,6 +12,7 @@ import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectField;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
+import com.liferay.object.rest.manager.exception.ObjectEntryManagerHttpException;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManager;
 import com.liferay.object.rest.test.util.BaseObjectEntryManagerImplTestCase;
 import com.liferay.object.storage.sugarcrm.configuration.SugarCRMConfiguration;
@@ -19,6 +20,7 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.SortFactoryUtil;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsUtil;
@@ -28,7 +30,7 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.test.rule.FeatureFlags;
+import com.liferay.portal.test.rule.FeatureFlag;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -46,6 +48,7 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -56,7 +59,7 @@ import org.junit.runner.RunWith;
 /**
  * @author Maurice Sepe
  */
-@FeatureFlags("LPS-135430")
+@FeatureFlag("LPS-135430")
 @RunWith(Arquillian.class)
 public class SugarCRMObjectEntryManagerImplTest
 	extends BaseObjectEntryManagerImplTestCase {
@@ -125,12 +128,14 @@ public class SugarCRMObjectEntryManagerImplTest
 
 		_objectDefinition =
 			objectDefinitionLocalService.addCustomObjectDefinition(
-				adminUser.getUserId(), 0, null, false, true, false, false,
+				null, adminUser.getUserId(), 0, null, null, false, false, true,
+				false, true, false, false, false, false, null,
 				LocalizedMapUtil.getLocalizedMap("Contact"), "Contact", null,
 				null, LocalizedMapUtil.getLocalizedMap("Contacts"), true,
 				ObjectDefinitionConstants.SCOPE_COMPANY,
 				ObjectDefinitionConstants.STORAGE_TYPE_SUGARCRM,
-				Collections.emptyList());
+				Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList(), new ServiceContext());
 
 		_objectDefinition.setExternalReferenceCode("Contacts");
 
@@ -171,6 +176,17 @@ public class SugarCRMObjectEntryManagerImplTest
 			objectDefinitionLocalService.publishCustomObjectDefinition(
 				adminUser.getUserId(),
 				_objectDefinition.getObjectDefinitionId());
+
+		try {
+			getObjectEntries(Collections.<String, String>emptyMap(), null);
+		}
+		catch (ObjectEntryManagerHttpException
+					objectEntryManagerHttpException) {
+
+			Assume.assumeNoException(
+				"Unable to authenticate with SugarCRM",
+				objectEntryManagerHttpException);
+		}
 	}
 
 	@After

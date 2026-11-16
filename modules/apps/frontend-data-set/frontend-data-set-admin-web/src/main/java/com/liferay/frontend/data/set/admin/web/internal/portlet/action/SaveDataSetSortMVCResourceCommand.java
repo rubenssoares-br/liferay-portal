@@ -5,7 +5,8 @@
 
 package com.liferay.frontend.data.set.admin.web.internal.portlet.action;
 
-import com.liferay.frontend.data.set.admin.web.internal.constants.FDSAdminPortletKeys;
+import com.liferay.frontend.data.set.constants.FDSAdminPortletKeys;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.rest.dto.v1_0.ObjectEntry;
 import com.liferay.object.rest.manager.v1_0.DefaultObjectEntryManager;
@@ -13,6 +14,7 @@ import com.liferay.object.rest.manager.v1_0.DefaultObjectEntryManagerProvider;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManagerRegistry;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryService;
+import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.portlet.JSONPortletResponseUtil;
@@ -30,14 +32,14 @@ import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+
 import java.io.Serializable;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -47,7 +49,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + FDSAdminPortletKeys.FDS_ADMIN,
+		"jakarta.portlet.name=" + FDSAdminPortletKeys.FDS_ADMIN,
 		"mvc.command.name=/frontend_data_set_admin/save_data_set_sort"
 	},
 	service = MVCResourceCommand.class
@@ -73,8 +75,9 @@ public class SaveDataSetSortMVCResourceCommand
 			ParamUtil.getString(resourceRequest, "useAsDefaultSorting"));
 
 		ObjectDefinition dataSetObjectDefinition =
-			_objectDefinitionLocalService.fetchObjectDefinition(
-				themeDisplay.getCompanyId(), "DataSet");
+			_objectDefinitionLocalService.
+				fetchObjectDefinitionByExternalReferenceCode(
+					"L_DATA_SET", themeDisplay.getCompanyId());
 
 		if (useAsDefaultSorting) {
 			Collection<ObjectEntry> dataSetSortObjectEntries =
@@ -90,34 +93,36 @@ public class SaveDataSetSortMVCResourceCommand
 				boolean defaultProperty = GetterUtil.getBoolean(
 					properties.get("default"));
 
-				if (defaultProperty) {
-					Map<String, Serializable> values = new HashMap<>();
-
-					for (Map.Entry<String, Object> entry :
-							properties.entrySet()) {
-
-						values.put(
-							entry.getKey(), (Serializable)entry.getValue());
-					}
-
-					values.put("default", false);
-
-					_objectEntryService.updateObjectEntry(
-						dataSetSortObjectEntry.getId(), values,
-						new ServiceContext());
+				if (!defaultProperty) {
+					continue;
 				}
+
+				Map<String, Serializable> values = new HashMap<>();
+
+				for (Map.Entry<String, Object> entry : properties.entrySet()) {
+					values.put(entry.getKey(), (Serializable)entry.getValue());
+				}
+
+				values.put("default", false);
+
+				_objectEntryService.updateObjectEntry(
+					dataSetSortObjectEntry.getId(),
+					dataSetSortObjectEntry.getObjectEntryFolderId(), values,
+					new ServiceContext());
 			}
 		}
 
 		ObjectDefinition objectDefinition =
-			_objectDefinitionLocalService.fetchObjectDefinition(
-				themeDisplay.getCompanyId(), "DataSetSort");
+			_objectDefinitionLocalService.
+				fetchObjectDefinitionByExternalReferenceCode(
+					"L_DATA_SET_SORT", themeDisplay.getCompanyId());
 
 		Map<String, Serializable> labelI18nMap =
 			(Map<String, Serializable>)_jsonFactory.looseDeserialize(labelI18n);
 
 		_objectEntryService.addOrUpdateObjectEntry(
 			externalReferenceCode, 0, objectDefinition.getObjectDefinitionId(),
+			ObjectEntryFolderConstants.PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
 			HashMapBuilder.<String, Serializable>put(
 				"default", useAsDefaultSorting
 			).put(
@@ -139,7 +144,7 @@ public class SaveDataSetSortMVCResourceCommand
 	}
 
 	private Collection<ObjectEntry> _getDataSetSortObjectEntries(
-			ObjectDefinition dataSetObjectDefinition, Long objectEntryId)
+			ObjectDefinition dataSetObjectDefinition, long objectEntryId)
 		throws Exception {
 
 		DTOConverterContext dtoConverterContext =
@@ -150,12 +155,15 @@ public class SaveDataSetSortMVCResourceCommand
 		DefaultObjectEntryManager defaultObjectEntryManager =
 			DefaultObjectEntryManagerProvider.provide(
 				_objectEntryManagerRegistry.getObjectEntryManager(
+					dataSetObjectDefinition.getCompanyId(),
 					dataSetObjectDefinition.getStorageType()));
 
 		Page<ObjectEntry> relatedObjectEntriesPage =
-			defaultObjectEntryManager.getObjectEntryRelatedObjectEntries(
-				dtoConverterContext, dataSetObjectDefinition, objectEntryId,
-				"dataSetToDataSetSorts",
+			defaultObjectEntryManager.getRelatedObjectEntries(
+				dtoConverterContext, objectEntryId,
+				_objectRelationshipLocalService.getObjectRelationship(
+					dataSetObjectDefinition.getObjectDefinitionId(),
+					"dataSetToDataSetSorts"),
 				Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS));
 
 		return relatedObjectEntriesPage.getItems();
@@ -172,5 +180,8 @@ public class SaveDataSetSortMVCResourceCommand
 
 	@Reference
 	private ObjectEntryService _objectEntryService;
+
+	@Reference
+	private ObjectRelationshipLocalService _objectRelationshipLocalService;
 
 }

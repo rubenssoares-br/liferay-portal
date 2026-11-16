@@ -1,6 +1,7 @@
 @component-name = "portal-publications"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property portal.release = "true";
 	property portal.upstream = "true";
 	property testray.main.component.name = "Publications";
@@ -25,7 +26,7 @@ definition {
 		property app.server.bundles.size = "1";
 		property app.server.types = "tomcat";
 		property custom.properties = "auth.verifier.TunnelAuthVerifier.hosts.allowed=${line.separator}tunneling.servlet.shared.secret=1234567890123456";
-		property database.types = "mysql";
+		property database.types = "mysql,postgresql";
 		property databases.size = "1";
 		property minimum.slave.ram = "24";
 		property test.liferay.virtual.instance = "false";
@@ -42,7 +43,7 @@ definition {
 			remotePort = 9080);
 
 		ApplicationsMenu.gotoPortlet(
-			category = "Publications",
+			category = "In Maintenance",
 			panel = "Applications",
 			portlet = "Publications");
 
@@ -58,34 +59,11 @@ definition {
 			userEmailAddress = "test@liferay.com");
 
 		ApplicationsMenu.gotoPortlet(
-			category = "Publications",
+			category = "In Maintenance",
 			panel = "Applications",
 			portlet = "Publications");
 
 		Check.checkToggleSwitch(locator1 = "Publications#ENABLE_PUBLICATIONS_TOGGLE_SWITCH");
-
-		Alert.viewErrorMessage(errorMessage = "Staging is enabled for at least one site or asset library in the current virtual instance. Publications and staging cannot be used together.");
-	}
-
-	@priority = 5
-	test CannotEnablePublicationsWhenStagingIsTurnedOn {
-		var siteName = TestCase.getSiteName(siteName = ${siteName});
-
-		ProductMenu.gotoPortlet(
-			category = "Publishing",
-			portlet = "Staging",
-			site = "Guest");
-
-		Staging.activateStagingCP(siteName = ${siteName});
-
-		ApplicationsMenu.gotoPortlet(
-			category = "Publications",
-			panel = "Applications",
-			portlet = "Publications");
-
-		Check.checkToggleSwitch(locator1 = "Publications#ENABLE_PUBLICATIONS_TOGGLE_SWITCH");
-
-		WaitForElementPresent(locator1 = "Message#ERROR");
 
 		Alert.viewErrorMessage(errorMessage = "Staging is enabled for at least one site or asset library in the current virtual instance. Publications and staging cannot be used together.");
 	}
@@ -94,7 +72,7 @@ definition {
 	@priority = 4
 	test CreatePublicationsInNonRootContext {
 		property app.server.types = "tomcat";
-		property database.types = "mysql";
+		property database.types = "mysql,postgresql";
 		property portal.context = "liferay";
 		property skip.clean-app-server-deploy-dir = "true";
 		property test.assert.warning.exceptions = "true";

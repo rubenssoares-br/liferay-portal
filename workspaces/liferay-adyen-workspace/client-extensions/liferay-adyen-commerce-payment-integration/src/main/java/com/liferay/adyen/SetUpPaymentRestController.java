@@ -12,7 +12,7 @@ import com.adyen.model.checkout.CreateCheckoutSessionRequest;
 import com.adyen.model.checkout.CreateCheckoutSessionResponse;
 import com.adyen.service.checkout.PaymentsApi;
 
-import com.liferay.client.extension.util.spring.boot.BaseRestController;
+import com.liferay.client.extension.util.spring.boot3.BaseRestController;
 
 import java.math.BigDecimal;
 
@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * @author Crescenzo Rega
@@ -118,7 +119,10 @@ public class SetUpPaymentRestController extends BaseRestController {
 						"webhookUsername",
 						typeSettingsJSONObject.getString("webhookUsername")
 					).toString(),
-					"/o/c/n1a0adyenwebhooks");
+					UriComponentsBuilder.fromPath(
+						"/o/c/n1a0adyenwebhooks"
+					).build(
+					).toUri());
 			}
 		}
 		catch (Exception exception) {

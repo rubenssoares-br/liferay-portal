@@ -1,9 +1,8 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property ci.retries.disabled = "true";
-	property custom.properties = "feature.flag.LPD-38869=true";
-	property portal.release = "true";
 	property portal.upstream = "true";
 	property testray.main.component.name = "Staging";
 
@@ -11,6 +10,14 @@ definition {
 		TestCase.setUpPortalInstance();
 
 		User.firstLoginPG();
+
+		task ("Enable private pages") {
+			PagesAdmin.enablePrivatePages();
+		}
+
+		task ("Enable the Staging Page Variations deprecation feature flag") {
+			Staging.enablePageVariationsFeatureFlag();
+		}
 	}
 
 	tearDown {
@@ -27,6 +34,7 @@ definition {
 	@description = "User can enable local staging on site which is based on Masterclass site template."
 	@priority = 4
 	test CanEnableLocalStagingOnMasterclassSiteTemplate {
+		property portal.release = "true";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -60,6 +68,8 @@ definition {
 	@ignore = "true"
 	@priority = 4
 	test CanEnableLocalStagingOnMiniumSiteTemplate {
+		property portal.release = "true";
+
 		task ("Given: Add a new site based on Minium site template") {
 			Site.openSitesAdmin();
 
@@ -95,6 +105,8 @@ definition {
 	@description = "User can enable local staging on site which is based on Speedwell site template."
 	@priority = 4
 	test CanEnableLocalStagingOnSpeedwellSiteTemplate {
+		property portal.release = "true";
+
 		task ("Given: Add a new site based on Speedwell site template") {
 			Site.openSitesAdmin();
 
@@ -124,10 +136,11 @@ definition {
 	@description = "User can enable local staging on site which is based on Team Extranet site template."
 	@priority = 4
 	test CanEnableLocalStagingOnTeamExtranetSiteTemplate {
+		property portal.release = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
-		task ("Given: Add a new site based on Raylife site template") {
+		task ("Given: Add a new site based on Team Extranet site template") {
 			Site.openSitesAdmin();
 
 			Site.addSiteTemplateCP(
@@ -143,15 +156,7 @@ definition {
 		}
 
 		task ("Then: User can publish the staging site") {
-			Navigator.openSiteURL(siteName = "Test Team Extranet Site");
-
-			var key_tabName = "Staging";
-
-			while (IsElementNotPresent(locator1 = "StagingPublishToLive#TAB_NAME")) {
-				Refresh();
-			}
-
-			Click(locator1 = "StagingPublishToLive#TAB_NAME");
+			Navigator.openStagingSiteURL(siteName = "Test Team Extranet Site");
 
 			Staging.gotoPublishToLive();
 
@@ -162,6 +167,8 @@ definition {
 	@description = "User can enable local staging on site which is based on Welcome site template."
 	@priority = 4
 	test CanEnableLocalStagingOnWelcomeSiteTemplate {
+		property portal.release = "true";
+
 		task ("Given: Add a new site based on Welcome site template") {
 			Site.openSitesAdmin();
 

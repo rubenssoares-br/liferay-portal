@@ -31,15 +31,42 @@ public class KaleoDefinitionServiceUtil {
 	 *
 	 * Never modify this class directly. Add custom service methods to <code>com.liferay.portal.workflow.kaleo.service.impl.KaleoDefinitionServiceImpl</code> and rerun ServiceBuilder to regenerate this class.
 	 */
+	public static KaleoDefinition activateKaleoDefinition(
+			String name, int version,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().activateKaleoDefinition(
+			name, version, serviceContext);
+	}
+
 	public static KaleoDefinition addKaleoDefinition(
 			String externalReferenceCode, String name, String title,
-			String description, String content, String scope, int version,
+			String description, String content, String scope, boolean system,
+			int version,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addKaleoDefinition(
 			externalReferenceCode, name, title, description, content, scope,
-			version, serviceContext);
+			system, version, serviceContext);
+	}
+
+	public static KaleoDefinition deactivateKaleoDefinition(
+			String name, int version,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().deactivateKaleoDefinition(
+			name, version, serviceContext);
+	}
+
+	public static KaleoDefinition deleteKaleoDefinition(
+			String name,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws PortalException {
+
+		return getService().deleteKaleoDefinition(name, serviceContext);
 	}
 
 	public static KaleoDefinition getKaleoDefinition(long kaleoDefinitionId)
@@ -95,13 +122,13 @@ public class KaleoDefinitionServiceUtil {
 
 	public static KaleoDefinition updateKaleoDefinition(
 			String externalReferenceCode, long kaleoDefinitionId, String title,
-			String description, String content,
+			String description, String content, boolean system,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().updateKaleoDefinition(
 			externalReferenceCode, kaleoDefinitionId, title, description,
-			content, serviceContext);
+			content, system, serviceContext);
 	}
 
 	public static KaleoDefinitionService getService() {
@@ -113,3 +140,4 @@ public class KaleoDefinitionServiceUtil {
 			KaleoDefinitionServiceUtil.class, KaleoDefinitionService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1143252472

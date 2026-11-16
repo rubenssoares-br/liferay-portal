@@ -4,16 +4,13 @@
  */
 
 import {
-	addParams,
-	createPortletURL,
-	navigate,
 	openCategorySelectionModal,
 	openConfirmModal,
 	openSelectionModal,
 	openTagSelectionModal,
 	openToast,
-	sub,
-} from 'frontend-js-web';
+} from 'frontend-js-components-web';
+import {addParams, createPortletURL, navigate, sub} from 'frontend-js-web';
 
 import {collectDigitalSignature} from './digital-signature/DigitalSignatureUtil';
 
@@ -61,7 +58,7 @@ export default function propsTransformer({
 		form.setAttribute('method', 'post');
 
 		const actionInputElement = form.querySelector(
-			`#${portletNamespace}javax-portlet-action`
+			`#${portletNamespace}jakarta-portlet-action`
 		);
 
 		if (actionInputElement) {
@@ -382,7 +379,7 @@ export default function propsTransformer({
 
 		const [selectedModelClassName, selectedFileEntries] = map
 			.entries()
-			?.next().value;
+			.next().value;
 
 		const permissionsURL = permissionsURLs[selectedModelClassName];
 
@@ -445,6 +442,9 @@ export default function propsTransformer({
 					item?.data?.aiCreatorURL,
 					item?.data?.isAICreatorOpenAIAPIKey
 				);
+			}
+			else if (item?.data?.action) {
+				Liferay.fire(item.data.action, {data: item.data});
 			}
 		},
 		onFilterDropdownItemClick(event, {item}) {

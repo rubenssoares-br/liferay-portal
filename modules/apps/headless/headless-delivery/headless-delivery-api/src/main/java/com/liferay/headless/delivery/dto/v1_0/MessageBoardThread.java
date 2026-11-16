@@ -14,31 +14,32 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -49,11 +50,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 	description = "Represents a discussion thread in a message board.",
 	value = "MessageBoardThread"
 )
-@JsonFilter("Liferay.Vulcan")
-@Schema(
+@io.swagger.v3.oas.annotations.media.Schema(
 	description = "Represents a discussion thread in a message board.",
 	requiredProperties = {"headline"}
 )
+@JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "MessageBoardThread")
 public class MessageBoardThread implements Serializable {
 
@@ -65,7 +66,7 @@ public class MessageBoardThread implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(MessageBoardThread.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Block of actions allowed by the user making the request."
 	)
 	@Valid
@@ -112,7 +113,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema(description = "The thread's average rating.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The thread's average rating."
+	)
 	@Valid
 	public AggregateRating getAggregateRating() {
 		if (_aggregateRatingSupplier != null) {
@@ -155,7 +158,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<AggregateRating> _aggregateRatingSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The thread's main body content (the message written as the thread's description)."
 	)
 	public String getArticleBody() {
@@ -200,7 +203,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _articleBodySupplier;
 
-	@Schema(description = "The thread's creator.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The thread's creator."
+	)
 	@Valid
 	public Creator getCreator() {
 		if (_creatorSupplier != null) {
@@ -242,7 +247,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The thread's creator statistics (rank, join date, number of posts, ...)"
 	)
 	@Valid
@@ -289,11 +294,13 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<CreatorStatistics> _creatorStatisticsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A list of the custom fields associated with the thread."
 	)
 	@Valid
-	public CustomField[] getCustomFields() {
+	public com.liferay.portal.vulcan.custom.field.CustomField[]
+		getCustomFields() {
+
 		if (_customFieldsSupplier != null) {
 			customFields = _customFieldsSupplier.get();
 
@@ -303,7 +310,9 @@ public class MessageBoardThread implements Serializable {
 		return customFields;
 	}
 
-	public void setCustomFields(CustomField[] customFields) {
+	public void setCustomFields(
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields) {
+
 		this.customFields = customFields;
 
 		_customFieldsSupplier = null;
@@ -311,7 +320,9 @@ public class MessageBoardThread implements Serializable {
 
 	@JsonIgnore
 	public void setCustomFields(
-		UnsafeSupplier<CustomField[], Exception> customFieldsUnsafeSupplier) {
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.custom.field.CustomField[], Exception>
+				customFieldsUnsafeSupplier) {
 
 		_customFieldsSupplier = () -> {
 			try {
@@ -330,12 +341,15 @@ public class MessageBoardThread implements Serializable {
 		description = "A list of the custom fields associated with the thread."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected CustomField[] customFields;
+	protected com.liferay.portal.vulcan.custom.field.CustomField[] customFields;
 
 	@JsonIgnore
-	private Supplier<CustomField[]> _customFieldsSupplier;
+	private Supplier<com.liferay.portal.vulcan.custom.field.CustomField[]>
+		_customFieldsSupplier;
 
-	@Schema(description = "The date the thread was created.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The date the thread was created."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -376,7 +390,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The last time any field of the thread changed.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time any field of the thread changed."
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -419,7 +435,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The media format of the thread's content (e.g., HTML, BBCode, etc.)."
 	)
 	public String getEncodingFormat() {
@@ -464,7 +480,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _encodingFormatSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getFriendlyUrlPath() {
 		if (_friendlyUrlPathSupplier != null) {
 			friendlyUrlPath = _friendlyUrlPathSupplier.get();
@@ -505,7 +521,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _friendlyUrlPathSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether this thread has a message considered as valid"
 	)
 	public Boolean getHasValidAnswer() {
@@ -550,7 +566,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _hasValidAnswerSupplier;
 
-	@Schema(description = "The thread's main title.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The thread's main title."
+	)
 	public String getHeadline() {
 		if (_headlineSupplier != null) {
 			headline = _headlineSupplier.get();
@@ -592,7 +610,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _headlineSupplier;
 
-	@Schema(description = "The thread's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The thread's ID."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -631,7 +651,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "A list of keywords describing the thread.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of keywords describing the thread."
+	)
 	public String[] getKeywords() {
 		if (_keywordsSupplier != null) {
 			keywords = _keywordsSupplier.get();
@@ -672,7 +694,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String[]> _keywordsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getLastPostDate() {
 		if (_lastPostDateSupplier != null) {
 			lastPostDate = _lastPostDateSupplier.get();
@@ -713,7 +735,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _lastPostDateSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether this thread is locked."
 	)
 	public Boolean getLocked() {
@@ -758,7 +780,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _lockedSupplier;
 
-	@Schema(description = "The ID of the thread's message.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The ID of the thread's message."
+	)
 	public Long getMessageBoardRootMessageId() {
 		if (_messageBoardRootMessageIdSupplier != null) {
 			messageBoardRootMessageId =
@@ -801,7 +825,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _messageBoardRootMessageIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The ID of the Message Board Section to which this message is scoped."
 	)
 	public Long getMessageBoardSectionId() {
@@ -846,7 +870,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _messageBoardSectionIdSupplier;
 
-	@Schema(description = "The number of the thread's attachments.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The number of the thread's attachments."
+	)
 	public Integer getNumberOfMessageBoardAttachments() {
 		if (_numberOfMessageBoardAttachmentsSupplier != null) {
 			numberOfMessageBoardAttachments =
@@ -891,7 +917,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _numberOfMessageBoardAttachmentsSupplier;
 
-	@Schema(description = "The number of the thread's messages.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The number of the thread's messages."
+	)
 	public Integer getNumberOfMessageBoardMessages() {
 		if (_numberOfMessageBoardMessagesSupplier != null) {
 			numberOfMessageBoardMessages =
@@ -936,7 +964,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _numberOfMessageBoardMessagesSupplier;
 
-	@Schema(description = "A list of related contents to this thread.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A list of related contents to this thread."
+	)
 	@Valid
 	public RelatedContent[] getRelatedContents() {
 		if (_relatedContentsSupplier != null) {
@@ -979,7 +1009,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<RelatedContent[]> _relatedContentsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether this thread has been seen."
 	)
 	public Boolean getSeen() {
@@ -1022,7 +1052,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _seenSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether this thread was posted as a question that can receive approved answers."
 	)
 	public Boolean getShowAsQuestion() {
@@ -1067,7 +1097,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _showAsQuestionSupplier;
 
-	@Schema(description = "The ID of the site to which this thread is scoped.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The ID of the site to which this thread is scoped."
+	)
 	public Long getSiteId() {
 		if (_siteIdSupplier != null) {
 			siteId = _siteIdSupplier.get();
@@ -1110,7 +1142,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema(description = "The thread's status.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The thread's status."
+	)
 	public String getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -1151,7 +1185,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _statusSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether the user making the requests is subscribed to this thread."
 	)
 	public Boolean getSubscribed() {
@@ -1196,7 +1230,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _subscribedSupplier;
 
-	@Schema(description = "The categories associated with this thread.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The categories associated with this thread."
+	)
 	@Valid
 	public TaxonomyCategoryBrief[] getTaxonomyCategoryBriefs() {
 		if (_taxonomyCategoryBriefsSupplier != null) {
@@ -1241,7 +1277,7 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<TaxonomyCategoryBrief[]> _taxonomyCategoryBriefsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A write-only field that adds `TaxonomyCategory` instances to the thread."
 	)
 	public Long[] getTaxonomyCategoryIds() {
@@ -1286,7 +1322,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Long[]> _taxonomyCategoryIdsSupplier;
 
-	@Schema(description = "The thread's type.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The thread's type."
+	)
 	public String getThreadType() {
 		if (_threadTypeSupplier != null) {
 			threadType = _threadTypeSupplier.get();
@@ -1327,7 +1365,9 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _threadTypeSupplier;
 
-	@Schema(description = "The number of views of this thread.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The number of views of this thread."
+	)
 	public Long getViewCount() {
 		if (_viewCountSupplier != null) {
 			viewCount = _viewCountSupplier.get();
@@ -1368,10 +1408,10 @@ public class MessageBoardThread implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _viewCountSupplier;
 
-	@JsonGetter("viewableBy")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A write-only property that specifies the thread's default permissions."
 	)
+	@JsonGetter("viewableBy")
 	@Valid
 	public ViewableBy getViewableBy() {
 		if (_viewableBySupplier != null) {
@@ -1520,7 +1560,8 @@ public class MessageBoardThread implements Serializable {
 			sb.append(String.valueOf(creatorStatistics));
 		}
 
-		CustomField[] customFields = getCustomFields();
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields =
+			getCustomFields();
 
 		if (customFields != null) {
 			if (sb.length() > 1) {
@@ -1532,7 +1573,7 @@ public class MessageBoardThread implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < customFields.length; i++) {
-				sb.append(String.valueOf(customFields[i]));
+				sb.append(customFields[i]);
 
 				if ((i + 1) < customFields.length) {
 					sb.append(", ");
@@ -1919,9 +1960,7 @@ public class MessageBoardThread implements Serializable {
 			sb.append("\"viewableBy\": ");
 
 			sb.append("\"");
-
 			sb.append(viewableBy);
-
 			sb.append("\"");
 		}
 
@@ -1930,8 +1969,8 @@ public class MessageBoardThread implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.MessageBoardThread",
 		name = "x-class-name"
 	)
@@ -2056,6 +2095,27 @@ public class MessageBoardThread implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -2064,3 +2124,4 @@ public class MessageBoardThread implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1270133370

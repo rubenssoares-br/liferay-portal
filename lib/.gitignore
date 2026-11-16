@@ -1,5 +1,4 @@
 /development/activation.jar
-/development/alloy-taglib.jar
 /development/ant-apache-bsf.jar
 /development/ant-compress.jar
 /development/asm-commons.jar
@@ -26,7 +25,6 @@
 /development/dtddoc.jar
 /development/dtdparser.jar
 /development/dumbster.jar
-/development/error-prone-ant.jar
 /development/freemarker.jar
 /development/guava.jar
 /development/hamcrest-core.jar
@@ -53,7 +51,6 @@
 /development/mariadb.jar
 /development/maven-ant-tasks.jar
 /development/mockito-core.jar
-/development/mockito-inline.jar
 /development/mysql.jar
 /development/objenesis.jar
 /development/ojdbc14.jar
@@ -65,7 +62,7 @@
 /development/osgi-service-component.jar
 /development/osgi-service-log.jar
 /development/p6spy.jar
-/development/portletmvc4spring-test.jar
+/development/portlet.jar
 /development/postgresql.jar
 /development/qdox.jar
 /development/reflections.jar
@@ -104,8 +101,8 @@
 /portal/isoparser.jar
 /portal/istack-commons-runtime.jar
 /portal/jabsorb.jar
-/portal/javassist.jar
 /portal/jaxb-api.jar
+/portal/jaxb-core.jar
 /portal/jaxb-runtime.jar
 /portal/jaxen.jar
 /portal/jaxws-api.jar
@@ -118,7 +115,6 @@
 /portal/log4j-api.jar
 /portal/log4j-core.jar
 /portal/persistence.jar
-/portal/portlet.jar
 /portal/simplecaptcha.jar
 /portal/slf4j-api.jar
 /portal/soap-api.jar
@@ -128,10 +124,10 @@
 /portal/spring-core.jar
 /portal/spring-expression.jar
 /portal/spring-jdbc.jar
-/portal/spring-orm.jar
 /portal/spring-tx.jar
 /portal/spring-web.jar
 /portal/stax-ex.jar
 /portal/transaction.jar
+/portal/txw2.jar
 /portal/xercesImpl.jar
 /portal/xml-apis.jar

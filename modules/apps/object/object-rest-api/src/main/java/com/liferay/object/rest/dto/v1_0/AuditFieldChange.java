@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -51,7 +51,7 @@ public class AuditFieldChange implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(AuditFieldChange.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -90,7 +90,7 @@ public class AuditFieldChange implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getNewValue() {
 		if (_newValueSupplier != null) {
@@ -132,7 +132,7 @@ public class AuditFieldChange implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _newValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getOldValue() {
 		if (_oldValueSupplier != null) {
@@ -226,18 +226,7 @@ public class AuditFieldChange implements Serializable {
 
 			sb.append("\"newValue\": ");
 
-			if (newValue instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)newValue));
-			}
-			else if (newValue instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)newValue));
-				sb.append("\"");
-			}
-			else {
-				sb.append(newValue);
-			}
+			sb.append(_toJSON(newValue));
 		}
 
 		Object oldValue = getOldValue();
@@ -249,18 +238,7 @@ public class AuditFieldChange implements Serializable {
 
 			sb.append("\"oldValue\": ");
 
-			if (oldValue instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)oldValue));
-			}
-			else if (oldValue instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)oldValue));
-				sb.append("\"");
-			}
-			else {
-				sb.append(oldValue);
-			}
+			sb.append(_toJSON(oldValue));
 		}
 
 		sb.append("}");
@@ -268,8 +246,8 @@ public class AuditFieldChange implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.object.rest.dto.v1_0.AuditFieldChange",
 		name = "x-class-name"
 	)
@@ -356,6 +334,27 @@ public class AuditFieldChange implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -364,3 +363,4 @@ public class AuditFieldChange implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1642428549

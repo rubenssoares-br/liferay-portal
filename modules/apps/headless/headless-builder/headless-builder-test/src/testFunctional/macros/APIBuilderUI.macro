@@ -105,22 +105,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro assertSortedStatusInOrder(statusList = null) {
-		Variables.assertDefined(parameterList = ${statusList});
-
-		var key_index = 1;
-
-		for (var statusValue : list ${statusList}) {
-			AssertTextEquals(
-				index = ${key_index},
-				locator1 = "APIBuilder#STATUS_LIST",
-				value1 = ${statusValue});
-
-			var key_index = ${key_index} + 1;
-		}
-	}
-
-	@summary = "Default summary"
 	macro changePublicationStatus(key_title = null) {
 		ApplicationsMenu.gotoPortlet(
 			category = "Object",
@@ -262,6 +246,8 @@ definition {
 		}
 
 		Click(locator1 = "APIBuilder#CREATE_BUTTON");
+
+		WaitForElementPresent(locator1 = "APIBuilder#PUBLISH_BUTTON");
 	}
 
 	@summary = "Default summary"
@@ -346,10 +332,6 @@ definition {
 			locator1 = "APIBuilder#DROPDOWN_MENU");
 
 		Click(locator1 = "APIBuilder#DELETE_IN_DROPDOWN_MENU");
-
-		if (isSet(confirmDeletion)) {
-			Click(locator1 = "APIBuilder#MODAL_DELETE_BUTTON");
-		}
 	}
 
 	@summary = "Default summary"
@@ -363,10 +345,6 @@ definition {
 			locator1 = "APIBuilder#DROPDOWN_MENU");
 
 		Click(locator1 = "APIBuilder#DELETE_IN_DROPDOWN_MENU");
-
-		if (isSet(confirmDeletion)) {
-			Click(locator1 = "APIBuilder#MODAL_DELETE_BUTTON");
-		}
 	}
 
 	@summary = "Default summary"
@@ -464,8 +442,8 @@ definition {
 		Click(locator1 = "APIBuilder#EDIT_BUTTON");
 
 		Click(
-			locator1 = "Button#BUTTON_WITH_VALUE",
-			value = ${tabEntity});
+			key_tab = ${tabEntity},
+			locator1 = "NavTab#TAB_LINK");
 	}
 
 	@summary = "Default summary"
@@ -499,23 +477,6 @@ definition {
 		KeyPress(
 			locator1 = "TextInput#SEARCH",
 			value1 = "\RETURN");
-	}
-
-	@summary = "Default summary"
-	macro setPanelCategoryKeyToObject(objectDefinition = null) {
-		Variables.assertDefined(parameterList = ${objectDefinition});
-
-		ObjectAdmin.openObjectAdmin();
-
-		WaitForPageLoad();
-
-		ObjectPortlet.selectCustomObject(label = ${objectDefinition});
-
-		ObjectAdmin.selectDropdownItem(
-			labelName = "Panel Link",
-			optionName = "Object");
-
-		CreateObject.saveObject();
 	}
 
 	@summary = "Default summary"

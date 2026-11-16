@@ -481,6 +481,14 @@ public class SiteNavigationMenuItemLocalServiceWrapper
 			siteNavigationMenuId, orderByComparator);
 	}
 
+	@Override
+	public java.util.List<SiteNavigationMenuItem> getSiteNavigationMenuItems(
+		String type) {
+
+		return _siteNavigationMenuItemLocalService.getSiteNavigationMenuItems(
+			type);
+	}
+
 	/**
 	 * Returns all the site navigation menu items matching the UUID and company.
 	 *
@@ -528,12 +536,6 @@ public class SiteNavigationMenuItemLocalServiceWrapper
 	public int getSiteNavigationMenuItemsCount() {
 		return _siteNavigationMenuItemLocalService.
 			getSiteNavigationMenuItemsCount();
-	}
-
-	@Override
-	public int getSiteNavigationMenuItemsCount(long siteNavigationMenuId) {
-		return _siteNavigationMenuItemLocalService.
-			getSiteNavigationMenuItemsCount(siteNavigationMenuId);
 	}
 
 	@Override
@@ -628,3 +630,4 @@ public class SiteNavigationMenuItemLocalServiceWrapper
 		_siteNavigationMenuItemLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1123962971

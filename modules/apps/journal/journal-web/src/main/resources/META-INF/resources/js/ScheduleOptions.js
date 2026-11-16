@@ -8,9 +8,13 @@ import ClayDatePicker from '@clayui/date-picker';
 import ClayForm, {ClayInput} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import classNames from 'classnames';
-import {sub} from 'frontend-js-web';
-import moment from 'moment/min/moment-with-locales';
+import {dateUtils, sub} from 'frontend-js-web';
 import React, {useEffect} from 'react';
+
+const DATE_TIME_LENGTH = 16;
+const DATE_TIME_LENGTH_AM_PM = 19;
+const FUTURE_YEARS_RANGE = 25;
+const PAST_YEARS_RANGE = 50;
 
 export default function ScheduleOptions({
 	displayDate,
@@ -20,29 +24,30 @@ export default function ScheduleOptions({
 	setDisplayDate,
 	setError,
 	timeZone,
+	use12Hours,
 }) {
+	const currentYear = new Date().getFullYear();
 	const {day, hour, minutes, month, year} = getDate(displayDate);
 
 	useEffect(() => {
 		if (displayDate) {
-			if (!moment(displayDate, 'yyyy-MM-DD HH:mm', true).isValid()) {
+			const requiredLength = use12Hours
+				? DATE_TIME_LENGTH_AM_PM
+				: DATE_TIME_LENGTH;
+
+			if (
+				displayDate.length !== requiredLength ||
+				!dateUtils.isValid(toParseableDate(displayDate))
+			) {
 				setError(Liferay.Language.get('please-enter-a-valid-date'));
 
 				return;
-			}
-
-			const date = new Date(displayDate);
-
-			if (date.valueOf() <= new Date().valueOf()) {
-				setError(
-					Liferay.Language.get('the-date-entered-is-in-the-past')
-				);
 			}
 			else {
 				setError('');
 			}
 		}
-	}, [setError, displayDate]);
+	}, [displayDate, setError, timeZone, use12Hours]);
 
 	return (
 		<>
@@ -61,16 +66,54 @@ export default function ScheduleOptions({
 				</label>
 
 				<ClayDatePicker
+					ariaLabels={{
+						buttonChooseDate: `${Liferay.Language.get(
+							'select-date'
+						)}`,
+						buttonDot: `${Liferay.Language.get(
+							'select-current-date'
+						)}`,
+						buttonNextMonth: `${Liferay.Language.get(
+							'select-next-month'
+						)}`,
+						buttonPreviousMonth: `${Liferay.Language.get(
+							'select-previous-month'
+						)}`,
+						dialog: `${Liferay.Language.get('select-date')}`,
+						selectMonth: `${Liferay.Language.get('select-a-month')}`,
+						selectYear: `${Liferay.Language.get('select-a-year')}`,
+					}}
+					firstDayOfWeek={dateUtils.getFirstDayOfWeek()}
 					id={`${portletNamespace}displayDatePicker`}
+					months={[
+						`${Liferay.Language.get('january')}`,
+						`${Liferay.Language.get('february')}`,
+						`${Liferay.Language.get('march')}`,
+						`${Liferay.Language.get('april')}`,
+						`${Liferay.Language.get('may')}`,
+						`${Liferay.Language.get('june')}`,
+						`${Liferay.Language.get('july')}`,
+						`${Liferay.Language.get('august')}`,
+						`${Liferay.Language.get('september')}`,
+						`${Liferay.Language.get('october')}`,
+						`${Liferay.Language.get('november')}`,
+						`${Liferay.Language.get('december')}`,
+					]}
 					onChange={setDisplayDate}
-					placeholder="YYYY-MM-DD HH:mm"
+					placeholder={
+						use12Hours
+							? Liferay.Language.get('yyyy-mm-dd-hh-mm-am-pm')
+							: Liferay.Language.get('yyyy-mm-dd-hh-mm')
+					}
 					required
 					time
-					timezone={timeZone}
+					timezone={timeZone.name}
+					use12Hours={use12Hours}
 					value={displayDate || ''}
+					weekdaysShort={dateUtils.getWeekdaysShort()}
 					years={{
-						end: 9999,
-						start: new Date().getFullYear(),
+						end: currentYear + FUTURE_YEARS_RANGE,
+						start: currentYear - PAST_YEARS_RANGE,
 					}}
 				/>
 
@@ -89,7 +132,7 @@ export default function ScheduleOptions({
 			</ClayForm.Group>
 
 			<p className="mt-1 text-3 text-secondary">
-				{sub(Liferay.Language.get('time-zone-x'), timeZone)}
+				{sub(Liferay.Language.get('time-zone-x'), timeZone.name)}
 			</p>
 
 			<ClayInput
@@ -108,7 +151,7 @@ export default function ScheduleOptions({
 
 			<ClayInput
 				form={formId}
-				name={`${portletNamespace}displayDateMinutes`}
+				name={`${portletNamespace}displayDateMinute`}
 				type="hidden"
 				value={minutes}
 			/>
@@ -131,11 +174,9 @@ export default function ScheduleOptions({
 }
 
 function getDate(value) {
-	const date = new Date(value);
+	const date = new Date(toParseableDate(value));
 
-	if (moment(date).isValid()) {
-		const date = new Date(value);
-
+	if (dateUtils.isValid(date)) {
 		return {
 			day: date.getDate(),
 			hour: date.getHours(),
@@ -146,4 +187,19 @@ function getDate(value) {
 	}
 
 	return {day: '', hour: '', minutes: '', month: '', year: ''};
+}
+
+export function toParseableDate(value) {
+	const match = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) (AM|PM)$/i.exec(value);
+
+	if (!match) {
+		return value;
+	}
+
+	const [, date, hours, minutes, meridiem] = match;
+
+	const hours24 =
+		(Number(hours) % 12) + (meridiem.toUpperCase() === 'PM' ? 12 : 0);
+
+	return `${date} ${String(hours24).padStart(2, '0')}:${minutes}`;
 }

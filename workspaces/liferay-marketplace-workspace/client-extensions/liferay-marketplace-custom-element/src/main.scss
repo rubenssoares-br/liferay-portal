@@ -1,5 +1,3 @@
-@import '@clayui/charts/src/scss/main';
-
 html.dev body {
 	align-items: center;
 	display: flex;
@@ -14,10 +12,71 @@ html.dev body {
 	}
 }
 
-.secondary-text {
-	color: #54555f;
-	font-size: 1rem;
-	font-weight: 400;
+.cursor-pointer {
+	cursor: pointer;
+}
+
+.dropdown-item {
+	transition: all 0.3s ease-in-out;
+}
+
+.dropdown-item:hover {
+	border-radius: 4px;
+}
+
+.dropdown-menu {
+	border-radius: 8px !important;
+	padding: 8px !important;
+}
+
+.image-fit {
+	object-fit: contain;
+}
+
+.loading-container {
+	text-align: center;
+	z-index: 100;
+}
+
+.loading-overlay {
+	align-items: center;
+	display: flex;
+	height: 100%;
+	justify-content: center;
+	left: 0;
+	overflow-y: hidden;
+	position: fixed;
+	top: 0;
+	width: 100%;
+	z-index: 100;
+}
+
+.loading-overlay:before {
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(3px);
+	background: rgba(255, 255, 255, 0.7);
+	content: '';
+	height: 100%;
+	left: 0;
+	pointer-events: none;
+	position: fixed;
+	top: 0;
+	width: 100%;
+	z-index: 2;
+}
+
+.loading-text {
+	width: 300px;
+}
+
+.marketplace-publisher-header {
+	margin-top: 1rem !important;
+}
+
+.mkt {
+	&-gap-1 {
+		gap: 1rem;
+	}
 }
 
 .product-banner {
@@ -75,48 +134,67 @@ html.dev body {
 	}
 }
 
-.mkt {
-	&-gap-1 {
-		gap: 1rem;
+.secondary-text {
+	color: #54555f;
+}
+
+.section-disabled {
+	opacity: 0.7;
+	pointer-events: none;
+}
+
+.btn-outline-secondary {
+	background-color: transparent !important;
+	border-color: var(--action-neutral-default, #2b3a4b) !important;
+	color: var(--action-neutral-default, #2b3a4b) !important;
+	transition: all 0.2s ease-in-out;
+
+	&:hover,
+	&:focus,
+	&:active {
+		background-color: #f1f2f4 !important;
+		border-color: var(--action-neutral-hover, #1d2834) !important;
+		color: var(--action-neutral-hover, #1d2834) !important;
 	}
 }
 
-.marketplace-publisher-header {
-	margin-top: 1rem !important;
+.btn-outline-primary {
+	background-color: transparent !important;
+	border-color: var(--primary, #0b5fff) !important;
+	color: var(--primary, #0b5fff) !important;
+	transition: all 0.2s ease-in-out;
+
+	&:hover,
+	&:focus,
+	&:active {
+		background-color: #e6f0ff !important;
+		border-color: var(--primary-hover, #004bdf) !important;
+		color: var(--primary-hover, #004bdf) !important;
+	}
 }
 
-.loading-container {
-	text-align: center;
-	z-index: 100;
-}
+.tokens-card {
+	.detailed-card-header-icon-container {
+		background-color: #e6f0ff !important;
+	}
 
-.loading-overlay {
-	align-items: center;
-	display: flex;
-	height: 100%;
-	justify-content: center;
-	left: 0;
-	overflow-y: hidden;
-	position: fixed;
-	top: 0;
-	width: 100%;
-	z-index: 100;
-}
+	.detailed-card-header-clay-icon {
+		color: #0b5fff !important;
+	}
 
-.loading-overlay:before {
-	-webkit-backdrop-filter: blur(10px);
-	backdrop-filter: blur(3px);
-	background: rgba(255, 255, 255, 0.7);
-	content: '';
-	height: 100%;
-	left: 0;
-	pointer-events: none;
-	position: fixed;
-	top: 0;
-	width: 100%;
-	z-index: 2;
-}
+	.qa-table {
+		th {
+			font-size: 18px !important;
+			font-weight: 600 !important;
+			margin: 0 0 4px !important;
+			padding: 0 !important;
+		}
 
-.loading-text {
-	width: 300px;
+		td {
+			font-size: 16px !important;
+			font-weight: 400 !important;
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+	}
 }

@@ -18,6 +18,7 @@ import java.nio.file.Paths;
 
 import java.security.KeyStore;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -38,7 +39,9 @@ import org.opensearch.client.json.JsonpMapper;
 import org.opensearch.client.json.jackson.JacksonJsonpMapper;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.transport.OpenSearchTransport;
+import org.opensearch.client.transport.httpclient5.ApacheHttpClient5Transport;
 import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder;
+import org.opensearch.client.transport.httpclient5.internal.Node;
 
 /**
  * @author Michael C. Han
@@ -50,6 +53,7 @@ public class OpenSearchConnection {
 		_active = openSearchConnectionImpl._active;
 		_authenticationEnabled =
 			openSearchConnectionImpl._authenticationEnabled;
+		_compressionEnabled = openSearchConnectionImpl._compressionEnabled;
 		_connectionId = openSearchConnectionImpl._connectionId;
 		_httpSSLEnabled = openSearchConnectionImpl._httpSSLEnabled;
 		_maxConnections = openSearchConnectionImpl._maxConnections;
@@ -144,6 +148,12 @@ public class OpenSearchConnection {
 
 		public OpenSearchConnection build() {
 			return new OpenSearchConnection(_openSearchConnection);
+		}
+
+		public Builder compressionEnabled(boolean compressionEnabled) {
+			_openSearchConnection._compressionEnabled = compressionEnabled;
+
+			return this;
 		}
 
 		public Builder connectionId(String connectionId) {
@@ -265,6 +275,8 @@ public class OpenSearchConnection {
 	}
 
 	private SSLContext _createSSLContext() {
+		char[] truststorePasswordChars = _truststorePassword.toCharArray();
+
 		try {
 			Path path = Paths.get(_truststorePath);
 
@@ -272,12 +284,12 @@ public class OpenSearchConnection {
 
 			KeyStore keyStore = KeyStore.getInstance(_truststoreType);
 
-			keyStore.load(inputStream, _truststorePassword.toCharArray());
+			keyStore.load(inputStream, truststorePasswordChars);
 
 			SSLContextBuilder sslContextBuilder = SSLContexts.custom();
 
 			sslContextBuilder.loadKeyMaterial(
-				keyStore, _truststorePassword.toCharArray());
+				keyStore, truststorePasswordChars);
 			sslContextBuilder.loadTrustMaterial(keyStore, null);
 
 			return sslContextBuilder.build();
@@ -285,11 +297,27 @@ public class OpenSearchConnection {
 		catch (Exception exception) {
 			throw new RuntimeException(exception);
 		}
+		finally {
+			Arrays.fill(truststorePasswordChars, '\0');
+		}
 	}
 
 	private OpenSearchTransport _createTransport() {
 		return ApacheHttpClient5TransportBuilder.builder(
 			_getHttpHosts()
+		).setFailureListener(
+			new ApacheHttpClient5Transport.FailureListener() {
+
+				@Override
+				public void onFailure(Node node) {
+					if (_log.isWarnEnabled()) {
+						_log.warn("Marked node as unavailable: " + node);
+					}
+				}
+
+			}
+		).setCompressionEnabled(
+			_compressionEnabled
 		).setMapper(
 			new JacksonJsonpMapper()
 		).setHttpClientConfigCallback(
@@ -320,6 +348,8 @@ public class OpenSearchConnection {
 							_proxyConfig.getPort()));
 				}
 
+				httpClientBuilder.disableContentCompression();
+
 				return httpClientBuilder.setConnectionManager(
 					poolingAsyncClientConnectionManagerBuilder.build());
 			}
@@ -345,6 +375,7 @@ public class OpenSearchConnection {
 
 	private boolean _active;
 	private boolean _authenticationEnabled;
+	private boolean _compressionEnabled;
 	private String _connectionId;
 	private boolean _httpSSLEnabled;
 	private int _maxConnections;

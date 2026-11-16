@@ -40,8 +40,6 @@ AccountEntry accountEntry = commerceChannelAccountEntryRelDisplayContext.getAcco
 			creationMenu="<%= commerceChannelAccountEntryRelDisplayContext.getCreationMenu(CommerceChannelAccountEntryRelConstants.TYPE_DELIVERY_TERM) %>"
 			dataProviderKey="<%= CommerceTermEntryFDSNames.ACCOUNT_ENTRY_DELIVERY_TERM_ENTRIES %>"
 			id="<%= CommerceTermEntryFDSNames.ACCOUNT_ENTRY_DELIVERY_TERM_ENTRIES %>"
-			itemsPerPage="<%= 10 %>"
-			showSearch="<%= false %>"
 			style="fluid"
 		/>
 	</div>
@@ -70,8 +68,6 @@ AccountEntry accountEntry = commerceChannelAccountEntryRelDisplayContext.getAcco
 			creationMenu="<%= commerceChannelAccountEntryRelDisplayContext.getCreationMenu(CommerceChannelAccountEntryRelConstants.TYPE_PAYMENT_TERM) %>"
 			dataProviderKey="<%= CommerceTermEntryFDSNames.ACCOUNT_ENTRY_PAYMENT_TERM_ENTRIES %>"
 			id="<%= CommerceTermEntryFDSNames.ACCOUNT_ENTRY_PAYMENT_TERM_ENTRIES %>"
-			itemsPerPage="<%= 10 %>"
-			showSearch="<%= false %>"
 			style="fluid"
 		/>
 	</div>

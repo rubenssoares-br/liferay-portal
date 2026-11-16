@@ -5,15 +5,31 @@
 
 package com.liferay.headless.admin.user.internal.resource.v1_0;
 
+import com.liferay.exportimport.constants.ExportImportConstants;
+import com.liferay.exportimport.kernel.lar.ExportImportThreadLocal;
+import com.liferay.exportimport.report.constants.ExportImportReportEntryConstants;
+import com.liferay.exportimport.report.service.ExportImportReportEntryLocalService;
+import com.liferay.exportimport.vulcan.batch.engine.ExportImportVulcanBatchEngineTaskItemDelegate;
 import com.liferay.headless.admin.user.dto.v1_0.Role;
 import com.liferay.headless.admin.user.dto.v1_0.RolePermission;
+import com.liferay.headless.admin.user.internal.odata.entity.v1_0.RoleEntityModel;
+import com.liferay.headless.admin.user.internal.util.v1_0.ObjectDefinitionResourceNameUtil;
+import com.liferay.headless.admin.user.internal.util.v1_0.ResourcePermissionUtil;
 import com.liferay.headless.admin.user.resource.v1_0.RoleResource;
+import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.NoSuchResourceActionException;
 import com.liferay.portal.kernel.exception.NoSuchRoleException;
 import com.liferay.portal.kernel.exception.RoleAssignmentException;
+import com.liferay.portal.kernel.language.Language;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Organization;
 import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.model.role.RoleConstants;
+import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.service.OrganizationService;
@@ -27,18 +43,26 @@ import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.MapUtil;
+import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
+import com.liferay.portal.vulcan.util.SearchUtil;
+import com.liferay.roles.admin.constants.RolesAdminPortletKeys;
 import com.liferay.roles.admin.role.type.contributor.RoleTypeContributor;
 import com.liferay.roles.admin.role.type.contributor.provider.RoleTypeContributorProvider;
 
+import jakarta.ws.rs.core.MultivaluedMap;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,9 +77,12 @@ import org.osgi.service.component.annotations.ServiceScope;
  */
 @Component(
 	properties = "OSGI-INF/liferay/rest/v1_0/role.properties",
+	property = "export.import.vulcan.batch.engine.task.item.delegate=true",
 	scope = ServiceScope.PROTOTYPE, service = RoleResource.class
 )
-public class RoleResourceImpl extends BaseRoleResourceImpl {
+public class RoleResourceImpl
+	extends BaseRoleResourceImpl
+	implements ExportImportVulcanBatchEngineTaskItemDelegate<Role> {
 
 	@Override
 	public void
@@ -147,6 +174,52 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 	}
 
 	@Override
+	public EntityModel getEntityModel(MultivaluedMap multivaluedMap)
+		throws Exception {
+
+		return _entityModel;
+	}
+
+	@Override
+	public ExportImportDescriptor<com.liferay.portal.kernel.model.Role>
+		getExportImportDescriptor() {
+
+		return new ExportImportDescriptor<>() {
+
+			@Override
+			public String getKey() {
+				return RoleResourceImpl.class.getName();
+			}
+
+			@Override
+			public String getLabelLanguageKey() {
+				return _LABEL_LANGUAGE_KEY;
+			}
+
+			@Override
+			public Class<com.liferay.portal.kernel.model.Role> getModelClass() {
+				return com.liferay.portal.kernel.model.Role.class;
+			}
+
+			@Override
+			public String getPortletId() {
+				return RolesAdminPortletKeys.ROLES_ADMIN;
+			}
+
+			@Override
+			public Scope getScope() {
+				return Scope.COMPANY;
+			}
+
+			@Override
+			public String getSectionKey() {
+				return ExportImportConstants.SECTION_KEY_USERS;
+			}
+
+		};
+	}
+
+	@Override
 	public Role getRole(Long roleId) throws Exception {
 		com.liferay.portal.kernel.model.Role role = _roleService.fetchRole(
 			roleId);
@@ -177,37 +250,44 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 
 	@Override
 	public Page<Role> getRolesPage(
-			String search, Integer[] types, Pagination pagination)
+			String search, Integer[] types, Filter filter,
+			Pagination pagination)
 		throws Exception {
 
-		if (types == null) {
-			types = new Integer[] {
-				RoleConstants.TYPE_ORGANIZATION, RoleConstants.TYPE_REGULAR,
-				RoleConstants.TYPE_SITE
-			};
-		}
-
-		return Page.of(
+		return SearchUtil.search(
 			HashMapBuilder.<String, Map<String, String>>put(
 				"get",
 				addAction(
 					ActionKeys.VIEW, "getRolesPage", Role.class.getName(), 0L)
 			).build(),
-			transform(
-				_roleService.search(
-					contextCompany.getCompanyId(), search, types, null,
-					pagination.getStartPosition(), pagination.getEndPosition(),
-					null),
-				role -> _roleDTOConverter.toDTO(
+			booleanQuery -> {
+			},
+			filter, com.liferay.portal.kernel.model.Role.class.getName(),
+			search, pagination,
+			queryConfig -> queryConfig.setSelectedFieldNames(
+				Field.ENTRY_CLASS_PK),
+			searchContext -> {
+				if (ArrayUtil.isNotEmpty(types)) {
+					searchContext.setAttribute("types", types);
+				}
+
+				searchContext.setCompanyId(contextCompany.getCompanyId());
+				searchContext.setUserId(contextUser.getUserId());
+			},
+			null,
+			document -> {
+				com.liferay.portal.kernel.model.Role role =
+					_roleService.getRole(
+						GetterUtil.getLong(document.get(Field.ENTRY_CLASS_PK)));
+
+				return _roleDTOConverter.toDTO(
 					new DefaultDTOConverterContext(
 						true, _getActions(role.getRoleId()),
 						_dtoConverterRegistry, role.getRoleId(),
 						contextAcceptLanguage.getPreferredLocale(),
 						contextUriInfo, contextUser),
-					role)),
-			pagination,
-			_roleService.searchCount(
-				contextCompany.getCompanyId(), search, types, null));
+					role);
+			});
 	}
 
 	@Override
@@ -216,6 +296,9 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 			_roleService.getRole(roleId);
 
 		serviceBuilderRole = _roleService.updateRole(
+			GetterUtil.get(
+				role.getExternalReferenceCode(),
+				serviceBuilderRole.getExternalReferenceCode()),
 			serviceBuilderRole.getRoleId(),
 			GetterUtil.get(role.getName(), serviceBuilderRole.getName()),
 			(Map<Locale, String>)GetterUtil.getObject(
@@ -223,16 +306,12 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 			(Map<Locale, String>)GetterUtil.getObject(
 				_getDescriptionMap(role),
 				serviceBuilderRole.getDescriptionMap()),
-			serviceBuilderRole.getSubtype(),
+			GetterUtil.get(role.getSubtype(), serviceBuilderRole.getSubtype()),
 			ServiceContextFactory.getInstance(contextHttpServletRequest));
 
-		serviceBuilderRole = _roleService.updateExternalReferenceCode(
-			serviceBuilderRole,
-			GetterUtil.get(
-				role.getExternalReferenceCode(),
-				serviceBuilderRole.getExternalReferenceCode()));
-
 		_addResourcePermission(role, serviceBuilderRole);
+
+		serviceBuilderRole = _updateNestedResources(role, serviceBuilderRole);
 
 		return _roleDTOConverter.toDTO(
 			new DefaultDTOConverterContext(
@@ -311,10 +390,13 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 		com.liferay.portal.kernel.model.Role serviceBuilderRole =
 			_roleService.addRole(
 				role.getExternalReferenceCode(), className, 0, role.getName(),
-				_getTitleMap(role), _getDescriptionMap(role), type, null,
+				_getTitleMap(role), _getDescriptionMap(role), type,
+				role.getSubtype(),
 				ServiceContextFactory.getInstance(contextHttpServletRequest));
 
 		_addResourcePermission(role, serviceBuilderRole);
+
+		serviceBuilderRole = _updateNestedResources(role, serviceBuilderRole);
 
 		return _roleDTOConverter.toDTO(
 			new DefaultDTOConverterContext(
@@ -403,24 +485,25 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 		if (serviceBuilderRole == null) {
 			serviceBuilderRole = _roleService.addRole(
 				role.getExternalReferenceCode(), className, 0, role.getName(),
-				_getTitleMap(role), _getDescriptionMap(role), type, null,
-				serviceContext);
+				_getTitleMap(role), _getDescriptionMap(role), type,
+				role.getSubtype(), serviceContext);
 		}
 		else {
 			serviceBuilderRole = _roleService.updateRole(
-				serviceBuilderRole.getRoleId(),
-				GetterUtil.get(role.getName(), serviceBuilderRole.getName()),
-				_getTitleMap(role), _getDescriptionMap(role), null,
-				serviceContext);
-
-			serviceBuilderRole = _roleService.updateExternalReferenceCode(
-				serviceBuilderRole,
 				GetterUtil.get(
 					role.getExternalReferenceCode(),
-					serviceBuilderRole.getExternalReferenceCode()));
+					serviceBuilderRole.getExternalReferenceCode()),
+				serviceBuilderRole.getRoleId(),
+				GetterUtil.get(role.getName(), serviceBuilderRole.getName()),
+				_getTitleMap(role), _getDescriptionMap(role),
+				GetterUtil.get(
+					role.getSubtype(), serviceBuilderRole.getSubtype()),
+				serviceContext);
 		}
 
 		_addResourcePermission(role, serviceBuilderRole);
+
+		serviceBuilderRole = _updateNestedResources(role, serviceBuilderRole);
 
 		return _roleDTOConverter.toDTO(
 			new DefaultDTOConverterContext(
@@ -451,24 +534,76 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 			Role role, com.liferay.portal.kernel.model.Role serviceBuilderRole)
 		throws Exception {
 
-		if (ArrayUtil.isNotEmpty(role.getRolePermissions())) {
-			for (RolePermission rolePermission : role.getRolePermissions()) {
-				if (rolePermission.getScope() ==
-						ResourceConstants.SCOPE_INDIVIDUAL) {
+		if (ArrayUtil.isEmpty(role.getRolePermissions())) {
+			return;
+		}
 
-					continue;
-				}
+		List<String> unresolvedResourceActions = new ArrayList<>();
 
-				for (String actionId : rolePermission.getActionIds()) {
+		for (RolePermission rolePermission : role.getRolePermissions()) {
+			int scope = Math.toIntExact(rolePermission.getScope());
+
+			if (scope == ResourceConstants.SCOPE_INDIVIDUAL) {
+				continue;
+			}
+
+			String primKey = rolePermission.getPrimaryKey();
+
+			if (scope == ResourceConstants.SCOPE_COMPANY) {
+				primKey = String.valueOf(contextCompany.getCompanyId());
+			}
+
+			String resourceName =
+				ObjectDefinitionResourceNameUtil.toResourceName(
+					contextCompany.getCompanyId(),
+					_objectDefinitionLocalService,
+					rolePermission.getResourceName());
+
+			for (String actionId : rolePermission.getActionIds()) {
+				try {
 					_resourcePermissionService.addResourcePermission(
 						contextUser.getGroupId(), contextCompany.getCompanyId(),
-						rolePermission.getResourceName(),
-						Math.toIntExact(rolePermission.getScope()),
-						rolePermission.getPrimaryKey(),
+						resourceName, scope, primKey,
 						serviceBuilderRole.getRoleId(), actionId);
+				}
+				catch (NoSuchResourceActionException
+							noSuchResourceActionException) {
+
+					if (!ExportImportThreadLocal.isImportInProcess()) {
+						throw noSuchResourceActionException;
+					}
+
+					if (_log.isWarnEnabled()) {
+						_log.warn(noSuchResourceActionException);
+					}
+
+					unresolvedResourceActions.add(
+						StringBundler.concat(
+							rolePermission.getResourceName(), StringPool.POUND,
+							actionId));
 				}
 			}
 		}
+
+		if (unresolvedResourceActions.isEmpty()) {
+			return;
+		}
+
+		_exportImportReportEntryLocalService.getOrAddExportImportReportEntry(
+			0, contextCompany.getCompanyId(),
+			serviceBuilderRole.getExternalReferenceCode(),
+			_portal.getClassNameId(com.liferay.portal.kernel.model.Role.class),
+			serviceBuilderRole.getRoleId(),
+			GetterUtil.getLong(
+				ExportImportThreadLocal.getExportImportConfigurationId()),
+			ExportImportReportEntryConstants.TYPE_WARNING,
+			_language.format(
+				LocaleUtil.US,
+				"the-following-permissions-were-not-imported-because-their-" +
+					"resources-do-not-exist-x",
+				StringUtil.merge(
+					unresolvedResourceActions, StringPool.COMMA_AND_SPACE)),
+			null, _LABEL_LANGUAGE_KEY);
 	}
 
 	private void _checkRoleType(long roleId, int type) throws Exception {
@@ -480,7 +615,7 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 				StringBundler.concat(
 					"Role type ",
 					RoleConstants.getTypeLabel(serviceBuilderRole.getType()),
-					" is not role type ", RoleConstants.getTypeLabel(type)));
+					" is not ", RoleConstants.getTypeLabel(type)));
 		}
 	}
 
@@ -549,11 +684,41 @@ public class RoleResourceImpl extends BaseRoleResourceImpl {
 		return titleMap;
 	}
 
+	private com.liferay.portal.kernel.model.Role _updateNestedResources(
+			Role role, com.liferay.portal.kernel.model.Role serviceBuilderRole)
+		throws Exception {
+
+		return ResourcePermissionUtil.setResourcePermissions(
+			serviceBuilderRole, serviceBuilderRole.getCompanyId(),
+			role.getPermissions(), _resourcePermissionService, _roleService,
+			_roleTypeContributorProvider);
+	}
+
+	private static final String _LABEL_LANGUAGE_KEY = "roles";
+
+	private static final Log _log = LogFactoryUtil.getLog(
+		RoleResourceImpl.class);
+
+	private static final EntityModel _entityModel = new RoleEntityModel();
+
 	@Reference
 	private DTOConverterRegistry _dtoConverterRegistry;
 
 	@Reference
+	private ExportImportReportEntryLocalService
+		_exportImportReportEntryLocalService;
+
+	@Reference
+	private Language _language;
+
+	@Reference
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
+
+	@Reference
 	private OrganizationService _organizationService;
+
+	@Reference
+	private Portal _portal;
 
 	@Reference
 	private ResourcePermissionService _resourcePermissionService;

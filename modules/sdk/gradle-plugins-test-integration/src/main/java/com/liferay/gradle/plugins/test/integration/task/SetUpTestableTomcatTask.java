@@ -233,11 +233,7 @@ public class SetUpTestableTomcatTask
 
 		String fileContent = new String(Files.readAllBytes(file.toPath()));
 
-		if (fileContent.contains(s)) {
-			return true;
-		}
-
-		return false;
+		return fileContent.contains(s);
 	}
 
 	private PrintWriter _getAppendPrintWriter(String fileName)
@@ -297,9 +293,11 @@ public class SetUpTestableTomcatTask
 
 			String fileName = file.getName();
 
-			if (fileName.endsWith(".sh")) {
-				file.setExecutable(true);
+			if (!fileName.endsWith(".sh")) {
+				continue;
 			}
+
+			file.setExecutable(true);
 		}
 	}
 
@@ -442,15 +440,17 @@ public class SetUpTestableTomcatTask
 		boolean tomcatUsersXmlFileModified = false;
 
 		for (String roleName : _TOMCAT_USERS_ROLE_NAMES) {
-			if (!existentRoleNames.contains(roleName)) {
-				Element element = document.createElement("role");
-
-				element.setAttribute("rolename", roleName);
-
-				tomcatUsersElement.appendChild(element);
-
-				tomcatUsersXmlFileModified = true;
+			if (existentRoleNames.contains(roleName)) {
+				continue;
 			}
+
+			Element element = document.createElement("role");
+
+			element.setAttribute("rolename", roleName);
+
+			tomcatUsersElement.appendChild(element);
+
+			tomcatUsersXmlFileModified = true;
 		}
 
 		if (!tomcatManagerUserExists) {

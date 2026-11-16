@@ -8,16 +8,17 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.PageTemplateSet;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -52,6 +53,16 @@ public class PageTemplateSetSerDes {
 		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ssXX");
 
+		if (pageTemplateSet.getActions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"actions\": ");
+
+			sb.append(_toJSON(pageTemplateSet.getActions()));
+		}
+
 		if (pageTemplateSet.getCreator() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -60,21 +71,6 @@ public class PageTemplateSetSerDes {
 			sb.append("\"creator\": ");
 
 			sb.append(pageTemplateSet.getCreator());
-		}
-
-		if (pageTemplateSet.getCreatorExternalReferenceCode() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(
-				_escape(pageTemplateSet.getCreatorExternalReferenceCode()));
-
-			sb.append("\"");
 		}
 
 		if (pageTemplateSet.getDateCreated() != null) {
@@ -165,6 +161,26 @@ public class PageTemplateSetSerDes {
 			sb.append("\"");
 		}
 
+		if (pageTemplateSet.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < pageTemplateSet.getPermissions().length; i++) {
+				sb.append(pageTemplateSet.getPermissions()[i]);
+
+				if ((i + 1) < pageTemplateSet.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (pageTemplateSet.getUuid() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -201,21 +217,18 @@ public class PageTemplateSetSerDes {
 		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ssXX");
 
+		if (pageTemplateSet.getActions() == null) {
+			map.put("actions", null);
+		}
+		else {
+			map.put("actions", String.valueOf(pageTemplateSet.getActions()));
+		}
+
 		if (pageTemplateSet.getCreator() == null) {
 			map.put("creator", null);
 		}
 		else {
 			map.put("creator", String.valueOf(pageTemplateSet.getCreator()));
-		}
-
-		if (pageTemplateSet.getCreatorExternalReferenceCode() == null) {
-			map.put("creatorExternalReferenceCode", null);
-		}
-		else {
-			map.put(
-				"creatorExternalReferenceCode",
-				String.valueOf(
-					pageTemplateSet.getCreatorExternalReferenceCode()));
 		}
 
 		if (pageTemplateSet.getDateCreated() == null) {
@@ -270,6 +283,15 @@ public class PageTemplateSetSerDes {
 			map.put("name", String.valueOf(pageTemplateSet.getName()));
 		}
 
+		if (pageTemplateSet.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put(
+				"permissions",
+				String.valueOf(pageTemplateSet.getPermissions()));
+		}
+
 		if (pageTemplateSet.getUuid() == null) {
 			map.put("uuid", null);
 		}
@@ -295,12 +317,10 @@ public class PageTemplateSetSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "creator")) {
-				return false;
+			if (Objects.equals(jsonParserFieldName, "actions")) {
+				return true;
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
@@ -323,6 +343,9 @@ public class PageTemplateSetSerDes {
 			else if (Objects.equals(jsonParserFieldName, "name")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "uuid")) {
 				return false;
 			}
@@ -335,18 +358,16 @@ public class PageTemplateSetSerDes {
 			PageTemplateSet pageTemplateSet, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "creator")) {
+			if (Objects.equals(jsonParserFieldName, "actions")) {
+				if (jsonParserFieldValue != null) {
+					pageTemplateSet.setActions(
+						(Map<String, Map<String, String>>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
 				if (jsonParserFieldValue != null) {
 					pageTemplateSet.setCreator(
 						CreatorSerDes.toDTO((String)jsonParserFieldValue));
-				}
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
-				if (jsonParserFieldValue != null) {
-					pageTemplateSet.setCreatorExternalReferenceCode(
-						(String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
@@ -383,6 +404,26 @@ public class PageTemplateSetSerDes {
 			else if (Objects.equals(jsonParserFieldName, "name")) {
 				if (jsonParserFieldValue != null) {
 					pageTemplateSet.setName((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.site.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.site.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.site.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					pageTemplateSet.setPermissions(permissionsArray);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "uuid")) {
@@ -435,6 +476,16 @@ public class PageTemplateSetSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -467,3 +518,4 @@ public class PageTemplateSetSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1139040335

@@ -6,6 +6,7 @@
 package com.liferay.portal.dao.sql.transformer;
 
 import com.liferay.portal.dao.db.PostgreSQLDB;
+import com.liferay.portal.dao.orm.common.SQLTransformer;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import org.junit.Assert;
@@ -38,7 +39,7 @@ public class PostgreSQLTransformerLogicTest
 		Assert.assertEquals(
 			"select foo from Foo order by CASE WHEN MIN(CAST(foo AS " +
 				"INTEGER)) = 1 THEN 1 ELSE 0 END",
-			sqlTransformer.transform(
+			SQLTransformer.transform(
 				"select foo from Foo order by AGGREGATION_BOOLEAN_MIN(foo)"));
 	}
 
@@ -47,23 +48,28 @@ public class PostgreSQLTransformerLogicTest
 	public void testReplaceModWithExtraWhitespace() {
 		Assert.assertEquals(
 			getModTransformedSQL(),
-			sqlTransformer.transform(getModOriginalSQL()));
+			SQLTransformer.transform(getModOriginalSQL()));
 	}
 
 	@Test
 	public void testReplaceNegativeComparison() {
 		Assert.assertEquals(
 			"select * from Foo where foo != (-1)",
-			sqlTransformer.transform("select * from Foo where foo != -1"));
+			SQLTransformer.transform("select * from Foo where foo != -1"));
 		Assert.assertEquals(
 			"select * from Foo where foo != (-1) and bar != (-1)",
-			sqlTransformer.transform(
+			SQLTransformer.transform(
 				"select * from Foo where foo != -1 and bar != -1"));
 	}
 
 	@Override
 	protected String getBitwiseCheckTransformedSQL() {
 		return "select (foo & bar) from Foo";
+	}
+
+	@Override
+	protected String getBitwiseOrTransformedSQL() {
+		return "select (foo | bar) from Foo";
 	}
 
 	@Override
@@ -82,6 +88,22 @@ public class PostgreSQLTransformerLogicTest
 	protected String getCastTextTransformedSQL() {
 		return "select CAST(foo || (CAST(foo AS TEXT) || (bar || foo)) AS " +
 			"TEXT), CAST(foo || (bar || foo) AS TEXT) from Foo";
+	}
+
+	@Override
+	protected String getInstrTransformedSQL() {
+		return "select POSITION('fooText' in foo) from Foo";
+	}
+
+	@Override
+	protected String getInstrWithPostColumnModificatorTransformedSQL() {
+		return "select POSITION(CHR(10) in foo COLLATE " +
+			"Latin1_General_100_BIN2) from Foo";
+	}
+
+	@Override
+	protected String getInstrWithPreColumnModificatorTransformedSQL() {
+		return "select POSITION(CHAR(10) in BINARY foo) from Foo";
 	}
 
 	@Override

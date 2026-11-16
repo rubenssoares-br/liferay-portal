@@ -6,12 +6,15 @@
 package com.liferay.segments.simulation.web.internal.display.context;
 
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.CompanyConstants;
 import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -25,13 +28,14 @@ import com.liferay.segments.model.SegmentsExperience;
 import com.liferay.segments.service.SegmentsEntryLocalService;
 import com.liferay.segments.service.SegmentsEntryServiceUtil;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
+import com.liferay.segments.util.SegmentsExperienceUtil;
 import com.liferay.staging.StagingGroupHelper;
 import com.liferay.staging.StagingGroupHelperUtil;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eduardo García
@@ -91,8 +95,32 @@ public class SegmentsSimulationDisplayContext {
 			return _segmentsEntries;
 		}
 
-		_segmentsEntries = SegmentsEntryServiceUtil.getSegmentsEntries(
-			_getStagingAwareGroupId());
+		if (FeatureFlagManagerUtil.isEnabled(
+				CompanyConstants.SYSTEM, "LPD-78863")) {
+
+			_segmentsEntries = SegmentsEntryServiceUtil.getSegmentsEntries(
+				_getStagingAwareGroupId(),
+				new String[] {
+					SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND,
+					SegmentsEntryConstants.SOURCE_DEFAULT,
+					SegmentsEntryConstants.SOURCE_REFERRED
+				},
+				new int[] {
+					SegmentsEntryConstants.TYPE_BATCH,
+					SegmentsEntryConstants.TYPE_DEFAULT
+				},
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
+		}
+		else {
+			_segmentsEntries = SegmentsEntryServiceUtil.getSegmentsEntries(
+				_getStagingAwareGroupId(),
+				new String[] {SegmentsEntryConstants.SOURCE_ASAH_FARO_BACKEND},
+				new int[] {
+					SegmentsEntryConstants.TYPE_BATCH,
+					SegmentsEntryConstants.TYPE_DEFAULT
+				},
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
+		}
 
 		return _segmentsEntries;
 	}
@@ -135,21 +163,13 @@ public class SegmentsSimulationDisplayContext {
 		_segmentsExperiencesJSONArray = JSONUtil.toJSONArray(
 			segmentsExperiences,
 			segmentsExperience -> JSONUtil.put(
-				"active", _isActive(segmentsExperience, segmentsExperiences)
+				"active",
+				SegmentsExperienceUtil.isActive(
+					segmentsExperience, segmentsExperiences)
 			).put(
 				"segmentsEntryName",
-				() -> {
-					SegmentsEntry segmentsEntry =
-						_segmentsEntryLocalService.fetchSegmentsEntry(
-							segmentsExperience.getSegmentsEntryId());
-
-					if (segmentsEntry != null) {
-						return segmentsEntry.getName(_themeDisplay.getLocale());
-					}
-
-					return SegmentsEntryConstants.getDefaultSegmentsEntryName(
-						_themeDisplay.getLocale());
-				}
+				segmentsExperience.getSegmentsEntryName(
+					_themeDisplay.getLocale())
 			).put(
 				"segmentsExperienceId",
 				segmentsExperience.getSegmentsExperienceId()
@@ -161,7 +181,9 @@ public class SegmentsSimulationDisplayContext {
 				() -> {
 					String statusLabelKey = "inactive";
 
-					if (_isActive(segmentsExperience, segmentsExperiences)) {
+					if (SegmentsExperienceUtil.isActive(
+							segmentsExperience, segmentsExperiences)) {
+
 						statusLabelKey = "active";
 					}
 
@@ -184,29 +206,6 @@ public class SegmentsSimulationDisplayContext {
 			_themeDisplay.getScopeGroupId(), SegmentsPortletKeys.SEGMENTS);
 
 		return _groupId;
-	}
-
-	private boolean _isActive(
-		SegmentsExperience segmentsExperience,
-		List<SegmentsExperience> segmentsExperiences) {
-
-		for (SegmentsExperience curSegmentsExperience : segmentsExperiences) {
-			if ((curSegmentsExperience.getSegmentsEntryId() ==
-					segmentsExperience.getSegmentsEntryId()) ||
-				(curSegmentsExperience.getSegmentsEntryId() ==
-					SegmentsEntryConstants.ID_DEFAULT)) {
-
-				if (curSegmentsExperience.getSegmentsExperienceId() ==
-						segmentsExperience.getSegmentsExperienceId()) {
-
-					return true;
-				}
-
-				return false;
-			}
-		}
-
-		return false;
 	}
 
 	private boolean _isSegmentationEnabled() {

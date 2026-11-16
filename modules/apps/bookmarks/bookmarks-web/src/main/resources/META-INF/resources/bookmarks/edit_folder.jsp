@@ -12,9 +12,9 @@ String redirect = ParamUtil.getString(request, "redirect");
 
 BookmarksFolder folder = (BookmarksFolder)request.getAttribute(BookmarksWebKeys.BOOKMARKS_FOLDER);
 
-long folderId = BeanParamUtil.getLong(folder, request, "folderId");
+long folderId = BeanParamUtil.getLong(folder, request, "folderId", BookmarksFolder::getFolderId);
 
-long parentFolderId = BeanParamUtil.getLong(folder, request, "parentFolderId", BookmarksFolderConstants.DEFAULT_PARENT_FOLDER_ID);
+long parentFolderId = BeanParamUtil.getLong(folder, request, "parentFolderId", BookmarksFolder::getParentFolderId, BookmarksFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 
 boolean mergeWithParentFolderDisabled = ParamUtil.getBoolean(request, "mergeWithParentFolderDisabled");
 
@@ -48,6 +48,7 @@ renderResponse.setTitle(headerTitle);
 
 <clay:container-fluid
 	cssClass="container-form-lg"
+	size="lg"
 >
 	<portlet:actionURL name="/bookmarks/edit_folder" var="editFolderURL">
 		<portlet:param name="mvcRenderCommandName" value="/bookmarks/edit_folder" />

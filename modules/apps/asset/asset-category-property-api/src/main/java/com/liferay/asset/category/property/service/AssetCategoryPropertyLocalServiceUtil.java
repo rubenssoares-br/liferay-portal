@@ -233,6 +233,14 @@ public class AssetCategoryPropertyLocalServiceUtil {
 		return getService().fetchAssetCategoryProperty(categoryPropertyId);
 	}
 
+	public static AssetCategoryProperty
+		fetchAssetCategoryPropertyByExternalReferenceCode(
+			String externalReferenceCode, long companyId) {
+
+		return getService().fetchAssetCategoryPropertyByExternalReferenceCode(
+			externalReferenceCode, companyId);
+	}
+
 	public static AssetCategoryProperty fetchCategoryProperty(
 		long categoryId, String key) {
 
@@ -285,28 +293,19 @@ public class AssetCategoryPropertyLocalServiceUtil {
 		return getService().getAssetCategoryProperty(categoryPropertyId);
 	}
 
-	public static List<AssetCategoryProperty> getCategoryProperties() {
-		return getService().getCategoryProperties();
+	public static AssetCategoryProperty
+			getAssetCategoryPropertyByExternalReferenceCode(
+				String externalReferenceCode, long companyId)
+		throws PortalException {
+
+		return getService().getAssetCategoryPropertyByExternalReferenceCode(
+			externalReferenceCode, companyId);
 	}
 
 	public static List<AssetCategoryProperty> getCategoryProperties(
 		long entryId) {
 
 		return getService().getCategoryProperties(entryId);
-	}
-
-	public static AssetCategoryProperty getCategoryProperty(
-			long categoryPropertyId)
-		throws PortalException {
-
-		return getService().getCategoryProperty(categoryPropertyId);
-	}
-
-	public static AssetCategoryProperty getCategoryProperty(
-			long categoryId, String key)
-		throws PortalException {
-
-		return getService().getCategoryProperty(categoryId, key);
 	}
 
 	public static List<AssetCategoryProperty> getCategoryPropertyValues(
@@ -364,14 +363,6 @@ public class AssetCategoryPropertyLocalServiceUtil {
 			userId, categoryPropertyId, key, value);
 	}
 
-	public static AssetCategoryProperty updateCategoryProperty(
-			long categoryPropertyId, String key, String value)
-		throws PortalException {
-
-		return getService().updateCategoryProperty(
-			categoryPropertyId, key, value);
-	}
-
 	public static AssetCategoryPropertyLocalService getService() {
 		return _serviceSnapshot.get();
 	}
@@ -382,3 +373,4 @@ public class AssetCategoryPropertyLocalServiceUtil {
 			AssetCategoryPropertyLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-584809458

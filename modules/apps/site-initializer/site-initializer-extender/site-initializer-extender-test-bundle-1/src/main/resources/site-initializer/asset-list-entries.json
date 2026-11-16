@@ -4,21 +4,11 @@
 		"title": "Test Asset List Entry 1",
 		"unicodeProperties": {
 			"classNameIds": "com.liferay.journal.model.JournalArticle",
-			"filterBy": [
+			"filters": [
 				{
-					"key": "queryAndOperator0",
-					"value": "true"
-				},
-				{
-					"key": "queryContains0",
-					"value": "true"
-				},
-				{
-					"key": "queryName0",
-					"value": "keywords"
-				},
-				{
-					"key": "queryValues0",
+					"operatorName": "contains",
+					"propertyName": "keywords",
+					"quantifier": "all",
 					"value": "Test Keyword"
 				}
 			]
@@ -42,6 +32,32 @@
 		"title": "Test Asset List Entry 4",
 		"unicodeProperties": {
 			"classNameIds": "[$OBJECT_DEFINITION_CLASS_NAME:TestObjectDefinition1$]"
+		}
+	},
+	{
+		"assetListEntries": [
+			{
+				"className": "[$OBJECT_DEFINITION_CLASS_NAME:TestObjectDefinition1$]",
+				"classPK": "[#TestObjectDefinition#TEST_OBJECT_ENTRY_1#]"
+			},
+			{
+				"className": "com.liferay.journal.model.JournalArticle",
+				"classPK": "[#JOURNAL_ARTICLE_ID:TEST-JOURNAL-ARTICLE-1#]"
+			}
+		],
+		"title": "Test Asset List Entry 5",
+		"type": "manual",
+		"unicodeProperties": {
+			"orderBy": [
+				{
+					"key": "orderByColumn1",
+					"value": "modifiedDate"
+				},
+				{
+					"key": "orderByColumn2",
+					"value": "title"
+				}
+			]
 		}
 	}
 ]

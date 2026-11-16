@@ -5,7 +5,7 @@
 
 type AssetType = {
 	required: boolean;
-	subtype:
+	subtype?:
 		| 'AllAssetSubtypes'
 		| 'Basic Web Content'
 		| 'Basic Document'
@@ -29,4 +29,21 @@ type AssetType = {
 		| 'WebPage'
 		| 'Message Boards Message'
 		| 'KnowledgeBaseArticle';
+};
+
+type Keyword = {
+	assetLibraries?: KeywordAssetLibrary[];
+	id: number;
+	name: string;
+	projects?: KeywordProject[];
+};
+
+type KeywordAssetLibrary = {
+	id: number;
+	name: string;
+};
+
+type KeywordProject = {
+	id: number;
+	name: string;
 };

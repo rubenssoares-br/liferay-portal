@@ -13,6 +13,9 @@ import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.search.Hits;
+import com.liferay.portal.kernel.search.Indexer;
+import com.liferay.portal.kernel.search.IndexerRegistryUtil;
 import com.liferay.portal.kernel.search.SearchEngineHelper;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -24,12 +27,13 @@ import com.liferay.portal.kernel.util.LocaleThreadLocal;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.LocalizationUtil;
 import com.liferay.portal.kernel.util.StringUtil;
-import com.liferay.portal.search.document.DocumentBuilderFactory;
 import com.liferay.portal.search.model.uid.UIDFactory;
 import com.liferay.portal.search.test.util.FieldValuesAssert;
+import com.liferay.portal.search.test.util.HitsAssert;
 import com.liferay.portal.search.test.util.IndexedFieldsFixture;
-import com.liferay.portal.search.test.util.IndexerFixture;
+import com.liferay.portal.search.test.util.SearchContextTestUtil;
 import com.liferay.portal.test.rule.Inject;
+import com.liferay.portal.test.rule.LanguageIds;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.users.admin.test.util.search.UserSearchFixture;
@@ -50,6 +54,9 @@ import org.junit.runner.RunWith;
  * @author Igor Fabiano Nazar
  * @author Vagner B.C
  */
+@LanguageIds(
+	availableLanguageIds = {"en_US", "ja_JP"}, defaultLanguageId = "en_US"
+)
 @RunWith(Arquillian.class)
 public class LayoutIndexerIndexedFieldsTest {
 
@@ -69,8 +76,6 @@ public class LayoutIndexerIndexedFieldsTest {
 
 		setUpLayoutFixture();
 
-		setUpLayoutIndexerFixture();
-
 		defaultLocale = LocaleThreadLocal.getDefaultLocale();
 	}
 
@@ -89,8 +94,14 @@ public class LayoutIndexerIndexedFieldsTest {
 
 		String searchTerm = "新しい";
 
-		Document document = layoutIndexerFixture.searchOnlyOne(
-			searchTerm, locale);
+		Indexer<Layout> indexer = IndexerRegistryUtil.getIndexer(Layout.class);
+
+		Hits hits = indexer.search(
+			SearchContextTestUtil.getSearchContext(
+				TestPropsValues.getUserId(), new long[] {_group.getGroupId()},
+				searchTerm, locale));
+
+		Document document = HitsAssert.assertOnlyOne(searchTerm, hits);
 
 		indexedFieldsFixture.postProcessDocument(document);
 
@@ -111,18 +122,13 @@ public class LayoutIndexerIndexedFieldsTest {
 
 	protected void setUpIndexedFieldsFixture() {
 		indexedFieldsFixture = new IndexedFieldsFixture(
-			resourcePermissionLocalService, searchEngineHelper, uidFactory,
-			documentBuilderFactory);
+			resourcePermissionLocalService, searchEngineHelper, uidFactory);
 	}
 
 	protected void setUpLayoutFixture() {
 		layoutFixture = new LayoutFixture(_group);
 
 		_layouts = layoutFixture.getLayouts();
-	}
-
-	protected void setUpLayoutIndexerFixture() {
-		layoutIndexerFixture = new IndexerFixture<>(Layout.class);
 	}
 
 	protected void setUpUserSearchFixture() throws Exception {
@@ -138,13 +144,8 @@ public class LayoutIndexerIndexedFieldsTest {
 	}
 
 	protected Locale defaultLocale;
-
-	@Inject
-	protected DocumentBuilderFactory documentBuilderFactory;
-
 	protected IndexedFieldsFixture indexedFieldsFixture;
 	protected LayoutFixture layoutFixture;
-	protected IndexerFixture<Layout> layoutIndexerFixture;
 
 	@Inject
 	protected ResourcePermissionLocalService resourcePermissionLocalService;
@@ -177,6 +178,10 @@ public class LayoutIndexerIndexedFieldsTest {
 		).put(
 			Field.GROUP_ID, String.valueOf(layout.getGroupId())
 		).put(
+			Field.PRIORITY, "0.0"
+		).put(
+			Field.PRIORITY + "_Number_sortable", "0"
+		).put(
 			Field.SCOPE_GROUP_ID, String.valueOf(layout.getGroupId())
 		).put(
 			Field.STAGING_GROUP, "false"
@@ -193,6 +198,11 @@ public class LayoutIndexerIndexedFieldsTest {
 		).put(
 			"groupExternalReferenceCode", _group.getExternalReferenceCode()
 		).put(
+			"parentLayoutId", String.valueOf(layout.getParentLayoutId())
+		).put(
+			"parentLayoutId_Number_sortable",
+			String.valueOf(layout.getParentLayoutId())
+		).put(
 			"privateLayout", "false"
 		).put(
 			"scopeGroupExternalReferenceCode", _group.getExternalReferenceCode()
@@ -200,6 +210,8 @@ public class LayoutIndexerIndexedFieldsTest {
 			"statusByUserExternalReferenceCode", user.getExternalReferenceCode()
 		).put(
 			"statusByUserId", String.valueOf(layout.getStatusByUserId())
+		).put(
+			"systemLayout", String.valueOf(layout.isSystem())
 		).put(
 			"title_ja_JP", layout.getName(LocaleUtil.JAPAN)
 		).put(

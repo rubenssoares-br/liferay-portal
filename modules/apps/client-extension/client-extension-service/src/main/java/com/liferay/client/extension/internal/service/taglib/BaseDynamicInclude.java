@@ -14,7 +14,6 @@ import com.liferay.client.extension.type.manager.CETManager;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -30,15 +29,15 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Reference;
 
@@ -97,12 +96,6 @@ public abstract class BaseDynamicInclude implements DynamicInclude {
 				printWriter);
 		}
 
-		if (!FeatureFlagManagerUtil.isEnabled(
-				themeDisplay.getCompanyId(), "LPD-30371")) {
-
-			return;
-		}
-
 		try {
 			List<CET> cets = cetManager.getCETs(
 				themeDisplay.getCompanyId(), null,
@@ -113,7 +106,7 @@ public abstract class BaseDynamicInclude implements DynamicInclude {
 				GlobalJSCET globalJSCET = (GlobalJSCET)cet;
 
 				if (!StringUtil.equalsIgnoreCase(
-						globalJSCET.getScope(), "instance")) {
+						globalJSCET.getScope(), "company")) {
 
 					continue;
 				}
@@ -133,8 +126,8 @@ public abstract class BaseDynamicInclude implements DynamicInclude {
 		}
 		catch (Exception exception) {
 			_log.error(
-				"Unable to inject global JavaScript client extensions for " +
-					"company " + themeDisplay.getCompanyId(),
+				"Unable to inject JavaScript client extensions for company " +
+					themeDisplay.getCompanyId(),
 				exception);
 		}
 	}
@@ -191,9 +184,11 @@ public abstract class BaseDynamicInclude implements DynamicInclude {
 					stringBuilder.append(StringPool.QUOTE);
 				}
 
-				if (iterator.hasNext()) {
-					stringBuilder.append(StringPool.SPACE);
+				if (!iterator.hasNext()) {
+					continue;
 				}
+
+				stringBuilder.append(StringPool.SPACE);
 			}
 		}
 		catch (JSONException jsonException) {

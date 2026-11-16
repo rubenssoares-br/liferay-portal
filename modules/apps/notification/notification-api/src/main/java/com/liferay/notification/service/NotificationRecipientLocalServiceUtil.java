@@ -36,6 +36,13 @@ public class NotificationRecipientLocalServiceUtil {
 	 *
 	 * Never modify this class directly. Add custom service methods to <code>com.liferay.notification.service.impl.NotificationRecipientLocalServiceImpl</code> and rerun ServiceBuilder to regenerate this class.
 	 */
+	public static NotificationRecipient addNotificationRecipient(
+			long userId, long classNameId, long classPK)
+		throws PortalException {
+
+		return getService().addNotificationRecipient(
+			userId, classNameId, classPK);
+	}
 
 	/**
 	 * Adds the notification recipient to the database. Also notifies the appropriate model listeners.
@@ -212,6 +219,12 @@ public class NotificationRecipientLocalServiceUtil {
 		return getService().fetchNotificationRecipient(notificationRecipientId);
 	}
 
+	public static NotificationRecipient fetchNotificationRecipientByClassPK(
+		long classPK) {
+
+		return getService().fetchNotificationRecipientByClassPK(classPK);
+	}
+
 	/**
 	 * Returns the notification recipient with the matching UUID and company.
 	 *
@@ -263,7 +276,8 @@ public class NotificationRecipientLocalServiceUtil {
 	}
 
 	public static NotificationRecipient getNotificationRecipientByClassPK(
-		long classPK) {
+			long classPK)
+		throws PortalException {
 
 		return getService().getNotificationRecipientByClassPK(classPK);
 	}
@@ -355,3 +369,4 @@ public class NotificationRecipientLocalServiceUtil {
 			NotificationRecipientLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1561036574

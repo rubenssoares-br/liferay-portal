@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author José Abelenda
@@ -51,7 +51,7 @@ public class DSRecipient implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(DSRecipient.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDsClientUserId() {
 		if (_dsClientUserIdSupplier != null) {
 			dsClientUserId = _dsClientUserIdSupplier.get();
@@ -92,7 +92,7 @@ public class DSRecipient implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _dsClientUserIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getEmailAddress() {
 		if (_emailAddressSupplier != null) {
 			emailAddress = _emailAddressSupplier.get();
@@ -133,7 +133,7 @@ public class DSRecipient implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _emailAddressSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -172,7 +172,7 @@ public class DSRecipient implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -211,7 +211,7 @@ public class DSRecipient implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -252,7 +252,7 @@ public class DSRecipient implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _statusSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getTabs() {
 		if (_tabsSupplier != null) {
@@ -408,17 +408,7 @@ public class DSRecipient implements Serializable {
 
 			sb.append("\"tabs\": ");
 
-			if (tabs instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)tabs));
-			}
-			else if (tabs instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)tabs));
-				sb.append("\"");
-			}
-			else {
-				sb.append(tabs);
-			}
+			sb.append(_toJSON(tabs));
 		}
 
 		sb.append("}");
@@ -426,8 +416,8 @@ public class DSRecipient implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.digital.signature.rest.dto.v1_0.DSRecipient",
 		name = "x-class-name"
 	)
@@ -514,6 +504,27 @@ public class DSRecipient implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -522,3 +533,4 @@ public class DSRecipient implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:254855799

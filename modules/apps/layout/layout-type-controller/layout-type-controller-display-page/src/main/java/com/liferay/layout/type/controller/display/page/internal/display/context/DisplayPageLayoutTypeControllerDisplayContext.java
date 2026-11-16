@@ -21,12 +21,14 @@ import com.liferay.info.item.provider.InfoItemDetailsProvider;
 import com.liferay.info.item.provider.InfoItemObjectProvider;
 import com.liferay.info.item.provider.InfoItemPermissionProvider;
 import com.liferay.info.search.InfoSearchClassMapperRegistry;
+import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * @author Jürgen Kappler
@@ -36,10 +38,14 @@ public class DisplayPageLayoutTypeControllerDisplayContext {
 	public DisplayPageLayoutTypeControllerDisplayContext(
 			HttpServletRequest httpServletRequest,
 			InfoItemServiceRegistry infoItemServiceRegistry,
-			InfoSearchClassMapperRegistry infoSearchClassMapperRegistry)
+			InfoSearchClassMapperRegistry infoSearchClassMapperRegistry,
+			ModelResourcePermission<LayoutPageTemplateEntry>
+				layoutPageTemplateEntryModelResourcePermission)
 		throws Exception {
 
 		_infoItemServiceRegistry = infoItemServiceRegistry;
+		_layoutPageTemplateEntryModelResourcePermission =
+			layoutPageTemplateEntryModelResourcePermission;
 
 		long assetEntryId = ParamUtil.getLong(
 			httpServletRequest, "assetEntryId");
@@ -66,9 +72,8 @@ public class DisplayPageLayoutTypeControllerDisplayContext {
 						ClassPKInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER);
 
 			InfoItemIdentifier infoItemIdentifier =
-				new ClassPKInfoItemIdentifier(assetEntry.getClassPK());
-
-			infoItemIdentifier.setVersion(InfoItemIdentifier.VERSION_LATEST);
+				new ClassPKInfoItemIdentifier(
+					assetEntry.getClassPK(), InfoItemIdentifier.VERSION_LATEST);
 
 			infoItem = infoItemObjectProvider.getInfoItem(infoItemIdentifier);
 
@@ -114,11 +119,17 @@ public class DisplayPageLayoutTypeControllerDisplayContext {
 	}
 
 	public boolean hasPermission(
+			LayoutPageTemplateEntry layoutPageTemplateEntry,
 			PermissionChecker permissionChecker, String actionId)
 		throws Exception {
 
 		if (_infoItemDetails == null) {
-			return true;
+			if (layoutPageTemplateEntry == null) {
+				return true;
+			}
+
+			return _layoutPageTemplateEntryModelResourcePermission.contains(
+				permissionChecker, layoutPageTemplateEntry, actionId);
 		}
 
 		InfoItemPermissionProvider infoItemPermissionProvider =
@@ -170,5 +181,7 @@ public class DisplayPageLayoutTypeControllerDisplayContext {
 	private final Object _infoItem;
 	private final InfoItemDetails _infoItemDetails;
 	private final InfoItemServiceRegistry _infoItemServiceRegistry;
+	private final ModelResourcePermission<LayoutPageTemplateEntry>
+		_layoutPageTemplateEntryModelResourcePermission;
 
 }

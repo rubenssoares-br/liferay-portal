@@ -192,26 +192,6 @@ definition {
 	}
 
 	@summary = "Default summary"
-	macro assertStrategiesForEntityTypes(updateStrategy = null, entityTypes = null, importStrategy = null) {
-		Variables.assertDefined(parameterList = ${entityTypes});
-
-		for (var entityType : list ${entityTypes}) {
-			ImportExport.selectEntity(entityType = ${entityType});
-
-			if (isSet(importStrategy)) {
-				AssertTextEquals(
-					locator1 = "ImportExport#IMPORT_STRATEGY",
-					value1 = ${importStrategy});
-			}
-			else {
-				AssertTextEquals(
-					locator1 = "ImportExport#UPDATE_STRATEGY",
-					value1 = ${updateStrategy});
-			}
-		}
-	}
-
-	@summary = "Default summary"
 	macro configureExport(containsHeaders = null, templateName = null, entityType = null, scope = null, exportFields = null, exportFileFormat = null) {
 		Select(
 			key_selectFieldLabel = "Export File Format",
@@ -276,7 +256,7 @@ definition {
 		ImportExport.selectEntity(entityType = ${entityType});
 
 		if (isSet(scope)) {
-			var scope = TestCase.getSiteName();
+			var scope = ImportExport.getScopeSiteName();
 
 			Select(
 				locator1 = "Select#SCOPE_CONFIGURATION",
@@ -347,6 +327,20 @@ definition {
 		Button.click(button = "Export");
 
 		WaitForElementPresent(locator1 = "ImportExport#EXECUTION_SUCCESS");
+	}
+
+	@summary = "Default summary"
+	macro getScopeSiteName() {
+		var testLiferayVirtualInstance = PropsUtil.get("test.liferay.virtual.instance");
+
+		if (${testLiferayVirtualInstance} == "true") {
+			var siteName = TestCase.getSiteName();
+
+			return ${siteName};
+		}
+		else {
+			return "Liferay DXP Site";
+		}
 	}
 
 	@summary = "Default summary"
@@ -505,6 +499,10 @@ definition {
 	@summary = "Default summary"
 	macro startImportAndWaitForSuccess() {
 		Button.click(button = "Next");
+
+		WaitForElementPresent(
+			key_text = "Start Import",
+			locator1 = "Button#ANY");
 
 		Button.click(button = "Start Import");
 

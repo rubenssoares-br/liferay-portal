@@ -14,7 +14,6 @@ WidgetTemplatesManagementToolbarDisplayContext widgetTemplatesManagementToolbarD
 %>
 
 <clay:navigation-bar
-	inverted="<%= true %>"
 	navigationItems="<%= widgetTemplatesTemplateDisplayContext.getNavigationItems() %>"
 />
 
@@ -35,7 +34,7 @@ WidgetTemplatesManagementToolbarDisplayContext widgetTemplatesManagementToolbarD
 		>
 			<liferay-ui:search-container-row
 				className="com.liferay.dynamic.data.mapping.model.DDMTemplate"
-				keyProperty="templateId"
+				keyPropertyName="templateId"
 				modelVar="ddmTemplate"
 			>
 

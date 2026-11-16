@@ -16,7 +16,7 @@ UnicodeProperties layoutTypeSettingsUnicodeProperties = selLayout.getTypeSetting
 %>
 
 <liferay-util:html-top>
-	<aui:link href='<%= PortalUtil.getStaticResourceURL(request, PortalUtil.getPathProxy() + application.getContextPath() + "/css/main.css") %>' rel="stylesheet" type="text/css" />
+	<aui:link hashedFile="<%= true %>" href="layout-seo-web/css/main.css" rel="stylesheet" type="text/css" />
 </liferay-util:html-top>
 
 <portlet:actionURL copyCurrentRenderParameters="<%= true %>" name="/layout/edit_seo" var="editSEOURL">
@@ -165,6 +165,32 @@ UnicodeProperties layoutTypeSettingsUnicodeProperties = selLayout.getTypeSetting
 
 					<c:if test="<%= !layoutsSEODisplayContext.isLayoutUtilityPageEntry() %>">
 						<aui:input name="robots" placeholder="robots" />
+
+						<%
+						List<String> metaRobotsProviderPortletTitles = layoutsSEODisplayContext.getMetaRobotsProviderPortletTitles();
+						%>
+
+						<c:if test="<%= !ListUtil.isEmpty(metaRobotsProviderPortletTitles) %>">
+							<clay:alert
+								displayType="info"
+							>
+								<liferay-ui:message key="the-following-widgets-can-contribute-entries-to-this-page-s-robots-configuration" />
+
+								<ul class="mb-0 mt-2">
+
+									<%
+									for (String portletTitle : metaRobotsProviderPortletTitles) {
+									%>
+
+										<li><%= HtmlUtil.escape(portletTitle) %></li>
+
+									<%
+									}
+									%>
+
+								</ul>
+							</clay:alert>
+						</c:if>
 					</c:if>
 				</div>
 			</clay:sheet-section>

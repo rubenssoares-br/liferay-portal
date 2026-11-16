@@ -6,6 +6,7 @@
 package com.liferay.depot.internal.servlet.taglib.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.depot.constants.DepotConstants;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryLocalService;
 import com.liferay.portal.kernel.language.Language;
@@ -112,9 +113,7 @@ public class DepotBreadcrumbEntryContributorTest {
 			BreadcrumbEntryContributorUtil.contribute(
 				originalBreadcrumbEntries, mockHttpServletRequest);
 
-		Assert.assertEquals(
-			breadcrumbEntries.toString(), originalBreadcrumbEntries,
-			breadcrumbEntries);
+		Assert.assertEquals(originalBreadcrumbEntries, breadcrumbEntries);
 	}
 
 	@Test
@@ -173,6 +172,7 @@ public class DepotBreadcrumbEntryContributorTest {
 			HashMapBuilder.put(
 				LocaleUtil.getDefault(), description
 			).build(),
+			DepotConstants.TYPE_ASSET_LIBRARY,
 			ServiceContextTestUtil.getServiceContext());
 
 		_depotEntries.add(depotEntry);
@@ -236,7 +236,7 @@ public class DepotBreadcrumbEntryContributorTest {
 		mockPortletRequest.setAttribute(WebKeys.THEME_DISPLAY, themeDisplay);
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_REQUEST, mockPortletRequest);
+			JavaConstants.JAKARTA_PORTLET_REQUEST, mockPortletRequest);
 
 		return mockHttpServletRequest;
 	}

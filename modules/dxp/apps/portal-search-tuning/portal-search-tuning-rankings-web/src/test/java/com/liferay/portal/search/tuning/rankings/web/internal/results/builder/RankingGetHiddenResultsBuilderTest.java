@@ -34,7 +34,7 @@ public class RankingGetHiddenResultsBuilderTest
 	@Before
 	public void setUp() throws Exception {
 		_rankingGetHiddenResultsBuilder = new RankingGetHiddenResultsBuilder(
-			dlAppLocalService, fastDateFormatFactory, queries, rankingHelper,
+			dlAppLocalService, fastDateFormatFactory, rankingHelper,
 			rankingIndexName, rankingIndexReader, resourceActions,
 			resourceRequest, resourceResponse, searchEngineAdapter);
 
@@ -67,8 +67,8 @@ public class RankingGetHiddenResultsBuilderTest
 				setUpDocumentWithGetString(), setUpGetDocumentResponse()));
 
 		Assert.assertEquals(
-			mapper.readTree(_getExpectedDocumentsString()),
-			mapper.readTree(
+			objectMapper.readTree(_getExpectedDocumentsString()),
+			objectMapper.readTree(
 				_rankingGetHiddenResultsBuilder.build(
 				).toJSONString()));
 	}

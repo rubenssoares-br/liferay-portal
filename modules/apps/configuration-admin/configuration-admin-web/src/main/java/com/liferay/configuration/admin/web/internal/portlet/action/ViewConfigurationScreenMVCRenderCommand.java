@@ -17,12 +17,11 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCRenderCommand;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ParamUtil;
-import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -32,9 +31,9 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ConfigurationAdminPortletKeys.INSTANCE_SETTINGS,
-		"javax.portlet.name=" + ConfigurationAdminPortletKeys.SITE_SETTINGS,
-		"javax.portlet.name=" + ConfigurationAdminPortletKeys.SYSTEM_SETTINGS,
+		"jakarta.portlet.name=" + ConfigurationAdminPortletKeys.INSTANCE_SETTINGS,
+		"jakarta.portlet.name=" + ConfigurationAdminPortletKeys.SITE_SETTINGS,
+		"jakarta.portlet.name=" + ConfigurationAdminPortletKeys.SYSTEM_SETTINGS,
 		"mvc.command.name=/configuration_admin/view_configuration_screen",
 		"service.ranking:Integer=" + (Integer.MAX_VALUE - 1000)
 	},
@@ -82,8 +81,7 @@ public class ViewConfigurationScreenMVCRenderCommand
 			configurationScreen);
 
 		ConfigurationEntry configurationEntry =
-			new ConfigurationScreenConfigurationEntry(
-				configurationScreen, _portal.getLocale(renderRequest));
+			new ConfigurationScreenConfigurationEntry(configurationScreen);
 
 		renderRequest.setAttribute(
 			ConfigurationAdminWebKeys.CONFIGURATION_ENTRY, configurationEntry);
@@ -93,8 +91,5 @@ public class ViewConfigurationScreenMVCRenderCommand
 
 	@Reference
 	private ConfigurationEntryRetriever _configurationEntryRetriever;
-
-	@Reference
-	private Portal _portal;
 
 }

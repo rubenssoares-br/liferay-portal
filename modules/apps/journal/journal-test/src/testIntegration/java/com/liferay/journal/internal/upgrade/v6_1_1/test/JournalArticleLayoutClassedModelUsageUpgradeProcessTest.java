@@ -9,6 +9,7 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.kernel.model.AssetEntry;
 import com.liferay.asset.kernel.service.AssetEntryLocalService;
 import com.liferay.asset.publisher.constants.AssetPublisherPortletKeys;
+import com.liferay.counter.kernel.service.CounterLocalService;
 import com.liferay.exportimport.changeset.Changeset;
 import com.liferay.exportimport.changeset.portlet.action.ExportImportChangesetMVCActionCommandHelper;
 import com.liferay.exportimport.kernel.service.StagingLocalService;
@@ -126,8 +127,8 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 		_addPortletsToLayouts();
 
 		_layoutClassedModelUsageLocalService.addLayoutClassedModelUsage(
-			_journalArticle.getGroupId(), _journalArticleClassNameId,
-			_journalArticle.getResourcePrimKey(), StringPool.BLANK,
+			_journalArticle.getGroupId(), StringPool.BLANK,
+			_journalArticleClassNameId, _journalArticle.getResourcePrimKey(),
 			StringPool.BLANK, 0, 0, new ServiceContext());
 
 		_runUpgrade();
@@ -350,9 +351,19 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 				"groupId", new String[] {String.valueOf(groupId)}
 			).build());
 
-		_journalContentSearchLocalService.updateContentSearch(
-			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
-			portletId, articleId, true);
+		JournalContentSearch journalContentSearch =
+			_journalContentSearchLocalService.createJournalContentSearch(
+				_counterLocalService.increment());
+
+		journalContentSearch.setGroupId(layout.getGroupId());
+		journalContentSearch.setCompanyId(layout.getCompanyId());
+		journalContentSearch.setPrivateLayout(layout.isPrivateLayout());
+		journalContentSearch.setLayoutId(layout.getLayoutId());
+		journalContentSearch.setPortletId(portletId);
+		journalContentSearch.setArticleId(articleId);
+
+		_journalContentSearchLocalService.addJournalContentSearch(
+			journalContentSearch);
 
 		return portletId;
 	}
@@ -433,9 +444,10 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 	private void _assertJournalContentSearchesCount(
 		String articleId, int count) {
 
-		List<JournalContentSearch> articleContentSearches =
-			_journalContentSearchLocalService.getArticleContentSearches(
-				articleId);
+		List<JournalContentSearch> articleContentSearches = ListUtil.filter(
+			_journalContentSearchLocalService.getArticleContentSearches(),
+			journalContentSearch -> articleId.equals(
+				journalContentSearch.getArticleId()));
 
 		Assert.assertEquals(
 			articleContentSearches.toString(), count,
@@ -450,9 +462,9 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 			LayoutClassedModelUsage layoutClassedModelUsage =
 				_layoutClassedModelUsageLocalService.
 					fetchLayoutClassedModelUsage(
-						layout.getGroupId(), _journalArticleClassNameId,
-						classPK, StringPool.BLANK, containerKey, containerType,
-						layout.getPlid());
+						layout.getGroupId(), StringPool.BLANK,
+						_journalArticleClassNameId, classPK, containerKey,
+						containerType, layout.getPlid());
 
 			Assert.assertNotNull(layoutClassedModelUsage);
 			Assert.assertEquals(
@@ -533,9 +545,11 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 		for (LayoutClassedModelUsage layoutClassedModelUsage :
 				layoutClassedModelUsages) {
 
-			if (layoutClassedModelUsage.getGroupId() == groupId) {
-				count++;
+			if (layoutClassedModelUsage.getGroupId() != groupId) {
+				continue;
 			}
+
+			count++;
 		}
 
 		return count;
@@ -664,11 +678,6 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 		"com.liferay.journal.internal.upgrade.v6_1_1." +
 			"JournalArticleLayoutClassedModelUsageUpgradeProcess";
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.journal.internal.upgrade.registry.JournalServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	private AssetEntry _assetEntry;
 
 	@Inject
@@ -679,6 +688,9 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	@Inject
+	private CounterLocalService _counterLocalService;
 
 	@Inject
 	private ExportImportChangesetMVCActionCommandHelper
@@ -711,5 +723,10 @@ public class JournalArticleLayoutClassedModelUsageUpgradeProcessTest {
 
 	@Inject
 	private StagingLocalService _stagingLocalService;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.journal.internal.upgrade.registry.JournalServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

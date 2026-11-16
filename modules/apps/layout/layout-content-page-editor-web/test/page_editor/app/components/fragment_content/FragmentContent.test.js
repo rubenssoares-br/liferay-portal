@@ -7,7 +7,7 @@ import React from 'react';
 
 import {EDITABLE_FRAGMENT_ENTRY_PROCESSOR} from '../../../../../src/main/resources/META-INF/resources/page_editor/app/config/constants/editableFragmentEntryProcessor';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {act, render} from '@testing-library/react';
 
 import FragmentContent from '../../../../../src/main/resources/META-INF/resources/page_editor/app/components/fragment_content/FragmentContent';
@@ -40,6 +40,7 @@ const getFragmentEntryLink = ({
 			'editable-id': {},
 		},
 	},
+	fragmentEntryType = 'component',
 } = {}) => ({
 	comments: [],
 	configuration: {
@@ -73,6 +74,7 @@ const getFragmentEntryLink = ({
 	},
 	editableValues,
 	fragmentEntryLinkId: FRAGMENT_ENTRY_LINK_ID,
+	fragmentEntryType,
 	name: 'Heading',
 });
 
@@ -156,7 +158,7 @@ describe('FragmentContent', () => {
 			renderFragmentContent({fragmentEntryLink});
 		});
 
-		expect(resolveEditableValue).toBeCalledWith(
+		expect(resolveEditableValue).toHaveBeenCalledWith(
 			{},
 			'en_US',
 			expect.any(Function)
@@ -173,7 +175,7 @@ describe('FragmentContent', () => {
 			renderFragmentContent({fragmentEntryLink});
 		});
 
-		expect(resolveEditableValue).toBeCalledWith(
+		expect(resolveEditableValue).toHaveBeenCalledWith(
 			{},
 			'en_US',
 			expect.any(Function)
@@ -197,7 +199,7 @@ describe('FragmentContent', () => {
 			renderFragmentContent({fragmentEntryLink});
 		});
 
-		expect(resolveEditableValue).toBeCalledWith(
+		expect(resolveEditableValue).toHaveBeenCalledWith(
 			{defaultValue: 'image.jpg'},
 			'en_US',
 			expect.any(Function)
@@ -234,5 +236,41 @@ describe('FragmentContent', () => {
 		const editableContent = document.body.querySelector('#editable-id');
 
 		expect(editableContent.dataset.tooltipFloating).toBe('true');
+	});
+
+	it('does not add the ck-content class to rich text editables', async () => {
+		const fragmentEntryLink = getFragmentEntryLink({
+			content:
+				'<h1 data-lfr-editable-id="editable-id" data-lfr-editable-type="rich-text">Default content</h1>',
+		});
+
+		await act(async () => {
+			renderFragmentContent({fragmentEntryLink});
+		});
+
+		const editableContent = document.body.querySelector(
+			'[data-lfr-editable-id="editable-id"]'
+		);
+
+		expect(editableContent).toHaveClass('page-editor__editable');
+		expect(editableContent).not.toHaveClass('ck-content');
+	});
+
+	it('does not hide old widget topper for embedded widgets', async () => {
+		const fragmentEntryLink = getFragmentEntryLink({
+			content:
+				'<lfr-editable class="page-editor__editable" id="editable-id" type="text">Default content</lfr-editable>',
+			fragmentEntryType: 'whatever-that-is-not-widget',
+		});
+
+		await act(async () => {
+			renderFragmentContent({fragmentEntryLink});
+		});
+
+		expect(
+			document.querySelector(
+				'.page-editor__fragment-content--portlet-topper-hidden'
+			)
+		).not.toBeInTheDocument();
 	});
 });

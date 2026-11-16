@@ -14,10 +14,11 @@ import com.liferay.blogs.service.BlogsEntryLocalService;
 import com.liferay.blogs.service.BlogsEntryService;
 import com.liferay.petra.function.UnsafeConsumer;
 import com.liferay.petra.function.UnsafeFunction;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.dao.orm.QueryDefinition;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.BooleanClause;
-import com.liferay.portal.kernel.search.BooleanClauseFactoryUtil;
 import com.liferay.portal.kernel.search.BooleanClauseOccur;
 import com.liferay.portal.kernel.search.BooleanQuery;
 import com.liferay.portal.kernel.search.Document;
@@ -25,13 +26,12 @@ import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.Hits;
 import com.liferay.portal.kernel.search.Indexer;
 import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.search.MatchAllQuery;
 import com.liferay.portal.kernel.search.QueryConfig;
 import com.liferay.portal.kernel.search.SearchContext;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.BooleanFilter;
 import com.liferay.portal.kernel.search.filter.Filter;
-import com.liferay.portal.kernel.search.generic.BooleanQueryImpl;
-import com.liferay.portal.kernel.search.generic.MatchAllQuery;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.ServiceContext;
@@ -40,7 +40,6 @@ import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.GetterUtil;
-import com.liferay.portal.kernel.util.HashMapDictionary;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.CollectionEntityField;
 import com.liferay.portal.odata.entity.DateTimeEntityField;
@@ -64,9 +63,11 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -111,8 +112,7 @@ public class BaseBatchEngineTaskExecutorTest {
 		_batchEngineTaskItemDelegateServiceRegistration =
 			bundleContext.registerService(
 				BatchEngineTaskItemDelegate.class.getName(),
-				new TestBlogPostingBatchEngineTaskItemDelegate(),
-				new HashMapDictionary<String, String>());
+				new TestBlogPostingBatchEngineTaskItemDelegate(), null);
 
 		initialCount = getBlogEntriesCount();
 	}
@@ -165,6 +165,17 @@ public class BaseBatchEngineTaskExecutorTest {
 		extends BaseBatchEngineTaskItemDelegate<BlogPosting> {
 
 		@Override
+		public void create(
+				Collection<BlogPosting> blogPostings,
+				Map<String, Serializable> parameters)
+			throws Exception {
+
+			Assert.assertFalse(LazyReferencingThreadLocal.isEnabled());
+
+			super.create(blogPostings, parameters);
+		}
+
+		@Override
 		public BlogPosting createItem(
 				BlogPosting blogPosting,
 				Map<String, Serializable> queryParameters)
@@ -184,6 +195,17 @@ public class BaseBatchEngineTaskExecutorTest {
 				_createServiceContext(blogPosting.getSiteId()));
 
 			return null;
+		}
+
+		@Override
+		public void delete(
+				Collection<BlogPosting> blogPostings,
+				Map<String, Serializable> parameters)
+			throws Exception {
+
+			Assert.assertFalse(LazyReferencingThreadLocal.isEnabled());
+
+			super.delete(blogPostings, parameters);
 		}
 
 		@Override
@@ -209,6 +231,8 @@ public class BaseBatchEngineTaskExecutorTest {
 				Map<String, Serializable> parameters, String search)
 			throws Exception {
 
+			Assert.assertFalse(LazyReferencingThreadLocal.isEnabled());
+
 			long siteId = GetterUtil.getLong(parameters.get("siteId"));
 
 			return _search(
@@ -231,9 +255,22 @@ public class BaseBatchEngineTaskExecutorTest {
 		}
 
 		@Override
+		public void update(
+				Collection<BlogPosting> blogPostings,
+				Map<String, Serializable> parameters)
+			throws Exception {
+
+			Assert.assertFalse(LazyReferencingThreadLocal.isEnabled());
+
+			super.update(blogPostings, parameters);
+		}
+
+		@Override
 		public void updateItem(
 				BlogPosting blogPosting, Map<String, Serializable> parameters)
 			throws Exception {
+
+			Assert.assertFalse(LazyReferencingThreadLocal.isEnabled());
 
 			LocalDateTime localDateTime = _toLocalDateTime(
 				blogPosting.getDatePublished());
@@ -307,7 +344,7 @@ public class BaseBatchEngineTaskExecutorTest {
 				Filter filter)
 			throws Exception {
 
-			BooleanQuery booleanQuery = new BooleanQueryImpl();
+			BooleanQuery booleanQuery = new BooleanQuery();
 
 			booleanQuery.add(new MatchAllQuery(), BooleanClauseOccur.MUST);
 
@@ -321,8 +358,7 @@ public class BaseBatchEngineTaskExecutorTest {
 
 			booleanQueryUnsafeConsumer.accept(booleanQuery);
 
-			return BooleanClauseFactoryUtil.create(
-				booleanQuery, BooleanClauseOccur.MUST.getName());
+			return new BooleanClause<>(booleanQuery, BooleanClauseOccur.MUST);
 		}
 
 		private Page<BlogPosting> _search(
@@ -344,8 +380,6 @@ public class BaseBatchEngineTaskExecutorTest {
 				};
 			}
 
-			List<BlogPosting> items = new ArrayList<>();
-
 			Indexer<?> indexer = IndexerRegistryUtil.getIndexer(
 				(Class<?>)BlogsEntry.class);
 
@@ -357,16 +391,11 @@ public class BaseBatchEngineTaskExecutorTest {
 
 			Hits hits = indexer.search(searchContext);
 
-			for (Document document : hits.getDocs()) {
-				BlogPosting item = transformUnsafeFunction.apply(document);
-
-				if (item != null) {
-					items.add(item);
-				}
-			}
-
 			return Page.of(
-				items, pagination, indexer.searchCount(searchContext));
+				TransformUtil.transformToList(
+					hits.getDocs(),
+					document -> transformUnsafeFunction.apply(document)),
+				pagination, indexer.searchCount(searchContext));
 		}
 
 		private BlogPosting _toBlogPosting(BlogsEntry blogsEntry) {
@@ -437,10 +466,18 @@ public class BaseBatchEngineTaskExecutorTest {
 	@Inject
 	protected BlogsEntryLocalService blogsEntryLocalService;
 
-	protected final DateFormat dateFormat = new SimpleDateFormat(
-		"yyyy-MM-dd'T'HH:mm:ssX");
+	protected final DateFormat dateFormat = _createDateFormat();
 	protected int initialCount;
 	protected User user;
+
+	private DateFormat _createDateFormat() {
+		DateFormat dateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+
+		dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+		return dateFormat;
+	}
 
 	private ServiceRegistration<?>
 		_batchEngineTaskItemDelegateServiceRegistration;

@@ -12,6 +12,7 @@ import com.liferay.list.type.model.ListTypeEntry;
 import com.liferay.list.type.service.ListTypeEntryLocalService;
 import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.constants.ObjectFieldSettingConstants;
+import com.liferay.object.exception.ObjectEntryScopeException;
 import com.liferay.object.field.business.type.ObjectFieldBusinessType;
 import com.liferay.object.field.business.type.ObjectFieldBusinessTypeRegistry;
 import com.liferay.object.field.setting.util.ObjectFieldSettingUtil;
@@ -19,12 +20,12 @@ import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.model.ObjectField;
+import com.liferay.object.model.bag.ObjectFieldBag;
 import com.liferay.object.rest.dto.v1_0.ListEntry;
 import com.liferay.object.rest.dto.v1_0.Status;
 import com.liferay.object.rest.dto.v1_0.util.CreatorUtil;
 import com.liferay.object.scope.ObjectScopeProvider;
 import com.liferay.object.scope.ObjectScopeProviderRegistry;
-import com.liferay.object.scope.util.GroupUtil;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.petra.function.UnsafeTriConsumer;
@@ -53,6 +54,7 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
+import com.liferay.portal.vulcan.util.GroupUtil;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
 
 import java.math.BigDecimal;
@@ -74,7 +76,8 @@ import org.osgi.service.component.annotations.Reference;
 public abstract class BaseObjectEntryManager {
 
 	protected Map<String, String> addDeleteAction(
-		ObjectDefinition objectDefinition, String scopeKey, User user) {
+			ObjectDefinition objectDefinition, String scopeKey, User user)
+		throws ObjectEntryScopeException {
 
 		if (!_hasPortletResourcePermission(
 				objectDefinition, scopeKey, user, ActionKeys.DELETE)) {
@@ -111,31 +114,23 @@ public abstract class BaseObjectEntryManager {
 	}
 
 	protected long getGroupId(
-		ObjectDefinition objectDefinition, String scopeKey) {
-
-		return getGroupId(objectDefinition, scopeKey, false);
-	}
-
-	protected long getGroupId(
-		ObjectDefinition objectDefinition, String scopeKey,
-		boolean useCompanyGroup) {
-
-		ObjectScopeProvider objectScopeProvider =
-			objectScopeProviderRegistry.getObjectScopeProvider(
-				objectDefinition.getScope());
+			ObjectDefinition objectDefinition,
+			ObjectScopeProvider objectScopeProvider, String scopeKey,
+			boolean useCompanyGroup)
+		throws ObjectEntryScopeException {
 
 		if (objectScopeProvider.isGroupAware()) {
-			if (Objects.equals(objectDefinition.getScope(), "site")) {
-				return GetterUtil.getLong(
-					GroupUtil.getGroupId(
-						objectDefinition.getCompanyId(), scopeKey,
-						groupLocalService));
+			if (scopeKey == null) {
+				throw new ObjectEntryScopeException(
+					StringBundler.concat(
+						"No scope key was provided for the \"",
+						objectDefinition.getName(), "\" entry."));
 			}
 
 			return GetterUtil.getLong(
-				com.liferay.portal.vulcan.util.GroupUtil.getDepotGroupId(
-					scopeKey, objectDefinition.getCompanyId(),
-					depotEntryLocalService, groupLocalService));
+				GroupUtil.getGroupId(
+					objectDefinition.getCompanyId(), scopeKey,
+					groupLocalService));
 		}
 
 		if (useCompanyGroup) {
@@ -151,6 +146,25 @@ public abstract class BaseObjectEntryManager {
 		}
 
 		return 0;
+	}
+
+	protected long getGroupId(
+			ObjectDefinition objectDefinition, String scopeKey)
+		throws ObjectEntryScopeException {
+
+		return getGroupId(objectDefinition, scopeKey, false);
+	}
+
+	protected long getGroupId(
+			ObjectDefinition objectDefinition, String scopeKey,
+			boolean useCompanyGroup)
+		throws ObjectEntryScopeException {
+
+		return getGroupId(
+			objectDefinition,
+			objectScopeProviderRegistry.getObjectScopeProvider(
+				objectDefinition.getScope()),
+			scopeKey, useCompanyGroup);
 	}
 
 	protected PortletResourcePermission getPortletResourcePermission(
@@ -192,7 +206,8 @@ public abstract class BaseObjectEntryManager {
 					objectField.getBusinessType());
 
 			Object value = objectFieldBusinessType.getValue(
-				objectField, dtoConverterContext.getUserId(), properties);
+				objectEntry.getScopeId(), objectField,
+				dtoConverterContext.getUserId(), properties);
 
 			if (objectField.compareBusinessType(
 					ObjectFieldConstants.BUSINESS_TYPE_MULTISELECT_PICKLIST)) {
@@ -308,34 +323,52 @@ public abstract class BaseObjectEntryManager {
 	}
 
 	protected void validateReadOnlyObjectFields(
-			String externalReferenceCode, ObjectDefinition objectDefinition,
+			ObjectDefinition objectDefinition,
+			com.liferay.object.rest.dto.v1_0.ObjectEntry objectEntry,
+			ObjectEntry serviceBuilderObjectEntry)
+		throws Exception {
+
+		Map<String, Object> values = HashMapBuilder.<String, Object>putAll(
+			objectEntryLocalService.getSystemValues(serviceBuilderObjectEntry)
+		).putAll(
+			serviceBuilderObjectEntry.getValues()
+		).build();
+
+		ObjectFieldBag objectFieldBag = objectDefinition.getObjectFieldBag();
+
+		ObjectFieldUtil.validateReadOnlyObjectFields(
+			ddmExpressionFactory, values, objectFieldBag.getObjectFields(),
+			objectEntry.getProperties());
+	}
+
+	protected void validateReadOnlyObjectFields(
+			String externalReferenceCode, long groupId,
+			ObjectDefinition objectDefinition,
 			com.liferay.object.rest.dto.v1_0.ObjectEntry objectEntry)
 		throws Exception {
 
-		Map<String, Object> values = new HashMap<>();
+		if (externalReferenceCode == null) {
+			ObjectFieldBag objectFieldBag =
+				objectDefinition.getObjectFieldBag();
 
-		if (externalReferenceCode != null) {
-			ObjectEntry serviceBuilderObjectEntry =
-				objectEntryLocalService.fetchObjectEntry(
-					externalReferenceCode,
-					objectDefinition.getObjectDefinitionId());
+			ObjectFieldUtil.validateReadOnlyObjectFields(
+				ddmExpressionFactory, new HashMap<>(),
+				objectFieldBag.getObjectFields(), objectEntry.getProperties());
 
-			if (serviceBuilderObjectEntry == null) {
-				return;
-			}
-
-			values.putAll(
-				objectEntryLocalService.getSystemValues(
-					serviceBuilderObjectEntry));
-			values.putAll(
-				objectEntryLocalService.getValues(serviceBuilderObjectEntry));
+			return;
 		}
 
-		ObjectFieldUtil.validateReadOnlyObjectFields(
-			ddmExpressionFactory, values,
-			objectFieldLocalService.getObjectFields(
-				objectDefinition.getObjectDefinitionId()),
-			objectEntry.getProperties());
+		ObjectEntry serviceBuilderObjectEntry =
+			objectEntryLocalService.fetchObjectEntry(
+				externalReferenceCode, groupId,
+				objectDefinition.getObjectDefinitionId());
+
+		if (serviceBuilderObjectEntry == null) {
+			return;
+		}
+
+		validateReadOnlyObjectFields(
+			objectDefinition, objectEntry, serviceBuilderObjectEntry);
 	}
 
 	@Reference
@@ -423,8 +456,9 @@ public abstract class BaseObjectEntryManager {
 	}
 
 	private boolean _hasPortletResourcePermission(
-		ObjectDefinition objectDefinition, String scopeKey, User user,
-		String actionId) {
+			ObjectDefinition objectDefinition, String scopeKey, User user,
+			String actionId)
+		throws ObjectEntryScopeException {
 
 		PortletResourcePermission portletResourcePermission =
 			getPortletResourcePermission(objectDefinition);

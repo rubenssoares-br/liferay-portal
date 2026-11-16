@@ -12,7 +12,12 @@ import com.liferay.commerce.constants.CommerceAddressConstants;
 import com.liferay.commerce.model.CommerceAddress;
 import com.liferay.expando.kernel.model.ExpandoBridge;
 import com.liferay.expando.kernel.util.ExpandoBridgeFactoryUtil;
+import com.liferay.list.type.model.ListTypeEntry;
+import com.liferay.list.type.service.ListTypeEntryLocalServiceUtil;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.account.configuration.manager.AccountEntryAddressSubtypeConfigurationManagerUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.list.type.manager.ListTypeEntryManagerUtil;
 import com.liferay.portal.kernel.model.Address;
 import com.liferay.portal.kernel.model.Country;
 import com.liferay.portal.kernel.model.ListType;
@@ -23,8 +28,10 @@ import com.liferay.portal.kernel.service.CountryLocalServiceUtil;
 import com.liferay.portal.kernel.service.ListTypeLocalServiceUtil;
 import com.liferay.portal.kernel.service.PhoneLocalServiceUtil;
 import com.liferay.portal.kernel.service.RegionLocalServiceUtil;
+import com.liferay.portal.kernel.util.Validator;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiConsumer;
@@ -54,10 +61,12 @@ public class CommerceAddressImpl extends CommerceAddressBaseImpl {
 				commerceAddressObjectBiConsumer =
 					attributeSetterBiConsumers.get(entry.getKey());
 
-			if (commerceAddressObjectBiConsumer != null) {
-				commerceAddressObjectBiConsumer.accept(
-					commerceAddress, entry.getValue());
+			if (commerceAddressObjectBiConsumer == null) {
+				continue;
 			}
+
+			commerceAddressObjectBiConsumer.accept(
+				commerceAddress, entry.getValue());
 		}
 
 		commerceAddress.setCommerceAddressId(address.getAddressId());
@@ -82,16 +91,13 @@ public class CommerceAddressImpl extends CommerceAddressBaseImpl {
 	}
 
 	public static boolean isAccountEntryAddress(Address address) {
-		if (Objects.equals(
-				AccountEntry.class.getName(), address.getClassName())) {
-
-			return true;
-		}
-
-		return false;
+		return Objects.equals(
+			AccountEntry.class.getName(), address.getClassName());
 	}
 
-	public static long toAddressTypeId(int commerceAddressType) {
+	public static long toAddressTypeId(int commerceAddressType)
+		throws PortalException {
+
 		if (CommerceAddressConstants.ADDRESS_TYPE_BILLING ==
 				commerceAddressType) {
 
@@ -211,6 +217,35 @@ public class CommerceAddressImpl extends CommerceAddressBaseImpl {
 	}
 
 	@Override
+	public String getSubtype(Locale locale) {
+		if (Validator.isNull(getSubtype())) {
+			return StringPool.BLANK;
+		}
+
+		String externalReferenceCode =
+			AccountEntryAddressSubtypeConfigurationManagerUtil.
+				getAddressSubtypeListTypeDefinitionExternalReferenceCode(
+					getCompanyId(),
+					CommerceAddressConstants.getAddressTypeLabel(getType()));
+
+		if (Validator.isNull(externalReferenceCode)) {
+			return getSubtype();
+		}
+
+		ListTypeEntry listTypeEntry =
+			ListTypeEntryLocalServiceUtil.fetchListTypeEntry(
+				ListTypeEntryManagerUtil.
+					getListTypeEntryIdByListTypeDefinitionExternalReferenceCode(
+						externalReferenceCode, getCompanyId(), getSubtype()));
+
+		if (listTypeEntry == null) {
+			return getSubtype();
+		}
+
+		return listTypeEntry.getName(locale);
+	}
+
+	@Override
 	public boolean isGeolocated() {
 		if ((getLatitude() == 0) && (getLongitude() == 0)) {
 			return false;
@@ -241,7 +276,7 @@ public class CommerceAddressImpl extends CommerceAddressBaseImpl {
 		return false;
 	}
 
-	private static long _getAddressTypeId(String name) {
+	private static long _getAddressTypeId(String name) throws PortalException {
 		ListType listType = ListTypeLocalServiceUtil.getListType(
 			CompanyThreadLocal.getCompanyId(), name,
 			AccountListTypeConstants.ACCOUNT_ENTRY_ADDRESS);

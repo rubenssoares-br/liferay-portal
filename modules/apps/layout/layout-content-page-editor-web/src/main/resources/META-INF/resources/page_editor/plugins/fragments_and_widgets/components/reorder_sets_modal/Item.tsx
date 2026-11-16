@@ -82,6 +82,7 @@ export function Item({index, item, onDropItem}: ItemProps) {
 							<ContentCol gutters>
 								<ClayButton
 									aria-labelledby={`${dragButtonDescriptionId} ${itemDescriptionId}`}
+									className="reorder-list-drag-handle"
 									data-item-id={item.id}
 									displayType="unstyled"
 									monospaced
@@ -100,7 +101,9 @@ export function Item({index, item, onDropItem}: ItemProps) {
 										className="sr-only"
 										id={dragButtonDescriptionId}
 									>
-										{Liferay.Language.get('reorder')}
+										{Liferay.Language.get(
+											'reorder[arrange]'
+										)}
 									</span>
 								</ClayButton>
 							</ContentCol>

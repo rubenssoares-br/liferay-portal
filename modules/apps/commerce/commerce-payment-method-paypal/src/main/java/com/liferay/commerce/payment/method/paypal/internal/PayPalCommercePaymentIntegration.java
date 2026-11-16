@@ -36,10 +36,12 @@ import com.liferay.portal.kernel.model.Region;
 import com.liferay.portal.kernel.settings.GroupServiceSettingsLocator;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
 import com.liferay.portal.kernel.util.URLCodec;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.security.key.secret.SecretResolver;
 
 import com.paypal.core.PayPalEnvironment;
 import com.paypal.core.PayPalHttpClient;
@@ -73,10 +75,16 @@ import com.paypal.payments.CapturesRefundRequest;
 import com.paypal.payments.Refund;
 import com.paypal.payments.RefundRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.io.IOException;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+
+import java.nio.charset.StandardCharsets;
+
+import java.security.MessageDigest;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -84,8 +92,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.ResourceBundle;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -261,6 +267,32 @@ public class PayPalCommercePaymentIntegration
 	public int getPaymentIntegrationType() {
 		return CommercePaymentIntegrationConstants.
 			TYPE_INTERNAL_ONLINE_REDIRECT;
+	}
+
+	@Override
+	public boolean isValid(
+			HttpServletRequest httpServletRequest,
+			CommercePaymentEntry commercePaymentEntry)
+		throws PortalException {
+
+		if (commercePaymentEntry.getPaymentStatus() !=
+				CommercePaymentEntryConstants.STATUS_CREATED) {
+
+			return true;
+		}
+
+		String token = ParamUtil.getString(httpServletRequest, "token");
+		String transactionCode = commercePaymentEntry.getTransactionCode();
+
+		if (Validator.isBlank(token) || Validator.isBlank(transactionCode) ||
+			!MessageDigest.isEqual(
+				token.getBytes(StandardCharsets.UTF_8),
+				transactionCode.getBytes(StandardCharsets.UTF_8))) {
+
+			return false;
+		}
+
+		return true;
 	}
 
 	@Override
@@ -671,20 +703,22 @@ public class PayPalCommercePaymentIntegration
 		PayPalGroupServiceConfiguration payPalGroupServiceConfiguration =
 			_getPayPalGroupServiceConfiguration(commercePaymentEntry);
 
+		String clientSecret = _secretResolver.resolve(
+			commercePaymentEntry.getCompanyId(),
+			payPalGroupServiceConfiguration.clientSecret());
+
 		if (Objects.equals(
 				payPalGroupServiceConfiguration.mode(),
 				PayPalCommercePaymentMethodConstants.MODE_LIVE)) {
 
 			return new PayPalHttpClient(
 				new PayPalEnvironment.Live(
-					payPalGroupServiceConfiguration.clientId(),
-					payPalGroupServiceConfiguration.clientSecret()));
+					payPalGroupServiceConfiguration.clientId(), clientSecret));
 		}
 
 		return new PayPalHttpClient(
 			new PayPalEnvironment.Sandbox(
-				payPalGroupServiceConfiguration.clientId(),
-				payPalGroupServiceConfiguration.clientSecret()));
+				payPalGroupServiceConfiguration.clientId(), clientSecret));
 	}
 
 	private String _getRegionCode(Region region) {
@@ -800,5 +834,8 @@ public class PayPalCommercePaymentIntegration
 
 	@Reference
 	private Portal _portal;
+
+	@Reference
+	private SecretResolver _secretResolver;
 
 }

@@ -26,30 +26,41 @@ class OAuth2Client {
 		protected basePath: string
 	) {
 		this.oAuth2Client =
-			Liferay.OAuth2Client.FromUserAgentApplication(agentName);
+			Liferay.OAuth2Client?.FromUserAgentApplication(agentName);
+	}
+
+	private async parseError(response: Response | Error) {
+		if (response instanceof Response && !response.ok) {
+			const error = new FetcherError(
+				'An error occurred while fetching the data.'
+			);
+
+			if (response.headers.get('Content-Length') !== '0') {
+				error.info = await response.json();
+			}
+
+			error.status = response.status;
+
+			throw error;
+		}
+
+		return response;
 	}
 
 	private fetcher = async <T = any>(
 		resource: RequestInfo,
 		options?: Options<T>
 	): Promise<T> => {
-		const response = await this.oAuth2Client.fetch(
-			`${this.basePath + resource}`,
-			options
-		);
+		const response = (await this.oAuth2Client
+			.fetch(`${this.basePath + resource}`, options)
+			.catch(this.parseError.bind(this))) as Response;
 
-		if (options?.earlyReturn) {
+		if (options?.earlyReturn || !(response instanceof Response)) {
 			return response as T;
 		}
 
 		if (!response.ok) {
-			const error = new FetcherError(
-				'An error occurred while fetching the data.'
-			);
-
-			error.info = await response.json();
-			error.status = response.status;
-			throw error;
+			throw this.parseError(response);
 		}
 
 		if (
@@ -101,12 +112,12 @@ class OAuth2Client {
 
 	protected post<T>(
 		resource: RequestInfo,
-		data?: unknown,
+		data?: FormData | unknown,
 		options?: Options<T>
 	) {
 		return this.fetcher(resource, {
 			...options,
-			body: JSON.stringify(data),
+			body: data instanceof FormData ? data : JSON.stringify(data),
 			method: 'POST',
 		});
 	}
@@ -114,10 +125,7 @@ class OAuth2Client {
 
 export class MarketplaceSpringBootOAuth2 extends OAuth2Client {
 	constructor(resource: string) {
-		super(
-			'liferay-marketplace-etc-spring-boot-oauth-application-user-agent',
-			resource
-		);
+		super('liferay-marketplace-etc-spring-boot-oaua', resource);
 	}
 }
 

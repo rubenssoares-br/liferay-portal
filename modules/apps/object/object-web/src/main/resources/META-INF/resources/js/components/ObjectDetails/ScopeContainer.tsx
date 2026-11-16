@@ -28,7 +28,6 @@ interface ScopeContainerProps {
 	hasUpdateObjectDefinitionPermission: boolean;
 	isApproved: boolean;
 	isLinkedObjectDefinition?: boolean;
-	isRootDescendantNode: boolean;
 	onSubmit?: (editedObjectDefinition?: Partial<ObjectDefinition>) => void;
 	setValues: (values: Partial<ObjectDefinition>) => void;
 	sites: Scope[];
@@ -42,7 +41,6 @@ export function ScopeContainer({
 	hasUpdateObjectDefinitionPermission,
 	isApproved,
 	isLinkedObjectDefinition,
-	isRootDescendantNode,
 	onSubmit,
 	setValues,
 	sites,
@@ -87,7 +85,6 @@ export function ScopeContainer({
 					isApproved ||
 					!hasUpdateObjectDefinitionPermission ||
 					values.storageType === 'salesforce' ||
-					isRootDescendantNode ||
 					isLinkedObjectDefinition
 				}
 				error={errors.titleObjectFieldId}
@@ -118,8 +115,8 @@ export function ScopeContainer({
 				disabled={
 					(!values.modifiable && values.system) ||
 					!hasUpdateObjectDefinitionPermission ||
-					isRootDescendantNode ||
-					isLinkedObjectDefinition
+					isLinkedObjectDefinition ||
+					values.scope === 'depot'
 				}
 				error={errors.titleObjectFieldId}
 				id="lfr-objects__object-scope-container-panel-link"

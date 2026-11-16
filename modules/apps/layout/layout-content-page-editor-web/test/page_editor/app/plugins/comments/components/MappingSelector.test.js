@@ -6,7 +6,7 @@
 import {State} from '@liferay/frontend-js-state-web';
 import userEvent from '@testing-library/user-event';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {
 	act,
 	fireEvent,
@@ -73,11 +73,6 @@ const EMPTY_COLLECTION_CONFIG = {
 };
 
 const onMappingSelect = jest.fn();
-
-jest.mock('frontend-js-web', () => ({
-	...jest.requireActual('frontend-js-web'),
-	sub: jest.fn((key, arg) => key.replace('x', arg)),
-}));
 
 jest.mock(
 	'../../../../../../src/main/resources/META-INF/resources/page_editor/app/config/index',
@@ -184,6 +179,8 @@ function renderMappingSelector({
 
 describe('MappingSelector', () => {
 	beforeAll(() => {
+		Liferay.FeatureFlags['LPD-60546'] = true;
+
 		State.writeAtom(pageContentsAtom, {
 			data: [
 				{
@@ -200,6 +197,8 @@ describe('MappingSelector', () => {
 	});
 
 	afterAll(() => {
+		Liferay.FeatureFlags['LPD-60546'] = false;
+
 		State.writeAtom(pageContentsAtom, {
 			data: [],
 			status: 'idle',
@@ -233,7 +232,7 @@ describe('MappingSelector', () => {
 				});
 			});
 
-			expect(onMappingSelect).toBeCalledWith({
+			expect(onMappingSelect).toHaveBeenCalledWith({
 				className: 'InfoItemClassName',
 				classNameId: 'InfoItemClassNameId',
 				classPK: 'infoItemClassPK',
@@ -257,7 +256,7 @@ describe('MappingSelector', () => {
 				});
 			});
 
-			expect(onMappingSelect).toBeCalledWith({});
+			expect(onMappingSelect).toHaveBeenCalledWith({});
 		});
 
 		it('renders correct selects when using Collection context', async () => {
@@ -365,6 +364,43 @@ describe('MappingSelector', () => {
 				).toHaveTextContent('text');
 			});
 		});
+
+		it('marks the field group as mapped when a field is selected', async () => {
+			getSelectedField.mockImplementation(() => ({
+				key: 'text-field-1',
+				typeLabel: 'text',
+			}));
+
+			renderMappingSelector({});
+
+			await act(async () => {
+				expect(
+					getByLabelText(document.body, 'field').closest(
+						'.form-group'
+					)
+				).toHaveClass('page-editor__mapped-field');
+
+				expect(getByText(document.body, 'mapped')).toBeInTheDocument();
+			});
+		});
+
+		it('does not mark the field group as mapped when no field is selected', async () => {
+			getSelectedField.mockImplementation(() => null);
+
+			renderMappingSelector({});
+
+			await act(async () => {
+				expect(
+					getByLabelText(document.body, 'field').closest(
+						'.form-group'
+					)
+				).not.toHaveClass('page-editor__mapped-field');
+
+				expect(
+					queryByText(document.body, 'mapped')
+				).not.toBeInTheDocument();
+			});
+		});
 	});
 
 	describe('Display Pages', () => {
@@ -432,7 +468,7 @@ describe('MappingSelector', () => {
 				});
 			});
 
-			expect(onMappingSelect).toBeCalledWith({
+			expect(onMappingSelect).toHaveBeenCalledWith({
 				mappedField: 'structure-field-1',
 			});
 		});
@@ -444,7 +480,7 @@ describe('MappingSelector', () => {
 
 			const sourceSelect = screen.getByLabelText('source');
 
-			userEvent.selectOptions(sourceSelect, 'relationship');
+			await userEvent.selectOptions(sourceSelect, 'relationship');
 			fireEvent.change(sourceSelect);
 
 			expect(
@@ -459,7 +495,7 @@ describe('MappingSelector', () => {
 
 			const sourceSelect = screen.getByLabelText('source');
 
-			userEvent.selectOptions(sourceSelect, 'relationship');
+			await userEvent.selectOptions(sourceSelect, 'relationship');
 			fireEvent.change(sourceSelect);
 
 			expect(screen.getByLabelText('relationship')).toBeInTheDocument();

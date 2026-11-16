@@ -115,11 +115,11 @@ public class SegmentsExperimentLocalServiceUtil {
 	}
 
 	public static SegmentsExperiment deleteSegmentsExperiment(
-			long groupId, long segmentsExperienceId, long plid)
+			long groupId, String segmentsExperienceKey, long plid)
 		throws PortalException {
 
 		return getService().deleteSegmentsExperiment(
-			groupId, segmentsExperienceId, plid);
+			groupId, segmentsExperienceKey, plid);
 	}
 
 	/**
@@ -239,17 +239,17 @@ public class SegmentsExperimentLocalServiceUtil {
 	}
 
 	public static SegmentsExperiment fetchSegmentsExperiment(
-		long groupId, long segmentsExperienceId, long plid) {
-
-		return getService().fetchSegmentsExperiment(
-			groupId, segmentsExperienceId, plid);
-	}
-
-	public static SegmentsExperiment fetchSegmentsExperiment(
 		long groupId, String segmentsExperimentKey) {
 
 		return getService().fetchSegmentsExperiment(
 			groupId, segmentsExperimentKey);
+	}
+
+	public static SegmentsExperiment fetchSegmentsExperiment(
+		long groupId, String segmentsExperienceKey, long plid) {
+
+		return getService().fetchSegmentsExperiment(
+			groupId, segmentsExperienceKey, plid);
 	}
 
 	/**
@@ -306,10 +306,10 @@ public class SegmentsExperimentLocalServiceUtil {
 	}
 
 	public static List<SegmentsExperiment> getSegmentsEntrySegmentsExperiments(
-		long segmentsEntryId) {
+		String segmentsEntryERC, long segmentsEntryGroupId) {
 
 		return getService().getSegmentsEntrySegmentsExperiments(
-			segmentsEntryId);
+			segmentsEntryERC, segmentsEntryGroupId);
 	}
 
 	/**
@@ -470,3 +470,4 @@ public class SegmentsExperimentLocalServiceUtil {
 			SegmentsExperimentLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1968084595

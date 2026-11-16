@@ -42,46 +42,49 @@ public class JournalArticleAssetEntryClassTypeIdUpgradeProcess
 
 		try (PreparedStatement preparedStatement1 = connection.prepareStatement(
 				StringBundler.concat(
-					"select distinct AssetEntry.ctCollectionId, ",
-					"AssetEntry.entryId, AssetEntry.classTypeId, ",
-					"JournalArticle.DDMStructureId from AssetEntry, ",
-					"JournalArticle where AssetEntry.classNameId = ",
-					classNameId,
-					" and (AssetEntry.classPK = JournalArticle.id_ or ",
-					"AssetEntry.classPK = JournalArticle.resourcePrimKey) and ",
-					"AssetEntry.classTypeId != JournalArticle.DDMStructureId"));
+					"select distinct AssetEntry.ctCollectionId, AssetEntry.",
+					"entryId, AssetEntry.classTypeId, JournalArticle.",
+					"DDMStructureId from AssetEntry, JournalArticle where ",
+					"AssetEntry.classNameId = ? and (AssetEntry.classPK = ",
+					"JournalArticle.id_ or AssetEntry.classPK = ",
+					"JournalArticle.resourcePrimKey) and AssetEntry.",
+					"classTypeId != JournalArticle.DDMStructureId"));
 			PreparedStatement preparedStatement2 =
 				AutoBatchPreparedStatementUtil.autoBatch(
 					connection,
 					"update AssetEntry set classTypeId = ? where " +
-						"ctCollectionId = ? and entryId = ?");
-			ResultSet resultSet = preparedStatement1.executeQuery()) {
+						"ctCollectionId = ? and entryId = ?")) {
 
-			while (resultSet.next()) {
-				long ctCollectionId = resultSet.getLong(1);
-				long entryId = resultSet.getLong(2);
-				long classTypeId = resultSet.getLong(3);
+			preparedStatement1.setLong(1, classNameId);
 
-				long ddmStructureId = resultSet.getLong(4);
+			try (ResultSet resultSet = preparedStatement1.executeQuery()) {
+				while (resultSet.next()) {
+					long ddmStructureId = resultSet.getLong("DDMStructureId");
 
-				preparedStatement2.setLong(1, ddmStructureId);
+					preparedStatement2.setLong(1, ddmStructureId);
 
-				preparedStatement2.setLong(2, ctCollectionId);
-				preparedStatement2.setLong(3, entryId);
+					preparedStatement2.setLong(
+						2, resultSet.getLong("ctCollectionId"));
 
-				preparedStatement2.addBatch();
+					long entryId = resultSet.getLong("entryId");
 
-				Map<Long, List<Long>> entryIdsMap =
-					entryIdsMaps.computeIfAbsent(
-						classTypeId, key -> new HashMap<>());
+					preparedStatement2.setLong(3, entryId);
 
-				List<Long> entryIds = entryIdsMap.computeIfAbsent(
-					ddmStructureId, key -> new ArrayList<>());
+					preparedStatement2.addBatch();
 
-				entryIds.add(entryId);
+					Map<Long, List<Long>> entryIdsMap =
+						entryIdsMaps.computeIfAbsent(
+							resultSet.getLong("classTypeId"),
+							key -> new HashMap<>());
+
+					List<Long> entryIds = entryIdsMap.computeIfAbsent(
+						ddmStructureId, key -> new ArrayList<>());
+
+					entryIds.add(entryId);
+				}
+
+				preparedStatement2.executeBatch();
 			}
-
-			preparedStatement2.executeBatch();
 		}
 		catch (SQLException sqlException) {
 			_log.error("Unable to set asset entry class type ID", sqlException);

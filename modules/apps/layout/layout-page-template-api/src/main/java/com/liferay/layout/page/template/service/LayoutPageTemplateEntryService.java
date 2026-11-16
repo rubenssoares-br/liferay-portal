@@ -6,6 +6,7 @@
 package com.liferay.layout.page.template.service;
 
 import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
+import com.liferay.portal.kernel.cache.thread.local.ThreadLocalCachable;
 import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.exception.SystemException;
@@ -49,14 +50,25 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 	 */
 	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
 			String externalReferenceCode, long groupId,
-			long layoutPageTemplateCollectionId, long classNameId,
-			long classTypeId, String name, long masterLayoutPlid, int status,
+			long layoutPageTemplateCollectionId,
+			String layoutPageTemplateEntryKey, long classNameId,
+			String classTypeKey, String name, int type, long previewFileEntryId,
+			boolean defaultTemplate, long layoutPrototypeId, long plid,
+			long masterLayoutPlid, int status, ServiceContext serviceContext)
+		throws PortalException;
+
+	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
+			String externalReferenceCode, long groupId,
+			long layoutPageTemplateCollectionId,
+			String layoutPageTemplateEntryKey, long classNameId,
+			String classTypeKey, String name, long masterLayoutPlid, int status,
 			ServiceContext serviceContext)
 		throws PortalException;
 
 	public LayoutPageTemplateEntry addLayoutPageTemplateEntry(
 			String externalReferenceCode, long groupId,
-			long layoutPageTemplateCollectionId, String name, int type,
+			long layoutPageTemplateCollectionId,
+			String layoutPageTemplateEntryKey, String name, int type,
 			long masterLayoutPlid, int status, ServiceContext serviceContext)
 		throws PortalException;
 
@@ -107,6 +119,10 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 	public LayoutPageTemplateEntry
 			fetchLayoutPageTemplateEntryByExternalReferenceCode(
 				String externalReferenceCode, long groupId)
+		throws PortalException;
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public LayoutPageTemplateEntry fetchLayoutPageTemplateEntryByPlid(long plid)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -189,6 +205,7 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 	public List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
 		long groupId, long classNameId, long classTypeId, int type);
 
+	@ThreadLocalCachable
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
 		long groupId, long classNameId, long classTypeId, int type, int status);
@@ -246,6 +263,23 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
 		long groupId, String name, int[] types, int start, int end,
+		OrderByComparator<LayoutPageTemplateEntry> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
+		long[] groupIds, long classNameId, String classTypeKey, int type,
+		int status);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
+		long[] groupIds, long classNameId, String classTypeKey, int type,
+		int status, int start, int end,
+		OrderByComparator<LayoutPageTemplateEntry> orderByComparator);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<LayoutPageTemplateEntry> getLayoutPageTemplateEntries(
+		long[] groupIds, long classNameId, String classTypeKey, String name,
+		int type, int status, int start, int end,
 		OrderByComparator<LayoutPageTemplateEntry> orderByComparator);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
@@ -319,6 +353,16 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 		long groupId, String name, int[] types, int status);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getLayoutPageTemplateEntriesCount(
+		long[] groupIds, long classNameId, String classTypeKey, int type,
+		int status);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getLayoutPageTemplateEntriesCount(
+		long[] groupIds, long classNameId, String classTypeKey, String name,
+		int type, int status);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getLayoutPageTemplateEntriesCountByType(
 		long groupId, long layoutPageTemplateCollectionId, int type);
 
@@ -359,7 +403,8 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 		throws PortalException;
 
 	public LayoutPageTemplateEntry updateLayoutPageTemplateEntry(
-			long layoutPageTemplateEntryId, long classNameId, long classTypeId)
+			long layoutPageTemplateEntryId, long classNameId,
+			String classTypeKey)
 		throws PortalException;
 
 	public LayoutPageTemplateEntry updateLayoutPageTemplateEntry(
@@ -371,3 +416,4 @@ public interface LayoutPageTemplateEntryService extends BaseService {
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1740924047

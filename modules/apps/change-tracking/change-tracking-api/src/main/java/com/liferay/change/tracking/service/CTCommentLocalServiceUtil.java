@@ -259,10 +259,6 @@ public class CTCommentLocalServiceUtil {
 		return getService().getCTCommentsCount();
 	}
 
-	public static List<CTComment> getCTEntryCTComments(long ctEntryId) {
-		return getService().getCTEntryCTComments(ctEntryId);
-	}
-
 	public static
 		com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery
 			getIndexableActionableDynamicQuery() {
@@ -317,3 +313,4 @@ public class CTCommentLocalServiceUtil {
 			CTCommentLocalServiceUtil.class, CTCommentLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1363385187

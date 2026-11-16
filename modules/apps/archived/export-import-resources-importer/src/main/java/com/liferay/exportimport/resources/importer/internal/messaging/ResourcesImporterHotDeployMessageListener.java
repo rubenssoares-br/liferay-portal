@@ -25,16 +25,15 @@ import com.liferay.portal.kernel.messaging.MessageBus;
 import com.liferay.portal.kernel.messaging.MessageListener;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Release;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.Validator;
 
-import java.util.Dictionary;
+import jakarta.servlet.ServletContext;
 
-import javax.servlet.ServletContext;
+import java.util.Dictionary;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -112,11 +111,7 @@ public class ResourcesImporterHotDeployMessageListener
 			String messageResponseId)
 		throws Exception {
 
-		long companyId = CompanyThreadLocal.getCompanyId();
-
 		try {
-			CompanyThreadLocal.setCompanyId(company.getCompanyId());
-
 			Importer importer = _importerFactory.createImporter(
 				company.getCompanyId(), servletContext,
 				pluginPackageProperties);
@@ -193,9 +188,6 @@ public class ResourcesImporterHotDeployMessageListener
 
 			_messageBus.sendMessage(
 				ResourcesImporterDestinationNames.RESOURCES_IMPORTER, message);
-		}
-		finally {
-			CompanyThreadLocal.setCompanyId(companyId);
 		}
 	}
 

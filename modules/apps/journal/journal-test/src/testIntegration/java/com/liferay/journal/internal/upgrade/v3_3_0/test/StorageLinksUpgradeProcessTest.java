@@ -20,9 +20,11 @@ import com.liferay.dynamic.data.mapping.service.DDMStructureLocalService;
 import com.liferay.dynamic.data.mapping.storage.StorageType;
 import com.liferay.dynamic.data.mapping.util.DDM;
 import com.liferay.journal.model.JournalArticle;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
+import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
@@ -76,7 +78,7 @@ public class StorageLinksUpgradeProcessTest {
 				CTCollectionThreadLocal.setProductionModeWithSafeCloseable()) {
 
 			productionDDMStructure = _ddmStructureLocalService.addStructure(
-				TestPropsValues.getUserId(), _group.getGroupId(),
+				null, TestPropsValues.getUserId(), _group.getGroupId(),
 				DDMStructureConstants.DEFAULT_PARENT_STRUCTURE_ID,
 				_classNameLocalService.getClassNameId(JournalArticle.class),
 				StringUtil.randomString(),
@@ -106,9 +108,8 @@ public class StorageLinksUpgradeProcessTest {
 					ServiceContextTestUtil.getServiceContext(
 						_group.getGroupId()));
 
-			List<DDMStorageLink> ddmStorageLinks =
-				_ddmStorageLinkLocalService.getStructureStorageLinks(
-					ctCollectionDDMStructure.getStructureId());
+			List<DDMStorageLink> ddmStorageLinks = _getDDMStorageLinks(
+				ctCollectionDDMStructure.getStructureId());
 
 			for (DDMStorageLink ddmStorageLink : ddmStorageLinks) {
 				ddmStorageLink.setStructureVersionId(0);
@@ -131,8 +132,7 @@ public class StorageLinksUpgradeProcessTest {
 					productionDDMStructure.getStructureId());
 
 			List<DDMStorageLink> ctCollectionDDMStorageLinks =
-				_ddmStorageLinkLocalService.getStructureStorageLinks(
-					ctCollectionDDMStructure.getStructureId());
+				_getDDMStorageLinks(ctCollectionDDMStructure.getStructureId());
 			DDMStructureVersion ctCollectionDDMStructureVersion =
 				ctCollectionDDMStructure.getStructureVersion();
 
@@ -168,6 +168,19 @@ public class StorageLinksUpgradeProcessTest {
 		return ddmForm;
 	}
 
+	private List<DDMStorageLink> _getDDMStorageLinks(long structureId) {
+		return TransformUtil.transform(
+			_ddmStorageLinkLocalService.getDDMStorageLinks(
+				QueryUtil.ALL_POS, QueryUtil.ALL_POS),
+			ddmStorageLink -> {
+				if (ddmStorageLink.getStructureId() == structureId) {
+					return ddmStorageLink;
+				}
+
+				return null;
+			});
+	}
+
 	private void _runUpgrade() throws Exception {
 		UpgradeProcess upgradeProcess = UpgradeTestUtil.getUpgradeStep(
 			_upgradeStepRegistrator,
@@ -178,18 +191,13 @@ public class StorageLinksUpgradeProcessTest {
 	}
 
 	@Inject
-	private static CTCollectionLocalService _ctCollectionLocalService;
-
-	@Inject(
-		filter = "(&(component.name=com.liferay.journal.internal.upgrade.registry.JournalServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
-	@Inject
 	private ClassNameLocalService _classNameLocalService;
 
 	@DeleteAfterTestRun
 	private CTCollection _ctCollection;
+
+	@Inject
+	private CTCollectionLocalService _ctCollectionLocalService;
 
 	@Inject
 	private DDM _ddm;
@@ -205,5 +213,10 @@ public class StorageLinksUpgradeProcessTest {
 
 	@Inject
 	private MultiVMPool _multiVMPool;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.journal.internal.upgrade.registry.JournalServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

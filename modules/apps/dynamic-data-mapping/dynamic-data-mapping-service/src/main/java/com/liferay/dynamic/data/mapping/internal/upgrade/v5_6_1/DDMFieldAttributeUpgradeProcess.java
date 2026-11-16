@@ -9,8 +9,12 @@ import com.liferay.adaptive.media.image.html.constants.AMImageHTMLConstants;
 import com.liferay.document.library.kernel.exception.NoSuchFileEntryException;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.service.DLFileEntryLocalService;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.dao.db.DB;
+import com.liferay.portal.kernel.dao.db.DBManagerUtil;
 import com.liferay.portal.kernel.dao.jdbc.AutoBatchPreparedStatementUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
@@ -25,6 +29,7 @@ import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HttpComponentsUtil;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -32,10 +37,6 @@ import java.sql.ResultSet;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 /**
  * @author Adolfo Pérez
@@ -58,55 +59,77 @@ public class DDMFieldAttributeUpgradeProcess extends UpgradeProcess {
 
 	@Override
 	protected void doUpgrade() throws Exception {
-		long classNameId = _classNameLocalService.getClassNameId(
-			"com.liferay.journal.model.JournalArticle");
+		DB db = DBManagerUtil.getDB();
 
-		try (PreparedStatement preparedStatement1 = connection.prepareStatement(
-				StringBundler.concat(
-					"select DDMFieldAttribute.companyId, ",
-					"DDMFieldAttribute.ctCollectionId, ",
-					"DDMFieldAttribute.fieldAttributeId, ",
-					"DDMFieldAttribute.smallAttributeValue, ",
-					"DDMFieldAttribute.largeAttributeValue from DDMStructure ",
-					"inner join DDMStructureVersion on ",
-					"DDMStructure.ctCollectionId = ",
-					"DDMStructureVersion.ctCollectionId and ",
-					"DDMStructure.structureId = ",
-					"DDMStructureVersion.structureId inner join DDMField on ",
-					"DDMStructureVersion.ctCollectionId = ",
-					"DDMField.ctCollectionId and ",
-					"DDMStructureVersion.structureVersionId = ",
-					"DDMField.structureVersionId inner join DDMFieldAttribute ",
-					"on DDMField.ctCollectionId = ",
-					"DDMFieldAttribute.ctCollectionId and DDMField.fieldId = ",
-					"DDMFieldAttribute.fieldId where DDMStructure.classNameId ",
-					"= ? and DDMField.fieldType = 'rich_text'"));
-			PreparedStatement preparedStatement2 =
-				AutoBatchPreparedStatementUtil.autoBatch(
-					connection,
-					"update DDMFieldAttribute set smallAttributeValue = ?, " +
-						"largeAttributeValue = ? where ctCollectionId = ? " +
-							"and fieldAttributeId = ?")) {
+		try (SafeCloseable safeCloseable = db.addTemporaryIndex(
+				connection, "DDMFieldAttribute", false, "ctCollectionId",
+				"fieldId")) {
 
-			preparedStatement1.setLong(1, classNameId);
+			String selectSQL = StringBundler.concat(
+				"select DDMFieldAttribute.ctCollectionId, DDMFieldAttribute.",
+				"fieldAttributeId, DDMFieldAttribute.companyId, ",
+				"DDMFieldAttribute.largeAttributeValue, DDMFieldAttribute.",
+				"smallAttributeValue from DDMStructure inner join ",
+				"DDMStructureVersion on DDMStructure.ctCollectionId = ",
+				"DDMStructureVersion.ctCollectionId and DDMStructure.",
+				"structureId = DDMStructureVersion.structureId inner join ",
+				"DDMField on DDMStructureVersion.ctCollectionId = DDMField.",
+				"ctCollectionId and DDMStructureVersion.structureVersionId = ",
+				"DDMField.structureVersionId inner join DDMFieldAttribute on ",
+				"DDMField.ctCollectionId = DDMFieldAttribute.ctCollectionId ",
+				"and DDMField.fieldId = DDMFieldAttribute.fieldId where ",
+				"DDMStructure.classNameId = ? and DDMField.fieldType = ",
+				"'rich_text'");
 
-			ResultSet resultSet = preparedStatement1.executeQuery();
+			String updateSQL =
+				"update DDMFieldAttribute set largeAttributeValue = ?, " +
+					"smallAttributeValue = ? where ctCollectionId = ? and " +
+						"fieldAttributeId = ?";
 
-			while (resultSet.next()) {
-				long companyId = resultSet.getLong(1);
+			try (PreparedStatement preparedStatement1 =
+					connection.prepareStatement(selectSQL);
+				PreparedStatement preparedStatement2 =
+					AutoBatchPreparedStatementUtil.autoBatch(
+						connection, updateSQL)) {
 
-				preparedStatement2.setString(
-					1, _transform(companyId, resultSet.getString(4)));
-				preparedStatement2.setString(
-					2, _transform(companyId, resultSet.getString(5)));
+				preparedStatement1.setLong(
+					1,
+					_classNameLocalService.getClassNameId(
+						"com.liferay.journal.model.JournalArticle"));
 
-				preparedStatement2.setLong(3, resultSet.getLong(2));
-				preparedStatement2.setLong(4, resultSet.getLong(3));
+				try (ResultSet resultSet = preparedStatement1.executeQuery()) {
+					while (resultSet.next()) {
+						long companyId = resultSet.getLong("companyId");
 
-				preparedStatement2.addBatch();
+						String largeAttributeValue = _transform(
+							companyId,
+							resultSet.getString("largeAttributeValue"));
+						String smallAttributeValue = _transform(
+							companyId,
+							resultSet.getString("smallAttributeValue"));
+
+						if ((smallAttributeValue != null) &&
+							(smallAttributeValue.length() > 255)) {
+
+							largeAttributeValue = smallAttributeValue;
+
+							smallAttributeValue = null;
+						}
+
+						preparedStatement2.setString(1, largeAttributeValue);
+						preparedStatement2.setString(2, smallAttributeValue);
+
+						preparedStatement2.setLong(
+							3, resultSet.getLong("ctCollectionId"));
+						preparedStatement2.setLong(
+							4, resultSet.getLong("fieldAttributeId"));
+
+						preparedStatement2.addBatch();
+					}
+				}
+
+				preparedStatement2.executeBatch();
 			}
-
-			preparedStatement2.executeBatch();
 		}
 	}
 
@@ -127,6 +150,10 @@ public class DDMFieldAttributeUpgradeProcess extends UpgradeProcess {
 				_fileEntryFriendlyURLResolver.resolveFriendlyURL(
 					group.getGroupId(), friendlyURL);
 
+			if (fileEntry == null) {
+				return null;
+			}
+
 			return (DLFileEntry)fileEntry.getModel();
 		}
 
@@ -141,7 +168,7 @@ public class DDMFieldAttributeUpgradeProcess extends UpgradeProcess {
 
 		long groupId = GetterUtil.getLong(matcher.group(2));
 		long folderId = GetterUtil.getLong(matcher.group(3));
-		String title = matcher.group(4);
+		String title = HttpComponentsUtil.decodeURL(matcher.group(4));
 
 		try {
 			return _dlFileEntryLocalService.getFileEntry(
@@ -185,6 +212,14 @@ public class DDMFieldAttributeUpgradeProcess extends UpgradeProcess {
 			try {
 				DLFileEntry dlFileEntry = _getDLFileEntry(companyId, matcher);
 
+				if (dlFileEntry == null) {
+					if (_log.isWarnEnabled()) {
+						_log.warn("Missing file entry for URL " + src);
+					}
+
+					return 0;
+				}
+
 				return dlFileEntry.getFileEntryId();
 			}
 			catch (PortalException portalException) {
@@ -215,53 +250,131 @@ public class DDMFieldAttributeUpgradeProcess extends UpgradeProcess {
 		return user.getGroup();
 	}
 
-	private Document _parseDocument(String html) {
-		Document document = Jsoup.parseBodyFragment(html);
-
-		Document.OutputSettings outputSettings = new Document.OutputSettings();
-
-		outputSettings.prettyPrint(false);
-		outputSettings.syntax(Document.OutputSettings.Syntax.xml);
-
-		document.outputSettings(outputSettings);
-
-		return document;
-	}
-
 	private String _transform(long companyId, String html)
 		throws PortalException {
 
 		if ((html == null) || !html.contains("/documents/") ||
-			!html.contains("<img")) {
+			!html.contains(_OPEN_TAG_TOKEN_IMG)) {
 
 			return html;
 		}
 
-		Document document = _parseDocument(html);
+		StringBundler sb = new StringBundler();
 
-		for (Element imgElement : document.select("img:not(picture > img)")) {
-			if (!imgElement.hasAttr(
-					AMImageHTMLConstants.ATTRIBUTE_NAME_FILE_ENTRY_ID)) {
+		int lastIndex = 0;
 
-				long fileEntryId = _getDLFileEntryId(
-					companyId, imgElement.attr("src"));
+		while (lastIndex < html.length()) {
+			int pictureStart = html.indexOf(_OPEN_TAG_TOKEN_PICTURE, lastIndex);
 
-				if (fileEntryId != 0) {
-					imgElement.attr(
-						AMImageHTMLConstants.ATTRIBUTE_NAME_FILE_ENTRY_ID,
-						String.valueOf(fileEntryId));
-				}
+			if (pictureStart == -1) {
+				pictureStart = html.length();
 			}
+
+			_transformImgTags(companyId, html, lastIndex, pictureStart, sb);
+
+			if (pictureStart >= html.length()) {
+				lastIndex = pictureStart;
+
+				continue;
+			}
+
+			int pictureEnd = html.indexOf(
+				_CLOSE_TAG_TOKEN_PICTURE,
+				pictureStart + _OPEN_TAG_TOKEN_PICTURE.length());
+
+			if (pictureEnd == -1) {
+				pictureEnd = html.length();
+			}
+			else {
+				pictureEnd += _CLOSE_TAG_TOKEN_PICTURE.length();
+			}
+
+			sb.append(html.substring(pictureStart, pictureEnd));
+
+			lastIndex = pictureEnd;
 		}
 
-		if (html.contains("<html>") || html.contains("<head>")) {
-			return document.html();
-		}
-
-		Element body = document.body();
-
-		return body.html();
+		return sb.toString();
 	}
+
+	private String _transformImgTag(long companyId, String imgTag, String src)
+		throws PortalException {
+
+		if (imgTag.contains(
+				AMImageHTMLConstants.ATTRIBUTE_NAME_FILE_ENTRY_ID)) {
+
+			return imgTag;
+		}
+
+		long fileEntryId = _getDLFileEntryId(companyId, src);
+
+		if (fileEntryId == 0) {
+			return imgTag;
+		}
+
+		return StringBundler.concat(
+			_OPEN_TAG_TOKEN_IMG, StringPool.SPACE,
+			AMImageHTMLConstants.ATTRIBUTE_NAME_FILE_ENTRY_ID, "=\"",
+			fileEntryId, "\"", imgTag.substring(_OPEN_TAG_TOKEN_IMG.length()));
+	}
+
+	private void _transformImgTags(
+			long companyId, String html, int start, int end, StringBundler sb)
+		throws PortalException {
+
+		int lastIndex = start;
+
+		while (lastIndex < end) {
+			int imgStart = html.indexOf(_OPEN_TAG_TOKEN_IMG, lastIndex);
+
+			if ((imgStart == -1) || (imgStart > end)) {
+				sb.append(html.substring(lastIndex, end));
+
+				return;
+			}
+
+			sb.append(html.substring(lastIndex, imgStart));
+
+			int imgEnd = html.indexOf(CharPool.GREATER_THAN, imgStart) + 1;
+
+			if (imgEnd == 0) {
+				sb.append(html.substring(imgStart, end));
+
+				return;
+			}
+
+			int attributeListPos = imgStart + _OPEN_TAG_TOKEN_IMG.length();
+
+			int srcStart = html.indexOf(_ATTRIBUTE_TOKEN_SRC, attributeListPos);
+
+			if ((srcStart == -1) || (srcStart > imgEnd)) {
+				sb.append(html.substring(imgStart, imgEnd));
+
+				lastIndex = imgEnd;
+
+				continue;
+			}
+
+			int quotePos = srcStart + _ATTRIBUTE_TOKEN_SRC.length();
+
+			int srcEnd = html.indexOf(html.charAt(quotePos), quotePos + 1);
+
+			sb.append(
+				_transformImgTag(
+					companyId, html.substring(imgStart, imgEnd),
+					html.substring(quotePos + 1, srcEnd)));
+
+			lastIndex = imgEnd;
+		}
+	}
+
+	private static final String _ATTRIBUTE_TOKEN_SRC = "src=";
+
+	private static final String _CLOSE_TAG_TOKEN_PICTURE = "</picture>";
+
+	private static final String _OPEN_TAG_TOKEN_IMG = "<img";
+
+	private static final String _OPEN_TAG_TOKEN_PICTURE = "<picture";
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		DDMFieldAttributeUpgradeProcess.class);

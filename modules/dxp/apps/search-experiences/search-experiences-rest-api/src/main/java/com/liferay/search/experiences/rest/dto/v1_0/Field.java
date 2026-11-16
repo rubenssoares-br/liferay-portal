@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class Field implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Field.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getDefaultValue() {
 		if (_defaultValueSupplier != null) {
@@ -93,7 +93,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _defaultValueSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public FieldMapping[] getFieldMappings() {
 		if (_fieldMappingsSupplier != null) {
@@ -135,7 +135,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<FieldMapping[]> _fieldMappingsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getHelpText() {
 		if (_helpTextSupplier != null) {
 			helpText = _helpTextSupplier.get();
@@ -176,7 +176,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _helpTextSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getHelpTextLocalized() {
 		if (_helpTextLocalizedSupplier != null) {
 			helpTextLocalized = _helpTextLocalizedSupplier.get();
@@ -217,7 +217,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _helpTextLocalizedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getLabel() {
 		if (_labelSupplier != null) {
 			label = _labelSupplier.get();
@@ -258,7 +258,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _labelSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getLabelLocalized() {
 		if (_labelLocalizedSupplier != null) {
 			labelLocalized = _labelLocalizedSupplier.get();
@@ -299,7 +299,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _labelLocalizedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -338,7 +338,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -377,7 +377,7 @@ public class Field implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public TypeOptions getTypeOptions() {
 		if (_typeOptionsSupplier != null) {
@@ -455,18 +455,7 @@ public class Field implements Serializable {
 
 			sb.append("\"defaultValue\": ");
 
-			if (defaultValue instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)defaultValue));
-			}
-			else if (defaultValue instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)defaultValue));
-				sb.append("\"");
-			}
-			else {
-				sb.append(defaultValue);
-			}
+			sb.append(_toJSON(defaultValue));
 		}
 
 		FieldMapping[] fieldMappings = getFieldMappings();
@@ -604,8 +593,8 @@ public class Field implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Field",
 		name = "x-class-name"
 	)
@@ -692,6 +681,27 @@ public class Field implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -700,3 +710,4 @@ public class Field implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1006187961

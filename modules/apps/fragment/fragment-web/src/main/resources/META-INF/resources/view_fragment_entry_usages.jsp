@@ -21,6 +21,7 @@ renderResponse.setTitle(LanguageUtil.format(request, "usages-and-propagation-x",
 
 <clay:container-fluid
 	cssClass="container-form-lg"
+	size="xxxl"
 >
 	<clay:row>
 		<clay:col
@@ -82,7 +83,7 @@ renderResponse.setTitle(LanguageUtil.format(request, "usages-and-propagation-x",
 					>
 						<liferay-ui:search-container-row
 							className="com.liferay.fragment.model.FragmentEntryLink"
-							keyProperty="fragmentEntryLinkId"
+							keyPropertyName="fragmentEntryLinkId"
 							modelVar="fragmentEntryLink"
 						>
 							<liferay-ui:search-container-column-text

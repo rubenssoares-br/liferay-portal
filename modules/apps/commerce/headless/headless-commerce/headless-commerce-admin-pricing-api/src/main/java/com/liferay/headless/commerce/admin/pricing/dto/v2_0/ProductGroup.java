@@ -11,34 +11,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductGroup")
+@GraphQLName(
+	description = "Read-only projection of a product group referenced by a discount or price-modifier product-group binding. Carries the product-group ID and title.",
+	value = "ProductGroup"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Read-only projection of a product group referenced by a discount or price-modifier product-group binding. Carries the product-group ID and title."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ProductGroup")
 public class ProductGroup implements Serializable {
@@ -52,7 +59,10 @@ public class ProductGroup implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the productgroup. Server-assigned and stable.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -84,7 +94,9 @@ public class ProductGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the productgroup. Server-assigned and stable."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -92,7 +104,10 @@ public class ProductGroup implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "20")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Number of products that belong to the product group at read time. Read-only.",
+		example = "20"
+	)
 	public Integer getProductsCount() {
 		if (_productsCountSupplier != null) {
 			productsCount = _productsCountSupplier.get();
@@ -126,14 +141,19 @@ public class ProductGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Number of products that belong to the product group at read time. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer productsCount;
 
 	@JsonIgnore
 	private Supplier<Integer> _productsCountSupplier;
 
-	@Schema(example = "{en_US=Title, hr_HR=Title HR, hu_HU=Title HU}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display title of the productgroup.",
+		example = "{en_US=Title, hr_HR=Title HR, hu_HU=Title HU}"
+	)
 	@Valid
 	public Map<String, String> getTitle() {
 		if (_titleSupplier != null) {
@@ -168,7 +188,7 @@ public class ProductGroup implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Display title of the productgroup.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> title;
 
@@ -243,8 +263,8 @@ public class ProductGroup implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v2_0.ProductGroup",
 		name = "x-class-name"
 	)
@@ -331,6 +351,27 @@ public class ProductGroup implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -339,3 +380,4 @@ public class ProductGroup implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1860366065

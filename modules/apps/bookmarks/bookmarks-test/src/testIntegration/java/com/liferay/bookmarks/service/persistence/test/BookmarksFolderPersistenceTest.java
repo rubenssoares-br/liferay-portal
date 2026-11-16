@@ -115,11 +115,7 @@ public class BookmarksFolderPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		BookmarksFolder newBookmarksFolder = _persistence.create(pk);
-
-		newBookmarksFolder.setMvccVersion(RandomTestUtil.nextLong());
+		BookmarksFolder newBookmarksFolder = addBookmarksFolder();
 
 		newBookmarksFolder.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -155,7 +151,9 @@ public class BookmarksFolderPersistenceTest {
 
 		newBookmarksFolder.setStatusDate(RandomTestUtil.nextDate());
 
-		_bookmarksFolders.add(_persistence.update(newBookmarksFolder));
+		newBookmarksFolder = _persistence.update(newBookmarksFolder);
+
+		_bookmarksFolders.add(newBookmarksFolder);
 
 		BookmarksFolder existingBookmarksFolder = _persistence.findByPrimaryKey(
 			newBookmarksFolder.getPrimaryKey());
@@ -253,26 +251,11 @@ public class BookmarksFolderPersistenceTest {
 	}
 
 	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
-	}
-
-	@Test
 	public void testCountByG_P() throws Exception {
 		_persistence.countByG_P(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
 
 		_persistence.countByG_P(0L, 0L);
-	}
-
-	@Test
-	public void testCountByC_NotS() throws Exception {
-		_persistence.countByC_NotS(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByC_NotS(0L, 0);
 	}
 
 	@Test
@@ -638,8 +621,6 @@ public class BookmarksFolderPersistenceTest {
 
 		BookmarksFolder bookmarksFolder = _persistence.create(pk);
 
-		bookmarksFolder.setMvccVersion(RandomTestUtil.nextLong());
-
 		bookmarksFolder.setCtCollectionId(RandomTestUtil.nextLong());
 
 		bookmarksFolder.setUuid(RandomTestUtil.randomString());
@@ -685,3 +666,4 @@ public class BookmarksFolderPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2127402759

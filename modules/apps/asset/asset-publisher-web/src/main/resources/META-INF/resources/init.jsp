@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://java.sun.com/portlet_2_0" prefix="portlet" %>
 
@@ -30,7 +30,8 @@ taglib uri="http://liferay.com/tld/ui" prefix="liferay-ui" %><%@
 taglib uri="http://liferay.com/tld/user" prefix="liferay-user" %><%@
 taglib uri="http://liferay.com/tld/util" prefix="liferay-util" %>
 
-<%@ page import="com.liferay.asset.constants.AssetWebKeys" %><%@
+<%@ page import="com.liferay.analytics.asset.AssetAnalyticsAttributesProvider" %><%@
+page import="com.liferay.asset.constants.AssetWebKeys" %><%@
 page import="com.liferay.asset.display.page.constants.AssetDisplayPageConstants" %><%@
 page import="com.liferay.asset.display.page.model.AssetDisplayPageEntry" %><%@
 page import="com.liferay.asset.display.page.service.AssetDisplayPageEntryLocalServiceUtil" %><%@
@@ -107,6 +108,8 @@ page import="com.liferay.portlet.display.template.constants.PortletDisplayTempla
 page import="com.liferay.rss.util.RSSUtil" %><%@
 page import="com.liferay.taglib.aui.AUIUtil" %>
 
+<%@ page import="jakarta.portlet.PortletURL" %>
+
 <%@ page import="java.io.Serializable" %>
 
 <%@ page import="java.text.Format" %>
@@ -119,8 +122,6 @@ page import="java.util.List" %><%@
 page import="java.util.Map" %><%@
 page import="java.util.Objects" %><%@
 page import="java.util.Set" %>
-
-<%@ page import="javax.portlet.PortletURL" %>
 
 <liferay-frontend:defineObjects />
 

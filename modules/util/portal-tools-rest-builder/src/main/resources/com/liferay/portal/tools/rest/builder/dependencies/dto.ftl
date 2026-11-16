@@ -30,8 +30,17 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.jackson.databind.deser.JSONStringStdDeserializer;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
+import ${configYAML.javaEEPackage}.annotation.Generated;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import ${configYAML.javaEEPackage}.validation.Valid;
+import ${configYAML.javaEEPackage}.validation.constraints.DecimalMax;
+import ${configYAML.javaEEPackage}.validation.constraints.DecimalMin;
+import ${configYAML.javaEEPackage}.validation.constraints.NotEmpty;
+import ${configYAML.javaEEPackage}.validation.constraints.NotNull;
+import ${configYAML.javaEEPackage}.validation.constraints.Size;
+
+import ${configYAML.javaEEPackage}.xml.bind.annotation.XmlElement;
+import ${configYAML.javaEEPackage}.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
@@ -40,6 +49,8 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
@@ -48,18 +59,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMax;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author ${configYAML.author}
@@ -80,7 +79,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 	)
 
 	@JsonTypeInfo(
-		include= JsonTypeInfo.As.PROPERTY, property="${schema.discriminator.propertyName}",
+		include= JsonTypeInfo.As.EXISTING_PROPERTY, property="${schema.discriminator.propertyName}",
 		use= JsonTypeInfo.Id.NAME, visible = true
 	)
 </#if>
@@ -94,29 +93,33 @@ import javax.xml.bind.annotation.XmlRootElement;
 	</#if>
 )
 @JsonFilter("Liferay.Vulcan")
-<#if schema.requiredPropertySchemaNames?has_content>
-	@Schema(
-		<#if schema.deprecated>
-			deprecated = ${schema.deprecated?c},
-		</#if>
-		requiredProperties =
-			{
-				<#list schema.requiredPropertySchemaNames as requiredProperty>
-					"${requiredProperty}"
-					<#if requiredProperty_has_next>
-						,
-					</#if>
-				</#list>
-			}
-		<#if schema.description??>
-			, description = "${schema.description?j_string}"
-		</#if>
-	)
+<#if schema.deprecated || schema.description?? || schema.requiredPropertySchemaNames?has_content>
+	<#assign schemaParameters = [] />
+
+	<#if schema.deprecated>
+		<#assign schemaParameters = schemaParameters + ["deprecated = ${schema.deprecated?c}"] />
+	</#if>
+
+	<#if schema.requiredPropertySchemaNames?has_content>
+		<#assign requiredPropertyNames = [] />
+
+		<#list schema.requiredPropertySchemaNames as requiredProperty>
+			<#assign requiredPropertyNames = requiredPropertyNames + ["\"${requiredProperty}\""] />
+		</#list>
+
+		<#assign schemaParameters = schemaParameters + ["requiredProperties = {${requiredPropertyNames?join(', ')}}"] />
+	</#if>
+
+	<#if schema.description??>
+		<#assign schemaParameters = schemaParameters + ["description = \"${schema.description?j_string}\""] />
+	</#if>
+
+	@io.swagger.v3.oas.annotations.media.Schema(${schemaParameters?join(", ")})
 </#if>
 
 @XmlRootElement(name = "${schemaName}")
 
-<#assign dtoParentClassName = freeMarkerTool.getDTOParentClassName(openAPIYAML, schemaName)! />
+<#assign dtoParentClassName = freeMarkerTool.getDTOParentClassName(schemaName, allSchemas)! />
 
 public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} <#if dtoParentClassName?has_content>extends ${dtoParentClassName}</#if> implements Serializable {
 
@@ -161,7 +164,7 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 			@Size(${sizeParameters?join(", ")})
 		</#if>
 
-		@Schema(
+		@io.swagger.v3.oas.annotations.media.Schema(
 			<#if propertySchema.deprecated>
 				deprecated = ${propertySchema.deprecated?c}
 			</#if>
@@ -179,6 +182,14 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 				</#if>
 
 				example = "${freeMarkerTool.getObjectFieldStringValue(propertyType, propertySchema.example)}"
+			</#if>
+
+			<#if stringUtil.equals(propertySchema.format!"", "password")>
+				<#if propertySchema.deprecated || propertySchema.description?? || propertySchema.example??>
+					,
+				</#if>
+
+				format = "password"
 			</#if>
 		)
 
@@ -413,6 +424,31 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 			return null;
 		}
 
+		public void setPropertyValue(String propertyName, Object propertyValue) {
+			<#list properties?keys as propertyName>
+				<#if jsonMapPropertyNames?seq_contains(propertyName)>
+					<#continue>
+				</#if>
+
+				<#assign capitalizedPropertyName = propertyName?cap_first />
+
+				<#if enumSchemas?keys?seq_contains(propertyType)>
+					<#assign capitalizedPropertyName = propertyType />
+				</#if>
+
+				if (Objects.equals(propertyName, "${propertyName}")) {
+					set${capitalizedPropertyName}((${properties[propertyName]}) propertyValue);
+				}
+				else
+			</#list>
+
+			{
+				<#list jsonMapPropertyNames as propertyName>
+					${propertyName}.put(propertyName, propertyValue);
+				</#list>
+			}
+		}
+
 		private final class CachedUnsafeSupplier<T, E extends Throwable> implements UnsafeSupplier<T, E> {
 
 			public CachedUnsafeSupplier(UnsafeSupplier<T, E> unsafeSupplier) {
@@ -507,38 +543,32 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 
 				sb.append("\"${key}\": ");
 
-				<#if allSchemas[propertyType]??>
+				<#if toStringEnumSchemas?keys?seq_contains(propertyType)>
+					sb.append("\"");
+					sb.append(${propertyName});
+					sb.append("\"");
+				<#elseif allSchemas[propertyType]??>
 					sb.append(String.valueOf(${propertyName}));
 				<#elseif stringUtil.equals(propertyType, "Object")>
-					if (${propertyName} instanceof Map) {
-						sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)${propertyName}));
-					}
-					else if (${propertyName} instanceof String) {
-						sb.append("\"");
-						sb.append(_escape((String)${propertyName}));
-						sb.append("\"");
-					}
-					else {
-						sb.append(${propertyName});
-					}
+					sb.append(_toJSON(${propertyName}));
 				<#else>
 					<#if propertyType?contains("[]")>
 						sb.append("[");
 
 						for (int i = 0; i < ${propertyName}.length; i++) {
-							<#if stringUtil.equals(propertyType, "Date[]") || stringUtil.equals(propertyType, "Object[]") || stringUtil.equals(propertyType, "String[]") || toStringEnumSchemas?keys?seq_contains(propertyType)>
+							<#if stringUtil.equals(propertyType, "Date[]") || stringUtil.equals(propertyType, "String[]") || toStringEnumSchemas?keys?seq_contains(propertyType)>
 								sb.append("\"");
 
 								<#if stringUtil.equals(propertyType, "Date[]")>
 									sb.append(liferayToJSONDateFormat.format(${propertyName}[i]));
-								<#elseif stringUtil.equals(propertyType, "Object[]") || stringUtil.equals(propertyType, "String[]")>
+								<#elseif stringUtil.equals(propertyType, "String[]")>
 									sb.append(_escape(${propertyName}[i]));
 								<#else>
 									sb.append(${propertyName}[i]);
 								</#if>
 
 								sb.append("\"");
-							<#elseif stringUtil.startsWith(propertyType, "Map<")>
+							<#elseif stringUtil.startsWith(propertyType, "Map<") || stringUtil.equals(propertyType, "Object[]")>
 								sb.append(_toJSON(${propertyName}[i]));
 							<#elseif allSchemas[propertyType?remove_ending("[]")]??>
 								sb.append(String.valueOf(${propertyName}[i]));
@@ -553,15 +583,13 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 
 						sb.append("]");
 					<#else>
-						<#if stringUtil.equals(propertyType, "Date") || stringUtil.equals(propertyType, "String") || toStringEnumSchemas?keys?seq_contains(propertyType)>
+						<#if stringUtil.equals(propertyType, "Date") || stringUtil.equals(propertyType, "String")>
 							sb.append("\"");
 
 							<#if stringUtil.equals(propertyType, "Date")>
 								sb.append(liferayToJSONDateFormat.format(${propertyName}));
 							<#elseif stringUtil.equals(propertyType, "String")>
 								sb.append(_escape(${propertyName}));
-							<#else>
-								sb.append(${propertyName});
 							</#if>
 
 							sb.append("\"");
@@ -580,7 +608,7 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 		return sb.toString();
 	}
 
-	@Schema(accessMode = Schema.AccessMode.READ_ONLY, defaultValue = "${configYAML.apiPackagePath}.dto.${escapedVersion}.${schemaName}", name = "x-class-name")
+	@io.swagger.v3.oas.annotations.media.Schema(accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY, defaultValue = "${configYAML.apiPackagePath}.dto.${escapedVersion}.${schemaName}", name = "x-class-name")
 	public String xClassName;
 
 	<#list enumSchemas?keys as enumName>
@@ -706,6 +734,23 @@ public <#if schema.discriminator?has_content>abstract</#if> class ${schemaName} 
 		sb.append("}");
 
 		return sb.toString();
+	}
+
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(JSONFactoryUtil.createJSONArray(Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
 	}
 
 	private static final String[][] _JSON_ESCAPE_STRINGS = {

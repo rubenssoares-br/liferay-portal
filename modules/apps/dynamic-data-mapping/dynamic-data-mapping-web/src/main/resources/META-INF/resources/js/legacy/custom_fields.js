@@ -369,7 +369,7 @@ AUI.add(
 				_getUploadURL() {
 					const uploadParameters = {
 						'cmd': 'add_temp',
-						'javax.portlet.action':
+						'jakarta.portlet.action':
 							'/document_library/upload_file_entry',
 						'p_auth': Liferay.authToken,
 						'p_p_id': Liferay.PortletKeys.DOCUMENT_LIBRARY,
@@ -607,8 +607,7 @@ AUI.add(
 
 					const webContentSelectorParameters = {
 						'0_json': JSON.stringify(criterionJSON),
-						'criteria':
-							'com.liferay.item.selector.criteria.info.item.criterion.InfoItemItemSelectorCriterion',
+						'criteria': 'infoitem',
 						'itemSelectedEventName':
 							portletNamespace + 'selectDocumentLibrary',
 						'p_auth': Liferay.authToken,

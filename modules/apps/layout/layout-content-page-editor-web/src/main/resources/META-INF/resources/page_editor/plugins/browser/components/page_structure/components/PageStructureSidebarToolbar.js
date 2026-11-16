@@ -5,20 +5,19 @@
 
 import {ClayButtonWithIcon} from '@clayui/button';
 import ClayDropDown from '@clayui/drop-down';
-import {FeatureIndicator, ManagementToolbar} from 'frontend-js-components-web';
+import {ManagementToolbar} from 'frontend-js-components-web';
 import {sub} from 'frontend-js-web';
 import React from 'react';
 
 import hasDropZoneChild from '../../../../../app/components/layout_data_items/hasDropZoneChild';
 import {LAYOUT_DATA_ITEM_TYPES} from '../../../../../app/config/constants/layoutDataItemTypes';
 import {VIEWPORT_SIZES} from '../../../../../app/config/constants/viewportSizes';
-import {useSetCopiedItemIds} from '../../../../../app/contexts/ClipboardContext';
+import {useSetClipboard} from '../../../../../app/contexts/ClipboardContext';
 import {useSelectMultipleItems} from '../../../../../app/contexts/ControlsContext';
 import {useSetMovementSources} from '../../../../../app/contexts/KeyboardMovementContext';
 import {
 	useDispatch,
 	useSelector,
-	useSelectorRef,
 } from '../../../../../app/contexts/StoreContext';
 import {useGetWidgets} from '../../../../../app/contexts/WidgetsContext';
 import deleteItem from '../../../../../app/thunks/deleteItem';
@@ -34,16 +33,14 @@ import './PageStructureSidebarToolbar.scss';
 export default function PageStructureSidebarToolbar({activeItemIds}) {
 	const dispatch = useDispatch();
 	const fragmentEntryLinks = useSelector((state) => state.fragmentEntryLinks);
-	const layoutDataRef = useSelectorRef((state) => state.layoutData);
+	const layoutData = useSelector((state) => state.layoutData);
 	const selectedViewportSize = useSelector(
 		(state) => state.selectedViewportSize
 	);
 	const selectItems = useSelectMultipleItems();
-	const setCopiedItemIds = useSetCopiedItemIds();
+	const setClipboard = useSetClipboard();
 	const setMovementSources = useSetMovementSources();
 	const getWidgets = useGetWidgets();
-
-	const layoutData = layoutDataRef.current;
 
 	const itemsCanBeDeleted = () =>
 		activeItemIds.every((activeItemId) =>
@@ -99,17 +96,15 @@ export default function PageStructureSidebarToolbar({activeItemIds}) {
 			type: 'divider',
 		},
 		{
-			isBetaFeature: true,
 			label: Liferay.Language.get('copy'),
-			onClick: () => setCopiedItemIds(activeItemIds),
+			onClick: () => setClipboard(activeItemIds),
 			symbolLeft: 'copy',
 		},
 		{
-			isBetaFeature: true,
 			label: Liferay.Language.get('cut'),
 			onClick: () => {
 				if (itemsCanBeDeleted()) {
-					setCopiedItemIds(activeItemIds);
+					setClipboard(activeItemIds);
 					dispatch(
 						deleteItem({
 							itemIds: activeItemIds,
@@ -136,7 +131,6 @@ export default function PageStructureSidebarToolbar({activeItemIds}) {
 		},
 		{
 			className: 'keyboard-only',
-			isBetaFeature: true,
 			label: sub(
 				Liferay.Language.get('move-x-items'),
 				activeItemIds.length
@@ -214,12 +208,6 @@ export default function PageStructureSidebarToolbar({activeItemIds}) {
 									symbolLeft={item.symbolLeft}
 								>
 									{item.label}
-
-									{item.isBetaFeature ? (
-										<span className="ml-2">
-											<FeatureIndicator type="beta" />
-										</span>
-									) : null}
 								</ClayDropDown.Item>
 							)
 						}

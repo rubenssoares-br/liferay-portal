@@ -15,12 +15,13 @@ import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.module.util.BundleUtil;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.AssumeTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -65,7 +67,12 @@ public class FileInstallDeployTest {
 	@ClassRule
 	@Rule
 	public static final AggregateTestRule aggregateTestRule =
-		new LiferayIntegrationTestRule();
+		new AggregateTestRule(
+			new AssumeTestRule("assume"), new LiferayIntegrationTestRule());
+
+	public static void assume() {
+		Assume.assumeFalse(PropsValues.DATABASE_PARTITION_ENABLED);
+	}
 
 	@Before
 	public void setUp() throws Exception {
@@ -257,7 +264,7 @@ public class FileInstallDeployTest {
 			jarBuilder.setFragmentHost(
 				_TEST_JAR_SYMBOLIC_NAME
 			).setImport(
-				"javax.servlet"
+				"jakarta.servlet"
 			).build();
 
 			fragmentInstallCountDownLatch.await();
@@ -385,6 +392,18 @@ public class FileInstallDeployTest {
 								dictionaryKey, StringPool.EQUAL,
 								StringPool.QUOTE, dictionaryValue,
 								StringPool.QUOTE);
+
+							if (dictionaryKey.equals(
+									ExtendedObjectClassDefinition.Scope.GROUP.
+										getPropertyKey())) {
+
+								content = StringBundler.concat(
+									content, StringPool.RETURN_NEW_LINE,
+									ExtendedObjectClassDefinition.Scope.COMPANY.
+										getPropertyKey(),
+									StringPool.EQUAL, StringPool.QUOTE,
+									_company.getCompanyId(), StringPool.QUOTE);
+							}
 						}
 
 						Files.write(path, content.getBytes());
@@ -413,6 +432,18 @@ public class FileInstallDeployTest {
 							content, StringPool.RETURN_NEW_LINE, dictionaryKey,
 							StringPool.EQUAL, StringPool.QUOTE, dictionaryValue,
 							StringPool.QUOTE);
+
+						if (dictionaryKey.equals(
+								ExtendedObjectClassDefinition.Scope.GROUP.
+									getPropertyKey())) {
+
+							content = StringBundler.concat(
+								content, StringPool.RETURN_NEW_LINE,
+								ExtendedObjectClassDefinition.Scope.COMPANY.
+									getPropertyKey(),
+								StringPool.EQUAL, StringPool.QUOTE,
+								_company.getCompanyId(), StringPool.QUOTE);
+						}
 					}
 
 					Files.write(path, content.getBytes());
@@ -496,9 +527,6 @@ public class FileInstallDeployTest {
 
 	private static final String _TEST_VALUE_2 = "testValue2";
 
-	@Inject
-	private static ConfigurationAdmin _configurationAdmin;
-
 	static {
 		Package pkg = FileInstallDeployTest.class.getPackage();
 
@@ -513,12 +541,16 @@ public class FileInstallDeployTest {
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
+	@Inject
+	private ConfigurationAdmin _configurationAdmin;
+
 	private Group _group;
 
 	private class JarBuilder {
 
 		public void build() throws IOException {
 			try (OutputStream outputStream = Files.newOutputStream(_path);
+
 				JarOutputStream jarOutputStream = new JarOutputStream(
 					outputStream)) {
 

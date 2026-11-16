@@ -11,7 +11,10 @@ import {
 } from '@liferay/object-js-components-web';
 import {sub} from 'frontend-js-web';
 
-import {defaultLanguageId} from '../../utils/constants';
+import {
+	DEFAULT_VALUE_SUPPORTED_BUSINESS_TYPES,
+	defaultLanguageId,
+} from '../../utils/constants';
 import {normalizeFieldSettings} from '../../utils/fieldSettings';
 import {ObjectFieldErrors} from './ObjectFieldFormBase';
 
@@ -22,6 +25,7 @@ interface IUseObjectFieldForm {
 	forbiddenLastChars?: string[];
 	forbiddenNames?: string[];
 	initialValues: Partial<ObjectField>;
+	objectFields?: Partial<ObjectField>[];
 	onSubmit: (field: ObjectField) => void;
 }
 
@@ -30,6 +34,7 @@ export function useObjectFieldForm({
 	forbiddenLastChars,
 	forbiddenNames,
 	initialValues,
+	objectFields,
 	onSubmit,
 }: IUseObjectFieldForm) {
 	const validate = (field: Partial<ObjectField>) => {
@@ -78,6 +83,10 @@ export function useObjectFieldForm({
 			return null;
 		};
 
+		const hasDefaultValue =
+			field.businessType &&
+			DEFAULT_VALUE_SUPPORTED_BUSINESS_TYPES.includes(field.businessType);
+
 		const errors: ObjectFieldErrors = {};
 
 		const label = field.label?.[defaultLanguageId];
@@ -122,6 +131,19 @@ export function useObjectFieldForm({
 				errors.objectRelationshipName = constantsUtils.REQUIRED_MSG;
 			}
 		}
+		else if (field.businessType === 'Assignee' && objectFields) {
+			if (
+				objectFields.some(
+					({businessType, externalReferenceCode}) =>
+						businessType === 'Assignee' &&
+						externalReferenceCode !== field.externalReferenceCode
+				)
+			) {
+				errors.businessType = Liferay.Language.get(
+					'an-object-definition-can-only-have-one-assignee-field'
+				);
+			}
+		}
 		else if (field.businessType === 'Attachment') {
 			const uploadRequestSizeLimit = Math.floor(
 				Liferay.PropsValues.UPLOAD_SERVLET_REQUEST_IMPL_MAX_SIZE /
@@ -160,13 +182,56 @@ export function useObjectFieldForm({
 				);
 			}
 
-			if (settings.showFilesInDocumentsAndMedia) {
+			if (
+				settings.showFilesInLibrary &&
+				settings.fileSource === 'userComputerToDocumentsAndMedia'
+			) {
 				if (
 					invalidateRequired(
 						settings.storageDLFolderPath as string | undefined
 					)
 				) {
 					errors.storageDLFolderPath = constantsUtils.REQUIRED_MSG;
+				}
+				else {
+					const sourceFolderError = getSourceFolderError(
+						settings.storageDLFolderPath as string
+					);
+
+					if (sourceFolderError !== null) {
+						errors.storageDLFolderPath = sourceFolderError;
+					}
+				}
+			}
+			else if (
+				settings.showFilesInLibrary &&
+				(settings.fileSource === 'userComputerToCMSBasicDocument' ||
+					settings.fileSource === 'userComputerToDocumentsAndMedia')
+			) {
+				if (
+					invalidateRequired(
+						settings.storageDLFolderPath as string | undefined
+					)
+				) {
+					errors.storageDLFolderPath = constantsUtils.REQUIRED_MSG;
+				}
+				else {
+					const sourceFolderError = getSourceFolderError(
+						settings.storageDLFolderPath as string
+					);
+
+					if (sourceFolderError !== null) {
+						errors.storageDLFolderPath = sourceFolderError;
+					}
+				}
+
+				if (
+					settings.fileSource === 'userComputerToCMSBasicDocument' &&
+					invalidateRequired(
+						settings.storageDepotGroup as string | undefined
+					)
+				) {
+					errors.storageDepotGroup = constantsUtils.REQUIRED_MSG;
 				}
 				else {
 					const sourceFolderError = getSourceFolderError(
@@ -185,15 +250,19 @@ export function useObjectFieldForm({
 			}
 		}
 		else if (
-			field.businessType === 'LongText' ||
-			field.businessType === 'Text'
+			(field.businessType === 'LongText' ||
+				field.businessType === 'PhoneNumber' ||
+				field.businessType === 'Text') &&
+			settings.showCounter &&
+			!settings.maxLength
 		) {
-			if (settings.showCounter && !settings.maxLength) {
-				errors.maxLength = constantsUtils.REQUIRED_MSG;
-			}
+			errors.maxLength = constantsUtils.REQUIRED_MSG;
 		}
-		else if (field.businessType === 'Picklist') {
-			if (!field.listTypeDefinitionId) {
+		else if (hasDefaultValue) {
+			if (
+				field.businessType === 'Picklist' &&
+				!field.listTypeDefinitionId
+			) {
 				errors.listTypeDefinitionId = constantsUtils.REQUIRED_MSG;
 			}
 

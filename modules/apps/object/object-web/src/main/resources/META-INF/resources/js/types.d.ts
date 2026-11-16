@@ -157,7 +157,7 @@ type NotificationTemplate = {
 interface ObjectAction {
 	active: boolean;
 	conditionExpression?: string;
-	description?: string;
+	description?: LocalizedValue<string>;
 	errorMessage: LocalizedValue<string>;
 	id?: number;
 	label: LocalizedValue<string>;
@@ -183,6 +183,8 @@ interface ObjectActionParameters {
 	secret?: string;
 	system?: boolean;
 	url?: string;
+	urlHostsAllowed?: string;
+	urlLocalNetworkAccessEnabled?: boolean;
 	usePreferredLanguageForGuests?: boolean;
 }
 
@@ -196,18 +198,25 @@ interface ObjectDefinition {
 	dateModified: string;
 	dbTableName?: string;
 	defaultLanguageId: Liferay.Language.Locale;
+	description?: LocalizedValue<string>;
 	enableCategorization: boolean;
 	enableComments: boolean;
+	enableFormContainer: boolean;
+	enableFriendlyURLCustomization: boolean;
 	enableIndexSearch: boolean;
 	enableLocalization: boolean;
 	enableObjectEntryDraft: boolean;
 	enableObjectEntryHistory: boolean;
+	enableObjectEntrySchedule: boolean;
+	enableObjectEntrySubscription: boolean;
 	externalReferenceCode: string;
+	friendlyURLSeparator: string;
 	id: number;
 	label: LocalizedValue<string>;
 	modifiable?: boolean;
 	name: string;
 	objectActions: [];
+	objectDefinitionSettings?: NameValueObject[];
 	objectFields: ObjectField[];
 	objectFolderExternalReferenceCode: string;
 	objectLayouts: [];
@@ -260,6 +269,7 @@ interface ObjectEntry {
 	};
 	dateCreated: string;
 	dateModified: string;
+	displayDate?: string | null;
 	externalReferenceCode: string;
 	id: number;
 	name: string;
@@ -268,6 +278,11 @@ interface ObjectEntry {
 		label: string;
 		label_i18n: string;
 	};
+	systemProperties?: {
+		version?: {
+			number: number;
+		};
+	};
 	[key: string]: string | number | unknown;
 }
 
@@ -275,6 +290,7 @@ interface ObjectField {
 	DBType: string;
 	businessType: ObjectFieldBusinessTypeName;
 	defaultValue?: string;
+	description?: LocalizedValue<string>;
 	externalReferenceCode: string;
 	id: number;
 	indexed: boolean;
@@ -285,7 +301,9 @@ interface ObjectField {
 	listTypeDefinitionId?: number;
 	localized: boolean;
 	name: string;
+	objectDefinitionExternalReferenceCode1: string;
 	objectFieldSettings?: ObjectFieldSetting[];
+	objectRelationshipExternalReferenceCode?: string;
 	readOnly: ReadOnlyFieldValue;
 	readOnlyConditionExpression: string;
 	relationshipId?: number;
@@ -296,6 +314,7 @@ interface ObjectField {
 }
 
 type ObjectFieldBusinessTypeName =
+	| 'Assignee'
 	| 'Aggregation'
 	| 'Attachment'
 	| 'AutoIncrement'
@@ -303,12 +322,15 @@ type ObjectFieldBusinessTypeName =
 	| 'Date'
 	| 'DateTime'
 	| 'Decimal'
+	| 'EmailAddress'
 	| 'Encrypted'
 	| 'Formula'
 	| 'Integer'
+	| 'Location'
 	| 'LongInteger'
 	| 'LongText'
 	| 'MultiselectPicklist'
+	| 'PhoneNumber'
 	| 'Picklist'
 	| 'PrecisionDecimal'
 	| 'Relationship'
@@ -354,6 +376,11 @@ interface ObjectFieldSetting {
 
 type ObjectFieldSettingName =
 	| 'acceptedFileExtensions'
+	| 'autocompleteDomains'
+	| 'autocompleteEnabled'
+	| 'blockedDomains'
+	| 'country'
+	| 'countrySource'
 	| 'defaultValue'
 	| 'defaultValueType'
 	| 'fileSource'
@@ -369,9 +396,10 @@ type ObjectFieldSettingName =
 	| 'prefix'
 	| 'script'
 	| 'showCounter'
-	| 'showFilesInDocumentsAndMedia'
+	| 'showFilesInLibrary'
 	| 'stateFlow'
 	| 'storageDLFolderPath'
+	| 'storageDepotGroup'
 	| 'suffix'
 	| 'timeStorage'
 	| 'uniqueValues'
@@ -382,6 +410,7 @@ type ObjectFieldSettingValue =
 	| NameValueObject[]
 	| ObjectFieldFilterSetting[]
 	| ObjectFieldPicklistSetting
+	| Space
 	| boolean
 	| number
 	| string;
@@ -426,6 +455,7 @@ interface ObjectFoldersRequestInfo {
 
 interface ObjectRelationship {
 	deletionType: string;
+	description?: LocalizedValue<string>;
 	edge?: boolean;
 	id: number;
 	label: LocalizedValue<string>;
@@ -509,7 +539,6 @@ interface ShowObjectDefinitionsModals {
 	addObjectDefinition: boolean;
 	addObjectField: boolean;
 	addObjectFolder: boolean;
-	bindToRootObjectDefinition: boolean;
 	deleteObjectDefinition: boolean;
 	deleteObjectFolder: boolean;
 	editObjectFolder: boolean;
@@ -517,5 +546,39 @@ interface ShowObjectDefinitionsModals {
 	moveObjectDefinition: boolean;
 	objectDefinitionOnRootModelDeletionNotAllowed: boolean;
 	objectFieldDeletionNotAllowed: boolean;
-	unbindFromRootObjectDefinition: boolean;
 }
+
+interface Space {
+	assetLibraryKey: string;
+	creatorUserId: string;
+	description: string;
+	externalReferenceCode: string;
+	id: number;
+	name: string;
+	settings?: SpaceSettings;
+	siteId: number;
+}
+
+type SpaceSettings = {
+	availableLanguageIds?: string[];
+	defaultLanguageId?: string;
+	logoColor?: LogoColor;
+	sharingEnabled?: boolean;
+	trashEnabled?: boolean;
+	trashEntriesMaxAge?: number;
+	useCustomLanguages?: boolean;
+};
+
+type LogoColor =
+	| 'outline-0'
+	| 'outline-1'
+	| 'outline-2'
+	| 'outline-3'
+	| 'outline-4'
+	| 'outline-5'
+	| 'outline-6'
+	| 'outline-7'
+	| 'outline-8'
+	| 'outline-9';
+
+type SubmitError = string | null;

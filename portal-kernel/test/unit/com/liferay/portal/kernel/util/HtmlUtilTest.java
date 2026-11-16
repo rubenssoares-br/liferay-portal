@@ -46,11 +46,6 @@ public class HtmlUtilTest {
 	}
 
 	@Test
-	public void testEscapeCaseSensitive() {
-		assertUnchangedEscape("CAPITAL lowercase Text");
-	}
-
-	@Test
 	public void testEscapeCSS() {
 		Assert.assertEquals("1", HtmlUtil.escapeCSS("1"));
 		Assert.assertEquals("\\27", HtmlUtil.escapeCSS("'"));
@@ -59,13 +54,20 @@ public class HtmlUtilTest {
 	}
 
 	@Test
+	public void testEscapeCaseSensitive() {
+		assertUnchangedEscape("CAPITAL lowercase Text");
+	}
+
+	@Test
 	public void testEscapeExtendedASCIICharacters() {
 		StringBundler sb = new StringBundler(256);
 
 		for (int i = 0; i < 256; i++) {
-			if (Character.isLetterOrDigit(i)) {
-				sb.append((char)i);
+			if (!Character.isLetterOrDigit(i)) {
+				continue;
 			}
+
+			sb.append((char)i);
 		}
 
 		String value = sb.toString();
@@ -89,9 +91,11 @@ public class HtmlUtilTest {
 			HtmlUtil.escapeHREF(
 				"data:text/html;base64," +
 					"PHNjcmlwdD5hbGVydCgndGVzdDMnKTwvc2NyaXB0Pg"));
-		Assert.assertEquals(
-			"http://localhost:8080",
-			HtmlUtil.escapeHREF("http://localhost:8080"));
+
+		String portalURL = "http://localhost:1234";
+
+		Assert.assertEquals(portalURL, HtmlUtil.escapeHREF(portalURL));
+
 		Assert.assertEquals(
 			"javascript\t%3aalert(1)",
 			HtmlUtil.escapeHREF("javascript\t:alert(1)"));
@@ -156,15 +160,24 @@ public class HtmlUtilTest {
 	@Test
 	public void testEscapeJSLink() {
 		Assert.assertEquals(
-			"javascript%3aalert('hello');",
-			HtmlUtil.escapeJSLink("javascript:alert('hello');"));
+			"%00javascript%3a//localhost:800/123%0aalert(document.domain)",
+			HtmlUtil.escapeJSLink(
+				"%00javascript://localhost:800/123%0aalert(document.domain)"));
+
+		String portalURL = "http://localhost:1234";
+
+		Assert.assertEquals(portalURL, HtmlUtil.escapeJSLink(portalURL));
 		Assert.assertEquals(
-			"http://localhost:8080",
-			HtmlUtil.escapeJSLink("http://localhost:8080"));
+			portalURL + "/test?scope='javascript:;'",
+			HtmlUtil.escapeJSLink(portalURL + "/test?scope='javascript:;'"));
+
 		Assert.assertEquals(
 			"javascript%3a//localhost:800/123%0aalert(document.domain)",
 			HtmlUtil.escapeJSLink(
 				"\tjavascript://localhost:800/123%0aalert(document.domain)"));
+		Assert.assertEquals(
+			"javascript%3aalert('hello');",
+			HtmlUtil.escapeJSLink("javascript:alert('hello');"));
 	}
 
 	@Test
@@ -394,6 +407,16 @@ public class HtmlUtilTest {
 	@Test
 	public void testUnescapeHtmlEncodingAmpersandInBetween() {
 		Assert.assertEquals("You & Me", HtmlUtil.unescape("You &amp; Me"));
+	}
+
+	@Test
+	public void testUnescapeHtmlEncodingEmDash() {
+		Assert.assertEquals("\u2014", HtmlUtil.unescape("&#8212;"));
+	}
+
+	@Test
+	public void testUnescapeHtmlEncodingEnDash() {
+		Assert.assertEquals("\u2013", HtmlUtil.unescape("&#8211;"));
 	}
 
 	@Test

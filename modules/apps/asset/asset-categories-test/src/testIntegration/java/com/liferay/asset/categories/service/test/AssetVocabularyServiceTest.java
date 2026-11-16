@@ -8,29 +8,45 @@ package com.liferay.asset.categories.service.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.asset.kernel.exception.DuplicateVocabularyException;
 import com.liferay.asset.kernel.exception.DuplicateVocabularyExternalReferenceCodeException;
+import com.liferay.asset.kernel.exception.NoSuchVocabularyException;
 import com.liferay.asset.kernel.exception.VocabularyNameException;
 import com.liferay.asset.kernel.model.AssetCategory;
 import com.liferay.asset.kernel.model.AssetVocabulary;
 import com.liferay.asset.kernel.model.AssetVocabularyConstants;
-import com.liferay.asset.kernel.service.AssetCategoryLocalServiceUtil;
+import com.liferay.asset.kernel.model.AssetVocabularyGroupRel;
+import com.liferay.asset.kernel.service.AssetCategoryLocalService;
+import com.liferay.asset.kernel.service.AssetVocabularyGroupRelLocalService;
 import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
-import com.liferay.asset.kernel.service.AssetVocabularyLocalServiceUtil;
-import com.liferay.asset.kernel.service.AssetVocabularyServiceUtil;
+import com.liferay.asset.kernel.service.AssetVocabularyService;
 import com.liferay.asset.test.util.AssetTestUtil;
+import com.liferay.depot.constants.DepotConstants;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.lazy.referencing.LazyReferencingThreadLocal;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.GroupConstants;
+import com.liferay.portal.kernel.model.ModelHintsUtil;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.ResourcePermission;
+import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.search.Hits;
 import com.liferay.portal.kernel.search.Indexer;
 import com.liferay.portal.kernel.search.IndexerRegistryUtil;
 import com.liferay.portal.kernel.search.SearchContext;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalService;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalServiceUtil;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
 import com.liferay.portal.kernel.test.context.ContextUserReplace;
@@ -46,12 +62,13 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleThreadLocal;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portlet.asset.util.AssetVocabularySettingsHelper;
 
 import java.util.List;
 import java.util.Locale;
@@ -102,6 +119,47 @@ public class AssetVocabularyServiceTest {
 	}
 
 	@Test
+	public void testAddVocabulary() throws Exception {
+		AssetVocabulary vocabulary = AssetTestUtil.addVocabulary(
+			_group.getGroupId(), RandomTestUtil.randomString());
+
+		_testAddVocabulary(
+			String.valueOf(vocabulary.getPrimaryKey()), RoleConstants.GUEST);
+		_testAddVocabulary(
+			String.valueOf(vocabulary.getPrimaryKey()), RoleConstants.OWNER);
+		_testAddVocabulary(
+			String.valueOf(vocabulary.getPrimaryKey()),
+			RoleConstants.SITE_MEMBER);
+
+		_testAddVocabularySystem();
+	}
+
+	@Test
+	public void testAddVocabularyLongTitlesAreTrimmed() throws Exception {
+		int nameMaxLength = ModelHintsUtil.getMaxLength(
+			AssetVocabulary.class.getName(), "name");
+
+		String title = RandomTestUtil.randomString(nameMaxLength);
+
+		AssetVocabulary vocabulary = _assetVocabularyLocalService.addVocabulary(
+			null, TestPropsValues.getUserId(), _group.getGroupId(),
+			StringPool.BLANK, StringPool.BLANK,
+			HashMapBuilder.put(
+				LocaleUtil.SPAIN, title + RandomTestUtil.randomString(10)
+			).put(
+				LocaleUtil.US, title + RandomTestUtil.randomString(10)
+			).build(),
+			null, null, AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
+			ServiceContextTestUtil.getServiceContext(
+				_group.getGroupId(), TestPropsValues.getUserId()));
+
+		Assert.assertEquals(
+			StringUtil.toLowerCase(title.trim()), vocabulary.getName());
+
+		_assertAssetCategoryLongTitlesAreTrimmed(vocabulary, title);
+	}
+
+	@Test
 	public void testAddVocabularyWithExternalReferenceCode() throws Exception {
 		String externalReferenceCode = StringUtil.randomString();
 
@@ -109,34 +167,76 @@ public class AssetVocabularyServiceTest {
 
 		String description = RandomTestUtil.randomString();
 
-		AssetVocabulary vocabulary =
-			AssetVocabularyLocalServiceUtil.addVocabulary(
-				externalReferenceCode, TestPropsValues.getUserId(),
-				_group.getGroupId(), StringPool.BLANK, StringPool.BLANK,
-				HashMapBuilder.put(
-					LocaleUtil.SPAIN, title + "_ES"
-				).put(
-					LocaleUtil.US, title + "_US"
-				).build(),
-				HashMapBuilder.put(
-					LocaleUtil.SPAIN, description + "_ES"
-				).put(
-					LocaleUtil.US, description + "_US"
-				).build(),
-				null, AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
-				ServiceContextTestUtil.getServiceContext(
-					_group.getGroupId(), TestPropsValues.getUserId()));
+		AssetVocabulary vocabulary = _assetVocabularyLocalService.addVocabulary(
+			externalReferenceCode, TestPropsValues.getUserId(),
+			_group.getGroupId(), StringPool.BLANK, StringPool.BLANK,
+			HashMapBuilder.put(
+				LocaleUtil.SPAIN, title + "_ES"
+			).put(
+				LocaleUtil.US, title + "_US"
+			).build(),
+			HashMapBuilder.put(
+				LocaleUtil.SPAIN, description + "_ES"
+			).put(
+				LocaleUtil.US, description + "_US"
+			).build(),
+			null, AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
+			ServiceContextTestUtil.getServiceContext(
+				_group.getGroupId(), TestPropsValues.getUserId()));
 
 		Assert.assertEquals(
 			externalReferenceCode, vocabulary.getExternalReferenceCode());
 
 		vocabulary =
-			AssetVocabularyLocalServiceUtil.
+			_assetVocabularyLocalService.
 				getAssetVocabularyByExternalReferenceCode(
 					externalReferenceCode, _group.getGroupId());
 
 		Assert.assertEquals(
 			externalReferenceCode, vocabulary.getExternalReferenceCode());
+	}
+
+	@Test
+	public void testAddVocabularyWithoutAssetLibrary() throws Exception {
+		Group cmsGroup = _groupLocalService.getGroup(
+			TestPropsValues.getCompanyId(), GroupConstants.CMS);
+
+		AssetVocabulary vocabulary = AssetTestUtil.addVocabulary(
+			cmsGroup.getGroupId(), RandomTestUtil.randomString());
+
+		List<AssetVocabularyGroupRel> projectAssetVocabularyGroupRels =
+			_assetVocabularyGroupRelLocalService.
+				getAssetVocabularyGroupRelsByVocabularyIdAndDepotEntryType(
+					vocabulary.getVocabularyId(), DepotConstants.TYPE_PROJECT);
+
+		Assert.assertEquals(
+			projectAssetVocabularyGroupRels.toString(), 1,
+			projectAssetVocabularyGroupRels.size());
+
+		AssetVocabularyGroupRel projectAssetVocabularyGroupRel =
+			projectAssetVocabularyGroupRels.get(0);
+
+		Assert.assertEquals(
+			projectAssetVocabularyGroupRels.toString(),
+			GroupConstants.GROUP_ID_ALL,
+			projectAssetVocabularyGroupRel.getGroupId());
+
+		List<AssetVocabularyGroupRel> spaceAssetVocabularyGroupRels =
+			_assetVocabularyGroupRelLocalService.
+				getAssetVocabularyGroupRelsByVocabularyIdAndDepotEntryType(
+					vocabulary.getVocabularyId(), DepotConstants.TYPE_SPACE);
+
+		Assert.assertEquals(
+			spaceAssetVocabularyGroupRels.toString(), 1,
+			spaceAssetVocabularyGroupRels.size());
+
+		AssetVocabularyGroupRel spaceAssetVocabularyGroupRel =
+			spaceAssetVocabularyGroupRels.get(0);
+
+		Assert.assertEquals(
+			spaceAssetVocabularyGroupRels.toString(),
+			GroupConstants.GROUP_ID_ALL,
+			spaceAssetVocabularyGroupRel.getGroupId());
 	}
 
 	@Test
@@ -151,7 +251,7 @@ public class AssetVocabularyServiceTest {
 		Assert.assertEquals(externalReferenceCode, vocabulary1.getUuid());
 
 		AssetVocabulary vocabulary2 =
-			AssetVocabularyLocalServiceUtil.
+			_assetVocabularyLocalService.
 				getAssetVocabularyByExternalReferenceCode(
 					externalReferenceCode, _group.getGroupId());
 
@@ -177,7 +277,7 @@ public class AssetVocabularyServiceTest {
 
 		Assert.assertEquals(initialAssetCategoriesCount + 2, searchCount());
 
-		AssetVocabularyLocalServiceUtil.deleteVocabulary(
+		_assetVocabularyLocalService.deleteVocabulary(
 			vocabulary.getVocabularyId());
 
 		Assert.assertEquals(initialAssetCategoriesCount, searchCount());
@@ -186,10 +286,10 @@ public class AssetVocabularyServiceTest {
 			ResourceActionLocalServiceUtil.getResourceActionsCount(
 				AssetVocabulary.class.getName()));
 		Assert.assertNull(
-			AssetCategoryLocalServiceUtil.fetchAssetCategory(
+			_assetCategoryLocalService.fetchAssetCategory(
 				category.getCategoryId()));
 		Assert.assertNull(
-			AssetVocabularyLocalServiceUtil.fetchAssetVocabulary(
+			_assetVocabularyLocalService.fetchAssetVocabulary(
 				vocabulary.getVocabularyId()));
 	}
 
@@ -201,7 +301,7 @@ public class AssetVocabularyServiceTest {
 		String title = RandomTestUtil.randomString();
 		String description = RandomTestUtil.randomString();
 
-		AssetVocabularyLocalServiceUtil.addVocabulary(
+		_assetVocabularyLocalService.addVocabulary(
 			externalReferenceCode, TestPropsValues.getUserId(),
 			_group.getGroupId(), StringPool.BLANK, StringPool.BLANK,
 			HashMapBuilder.put(
@@ -218,7 +318,7 @@ public class AssetVocabularyServiceTest {
 			ServiceContextTestUtil.getServiceContext(
 				_group.getGroupId(), TestPropsValues.getUserId()));
 
-		AssetVocabularyLocalServiceUtil.addVocabulary(
+		_assetVocabularyLocalService.addVocabulary(
 			externalReferenceCode, TestPropsValues.getUserId(),
 			_group.getGroupId(), StringPool.BLANK, StringPool.BLANK,
 			HashMapBuilder.put(
@@ -257,6 +357,14 @@ public class AssetVocabularyServiceTest {
 	}
 
 	@Test
+	public void testGetGroupVocabulariesCountWithNoGroupIds() throws Exception {
+		AssetTestUtil.addVocabulary(_group.getGroupId());
+
+		Assert.assertEquals(
+			0, _assetVocabularyService.getGroupVocabulariesCount(new long[0]));
+	}
+
+	@Test
 	public void testGetGroupVocabulariesPaginatedWithNoViewableVocabularies()
 		throws Exception {
 
@@ -267,7 +375,7 @@ public class AssetVocabularyServiceTest {
 		serviceContext.setAddGroupPermissions(false);
 		serviceContext.setAddGuestPermissions(false);
 
-		AssetVocabularyLocalServiceUtil.addVocabulary(
+		_assetVocabularyLocalService.addVocabulary(
 			TestPropsValues.getUserId(), _group.getGroupId(),
 			RandomTestUtil.randomString(), serviceContext);
 
@@ -279,12 +387,12 @@ public class AssetVocabularyServiceTest {
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				user, permissionChecker)) {
 
-			List<AssetVocabulary> vocabularies =
-				AssetVocabularyServiceUtil.getGroupVocabularies(
+			List<AssetVocabulary> assetVocabularies =
+				_assetVocabularyService.getGroupVocabularies(
 					_group.getGroupId(), false, QueryUtil.ALL_POS,
 					QueryUtil.ALL_POS, null);
 
-			Assert.assertTrue(ListUtil.isEmpty(vocabularies));
+			Assert.assertTrue(ListUtil.isEmpty(assetVocabularies));
 		}
 		finally {
 			UserLocalServiceUtil.deleteUser(user);
@@ -302,7 +410,7 @@ public class AssetVocabularyServiceTest {
 		serviceContext.setAddGroupPermissions(false);
 		serviceContext.setAddGuestPermissions(false);
 
-		AssetVocabularyLocalServiceUtil.addVocabulary(
+		_assetVocabularyLocalService.addVocabulary(
 			TestPropsValues.getUserId(), _group.getGroupId(),
 			RandomTestUtil.randomString(), serviceContext);
 
@@ -314,12 +422,12 @@ public class AssetVocabularyServiceTest {
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				user, permissionChecker)) {
 
-			List<AssetVocabulary> vocabularies =
-				AssetVocabularyServiceUtil.getGroupVocabularies(
+			List<AssetVocabulary> assetVocabularies =
+				_assetVocabularyService.getGroupVocabularies(
 					_group.getGroupId(), true, QueryUtil.ALL_POS,
 					QueryUtil.ALL_POS, null);
 
-			Assert.assertTrue(ListUtil.isEmpty(vocabularies));
+			Assert.assertTrue(ListUtil.isEmpty(assetVocabularies));
 		}
 		finally {
 			UserLocalServiceUtil.deleteUser(user);
@@ -330,24 +438,43 @@ public class AssetVocabularyServiceTest {
 	public void testGetGroupVocabulariesPaginatedWithNoVocabularies()
 		throws Exception {
 
-		List<AssetVocabulary> vocabularies =
-			AssetVocabularyServiceUtil.getGroupVocabularies(
+		List<AssetVocabulary> assetVocabularies =
+			_assetVocabularyService.getGroupVocabularies(
 				_group.getGroupId(), false, QueryUtil.ALL_POS,
 				QueryUtil.ALL_POS, null);
 
-		Assert.assertTrue(ListUtil.isEmpty(vocabularies));
+		Assert.assertTrue(ListUtil.isEmpty(assetVocabularies));
 	}
 
 	@Test
 	public void testGetGroupVocabulariesPaginatedWithNoVocabulariesCreatesDefaultVocabulary()
 		throws Exception {
 
-		List<AssetVocabulary> vocabularies =
-			AssetVocabularyServiceUtil.getGroupVocabularies(
+		List<AssetVocabulary> assetVocabularies =
+			_assetVocabularyService.getGroupVocabularies(
 				_group.getGroupId(), true, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
 				null);
 
-		Assert.assertEquals(vocabularies.toString(), 1, vocabularies.size());
+		Assert.assertEquals(
+			assetVocabularies.toString(), 1, assetVocabularies.size());
+	}
+
+	@Test
+	public void testGetGroupVocabulariesWithNoGroupIds() throws Exception {
+		AssetVocabulary assetVocabulary = AssetTestUtil.addVocabulary(
+			_group.getGroupId());
+
+		List<AssetVocabulary> assetVocabularies =
+			_assetVocabularyService.getGroupVocabularies(new long[0]);
+
+		Assert.assertTrue(
+			assetVocabularies.toString(), assetVocabularies.isEmpty());
+
+		assetVocabularies = _assetVocabularyService.getGroupVocabularies(
+			new long[0], new int[] {assetVocabulary.getVisibilityType()});
+
+		Assert.assertTrue(
+			assetVocabularies.toString(), assetVocabularies.isEmpty());
 	}
 
 	@Test
@@ -361,7 +488,7 @@ public class AssetVocabularyServiceTest {
 		serviceContext.setAddGroupPermissions(false);
 		serviceContext.setAddGuestPermissions(false);
 
-		AssetVocabularyLocalServiceUtil.addVocabulary(
+		_assetVocabularyLocalService.addVocabulary(
 			TestPropsValues.getUserId(), _group.getGroupId(),
 			RandomTestUtil.randomString(), serviceContext);
 
@@ -373,11 +500,11 @@ public class AssetVocabularyServiceTest {
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				user, permissionChecker)) {
 
-			List<AssetVocabulary> vocabularies =
-				AssetVocabularyServiceUtil.getGroupVocabularies(
+			List<AssetVocabulary> assetVocabularies =
+				_assetVocabularyService.getGroupVocabularies(
 					_group.getGroupId(), false);
 
-			Assert.assertTrue(ListUtil.isEmpty(vocabularies));
+			Assert.assertTrue(ListUtil.isEmpty(assetVocabularies));
 		}
 		finally {
 			UserLocalServiceUtil.deleteUser(user);
@@ -395,7 +522,7 @@ public class AssetVocabularyServiceTest {
 		serviceContext.setAddGroupPermissions(false);
 		serviceContext.setAddGuestPermissions(false);
 
-		AssetVocabularyLocalServiceUtil.addVocabulary(
+		_assetVocabularyLocalService.addVocabulary(
 			TestPropsValues.getUserId(), _group.getGroupId(),
 			RandomTestUtil.randomString(), serviceContext);
 
@@ -407,11 +534,11 @@ public class AssetVocabularyServiceTest {
 		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
 				user, permissionChecker)) {
 
-			List<AssetVocabulary> vocabularies =
-				AssetVocabularyServiceUtil.getGroupVocabularies(
+			List<AssetVocabulary> assetVocabularies =
+				_assetVocabularyService.getGroupVocabularies(
 					_group.getGroupId(), true);
 
-			Assert.assertTrue(ListUtil.isEmpty(vocabularies));
+			Assert.assertTrue(ListUtil.isEmpty(assetVocabularies));
 		}
 		finally {
 			UserLocalServiceUtil.deleteUser(user);
@@ -420,22 +547,23 @@ public class AssetVocabularyServiceTest {
 
 	@Test
 	public void testGetGroupVocabulariesWithNoVocabularies() throws Exception {
-		List<AssetVocabulary> vocabularies =
-			AssetVocabularyServiceUtil.getGroupVocabularies(
+		List<AssetVocabulary> assetVocabularies =
+			_assetVocabularyService.getGroupVocabularies(
 				_group.getGroupId(), false);
 
-		Assert.assertTrue(ListUtil.isEmpty(vocabularies));
+		Assert.assertTrue(ListUtil.isEmpty(assetVocabularies));
 	}
 
 	@Test
 	public void testGetGroupVocabulariesWithNoVocabulariesCreatesDefaultVocabulary()
 		throws Exception {
 
-		List<AssetVocabulary> vocabularies =
-			AssetVocabularyServiceUtil.getGroupVocabularies(
+		List<AssetVocabulary> assetVocabularies =
+			_assetVocabularyService.getGroupVocabularies(
 				_group.getGroupId(), true);
 
-		Assert.assertEquals(vocabularies.toString(), 1, vocabularies.size());
+		Assert.assertEquals(
+			assetVocabularies.toString(), 1, assetVocabularies.size());
 	}
 
 	@Test
@@ -452,11 +580,92 @@ public class AssetVocabularyServiceTest {
 	}
 
 	@Test
+	public void testGetGroupsVocabulariesWithNoGroupIds() throws Exception {
+		AssetTestUtil.addVocabulary(_group.getGroupId());
+
+		List<AssetVocabulary> assetVocabularies =
+			_assetVocabularyService.getGroupsVocabularies(new long[0]);
+
+		Assert.assertTrue(
+			assetVocabularies.toString(), assetVocabularies.isEmpty());
+	}
+
+	@Test
+	public void testGetOrAddEmptyVocabulary() throws Exception {
+
+		// Lazy referencing disabled
+
+		try {
+			_assetVocabularyService.getOrAddEmptyVocabulary(
+				RandomTestUtil.randomString(), _group.getGroupId());
+
+			Assert.fail();
+		}
+		catch (NoSuchVocabularyException noSuchVocabularyException) {
+			Assert.assertNotNull(noSuchVocabularyException);
+		}
+
+		// Lazy referencing enabled
+
+		try (SafeCloseable safeCloseable =
+				LazyReferencingThreadLocal.setEnabledWithSafeCloseable(true)) {
+
+			// With permissions
+
+			AssetVocabulary vocabulary =
+				_assetVocabularyService.getOrAddEmptyVocabulary(
+					RandomTestUtil.randomString(), _group.getGroupId());
+
+			Assert.assertNotNull(vocabulary);
+
+			// Without permissions
+
+			User user = UserTestUtil.addGroupUser(
+				_group, RoleConstants.SITE_MEMBER);
+
+			PermissionChecker permissionChecker =
+				PermissionCheckerFactoryUtil.create(user);
+
+			try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+					user, permissionChecker)) {
+
+				_assetVocabularyService.getOrAddEmptyVocabulary(
+					RandomTestUtil.randomString(), user.getGroupId());
+
+				Assert.fail();
+			}
+			catch (PrincipalException.MustHavePermission principalException) {
+				Assert.assertNotNull(principalException);
+			}
+
+			// Without permissions, existing vocabulary
+
+			String externalReferenceCode = RandomTestUtil.randomString();
+
+			_assetVocabularyLocalService.addVocabulary(
+				externalReferenceCode, TestPropsValues.getUserId(),
+				_group.getGroupId(), RandomTestUtil.randomString(),
+				RandomTestUtil.randomString(),
+				HashMapBuilder.put(
+					LocaleUtil.SPAIN, RandomTestUtil.randomString()
+				).build(),
+				null, null, AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
+				ServiceContextTestUtil.getServiceContext(
+					_group.getGroupId(), TestPropsValues.getUserId()));
+
+			vocabulary = _assetVocabularyService.getOrAddEmptyVocabulary(
+				externalReferenceCode, _group.getGroupId());
+
+			Assert.assertNotNull(vocabulary);
+		}
+	}
+
+	@Test
 	public void testLocalizedSiteAddDefaultVocabulary() throws Exception {
 		LocaleThreadLocal.setSiteDefaultLocale(LocaleUtil.SPAIN);
 
 		AssetVocabulary vocabulary =
-			AssetVocabularyLocalServiceUtil.addDefaultVocabulary(
+			_assetVocabularyLocalService.addDefaultVocabulary(
 				_group.getGroupId());
 
 		Assert.assertEquals(
@@ -485,11 +694,10 @@ public class AssetVocabularyServiceTest {
 			LocaleUtil.US, description + "_US"
 		).build();
 
-		AssetVocabulary vocabulary =
-			AssetVocabularyLocalServiceUtil.addVocabulary(
-				TestPropsValues.getUserId(), _group.getGroupId(),
-				StringPool.BLANK, titleMap, descriptionMap, StringPool.BLANK,
-				ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
+		AssetVocabulary vocabulary = _assetVocabularyLocalService.addVocabulary(
+			TestPropsValues.getUserId(), _group.getGroupId(), StringPool.BLANK,
+			titleMap, descriptionMap, StringPool.BLANK,
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 
 		Assert.assertEquals(
 			StringUtil.toLowerCase(titleMap.get(LocaleUtil.SPAIN)),
@@ -523,14 +731,81 @@ public class AssetVocabularyServiceTest {
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
 
-		AssetVocabulary vocabulary =
-			AssetVocabularyLocalServiceUtil.addVocabulary(
-				TestPropsValues.getUserId(), serviceContext.getScopeGroupId(),
-				title, serviceContext);
+		AssetVocabulary vocabulary = _assetVocabularyLocalService.addVocabulary(
+			TestPropsValues.getUserId(), serviceContext.getScopeGroupId(),
+			title, serviceContext);
 
 		Assert.assertEquals(title, vocabulary.getTitle(LocaleUtil.US, true));
 		Assert.assertEquals(
 			StringUtil.toLowerCase(title), vocabulary.getName());
+	}
+
+	@Test
+	public void testUpdateVocabulary() throws Exception {
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			new AssetVocabularySettingsHelper();
+
+		assetVocabularySettingsHelper.setSystem(true);
+
+		User user = UserTestUtil.addGroupUser(
+			_group, RoleConstants.SITE_ADMINISTRATOR);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user, PermissionCheckerFactoryUtil.create(user))) {
+
+			AssetVocabulary vocabulary = _assetVocabularyService.addVocabulary(
+				_group.getGroupId(), RandomTestUtil.randomString(),
+				HashMapBuilder.put(
+					LocaleUtil.getSiteDefault(), RandomTestUtil.randomString()
+				).build(),
+				null, null, AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
+				ServiceContextTestUtil.getServiceContext(
+					_group.getGroupId(), user.getUserId()));
+
+			try {
+				_assetVocabularyService.updateVocabulary(
+					vocabulary.getExternalReferenceCode(),
+					vocabulary.getVocabularyId(), vocabulary.getTitleMap(),
+					vocabulary.getDescriptionMap(),
+					assetVocabularySettingsHelper.toString(),
+					vocabulary.getVisibilityType());
+
+				Assert.fail();
+			}
+			catch (PrincipalException.MustBeCompanyAdmin principalException) {
+				Assert.assertNotNull(principalException);
+			}
+		}
+	}
+
+	@Test
+	public void testUpdateVocabularyLongTitlesAreTrimmed() throws Exception {
+		String name = RandomTestUtil.randomString();
+
+		AssetVocabulary vocabulary = AssetTestUtil.addVocabulary(
+			_group.getGroupId(), name);
+
+		Assert.assertEquals(
+			StringUtil.toLowerCase(name.trim()), vocabulary.getName());
+
+		int nameMaxLength = ModelHintsUtil.getMaxLength(
+			AssetVocabulary.class.getName(), "name");
+
+		String title = RandomTestUtil.randomString(nameMaxLength);
+
+		vocabulary = _assetVocabularyLocalService.updateVocabulary(
+			vocabulary.getExternalReferenceCode(), vocabulary.getVocabularyId(),
+			HashMapBuilder.put(
+				LocaleUtil.SPAIN, title + RandomTestUtil.randomString(10)
+			).put(
+				LocaleUtil.US, title + RandomTestUtil.randomString(10)
+			).build(),
+			null, vocabulary.getSettings(), vocabulary.getVisibilityType());
+
+		Assert.assertEquals(
+			StringUtil.toLowerCase(name.trim()), vocabulary.getName());
+
+		_assertAssetCategoryLongTitlesAreTrimmed(vocabulary, title);
 	}
 
 	@Rule
@@ -549,8 +824,84 @@ public class AssetVocabularyServiceTest {
 		return results.getLength();
 	}
 
+	private void _assertAssetCategoryLongTitlesAreTrimmed(
+		AssetVocabulary assetVocabulary, String title) {
+
+		Map<Locale, String> titleMap = assetVocabulary.getTitleMap();
+
+		for (Map.Entry<Locale, String> entry : titleMap.entrySet()) {
+			Assert.assertEquals(title, entry.getValue());
+		}
+	}
+
+	private void _testAddVocabulary(String primKey, String roleName)
+		throws Exception {
+
+		Role role = _roleLocalService.getRole(_group.getCompanyId(), roleName);
+
+		ResourcePermission resourcePermission =
+			_resourcePermissionLocalService.getResourcePermission(
+				_group.getCompanyId(), AssetVocabulary.class.getName(),
+				ResourceConstants.SCOPE_INDIVIDUAL, primKey, role.getRoleId());
+
+		Assert.assertTrue(resourcePermission.hasActionId(ActionKeys.VIEW));
+	}
+
+	private void _testAddVocabularySystem() throws Exception {
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			new AssetVocabularySettingsHelper();
+
+		assetVocabularySettingsHelper.setSystem(true);
+
+		User user = UserTestUtil.addGroupUser(
+			_group, RoleConstants.SITE_ADMINISTRATOR);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user, PermissionCheckerFactoryUtil.create(user))) {
+
+			Assert.assertNotNull(
+				_assetVocabularyService.addVocabulary(
+					_group.getGroupId(), RandomTestUtil.randomString(),
+					HashMapBuilder.put(
+						LocaleUtil.getSiteDefault(),
+						RandomTestUtil.randomString()
+					).build(),
+					null, null, AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
+					ServiceContextTestUtil.getServiceContext(
+						_group.getGroupId(), user.getUserId())));
+
+			try {
+				_assetVocabularyService.addVocabulary(
+					_group.getGroupId(), RandomTestUtil.randomString(),
+					HashMapBuilder.put(
+						LocaleUtil.getSiteDefault(),
+						RandomTestUtil.randomString()
+					).build(),
+					null, assetVocabularySettingsHelper.toString(),
+					AssetVocabularyConstants.VISIBILITY_TYPE_PUBLIC,
+					ServiceContextTestUtil.getServiceContext(
+						_group.getGroupId(), user.getUserId()));
+
+				Assert.fail();
+			}
+			catch (PrincipalException.MustBeCompanyAdmin principalException) {
+				Assert.assertNotNull(principalException);
+			}
+		}
+	}
+
+	@Inject
+	private AssetCategoryLocalService _assetCategoryLocalService;
+
+	@Inject
+	private AssetVocabularyGroupRelLocalService
+		_assetVocabularyGroupRelLocalService;
+
 	@Inject
 	private AssetVocabularyLocalService _assetVocabularyLocalService;
+
+	@Inject
+	private AssetVocabularyService _assetVocabularyService;
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
@@ -558,6 +909,15 @@ public class AssetVocabularyServiceTest {
 	@DeleteAfterTestRun
 	private Group _group;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
 	private Locale _locale;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
 
 }

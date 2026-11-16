@@ -10,13 +10,18 @@ import {SelectField} from '../../app/components/fragment_configuration_fields/Se
 import {TextField} from '../../app/components/fragment_configuration_fields/TextField';
 import getSelectedField from '../../app/utils/getSelectedField';
 
+const ALL_OPTION = 'all';
 const FIRST_OPTION = 'first';
 const SPECIFIC_NUMBER_OPTION = 'iteration-number';
 const LAST_OPTION = 'last';
 
 const REPEATABLE_ITERATION_TYPE_OPTIONS = [
 	{
-		label: Liferay.Language.get('first'),
+		label: Liferay.Language.get('all'),
+		value: ALL_OPTION,
+	},
+	{
+		label: Liferay.Language.get('first[item]'),
 		value: FIRST_OPTION,
 	},
 	{
@@ -92,7 +97,7 @@ export default function RepeatableOptionsSelector({
 						>
 							<ClayIcon
 								className="mr-2"
-								symbol="info-panel-open"
+								symbol="info-circle-open"
 							/>
 						</div>
 

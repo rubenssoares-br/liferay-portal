@@ -7,11 +7,15 @@ package com.liferay.address.internal.upgrade.registry;
 
 import com.liferay.address.internal.upgrade.v1_0_0.CountryUpgradeProcess;
 import com.liferay.address.internal.upgrade.v1_0_1.CountryRegionUpgradeProcess;
+import com.liferay.address.internal.upgrade.v1_0_3.CountryResourcePermissionUpgradeProcess;
 import com.liferay.counter.kernel.service.CounterLocalService;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.CountryLocalService;
 import com.liferay.portal.kernel.service.RegionLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourceLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 
 import org.osgi.service.component.annotations.Component;
@@ -28,7 +32,9 @@ public class AddressUpgradeStepRegistrator implements UpgradeStepRegistrator {
 		registry.registerInitialization();
 
 		registry.register(
-			"0.0.1", "1.0.0", new CountryUpgradeProcess(_companyLocalService));
+			"0.0.1", "1.0.0",
+			new CountryUpgradeProcess(
+				_companyLocalService, _counterLocalService));
 
 		registry.register(
 			"1.0.0", "1.0.1",
@@ -42,6 +48,13 @@ public class AddressUpgradeStepRegistrator implements UpgradeStepRegistrator {
 				CountryUpgradeProcess(
 					_companyLocalService, _counterLocalService,
 					_countryLocalService, _jsonFactory, _regionLocalService));
+
+		registry.register(
+			"1.0.2", "1.0.3",
+			new CountryResourcePermissionUpgradeProcess(
+				_companyLocalService, _countryLocalService,
+				_resourceActionLocalService, _resourceLocalService,
+				_resourcePermissionLocalService));
 	}
 
 	@Reference
@@ -58,5 +71,14 @@ public class AddressUpgradeStepRegistrator implements UpgradeStepRegistrator {
 
 	@Reference
 	private RegionLocalService _regionLocalService;
+
+	@Reference
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Reference
+	private ResourceLocalService _resourceLocalService;
+
+	@Reference
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
 
 }

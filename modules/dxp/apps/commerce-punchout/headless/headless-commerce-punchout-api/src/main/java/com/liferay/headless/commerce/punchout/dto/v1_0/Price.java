@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Jaclyn Ong
@@ -48,7 +49,7 @@ public class Price implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Price.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCurrency() {
 		if (_currencySupplier != null) {
 			currency = _currencySupplier.get();
@@ -89,7 +90,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _currencySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getDiscount() {
 		if (_discountSupplier != null) {
 			discount = _discountSupplier.get();
@@ -130,7 +131,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _discountSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDiscountPercentage() {
 		if (_discountPercentageSupplier != null) {
 			discountPercentage = _discountPercentageSupplier.get();
@@ -171,7 +172,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _discountPercentageSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getDiscountPercentageLevel1() {
 		if (_discountPercentageLevel1Supplier != null) {
 			discountPercentageLevel1 = _discountPercentageLevel1Supplier.get();
@@ -213,7 +214,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _discountPercentageLevel1Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getDiscountPercentageLevel2() {
 		if (_discountPercentageLevel2Supplier != null) {
 			discountPercentageLevel2 = _discountPercentageLevel2Supplier.get();
@@ -255,7 +256,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _discountPercentageLevel2Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getDiscountPercentageLevel3() {
 		if (_discountPercentageLevel3Supplier != null) {
 			discountPercentageLevel3 = _discountPercentageLevel3Supplier.get();
@@ -297,7 +298,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _discountPercentageLevel3Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getDiscountPercentageLevel4() {
 		if (_discountPercentageLevel4Supplier != null) {
 			discountPercentageLevel4 = _discountPercentageLevel4Supplier.get();
@@ -339,7 +340,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _discountPercentageLevel4Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getFinalPrice() {
 		if (_finalPriceSupplier != null) {
 			finalPrice = _finalPriceSupplier.get();
@@ -380,7 +381,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _finalPriceSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getPrice() {
 		if (_priceSupplier != null) {
 			price = _priceSupplier.get();
@@ -421,7 +422,7 @@ public class Price implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _priceSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getPromoPrice() {
 		if (_promoPriceSupplier != null) {
 			promoPrice = _promoPriceSupplier.get();
@@ -622,8 +623,8 @@ public class Price implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.punchout.dto.v1_0.Price",
 		name = "x-class-name"
 	)
@@ -710,6 +711,27 @@ public class Price implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -718,3 +740,4 @@ public class Price implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2136420708

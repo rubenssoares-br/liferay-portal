@@ -9,41 +9,43 @@ import {differenceInDays, format} from 'date-fns';
 import {useOutletContext, useParams} from 'react-router-dom';
 import useSWR from 'swr';
 
+import {breadcrumbStore} from '../../../../components/Breadcrumb/BreadcrumbStore';
 import {DetailedCard} from '../../../../components/DetailedCard/DetailedCard';
 import Loading from '../../../../components/Loading';
 import QATable from '../../../../components/QATable';
-import {useMarketplaceContext} from '../../../../context/MarketplaceContext';
 import {
-	ORDER_CUSTOM_FIELDS,
-	ORDER_TYPES,
-	ORDER_WORKFLOW_STATUS_CODE,
+	OrderCustomFields,
+	OrderTypes,
+	OrderWorkflowStatusCode,
 } from '../../../../enums/Order';
 import i18n from '../../../../i18n';
 import analyticsOAuth2 from '../../../../services/oauth/Analytics';
+import {formatDate} from '../../../../utils/date';
 import {removeHTMLTags} from '../../../../utils/string';
-import {formatDate} from '../../../PublisherDashboard/PublisherDashboardPageUtil';
+import {safeJSONParse} from '../../../../utils/util';
 import TrialAlert from '../../components/Solution/TrialAlert';
 
 const NEXT_TO_EXPIRE_LEFT_DAYS = 2;
 
 const getTrialDetails = (placedOrder: PlacedOrder) => {
 	const orderStatusCode = placedOrder.orderStatusInfo
-		?.code as ORDER_WORKFLOW_STATUS_CODE;
+		?.code as OrderWorkflowStatusCode;
 
 	const customFields = placedOrder.customFields;
 
 	const isTrialCompleted =
-		orderStatusCode === ORDER_WORKFLOW_STATUS_CODE.COMPLETED;
+		orderStatusCode === OrderWorkflowStatusCode.COMPLETED;
 
-	const nextToExpire = customFields[ORDER_CUSTOM_FIELDS.END_DATE]
+	const nextToExpire = customFields[OrderCustomFields.TRIAL_END_DATE]
 		? !isTrialCompleted &&
 			differenceInDays(
-				new Date(customFields[ORDER_CUSTOM_FIELDS.END_DATE]),
+				new Date(customFields[OrderCustomFields.TRIAL_END_DATE]),
 				new Date()
 			) <= NEXT_TO_EXPIRE_LEFT_DAYS
 		: false;
 
-	const virtualHost = customFields[ORDER_CUSTOM_FIELDS.VIRTUAL_HOST] || '';
+	const virtualHost =
+		customFields[OrderCustomFields.TRIAL_VIRTUAL_HOST] || '';
 
 	return [
 		{
@@ -52,15 +54,15 @@ const getTrialDetails = (placedOrder: PlacedOrder) => {
 		},
 		{
 			title: i18n.translate('trial-start-date'),
-			value: customFields[ORDER_CUSTOM_FIELDS.START_DATE]
-				? formatDate(customFields[ORDER_CUSTOM_FIELDS.START_DATE])
+			value: customFields[OrderCustomFields.TRIAL_START_DATE]
+				? formatDate(customFields[OrderCustomFields.TRIAL_START_DATE])
 				: '-',
 		},
 		{
 			title: i18n.translate('trial-end-date'),
-			value: customFields[ORDER_CUSTOM_FIELDS.END_DATE] ? (
+			value: customFields[OrderCustomFields.TRIAL_END_DATE] ? (
 				<span>
-					{formatDate(customFields[ORDER_CUSTOM_FIELDS.END_DATE])}
+					{formatDate(customFields[OrderCustomFields.TRIAL_END_DATE])}
 
 					{nextToExpire && (
 						<ClayLabel
@@ -97,7 +99,7 @@ const getTrialDetails = (placedOrder: PlacedOrder) => {
 				</a>
 			),
 			visible:
-				orderStatusCode === ORDER_WORKFLOW_STATUS_CODE.IN_PROGRESS &&
+				orderStatusCode === OrderWorkflowStatusCode.IN_PROGRESS &&
 				!!virtualHost,
 		},
 	];
@@ -110,25 +112,16 @@ type AnalyticsWorkspaceDetailsProps = {
 const AnalyticsWorkspaceDetails: React.FC<AnalyticsWorkspaceDetailsProps> = ({
 	analyticsGroupId,
 }) => {
-	const {
-		properties: {analyticsCloudURL},
-	} = useMarketplaceContext();
-	const {data = [], isLoading} = useSWR(
-		`/analytics/project/${analyticsGroupId}/`,
-		() =>
-			Promise.all([
-				analyticsOAuth2.getProject(analyticsGroupId),
-				analyticsOAuth2.getProjectEmailAddressDomains(analyticsGroupId),
-			])
+	const {data: project, isLoading} = useSWR(
+		`/analytics/project/${analyticsGroupId}`,
+		() => analyticsOAuth2.getProject(analyticsGroupId)
 	);
-
-	const [project, emailAddressDomains = []] = data ?? [];
 
 	return (
 		<DetailedCard
 			cardIconAltText="Summary Icon"
 			cardTitle={i18n.translate('workspace-info')}
-			clayIcon="liferay-ac"
+			clayIcon="polls"
 		>
 			{isLoading ? (
 				<Loading
@@ -140,17 +133,6 @@ const AnalyticsWorkspaceDetails: React.FC<AnalyticsWorkspaceDetailsProps> = ({
 			) : (
 				<QATable
 					items={[
-						{
-							title: i18n.translate('workspace-friendly-url'),
-							value: project?.friendlyURL ? (
-								<a
-									href={`${analyticsCloudURL}/workspace${project?.friendlyURL}`}
-									target="blank"
-								>
-									{project?.friendlyURL}
-								</a>
-							) : null,
-						},
 						{
 							title: i18n.translate('workspace-name'),
 							value: project?.name,
@@ -164,27 +146,17 @@ const AnalyticsWorkspaceDetails: React.FC<AnalyticsWorkspaceDetailsProps> = ({
 							value: project?.serverLocation,
 						},
 						{
-							title: i18n.translate('timezone'),
-							value: project?.timeZone.country,
-						},
-
-						{
 							title: i18n.translate('incident-report-contacts'),
-							value: project?.incidentReportEmailAddresses.map(
+							value: project?.incidentReportEmailAddresses?.map(
 								(emailAddress) => (
 									<div key={emailAddress}>{emailAddress}</div>
 								)
 							),
 						},
-						{
-							title: i18n.translate('allowed-email-domains'),
-							value: emailAddressDomains.map((emailAddress) => (
-								<div key={emailAddress}>{emailAddress}</div>
-							)),
-						},
+
 						{
 							title: i18n.translate('subscription-type'),
-							value: project?.faroSubscription.name,
+							value: project?.faroSubscription?.name,
 						},
 					]}
 				/>
@@ -201,24 +173,33 @@ const Solution = () => {
 		product: DeliveryProduct;
 	}>();
 
+	breadcrumbStore.send({
+		replacements: {[orderId as string]: product.name},
+		type: 'setReplacements',
+	});
+
 	const orderStatusCode = placedOrder.orderStatusInfo
-		?.code as ORDER_WORKFLOW_STATUS_CODE;
+		?.code as OrderWorkflowStatusCode;
 
 	const isAddOn =
-		placedOrder.orderTypeExternalReferenceCode === ORDER_TYPES.ADDONS;
+		placedOrder.orderTypeExternalReferenceCode === OrderTypes.ADDONS;
 
 	const limitedTrial = [
-		ORDER_TYPES.SOLUTIONS7,
-		ORDER_TYPES.SOLUTIONS30,
-	].includes(placedOrder.orderTypeExternalReferenceCode as ORDER_TYPES);
+		OrderTypes.SOLUTIONS7,
+		OrderTypes.SOLUTIONS30,
+	].includes(placedOrder.orderTypeExternalReferenceCode as OrderTypes);
 
-	const analyticsGroupId =
-		placedOrder.customFields[ORDER_CUSTOM_FIELDS.ANALYTICS_GROUP_ID];
+	const orderMetadata = safeJSONParse(
+		placedOrder.customFields[OrderCustomFields.ORDER_METADATA],
+		{analyticsProject: {groupId: ''}}
+	);
+
+	const analyticsGroupId = orderMetadata.analyticsProject?.groupId;
 
 	const getOrderDetails = () => {
 		if (
-			[ORDER_TYPES.SOLUTIONS7, ORDER_TYPES.SOLUTIONS30].includes(
-				placedOrder.orderTypeExternalReferenceCode as ORDER_TYPES
+			[OrderTypes.SOLUTIONS7, OrderTypes.SOLUTIONS30].includes(
+				placedOrder.orderTypeExternalReferenceCode as OrderTypes
 			)
 		) {
 			return getTrialDetails(placedOrder);
@@ -240,14 +221,6 @@ const Solution = () => {
 					<QATable
 						items={[
 							{
-								title: i18n.translate('account-name'),
-								value: placedOrder.account,
-							},
-							{
-								title: i18n.translate('purchased-by'),
-								value: placedOrder.author,
-							},
-							{
 								title: i18n.translate('order-id'),
 								value: orderId,
 							},
@@ -258,6 +231,15 @@ const Solution = () => {
 									'dd MMM, yyyy'
 								),
 							},
+							{
+								title: i18n.translate('account-name'),
+								value: placedOrder.account,
+							},
+							{
+								title: i18n.translate('purchased-by'),
+								value: placedOrder.author,
+							},
+
 							...getOrderDetails(),
 						]}
 					/>

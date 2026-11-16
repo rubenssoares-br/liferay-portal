@@ -56,12 +56,13 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 	}
 
 	public static CommerceAvailabilityEstimate addCommerceAvailabilityEstimate(
+			String externalReferenceCode,
 			Map<java.util.Locale, String> titleMap, double priority,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addCommerceAvailabilityEstimate(
-			titleMap, priority, serviceContext);
+			externalReferenceCode, titleMap, priority, serviceContext);
 	}
 
 	/**
@@ -236,6 +237,15 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 			commerceAvailabilityEstimateId);
 	}
 
+	public static CommerceAvailabilityEstimate
+		fetchCommerceAvailabilityEstimateByExternalReferenceCode(
+			String externalReferenceCode, long companyId) {
+
+		return getService().
+			fetchCommerceAvailabilityEstimateByExternalReferenceCode(
+				externalReferenceCode, companyId);
+	}
+
 	/**
 	 * Returns the commerce availability estimate with the matching UUID and company.
 	 *
@@ -270,6 +280,16 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 
 		return getService().getCommerceAvailabilityEstimate(
 			commerceAvailabilityEstimateId);
+	}
+
+	public static CommerceAvailabilityEstimate
+			getCommerceAvailabilityEstimateByExternalReferenceCode(
+				String externalReferenceCode, long companyId)
+		throws PortalException {
+
+		return getService().
+			getCommerceAvailabilityEstimateByExternalReferenceCode(
+				externalReferenceCode, companyId);
 	}
 
 	/**
@@ -324,10 +344,6 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 		return getService().getCommerceAvailabilityEstimatesCount();
 	}
 
-	public static int getCommerceAvailabilityEstimatesCount(long companyId) {
-		return getService().getCommerceAvailabilityEstimatesCount(companyId);
-	}
-
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
 		getExportActionableDynamicQuery(
 			com.liferay.exportimport.kernel.lar.PortletDataContext
@@ -341,6 +357,16 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 			getIndexableActionableDynamicQuery() {
 
 		return getService().getIndexableActionableDynamicQuery();
+	}
+
+	public static CommerceAvailabilityEstimate
+			getOrAddEmptyCommerceAvailabilityEstimate(
+				String externalReferenceCode, long companyId, long userId,
+				Map<java.util.Locale, String> titleMap)
+		throws PortalException {
+
+		return getService().getOrAddEmptyCommerceAvailabilityEstimate(
+			externalReferenceCode, companyId, userId, titleMap);
 	}
 
 	/**
@@ -381,13 +407,15 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 
 	public static CommerceAvailabilityEstimate
 			updateCommerceAvailabilityEstimate(
-				long commerceAvailabilityId,
+				String externalReferenceCode,
+				long commerceAvailabilityEstimateId,
 				Map<java.util.Locale, String> titleMap, double priority,
 				com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().updateCommerceAvailabilityEstimate(
-			commerceAvailabilityId, titleMap, priority, serviceContext);
+			externalReferenceCode, commerceAvailabilityEstimateId, titleMap,
+			priority, serviceContext);
 	}
 
 	public static CommerceAvailabilityEstimateLocalService getService() {
@@ -400,3 +428,4 @@ public class CommerceAvailabilityEstimateLocalServiceUtil {
 			CommerceAvailabilityEstimateLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1753683088

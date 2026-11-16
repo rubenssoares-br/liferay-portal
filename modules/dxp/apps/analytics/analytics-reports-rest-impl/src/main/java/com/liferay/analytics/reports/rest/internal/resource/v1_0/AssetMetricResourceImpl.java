@@ -9,6 +9,7 @@ import com.liferay.analytics.reports.rest.dto.v1_0.AssetMetric;
 import com.liferay.analytics.reports.rest.internal.client.AnalyticsCloudClient;
 import com.liferay.analytics.reports.rest.resource.v1_0.AssetMetricResource;
 import com.liferay.analytics.settings.rest.manager.AnalyticsSettingsManager;
+import com.liferay.analytics.settings.rest.util.AnalyticsSettingsManagerUtil;
 import com.liferay.depot.model.DepotEntry;
 import com.liferay.depot.service.DepotEntryGroupRelLocalService;
 import com.liferay.depot.service.DepotEntryLocalService;
@@ -40,9 +41,15 @@ public class AssetMetricResourceImpl extends BaseAssetMetricResourceImpl {
 			Integer rangeKey, String[] selectedMetrics)
 		throws Exception {
 
-		List<Long> analyticsCloudChannelIds = new ArrayList<>();
+		AnalyticsSettingsManagerUtil.checkAnalyticsEnabled(
+			_analyticsSettingsManager, contextCompany.getCompanyId());
 
 		Group group = _groupLocalService.getGroup(groupId);
+
+		AnalyticsSettingsManagerUtil.checkSiteIdSynced(
+			_analyticsSettingsManager, group);
+
+		List<Long> analyticsCloudChannelIds = new ArrayList<>();
 
 		DepotEntry depotEntry = _depotEntryLocalService.fetchGroupDepotEntry(
 			groupId);

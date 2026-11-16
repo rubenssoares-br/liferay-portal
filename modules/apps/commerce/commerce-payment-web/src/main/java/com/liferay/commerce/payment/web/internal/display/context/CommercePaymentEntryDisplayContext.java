@@ -42,6 +42,8 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.URLCodec;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.math.BigDecimal;
 
 import java.text.DateFormat;
@@ -49,8 +51,6 @@ import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Alessio Antonio Rendina
@@ -108,6 +108,19 @@ public class CommercePaymentEntryDisplayContext {
 			_commercePaymentEntryService.fetchCommercePaymentEntry(classPK);
 	}
 
+	public String getAPIURL() {
+		String encodedFilter = URLCodec.encodeURL(
+			StringBundler.concat(
+				"id ne ", getCommercePaymentEntryId(), " and relatedItemId eq ",
+				getClassPK(), " and type/any(x:x eq ",
+				CommercePaymentEntryConstants.TYPE_REFUND,
+				StringPool.CLOSE_PARENTHESIS),
+			true);
+
+		return "/o/headless-commerce-admin-payment/v1.0/payments?filter=" +
+			encodedFilter;
+	}
+
 	public BigDecimal getAmount() {
 		BigDecimal amount = BigDecimal.ZERO;
 
@@ -122,19 +135,6 @@ public class CommercePaymentEntryDisplayContext {
 		}
 
 		return amount.stripTrailingZeros();
-	}
-
-	public String getAPIURL() {
-		String encodedFilter = URLCodec.encodeURL(
-			StringBundler.concat(
-				"id ne ", getCommercePaymentEntryId(), " and relatedItemId eq ",
-				getClassPK(), " and type/any(x:x eq ",
-				CommercePaymentEntryConstants.TYPE_REFUND,
-				StringPool.CLOSE_PARENTHESIS),
-			true);
-
-		return "/o/headless-commerce-admin-payment/v1.0/payments?filter=" +
-			encodedFilter;
 	}
 
 	public String getClassName() {
@@ -195,9 +195,9 @@ public class CommercePaymentEntryDisplayContext {
 				_relatedCommercePaymentEntry.getClassPK());
 
 		return _commercePriceFormatter.format(
-			commerceOrder.getCommerceCurrency(),
-			commerceOrder.getShippingAmount(),
-			_commercePaymentRequestHelper.getLocale());
+			commerceOrder.getCommerceCurrency(), true,
+			_commercePaymentRequestHelper.getLocale(),
+			commerceOrder.getShippingAmount());
 	}
 
 	public List<FDSActionDropdownItem> getFDSActionDropdownItems()
@@ -376,11 +376,11 @@ public class CommercePaymentEntryDisplayContext {
 		return _commercePriceFormatter.format(
 			_getCommerceCurrency(
 				_relatedCommercePaymentEntry.getCurrencyCode()),
+			true, _commercePaymentRequestHelper.getLocale(),
 			_commercePaymentEntryService.getRefundedAmount(
 				_relatedCommercePaymentEntry.getCompanyId(),
 				_classNameLocalService.getClassNameId(CommerceOrder.class),
-				_relatedCommercePaymentEntry.getClassPK()),
-			_commercePaymentRequestHelper.getLocale());
+				_relatedCommercePaymentEntry.getClassPK()));
 	}
 
 	public String getRelatedToClassName() {
@@ -427,8 +427,8 @@ public class CommercePaymentEntryDisplayContext {
 		return _commercePriceFormatter.format(
 			_getCommerceCurrency(
 				_relatedCommercePaymentEntry.getCurrencyCode()),
-			_relatedCommercePaymentEntry.getAmount(),
-			_commercePaymentRequestHelper.getLocale());
+			true, _commercePaymentRequestHelper.getLocale(),
+			_relatedCommercePaymentEntry.getAmount());
 	}
 
 	public String getTransactionCode() {

@@ -13,6 +13,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.inventory.client.dto.v1_0.WarehouseOrderType;
 import com.liferay.headless.commerce.admin.inventory.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.inventory.client.pagination.Page;
@@ -29,12 +32,15 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -42,12 +48,15 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,10 +68,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -86,8 +91,10 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -100,17 +107,27 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 
 		_warehouseOrderTypeResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		WarehouseOrderTypeResource.Builder builder =
-			WarehouseOrderTypeResource.builder();
-
-		warehouseOrderTypeResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		warehouseOrderTypeResource = WarehouseOrderTypeResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -190,12 +207,117 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 
 	@Test
 	public void testDeleteWarehouseOrderType() throws Exception {
-		Assert.assertTrue(false);
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WarehouseOrderType warehouseOrderType =
+			testDeleteWarehouseOrderType_addWarehouseOrderType();
+
+		assertHttpResponseStatusCode(
+			204,
+			warehouseOrderTypeResource.deleteWarehouseOrderTypeHttpResponse(
+				warehouseOrderType.getWarehouseOrderTypeId()));
+	}
+
+	protected WarehouseOrderType
+			testDeleteWarehouseOrderType_addWarehouseOrderType()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
 	}
 
 	@Test
 	public void testGraphQLDeleteWarehouseOrderType() throws Exception {
-		Assert.assertTrue(false);
+
+		// No namespace
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WarehouseOrderType warehouseOrderType1 =
+			testGraphQLDeleteWarehouseOrderType_addWarehouseOrderType();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"deleteWarehouseOrderType",
+						new HashMap<String, Object>() {
+							{
+								put(
+									"warehouseOrderTypeId",
+									warehouseOrderType1.
+										getWarehouseOrderTypeId());
+							}
+						})),
+				"JSONObject/data", "Object/deleteWarehouseOrderType"));
+
+		// Using the namespace headlessCommerceAdminInventory_v1_0
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		WarehouseOrderType warehouseOrderType2 =
+			testGraphQLDeleteWarehouseOrderType_addWarehouseOrderType();
+
+		Assert.assertTrue(
+			JSONUtil.getValueAsBoolean(
+				invokeGraphQLMutation(
+					new GraphQLField(
+						"headlessCommerceAdminInventory_v1_0",
+						new GraphQLField(
+							"deleteWarehouseOrderType",
+							new HashMap<String, Object>() {
+								{
+									put(
+										"warehouseOrderTypeId",
+										warehouseOrderType2.
+											getWarehouseOrderTypeId());
+								}
+							}))),
+				"JSONObject/data",
+				"JSONObject/headlessCommerceAdminInventory_v1_0",
+				"Object/deleteWarehouseOrderType"));
+	}
+
+	protected WarehouseOrderType
+			testGraphQLDeleteWarehouseOrderType_addWarehouseOrderType()
+		throws Exception {
+
+		return testGraphQLWarehouseOrderType_addWarehouseOrderType();
+	}
+
+	@Test
+	public void testDeleteWarehouseOrderTypeBatch() throws Exception {
+		WarehouseOrderType warehouseOrderType1 =
+			testDeleteWarehouseOrderTypeBatch_addWarehouseOrderType();
+
+		testDeleteWarehouseOrderTypeBatch_deleteWarehouseOrderType(
+			202, null, warehouseOrderType1.getWarehouseOrderTypeId());
+	}
+
+	protected WarehouseOrderType
+			testDeleteWarehouseOrderTypeBatch_addWarehouseOrderType()
+		throws Exception {
+
+		return testDeleteWarehouseOrderType_addWarehouseOrderType();
+	}
+
+	protected void testDeleteWarehouseOrderTypeBatch_deleteWarehouseOrderType(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			warehouseOrderTypeResource.
+				deleteWarehouseOrderTypeBatchHttpResponse(
+					null,
+					JSONUtil.putAll(
+						JSONUtil.put(
+							"externalReferenceCode", () -> externalReferenceCode
+						).put(
+							"warehouseOrderTypeId", () -> id
+						)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
 	}
 
 	@Test
@@ -248,7 +370,8 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 		page =
 			warehouseOrderTypeResource.
 				getWarehouseByExternalReferenceCodeWarehouseOrderTypesPage(
-					externalReferenceCode, Pagination.of(1, 10));
+					externalReferenceCode,
+					Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -260,6 +383,12 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 			page,
 			testGetWarehouseByExternalReferenceCodeWarehouseOrderTypesPage_getExpectedActions(
 				externalReferenceCode));
+
+		warehouseOrderTypeResource.deleteWarehouseOrderType(
+			warehouseOrderType1.getWarehouseOrderTypeId());
+
+		warehouseOrderTypeResource.deleteWarehouseOrderType(
+			warehouseOrderType2.getWarehouseOrderTypeId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -279,13 +408,13 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 		String externalReferenceCode =
 			testGetWarehouseByExternalReferenceCodeWarehouseOrderTypesPage_getExternalReferenceCode();
 
-		Page<WarehouseOrderType> warehouseOrderTypePage =
+		Page<WarehouseOrderType> warehouseOrderTypesPage =
 			warehouseOrderTypeResource.
 				getWarehouseByExternalReferenceCodeWarehouseOrderTypesPage(
 					externalReferenceCode, null);
 
 		int totalCount = GetterUtil.getInteger(
-			warehouseOrderTypePage.getTotalCount());
+			warehouseOrderTypesPage.getTotalCount());
 
 		WarehouseOrderType warehouseOrderType1 =
 			testGetWarehouseByExternalReferenceCodeWarehouseOrderTypesPage_addWarehouseOrderType(
@@ -415,30 +544,6 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 	}
 
 	@Test
-	public void testPostWarehouseByExternalReferenceCodeWarehouseOrderType()
-		throws Exception {
-
-		WarehouseOrderType randomWarehouseOrderType =
-			randomWarehouseOrderType();
-
-		WarehouseOrderType postWarehouseOrderType =
-			testPostWarehouseByExternalReferenceCodeWarehouseOrderType_addWarehouseOrderType(
-				randomWarehouseOrderType);
-
-		assertEquals(randomWarehouseOrderType, postWarehouseOrderType);
-		assertValid(postWarehouseOrderType);
-	}
-
-	protected WarehouseOrderType
-			testPostWarehouseByExternalReferenceCodeWarehouseOrderType_addWarehouseOrderType(
-				WarehouseOrderType warehouseOrderType)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetWarehouseIdWarehouseOrderTypesPage() throws Exception {
 		Long id = testGetWarehouseIdWarehouseOrderTypesPage_getId();
 		Long irrelevantId =
@@ -481,7 +586,7 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 				id, randomWarehouseOrderType());
 
 		page = warehouseOrderTypeResource.getWarehouseIdWarehouseOrderTypesPage(
-			id, null, null, Pagination.of(1, 10), null);
+			id, null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -492,6 +597,12 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 		assertValid(
 			page,
 			testGetWarehouseIdWarehouseOrderTypesPage_getExpectedActions(id));
+
+		warehouseOrderTypeResource.deleteWarehouseOrderType(
+			warehouseOrderType1.getWarehouseOrderTypeId());
+
+		warehouseOrderTypeResource.deleteWarehouseOrderType(
+			warehouseOrderType2.getWarehouseOrderTypeId());
 	}
 
 	protected Map<String, Map<String, String>>
@@ -612,12 +723,12 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 
 		Long id = testGetWarehouseIdWarehouseOrderTypesPage_getId();
 
-		Page<WarehouseOrderType> warehouseOrderTypePage =
+		Page<WarehouseOrderType> warehouseOrderTypesPage =
 			warehouseOrderTypeResource.getWarehouseIdWarehouseOrderTypesPage(
 				id, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			warehouseOrderTypePage.getTotalCount());
+			warehouseOrderTypesPage.getTotalCount());
 
 		WarehouseOrderType warehouseOrderType1 =
 			testGetWarehouseIdWarehouseOrderTypesPage_addWarehouseOrderType(
@@ -905,6 +1016,30 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 	}
 
 	@Test
+	public void testPostWarehouseByExternalReferenceCodeWarehouseOrderType()
+		throws Exception {
+
+		WarehouseOrderType randomWarehouseOrderType =
+			randomWarehouseOrderType();
+
+		WarehouseOrderType postWarehouseOrderType =
+			testPostWarehouseByExternalReferenceCodeWarehouseOrderType_addWarehouseOrderType(
+				randomWarehouseOrderType);
+
+		assertEquals(randomWarehouseOrderType, postWarehouseOrderType);
+		assertValid(postWarehouseOrderType);
+	}
+
+	protected WarehouseOrderType
+			testPostWarehouseByExternalReferenceCodeWarehouseOrderType_addWarehouseOrderType(
+				WarehouseOrderType warehouseOrderType)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostWarehouseIdWarehouseOrderType() throws Exception {
 		WarehouseOrderType randomWarehouseOrderType =
 			randomWarehouseOrderType();
@@ -926,8 +1061,68 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		WarehouseOrderType warehouseOrderType1 =
+			testBatchEngineDeleteImportTask_addWarehouseOrderType();
+
+		testBatchEngineDeleteImportTask_deleteWarehouseOrderType(
+			200, null, warehouseOrderType1.getWarehouseOrderTypeId());
+	}
+
+	protected WarehouseOrderType
+			testBatchEngineDeleteImportTask_addWarehouseOrderType()
+		throws Exception {
+
+		return testDeleteWarehouseOrderType_addWarehouseOrderType();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteWarehouseOrderType(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.inventory.dto.v1_0.WarehouseOrderType",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"warehouseOrderTypeId", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
+
+	protected WarehouseOrderType
+			testGraphQLWarehouseOrderType_addWarehouseOrderType()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
 
 	protected void assertContains(
 		WarehouseOrderType warehouseOrderType,
@@ -1013,6 +1208,10 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 		throws Exception {
 
 		boolean valid = true;
+
+		if (warehouseOrderType.getWarehouseOrderTypeId() == null) {
+			valid = false;
+		}
 
 		for (String additionalAssertFieldName :
 				getAdditionalAssertFieldNames()) {
@@ -1151,6 +1350,8 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("warehouseOrderTypeId"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1558,7 +1759,9 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1617,7 +1820,30 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 		return randomWarehouseOrderType();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected WarehouseOrderTypeResource warehouseOrderTypeResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -1818,10 +2044,13 @@ public abstract class BaseWarehouseOrderTypeResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseWarehouseOrderTypeResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.inventory.resource.v1_0.
 		WarehouseOrderTypeResource _warehouseOrderTypeResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1755377591

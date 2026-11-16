@@ -115,11 +115,7 @@ public class AssetVocabularyPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		AssetVocabulary newAssetVocabulary = _persistence.create(pk);
-
-		newAssetVocabulary.setMvccVersion(RandomTestUtil.nextLong());
+		AssetVocabulary newAssetVocabulary = addAssetVocabulary();
 
 		newAssetVocabulary.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -152,7 +148,11 @@ public class AssetVocabularyPersistenceTest {
 
 		newAssetVocabulary.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_assetVocabularies.add(_persistence.update(newAssetVocabulary));
+		newAssetVocabulary.setStatus(RandomTestUtil.nextInt());
+
+		newAssetVocabulary = _persistence.update(newAssetVocabulary);
+
+		_assetVocabularies.add(newAssetVocabulary);
 
 		AssetVocabulary existingAssetVocabulary = _persistence.findByPrimaryKey(
 			newAssetVocabulary.getPrimaryKey());
@@ -206,6 +206,9 @@ public class AssetVocabularyPersistenceTest {
 			Time.getShortTimestamp(
 				existingAssetVocabulary.getLastPublishDate()),
 			Time.getShortTimestamp(newAssetVocabulary.getLastPublishDate()));
+		Assert.assertEquals(
+			existingAssetVocabulary.getStatus(),
+			newAssetVocabulary.getStatus());
 	}
 
 	@Test(
@@ -372,7 +375,7 @@ public class AssetVocabularyPersistenceTest {
 			"groupId", true, "companyId", true, "userId", true, "userName",
 			true, "createDate", true, "modifiedDate", true, "name", true,
 			"title", true, "description", true, "settings", true,
-			"visibilityType", true, "lastPublishDate", true);
+			"visibilityType", true, "lastPublishDate", true, "status", true);
 	}
 
 	@Test
@@ -679,8 +682,6 @@ public class AssetVocabularyPersistenceTest {
 
 		AssetVocabulary assetVocabulary = _persistence.create(pk);
 
-		assetVocabulary.setMvccVersion(RandomTestUtil.nextLong());
-
 		assetVocabulary.setCtCollectionId(RandomTestUtil.nextLong());
 
 		assetVocabulary.setUuid(RandomTestUtil.randomString());
@@ -711,6 +712,8 @@ public class AssetVocabularyPersistenceTest {
 
 		assetVocabulary.setLastPublishDate(RandomTestUtil.nextDate());
 
+		assetVocabulary.setStatus(RandomTestUtil.nextInt());
+
 		_assetVocabularies.add(_persistence.update(assetVocabulary));
 
 		return assetVocabulary;
@@ -722,3 +725,4 @@ public class AssetVocabularyPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1472907946

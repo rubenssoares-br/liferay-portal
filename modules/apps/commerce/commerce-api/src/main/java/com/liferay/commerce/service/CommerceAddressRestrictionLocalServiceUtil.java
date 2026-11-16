@@ -135,10 +135,6 @@ public class CommerceAddressRestrictionLocalServiceUtil {
 			commerceAddressRestrictionId);
 	}
 
-	public static void deleteCommerceAddressRestrictions(long countryId) {
-		getService().deleteCommerceAddressRestrictions(countryId);
-	}
-
 	public static void deleteCommerceAddressRestrictions(
 		String className, long classPK) {
 
@@ -245,13 +241,6 @@ public class CommerceAddressRestrictionLocalServiceUtil {
 
 		return getService().fetchCommerceAddressRestriction(
 			commerceAddressRestrictionId);
-	}
-
-	public static CommerceAddressRestriction fetchCommerceAddressRestriction(
-		String className, long classPK, long countryId) {
-
-		return getService().fetchCommerceAddressRestriction(
-			className, classPK, countryId);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
@@ -383,3 +372,4 @@ public class CommerceAddressRestrictionLocalServiceUtil {
 			CommerceAddressRestrictionLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-587380377

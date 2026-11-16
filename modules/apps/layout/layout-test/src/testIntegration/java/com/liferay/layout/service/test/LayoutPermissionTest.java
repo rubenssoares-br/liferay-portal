@@ -56,9 +56,9 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
-import java.util.List;
+import jakarta.servlet.http.HttpServletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -88,6 +88,26 @@ public class LayoutPermissionTest {
 	}
 
 	@Test
+	public void testContainsGuestWithPreviewDraftPermission() throws Exception {
+		Role role = _roleLocalService.getRole(
+			_group.getCompanyId(), RoleConstants.GUEST);
+
+		try {
+			Assert.assertTrue(
+				_layoutPermission.containsLayoutPreviewDraftPermission(
+					_getPermissionChecker(ActionKeys.PREVIEW_DRAFT, role),
+					LayoutTestUtil.addTypeContentLayout(_group)));
+		}
+		finally {
+			_resourcePermissionLocalService.removeResourcePermission(
+				_group.getCompanyId(), Layout.class.getName(),
+				ResourceConstants.SCOPE_COMPANY,
+				String.valueOf(_group.getCompanyId()), role.getRoleId(),
+				ActionKeys.PREVIEW_DRAFT);
+		}
+	}
+
+	@Test
 	public void testContainsGuestWithoutPreviewDraftPermission()
 		throws Exception {
 
@@ -99,9 +119,11 @@ public class LayoutPermissionTest {
 	}
 
 	@Test
-	public void testContainsGuestWithPreviewDraftPermission() throws Exception {
+	public void testContainsPortalContentReviewerWithPreviewDraftPermission()
+		throws Exception {
+
 		Role role = _roleLocalService.getRole(
-			_group.getCompanyId(), RoleConstants.GUEST);
+			_group.getCompanyId(), RoleConstants.PORTAL_CONTENT_REVIEWER);
 
 		try {
 			Assert.assertTrue(
@@ -130,28 +152,6 @@ public class LayoutPermissionTest {
 						RoleConstants.PORTAL_CONTENT_REVIEWER),
 					UserTestUtil.addUser()),
 				LayoutTestUtil.addTypeContentLayout(_group)));
-	}
-
-	@Test
-	public void testContainsPortalContentReviewerWithPreviewDraftPermission()
-		throws Exception {
-
-		Role role = _roleLocalService.getRole(
-			_group.getCompanyId(), RoleConstants.PORTAL_CONTENT_REVIEWER);
-
-		try {
-			Assert.assertTrue(
-				_layoutPermission.containsLayoutPreviewDraftPermission(
-					_getPermissionChecker(ActionKeys.PREVIEW_DRAFT, role),
-					LayoutTestUtil.addTypeContentLayout(_group)));
-		}
-		finally {
-			_resourcePermissionLocalService.removeResourcePermission(
-				_group.getCompanyId(), Layout.class.getName(),
-				ResourceConstants.SCOPE_COMPANY,
-				String.valueOf(_group.getCompanyId()), role.getRoleId(),
-				ActionKeys.PREVIEW_DRAFT);
-		}
 	}
 
 	@Test
@@ -292,40 +292,47 @@ public class LayoutPermissionTest {
 	}
 
 	@Test
-	public void testContainsWithoutViewPermissionOnApprovedLayout()
+	@TestInfo("LPD-52364")
+	public void testContainsWithParentLayoutWithUpdateLayoutBasicPermission()
 		throws Exception {
 
-		Layout layout = _addTypeContentLayout(true);
+		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
 
-		_removeGuestViewPermission(layout);
+		Role role = _roleLocalService.getRole(
+			TestPropsValues.getCompanyId(), RoleConstants.SITE_MEMBER);
 
+		_resourcePermissionLocalService.setResourcePermissions(
+			TestPropsValues.getCompanyId(), Layout.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(layout.getPlid()), role.getRoleId(),
+			new String[] {ActionKeys.UPDATE});
+
+		PermissionChecker permissionChecker = _getPermissionChecker(
+			role, UserTestUtil.addUser());
+
+		Assert.assertTrue(
+			_layoutPermission.contains(
+				permissionChecker, layout, ActionKeys.UPDATE));
+		Assert.assertTrue(
+			_layoutPermission.containsLayoutRestrictedUpdatePermission(
+				permissionChecker, layout));
+		Assert.assertTrue(
+			_layoutPermission.containsLayoutUpdatePermission(
+				permissionChecker, layout));
+
+		Layout childLayout = LayoutTestUtil.addTypeContentLayout(
+			_group, layout.getPlid());
+
+		Assert.assertEquals(layout.getPlid(), childLayout.getParentPlid());
 		Assert.assertFalse(
 			_layoutPermission.contains(
-				_getGuestPermissionChecker(), layout, ActionKeys.VIEW));
-	}
-
-	@Test
-	public void testContainsWithoutViewPermissionOnPendingLayout()
-		throws Exception {
-
-		try {
-			Layout layout = _addTypeContentLayout(true);
-
-			_removeGuestViewPermission(layout);
-
-			_setUpLayoutWorkflow();
-
-			layout = _updateLayout(layout);
-
-			Assert.assertEquals(
-				WorkflowConstants.STATUS_PENDING, layout.getStatus());
-			Assert.assertFalse(
-				_layoutPermission.contains(
-					_getGuestPermissionChecker(), layout, ActionKeys.VIEW));
-		}
-		finally {
-			_tearDownLayoutWorkflow();
-		}
+				permissionChecker, childLayout, ActionKeys.UPDATE));
+		Assert.assertFalse(
+			_layoutPermission.containsLayoutRestrictedUpdatePermission(
+				permissionChecker, childLayout));
+		Assert.assertFalse(
+			_layoutPermission.containsLayoutUpdatePermission(
+				permissionChecker, childLayout));
 	}
 
 	@Test
@@ -554,6 +561,43 @@ public class LayoutPermissionTest {
 		}
 	}
 
+	@Test
+	public void testContainsWithoutViewPermissionOnApprovedLayout()
+		throws Exception {
+
+		Layout layout = _addTypeContentLayout(true);
+
+		_removeGuestViewPermission(layout);
+
+		Assert.assertFalse(
+			_layoutPermission.contains(
+				_getGuestPermissionChecker(), layout, ActionKeys.VIEW));
+	}
+
+	@Test
+	public void testContainsWithoutViewPermissionOnPendingLayout()
+		throws Exception {
+
+		try {
+			Layout layout = _addTypeContentLayout(true);
+
+			_removeGuestViewPermission(layout);
+
+			_setUpLayoutWorkflow();
+
+			layout = _updateLayout(layout);
+
+			Assert.assertEquals(
+				WorkflowConstants.STATUS_PENDING, layout.getStatus());
+			Assert.assertFalse(
+				_layoutPermission.contains(
+					_getGuestPermissionChecker(), layout, ActionKeys.VIEW));
+		}
+		finally {
+			_tearDownLayoutWorkflow();
+		}
+	}
+
 	private Layout _addDisplayPageTemplateLayout() throws Exception {
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(
@@ -561,8 +605,8 @@ public class LayoutPermissionTest {
 
 		LayoutPageTemplateEntry layoutPageTemplateEntry =
 			_layoutPageTemplateEntryService.addLayoutPageTemplateEntry(
-				null, _group.getGroupId(), 0,
-				_portal.getClassNameId(AssetCategory.class.getName()), 0,
+				null, _group.getGroupId(), 0, null,
+				_portal.getClassNameId(AssetCategory.class.getName()), null,
 				RandomTestUtil.randomString(), 0,
 				WorkflowConstants.STATUS_DRAFT, serviceContext);
 
@@ -618,7 +662,7 @@ public class LayoutPermissionTest {
 			new MockHttpServletRequest();
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE,
+			JavaConstants.JAKARTA_PORTLET_RESPONSE,
 			new MockLiferayPortletRenderResponse());
 
 		Company company = _companyLocalService.getCompany(

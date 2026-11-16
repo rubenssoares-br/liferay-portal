@@ -8,6 +8,7 @@ import ClayIcon from '@clayui/icon';
 import {useEventListener} from '@liferay/frontend-js-react-web';
 import {useControlledState} from '@liferay/layout-js-components-web';
 import classNames from 'classnames';
+import {openToast} from 'frontend-js-components-web';
 import {sub} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useEffect, useMemo, useRef} from 'react';
@@ -51,7 +52,6 @@ import updateItemConfig from '../../../../../app/thunks/updateItemConfig';
 import canBeRenamed from '../../../../../app/utils/canBeRenamed';
 import {deepEqual} from '../../../../../app/utils/checkDeepEqual';
 import {collectionIsMapped} from '../../../../../app/utils/collectionIsMapped';
-import checkAllowedChild from '../../../../../app/utils/drag_and_drop/checkAllowedChild';
 import {DRAG_DROP_TARGET_TYPE} from '../../../../../app/utils/drag_and_drop/constants/dragDropTargetType';
 import {ORIENTATIONS} from '../../../../../app/utils/drag_and_drop/constants/orientations';
 import {TARGET_POSITIONS} from '../../../../../app/utils/drag_and_drop/constants/targetPositions';
@@ -63,16 +63,14 @@ import {
 	initialDragDrop,
 	useDragItem,
 	useDropTarget,
-	useIsDroppable,
 } from '../../../../../app/utils/drag_and_drop/useDragAndDrop';
 import {formIsMapped} from '../../../../../app/utils/formIsMapped';
 import {formIsRestricted} from '../../../../../app/utils/formIsRestricted';
 import {formIsUnavailable} from '../../../../../app/utils/formIsUnavailable';
-import getFirstControlsId from '../../../../../app/utils/getFirstControlsId';
 import getMappingFieldsKey from '../../../../../app/utils/getMappingFieldsKey';
-import getNormalizedDragItems from '../../../../../app/utils/getNormalizedDragItems';
 import isItemWidget from '../../../../../app/utils/isItemWidget';
 import loadCollectionFields from '../../../../../app/utils/loadCollectionFields';
+import toMovementItem from '../../../../../app/utils/toMovementItem';
 
 const HOVER_EXPAND_DELAY = 1000;
 
@@ -131,8 +129,16 @@ export default function StructureTreeNode({node}) {
 		fragmentEntryLinks,
 	]);
 
-	return (
-		<MemoizedStructureTreeNodeContent
+	return node.itemType === ITEM_TYPES.editable || node.isMasterItem ? (
+		<NodeContentWithoutDND
+			activationOrigin={isSelected ? activationOrigin : null}
+			activeItemIds={activeItemIds}
+			isActive={node.activable && isSelected}
+			isMapped={node.mapped}
+			node={node}
+		/>
+	) : (
+		<MemoizedNodeContent
 			activationOrigin={isSelected ? activationOrigin : null}
 			activeItemIds={activeItemIds}
 			isActive={node.activable && isSelected}
@@ -142,7 +148,7 @@ export default function StructureTreeNode({node}) {
 	);
 }
 
-StructureTreeNodeContent.propTypes = {
+NodeContent.propTypes = {
 	node: PropTypes.shape({
 		id: PropTypes.string.isRequired,
 		name: PropTypes.string.isRequired,
@@ -150,12 +156,81 @@ StructureTreeNodeContent.propTypes = {
 	}).isRequired,
 };
 
-const MemoizedStructureTreeNodeContent = React.memo(
-	StructureTreeNodeContent,
-	(prevProps, nextProps) => deepEqual(prevProps, nextProps)
+const MemoizedNodeContent = React.memo(NodeContent, (prevProps, nextProps) =>
+	deepEqual(prevProps, nextProps)
 );
 
-function StructureTreeNodeContent({
+function NodeContentWithoutDND({isActive, isMapped, node}) {
+	const layoutDataRef = useSelectorRef((store) => store.layoutData);
+
+	const selectItem = useSelectItem();
+
+	const nodeRef = useRef();
+
+	const item = useMemo(
+		() => ({
+			children:
+				node.itemType === ITEM_TYPES.editable ? [] : node.children,
+			config: layoutDataRef.current.items[node.id]?.config,
+			icon: node.icon,
+			itemId: node.id,
+			name: node.name,
+			origin: ITEM_ACTIVATION_ORIGINS.sidebar,
+			parentId: node.parentItemId,
+			type: node.type || node.itemType,
+		}),
+		[layoutDataRef, node]
+	);
+
+	return (
+		<div
+			aria-disabled={node.isMasterItem || !node.activable}
+			aria-selected={isActive}
+			className="page-editor__page-structure__tree-node"
+		>
+			<div
+				aria-label={sub(Liferay.Language.get('select-x'), [node.name])}
+				className="lfr-portal-tooltip page-editor__page-structure__tree-node__mask"
+				data-item-id={node.id}
+				onClick={(event) => {
+					event.stopPropagation();
+
+					if (node.activable) {
+						selectItem(node.id, {
+							itemType: node.itemType,
+							origin: ITEM_ACTIVATION_ORIGINS.sidebar,
+							parentId: node.parentId,
+						});
+					}
+				}}
+				role="button"
+			/>
+
+			<NameLabel
+				hidden={node.hidden || node.hiddenAncestor}
+				icon={node.icon}
+				isMapped={isMapped}
+				isMasterItem={node.isMasterItem}
+				itemId={node.id}
+				name={node.name}
+				nameInfo={node.nameInfo}
+				ref={nodeRef}
+				showUnavailableWarning={
+					node.type === LAYOUT_DATA_ITEM_TYPES.form &&
+					formIsUnavailable(item)
+				}
+			/>
+
+			{node.hidden ? (
+				<span className="sr-only">
+					{Liferay.Language.get('hidden-item')}
+				</span>
+			) : null}
+		</div>
+	);
+}
+
+function NodeContent({
 	activationOrigin,
 	activeItemIds,
 	isActive,
@@ -213,15 +288,16 @@ function StructureTreeNodeContent({
 		computeHover
 	);
 
-	const dragItems = useSelectorCallback(
-		(state) =>
-			getNormalizedDragItems(
-				item,
-				activeItemIds,
+	const dragItem = useSelectorCallback(
+		(state) => ({
+			...toMovementItem(
+				item.itemId,
 				state.layoutData,
 				state.fragmentEntryLinks
 			),
-		[item, activeItemIds],
+			origin: ITEM_ACTIVATION_ORIGINS.sidebar,
+		}),
+		[item],
 		deepEqual
 	);
 
@@ -233,7 +309,7 @@ function StructureTreeNodeContent({
 					position,
 				})
 			: moveItems({
-					itemIds: dragItems.map((item) => item.itemId),
+					itemIds: activeItemIds,
 					parentItemIds: [parentItemId],
 					positions: [position],
 				});
@@ -250,7 +326,7 @@ function StructureTreeNodeContent({
 	};
 
 	const {handlerRef, isDraggingSource: itemIsDraggingSource} = useDragItem(
-		dragItems,
+		dragItem,
 		onDragEnd,
 		onDragBegin
 	);
@@ -269,26 +345,44 @@ function StructureTreeNodeContent({
 	const isDraggingSource =
 		itemIsDraggingSource || lastSource?.itemId === item.itemId;
 
-	const isDroppable = useIsDroppable();
-
 	const isValidDrop =
-		(isDroppable && isOverTarget) ||
-		keyboardMovementTargetId === item.itemId;
+		isOverTarget || keyboardMovementTargetId === item.itemId;
+
+	const isWidget = useSelectorCallback(
+		(state) => isItemWidget(item, state.fragmentEntryLinks),
+		[item]
+	);
 
 	const onEditName = (nextName) => {
 		const trimmedName = nextName?.trim();
 
-		if (trimmedName && node.name !== trimmedName) {
+		if (!trimmedName) {
+			openToast({
+				message: sub(
+					isWidget
+						? Liferay.Language.get(
+								'widget-name-cannot-be-empty.-the-last-saved-name-x-was-restored-automatically'
+							)
+						: Liferay.Language.get(
+								'fragment-name-cannot-be-empty.-the-last-saved-name-x-was-restored-automatically'
+							),
+					[node.name]
+				),
+				type: 'info',
+			});
+		}
+		else if (node.name !== trimmedName) {
 			dispatch(
 				updateItemConfig({
 					itemConfig: {name: trimmedName},
 					itemIds: [node.id],
 				})
 			);
+
+			setText(Liferay.Language.get('name-saved'));
 		}
 
 		setEditedNodeId(null);
-		setText(Liferay.Language.get('name-saved'));
 	};
 
 	const handleButtonsKeyDown = (event) => {
@@ -370,13 +464,9 @@ function StructureTreeNodeContent({
 				data-item-id={node.id}
 				onClick={(event) => {
 					event.stopPropagation();
-					const itemId = getFirstControlsId({
-						item: node,
-						layoutData: layoutDataRef.current,
-					});
 
 					if (node.activable) {
-						selectItem(itemId, {
+						selectItem(node.id, {
 							itemType: node.itemType,
 							origin: ITEM_ACTIVATION_ORIGINS.sidebar,
 						});
@@ -401,6 +491,7 @@ function StructureTreeNodeContent({
 				canUpdate={canUpdatePageStructure}
 				fieldTypes={fieldTypes}
 				fragmentEntryType={fragmentEntryType}
+				isWidget={isWidget}
 				item={item}
 				node={node}
 				nodeRef={nodeRef}
@@ -473,8 +564,6 @@ const NameLabel = React.forwardRef(
 					{
 						'page-editor__page-structure__tree-node__name--hidden':
 							hidden,
-						'page-editor__page-structure__tree-node__name--mapped':
-							isMapped,
 						'page-editor__page-structure__tree-node__name--master-item':
 							isMasterItem,
 					}
@@ -483,7 +572,10 @@ const NameLabel = React.forwardRef(
 			>
 				{icon && (
 					<ClayIcon
-						className="flex-shrink-0 mt-0"
+						className={classNames('flex-shrink-0 mt-0', {
+							'page-editor__page-structure__tree-node__icon--mapped':
+								isMapped,
+						})}
 						symbol={icon || ''}
 					/>
 				)}
@@ -492,6 +584,10 @@ const NameLabel = React.forwardRef(
 					<input
 						className="flex-grow-1"
 						onBlur={() => {
+							if (!name?.trim()) {
+								setName(defaultName);
+							}
+
 							onEditName(name);
 						}}
 						onChange={(event) => {
@@ -566,6 +662,7 @@ const MoveButton = ({
 	canUpdate,
 	fieldTypes,
 	fragmentEntryType,
+	isWidget,
 	item,
 	node,
 	nodeRef,
@@ -574,11 +671,6 @@ const MoveButton = ({
 }) => {
 	const setMovementSources = useSetMovementSources();
 	const disableMovement = useDisableKeyboardMovement();
-
-	const isWidget = useSelectorCallback(
-		(state) => isItemWidget(item, state.fragmentEntryLinks),
-		[item]
-	);
 
 	const buttonRef = useRef(null);
 
@@ -651,8 +743,6 @@ const MoveButton = ({
 
 function computeHover({
 	dispatch,
-	fragmentEntryLinksRef,
-	getWidgets,
 	layoutDataRef,
 	monitor,
 	sourceItem,
@@ -738,15 +828,8 @@ function computeHover({
 		validDropInsideTarget
 	) {
 		return dispatch({
-			dropItem: sourceItem,
-			dropTargetItem: targetItem,
-			droppable: checkAllowedChild(
-				sourceItem,
-				targetItem,
-				layoutDataRef.current,
-				fragmentEntryLinksRef.current,
-				getWidgets
-			),
+			dragSource: sourceItem,
+			dropTarget: targetItem,
 			elevate: null,
 			targetPositionWithMiddle,
 			targetPositionWithoutMiddle,
@@ -758,12 +841,7 @@ function computeHover({
 
 	if (elevation) {
 		const getElevatedTargetItem = (target) => {
-			const parent = layoutDataRef.current.items[target.parentId]
-				? {
-						...layoutDataRef.current.items[target.parentId],
-						collectionItemIndex: target.collectionItemIndex,
-					}
-				: null;
+			const parent = layoutDataRef.current.items[target.parentId];
 
 			if (parent) {
 				const [targetPosition] = getItemPosition(
@@ -795,8 +873,8 @@ function computeHover({
 		if (elevatedTargetItem && elevatedTargetItem !== targetItem) {
 
 			// Valid elevation:
-			// - dropItem should be child of dropTargetItem
-			// - dropItem should be sibling of siblingItem
+			// - dragSource should be child of dropTarget
+			// - dragSource should be sibling of siblingItem
 
 			if (
 				siblingItem &&
@@ -808,15 +886,8 @@ function computeHover({
 				)
 			) {
 				return dispatch({
-					dropItem: sourceItem,
-					dropTargetItem: siblingItem,
-					droppable: checkAllowedChild(
-						sourceItem,
-						elevatedTargetItem,
-						layoutDataRef.current,
-						fragmentEntryLinksRef.current,
-						getWidgets
-					),
+					dragSource: sourceItem,
+					dropTarget: siblingItem,
 					elevate: true,
 					targetPositionWithMiddle,
 					targetPositionWithoutMiddle,
@@ -869,8 +940,8 @@ function isRestricted(item, node, restrictedItemIds) {
 
 function stateHasChanged(state, sourceItem, targetItem, position) {
 	if (
-		state.dropItem?.itemId === sourceItem.itemId &&
-		state.dropTargetItem?.itemId === targetItem.itemId &&
+		state.dragSource?.itemId === sourceItem.itemId &&
+		state.dropTarget?.itemId === targetItem.itemId &&
 		state.targetPositionWithMiddle === position
 	) {
 		return false;

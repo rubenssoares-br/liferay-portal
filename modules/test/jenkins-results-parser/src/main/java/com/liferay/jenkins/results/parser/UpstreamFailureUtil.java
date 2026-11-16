@@ -29,11 +29,13 @@ public class UpstreamFailureUtil {
 	public static synchronized List<String> getUpstreamJobFailures(
 		String type, TopLevelBuild topLevelBuild) {
 
-		if (_upstreamFailures.containsKey(type)) {
-			return _upstreamFailures.get(type);
+		List<String> upstreamFailures = _upstreamFailures.get(type);
+
+		if (upstreamFailures != null) {
+			return upstreamFailures;
 		}
 
-		List<String> upstreamFailures = new ArrayList<>();
+		upstreamFailures = new ArrayList<>();
 
 		_upstreamFailures.put(type, upstreamFailures);
 
@@ -74,22 +76,13 @@ public class UpstreamFailureUtil {
 
 					String testReportStatus = testReport.getStatus();
 
-					if (!testReportStatus.equals("PASSED")) {
-						upstreamFailures.add(
-							_formatUpstreamTestFailure(
-								batchName, testReport.getTestName()));
+					if (testReportStatus.equals("PASSED")) {
+						continue;
 					}
 
-					List<TestClassReport> testClassReports =
-						downstreamBuildReport.getTestClassReports();
-
-					if (testReportStatus.equals("PASSED") &&
-						(testClassReports.size() == 1)) {
-
-						upstreamFailures.add(
-							_formatUpstreamTestFailure(
-								batchName, testReport.getTestName()));
-					}
+					upstreamFailures.add(
+						_formatUpstreamTestFailure(
+							batchName, testReport.getTestIdentifier()));
 				}
 			}
 		}
@@ -156,8 +149,14 @@ public class UpstreamFailureUtil {
 			return getUpstreamTopLevelBuildReport(topLevelBuild);
 		}
 
-		JobReport jobReport = JobReport.getInstance(
-			topLevelBuild.getAcceptanceUpstreamJobURL());
+		String acceptanceUpstreamJobURL =
+			topLevelBuild.getAcceptanceUpstreamJobURL();
+
+		if (acceptanceUpstreamJobURL == null) {
+			return getUpstreamTopLevelBuildReport(topLevelBuild);
+		}
+
+		JobReport jobReport = JobReport.getInstance(acceptanceUpstreamJobURL);
 
 		for (TopLevelBuildReport topLevelBuildReport :
 				jobReport.getTopLevelBuildReports(25)) {
@@ -324,7 +323,7 @@ public class UpstreamFailureUtil {
 		}
 
 		File testResultsJSONFile = new File(
-			System.getenv("WORKSPACE"), "test.results.json");
+			Environment.get("WORKSPACE"), "test.results.json");
 
 		try {
 			JenkinsResultsParserUtil.toFile(
@@ -426,7 +425,7 @@ public class UpstreamFailureUtil {
 		try {
 			String testHistoryRoutineURL = JenkinsResultsParserUtil.getProperty(
 				JenkinsResultsParserUtil.getBuildProperties(),
-				"test.history.routine.url",
+				"upstream.comparison.testray.routine.url",
 				branchInformation.getUpstreamBranchName());
 
 			if (JenkinsResultsParserUtil.isNullOrEmpty(testHistoryRoutineURL)) {

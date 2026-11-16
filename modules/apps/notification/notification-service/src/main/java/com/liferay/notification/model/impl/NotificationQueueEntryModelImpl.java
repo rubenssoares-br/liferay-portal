@@ -104,6 +104,11 @@ public class NotificationQueueEntryModelImpl
 	public static final String TABLE_SQL_DROP =
 		"drop table NotificationQueueEntry";
 
+	public static final String ENTITY_ALIAS = "notificationQueueEntry";
+
+	public static final String FILTER_PK_COLUMN_NAME =
+		"notificationQueueEntryId";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY notificationQueueEntry.notificationQueueEntryId ASC";
 
@@ -123,32 +128,38 @@ public class NotificationQueueEntryModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long NOTIFICATIONTEMPLATEID_COLUMN_BITMASK = 1L;
+	public static final long COMPANYID_COLUMN_BITMASK = 1L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long SENTDATE_COLUMN_BITMASK = 2L;
+	public static final long NOTIFICATIONTEMPLATEID_COLUMN_BITMASK = 2L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long STATUS_COLUMN_BITMASK = 4L;
+	public static final long SENTDATE_COLUMN_BITMASK = 4L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long TYPE_COLUMN_BITMASK = 8L;
+	public static final long STATUS_COLUMN_BITMASK = 8L;
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
+	 */
+	@Deprecated
+	public static final long TYPE_COLUMN_BITMASK = 16L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long NOTIFICATIONQUEUEENTRYID_COLUMN_BITMASK = 16L;
+	public static final long NOTIFICATIONQUEUEENTRYID_COLUMN_BITMASK = 32L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), with no direct replacement
@@ -429,6 +440,16 @@ public class NotificationQueueEntryModelImpl
 		}
 
 		_companyId = companyId;
+	}
+
+	/**
+	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
+	 *             #getColumnOriginalValue(String)}
+	 */
+	@Deprecated
+	public long getOriginalCompanyId() {
+		return GetterUtil.getLong(
+			this.<Long>getColumnOriginalValue("companyId"));
 	}
 
 	@JSON
@@ -1194,3 +1215,4 @@ public class NotificationQueueEntryModelImpl
 	private NotificationQueueEntry _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1759487333

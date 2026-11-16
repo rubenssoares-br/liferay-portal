@@ -53,7 +53,6 @@ import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
-import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
@@ -187,8 +186,8 @@ public class FragmentEntryStagedModelDataHandlerTest
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), stagingGroup.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(),
+				null, TestPropsValues.getUserId(), stagingGroup.getGroupId(),
+				null, fragmentEntry.getExternalReferenceCode(), null,
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				stagingGroup.getDefaultPublicPlid(), fragmentEntry.getCss(),
@@ -225,16 +224,18 @@ public class FragmentEntryStagedModelDataHandlerTest
 	}
 
 	@Test
-	@TestInfo("LPS-129852,LPS-167932")
+	@TestInfo({"LPS-129852", "LPS-167932"})
 	public void testUpdateFragmentEntryWithFragmentEntryLinkAddingDropZone()
 		throws Exception {
 
 		FragmentEntry fragmentEntry = _addFragmentEntry(
 			StringPool.BLANK, stagingGroup, "<div class=\"fragment_1\"></div>");
+
+		Layout draftLayout = _layout.fetchDraftLayout();
+
 		long segmentsExperienceId =
 			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
-				_layout.getPlid());
-		Layout draftLayout = _layout.fetchDraftLayout();
+				draftLayout.getPlid());
 
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(
@@ -242,13 +243,13 @@ public class FragmentEntryStagedModelDataHandlerTest
 
 		String itemId = ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), stagingGroup.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(), segmentsExperienceId,
-				draftLayout.getPlid(), fragmentEntry.getCss(),
-				fragmentEntry.getHtml(), fragmentEntry.getJs(),
-				fragmentEntry.getConfiguration(), StringPool.BLANK,
-				StringPool.BLANK, 0, StringPool.BLANK, fragmentEntry.getType(),
-				serviceContext),
+				null, TestPropsValues.getUserId(), stagingGroup.getGroupId(),
+				null, fragmentEntry.getExternalReferenceCode(), null,
+				segmentsExperienceId, draftLayout.getPlid(),
+				fragmentEntry.getCss(), fragmentEntry.getHtml(),
+				fragmentEntry.getJs(), fragmentEntry.getConfiguration(),
+				StringPool.BLANK, StringPool.BLANK, 0, StringPool.BLANK,
+				fragmentEntry.getType(), serviceContext),
 			draftLayout, null, 0, segmentsExperienceId);
 
 		String dropZoneId1 = RandomTestUtil.randomString();
@@ -273,10 +274,14 @@ public class FragmentEntryStagedModelDataHandlerTest
 
 		ContentLayoutTestUtil.publishLayout(draftLayout, _layout);
 
+		FragmentEntryLink originalFragmentEntryLink =
+			_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
+				fragmentStyledLayoutStructureItem.getFragmentEntryLinkId());
+
 		FragmentEntryLink publishedFragmentEntryLink =
 			_fragmentEntryLinkLocalService.getFragmentEntryLink(
 				stagingGroup.getGroupId(),
-				fragmentStyledLayoutStructureItem.getFragmentEntryLinkId(),
+				originalFragmentEntryLink.getExternalReferenceCode(),
 				_layout.getPlid());
 
 		Company company = _companyLocalService.getCompany(
@@ -289,26 +294,18 @@ public class FragmentEntryStagedModelDataHandlerTest
 			"<h1> Drop Zone 1 </h1>", dropZoneId1 + "HeadingContent",
 			"<h1> Drop Zone 2 </h1>", dropZoneId2 + "HeadingContent");
 
-		_exportImportStagedModel(fragmentEntry, _layout);
+		_exportImportStagedModel(fragmentEntry);
 
-		Layout liveLayout = _layoutLocalService.fetchLayout(
-			_layout.getUuid(), liveGroup.getGroupId(),
-			_layout.isPrivateLayout());
+		FragmentEntry liveFragmentEntry =
+			_fragmentEntryLocalService.getFragmentEntryByUuidAndGroupId(
+				fragmentEntry.getUuid(), liveGroup.getGroupId());
 
-		_assertHTML(
-			_getFragmentEntryLinkRenderHTML(
-				company,
-				_fragmentEntryLinkLocalService.
-					getFragmentEntryLinkByUuidAndGroupId(
-						publishedFragmentEntryLink.getUuid(),
-						liveGroup.getGroupId()),
-				liveGroup, liveLayout, locale),
-			"<h1> Drop Zone 1 </h1>", dropZoneId1 + "HeadingContent",
-			"<h1> Drop Zone 2 </h1>", dropZoneId2 + "HeadingContent");
+		Assert.assertEquals(
+			fragmentEntry.getHtml(), liveFragmentEntry.getHtml());
 
 		String addedDropZoneId = RandomTestUtil.randomString();
 
-		fragmentEntry = _updateFragmentEntryWithPropagation(
+		_updateFragmentEntryWithPropagation(
 			fragmentEntry,
 			StringBundler.concat(
 				"<div class=\"fragment_1\"><h1> Drop Zone 1 </h1>",
@@ -329,19 +326,14 @@ public class FragmentEntryStagedModelDataHandlerTest
 			"<h1> Added Drop Zone </h1>", "<h1> Drop Zone 2 </h1>",
 			dropZoneId2 + "HeadingContent");
 
-		_exportImportStagedModel(fragmentEntry, _layout);
+		_exportImportStagedModel(fragmentEntry);
 
-		_assertHTML(
-			_getFragmentEntryLinkRenderHTML(
-				company,
-				_fragmentEntryLinkLocalService.
-					getFragmentEntryLinkByUuidAndGroupId(
-						publishedFragmentEntryLink.getUuid(),
-						liveGroup.getGroupId()),
-				liveGroup, liveLayout, locale),
-			"<h1> Drop Zone 1 </h1>", dropZoneId1 + "HeadingContent",
-			"<h1> Added Drop Zone </h1>", "<h1> Drop Zone 2 </h1>",
-			dropZoneId2 + "HeadingContent");
+		liveFragmentEntry =
+			_fragmentEntryLocalService.getFragmentEntryByUuidAndGroupId(
+				fragmentEntry.getUuid(), liveGroup.getGroupId());
+
+		Assert.assertEquals(
+			fragmentEntry.getHtml(), liveFragmentEntry.getHtml());
 	}
 
 	@Override
@@ -400,7 +392,7 @@ public class FragmentEntryStagedModelDataHandlerTest
 			fragmentCollection.getFragmentCollectionId(),
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
 			RandomTestUtil.randomString(), html, RandomTestUtil.randomString(),
-			false, configuration, null, 0, false,
+			false, configuration, null, 0, false, false,
 			FragmentConstants.TYPE_COMPONENT, null,
 			WorkflowConstants.STATUS_APPROVED,
 			ServiceContextTestUtil.getServiceContext(
@@ -436,11 +428,11 @@ public class FragmentEntryStagedModelDataHandlerTest
 			ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
 				_fragmentEntryLinkLocalService.addFragmentEntryLink(
 					null, TestPropsValues.getUserId(),
-					stagingGroup.getGroupId(), 0,
-					fragmentEntry.getFragmentEntryId(), segmentsExperienceId,
-					layout.getPlid(), fragmentEntry.getCss(),
-					fragmentEntry.getHtml(), fragmentEntry.getJs(),
-					fragmentEntry.getConfiguration(),
+					stagingGroup.getGroupId(), null,
+					fragmentEntry.getExternalReferenceCode(), null,
+					segmentsExperienceId, layout.getPlid(),
+					fragmentEntry.getCss(), fragmentEntry.getHtml(),
+					fragmentEntry.getJs(), fragmentEntry.getConfiguration(),
 					JSONUtil.put(
 						FragmentEntryProcessorConstants.
 							KEY_EDITABLE_FRAGMENT_ENTRY_PROCESSOR,
@@ -462,8 +454,7 @@ public class FragmentEntryStagedModelDataHandlerTest
 
 		for (String string : strings) {
 			Assert.assertTrue(
-				html + " not contains " + string,
-				StringUtil.contains(content, string, StringPool.BLANK));
+				html + " not contains " + string, content.contains(string));
 
 			content = content.substring(content.indexOf(string));
 		}

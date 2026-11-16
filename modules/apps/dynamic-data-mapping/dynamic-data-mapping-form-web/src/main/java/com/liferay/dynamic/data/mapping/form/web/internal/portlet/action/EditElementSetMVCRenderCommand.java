@@ -5,17 +5,16 @@
 
 package com.liferay.dynamic.data.mapping.form.web.internal.portlet.action;
 
-import com.liferay.change.tracking.spi.constants.CTTimelineKeys;
+import com.liferay.change.tracking.spi.history.util.CTTimelineUtil;
 import com.liferay.dynamic.data.mapping.constants.DDMPortletKeys;
+import com.liferay.dynamic.data.mapping.model.DDMStructure;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCRenderCommand;
 import com.liferay.portal.kernel.servlet.taglib.DynamicIncludeUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -25,7 +24,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + DDMPortletKeys.DYNAMIC_DATA_MAPPING_FORM_ADMIN,
+		"jakarta.portlet.name=" + DDMPortletKeys.DYNAMIC_DATA_MAPPING_FORM_ADMIN,
 		"mvc.command.name=/admin/edit_element_set"
 	},
 	service = MVCRenderCommand.class
@@ -46,11 +45,8 @@ public class EditElementSetMVCRenderCommand implements MVCRenderCommand {
 		long structureId = ParamUtil.getLong(renderRequest, "structureId");
 
 		if (structureId > 0) {
-			HttpServletRequest httpServletRequest =
-				portal.getHttpServletRequest(renderRequest);
-
-			httpServletRequest.setAttribute(
-				CTTimelineKeys.CLASS_PK, structureId);
+			CTTimelineUtil.setCTTimelineKeys(
+				renderRequest, DDMStructure.class, structureId);
 		}
 
 		return "/admin/edit_element_set.jsp";

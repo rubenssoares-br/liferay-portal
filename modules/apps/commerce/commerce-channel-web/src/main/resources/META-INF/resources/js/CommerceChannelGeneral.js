@@ -4,7 +4,7 @@
  */
 
 import {Autocomplete} from 'commerce-frontend-js';
-import {openSelectionModal} from 'frontend-js-web';
+import {openSelectionModal} from 'frontend-js-components-web';
 
 export default function ({
 	autocompleteInitialLabel,
@@ -81,5 +81,30 @@ export default function ({
 
 			fileEntryRemoveIcon.classList.add('hide');
 		});
+	}
+
+	const guestBrowsingEnabledInput = document.getElementById(
+		`${namespace}guestBrowsingEnabled`
+	);
+	const guestCheckoutEnabledInput = document.getElementById(
+		`${namespace}guestCheckoutEnabled`
+	);
+
+	if (guestBrowsingEnabledInput && guestCheckoutEnabledInput) {
+		const updateGuestCheckoutEnabledInput = () => {
+			if (!guestBrowsingEnabledInput.checked) {
+				guestCheckoutEnabledInput.checked = false;
+			}
+
+			guestCheckoutEnabledInput.disabled =
+				!guestBrowsingEnabledInput.checked;
+		};
+
+		updateGuestCheckoutEnabledInput();
+
+		guestBrowsingEnabledInput.addEventListener(
+			'change',
+			updateGuestCheckoutEnabledInput
+		);
 	}
 }

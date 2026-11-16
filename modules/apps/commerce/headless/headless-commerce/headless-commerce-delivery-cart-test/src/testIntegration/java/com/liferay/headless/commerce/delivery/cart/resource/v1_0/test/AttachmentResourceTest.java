@@ -12,12 +12,16 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.currency.service.CommerceCurrencyLocalService;
 import com.liferay.commerce.model.CommerceOrder;
+import com.liferay.commerce.model.CommerceOrderAttachment;
 import com.liferay.commerce.product.constants.CommerceChannelConstants;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
+import com.liferay.commerce.service.CommerceOrderAttachmentLocalService;
 import com.liferay.commerce.service.CommerceOrderLocalService;
+import com.liferay.commerce.test.util.CommerceOrderAttachmentTestUtil;
 import com.liferay.commerce.test.util.CommerceTestUtil;
 import com.liferay.headless.commerce.delivery.cart.client.dto.v1_0.Attachment;
 import com.liferay.headless.commerce.delivery.cart.client.dto.v1_0.AttachmentBase64;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
@@ -31,6 +35,7 @@ import java.math.BigDecimal;
 
 import java.util.HashMap;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -46,20 +51,23 @@ public class AttachmentResourceTest extends BaseAttachmentResourceTestCase {
 	public void setUp() throws Exception {
 		super.setUp();
 
+		CommerceOrderAttachmentTestUtil.initialize(getClass());
+
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(
 				testCompany.getCompanyId(), testGroup.getGroupId(),
 				TestPropsValues.getUserId());
 
 		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			TestPropsValues.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
+			StringPool.BLANK, TestPropsValues.getUserId(), 0,
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(), null,
 			RandomTestUtil.randomString() + "@liferay.com", null,
 			RandomTestUtil.randomString(), "business", 1, serviceContext);
 
 		CommerceCurrency commerceCurrency =
 			_commerceCurrencyLocalService.addCommerceCurrency(
-				TestPropsValues.getUserId(), RandomTestUtil.randomString(),
+				null, TestPropsValues.getUserId(),
+				RandomTestUtil.randomString(),
 				RandomTestUtil.randomLocaleStringMap(),
 				RandomTestUtil.randomString(), BigDecimal.ONE, new HashMap<>(),
 				2, 2, "HALF_EVEN", false, RandomTestUtil.nextDouble(), true);
@@ -94,12 +102,45 @@ public class AttachmentResourceTest extends BaseAttachmentResourceTestCase {
 	}
 
 	@Override
+	@Test
+	public void testPostCartAttachmentByBase64() throws Exception {
+		super.testPostCartAttachmentByBase64();
+
+		Attachment postAttachment =
+			testPostCartAttachmentByBase64_addAttachment(randomAttachment());
+
+		CommerceOrderAttachment commerceOrderAttachment =
+			_commerceOrderAttachmentLocalService.getCommerceOrderAttachment(
+				postAttachment.getId());
+
+		Assert.assertEquals(
+			Long.valueOf(commerceOrderAttachment.getFileEntryId()),
+			postAttachment.getFileEntryId());
+
+		Assert.assertEquals(
+			"commerce-order-attachment/" + postAttachment.getId(),
+			StringUtil.extractLast(postAttachment.getUrl(), "/o/"));
+		Assert.assertTrue(
+			StringUtil.startsWith(postAttachment.getUrl(), "http"));
+	}
+
+	@Override
+	protected String[] getIgnoredEntityFieldNames() {
+		return new String[] {
+			"commerceOrderId", "dateCreated", "dateModified", "type"
+		};
+	}
+
+	@Override
 	protected Attachment randomAttachment() throws Exception {
 		return new Attachment() {
 			{
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
-				title = RandomTestUtil.randomString() + ".jpg";
+				priority = RandomTestUtil.nextDouble();
+				restricted = RandomTestUtil.randomBoolean();
+				title = RandomTestUtil.randomString();
+				type = "invoice";
 			}
 		};
 	}
@@ -172,6 +213,22 @@ public class AttachmentResourceTest extends BaseAttachmentResourceTestCase {
 	}
 
 	@Override
+	protected Long testGraphQLDeleteCartAttachment_getCartId()
+		throws Exception {
+
+		return _commerceOrder.getCommerceOrderId();
+	}
+
+	@Override
+	protected String
+			testGraphQLDeleteCartByExternalReferenceCodeAttachmentByExternalReferenceCodeAttachmentExternalReferenceCode_getExternalReferenceCode(
+				Attachment attachment)
+		throws Exception {
+
+		return _commerceOrder.getExternalReferenceCode();
+	}
+
+	@Override
 	protected Attachment testPostCartAttachmentByBase64_addAttachment(
 			Attachment attachment)
 		throws Exception {
@@ -203,7 +260,10 @@ public class AttachmentResourceTest extends BaseAttachmentResourceTestCase {
 						AttachmentResourceTest.class,
 						"dependencies/image.jpg"));
 				externalReferenceCode = attachment1.getExternalReferenceCode();
+				priority = attachment1.getPriority();
+				restricted = attachment1.getRestricted();
 				title = attachment1.getTitle();
+				type = attachment1.getType();
 			}
 		};
 	}
@@ -218,6 +278,10 @@ public class AttachmentResourceTest extends BaseAttachmentResourceTestCase {
 	private CommerceCurrencyLocalService _commerceCurrencyLocalService;
 
 	private CommerceOrder _commerceOrder;
+
+	@Inject
+	private CommerceOrderAttachmentLocalService
+		_commerceOrderAttachmentLocalService;
 
 	@Inject
 	private CommerceOrderLocalService _commerceOrderLocalService;

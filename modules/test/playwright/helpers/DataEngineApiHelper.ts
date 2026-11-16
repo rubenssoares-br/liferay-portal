@@ -32,9 +32,37 @@ export class DataEngineApiHelper {
 		);
 	}
 
+	async createDocumentMetadataSet(
+		siteId: number | string,
+		dataDefinition: DataDefinition
+	): Promise<DataDefinition> {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/sites/${siteId}/data-definitions/by-content-type/document-library`,
+			{data: dataDefinition}
+		);
+	}
+
 	async getStructure(id: string): Promise<DataDefinition> {
 		return this.apiHelpers.get(
 			`${this.apiHelpers.baseUrl}${this.basePath}/data-definitions/${id}`
+		);
+	}
+
+	/**
+	 * It allows updating an existing structure, for example to add a field to
+	 * it.
+	 *
+	 * @param id the id of the structure to update
+	 * @param dataDefinition the full updated definition of the structure
+	 */
+
+	async updateStructure(
+		id: string,
+		dataDefinition: DataDefinition
+	): Promise<DataDefinition> {
+		return this.apiHelpers.put(
+			`${this.apiHelpers.baseUrl}${this.basePath}/data-definitions/${id}`,
+			{data: dataDefinition}
 		);
 	}
 }

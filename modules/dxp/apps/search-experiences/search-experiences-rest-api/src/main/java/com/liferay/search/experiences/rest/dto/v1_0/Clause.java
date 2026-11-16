@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,7 +51,7 @@ public class Clause implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Clause.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getAdditive() {
 		if (_additiveSupplier != null) {
 			additive = _additiveSupplier.get();
@@ -92,7 +92,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _additiveSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Float getBoost() {
 		if (_boostSupplier != null) {
@@ -132,7 +132,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<Float> _boostSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getContext() {
 		if (_contextSupplier != null) {
 			context = _contextSupplier.get();
@@ -173,7 +173,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contextSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getDisabled() {
 		if (_disabledSupplier != null) {
 			disabled = _disabledSupplier.get();
@@ -214,7 +214,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _disabledSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getField() {
 		if (_fieldSupplier != null) {
 			field = _fieldSupplier.get();
@@ -255,7 +255,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _fieldSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -294,7 +294,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getOccur() {
 		if (_occurSupplier != null) {
 			occur = _occurSupplier.get();
@@ -335,7 +335,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _occurSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getParent() {
 		if (_parentSupplier != null) {
 			parent = _parentSupplier.get();
@@ -376,7 +376,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _parentSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Object getQuery() {
 		if (_querySupplier != null) {
@@ -418,7 +418,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _querySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -457,7 +457,7 @@ public class Clause implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getValue() {
 		if (_valueSupplier != null) {
 			value = _valueSupplier.get();
@@ -650,17 +650,7 @@ public class Clause implements Serializable {
 
 			sb.append("\"query\": ");
 
-			if (query instanceof Map) {
-				sb.append(JSONFactoryUtil.createJSONObject((Map<?, ?>)query));
-			}
-			else if (query instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)query));
-				sb.append("\"");
-			}
-			else {
-				sb.append(query);
-			}
+			sb.append(_toJSON(query));
 		}
 
 		String type = getType();
@@ -700,8 +690,8 @@ public class Clause implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.search.experiences.rest.dto.v1_0.Clause",
 		name = "x-class-name"
 	)
@@ -788,6 +778,27 @@ public class Clause implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -796,3 +807,4 @@ public class Clause implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-109512545

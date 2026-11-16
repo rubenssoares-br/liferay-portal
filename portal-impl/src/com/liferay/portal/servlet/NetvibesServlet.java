@@ -19,16 +19,16 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.util.PropsValues;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Alberto Montero
@@ -68,9 +68,7 @@ public class NetvibesServlet extends HttpServlet {
 		}
 	}
 
-	protected String getContent(HttpServletRequest httpServletRequest)
-		throws Exception {
-
+	protected String getContent(HttpServletRequest httpServletRequest) {
 		String path = GetterUtil.getString(httpServletRequest.getPathInfo());
 
 		if (Validator.isNull(path)) {

@@ -7,6 +7,7 @@ package com.liferay.jenkins.results.parser.test.clazz.group;
 
 import com.liferay.jenkins.results.parser.AntException;
 import com.liferay.jenkins.results.parser.AntUtil;
+import com.liferay.jenkins.results.parser.Environment;
 import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
 import com.liferay.jenkins.results.parser.PortalGitWorkingDirectory;
 import com.liferay.jenkins.results.parser.PortalHotfixReleaseJob;
@@ -14,8 +15,8 @@ import com.liferay.jenkins.results.parser.PortalTestClassJob;
 import com.liferay.jenkins.results.parser.job.property.JobProperty;
 import com.liferay.jenkins.results.parser.test.batch.PoshiTestBatch;
 import com.liferay.jenkins.results.parser.test.batch.PoshiTestSelector;
-import com.liferay.jenkins.results.parser.test.clazz.FunctionalTestClassBalancedListSplitter;
 import com.liferay.jenkins.results.parser.test.clazz.TestClass;
+import com.liferay.jenkins.results.parser.test.clazz.TestClassBalancedListSplitter;
 import com.liferay.jenkins.results.parser.test.clazz.TestClassFactory;
 import com.liferay.poshi.core.PoshiContext;
 import com.liferay.poshi.core.util.PropsUtil;
@@ -139,11 +140,7 @@ public class FunctionalBatchTestClassGroup extends BatchTestClassGroup {
 	public boolean isUpgradeFile(File file) {
 		Matcher matcher = _upgradeFileNamePattern.matcher(file.toString());
 
-		if (matcher.find()) {
-			return true;
-		}
-
-		return false;
+		return matcher.find();
 	}
 
 	protected FunctionalBatchTestClassGroup(
@@ -212,7 +209,7 @@ public class FunctionalBatchTestClassGroup extends BatchTestClassGroup {
 	protected String getDefaultTestBatchRunPropertyQuery(
 		File testBaseDir, String testSuiteName) {
 
-		String query = System.getenv("TEST_BATCH_RUN_PROPERTY_QUERY");
+		String query = Environment.get("TEST_BATCH_RUN_PROPERTY_QUERY");
 
 		if (JenkinsResultsParserUtil.isNullOrEmpty(query)) {
 			query = getBuildStartProperty("TEST_BATCH_RUN_PROPERTY_QUERY");
@@ -319,7 +316,7 @@ public class FunctionalBatchTestClassGroup extends BatchTestClassGroup {
 						"test.base.dir.name", testBaseDirPath);
 				}
 
-				properties.setProperty("poshi.file.read.thread.pool", "4");
+				properties.setProperty("poshi.file.read.thread.pool", "8");
 				properties.setProperty("poshi.file.read.timeout", "30");
 
 				PropsUtil.clear();
@@ -395,13 +392,13 @@ public class FunctionalBatchTestClassGroup extends BatchTestClassGroup {
 				}
 
 				if (targetAxisDuration > 0) {
-					FunctionalTestClassBalancedListSplitter
-						functionalTestClassBalancedListSplitter =
-							new FunctionalTestClassBalancedListSplitter(
+					TestClassBalancedListSplitter
+						testClassBalancedListSplitter =
+							new TestClassBalancedListSplitter(
 								targetAxisDuration);
 
 					List<List<TestClass>> testClassLists =
-						functionalTestClassBalancedListSplitter.split(
+						testClassBalancedListSplitter.split(
 							poshiTestClassGroup);
 
 					for (List<TestClass> testClassList : testClassLists) {
@@ -622,20 +619,24 @@ public class FunctionalBatchTestClassGroup extends BatchTestClassGroup {
 				sb.append(")");
 			}
 
-			if (isUpgradeFile(modifiedFile)) {
-				String upgradePQL = _concatPQL(
-					modifiedFile, "upgrades-relevant", "");
-
-				if (!JenkinsResultsParserUtil.isNullOrEmpty(upgradePQL)) {
-					if (sb.length() > 0) {
-						sb.append(" OR ");
-					}
-
-					sb.append("(");
-					sb.append(upgradePQL);
-					sb.append(")");
-				}
+			if (!isUpgradeFile(modifiedFile)) {
+				continue;
 			}
+
+			String upgradePQL = _concatPQL(
+				modifiedFile, "upgrades-relevant", "");
+
+			if (JenkinsResultsParserUtil.isNullOrEmpty(upgradePQL)) {
+				continue;
+			}
+
+			if (sb.length() > 0) {
+				sb.append(" OR ");
+			}
+
+			sb.append("(");
+			sb.append(upgradePQL);
+			sb.append(")");
 		}
 
 		String defaultPQL = getDefaultTestBatchRunPropertyQuery(
@@ -710,7 +711,7 @@ public class FunctionalBatchTestClassGroup extends BatchTestClassGroup {
 
 	private void _setTestBatchRunPropertyQueries() {
 		if (isRootCauseAnalysis()) {
-			String portalBatchTestSelector = System.getenv(
+			String portalBatchTestSelector = Environment.get(
 				"PORTAL_BATCH_TEST_SELECTOR");
 
 			if (JenkinsResultsParserUtil.isNullOrEmpty(

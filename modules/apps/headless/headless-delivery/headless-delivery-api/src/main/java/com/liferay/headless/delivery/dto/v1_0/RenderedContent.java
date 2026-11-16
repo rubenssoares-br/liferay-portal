@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Rendered content, which results from using a template or display page to process the content and return HTML.",
 	value = "RenderedContent"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Rendered content, which results from using a template or display page to process the content and return HTML."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "RenderedContent")
@@ -53,7 +57,7 @@ public class RenderedContent implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(RenderedContent.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The ID of the template or display page used to render the content."
 	)
 	public String getContentTemplateId() {
@@ -98,7 +102,7 @@ public class RenderedContent implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentTemplateIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The name of the template or display page used to render the content."
 	)
 	public String getContentTemplateName() {
@@ -143,7 +147,7 @@ public class RenderedContent implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentTemplateNameSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The localized names of the template or display page used to render the content."
 	)
 	@Valid
@@ -192,7 +196,7 @@ public class RenderedContent implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _contentTemplateName_i18nSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Specifies if the template or display page are marked as default to display the content."
 	)
 	public Boolean getMarkedAsDefault() {
@@ -237,7 +241,9 @@ public class RenderedContent implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _markedAsDefaultSupplier;
 
-	@Schema(description = "An absolute URL to the rendered content.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "An absolute URL to the rendered content."
+	)
 	public String getRenderedContentURL() {
 		if (_renderedContentURLSupplier != null) {
 			renderedContentURL = _renderedContentURLSupplier.get();
@@ -278,7 +284,7 @@ public class RenderedContent implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _renderedContentURLSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Optional field with the rendered content, can be embedded with nestedFields."
 	)
 	public String getRenderedContentValue() {
@@ -444,8 +450,8 @@ public class RenderedContent implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.RenderedContent",
 		name = "x-class-name"
 	)
@@ -532,6 +538,27 @@ public class RenderedContent implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -540,3 +567,4 @@ public class RenderedContent implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1146315888

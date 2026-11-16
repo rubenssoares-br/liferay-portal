@@ -1,5 +1,5 @@
 /**
- * SPDX-FileCopyrightText: (c) 2024 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
@@ -8,12 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.ParentTaxonomyVocabularySerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
-import java.util.Map;
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -26,65 +25,26 @@ public class ParentTaxonomyVocabulary implements Cloneable, Serializable {
 		return ParentTaxonomyVocabularySerDes.toDTO(json);
 	}
 
-	public Long getId() {
-		return id;
+	public String getExternalReferenceCode() {
+		return externalReferenceCode;
 	}
 
-	public void setId(Long id) {
-		this.id = id;
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
 	}
 
-	public void setId(UnsafeSupplier<Long, Exception> idUnsafeSupplier) {
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
 		try {
-			id = idUnsafeSupplier.get();
+			externalReferenceCode = externalReferenceCodeUnsafeSupplier.get();
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	protected Long id;
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public void setName(UnsafeSupplier<String, Exception> nameUnsafeSupplier) {
-		try {
-			name = nameUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected String name;
-
-	public Map<String, String> getName_i18n() {
-		return name_i18n;
-	}
-
-	public void setName_i18n(Map<String, String> name_i18n) {
-		this.name_i18n = name_i18n;
-	}
-
-	public void setName_i18n(
-		UnsafeSupplier<Map<String, String>, Exception>
-			name_i18nUnsafeSupplier) {
-
-		try {
-			name_i18n = name_i18nUnsafeSupplier.get();
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	protected Map<String, String> name_i18n;
+	protected String externalReferenceCode;
 
 	@Override
 	public ParentTaxonomyVocabulary clone() throws CloneNotSupportedException {
@@ -119,3 +79,4 @@ public class ParentTaxonomyVocabulary implements Cloneable, Serializable {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:583715893

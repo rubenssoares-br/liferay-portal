@@ -9,13 +9,14 @@ import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.SkuVirtualSet
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.SkuVirtualSettingsFileEntry;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -218,6 +219,46 @@ public class SkuVirtualSettingsSerDes {
 			sb.append(_toJSON(skuVirtualSettings.getTermsOfUseContent()));
 		}
 
+		if (skuVirtualSettings.
+				getTermsOfUseJournalArticleExternalReferenceCode() != null) {
+
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"termsOfUseJournalArticleExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(
+					skuVirtualSettings.
+						getTermsOfUseJournalArticleExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (skuVirtualSettings.
+				getTermsOfUseJournalArticleGroupExternalReferenceCode() !=
+					null) {
+
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append(
+				"\"termsOfUseJournalArticleGroupExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(
+					skuVirtualSettings.
+						getTermsOfUseJournalArticleGroupExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
 		if (skuVirtualSettings.getTermsOfUseJournalArticleId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -392,6 +433,33 @@ public class SkuVirtualSettingsSerDes {
 				String.valueOf(skuVirtualSettings.getTermsOfUseContent()));
 		}
 
+		if (skuVirtualSettings.
+				getTermsOfUseJournalArticleExternalReferenceCode() == null) {
+
+			map.put("termsOfUseJournalArticleExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"termsOfUseJournalArticleExternalReferenceCode",
+				String.valueOf(
+					skuVirtualSettings.
+						getTermsOfUseJournalArticleExternalReferenceCode()));
+		}
+
+		if (skuVirtualSettings.
+				getTermsOfUseJournalArticleGroupExternalReferenceCode() ==
+					null) {
+
+			map.put("termsOfUseJournalArticleGroupExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"termsOfUseJournalArticleGroupExternalReferenceCode",
+				String.valueOf(
+					skuVirtualSettings.
+						getTermsOfUseJournalArticleGroupExternalReferenceCode()));
+		}
+
 		if (skuVirtualSettings.getTermsOfUseJournalArticleId() == null) {
 			map.put("termsOfUseJournalArticleId", null);
 		}
@@ -486,6 +554,18 @@ public class SkuVirtualSettingsSerDes {
 			}
 			else if (Objects.equals(jsonParserFieldName, "termsOfUseContent")) {
 				return true;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleGroupExternalReferenceCode")) {
+
+				return false;
 			}
 			else if (Objects.equals(
 						jsonParserFieldName, "termsOfUseJournalArticleId")) {
@@ -610,6 +690,26 @@ public class SkuVirtualSettingsSerDes {
 				}
 			}
 			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					skuVirtualSettings.
+						setTermsOfUseJournalArticleExternalReferenceCode(
+							(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"termsOfUseJournalArticleGroupExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					skuVirtualSettings.
+						setTermsOfUseJournalArticleGroupExternalReferenceCode(
+							(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "termsOfUseJournalArticleId")) {
 
 				if (jsonParserFieldValue != null) {
@@ -681,6 +781,16 @@ public class SkuVirtualSettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -713,3 +823,4 @@ public class SkuVirtualSettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:550415246

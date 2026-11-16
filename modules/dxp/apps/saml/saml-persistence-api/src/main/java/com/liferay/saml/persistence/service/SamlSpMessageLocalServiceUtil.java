@@ -52,12 +52,12 @@ public class SamlSpMessageLocalServiceUtil {
 	}
 
 	public static SamlSpMessage addSamlSpMessage(
-		String samlIdpEntityId, String samlIdpResponseKey,
-		java.util.Date expirationDate,
+		String samlIdpEntityId, java.util.Date expirationDate,
+		String samlIdpResponseKey,
 		com.liferay.portal.kernel.service.ServiceContext serviceContext) {
 
 		return getService().addSamlSpMessage(
-			samlIdpEntityId, samlIdpResponseKey, expirationDate,
+			samlIdpEntityId, expirationDate, samlIdpResponseKey,
 			serviceContext);
 	}
 
@@ -326,3 +326,4 @@ public class SamlSpMessageLocalServiceUtil {
 			SamlSpMessageLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1352081650

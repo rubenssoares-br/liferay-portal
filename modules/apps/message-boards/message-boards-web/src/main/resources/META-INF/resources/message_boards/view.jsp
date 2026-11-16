@@ -129,7 +129,7 @@ request.setAttribute("view.jsp-viewCategory", Boolean.TRUE.toString());
 				<liferay-ui:search-container-row
 					className="com.liferay.message.boards.model.MBCategory"
 					escapedModel="<%= true %>"
-					keyProperty="categoryId"
+					keyPropertyName="categoryId"
 					modelVar="curCategory"
 				>
 					<liferay-portlet:renderURL varImpl="rowURL">
@@ -170,7 +170,7 @@ request.setAttribute("view.jsp-viewCategory", Boolean.TRUE.toString());
 					<c:if test="<%= mbListDisplayContext.isShowSearch() %>">
 						<liferay-ui:header
 							backURL="<%= redirect %>"
-							title="search"
+							title="search[noun]"
 						/>
 					</c:if>
 
@@ -420,8 +420,8 @@ request.setAttribute("view.jsp-viewCategory", Boolean.TRUE.toString());
 
 					<c:if test="<%= (categoryEntriesSearchContainer.getTotal() <= 0) && (threadEntriesSearchContainer.getTotal() <= 0) %>">
 						<liferay-frontend:empty-result-message
-							animationType="<%= EmptyResultMessageKeys.AnimationType.EMPTY %>"
-							title='<%= LanguageUtil.get(resourceBundle, "there-are-no-threads-or-categories") %>'
+							animationType="<%= AnimationType.EMPTY %>"
+							title="<%= LanguageUtil.get(resourceBundle, mbListDisplayContext.getEmptyResultsMessage()) %>"
 						/>
 					</c:if>
 

@@ -20,21 +20,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -43,6 +43,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "The page form's configuration.", value = "FormConfig"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "The page form's configuration."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "FormConfig")
@@ -56,7 +59,9 @@ public class FormConfig implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(FormConfig.class, json);
 	}
 
-	@Schema(description = "The form reference.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The form reference."
+	)
 	@Valid
 	public Object getFormReference() {
 		if (_formReferenceSupplier != null) {
@@ -98,7 +103,9 @@ public class FormConfig implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _formReferenceSupplier;
 
-	@Schema(description = "The definition for the success message of the form.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The definition for the success message of the form."
+	)
 	@Valid
 	public Object getFormSuccessSubmissionResult() {
 		if (_formSuccessSubmissionResultSupplier != null) {
@@ -146,10 +153,10 @@ public class FormConfig implements Serializable {
 	@JsonIgnore
 	private Supplier<Object> _formSuccessSubmissionResultSupplier;
 
-	@JsonGetter("formType")
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that indicates whether the page form instance is multi step or not."
 	)
+	@JsonGetter("formType")
 	@Valid
 	public FormType getFormType() {
 		if (_formTypeSupplier != null) {
@@ -204,7 +211,52 @@ public class FormConfig implements Serializable {
 	@JsonIgnore
 	private Supplier<FormType> _formTypeSupplier;
 
-	@Schema(description = "The definition for the number of steps of the form.")
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public LocalizationConfig getLocalizationConfig() {
+		if (_localizationConfigSupplier != null) {
+			localizationConfig = _localizationConfigSupplier.get();
+
+			_localizationConfigSupplier = null;
+		}
+
+		return localizationConfig;
+	}
+
+	public void setLocalizationConfig(LocalizationConfig localizationConfig) {
+		this.localizationConfig = localizationConfig;
+
+		_localizationConfigSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setLocalizationConfig(
+		UnsafeSupplier<LocalizationConfig, Exception>
+			localizationConfigUnsafeSupplier) {
+
+		_localizationConfigSupplier = () -> {
+			try {
+				return localizationConfigUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected LocalizationConfig localizationConfig;
+
+	@JsonIgnore
+	private Supplier<LocalizationConfig> _localizationConfigSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The definition for the number of steps of the form."
+	)
 	public Integer getNumberOfSteps() {
 		if (_numberOfStepsSupplier != null) {
 			numberOfSteps = _numberOfStepsSupplier.get();
@@ -283,18 +335,7 @@ public class FormConfig implements Serializable {
 
 			sb.append("\"formReference\": ");
 
-			if (formReference instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)formReference));
-			}
-			else if (formReference instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)formReference));
-				sb.append("\"");
-			}
-			else {
-				sb.append(formReference);
-			}
+			sb.append(_toJSON(formReference));
 		}
 
 		Object formSuccessSubmissionResult = getFormSuccessSubmissionResult();
@@ -306,19 +347,7 @@ public class FormConfig implements Serializable {
 
 			sb.append("\"formSuccessSubmissionResult\": ");
 
-			if (formSuccessSubmissionResult instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)formSuccessSubmissionResult));
-			}
-			else if (formSuccessSubmissionResult instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)formSuccessSubmissionResult));
-				sb.append("\"");
-			}
-			else {
-				sb.append(formSuccessSubmissionResult);
-			}
+			sb.append(_toJSON(formSuccessSubmissionResult));
 		}
 
 		FormType formType = getFormType();
@@ -331,10 +360,20 @@ public class FormConfig implements Serializable {
 			sb.append("\"formType\": ");
 
 			sb.append("\"");
-
 			sb.append(formType);
-
 			sb.append("\"");
+		}
+
+		LocalizationConfig localizationConfig = getLocalizationConfig();
+
+		if (localizationConfig != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"localizationConfig\": ");
+
+			sb.append(String.valueOf(localizationConfig));
 		}
 
 		Integer numberOfSteps = getNumberOfSteps();
@@ -354,8 +393,8 @@ public class FormConfig implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.FormConfig",
 		name = "x-class-name"
 	)
@@ -480,6 +519,27 @@ public class FormConfig implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -488,3 +548,4 @@ public class FormConfig implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1031797795

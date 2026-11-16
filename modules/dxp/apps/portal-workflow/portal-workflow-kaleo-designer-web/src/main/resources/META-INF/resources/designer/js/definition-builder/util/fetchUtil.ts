@@ -18,10 +18,26 @@ export const HEADERS = new Headers({
 });
 
 export async function publishDefinitionRequest(
-	requestBody: WorkflowDefinition
+	requestBody: WorkflowDefinition,
+	groupExternalReferenceCode?: string,
+	scope?: string
 ) {
+	const isFeatureFlagActive =
+		Liferay.FeatureFlags && Liferay.FeatureFlags['LPD-62272'];
+
+	let body:
+		| WorkflowDefinition
+		| (WorkflowDefinition & {
+				groupExternalReferenceCode: string;
+				scope: string;
+		  }) = requestBody;
+
+	if (scope === 'ai' && isFeatureFlagActive && groupExternalReferenceCode) {
+		body = {...requestBody, groupExternalReferenceCode, scope};
+	}
+
 	return await fetch(`${workflowBaseURL}/workflow-definitions/deploy`, {
-		body: JSON.stringify(requestBody),
+		body: JSON.stringify(body),
 		headers: HEADERS,
 		method: 'POST',
 	});
@@ -38,7 +54,7 @@ export function retrieveDefinitionRequest(
 	definitionName: string,
 	versionNumber: number
 ) {
-	let url = `${workflowBaseURL}/workflow-definitions/by-name/${definitionName}?contentFormat=xml`;
+	let url = `${workflowBaseURL}/workflow-definitions/by-name/${encodeURIComponent(encodeURIComponent(definitionName))}?contentFormat=xml`;
 
 	if (versionNumber) {
 		url = `${url}&version=${versionNumber}`;
@@ -50,7 +66,20 @@ export function retrieveDefinitionRequest(
 	});
 }
 
-export function retrieveRoleById(roleId: number) {
+export function retrieveRole(
+	roleExternalReferenceCode: string,
+	roleId: number
+) {
+	if (roleExternalReferenceCode) {
+		return fetch(
+			`${window.location.origin}${contextUrl}${userBaseURL}/roles/by-external-reference-code/${encodeURIComponent(roleExternalReferenceCode)}`,
+			{
+				headers: HEADERS,
+				method: 'GET',
+			}
+		);
+	}
+
 	return fetch(
 		`${window.location.origin}${contextUrl}${userBaseURL}/roles/${roleId}`,
 		{
@@ -62,7 +91,30 @@ export function retrieveRoleById(roleId: number) {
 
 export function retrieveRoles() {
 	return fetch(
-		`${window.location.origin}${contextUrl}${userBaseURL}/roles?restrictFields=rolePermissions&pageSize=-1`,
+		`${window.location.origin}${contextUrl}${userBaseURL}/roles?fields=id,name,roleType&pageSize=-1`,
+		{
+			headers: HEADERS,
+			method: 'GET',
+		}
+	);
+}
+
+export function retrieveUser(
+	userExternalReferenceCode: string,
+	userId: number
+) {
+	if (userExternalReferenceCode) {
+		return fetch(
+			`${window.location.origin}${contextUrl}${userBaseURL}/user-accounts/by-external-reference-code/${encodeURIComponent(userExternalReferenceCode)}`,
+			{
+				headers: HEADERS,
+				method: 'GET',
+			}
+		);
+	}
+
+	return fetch(
+		`${window.location.origin}${contextUrl}${userBaseURL}/user-accounts/${userId}`,
 		{
 			headers: HEADERS,
 			method: 'GET',
@@ -89,9 +141,27 @@ export function retrieveUsersBy(filterType: string, keywords: string[]) {
 	);
 }
 
-export async function saveDefinitionRequest(requestBody: WorkflowDefinition) {
+export async function saveDefinitionRequest(
+	requestBody: WorkflowDefinition,
+	groupExternalReferenceCode?: string,
+	scope?: string
+) {
+	const isFeatureFlagActive =
+		Liferay.FeatureFlags && Liferay.FeatureFlags['LPD-62272'];
+
+	let body:
+		| WorkflowDefinition
+		| (WorkflowDefinition & {
+				groupExternalReferenceCode: string;
+				scope: string;
+		  }) = requestBody;
+
+	if (scope === 'ai' && isFeatureFlagActive && groupExternalReferenceCode) {
+		body = {...requestBody, groupExternalReferenceCode, scope};
+	}
+
 	return await fetch(`${workflowBaseURL}/workflow-definitions/save`, {
-		body: JSON.stringify(requestBody),
+		body: JSON.stringify(body),
 		headers: HEADERS,
 		method: 'POST',
 	});

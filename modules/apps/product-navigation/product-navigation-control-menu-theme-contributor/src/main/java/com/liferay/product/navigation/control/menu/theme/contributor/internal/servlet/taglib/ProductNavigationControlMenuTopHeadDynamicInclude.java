@@ -14,23 +14,25 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilder;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilderFactory;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Iván Zaera Avellón
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#post",
+	service = DynamicInclude.class
+)
 public class ProductNavigationControlMenuTopHeadDynamicInclude
 	implements DynamicInclude {
 
@@ -44,7 +46,7 @@ public class ProductNavigationControlMenuTopHeadDynamicInclude
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
 
-		if (!themeDisplay.isSignedIn()) {
+		if (!themeDisplay.isShowControlMenu() || !themeDisplay.isSignedIn()) {
 			return;
 		}
 
@@ -59,8 +61,9 @@ public class ProductNavigationControlMenuTopHeadDynamicInclude
 				httpServletRequest);
 
 		sb.append(
-			absolutePortalURLBuilder.forBundleStylesheet(
-				_bundle, "/product_navigation_control_menu.css"
+			absolutePortalURLBuilder.forWebContextStylesheet(
+				"product-navigation-control-menu-theme-contributor",
+				"/product_navigation_control_menu.css"
 			).build());
 
 		sb.append(StringPool.QUOTE);
@@ -72,14 +75,7 @@ public class ProductNavigationControlMenuTopHeadDynamicInclude
 		printWriter.println(sb.toString());
 	}
 
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_head.jsp#post");
-	}
-
 	@Activate
-	@Modified
 	protected void activate(BundleContext bundleContext) {
 		_bundle = bundleContext.getBundle();
 	}

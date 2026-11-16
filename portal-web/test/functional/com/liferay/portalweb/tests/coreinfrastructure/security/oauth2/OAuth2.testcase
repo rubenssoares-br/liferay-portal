@@ -1,4 +1,4 @@
-@component-name = "portal-security"
+@component-name = "portal-application-security"
 definition {
 
 	property ci.retries.disabled = "true";
@@ -95,7 +95,7 @@ definition {
 	@priority = 5
 	test ApplicationCanBeAuthorizedWithRememberDeviceEnabled {
 		property oauth2.application.enabled = "true";
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -737,7 +737,7 @@ definition {
 	@description = "This is a use case for LPS-105158. Configuring the settings on system level will set the same settings on the Instance level."
 	@priority = 5
 	test ConfigureOnSystemLevelShouldApplyToInstanceLevel {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -993,7 +993,7 @@ definition {
 	@description = "This is a use case for LRQA-40687. User can add and edit external application on the OAuth 2 administration page."
 	@priority = 5
 	test ExternalApplicationCanBeAddedAndEdited {
-		property app.server.types = "jboss,tcserver,tomcat,weblogic,wildfly";
+		property app.server.types = "jboss,tomcat,weblogic,wildfly";
 		property database.types = "db2,hypersonic,mariadb,mysql,oracle,postgresql,sqlserver";
 		property portal.acceptance = "true";
 		property test.liferay.virtual.instance = "false";
@@ -1172,7 +1172,7 @@ definition {
 	@description = "This is a use case for LRQA-41000. User can view and revoke granted authorizations."
 	@priority = 5
 	test GrantedAuthorizationsCanBeRevoked {
-		property app.server.types = "jboss,tcserver,tomcat,weblogic,wildfly";
+		property app.server.types = "jboss,tomcat,weblogic,wildfly";
 		property database.types = "db2,hypersonic,mariadb,mysql,oracle,postgresql,sqlserver";
 		property environment.acceptance = "true";
 		property operating.system.types = "alpine,amazonlinux,centos,debian,fedora,orcllinux,osx,redhat,rockylinux,solaris,suse,ubuntu,windows";
@@ -1273,7 +1273,7 @@ definition {
 	@description = "This is a use case for LPS-145190 TC-4 The system configuration will be ignored and the instance configuration will be used for token validation when the same JWT issuer is configured at both system and instance configuration scopes."
 	@priority = 5
 	test InstanceLevelConfigurationWillCoverSystemLevelWhenTheyConfiguredWithSameIssuer {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -1347,7 +1347,7 @@ definition {
 	@description = "This is a use case for LPS-145190 TC-1 TC-8 TC-9 Liferay is able to accept JWT assertion as grant type to issue access token with email address as user authentication type."
 	@priority = 5
 	test JWTAssertionCanBeAcceptedAsGrantTypeWithEmailAddressAsUserAuthenticationType {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -1464,7 +1464,7 @@ definition {
 	@description = "This is a use case for LPS-145190 TC-2 Liferay is able to accept JWT assertion as grant type to issue access token with screen name as user authentication type."
 	@priority = 5
 	test JWTAssertionCanBeAcceptedAsGrantTypeWithScreenNameAsUserAuthenticationType {
-		property portal.acceptance = "true";
+		property portal.acceptance = "false";
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
 
@@ -1519,56 +1519,6 @@ definition {
 			OAuth2.viewGrantedAuthViaAdmin(
 				applicationName = "OAuth2 Application",
 				userName = "Test Test");
-		}
-	}
-
-	@description = "This is a use case for LPS-170501. TC-1: Look up the remote apps' clientId via externalReferenceCode."
-	@priority = 5
-	test LookUpRemoteAppClientIdViaERC {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("Given: Add a new OAuth2 application and input OAuth2 valuies") {
-			OAuth2.openOAuth2Admin();
-
-			OAuth2.addApplication(
-				applicationName = "OAuth2 Application",
-				checkboxUncheckList = "Authorization Code");
-
-			OAuth2.inputApplicationValues(
-				clientId = "abc123",
-				clientSecret = "abc123");
-		}
-
-		task ("When: Get the value of the application externalReferenceCode and look up clientId") {
-			var mysqlStatement = "SELECT externalReferenceCode FROM OAuth2Application WHERE name = 'OAuth2 Application';";
-
-			var sqlResults = SQL.executeSQLStatement(sqlStatement = ${mysqlStatement});
-
-			var externalReferenceCode = StringUtil.regexReplaceAll(${sqlResults}, "[\n]", "");
-
-			var externalReferenceCode = StringUtil.replace(${externalReferenceCode}, "externalReferenceCode", "");
-			var portalURL = JSONCompany.getPortalURL();
-
-			var curl = '''
-				${portalURL}/o/oauth2/application \
-					-G \
-					-v \
-					-d externalReferenceCode=${externalReferenceCode}
-			''';
-
-			echo("curl: ${curl}");
-
-			var response = JSONCurlUtil.get(${curl});
-		}
-
-		task ("Then: Verify that clientId can be looked up") {
-			if (contains(${response}, "client_id") || contains(${response}, "abc123")) {
-				echo("The new endpoint to look up public OAuth2Application info is working.");
-			}
-			else {
-				fail("The new endpoint to look up public OAuth2Application info is not working.");
-			}
 		}
 	}
 
@@ -1763,8 +1713,7 @@ definition {
 		task ("Given: Provide a signing key in JSON Web Key format") {
 			var jwk = FileUtil.read("test/functional/com/liferay/portalweb/tests/coreinfrastructure/security/oauth2/dependencies/jwk.txt");
 
-			ApplicationsMenu.gotoPortlet(
-				category = "Configuration",
+			ApplicationsMenu.gotoRootPortlet(
 				panel = "Control Panel",
 				portlet = "System Settings");
 

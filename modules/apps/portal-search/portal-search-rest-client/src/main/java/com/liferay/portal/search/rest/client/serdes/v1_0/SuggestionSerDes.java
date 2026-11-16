@@ -8,13 +8,14 @@ package com.liferay.portal.search.rest.client.serdes.v1_0;
 import com.liferay.portal.search.rest.client.dto.v1_0.Suggestion;
 import com.liferay.portal.search.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Petteri Karttunen
@@ -51,14 +52,7 @@ public class SuggestionSerDes {
 
 			sb.append("\"attributes\": ");
 
-			if (suggestion.getAttributes() instanceof String) {
-				sb.append("\"");
-				sb.append((String)suggestion.getAttributes());
-				sb.append("\"");
-			}
-			else {
-				sb.append(suggestion.getAttributes());
-			}
+			sb.append(_toJSON(suggestion.getAttributes()));
 		}
 
 		if (suggestion.getScore() != null) {
@@ -221,6 +215,16 @@ public class SuggestionSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -253,3 +257,4 @@ public class SuggestionSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-421657510

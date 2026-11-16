@@ -81,9 +81,8 @@ public class CommercePaymentEntryServiceImpl
 		throws PortalException {
 
 		CommercePaymentEntry commercePaymentEntry =
-			commercePaymentEntryLocalService.
-				fetchCommercePaymentEntryByExternalReferenceCode(
-					externalReferenceCode, serviceContext.getCompanyId());
+			commercePaymentEntryPersistence.fetchByERC_C(
+				externalReferenceCode, serviceContext.getCompanyId());
 
 		if (commercePaymentEntry == null) {
 			String actionId = CommercePaymentEntryActionKeys.ADD_PAYMENT;
@@ -128,7 +127,7 @@ public class CommercePaymentEntryServiceImpl
 		throws PortalException {
 
 		CommercePaymentEntry commercePaymentEntry =
-			commercePaymentEntryLocalService.fetchCommercePaymentEntry(
+			commercePaymentEntryPersistence.fetchByPrimaryKey(
 				commercePaymentEntryId);
 
 		if (commercePaymentEntry != null) {
@@ -146,9 +145,8 @@ public class CommercePaymentEntryServiceImpl
 		throws PortalException {
 
 		CommercePaymentEntry commercePaymentEntry =
-			commercePaymentEntryLocalService.
-				fetchCommercePaymentEntryByExternalReferenceCode(
-					externalReferenceCode, companyId);
+			commercePaymentEntryPersistence.fetchByERC_C(
+				externalReferenceCode, companyId);
 
 		if (commercePaymentEntry != null) {
 			_commercePaymentEntryModelResourcePermission.check(
@@ -175,7 +173,7 @@ public class CommercePaymentEntryServiceImpl
 				ActionKeys.VIEW);
 		}
 
-		return commercePaymentEntryLocalService.getCommercePaymentEntries(
+		return commercePaymentEntryPersistence.findByC_C_C_T(
 			companyId, classNameId, classPK, type, start, end,
 			orderByComparator);
 	}
@@ -197,7 +195,7 @@ public class CommercePaymentEntryServiceImpl
 				ActionKeys.VIEW);
 		}
 
-		return commercePaymentEntryLocalService.getCommercePaymentEntries(
+		return commercePaymentEntryPersistence.findByC_C_C(
 			companyId, classNameId, classPK, start, end, orderByComparator);
 	}
 
@@ -217,7 +215,7 @@ public class CommercePaymentEntryServiceImpl
 				ActionKeys.VIEW);
 		}
 
-		return commercePaymentEntryLocalService.getCommercePaymentEntriesCount(
+		return commercePaymentEntryPersistence.countByC_C_C_T(
 			companyId, classNameId, classPK, type);
 	}
 
@@ -229,7 +227,7 @@ public class CommercePaymentEntryServiceImpl
 		_commercePaymentEntryModelResourcePermission.check(
 			getPermissionChecker(), commercePaymentEntryId, ActionKeys.VIEW);
 
-		return commercePaymentEntryLocalService.getCommercePaymentEntry(
+		return commercePaymentEntryPersistence.findByPrimaryKey(
 			commercePaymentEntryId);
 	}
 

@@ -11,38 +11,45 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Riccardo Ferrari
  * @generated
  */
 @Generated("")
-@GraphQLName("ProductSpecification")
+@GraphQLName(
+	description = "Wire shape for a product specification value attached to a product, uploaded to the analytics pipeline alongside its parent product.",
+	value = "ProductSpecification"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Wire shape for a product specification value attached to a product, uploaded to the analytics pipeline alongside its parent product.",
+	requiredProperties = {"specificationKey", "value"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"specificationKey", "value"})
 @XmlRootElement(name = "ProductSpecification")
 public class ProductSpecification implements Serializable {
 
@@ -56,7 +63,10 @@ public class ProductSpecification implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "31130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the specification value (FK identifier).",
+		example = "31130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -88,7 +98,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the specification value (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
@@ -96,7 +108,10 @@ public class ProductSpecification implements Serializable {
 	private Supplier<Long> _idSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30129")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the option category the specification key belongs to (FK identifier).",
+		example = "30129"
+	)
 	public Long getOptionCategoryId() {
 		if (_optionCategoryIdSupplier != null) {
 			optionCategoryId = _optionCategoryIdSupplier.get();
@@ -130,14 +145,19 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the option category the specification key belongs to (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long optionCategoryId;
 
 	@JsonIgnore
 	private Supplier<Long> _optionCategoryIdSupplier;
 
-	@Schema(example = "specification-key")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable key of the specification.",
+		example = "specification-key"
+	)
 	public String getSpecificationKey() {
 		if (_specificationKeySupplier != null) {
 			specificationKey = _specificationKeySupplier.get();
@@ -171,7 +191,7 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Stable key of the specification.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String specificationKey;
@@ -179,7 +199,10 @@ public class ProductSpecification implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _specificationKeySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized value of the specification. Map keys are locale codes; values are the translated strings.",
+		example = "{en_US=Stainless Steel, hr_HR=Nehrdjajuci Celik, hu_HU=Rozsdamentes Acel}"
+	)
 	@Valid
 	public Map<String, String> getValue() {
 		if (_valueSupplier != null) {
@@ -214,7 +237,9 @@ public class ProductSpecification implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized value of the specification. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> value;
@@ -307,8 +332,8 @@ public class ProductSpecification implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.machine.learning.dto.v1_0.ProductSpecification",
 		name = "x-class-name"
 	)
@@ -395,6 +420,27 @@ public class ProductSpecification implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -403,3 +449,4 @@ public class ProductSpecification implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-249414760

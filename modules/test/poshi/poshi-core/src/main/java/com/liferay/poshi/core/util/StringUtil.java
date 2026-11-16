@@ -145,11 +145,7 @@ public class StringUtil {
 		if (pos == -1) {
 			String td = text.concat(delimiter);
 
-			if (s.startsWith(td)) {
-				return true;
-			}
-
-			return false;
+			return s.startsWith(td);
 		}
 
 		return true;
@@ -210,11 +206,7 @@ public class StringUtil {
 
 		String temp = s.substring(s.length() - end.length());
 
-		if (equalsIgnoreCase(temp, end)) {
-			return true;
-		}
-
-		return false;
+		return equalsIgnoreCase(temp, end);
 	}
 
 	public static boolean equals(String s, String text) {
@@ -272,9 +264,11 @@ public class StringUtil {
 		char[] chars = s.toCharArray();
 
 		for (char c : chars) {
-			if (Validator.isChar(c)) {
-				sb.append(c);
+			if (!Validator.isChar(c)) {
+				continue;
 			}
+
+			sb.append(c);
 		}
 
 		return sb.toString();
@@ -290,9 +284,11 @@ public class StringUtil {
 		char[] chars = s.toCharArray();
 
 		for (char c : chars) {
-			if (Validator.isDigit(c)) {
-				sb.append(c);
+			if (!Validator.isDigit(c)) {
+				continue;
 			}
+
+			sb.append(c);
 		}
 
 		return sb.toString();
@@ -336,12 +332,11 @@ public class StringUtil {
 		char[] chars = s.toCharArray();
 
 		for (char c : chars) {
-			if (Validator.isDigit(c)) {
-				sb.append(c);
-			}
-			else {
+			if (!Validator.isDigit(c)) {
 				return sb.toString();
 			}
+
+			sb.append(c);
 		}
 
 		return sb.toString();
@@ -911,11 +906,7 @@ public class StringUtil {
 
 		String temp = s.substring(0, start.length());
 
-		if (equalsIgnoreCase(temp, start)) {
-			return true;
-		}
-
-		return false;
+		return equalsIgnoreCase(temp, start);
 	}
 
 	public static String stripBetween(String s, String begin, String end) {

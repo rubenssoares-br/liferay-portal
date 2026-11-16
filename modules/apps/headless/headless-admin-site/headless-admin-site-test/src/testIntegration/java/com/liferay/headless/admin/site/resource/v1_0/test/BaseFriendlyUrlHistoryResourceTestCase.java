@@ -27,21 +27,27 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,10 +59,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -80,8 +82,10 @@ public abstract class BaseFriendlyUrlHistoryResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -94,17 +98,16 @@ public abstract class BaseFriendlyUrlHistoryResourceTestCase {
 
 		_friendlyUrlHistoryResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		FriendlyUrlHistoryResource.Builder builder =
-			FriendlyUrlHistoryResource.builder();
-
-		friendlyUrlHistoryResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		friendlyUrlHistoryResource = FriendlyUrlHistoryResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -175,129 +178,20 @@ public abstract class BaseFriendlyUrlHistoryResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage()
+	public void testGetSiteDisplayPageTemplateFriendlyUrlHistory()
 		throws Exception {
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getSiteExternalReferenceCode();
-		String irrelevantSiteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getIrrelevantSiteExternalReferenceCode();
-		String sitePageExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getSitePageExternalReferenceCode();
-		String irrelevantSitePageExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getIrrelevantSitePageExternalReferenceCode();
-
-		Page<FriendlyUrlHistory> page =
-			friendlyUrlHistoryResource.
-				getSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage(
-					siteExternalReferenceCode, sitePageExternalReferenceCode);
-
-		long totalCount = page.getTotalCount();
-
-		if ((irrelevantSiteExternalReferenceCode != null) &&
-			(irrelevantSitePageExternalReferenceCode != null)) {
-
-			FriendlyUrlHistory irrelevantFriendlyUrlHistory =
-				testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_addFriendlyUrlHistory(
-					irrelevantSiteExternalReferenceCode,
-					irrelevantSitePageExternalReferenceCode,
-					randomIrrelevantFriendlyUrlHistory());
-
-			page =
-				friendlyUrlHistoryResource.
-					getSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage(
-						irrelevantSiteExternalReferenceCode,
-						irrelevantSitePageExternalReferenceCode);
-
-			Assert.assertEquals(totalCount + 1, page.getTotalCount());
-
-			assertContains(
-				irrelevantFriendlyUrlHistory,
-				(List<FriendlyUrlHistory>)page.getItems());
-			assertValid(
-				page,
-				testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getExpectedActions(
-					irrelevantSiteExternalReferenceCode,
-					irrelevantSitePageExternalReferenceCode));
-		}
-
-		FriendlyUrlHistory friendlyUrlHistory1 =
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_addFriendlyUrlHistory(
-				siteExternalReferenceCode, sitePageExternalReferenceCode,
-				randomFriendlyUrlHistory());
-
-		FriendlyUrlHistory friendlyUrlHistory2 =
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_addFriendlyUrlHistory(
-				siteExternalReferenceCode, sitePageExternalReferenceCode,
-				randomFriendlyUrlHistory());
-
-		page =
-			friendlyUrlHistoryResource.
-				getSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage(
-					siteExternalReferenceCode, sitePageExternalReferenceCode);
-
-		Assert.assertEquals(totalCount + 2, page.getTotalCount());
-
-		assertContains(
-			friendlyUrlHistory1, (List<FriendlyUrlHistory>)page.getItems());
-		assertContains(
-			friendlyUrlHistory2, (List<FriendlyUrlHistory>)page.getItems());
-		assertValid(
-			page,
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getExpectedActions(
-				siteExternalReferenceCode, sitePageExternalReferenceCode));
+		Assert.assertTrue(false);
 	}
 
-	protected Map<String, Map<String, String>>
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getExpectedActions(
-				String siteExternalReferenceCode,
-				String sitePageExternalReferenceCode)
-		throws Exception {
-
-		Map<String, Map<String, String>> expectedActions = new HashMap<>();
-
-		return expectedActions;
+	@Test
+	public void testGetSiteSitePageFriendlyUrlHistory() throws Exception {
+		Assert.assertTrue(false);
 	}
 
-	protected FriendlyUrlHistory
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_addFriendlyUrlHistory(
-				String siteExternalReferenceCode,
-				String sitePageExternalReferenceCode,
-				FriendlyUrlHistory friendlyUrlHistory)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected String
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getSiteExternalReferenceCode()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected String
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getIrrelevantSiteExternalReferenceCode()
-		throws Exception {
-
-		return null;
-	}
-
-	protected String
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getSitePageExternalReferenceCode()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	protected String
-			testGetSiteSiteByExternalReferenceCodeSitePageFriendlyUrlHistoryPage_getIrrelevantSitePageExternalReferenceCode()
-		throws Exception {
-
-		return null;
+	@Test
+	public void testGetSiteUtilityPageFriendlyUrlHistory() throws Exception {
+		Assert.assertTrue(false);
 	}
 
 	protected void assertContains(
@@ -658,7 +552,9 @@ public abstract class BaseFriendlyUrlHistoryResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -910,7 +806,9 @@ public abstract class BaseFriendlyUrlHistoryResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseFriendlyUrlHistoryResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private
@@ -918,3 +816,4 @@ public abstract class BaseFriendlyUrlHistoryResourceTestCase {
 			_friendlyUrlHistoryResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-357194944

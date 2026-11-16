@@ -53,6 +53,7 @@ public class AssetVocabularyWrapper
 		attributes.put("settings", getSettings());
 		attributes.put("visibilityType", getVisibilityType());
 		attributes.put("lastPublishDate", getLastPublishDate());
+		attributes.put("status", getStatus());
 
 		return attributes;
 	}
@@ -160,6 +161,12 @@ public class AssetVocabularyWrapper
 
 		if (lastPublishDate != null) {
 			setLastPublishDate(lastPublishDate);
+		}
+
+		Integer status = (Integer)attributes.get("status");
+
+		if (status != null) {
+			setStatus(status);
 		}
 	}
 
@@ -390,6 +397,16 @@ public class AssetVocabularyWrapper
 	}
 
 	/**
+	 * Returns the status of this asset vocabulary.
+	 *
+	 * @return the status of this asset vocabulary
+	 */
+	@Override
+	public int getStatus() {
+		return model.getStatus();
+	}
+
+	/**
 	 * Returns the title of this asset vocabulary.
 	 *
 	 * @return the title of this asset vocabulary
@@ -594,6 +611,11 @@ public class AssetVocabularyWrapper
 	}
 
 	@Override
+	public boolean isSystem() {
+		return model.isSystem();
+	}
+
+	@Override
 	public void persist() {
 		model.persist();
 	}
@@ -791,6 +813,16 @@ public class AssetVocabularyWrapper
 	}
 
 	/**
+	 * Sets the status of this asset vocabulary.
+	 *
+	 * @param status the status of this asset vocabulary
+	 */
+	@Override
+	public void setStatus(int status) {
+		model.setStatus(status);
+	}
+
+	/**
 	 * Sets the title of this asset vocabulary.
 	 *
 	 * @param title the title of this asset vocabulary
@@ -944,3 +976,4 @@ public class AssetVocabularyWrapper
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1261844750

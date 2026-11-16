@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Warehouse")
+@GraphQLName(
+	description = "Warehouse definition addressed through this admin API, carrying the localized `name` and `description`, postal address, geolocation, and `active` flag. Records are company-scoped, and saving one triggers a search reindex; per-SKU stock levels, replenishment, and account/group/channel scoping live in the admin-inventory API.",
+	value = "Warehouse"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Warehouse definition addressed through this admin API, carrying the localized `name` and `description`, postal address, geolocation, and `active` flag. Records are company-scoped, and saving one triggers a search reindex; per-SKU stock levels, replenishment, and account/group/channel scoping live in the admin-inventory API.",
+	requiredProperties = {"commerceCountryId", "name"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"commerceCountryId", "name"})
 @XmlRootElement(name = "Warehouse")
 public class Warehouse implements Serializable {
 
@@ -53,7 +60,10 @@ public class Warehouse implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Warehouse.class, json);
 	}
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the warehouse participates in fulfilment and inventory queries; when false, it is hidden from runtime resolution while remaining addressable through this admin API. Activating a warehouse requires non-zero `latitude` and `longitude`.",
+		example = "true"
+	)
 	public Boolean getActive() {
 		if (_activeSupplier != null) {
 			active = _activeSupplier.get();
@@ -87,14 +97,19 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the warehouse participates in fulfilment and inventory queries; when false, it is hidden from runtime resolution while remaining addressable through this admin API. Activating a warehouse requires non-zero `latitude` and `longitude`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean active;
 
 	@JsonIgnore
 	private Supplier<Boolean> _activeSupplier;
 
-	@Schema(example = "Diamond Bar")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "City portion of the postal address. Matched by the `search` query parameter on the inventory administration list endpoint.",
+		example = "Diamond Bar"
+	)
 	public String getCity() {
 		if (_citySupplier != null) {
 			city = _citySupplier.get();
@@ -126,7 +141,9 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "City portion of the postal address. Matched by the `search` query parameter on the inventory administration list endpoint."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String city;
 
@@ -134,7 +151,10 @@ public class Warehouse implements Serializable {
 	private Supplier<String> _citySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Wire-only numeric country identifier accepted on input but ignored by the server and omitted from responses; the warehouse country is stored as an ISO 3166-1 alpha-2 code and is set and returned through the inventory administration API.",
+		example = "30130"
+	)
 	public Long getCommerceCountryId() {
 		if (_commerceCountryIdSupplier != null) {
 			commerceCountryId = _commerceCountryIdSupplier.get();
@@ -168,7 +188,9 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Wire-only numeric country identifier accepted on input but ignored by the server and omitted from responses; the warehouse country is stored as an ISO 3166-1 alpha-2 code and is set and returned through the inventory administration API."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Long commerceCountryId;
@@ -177,7 +199,10 @@ public class Warehouse implements Serializable {
 	private Supplier<Long> _commerceCountryIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30234")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Wire-only numeric region identifier accepted on input but ignored by the server and omitted from responses; the warehouse region is stored as a string code resolved against the warehouse country, and is set and returned through the inventory administration API.",
+		example = "30234"
+	)
 	public Long getCommerceRegionId() {
 		if (_commerceRegionIdSupplier != null) {
 			commerceRegionId = _commerceRegionIdSupplier.get();
@@ -211,15 +236,18 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Wire-only numeric region identifier accepted on input but ignored by the server and omitted from responses; the warehouse region is stored as a string code resolved against the warehouse country, and is set and returned through the inventory administration API."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long commerceRegionId;
 
 	@JsonIgnore
 	private Supplier<Long> _commerceRegionIdSupplier;
 
-	@Schema(
-		example = "{en_US=Warehouse Description US, hr_HR=Warehouse Description HR, hu_HU=Warehouse Description HU}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized free-form description shown in the back-office UI. Map keys are locale codes; values are the translated strings.",
+		example = "{en_US=Primary fulfilment hub for North America, hr_HR=Glavno skladište za Sjevernu Ameriku, hu_HU=Észak-Amerika elsődleges raktára}"
 	)
 	@Valid
 	public Map<String, String> getDescription() {
@@ -256,7 +284,9 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized free-form description shown in the back-office UI. Map keys are locale codes; values are the translated strings."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> description;
 
@@ -264,7 +294,10 @@ public class Warehouse implements Serializable {
 	private Supplier<Map<String, String>> _descriptionSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "23130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Wire-only site identifier accepted on input but ignored by the server and omitted from responses; warehouses are company-scoped, not site-scoped.",
+		example = "23130"
+	)
 	public Long getGroupId() {
 		if (_groupIdSupplier != null) {
 			groupId = _groupIdSupplier.get();
@@ -298,7 +331,9 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Wire-only site identifier accepted on input but ignored by the server and omitted from responses; warehouses are company-scoped, not site-scoped."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long groupId;
 
@@ -306,7 +341,10 @@ public class Warehouse implements Serializable {
 	private Supplier<Long> _groupIdSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Server-assigned identifier. Read-only; set when the record is first persisted.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -338,14 +376,19 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Server-assigned identifier. Read-only; set when the record is first persisted."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "33.9976884")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Geographic latitude in decimal degrees, used by distance-based fulfilment rules. Must be non-zero when the warehouse is `active`.",
+		example = "33.9976884"
+	)
 	public Double getLatitude() {
 		if (_latitudeSupplier != null) {
 			latitude = _latitudeSupplier.get();
@@ -379,14 +422,19 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Geographic latitude in decimal degrees, used by distance-based fulfilment rules. Must be non-zero when the warehouse is `active`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double latitude;
 
 	@JsonIgnore
 	private Supplier<Double> _latitudeSupplier;
 
-	@Schema(example = "-117.8144595")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Geographic longitude in decimal degrees, used by distance-based fulfilment rules. Must be non-zero when the warehouse is `active`.",
+		example = "-117.8144595"
+	)
 	public Double getLongitude() {
 		if (_longitudeSupplier != null) {
 			longitude = _longitudeSupplier.get();
@@ -420,16 +468,20 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Geographic longitude in decimal degrees, used by distance-based fulfilment rules. Must be non-zero when the warehouse is `active`."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double longitude;
 
 	@JsonIgnore
 	private Supplier<Double> _longitudeSupplier;
 
-	@Schema(example = "0")
-	@Valid
-	public Number getMvccVersion() {
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Wire-only optimistic-locking version counter accepted on input but ignored by the server and omitted from responses; concurrency-controlled updates are available through the inventory administration API.",
+		example = "0"
+	)
+	public Integer getMvccVersion() {
 		if (_mvccVersionSupplier != null) {
 			mvccVersion = _mvccVersionSupplier.get();
 
@@ -439,7 +491,7 @@ public class Warehouse implements Serializable {
 		return mvccVersion;
 	}
 
-	public void setMvccVersion(Number mvccVersion) {
+	public void setMvccVersion(Integer mvccVersion) {
 		this.mvccVersion = mvccVersion;
 
 		_mvccVersionSupplier = null;
@@ -447,7 +499,7 @@ public class Warehouse implements Serializable {
 
 	@JsonIgnore
 	public void setMvccVersion(
-		UnsafeSupplier<Number, Exception> mvccVersionUnsafeSupplier) {
+		UnsafeSupplier<Integer, Exception> mvccVersionUnsafeSupplier) {
 
 		_mvccVersionSupplier = () -> {
 			try {
@@ -462,15 +514,18 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Wire-only optimistic-locking version counter accepted on input but ignored by the server and omitted from responses; concurrency-controlled updates are available through the inventory administration API."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Number mvccVersion;
+	protected Integer mvccVersion;
 
 	@JsonIgnore
-	private Supplier<Number> _mvccVersionSupplier;
+	private Supplier<Integer> _mvccVersionSupplier;
 
-	@Schema(
-		example = "{en_US=Warehouse Name US, hr_HR=Warehouse Name HR, hu_HU=Warehouse Name HU}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized human-readable name shown in the back office and on fulfilment screens. Map keys are locale codes; values are the translated strings. Required on create; the supplied map must be non-empty.",
+		example = "{en_US=Diamond Bar Warehouse, hr_HR=Skladište Diamond Bar, hu_HU=Diamond Bar Raktár}"
 	)
 	@Valid
 	public Map<String, String> getName() {
@@ -506,7 +561,9 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized human-readable name shown in the back office and on fulfilment screens. Map keys are locale codes; values are the translated strings. Required on create; the supplied map must be non-empty."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotNull
 	protected Map<String, String> name;
@@ -514,7 +571,10 @@ public class Warehouse implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _nameSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Wire-only default-warehouse flag accepted on input but ignored by the server and omitted from responses; no primary-warehouse concept exists on the server.",
+		example = "true"
+	)
 	public Boolean getPrimary() {
 		if (_primarySupplier != null) {
 			primary = _primarySupplier.get();
@@ -548,14 +608,19 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Wire-only default-warehouse flag accepted on input but ignored by the server and omitted from responses; no primary-warehouse concept exists on the server."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean primary;
 
 	@JsonIgnore
 	private Supplier<Boolean> _primarySupplier;
 
-	@Schema(example = "1400 Montefino Ave")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "First line of the postal address. Matched by the `search` query parameter on the inventory administration list endpoint.",
+		example = "1400 Montefino Ave"
+	)
 	public String getStreet1() {
 		if (_street1Supplier != null) {
 			street1 = _street1Supplier.get();
@@ -589,14 +654,19 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "First line of the postal address. Matched by the `search` query parameter on the inventory administration list endpoint."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String street1;
 
 	@JsonIgnore
 	private Supplier<String> _street1Supplier;
 
-	@Schema(example = "1st floor")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Second line of the postal address.",
+		example = "1st floor"
+	)
 	public String getStreet2() {
 		if (_street2Supplier != null) {
 			street2 = _street2Supplier.get();
@@ -630,14 +700,16 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Second line of the postal address.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String street2;
 
 	@JsonIgnore
 	private Supplier<String> _street2Supplier;
 
-	@Schema(example = "suite 200")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Third line of the postal address.", example = "suite 200"
+	)
 	public String getStreet3() {
 		if (_street3Supplier != null) {
 			street3 = _street3Supplier.get();
@@ -671,14 +743,17 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Third line of the postal address.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String street3;
 
 	@JsonIgnore
 	private Supplier<String> _street3Supplier;
 
-	@Schema(example = "91765")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Postal code for the warehouse address. Matched by the `search` query parameter on the inventory administration list endpoint.",
+		example = "91765"
+	)
 	public String getZip() {
 		if (_zipSupplier != null) {
 			zip = _zipSupplier.get();
@@ -710,7 +785,9 @@ public class Warehouse implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Postal code for the warehouse address. Matched by the `search` query parameter on the inventory administration list endpoint."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String zip;
 
@@ -856,7 +933,7 @@ public class Warehouse implements Serializable {
 			sb.append(longitude);
 		}
 
-		Number mvccVersion = getMvccVersion();
+		Integer mvccVersion = getMvccVersion();
 
 		if (mvccVersion != null) {
 			if (sb.length() > 1) {
@@ -961,8 +1038,8 @@ public class Warehouse implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.site.setting.dto.v1_0.Warehouse",
 		name = "x-class-name"
 	)
@@ -1049,6 +1126,27 @@ public class Warehouse implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1057,3 +1155,4 @@ public class Warehouse implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:409852528

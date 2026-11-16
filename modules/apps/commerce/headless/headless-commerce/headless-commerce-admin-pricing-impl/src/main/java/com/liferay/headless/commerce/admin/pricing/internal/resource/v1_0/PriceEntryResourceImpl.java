@@ -14,26 +14,26 @@ import com.liferay.commerce.price.list.service.CommercePriceListService;
 import com.liferay.commerce.price.list.service.CommerceTierPriceEntryService;
 import com.liferay.commerce.product.model.CPDefinition;
 import com.liferay.commerce.product.model.CPInstance;
+import com.liferay.commerce.product.service.CPDefinitionService;
 import com.liferay.commerce.product.service.CPInstanceService;
 import com.liferay.headless.commerce.admin.pricing.dto.v1_0.PriceEntry;
 import com.liferay.headless.commerce.admin.pricing.dto.v1_0.TierPrice;
+import com.liferay.headless.commerce.admin.pricing.internal.util.SkuUtil;
 import com.liferay.headless.commerce.admin.pricing.internal.util.v1_0.TierPriceUtil;
 import com.liferay.headless.commerce.admin.pricing.resource.v1_0.PriceEntryResource;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.util.GetterUtil;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
+import jakarta.ws.rs.core.Response;
+
 import java.math.BigDecimal;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import javax.ws.rs.core.Response;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -130,12 +130,12 @@ public class PriceEntryResourceImpl extends BasePriceEntryResourceImpl {
 				commercePriceList.getCommercePriceListId(),
 				pagination.getStartPosition(), pagination.getEndPosition());
 
-		int totalItems =
+		int totalCount =
 			_commercePriceEntryService.getCommercePriceEntriesCount(
 				commercePriceList.getCommercePriceListId());
 
 		return Page.of(
-			_toPriceEntries(commercePriceEntries), pagination, totalItems);
+			_toPriceEntries(commercePriceEntries), pagination, totalCount);
 	}
 
 	@Override
@@ -155,11 +155,11 @@ public class PriceEntryResourceImpl extends BasePriceEntryResourceImpl {
 			_commercePriceEntryService.getCommercePriceEntries(
 				id, pagination.getStartPosition(), pagination.getEndPosition());
 
-		int totalItems =
+		int totalCount =
 			_commercePriceEntryService.getCommercePriceEntriesCount(id);
 
 		return Page.of(
-			_toPriceEntries(commercePriceEntries), pagination, totalItems);
+			_toPriceEntries(commercePriceEntries), pagination, totalCount);
 	}
 
 	@Override
@@ -240,20 +240,14 @@ public class PriceEntryResourceImpl extends BasePriceEntryResourceImpl {
 
 		long cProductId = 0;
 		String cpInstanceUuid = null;
-		CPInstance cpInstance = null;
 
-		long skuId = GetterUtil.getLong(priceEntry.getSkuId());
-		String skuExternalReferenceCode =
-			priceEntry.getSkuExternalReferenceCode();
-
-		if (skuId > 0) {
-			cpInstance = _cpInstanceService.fetchCPInstance(skuId);
-		}
-		else if (Validator.isNotNull(skuExternalReferenceCode)) {
-			cpInstance =
-				_cpInstanceService.fetchCPInstanceByExternalReferenceCode(
-					skuExternalReferenceCode, serviceContext.getCompanyId());
-		}
+		CPInstance cpInstance = SkuUtil.fetchCPInstance(
+			_cpDefinitionService, _cpInstanceService,
+			commercePriceList.getGroupId(),
+			priceEntry.getProductExternalReferenceCode(), null,
+			priceEntry.getProductType(), serviceContext,
+			priceEntry.getSkuExternalReferenceCode(),
+			GetterUtil.getLong(priceEntry.getSkuId()));
 
 		if (cpInstance != null) {
 			CPDefinition cpDefinition = cpInstance.getCPDefinition();
@@ -284,14 +278,10 @@ public class PriceEntryResourceImpl extends BasePriceEntryResourceImpl {
 			List<CommercePriceEntry> commercePriceEntries)
 		throws Exception {
 
-		List<PriceEntry> priceEntries = new ArrayList<>();
-
-		for (CommercePriceEntry commercePriceEntry : commercePriceEntries) {
-			priceEntries.add(
-				_toPriceEntry(commercePriceEntry.getCommercePriceEntryId()));
-		}
-
-		return priceEntries;
+		return transform(
+			commercePriceEntries,
+			commercePriceEntry -> _toPriceEntry(
+				commercePriceEntry.getCommercePriceEntryId()));
 	}
 
 	private PriceEntry _toPriceEntry(Long commercePriceEntryId)
@@ -348,6 +338,9 @@ public class PriceEntryResourceImpl extends BasePriceEntryResourceImpl {
 
 	@Reference
 	private CommerceTierPriceEntryService _commerceTierPriceEntryService;
+
+	@Reference
+	private CPDefinitionService _cpDefinitionService;
 
 	@Reference
 	private CPInstanceService _cpInstanceService;

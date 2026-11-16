@@ -7,9 +7,8 @@ package com.liferay.translation.web.internal.display.context;
 
 import com.liferay.info.form.InfoForm;
 import com.liferay.info.item.InfoItemFieldValues;
-import com.liferay.portal.bean.BeanPropertiesImpl;
-import com.liferay.portal.kernel.bean.BeanPropertiesUtil;
 import com.liferay.portal.kernel.language.LanguageUtil;
+import com.liferay.portal.kernel.redirect.RedirectURLSettingsUtil;
 import com.liferay.portal.kernel.service.ClassNameLocalServiceUtil;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalService;
 import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalServiceUtil;
@@ -58,15 +57,16 @@ public class TranslateDisplayContextTest {
 	@AfterClass
 	public static void tearDownClass() {
 		_classNameLocalServiceUtilMockedStatic.close();
+		_redirectURLSettingsUtilMockedStatic.close();
 		_translationEntryLocalServiceUtilMockedStatic.close();
 		_workflowDefinitionLinkLocalServiceUtilMockedStatic.close();
 	}
 
 	@Before
 	public void setUp() {
-		_setUpBeanPropertiesUtil();
 		_setUpLanguageUtil();
 		_setUpPortalUtil();
+		_setUpRedirectURLSettingsUtil();
 	}
 
 	@Test
@@ -83,7 +83,7 @@ public class TranslateDisplayContextTest {
 			new MockHttpServletRequest();
 
 		mockHttpServletRequest.setAttribute(
-			JavaConstants.JAVAX_PORTLET_REQUEST,
+			JavaConstants.JAKARTA_PORTLET_REQUEST,
 			new MockLiferayPortletRenderRequest());
 		mockHttpServletRequest.setAttribute(
 			WebKeys.THEME_DISPLAY, Mockito.mock(ThemeDisplay.class));
@@ -143,12 +143,6 @@ public class TranslateDisplayContextTest {
 		return infoFieldSetEntriesData.get("redirectURL");
 	}
 
-	private void _setUpBeanPropertiesUtil() {
-		BeanPropertiesUtil beanPropertiesUtil = new BeanPropertiesUtil();
-
-		beanPropertiesUtil.setBeanProperties(new BeanPropertiesImpl());
-	}
-
 	private void _setUpLanguageUtil() {
 		LanguageUtil languageUtil = new LanguageUtil();
 
@@ -161,9 +155,20 @@ public class TranslateDisplayContextTest {
 		portalUtil.setPortal(new PortalImpl());
 	}
 
+	private void _setUpRedirectURLSettingsUtil() {
+		_redirectURLSettingsUtilMockedStatic.when(
+			() -> RedirectURLSettingsUtil.getAllowedProtocols(Mockito.anyLong())
+		).thenReturn(
+			new String[] {"http", "https"}
+		);
+	}
+
 	private static final MockedStatic<ClassNameLocalServiceUtil>
 		_classNameLocalServiceUtilMockedStatic = Mockito.mockStatic(
 			ClassNameLocalServiceUtil.class);
+	private static final MockedStatic<RedirectURLSettingsUtil>
+		_redirectURLSettingsUtilMockedStatic = Mockito.mockStatic(
+			RedirectURLSettingsUtil.class);
 	private static final MockedStatic<TranslationEntryLocalServiceUtil>
 		_translationEntryLocalServiceUtilMockedStatic = Mockito.mockStatic(
 			TranslationEntryLocalServiceUtil.class);

@@ -8,7 +8,9 @@ package com.liferay.portal.events.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.events.ServicePreAction;
+import com.liferay.portal.kernel.cookies.constants.CookiesConstants;
 import com.liferay.portal.kernel.events.ActionException;
 import com.liferay.portal.kernel.events.LifecycleAction;
 import com.liferay.portal.kernel.events.LifecycleEvent;
@@ -26,12 +28,14 @@ import com.liferay.portal.kernel.security.permission.PermissionCheckerFactory;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourceLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.CompanyTestUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -41,20 +45,22 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.InstancePool;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.log.LogCapture;
 import com.liferay.portal.test.log.LogEntry;
 import com.liferay.portal.test.log.LoggerTestUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsUtil;
+
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -83,17 +89,16 @@ public class ServicePreActionTest {
 	public static void setUpClass() throws Exception {
 		_company = CompanyTestUtil.addCompany();
 
-		_companyThreadLocalCompanyId = CompanyThreadLocal.getCompanyId();
-
-		CompanyThreadLocal.setCompanyId(_company.getCompanyId());
+		_safeCloseable = CompanyThreadLocal.setCompanyIdWithSafeCloseable(
+			_company.getCompanyId());
 	}
 
 	@AfterClass
 	public static void tearDownClass() throws Exception {
-		CompanyThreadLocal.setCompanyId(_companyThreadLocalCompanyId);
+		_safeCloseable.close();
 
 		UserTestUtil.setUser(
-			UserTestUtil.getAdminUser(_companyThreadLocalCompanyId));
+			UserTestUtil.getAdminUser(CompanyThreadLocal.getCompanyId()));
 
 		CompanyLocalServiceUtil.deleteCompany(_company.getCompanyId());
 	}
@@ -107,11 +112,14 @@ public class ServicePreActionTest {
 		LayoutTestUtil.addTypePortletLayout(
 			_group.getGroupId(), "Page not visible", false, null, false, true);
 
+		_mockHttpServletRequest.addHeader(
+			"Host", _company.getVirtualHostname());
 		_mockHttpServletRequest.setAttribute(WebKeys.COMPANY, _company);
 		_mockHttpServletRequest.setAttribute(
 			WebKeys.VIRTUAL_HOST_LAYOUT_SET, _group.getPublicLayoutSet());
 		_mockHttpServletRequest.setRequestURI(
 			_portal.getPathMain() + "/portal/login");
+		_mockHttpServletRequest.setServerName(_company.getVirtualHostname());
 	}
 
 	@Test
@@ -125,8 +133,13 @@ public class ServicePreActionTest {
 					"SERVLET_SERVICE_EVENTS_PRE_ERROR_PAGE",
 					"/portal/portlet_error.jsp")) {
 
-			_testErrorPage(true, false, false, "http://localhost:8080");
-			_testErrorPage(true, false, false, "http://localhost:8080/c");
+			_testErrorPage(
+				true, false, false,
+				"http://localhost:" + _portal.getPortalServerPort(false));
+			_testErrorPage(
+				true, false, false,
+				"http://localhost:" + _portal.getPortalServerPort(false) +
+					"/c");
 		}
 	}
 
@@ -141,8 +154,13 @@ public class ServicePreActionTest {
 					"SERVLET_SERVICE_EVENTS_PRE_ERROR_PAGE",
 					"/portal/portlet_error.jsp")) {
 
-			_testErrorPage(false, true, false, "http://localhost:8080");
-			_testErrorPage(false, true, false, "http://localhost:8080/c");
+			_testErrorPage(
+				false, true, false,
+				"http://localhost:" + _portal.getPortalServerPort(false));
+			_testErrorPage(
+				false, true, false,
+				"http://localhost:" + _portal.getPortalServerPort(false) +
+					"/c");
 		}
 	}
 
@@ -153,8 +171,13 @@ public class ServicePreActionTest {
 					"SERVLET_SERVICE_EVENTS_PRE",
 					new String[] {TestLifecycleAction.class.getName()})) {
 
-			_testErrorPage(false, false, false, "http://localhost:8080");
-			_testErrorPage(false, false, false, "http://localhost:8080/c");
+			_testErrorPage(
+				false, false, false,
+				"http://localhost:" + _portal.getPortalServerPort(false));
+			_testErrorPage(
+				false, false, false,
+				"http://localhost:" + _portal.getPortalServerPort(false) +
+					"/c");
 		}
 	}
 
@@ -167,8 +190,13 @@ public class ServicePreActionTest {
 					"SERVLET_SERVICE_EVENTS_PRE",
 					new String[] {TestLifecycleAction.class.getName()})) {
 
-			_testErrorPage(false, false, true, "http://localhost:8080");
-			_testErrorPage(false, false, true, "http://localhost:8080/c");
+			_testErrorPage(
+				false, false, true,
+				"http://localhost:" + _portal.getPortalServerPort(false));
+			_testErrorPage(
+				false, false, true,
+				"http://localhost:" + _portal.getPortalServerPort(false) +
+					"/c");
 		}
 	}
 
@@ -187,13 +215,12 @@ public class ServicePreActionTest {
 		Object viewableLayoutComposite = ReflectionTestUtil.invoke(
 			_servicePreAction, "_getViewableLayoutComposite",
 			new Class<?>[] {
-				HttpServletRequest.class, User.class, PermissionChecker.class,
-				Layout.class, List.class, boolean.class
+				HttpServletRequest.class, boolean.class, Layout.class,
+				List.class, PermissionChecker.class, boolean.class, User.class
 			},
-			_mockHttpServletRequest, _user,
-			_permissionCheckerFactory.create(_user),
-			_getLayout(defaultLayoutComposite),
-			_getLayouts(defaultLayoutComposite), false);
+			_mockHttpServletRequest, false, _getLayout(defaultLayoutComposite),
+			_getLayouts(defaultLayoutComposite),
+			_permissionCheckerFactory.create(_user), true, _user);
 
 		Layout layout = _getLayout(viewableLayoutComposite);
 
@@ -234,6 +261,77 @@ public class ServicePreActionTest {
 		Assert.assertNotNull(serviceContext);
 		Assert.assertEquals(
 			_group.getGroupId(), serviceContext.getScopeGroupId());
+	}
+
+	@Test
+	@TestInfo({"LPD-100303", "LPD-105580"})
+	public void testInitThemeDisplayDefaultLayoutIsPublished()
+		throws Exception {
+
+		List<Layout> layouts = _layoutLocalService.getLayouts(
+			_group.getGroupId(), false);
+
+		Layout publishedLayout = layouts.get(0);
+
+		long plid = _getThemeDisplayPlid(true, false);
+
+		Assert.assertEquals(publishedLayout.getPlid(), plid);
+
+		Layout contentPageLayout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		Assert.assertFalse(contentPageLayout.isPublished());
+
+		contentPageLayout = _layoutLocalService.updatePriority(
+			contentPageLayout, publishedLayout.getPriority());
+
+		plid = _getThemeDisplayPlid(true, false);
+
+		Assert.assertEquals(publishedLayout.getPlid(), plid);
+
+		_addResources(contentPageLayout);
+
+		plid = _getThemeDisplayPlid(true, contentPageLayout.getPlid(), false);
+
+		Assert.assertEquals(contentPageLayout.getPlid(), plid);
+
+		ThemeDisplay themeDisplay =
+			(ThemeDisplay)_mockHttpServletRequest.getAttribute(
+				WebKeys.THEME_DISPLAY);
+
+		List<Layout> publishedLayouts = themeDisplay.getLayouts();
+
+		for (Layout layout : publishedLayouts) {
+			Assert.assertTrue(layout.isPublished());
+		}
+
+		Assert.assertTrue(ListUtil.isNotEmpty(publishedLayouts));
+
+		_mockHttpServletRequest.setRequestURI(
+			_portal.getPathMain() + "/portal/layout");
+		_mockHttpServletRequest.setAttribute(
+			WebKeys.REDIRECT_TO_DEFAULT_LAYOUT, Boolean.TRUE);
+
+		plid = _getThemeDisplayPlid(true, contentPageLayout.getPlid(), false);
+
+		Assert.assertEquals(publishedLayout.getPlid(), plid);
+
+		int count = layouts.size();
+
+		layouts = _layoutLocalService.getLayouts(_group.getGroupId(), false);
+
+		Layout firstLayout = layouts.get(0);
+
+		Assert.assertEquals(firstLayout.getPlid(), contentPageLayout.getPlid());
+
+		Assert.assertEquals(layouts.toString(), count + 1, layouts.size());
+
+		for (Layout layout : publishedLayouts) {
+			_layoutLocalService.deleteLayout(layout);
+		}
+
+		plid = _getThemeDisplayPlid(true, contentPageLayout.getPlid(), false);
+
+		Assert.assertEquals(contentPageLayout.getPlid(), plid);
 	}
 
 	@Test
@@ -327,6 +425,41 @@ public class ServicePreActionTest {
 		Assert.assertEquals(layout.getPlid(), plid);
 	}
 
+	@Test
+	public void testInitThemeDisplayPortalImpersonationEnable()
+		throws Exception {
+
+		_testInitThemeDisplayPortalImpersonationEnable(false);
+		_testInitThemeDisplayPortalImpersonationEnable(true);
+	}
+
+	@Test
+	public void testInitThemeDisplaySupportCookie() throws Exception {
+		_servicePreAction.servicePre(
+			_mockHttpServletRequest, _mockHttpServletResponse, false);
+
+		Cookie cookie = _mockHttpServletResponse.getCookie(
+			CookiesConstants.NAME_COOKIE_SUPPORT);
+
+		Assert.assertEquals("true", cookie.getValue());
+
+		MockHttpServletResponse mockHttpServletResponse =
+			new MockHttpServletResponse();
+
+		_servicePreAction.servicePre(
+			_mockHttpServletRequest, mockHttpServletResponse, false);
+
+		Assert.assertNull(
+			mockHttpServletResponse.getCookie(
+				CookiesConstants.NAME_COOKIE_SUPPORT));
+	}
+
+	private void _addResources(Layout layout) throws Exception {
+		_resourceLocalService.addResources(
+			_company.getCompanyId(), _group.getGroupId(), layout.getUserId(),
+			Layout.class.getName(), layout.getPlid(), false, true, true);
+	}
+
 	private Layout _getLayout(Object layoutComposite) {
 		return ReflectionTestUtil.invoke(
 			layoutComposite, "getLayout", null, null);
@@ -340,6 +473,21 @@ public class ServicePreActionTest {
 	private long _getThemeDisplayPlid(
 			boolean hasGuestViewPermission, boolean signedIn)
 		throws Exception {
+
+		return _getThemeDisplayPlid(hasGuestViewPermission, 0, signedIn);
+	}
+
+	private long _getThemeDisplayPlid(
+			boolean hasGuestViewPermission, long plid, boolean signedIn)
+		throws Exception {
+
+		if (plid > 0) {
+			_mockHttpServletRequest.setParameter(
+				"p_l_id", String.valueOf(plid));
+		}
+		else {
+			_mockHttpServletRequest.removeParameter("p_l_id");
+		}
 
 		if (!hasGuestViewPermission) {
 			Role role = _roleLocalService.getRole(
@@ -464,8 +612,40 @@ public class ServicePreActionTest {
 		}
 	}
 
+	private void _testInitThemeDisplayPortalImpersonationEnable(boolean value)
+		throws Exception {
+
+		try (SafeCloseable safeCloseable =
+				PropsValuesTestUtil.swapWithSafeCloseable(
+					"PORTAL_IMPERSONATION_ENABLE", value)) {
+
+			_mockHttpServletRequest.setParameter("doAsUserId", _DO_AS_USER_ID);
+
+			_servicePreAction.servicePre(
+				_mockHttpServletRequest, _mockHttpServletResponse, false);
+
+			ThemeDisplay themeDisplay =
+				(ThemeDisplay)_mockHttpServletRequest.getAttribute(
+					WebKeys.THEME_DISPLAY);
+
+			Assert.assertNotNull(themeDisplay);
+
+			if (value) {
+				Assert.assertEquals(
+					_DO_AS_USER_ID, themeDisplay.getDoAsUserId());
+			}
+			else {
+				Assert.assertEquals(
+					StringPool.BLANK, themeDisplay.getDoAsUserId());
+			}
+		}
+	}
+
+	private static final String _DO_AS_USER_ID =
+		"41b432f1b2872de6d1d7488d511e5da2b1";
+
 	private static Company _company;
-	private static long _companyThreadLocalCompanyId;
+	private static SafeCloseable _safeCloseable;
 
 	@DeleteAfterTestRun
 	private Group _group;
@@ -489,6 +669,9 @@ public class ServicePreActionTest {
 
 	@Inject
 	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourceLocalService _resourceLocalService;
 
 	@Inject
 	private ResourcePermissionLocalService _resourcePermissionLocalService;
@@ -528,9 +711,9 @@ public class ServicePreActionTest {
 					ServicePreActionTest.class.getName() + "_JspException");
 
 				httpServletRequest.setAttribute(
-					"javax.servlet.error.exception", exception);
+					"jakarta.servlet.error.exception", exception);
 				httpServletRequest.setAttribute(
-					"javax.servlet.jsp.jspException", exception);
+					"jakarta.servlet.jsp.jspException", exception);
 			}
 
 			throw new ActionException(ServicePreActionTest.class.getName());

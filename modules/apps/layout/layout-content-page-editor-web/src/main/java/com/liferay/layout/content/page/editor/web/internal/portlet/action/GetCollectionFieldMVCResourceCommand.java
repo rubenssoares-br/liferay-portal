@@ -15,9 +15,9 @@ import com.liferay.fragment.entry.processor.helper.FragmentEntryProcessorHelper;
 import com.liferay.fragment.processor.DefaultFragmentEntryProcessorContext;
 import com.liferay.fragment.processor.FragmentEntryProcessorContext;
 import com.liferay.info.collection.provider.RepeatableFieldInfoItemCollectionProvider;
-import com.liferay.info.collection.provider.item.selector.criterion.InfoCollectionProviderItemSelectorCriterion;
-import com.liferay.info.collection.provider.item.selector.criterion.RelatedInfoItemCollectionProviderItemSelectorCriterion;
-import com.liferay.info.collection.provider.item.selector.criterion.RepeatableFieldInfoCollectionProviderItemSelectorCriterion;
+import com.liferay.info.collection.provider.item.selector.InfoCollectionProviderItemSelectorCriterion;
+import com.liferay.info.collection.provider.item.selector.RelatedInfoItemCollectionProviderItemSelectorCriterion;
+import com.liferay.info.collection.provider.item.selector.RepeatableFieldInfoCollectionProviderItemSelectorCriterion;
 import com.liferay.info.exception.NoSuchInfoItemException;
 import com.liferay.info.field.InfoField;
 import com.liferay.info.field.InfoFieldValue;
@@ -30,7 +30,7 @@ import com.liferay.info.item.InfoItemReference;
 import com.liferay.info.item.InfoItemServiceRegistry;
 import com.liferay.info.item.provider.InfoItemFieldValuesProvider;
 import com.liferay.info.item.provider.InfoItemObjectProvider;
-import com.liferay.info.item.provider.filter.InfoItemServiceFilter;
+import com.liferay.info.item.renderer.InfoItemRenderer;
 import com.liferay.info.list.provider.item.selector.criterion.InfoListProviderItemSelectorReturnType;
 import com.liferay.info.list.renderer.DefaultInfoListRendererContext;
 import com.liferay.info.list.renderer.InfoListRenderer;
@@ -54,9 +54,9 @@ import com.liferay.layout.list.retriever.ListObjectReferenceFactory;
 import com.liferay.layout.list.retriever.ListObjectReferenceFactoryRegistry;
 import com.liferay.layout.list.retriever.SegmentsEntryLayoutListRetriever;
 import com.liferay.layout.util.CollectionPaginationUtil;
+import com.liferay.petra.io.unsync.UnsyncStringWriter;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.io.unsync.UnsyncStringWriter;
 import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -71,25 +71,26 @@ import com.liferay.portal.kernel.portlet.bridges.mvc.MVCResourceCommand;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.servlet.PipingServletResponse;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
+import com.liferay.segments.constants.SegmentsEntryConstants;
 import com.liferay.segments.model.SegmentsExperience;
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 
+import jakarta.portlet.PortletURL;
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-
-import javax.portlet.PortletURL;
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -99,7 +100,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
+		"jakarta.portlet.name=" + ContentPageEditorPortletKeys.CONTENT_PAGE_EDITOR_PORTLET,
 		"mvc.command.name=/layout_content_page_editor/get_collection_field"
 	},
 	service = MVCResourceCommand.class
@@ -145,13 +146,15 @@ public class GetCollectionFieldMVCResourceCommand
 
 		try {
 			jsonObject = _getCollectionFieldsJSONObject(
+				themeDisplay.getCompanyId(),
 				_portal.getHttpServletRequest(resourceRequest),
 				_portal.getHttpServletResponse(resourceResponse), activePage,
 				displayAllItems, displayAllPages, languageId,
 				layoutObjectReference, listStyle, listItemStyle,
 				resourceResponse.getNamespace(), numberOfItems,
 				numberOfItemsPerPage, numberOfPages, paginationType,
-				segmentsExperienceId, templateKey);
+				themeDisplay.getScopeGroupId(), segmentsExperienceId,
+				templateKey);
 		}
 		catch (Exception exception) {
 			_log.error("Unable to get collection field", exception);
@@ -174,10 +177,16 @@ public class GetCollectionFieldMVCResourceCommand
 			_segmentsExperienceLocalService.fetchSegmentsExperience(
 				segmentsExperienceId);
 
+		long segmentsEntryId = segmentsExperience.getSegmentsEntryId();
+
+		if (segmentsEntryId == SegmentsEntryConstants.ID_MISSING) {
+			return new long[0];
+		}
+
 		if (!(layoutListRetriever instanceof
 				SegmentsEntryLayoutListRetriever)) {
 
-			return new long[] {segmentsExperience.getSegmentsEntryId()};
+			return new long[] {segmentsEntryId};
 		}
 
 		SegmentsEntryLayoutListRetriever<ListObjectReference>
@@ -186,9 +195,9 @@ public class GetCollectionFieldMVCResourceCommand
 					layoutListRetriever;
 
 		if (segmentsEntryLayoutListRetriever.hasSegmentsEntryVariation(
-				listObjectReference, segmentsExperience.getSegmentsEntryId())) {
+				listObjectReference, segmentsEntryId)) {
 
-			return new long[] {segmentsExperience.getSegmentsEntryId()};
+			return new long[] {segmentsEntryId};
 		}
 
 		return new long[] {
@@ -202,25 +211,25 @@ public class GetCollectionFieldMVCResourceCommand
 
 		// LPS-133832
 
-		if (listObjectReference instanceof ClassedModelListObjectReference) {
-			ClassedModelListObjectReference classedModelListObjectReference =
-				(ClassedModelListObjectReference)listObjectReference;
-
-			return _assetListEntryLocalService.fetchAssetListEntry(
-				classedModelListObjectReference.getClassPK());
+		if (!(listObjectReference instanceof ClassedModelListObjectReference)) {
+			return null;
 		}
 
-		return null;
+		ClassedModelListObjectReference classedModelListObjectReference =
+			(ClassedModelListObjectReference)listObjectReference;
+
+		return _assetListEntryLocalService.fetchAssetListEntry(
+			classedModelListObjectReference.getClassPK());
 	}
 
 	private JSONObject _getCollectionFieldsJSONObject(
-			HttpServletRequest httpServletRequest,
+			long companyId, HttpServletRequest httpServletRequest,
 			HttpServletResponse httpServletResponse, int activePage,
 			boolean displayAllItems, boolean displayAllPages, String languageId,
 			String layoutObjectReference, String listStyle,
 			String listItemStyle, String namespace, int numberOfItems,
 			int numberOfItemsPerPage, int numberOfPages, String paginationType,
-			long segmentsExperienceId, String templateKey)
+			long scopeGroupId, long segmentsExperienceId, String templateKey)
 		throws PortalException {
 
 		JSONObject layoutObjectReferenceJSONObject =
@@ -245,7 +254,7 @@ public class GetCollectionFieldMVCResourceCommand
 
 		ListObjectReference listObjectReference =
 			listObjectReferenceFactory.getListObjectReference(
-				layoutObjectReferenceJSONObject);
+				companyId, scopeGroupId, layoutObjectReferenceJSONObject);
 
 		String originalItemType = null;
 
@@ -306,11 +315,12 @@ public class GetCollectionFieldMVCResourceCommand
 			LayoutObjectReferenceUtil.getConfiguration(
 				layoutObjectReferenceJSONObject));
 		defaultLayoutListRetrieverContext.setContextObject(
-			_getInfoItem(httpServletRequest));
+			_getInfoItem(httpServletRequest, scopeGroupId));
 		defaultLayoutListRetrieverContext.setPagination(
 			CollectionPaginationUtil.getPagination(
 				activePage, displayAllItems, numberOfItems,
 				numberOfItemsPerPage, paginationType));
+		defaultLayoutListRetrieverContext.setScopeGroupId(scopeGroupId);
 		defaultLayoutListRetrieverContext.setSegmentsEntryIds(
 			_filterSegmentsEntryIds(
 				layoutListRetriever, listObjectReference,
@@ -327,7 +337,18 @@ public class GetCollectionFieldMVCResourceCommand
 						_infoListRendererRegistry.getInfoListRenderer(
 							listStyle);
 
-				if (infoListRenderer == null) {
+				if ((infoListRenderer == null) ||
+					!Objects.equals(
+						infoListRenderer.getCollectionItemClassName(),
+						listObjectReference.getItemType())) {
+
+					return null;
+				}
+
+				if (Validator.isNotNull(listItemStyle) &&
+					!_hasAvailableInfoItemRenderer(
+						infoListRenderer, listItemStyle)) {
+
 					return null;
 				}
 
@@ -364,12 +385,17 @@ public class GetCollectionFieldMVCResourceCommand
 			() -> {
 				JSONArray jsonArray = _jsonFactory.createJSONArray();
 
+				FragmentEntryProcessorContext fragmentEntryProcessorContext =
+					new DefaultFragmentEntryProcessorContext(
+						companyId, httpServletRequest, httpServletResponse,
+						LocaleUtil.fromLanguageId(languageId),
+						FragmentEntryLinkConstants.EDIT, scopeGroupId);
+
 				for (Object object : infoPage.getPageItems()) {
 					jsonArray.put(
 						_getDisplayObjectJSONObject(
-							httpServletRequest, httpServletResponse,
-							infoItemFieldValuesProvider, object,
-							LocaleUtil.fromLanguageId(languageId)));
+							fragmentEntryProcessorContext,
+							infoItemFieldValuesProvider, object));
 				}
 
 				return jsonArray;
@@ -479,10 +505,9 @@ public class GetCollectionFieldMVCResourceCommand
 	}
 
 	private JSONObject _getDisplayObjectJSONObject(
-		HttpServletRequest httpServletRequest,
-		HttpServletResponse httpServletResponse,
+		FragmentEntryProcessorContext fragmentEntryProcessorContext,
 		InfoItemFieldValuesProvider<Object> infoItemFieldValuesProvider,
-		Object object, Locale locale) {
+		Object object) {
 
 		InfoItemFieldValues infoItemFieldValues =
 			infoItemFieldValuesProvider.getInfoItemFieldValues(object);
@@ -505,33 +530,30 @@ public class GetCollectionFieldMVCResourceCommand
 		).put(
 			"classPK",
 			() -> {
-				if (infoItemIdentifier instanceof ClassPKInfoItemIdentifier) {
-					ClassPKInfoItemIdentifier classPKInfoItemIdentifier =
-						(ClassPKInfoItemIdentifier)infoItemIdentifier;
+				if (!(infoItemIdentifier instanceof
+						ClassPKInfoItemIdentifier)) {
 
-					return classPKInfoItemIdentifier.getClassPK();
+					return null;
 				}
 
-				return null;
+				ClassPKInfoItemIdentifier classPKInfoItemIdentifier =
+					(ClassPKInfoItemIdentifier)infoItemIdentifier;
+
+				return classPKInfoItemIdentifier.getClassPK();
 			}
 		).put(
 			"externalReferenceCode",
 			() -> {
-				if (infoItemIdentifier instanceof ERCInfoItemIdentifier) {
-					ERCInfoItemIdentifier ercInfoItemIdentifier =
-						(ERCInfoItemIdentifier)infoItemIdentifier;
-
-					return ercInfoItemIdentifier.getExternalReferenceCode();
+				if (!(infoItemIdentifier instanceof ERCInfoItemIdentifier)) {
+					return null;
 				}
 
-				return null;
+				ERCInfoItemIdentifier ercInfoItemIdentifier =
+					(ERCInfoItemIdentifier)infoItemIdentifier;
+
+				return ercInfoItemIdentifier.getExternalReferenceCode();
 			}
 		);
-
-		FragmentEntryProcessorContext fragmentEntryProcessorContext =
-			new DefaultFragmentEntryProcessorContext(
-				httpServletRequest, httpServletResponse,
-				FragmentEntryLinkConstants.EDIT, locale);
 
 		for (InfoFieldValue<Object> infoFieldValue :
 				infoItemFieldValues.getInfoFieldValues()) {
@@ -546,6 +568,8 @@ public class GetCollectionFieldMVCResourceCommand
 					fragmentEntryProcessorContext, infoItemFieldValues);
 
 			displayObjectJSONObject.put(
+				infoField.getExternalUniqueId(), value
+			).put(
 				infoField.getName(), value
 			).put(
 				infoField.getUniqueId(), value
@@ -576,46 +600,55 @@ public class GetCollectionFieldMVCResourceCommand
 				InfoItemFieldValuesProvider.class, itemType);
 	}
 
-	private Object _getInfoItem(HttpServletRequest httpServletRequest) {
-		long classNameId = ParamUtil.getLong(httpServletRequest, "classNameId");
+	private Object _getInfoItem(
+		HttpServletRequest httpServletRequest, long scopeGroupId) {
+
+		String className = _portal.fetchClassName(
+			ParamUtil.getLong(httpServletRequest, "classNameId"));
+
 		long classPK = ParamUtil.getLong(httpServletRequest, "classPK");
 		String externalReferenceCode = ParamUtil.getString(
 			httpServletRequest, "externalReferenceCode");
 
-		if ((classNameId <= 0) ||
+		if (Validator.isNull(className) ||
 			((classPK <= 0) && Validator.isNull(externalReferenceCode))) {
 
 			return null;
 		}
 
-		InfoItemServiceFilter infoItemServiceFilter =
-			ClassPKInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER;
+		InfoItemIdentifier infoItemIdentifier = null;
+		InfoItemObjectProvider<Object> infoItemObjectProvider = null;
 
-		if (Validator.isNotNull(externalReferenceCode)) {
-			infoItemServiceFilter =
-				ERCInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER;
+		if (classPK > 0) {
+			infoItemIdentifier = new ClassPKInfoItemIdentifier(classPK);
+			infoItemObjectProvider =
+				(InfoItemObjectProvider<Object>)
+					_infoItemServiceRegistry.getFirstInfoItemService(
+						InfoItemObjectProvider.class, className,
+						ClassPKInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER);
 		}
 
-		InfoItemObjectProvider<Object> infoItemObjectProvider =
-			(InfoItemObjectProvider<Object>)
-				_infoItemServiceRegistry.getFirstInfoItemService(
-					InfoItemObjectProvider.class,
-					_portal.getClassName(classNameId), infoItemServiceFilter);
+		if ((infoItemObjectProvider == null) &&
+			Validator.isNotNull(externalReferenceCode)) {
+
+			infoItemIdentifier = new ERCInfoItemIdentifier(
+				externalReferenceCode,
+				ParamUtil.getString(
+					httpServletRequest, "scopeExternalReferenceCode", null));
+			infoItemObjectProvider =
+				(InfoItemObjectProvider<Object>)
+					_infoItemServiceRegistry.getFirstInfoItemService(
+						InfoItemObjectProvider.class, className,
+						ERCInfoItemIdentifier.INFO_ITEM_SERVICE_FILTER);
+		}
 
 		if (infoItemObjectProvider == null) {
 			return null;
 		}
 
 		try {
-			InfoItemIdentifier infoItemIdentifier =
-				new ClassPKInfoItemIdentifier(classPK);
-
-			if (Validator.isNotNull(externalReferenceCode)) {
-				infoItemIdentifier = new ERCInfoItemIdentifier(
-					externalReferenceCode);
-			}
-
-			return infoItemObjectProvider.getInfoItem(infoItemIdentifier);
+			return infoItemObjectProvider.getInfoItem(
+				scopeGroupId, infoItemIdentifier);
 		}
 		catch (NoSuchInfoItemException noSuchInfoItemException) {
 			if (_log.isDebugEnabled()) {
@@ -624,6 +657,22 @@ public class GetCollectionFieldMVCResourceCommand
 		}
 
 		return null;
+	}
+
+	private boolean _hasAvailableInfoItemRenderer(
+		InfoListRenderer<?> infoListRenderer, String listItemStyle) {
+
+		List<InfoItemRenderer<?>> infoItemRenderers =
+			infoListRenderer.getAvailableInfoItemRenderers();
+
+		if (ListUtil.isEmpty(infoItemRenderers)) {
+			return true;
+		}
+
+		return ListUtil.exists(
+			infoItemRenderers,
+			infoItemRenderer -> Objects.equals(
+				infoItemRenderer.getKey(), listItemStyle));
 	}
 
 	private boolean _hasViewPermission(

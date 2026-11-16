@@ -59,6 +59,10 @@ public class StyleBookEntryTable extends BaseTable<StyleBookEntryTable> {
 		createColumn(
 			"defaultStyleBookEntry", Boolean.class, Types.BOOLEAN,
 			Column.FLAG_DEFAULT);
+	public final Column<StyleBookEntryTable, Clob> frontendTokenDefinition =
+		createColumn(
+			"frontendTokenDefinition", Clob.class, Types.CLOB,
+			Column.FLAG_DEFAULT);
 	public final Column<StyleBookEntryTable, Clob> frontendTokensValues =
 		createColumn(
 			"frontendTokensValues", Clob.class, Types.CLOB,
@@ -81,3 +85,4 @@ public class StyleBookEntryTable extends BaseTable<StyleBookEntryTable> {
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1554132384

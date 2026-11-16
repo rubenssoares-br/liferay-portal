@@ -8,16 +8,17 @@ package com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0;
 import com.liferay.portal.tools.rest.builder.test.client.dto.v1_0.TestEntityAddress;
 import com.liferay.portal.tools.rest.builder.test.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -365,6 +366,16 @@ public class TestEntityAddressSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -397,3 +408,4 @@ public class TestEntityAddressSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:479224767

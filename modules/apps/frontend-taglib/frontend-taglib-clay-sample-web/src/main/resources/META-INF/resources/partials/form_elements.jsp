@@ -23,32 +23,32 @@
 
 	<tbody>
 		<tr>
-			<td><clay:checkbox checked="<%= true %>" name="name" /></td>
-			<td>On</td>
+			<td><clay:checkbox aria-labelledby="checkboxOnLabel" checked="<%= true %>" name="checkboxOn" /></td>
+			<td id="checkboxOnLabel">On</td>
 		</tr>
 		<tr>
-			<td><clay:checkbox name="name" /></td>
-			<td>Off</td>
+			<td><clay:checkbox aria-labelledby="checkboxOffLabel" name="checkboxOff" /></td>
+			<td id="checkboxOffLabel">Off</td>
 		</tr>
 		<tr>
-			<td><clay:checkbox checked="<%= true %>" cssClass="custom-css-class" data-qa-id="clayCustomCheckbox01" name="name" /></td>
-			<td>With custom class and id</td>
+			<td><clay:checkbox aria-labelledby="checkboxCustomClassLabel" checked="<%= true %>" cssClass="custom-css-class" data-qa-id="clayCustomCheckbox01" name="checkboxCustomClass" /></td>
+			<td id="checkboxCustomClassLabel">With custom class and id</td>
 		</tr>
 		<tr>
 			<td><clay:checkbox label="Checkbox with Label" name="checkboxWithLabel" /></td>
 			<td>With Label</td>
 		</tr>
 		<tr>
-			<td><clay:checkbox checked="<%= true %>" disabled="<%= true %>" name="name" /></td>
-			<td>On disabled</td>
+			<td><clay:checkbox aria-labelledby="checkboxOnDisabledLabel" checked="<%= true %>" disabled="<%= true %>" name="checkboxOnDisabled" /></td>
+			<td id="checkboxOnDisabledLabel">On disabled</td>
 		</tr>
 		<tr>
-			<td><clay:checkbox disabled="<%= true %>" name="name" /></td>
-			<td>Off disabled</td>
+			<td><clay:checkbox aria-labelledby="checkboxOffDisabledLabel" disabled="<%= true %>" name="checkboxOffDisabled" /></td>
+			<td id="checkboxOffDisabledLabel">Off disabled</td>
 		</tr>
 		<tr>
-			<td><clay:checkbox indeterminate="<%= true %>" name="name" /></td>
-			<td>Indeterminate</td>
+			<td><clay:checkbox aria-labelledby="checkboxIndeterminateLabel" indeterminate="<%= true %>" name="checkboxIndeterminate" /></td>
+			<td id="checkboxIndeterminateLabel">Indeterminate</td>
 		</tr>
 	</tbody>
 </table>
@@ -166,3 +166,51 @@ for (int i = 0; i < 8; i++) {
 	selectedMultiselectItems="<%= multiselectDisplayContext.getSelectedMultiselectItems() %>"
 	sourceMultiselectItems="<%= multiselectDisplayContext.getSourceMultiselectItems() %>"
 />
+
+<h3>FORM GROUP</h3>
+
+<blockquote>
+	<p>Form group variants: default and small. Labels and controls should scale proportionally with the variant.</p>
+</blockquote>
+
+<div class="form-group" id="formGroupDefault">
+	<label class="control-label" for="inputDefault">Default Input</label>
+
+	<input class="form-control" id="inputDefault" type="text" />
+</div>
+
+<div class="form-group form-group-sm" id="formGroupSm">
+	<label class="control-label" for="inputSm">Small Input</label>
+
+	<input class="form-control form-control-sm" id="inputSm" type="text" />
+</div>
+
+<div class="form-group" id="formGroupDefaultTextarea">
+	<label class="control-label" for="textareaDefault">Default Textarea</label>
+
+	<textarea class="form-control" id="textareaDefault"></textarea>
+</div>
+
+<div class="form-group form-group-sm" id="formGroupSmTextarea">
+	<label class="control-label" for="textareaSm">Small Textarea</label>
+
+	<textarea class="form-control form-control-sm" id="textareaSm"></textarea>
+</div>
+
+<div class="form-group" id="formGroupDefaultSelect">
+	<label class="control-label" for="selectDefault">Default Select</label>
+
+	<select class="form-control" id="selectDefault">
+		<option>Option 1</option>
+		<option>Option 2</option>
+	</select>
+</div>
+
+<div class="form-group form-group-sm" id="formGroupSmSelect">
+	<label class="control-label" for="selectSm">Small Select</label>
+
+	<select class="form-control form-control-sm" id="selectSm">
+		<option>Option 1</option>
+		<option>Option 2</option>
+	</select>
+</div>

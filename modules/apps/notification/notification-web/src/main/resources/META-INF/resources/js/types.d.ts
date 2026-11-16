@@ -25,16 +25,18 @@ type EmailRecipients = {
 	from: string;
 	fromName: LocalizedValue<string>;
 	singleRecipient: boolean;
-	to: LocalizedValue<string> | EmailNotificationRecipients[];
+	to: LocalizedValue<string> | EmailNotificationRecipients[] | string;
 	toType: string;
 };
 
 type EmailNotificationRecipients = {
-	[key in 'roleName']?: string;
+	[key in EmailNotificationRecipientTypeOptions]?: string;
 };
 
+type EmailNotificationRecipientTypeOptions = 'roleName' | 'userGroupName';
+
 type UserNotificationRecipients = {
-	[key in 'term' | 'userScreenName' | 'roleName']?: string;
+	[key in 'term' | 'userScreenName' | 'userGroupName' | 'roleName']?: string;
 };
 interface NotificationTemplate {
 	attachmentObjectFieldIds: string[] | number[];
@@ -65,6 +67,7 @@ interface ObjectField {
 	indexedLanguageId: Locale | null;
 	label: LocalizedValue<string>;
 	listTypeDefinitionId: number;
+	localized: boolean;
 	name?: string;
 	objectFieldSettings?: ObjectFieldSetting[];
 	relationshipType?: unknown;
@@ -76,7 +79,7 @@ interface ObjectDefinition {
 	active: boolean;
 	dateCreated: string;
 	dateModified: string;
-	defaultLanguageId: Locale;
+	defaultLanguageId: Liferay.Language.Locale;
 	externalReferenceCode: string;
 	id: number;
 	label: LocalizedValue<string>;
@@ -117,5 +120,5 @@ type ObjectFieldSettingName =
 	| 'maximumFileSize'
 	| 'maxLength'
 	| 'showCounter'
-	| 'showFilesInDocumentsAndMedia'
+	| 'showFilesInLibrary'
 	| 'storageDLFolderPath';

@@ -28,6 +28,7 @@ RedirectEntriesDisplayContext redirectEntriesDisplayContext = (RedirectEntriesDi
 
 	<clay:container-fluid
 		cssClass="sidenav-content"
+		fullWidth="<%= true %>"
 	>
 		<c:if test="<%= redirectEntriesDisplayContext.isStagingGroup() %>">
 			<div class="lfr-search-container">
@@ -47,7 +48,7 @@ RedirectEntriesDisplayContext redirectEntriesDisplayContext = (RedirectEntriesDi
 			</div>
 		</c:if>
 
-		<aui:form action="<%= redirectEntriesDisplayContext.getActionURL() %>" cssClass="container-fluid container-fluid-max-xl" name="fm">
+		<aui:form action="<%= redirectEntriesDisplayContext.getActionURL() %>" cssClass="container-fluid" name="fm">
 			<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
 
 			<liferay-ui:search-container
@@ -56,7 +57,7 @@ RedirectEntriesDisplayContext redirectEntriesDisplayContext = (RedirectEntriesDi
 			>
 				<liferay-ui:search-container-row
 					className="com.liferay.redirect.model.RedirectEntry"
-					keyProperty="redirectEntryId"
+					keyPropertyName="redirectEntryId"
 					modelVar="redirectEntry"
 				>
 

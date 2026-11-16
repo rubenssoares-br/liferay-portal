@@ -128,6 +128,15 @@ public class CommercePricingClassServiceWrapper
 			cpDefinitionId, title);
 	}
 
+	@Override
+	public CommercePricingClass getOrAddEmptyCommercePricingClass(
+			String externalReferenceCode)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _commercePricingClassService.getOrAddEmptyCommercePricingClass(
+			externalReferenceCode);
+	}
+
 	/**
 	 * Returns the OSGi service identifier.
 	 *
@@ -195,3 +204,4 @@ public class CommercePricingClassServiceWrapper
 	private CommercePricingClassService _commercePricingClassService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:110208071

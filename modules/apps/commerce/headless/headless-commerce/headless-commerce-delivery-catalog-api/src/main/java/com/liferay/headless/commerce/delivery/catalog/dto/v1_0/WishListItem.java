@@ -11,31 +11,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("WishListItem")
+@GraphQLName(
+	description = "Single entry in a wish list referencing a product or SKU together with snapshot display fields the storefront uses to render the saved item.",
+	value = "WishListItem"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Single entry in a wish list referencing a product or SKU together with snapshot display fields the storefront uses to render the saved item."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "WishListItem")
 public class WishListItem implements Serializable {
@@ -48,7 +55,10 @@ public class WishListItem implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(WishListItem.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Resolved final price of the referenced SKU at the time the response is built, formatted in the channel currency.",
+		example = "$8.99"
+	)
 	public String getFinalPrice() {
 		if (_finalPriceSupplier != null) {
 			finalPrice = _finalPriceSupplier.get();
@@ -82,14 +92,19 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Resolved final price of the referenced SKU at the time the response is built, formatted in the channel currency."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String finalPrice;
 
 	@JsonIgnore
 	private Supplier<String> _finalPriceSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Resolved friendly URL of the referenced product in the active channel.",
+		example = "/hand-saw"
+	)
 	public String getFriendlyURL() {
 		if (_friendlyURLSupplier != null) {
 			friendlyURL = _friendlyURLSupplier.get();
@@ -123,14 +138,19 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Resolved friendly URL of the referenced product in the active channel."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String friendlyURL;
 
 	@JsonIgnore
 	private Supplier<String> _friendlyURLSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Resolved URL of the referenced product's thumbnail image.",
+		example = "https://example.com/thumbnail.png"
+	)
 	public String getIcon() {
 		if (_iconSupplier != null) {
 			icon = _iconSupplier.get();
@@ -162,14 +182,19 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Resolved URL of the referenced product's thumbnail image."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String icon;
 
 	@JsonIgnore
 	private Supplier<String> _iconSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the wish-list item (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -201,14 +226,19 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the wish-list item (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the referenced product head (FK identifier).",
+		example = "30129"
+	)
 	public Long getProductId() {
 		if (_productIdSupplier != null) {
 			productId = _productIdSupplier.get();
@@ -242,14 +272,19 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the referenced product head (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long productId;
 
 	@JsonIgnore
 	private Supplier<Long> _productIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized display name of the referenced product, resolved for the request locale.",
+		example = "Hand Saw"
+	)
 	public String getProductName() {
 		if (_productNameSupplier != null) {
 			productName = _productNameSupplier.get();
@@ -283,14 +318,19 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized display name of the referenced product, resolved for the request locale."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String productName;
 
 	@JsonIgnore
 	private Supplier<String> _productNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the referenced SKU (FK identifier).",
+		example = "30130"
+	)
 	public Long getSkuId() {
 		if (_skuIdSupplier != null) {
 			skuId = _skuIdSupplier.get();
@@ -322,7 +362,9 @@ public class WishListItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the referenced SKU (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long skuId;
 
@@ -461,8 +503,8 @@ public class WishListItem implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.WishListItem",
 		name = "x-class-name"
 	)
@@ -549,6 +591,27 @@ public class WishListItem implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -557,3 +620,4 @@ public class WishListItem implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-716138768

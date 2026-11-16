@@ -11,10 +11,10 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.segments.criteria.Criteria;
 import com.liferay.segments.field.Field;
 
+import jakarta.portlet.PortletRequest;
+
 import java.util.List;
 import java.util.Locale;
-
-import javax.portlet.PortletRequest;
 
 /**
  * Provides an interface for extending the segment's {@link Criteria} by adding
@@ -45,6 +45,13 @@ public interface SegmentsCriteriaContributor {
 
 		SegmentsCriteriaContributor.contribute(
 			criteria, filterString, conjunction, getKey(), getType());
+	}
+
+	public default void contributeForMemberLookup(
+		Criteria criteria, String filterString,
+		Criteria.Conjunction conjunction) {
+
+		contribute(criteria, filterString, conjunction);
 	}
 
 	/**
@@ -112,5 +119,9 @@ public interface SegmentsCriteriaContributor {
 	 * @see    Criteria.Type
 	 */
 	public Criteria.Type getType();
+
+	public default boolean isDisabled(PortletRequest portletRequest) {
+		return false;
+	}
 
 }

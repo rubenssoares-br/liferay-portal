@@ -23,9 +23,9 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.PortletRequest;
+import jakarta.portlet.PortletRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -76,14 +76,14 @@ public class ExportImportEditModePortletConfigurationIcon
 	public boolean isShow(
 		HttpServletRequest httpServletRequest, String portletResource) {
 
-		ThemeDisplay themeDisplay =
-			(ThemeDisplay)httpServletRequest.getAttribute(
-				WebKeys.THEME_DISPLAY);
-
-		Portlet portlet = _portletLocalService.getPortletById(
-			themeDisplay.getCompanyId(), portletResource);
-
 		try {
+			ThemeDisplay themeDisplay =
+				(ThemeDisplay)httpServletRequest.getAttribute(
+					WebKeys.THEME_DISPLAY);
+
+			Portlet portlet = _portletLocalService.getPortletById(
+				themeDisplay.getCompanyId(), portletResource);
+
 			if (!PortletPermissionUtil.contains(
 					themeDisplay.getPermissionChecker(),
 					themeDisplay.getScopeGroupId(), themeDisplay.getLayout(),
@@ -104,9 +104,9 @@ public class ExportImportEditModePortletConfigurationIcon
 			if (_log.isDebugEnabled()) {
 				_log.debug(portalException);
 			}
-		}
 
-		return false;
+			return false;
+		}
 	}
 
 	private static final Log _log = LogFactoryUtil.getLog(

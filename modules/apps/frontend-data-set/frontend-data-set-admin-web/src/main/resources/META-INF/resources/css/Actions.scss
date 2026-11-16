@@ -1,4 +1,4 @@
-@import 'atlas-variables';
+@import '_atlas-custom-properties-variables';
 @import 'cadmin-variables';
 
 html#{$cadmin-selector} {
@@ -9,37 +9,37 @@ html#{$cadmin-selector} {
 		padding-top: 8px;
 
 		&:hover {
-			background-color: #f0f5ff;
-			color: #272833;
+			background-color: $primary-l3;
+			color: $gray-900;
+		}
+	}
+}
+
+html#{$cadmin-selector} .cadmin.fds-admin .fds-admin-actions .panel-unstyled {
+	margin-bottom: 0;
+	padding: 1rem 1.5rem;
+
+	.panel-header {
+		&,
+		&.collapsed {
+			border-color: $gray-400;
+		}
+
+		&.panel-header-link {
+			border-radius: 0;
 		}
 	}
 
-	.panel-unstyled {
-		margin-bottom: 0;
-		padding: 1rem 1.5rem;
+	.tab-content.status-messages-content .tab-pane {
+		padding: 2rem 0;
+	}
 
-		.panel-header {
-			&,
-			&.collapsed {
-				border-color: $gray-400;
-			}
+	.field-feedback {
+		font-size: 14px;
 
-			&.panel-header-link {
-				border-radius: 0;
-			}
-		}
-
-		.tab-content.status-messages-content .tab-pane {
-			padding: 2rem 0;
-		}
-
-		.field-feedback {
-			font-size: 14px;
-
-			&:last-child {
-				color: #6b6c7e;
-				font-weight: 600;
-			}
+		&:last-child {
+			color: $gray-600;
+			font-weight: 600;
 		}
 	}
 }

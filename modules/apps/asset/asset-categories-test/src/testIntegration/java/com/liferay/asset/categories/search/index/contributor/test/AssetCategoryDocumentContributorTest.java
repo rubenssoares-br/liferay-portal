@@ -40,7 +40,7 @@ import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.engine.adapter.search.CountSearchRequest;
 import com.liferay.portal.search.engine.adapter.search.CountSearchResponse;
 import com.liferay.portal.search.query.BooleanQuery;
-import com.liferay.portal.search.query.Queries;
+import com.liferay.portal.search.query.QueriesUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -148,39 +148,28 @@ public class AssetCategoryDocumentContributorTest {
 	private List<String> _getGroupAssetCategoryExpectedExternalReferenceCodes(
 		List<AssetCategory> assetCategories) {
 
-		List<String> assetCategoryExternalReferenceCodes = new ArrayList<>(
-			assetCategories.size());
-
-		for (AssetCategory assetCategory : assetCategories) {
-			assetCategoryExternalReferenceCodes.add(
-				StringBundler.concat(
-					_group.getExternalReferenceCode(), _DELIMITER,
-					assetCategory.getExternalReferenceCode()));
-		}
-
-		return assetCategoryExternalReferenceCodes;
+		return TransformUtil.transform(
+			assetCategories,
+			assetCategory -> StringBundler.concat(
+				_group.getExternalReferenceCode(), _DELIMITER,
+				assetCategory.getExternalReferenceCode()));
 	}
 
 	private List<String> _getGroupAssetVocabularyCategoryExternalReferenceCodes(
-			List<AssetCategory> assetCategories)
-		throws Exception {
+		List<AssetCategory> assetCategories) {
 
-		List<String> assetCategoryExternalReferenceCodes = new ArrayList<>(
-			assetCategories.size());
+		return TransformUtil.transform(
+			assetCategories,
+			assetCategory -> {
+				AssetVocabulary assetVocabulary =
+					_assetVocabularyLocalService.getAssetVocabulary(
+						assetCategory.getVocabularyId());
 
-		for (AssetCategory assetCategory : assetCategories) {
-			AssetVocabulary assetVocabulary =
-				_assetVocabularyLocalService.getAssetVocabulary(
-					assetCategory.getVocabularyId());
-
-			assetCategoryExternalReferenceCodes.add(
-				StringBundler.concat(
+				return StringBundler.concat(
 					_group.getExternalReferenceCode(), _DELIMITER,
 					assetVocabulary.getExternalReferenceCode(), _DELIMITER,
-					assetCategory.getExternalReferenceCode()));
-		}
-
-		return assetCategoryExternalReferenceCodes;
+					assetCategory.getExternalReferenceCode());
+			});
 	}
 
 	private boolean _isSearchEngineSolr() {
@@ -253,19 +242,19 @@ public class AssetCategoryDocumentContributorTest {
 				"liferay-" + TestPropsValues.getCompanyId());
 		}
 
-		BooleanQuery booleanQuery = _queries.booleanQuery();
+		BooleanQuery booleanQuery = QueriesUtil.booleanQuery();
 
 		ClassedModel classedModel = (ClassedModel)externalReferenceCodeModel;
 
 		booleanQuery.addMustQueryClauses(
-			_queries.term(Field.COMPANY_ID, TestPropsValues.getCompanyId()),
-			_queries.term(
+			QueriesUtil.term(Field.COMPANY_ID, TestPropsValues.getCompanyId()),
+			QueriesUtil.term(
 				Field.ENTRY_CLASS_NAME, classedModel.getModelClassName()),
-			_queries.term(Field.GROUP_ID, _group.getGroupId()));
+			QueriesUtil.term(Field.GROUP_ID, _group.getGroupId()));
 
 		for (String externalReferenceCode : externalReferenceCodes) {
 			booleanQuery.addMustQueryClauses(
-				_queries.term(fieldName, externalReferenceCode));
+				QueriesUtil.term(fieldName, externalReferenceCode));
 		}
 
 		countSearchRequest.setQuery(booleanQuery);
@@ -292,9 +281,6 @@ public class AssetCategoryDocumentContributorTest {
 	private JournalArticle _journalArticle;
 	private final List<AssetCategory> _publicAssetCategories = new ArrayList<>(
 		2);
-
-	@Inject
-	private Queries _queries;
 
 	@Inject
 	private SearchEngineAdapter _searchEngineAdapter;

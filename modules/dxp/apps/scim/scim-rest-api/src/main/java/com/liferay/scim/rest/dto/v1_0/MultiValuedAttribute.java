@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Olivér Kecskeméty
@@ -38,6 +39,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Multi-valued attributes contain a list of elements using the JSON array format.",
 	value = "MultiValuedAttribute"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Multi-valued attributes contain a list of elements using the JSON array format."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "MultiValuedAttribute")
@@ -52,7 +56,7 @@ public class MultiValuedAttribute implements Serializable {
 			MultiValuedAttribute.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The reference URI of a target resource, if the attribute is a reference."
 	)
 	public String get$ref() {
@@ -95,7 +99,7 @@ public class MultiValuedAttribute implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _$refSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A human-readable name, primarily used for display purposes and having a mutability of \"immutable\"."
 	)
 	public String getDisplay() {
@@ -140,7 +144,7 @@ public class MultiValuedAttribute implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _displaySupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Boolean value indicating the 'primary' or preferred attribute value for this attribute, e.g., the preferred mailing address or the primary email address."
 	)
 	public Boolean getPrimary() {
@@ -185,7 +189,7 @@ public class MultiValuedAttribute implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _primarySupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A label indicating the attribute's function, e.g., \"work\" or \"home\"."
 	)
 	public String getType() {
@@ -228,7 +232,7 @@ public class MultiValuedAttribute implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The attribute's significant value, e.g., email address, phone number."
 	)
 	public String getValue() {
@@ -382,8 +386,8 @@ public class MultiValuedAttribute implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.scim.rest.dto.v1_0.MultiValuedAttribute",
 		name = "x-class-name"
 	)
@@ -470,6 +474,27 @@ public class MultiValuedAttribute implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -478,3 +503,4 @@ public class MultiValuedAttribute implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-802030826

@@ -9,20 +9,22 @@ import com.liferay.frontend.css.variables.ScopedCSSVariables;
 import com.liferay.frontend.css.variables.ScopedCSSVariablesProvider;
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerList;
 import com.liferay.osgi.service.tracker.collections.list.ServiceTrackerListFactory;
-import com.liferay.osgi.service.tracker.collections.map.PropertyServiceReferenceComparator;
+import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
 import com.liferay.portal.kernel.servlet.taglib.BaseDynamicInclude;
 import com.liferay.portal.kernel.servlet.taglib.DynamicInclude;
+import com.liferay.portal.kernel.util.HtmlUtil;
+import com.liferay.portal.kernel.util.StringUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.util.Collection;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -32,7 +34,10 @@ import org.osgi.service.component.annotations.Deactivate;
 /**
  * @author Iván Zaera Avellón
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#post",
+	service = DynamicInclude.class
+)
 public class ScopedCSSVariablesTopHeadDynamicInclude
 	extends BaseDynamicInclude {
 
@@ -62,18 +67,11 @@ public class ScopedCSSVariablesTopHeadDynamicInclude
 		printWriter.print("</style>\n");
 	}
 
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_head.jsp#post");
-	}
-
 	@Activate
 	protected void activate(BundleContext bundleContext) {
 		_scopedCssVariablesProviderServiceTrackerList =
 			ServiceTrackerListFactory.open(
-				bundleContext, ScopedCSSVariablesProvider.class,
-				new PropertyServiceReferenceComparator<>("service.ranking"));
+				bundleContext, ScopedCSSVariablesProvider.class);
 
 		setScopedCSSVariablesProviders(
 			_scopedCssVariablesProviderServiceTrackerList);
@@ -110,9 +108,11 @@ public class ScopedCSSVariablesTopHeadDynamicInclude
 
 			for (Map.Entry<String, String> entry : cssVariables.entrySet()) {
 				printWriter.print("\t\t--");
-				printWriter.print(entry.getKey());
+				printWriter.print(HtmlUtil.escapeCSS(entry.getKey()));
 				printWriter.print(": ");
-				printWriter.print(entry.getValue());
+				printWriter.print(
+					StringUtil.replace(
+						entry.getValue(), CharPool.LESS_THAN, "\\3c "));
 				printWriter.print(";\n");
 			}
 

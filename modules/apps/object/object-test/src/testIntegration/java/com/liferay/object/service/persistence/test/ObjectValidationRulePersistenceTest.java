@@ -114,11 +114,8 @@ public class ObjectValidationRulePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		ObjectValidationRule newObjectValidationRule = _persistence.create(pk);
-
-		newObjectValidationRule.setMvccVersion(RandomTestUtil.nextLong());
+		ObjectValidationRule newObjectValidationRule =
+			addObjectValidationRule();
 
 		newObjectValidationRule.setUuid(RandomTestUtil.randomString());
 
@@ -152,8 +149,9 @@ public class ObjectValidationRulePersistenceTest {
 
 		newObjectValidationRule.setSystem(RandomTestUtil.randomBoolean());
 
-		_objectValidationRules.add(
-			_persistence.update(newObjectValidationRule));
+		newObjectValidationRule = _persistence.update(newObjectValidationRule);
+
+		_objectValidationRules.add(newObjectValidationRule);
 
 		ObjectValidationRule existingObjectValidationRule =
 			_persistence.findByPrimaryKey(
@@ -245,15 +243,6 @@ public class ObjectValidationRulePersistenceTest {
 			RandomTestUtil.nextLong(), RandomTestUtil.randomBoolean());
 
 		_persistence.countByODI_A(0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
-	public void testCountByODI_E() throws Exception {
-		_persistence.countByODI_E(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByODI_E(0L, "null");
-
-		_persistence.countByODI_E(0L, (String)null);
 	}
 
 	@Test
@@ -633,8 +622,6 @@ public class ObjectValidationRulePersistenceTest {
 
 		ObjectValidationRule objectValidationRule = _persistence.create(pk);
 
-		objectValidationRule.setMvccVersion(RandomTestUtil.nextLong());
-
 		objectValidationRule.setUuid(RandomTestUtil.randomString());
 
 		objectValidationRule.setExternalReferenceCode(
@@ -677,3 +664,4 @@ public class ObjectValidationRulePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:445335309

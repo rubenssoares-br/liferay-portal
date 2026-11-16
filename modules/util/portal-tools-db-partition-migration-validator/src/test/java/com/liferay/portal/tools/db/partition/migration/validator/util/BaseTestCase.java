@@ -28,7 +28,61 @@ import org.mockito.stubbing.Answer;
  */
 public abstract class BaseTestCase {
 
-	protected void mockGetColumns(List<String> tableNames) throws SQLException {
+	protected static void mockGetCatalogs(List<String> catalogNames)
+		throws SQLException {
+
+		ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+		Mockito.when(
+			_databaseMetaData.getCatalogs()
+		).thenReturn(
+			resultSet
+		);
+
+		List<Integer> nextCounter = new ArrayList<>();
+
+		nextCounter.add(0);
+
+		Mockito.when(
+			resultSet.next()
+		).thenAnswer(
+			(Answer<Boolean>)invocationOnMock -> {
+				int counter = nextCounter.get(0);
+
+				if (counter >= catalogNames.size()) {
+					return false;
+				}
+
+				nextCounter.set(0, ++counter);
+
+				return true;
+			}
+		);
+
+		List<Integer> catalogNameCounter = new ArrayList<>();
+
+		catalogNameCounter.add(0);
+
+		Mockito.when(
+			resultSet.getString("TABLE_CAT")
+		).thenAnswer(
+			(Answer<String>)invocationOnMock -> {
+				int counter = catalogNameCounter.get(0);
+
+				if (counter >= catalogNames.size()) {
+					throw new IndexOutOfBoundsException();
+				}
+
+				catalogNameCounter.set(0, ++counter);
+
+				return catalogNames.get(counter - 1);
+			}
+		);
+	}
+
+	protected static void mockGetColumns(List<String> tableNames)
+		throws SQLException {
+
 		ResultSet resultSet1 = Mockito.mock(ResultSet.class);
 
 		Mockito.when(
@@ -96,16 +150,24 @@ public abstract class BaseTestCase {
 		);
 	}
 
-	protected void mockGetCompanies(List<Company> companies)
+	protected static void mockGetCompanies(List<Company> companies)
 		throws SQLException {
+
+		mockGetCompanyNames(companies);
+
+		Mockito.when(
+			_databaseMetaData.getCatalogs()
+		).thenReturn(
+			Mockito.mock(ResultSet.class)
+		);
 
 		PreparedStatement preparedStatement = Mockito.mock(
 			PreparedStatement.class);
 
 		Mockito.when(
 			connection.prepareStatement(
-				"select Company.companyId, webId, name, hostname from " +
-					"Company left join VirtualHost on Company.companyId = " +
+				"select Company.companyId, webId, hostname from Company left " +
+					"join VirtualHost on Company.companyId = " +
 						"VirtualHost.companyId")
 		).thenReturn(
 			preparedStatement
@@ -144,7 +206,7 @@ public abstract class BaseTestCase {
 		companyIdCounter.add(0);
 
 		Mockito.when(
-			resultSet.getLong(1)
+			resultSet.getLong("companyId")
 		).thenAnswer(
 			(Answer<Long>)invocationOnMock -> {
 				int counter = companyIdCounter.get(0);
@@ -166,7 +228,7 @@ public abstract class BaseTestCase {
 		webIdCounter.add(0);
 
 		Mockito.when(
-			resultSet.getString(2)
+			resultSet.getString("webId")
 		).thenAnswer(
 			(Answer<String>)invocationOnMock -> {
 				int counter = webIdCounter.get(0);
@@ -183,34 +245,12 @@ public abstract class BaseTestCase {
 			}
 		);
 
-		List<Integer> companyNameCounter = new ArrayList<>();
-
-		companyNameCounter.add(0);
-
-		Mockito.when(
-			resultSet.getString(3)
-		).thenAnswer(
-			(Answer<String>)invocationOnMock -> {
-				int counter = companyNameCounter.get(0);
-
-				if (counter >= companies.size()) {
-					throw new IndexOutOfBoundsException();
-				}
-
-				companyNameCounter.set(0, ++counter);
-
-				Company company = companies.get(counter - 1);
-
-				return company.getCompanyName();
-			}
-		);
-
 		List<Integer> virtualHostnameCounter = new ArrayList<>();
 
 		virtualHostnameCounter.add(0);
 
 		Mockito.when(
-			resultSet.getString(4)
+			resultSet.getString("hostname")
 		).thenAnswer(
 			(Answer<String>)invocationOnMock -> {
 				int counter = virtualHostnameCounter.get(0);
@@ -228,7 +268,7 @@ public abstract class BaseTestCase {
 		);
 	}
 
-	protected void mockGetCompanyIds(List<Long> companyIds)
+	protected static void mockGetCompanyIds(List<Long> companyIds)
 		throws SQLException {
 
 		PreparedStatement preparedStatement = Mockito.mock(
@@ -289,7 +329,7 @@ public abstract class BaseTestCase {
 		);
 	}
 
-	protected void mockGetCompanyInfos(List<Long> companyIds)
+	protected static void mockGetCompanyInfos(List<Long> companyIds)
 		throws SQLException {
 
 		PreparedStatement preparedStatement = Mockito.mock(
@@ -334,7 +374,7 @@ public abstract class BaseTestCase {
 		companyIdCounter.add(0);
 
 		Mockito.when(
-			resultSet.getLong(1)
+			resultSet.getLong("companyId")
 		).thenAnswer(
 			(Answer<Long>)invocationOnMock -> {
 				int counter = companyIdCounter.get(0);
@@ -350,7 +390,101 @@ public abstract class BaseTestCase {
 		);
 	}
 
-	protected void mockGetConnection(String password, String url, String user)
+	protected static void mockGetCompanyNames(List<Company> companies)
+		throws SQLException {
+
+		mockGetCompanyNames(companies, "CompanyInfo");
+	}
+
+	protected static void mockGetCompanyNames(
+			List<Company> companies, String tableName)
+		throws SQLException {
+
+		PreparedStatement preparedStatement = Mockito.mock(
+			PreparedStatement.class);
+
+		Mockito.when(
+			connection.prepareStatement(
+				"select companyId, name from " + tableName)
+		).thenReturn(
+			preparedStatement
+		);
+
+		ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+		Mockito.when(
+			preparedStatement.executeQuery()
+		).thenReturn(
+			resultSet
+		);
+
+		List<Integer> nextCounter = new ArrayList<>();
+
+		nextCounter.add(0);
+
+		Mockito.when(
+			resultSet.next()
+		).thenAnswer(
+			(Answer<Boolean>)invocationOnMock -> {
+				int counter = nextCounter.get(0);
+
+				if (counter >= companies.size()) {
+					return false;
+				}
+
+				nextCounter.set(0, ++counter);
+
+				return true;
+			}
+		);
+
+		List<Integer> companyIdCounter = new ArrayList<>();
+
+		companyIdCounter.add(0);
+
+		Mockito.when(
+			resultSet.getLong("companyId")
+		).thenAnswer(
+			(Answer<Long>)invocationOnMock -> {
+				int counter = companyIdCounter.get(0);
+
+				if (counter >= companies.size()) {
+					throw new IndexOutOfBoundsException();
+				}
+
+				companyIdCounter.set(0, ++counter);
+
+				Company company = companies.get(counter - 1);
+
+				return company.getCompanyId();
+			}
+		);
+
+		List<Integer> companyNameCounter = new ArrayList<>();
+
+		companyNameCounter.add(0);
+
+		Mockito.when(
+			resultSet.getString("name")
+		).thenAnswer(
+			(Answer<String>)invocationOnMock -> {
+				int counter = companyNameCounter.get(0);
+
+				if (counter >= companies.size()) {
+					throw new IndexOutOfBoundsException();
+				}
+
+				companyNameCounter.set(0, ++counter);
+
+				Company company = companies.get(counter - 1);
+
+				return company.getCompanyName();
+			}
+		);
+	}
+
+	protected static void mockGetConnection(
+			String password, String url, String user)
 		throws SQLException {
 
 		_driverManagerMockedStatic.when(
@@ -372,7 +506,9 @@ public abstract class BaseTestCase {
 		);
 	}
 
-	protected void mockGetReleases(List<Release> releases) throws SQLException {
+	protected static void mockGetReleases(List<Release> releases)
+		throws SQLException {
+
 		PreparedStatement preparedStatement = Mockito.mock(
 			PreparedStatement.class);
 
@@ -417,7 +553,7 @@ public abstract class BaseTestCase {
 		servletContextNameCounter.add(0);
 
 		Mockito.when(
-			resultSet.getString(1)
+			resultSet.getString("servletContextName")
 		).thenAnswer(
 			(Answer<String>)invocationOnMock -> {
 				int counter = servletContextNameCounter.get(0);
@@ -439,7 +575,7 @@ public abstract class BaseTestCase {
 		schemaVersionCounter.add(0);
 
 		Mockito.when(
-			resultSet.getString(2)
+			resultSet.getString("schemaVersion")
 		).thenAnswer(
 			(Answer<String>)invocationOnMock -> {
 				int counter = schemaVersionCounter.get(0);
@@ -463,7 +599,7 @@ public abstract class BaseTestCase {
 		stateCounter.add(0);
 
 		Mockito.when(
-			resultSet.getInt(3)
+			resultSet.getInt("state_")
 		).thenAnswer(
 			(Answer<Integer>)invocationOnMock -> {
 				int counter = stateCounter.get(0);
@@ -485,7 +621,7 @@ public abstract class BaseTestCase {
 		verifiedCounter.add(0);
 
 		Mockito.when(
-			resultSet.getBoolean(4)
+			resultSet.getBoolean("verified")
 		).thenAnswer(
 			(Answer<Boolean>)invocationOnMock -> {
 				int counter = verifiedCounter.get(0);
@@ -503,7 +639,9 @@ public abstract class BaseTestCase {
 		);
 	}
 
-	protected void mockGetTables(boolean defaultPartition) throws SQLException {
+	protected static void mockGetTables(boolean defaultPartition)
+		throws SQLException {
+
 		ResultSet resultSet = Mockito.mock(ResultSet.class);
 
 		Mockito.when(

@@ -20,16 +20,17 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletException;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
-
-import javax.portlet.PortletException;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -39,11 +40,11 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_ADMIN,
-		"javax.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_ARTICLE,
-		"javax.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_DISPLAY,
-		"javax.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_SEARCH,
-		"javax.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_SECTION,
+		"jakarta.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_ADMIN,
+		"jakarta.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_ARTICLE,
+		"jakarta.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_DISPLAY,
+		"jakarta.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_SEARCH,
+		"jakarta.portlet.name=" + KBPortletKeys.KNOWLEDGE_BASE_SECTION,
 		"mvc.command.name=/knowledge_base/edit_kb_article"
 	},
 	service = MVCRenderCommand.class
@@ -124,11 +125,15 @@ public class EditKBArticleMVCRenderCommand implements MVCRenderCommand {
 		throws PortletException {
 
 		try {
-			HttpServletResponse httpServletResponse =
-				_portal.getHttpServletResponse(renderResponse);
-
-			httpServletResponse.sendRedirect(
+			String redirect = _portal.escapeRedirect(
 				ParamUtil.getString(renderRequest, "redirect"));
+
+			if (Validator.isNotNull(redirect)) {
+				HttpServletResponse httpServletResponse =
+					_portal.getHttpServletResponse(renderResponse);
+
+				httpServletResponse.sendRedirect(redirect);
+			}
 		}
 		catch (IOException ioException) {
 			throw new PortletException(ioException);

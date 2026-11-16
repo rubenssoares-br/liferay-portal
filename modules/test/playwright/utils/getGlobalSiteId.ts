@@ -3,15 +3,17 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-export default async function getGlobalSiteId(apiHelpers) {
+import {ApiHelpers} from '../helpers/ApiHelpers';
+
+export default async function getGlobalSiteId(apiHelpers: ApiHelpers) {
 	const company =
 		await apiHelpers.jsonWebServicesCompany.getCompanyByWebId(
 			'liferay.com'
 		);
 
-	const globalGroup = await apiHelpers.jsonWebServicesGroup.getCompanyGroup(
+	const companyGroup = await apiHelpers.jsonWebServicesGroup.getCompanyGroup(
 		company.companyId
 	);
 
-	return globalGroup.groupId;
+	return companyGroup.groupId;
 }

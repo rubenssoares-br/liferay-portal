@@ -15,7 +15,6 @@ import com.liferay.commerce.price.list.service.CommercePriceEntryLocalService;
 import com.liferay.commerce.product.model.CPInstance;
 import com.liferay.commerce.product.service.CPInstanceService;
 import com.liferay.headless.commerce.admin.pricing.dto.v2_0.Sku;
-import com.liferay.petra.string.StringPool;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 
@@ -45,15 +44,18 @@ public class SkuDTOConverter implements DTOConverter<CPInstance, Sku> {
 		CPInstance cpInstance = _cpInstanceService.fetchCPInstance(
 			(Long)dtoConverterContext.getId());
 
+		String unitOfMeasureKey = (String)dtoConverterContext.getAttribute(
+			"unitOfMeasureKey");
+
 		CommercePriceEntry commerceBasePriceListPriceEntry =
 			_commercePriceEntryLocalService.getInstanceBaseCommercePriceEntry(
 				cpInstance.getCPInstanceUuid(),
-				CommercePriceListConstants.TYPE_PRICE_LIST, StringPool.BLANK);
+				CommercePriceListConstants.TYPE_PRICE_LIST, unitOfMeasureKey);
 
 		CommercePriceEntry commerceBasePromotionPriceEntry =
 			_commercePriceEntryLocalService.getInstanceBaseCommercePriceEntry(
 				cpInstance.getCPInstanceUuid(),
-				CommercePriceListConstants.TYPE_PROMOTION, StringPool.BLANK);
+				CommercePriceListConstants.TYPE_PROMOTION, unitOfMeasureKey);
 
 		Locale locale = dtoConverterContext.getLocale();
 
@@ -86,14 +88,14 @@ public class SkuDTOConverter implements DTOConverter<CPInstance, Sku> {
 					companyId);
 
 			return _commercePriceFormatter.format(
-				commerceCurrency, BigDecimal.ZERO, locale);
+				commerceCurrency, true, locale, BigDecimal.ZERO);
 		}
 
 		CommercePriceList commercePriceList = priceEntry.getCommercePriceList();
 
 		return _commercePriceFormatter.format(
-			commercePriceList.getCommerceCurrency(), priceEntry.getPrice(),
-			locale);
+			commercePriceList.getCommerceCurrency(), true, locale,
+			priceEntry.getPrice());
 	}
 
 	private double _getPrice(CommercePriceEntry commercePriceEntry) {

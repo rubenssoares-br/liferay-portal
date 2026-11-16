@@ -13,7 +13,6 @@ import com.liferay.batch.planner.rest.dto.v1_0.Mapping;
 import com.liferay.batch.planner.rest.dto.v1_0.Plan;
 import com.liferay.batch.planner.rest.dto.v1_0.Policy;
 import com.liferay.batch.planner.rest.internal.vulcan.batch.engine.util.FieldProviderUtil;
-import com.liferay.batch.planner.rest.internal.vulcan.yaml.openapi.OpenAPIYAMLProvider;
 import com.liferay.batch.planner.rest.resource.v1_0.PlanResource;
 import com.liferay.batch.planner.service.BatchPlannerMappingService;
 import com.liferay.batch.planner.service.BatchPlannerPlanService;
@@ -24,13 +23,15 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.batch.engine.Field;
+import com.liferay.portal.vulcan.batch.engine.VulcanBatchEngineTaskItemDelegateRegistry;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
+import com.liferay.portal.vulcan.resource.OpenAPIResource;
+
+import jakarta.ws.rs.core.Response;
 
 import java.util.Iterator;
 import java.util.List;
-
-import javax.ws.rs.core.Response;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -56,6 +57,19 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 	}
 
 	@Override
+	public Response getPlanTemplate(String internalClassNameKey)
+		throws Exception {
+
+		return _getResponse(
+			TaskItemUtil.getSimpleClassName(internalClassNameKey),
+			FieldProviderUtil.getFields(
+				contextCompany.getCompanyId(), internalClassNameKey,
+				_objectDefinitionLocalService,
+				_objectEntryOpenAPIResourceProvider, _openAPIResource,
+				contextUriInfo, _vulcanBatchEngineTaskItemDelegateRegistry));
+	}
+
+	@Override
 	public Page<Plan> getPlansPage(Pagination pagination) throws Exception {
 		return Page.of(
 			transform(
@@ -66,19 +80,6 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 			pagination,
 			_batchPlannerPlanService.getBatchPlannerPlansCount(
 				contextCompany.getCompanyId()));
-	}
-
-	@Override
-	public Response getPlanTemplate(String internalClassNameKey)
-		throws Exception {
-
-		return _getResponse(
-			TaskItemUtil.getSimpleClassName(internalClassNameKey),
-			FieldProviderUtil.getFields(
-				contextCompany.getCompanyId(), internalClassNameKey,
-				_objectDefinitionLocalService,
-				_objectEntryOpenAPIResourceProvider, _openAPIYAMLProvider,
-				contextUriInfo));
 	}
 
 	@Override
@@ -167,11 +168,13 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 
 			lineSB.append(field.getType());
 
-			if (iterator.hasNext()) {
-				headerSB.append(StringPool.COMMA);
-
-				lineSB.append(StringPool.COMMA);
+			if (!iterator.hasNext()) {
+				continue;
 			}
+
+			headerSB.append(StringPool.COMMA);
+
+			lineSB.append(StringPool.COMMA);
 		}
 
 		return Response.ok(
@@ -259,6 +262,10 @@ public class PlanResourceImpl extends BasePlanResourceImpl {
 		_objectEntryOpenAPIResourceProvider;
 
 	@Reference
-	private OpenAPIYAMLProvider _openAPIYAMLProvider;
+	private OpenAPIResource _openAPIResource;
+
+	@Reference
+	private VulcanBatchEngineTaskItemDelegateRegistry
+		_vulcanBatchEngineTaskItemDelegateRegistry;
 
 }

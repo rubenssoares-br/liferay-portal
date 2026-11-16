@@ -15,13 +15,13 @@ import com.liferay.portal.search.tuning.rankings.index.RankingBuilderFactory;
 import com.liferay.portal.search.tuning.rankings.web.internal.BaseRankingsWebTestCase;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,10 +46,9 @@ public class RankingPortletDisplayBuilderTest extends BaseRankingsWebTestCase {
 		setUpPortletPreferencesFactoryUtil();
 
 		_rankingPortletDisplayBuilder = new RankingPortletDisplayBuilder(
-			_httpServletRequest, language, portal, queries,
-			_rankingBuilderFactory, rankingIndexNameBuilder, _renderRequest,
-			_renderResponse, searchEngineAdapter, _searchEngineInformation,
-			_sorts);
+			_httpServletRequest, language, portal, _rankingBuilderFactory,
+			rankingIndexNameBuilder, _renderRequest, _renderResponse,
+			searchEngineAdapter, _searchEngineInformation, _sorts);
 	}
 
 	@Test
@@ -65,7 +64,6 @@ public class RankingPortletDisplayBuilderTest extends BaseRankingsWebTestCase {
 		setUpLanguageUtil("");
 		setUpPortal();
 		setUpPortalUtil();
-		setUpQuery();
 		setUpRankingIndexNameBuilder();
 		setUpRenderResponse(_renderResponse);
 		setUpSearchEngineAdapter(Mockito.mock(SearchHits.class));

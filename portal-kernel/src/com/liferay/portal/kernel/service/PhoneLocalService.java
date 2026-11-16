@@ -279,9 +279,6 @@ public interface PhoneLocalService
 	public Phone getPhoneByUuidAndCompanyId(String uuid, long companyId)
 		throws PortalException;
 
-	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<Phone> getPhones();
-
 	/**
 	 * Returns a range of all the phones.
 	 *
@@ -341,3 +338,4 @@ public interface PhoneLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1332413811

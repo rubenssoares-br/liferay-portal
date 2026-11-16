@@ -28,7 +28,7 @@ Map<Long, List<CommerceOrderValidatorResult>> commerceOrderValidatorResultsMap =
 
 		<liferay-ui:search-container-row
 			className="com.liferay.commerce.model.CommerceOrderItem"
-			keyProperty="CommerceOrderItemId"
+			keyPropertyName="commerceOrderItemId"
 			modelVar="commerceOrderItem"
 		>
 
@@ -75,7 +75,14 @@ Map<Long, List<CommerceOrderValidatorResult>> commerceOrderValidatorResultsMap =
 					StringJoiner stringJoiner = new StringJoiner(StringPool.COMMA);
 
 					for (KeyValuePair keyValuePair : orderSummaryCheckoutStepDisplayContext.getKeyValuePairs(commerceOrderItem.getCPDefinitionId(), commerceOrderItem.getJson(), locale)) {
-						stringJoiner.add(keyValuePair.getValue());
+						String keyValuePairValue = keyValuePair.getValue();
+
+						if (keyValuePairValue.contains("fileEntryId")) {
+							stringJoiner.add(orderSummaryCheckoutStepDisplayContext.getJSONOptionValue(keyValuePairValue, "title"));
+						}
+						else {
+							stringJoiner.add(keyValuePair.getValue());
+						}
 					}
 					%>
 

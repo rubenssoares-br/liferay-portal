@@ -58,7 +58,8 @@ public class SharingEntryLocalServiceUtil {
 	 * @review
 	 */
 	public static SharingEntry addOrUpdateSharingEntry(
-			long userId, long toUserId, long classNameId, long classPK,
+			String externalReferenceCode, long userId, long toTicketId,
+			long toUserGroupId, long toUserId, long classNameId, long classPK,
 			long groupId, boolean shareable,
 			java.util.Collection
 				<com.liferay.sharing.security.permission.SharingEntryAction>
@@ -68,8 +69,23 @@ public class SharingEntryLocalServiceUtil {
 		throws PortalException {
 
 		return getService().addOrUpdateSharingEntry(
-			userId, toUserId, classNameId, classPK, groupId, shareable,
-			sharingEntryActions, expirationDate, serviceContext);
+			externalReferenceCode, userId, toTicketId, toUserGroupId, toUserId,
+			classNameId, classPK, groupId, shareable, sharingEntryActions,
+			expirationDate, serviceContext);
+	}
+
+	/**
+	 * Adds the sharing entry to the database. Also notifies the appropriate model listeners.
+	 *
+	 * <p>
+	 * <strong>Important:</strong> Inspect SharingEntryLocalServiceImpl for overloaded versions of the method. If provided, use these entry points to the API, as the implementation logic may require the additional parameters defined there.
+	 * </p>
+	 *
+	 * @param sharingEntry the sharing entry
+	 * @return the sharing entry that was added
+	 */
+	public static SharingEntry addSharingEntry(SharingEntry sharingEntry) {
+		return getService().addSharingEntry(sharingEntry);
 	}
 
 	/**
@@ -94,7 +110,8 @@ public class SharingEntryLocalServiceUtil {
 	 * @review
 	 */
 	public static SharingEntry addSharingEntry(
-			long userId, long toUserId, long classNameId, long classPK,
+			String externalReferenceCode, long userId, long toTicketId,
+			long toUserGroupId, long toUserId, long classNameId, long classPK,
 			long groupId, boolean shareable,
 			java.util.Collection
 				<com.liferay.sharing.security.permission.SharingEntryAction>
@@ -104,22 +121,9 @@ public class SharingEntryLocalServiceUtil {
 		throws PortalException {
 
 		return getService().addSharingEntry(
-			userId, toUserId, classNameId, classPK, groupId, shareable,
-			sharingEntryActions, expirationDate, serviceContext);
-	}
-
-	/**
-	 * Adds the sharing entry to the database. Also notifies the appropriate model listeners.
-	 *
-	 * <p>
-	 * <strong>Important:</strong> Inspect SharingEntryLocalServiceImpl for overloaded versions of the method. If provided, use these entry points to the API, as the implementation logic may require the additional parameters defined there.
-	 * </p>
-	 *
-	 * @param sharingEntry the sharing entry
-	 * @return the sharing entry that was added
-	 */
-	public static SharingEntry addSharingEntry(SharingEntry sharingEntry) {
-		return getService().addSharingEntry(sharingEntry);
+			externalReferenceCode, userId, toTicketId, toUserGroupId, toUserId,
+			classNameId, classPK, groupId, shareable, sharingEntryActions,
+			expirationDate, serviceContext);
 	}
 
 	/**
@@ -140,6 +144,12 @@ public class SharingEntryLocalServiceUtil {
 	 */
 	public static SharingEntry createSharingEntry(long sharingEntryId) {
 		return getService().createSharingEntry(sharingEntryId);
+	}
+
+	public static void deleteCompanySharingEntries(
+		long companyId, long classNameId) {
+
+		getService().deleteCompanySharingEntries(companyId, classNameId);
 	}
 
 	/**
@@ -226,6 +236,22 @@ public class SharingEntryLocalServiceUtil {
 	 */
 	public static SharingEntry deleteSharingEntry(SharingEntry sharingEntry) {
 		return getService().deleteSharingEntry(sharingEntry);
+	}
+
+	public static SharingEntry deleteSharingEntryByExternalReferenceCode(
+			String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		return getService().deleteSharingEntryByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
+	public static void deleteToTicketSharingEntries(long toTicketId) {
+		getService().deleteToTicketSharingEntries(toTicketId);
+	}
+
+	public static void deleteToUserGroupSharingEntries(long toUserGroupId) {
+		getService().deleteToUserGroupSharingEntries(toUserGroupId);
 	}
 
 	/**
@@ -343,6 +369,21 @@ public class SharingEntryLocalServiceUtil {
 		return getService().fetchSharingEntry(toUserId, classNameId, classPK);
 	}
 
+	public static SharingEntry fetchSharingEntry(
+		long toTicketId, long toUserGroupId, long toUserId, long classNameId,
+		long classPK) {
+
+		return getService().fetchSharingEntry(
+			toTicketId, toUserGroupId, toUserId, classNameId, classPK);
+	}
+
+	public static SharingEntry fetchSharingEntryByExternalReferenceCode(
+		String externalReferenceCode, long groupId) {
+
+		return getService().fetchSharingEntryByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
 	/**
 	 * Returns the sharing entry matching the UUID and group.
 	 *
@@ -360,6 +401,13 @@ public class SharingEntryLocalServiceUtil {
 		getActionableDynamicQuery() {
 
 		return getService().getActionableDynamicQuery();
+	}
+
+	public static int getCompanySharingEntriesCount(
+		long companyId, long classNameId) {
+
+		return getService().getCompanySharingEntriesCount(
+			companyId, classNameId);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
@@ -492,9 +540,11 @@ public class SharingEntryLocalServiceUtil {
 	 * @review
 	 */
 	public static List<SharingEntry> getSharingEntries(
-		long classNameId, long classPK, int start, int end) {
+		long classNameId, long classPK, int start, int end,
+		OrderByComparator<SharingEntry> orderByComparator) {
 
-		return getService().getSharingEntries(classNameId, classPK, start, end);
+		return getService().getSharingEntries(
+			classNameId, classPK, start, end, orderByComparator);
 	}
 
 	/**
@@ -582,6 +632,23 @@ public class SharingEntryLocalServiceUtil {
 		return getService().getSharingEntry(toUserId, classNameId, classPK);
 	}
 
+	public static SharingEntry getSharingEntry(
+			long toTicketId, long toUserGroupId, long toUserId,
+			long classNameId, long classPK)
+		throws PortalException {
+
+		return getService().getSharingEntry(
+			toTicketId, toUserGroupId, toUserId, classNameId, classPK);
+	}
+
+	public static SharingEntry getSharingEntryByExternalReferenceCode(
+			String externalReferenceCode, long groupId)
+		throws PortalException {
+
+		return getService().getSharingEntryByExternalReferenceCode(
+			externalReferenceCode, groupId);
+	}
+
 	/**
 	 * Returns the sharing entry matching the UUID and group.
 	 *
@@ -595,6 +662,18 @@ public class SharingEntryLocalServiceUtil {
 		throws PortalException {
 
 		return getService().getSharingEntryByUuidAndGroupId(uuid, groupId);
+	}
+
+	public static List<SharingEntry> getToTicketSharingEntries(
+		long toTicketId) {
+
+		return getService().getToTicketSharingEntries(toTicketId);
+	}
+
+	public static List<SharingEntry> getToUserGroupSharingEntries(
+		long toUserGroupId) {
+
+		return getService().getToUserGroupSharingEntries(toUserGroupId);
 	}
 
 	/**
@@ -812,3 +891,4 @@ public class SharingEntryLocalServiceUtil {
 			SharingEntryLocalServiceUtil.class, SharingEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:646395971

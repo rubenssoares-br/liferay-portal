@@ -8,7 +8,8 @@ package com.liferay.portal.service.impl;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.portal.kernel.cache.CacheRegistryItem;
 import com.liferay.portal.kernel.change.tracking.CTAware;
-import com.liferay.portal.kernel.db.partition.DBPartition;
+import com.liferay.portal.kernel.exception.NoSuchClassNameException;
+import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.ClassName;
@@ -18,11 +19,11 @@ import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.impl.ClassNameImpl;
 import com.liferay.portal.service.base.ClassNameLocalServiceBaseImpl;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -49,8 +50,9 @@ public class ClassNameLocalServiceImpl
 
 			className = classNamePersistence.update(className);
 		}
-
-		ClassNamePool.add(className);
+		else {
+			ClassNamePool.add(className);
+		}
 
 		return className;
 	}
@@ -84,9 +86,11 @@ public class ClassNameLocalServiceImpl
 	public ClassName fetchByClassNameId(long classNameId) {
 		ClassName className = ClassNamePool.fetchByClassNameId(classNameId);
 
-		if (className == null) {
-			className = classNamePersistence.fetchByPrimaryKey(classNameId);
+		if (className != null) {
+			return className;
 		}
+
+		className = classNamePersistence.fetchByPrimaryKey(classNameId);
 
 		ClassNamePool.add(className);
 
@@ -101,9 +105,11 @@ public class ClassNameLocalServiceImpl
 
 		ClassName className = ClassNamePool.fetchByValue(value);
 
-		if (className == null) {
-			className = classNamePersistence.fetchByValue(value);
+		if (className != null) {
+			return className;
 		}
+
+		className = classNamePersistence.fetchByValue(value);
 
 		if (className == null) {
 			return _nullClassName;
@@ -112,6 +118,22 @@ public class ClassNameLocalServiceImpl
 		ClassNamePool.add(className);
 
 		return className;
+	}
+
+	@Override
+	public ClassName getClassName(long classNameId) throws PortalException {
+		try {
+			return classNamePersistence.findByPrimaryKey(classNameId);
+		}
+		catch (NoSuchClassNameException noSuchClassNameException) {
+			ClassName className = ClassNamePool.fetchByClassNameId(classNameId);
+
+			if (className != null) {
+				ClassNamePool.remove(className);
+			}
+
+			throw noSuchClassNameException;
+		}
 	}
 
 	@Override
@@ -131,15 +153,25 @@ public class ClassNameLocalServiceImpl
 		}
 
 		try {
-			return classNameLocalService.addClassName(value);
+			className = classNameLocalService.addClassName(value);
 		}
 		catch (Throwable throwable) {
 			if (_log.isDebugEnabled()) {
 				_log.debug(throwable);
 			}
 
-			return ClassNamePool.fetchByValue(value);
+			// The failure usually means a concurrent insert of the same value
+			// won. Ask again in a fresh transaction, whose snapshot holds
+			// every committed row on any isolation level and none of the
+			// current transaction's uncommitted writes, so the retry returns
+			// the winner's committed row or fails for real.
+
+			className = classNameLocalService.addClassName(value);
 		}
+
+		ClassNamePool.add(className);
+
+		return className;
 	}
 
 	@Override
@@ -157,19 +189,34 @@ public class ClassNameLocalServiceImpl
 	}
 
 	@Override
-	public Supplier<long[]> getClassNameIdsSupplier(String[] classNames) {
-		Map<Long, long[]> classNameIds = new HashMap<>();
-
-		return () -> classNameIds.computeIfAbsent(
-			_getCompanyId(),
-			key -> TransformUtil.transformToLongArray(
-				ListUtil.fromArray(classNames),
-				className -> getClassNameId(className)));
+	public Supplier<Long> getClassNameIdSupplier(String className) {
+		return () -> getClassNameId(className);
 	}
 
 	@Override
-	public Supplier<Long> getClassNameIdSupplier(String className) {
-		return () -> getClassNameId(className);
+	public Supplier<long[]> getClassNameIdsSupplier(String[] classNames) {
+		Map<Long, long[]> classNameIdsMap = new ConcurrentHashMap<>();
+
+		return () -> {
+			Long companyId = _getCompanyId();
+
+			long[] classNameIds = classNameIdsMap.get(companyId);
+
+			if (classNameIds == null) {
+				classNameIds = TransformUtil.transformToLongArray(
+					ListUtil.fromArray(classNames),
+					className -> getClassNameId(className));
+
+				long[] previousClassNameIds = classNameIdsMap.putIfAbsent(
+					companyId, classNameIds);
+
+				if (previousClassNameIds != null) {
+					classNameIds = previousClassNameIds;
+				}
+			}
+
+			return classNameIds;
+		};
 	}
 
 	@Override
@@ -179,11 +226,19 @@ public class ClassNameLocalServiceImpl
 
 	@Override
 	public void invalidate() {
+		if (PropsValues.DATABASE_PARTITION_ENABLED &&
+			(CompanyThreadLocal.getCompanyId() != CompanyConstants.SYSTEM)) {
+
+			ClassNamePool.invalidate(CompanyThreadLocal.getCompanyId());
+
+			return;
+		}
+
 		ClassNamePool.invalidate();
 	}
 
 	private static long _getCompanyId() {
-		if (DBPartition.isPartitionEnabled()) {
+		if (PropsValues.DATABASE_PARTITION_ENABLED) {
 			return CompanyThreadLocal.getNonsystemCompanyId();
 		}
 
@@ -232,41 +287,52 @@ public class ClassNameLocalServiceImpl
 		}
 
 		public static void invalidate() {
-			for (Map<String, Long> map : _classNameIdsMap.values()) {
-				map.clear();
-			}
+			_classNameIdsMap.clear();
+			_classNamesMap.clear();
+		}
 
-			for (Map<Long, ClassName> map : _classNamesMap.values()) {
-				map.clear();
-			}
+		public static void invalidate(long companyId) {
+			_classNameIdsMap.remove(companyId);
+			_classNamesMap.remove(companyId);
 		}
 
 		public static void remove(ClassName className) {
-			_classNameIdsMap.computeIfPresent(
-				_getCompanyId(),
-				(key, classNameIds) -> {
-					classNameIds.remove(className.getValue());
+			Long companyId = _getCompanyId();
 
-					return classNameIds;
-				});
+			Map<String, Long> classNameIds = _classNameIdsMap.get(companyId);
 
-			_classNamesMap.computeIfPresent(
-				_getCompanyId(),
-				(key, classNames) -> {
-					classNames.remove(className.getClassNameId());
+			if (classNameIds != null) {
+				classNameIds.remove(className.getValue());
+			}
 
-					return classNames;
-				});
+			Map<Long, ClassName> classNames = _classNamesMap.get(companyId);
+
+			if (classNames != null) {
+				classNames.remove(className.getClassNameId());
+			}
 		}
 
 		private static <S, T> Map<S, T> _getMap(Map<Long, Map<S, T>> map) {
-			return map.computeIfAbsent(
-				_getCompanyId(), companyId -> new ConcurrentHashMap<>());
+			Long companyId = _getCompanyId();
+
+			Map<S, T> submap = map.get(companyId);
+
+			if (submap == null) {
+				submap = new ConcurrentHashMap<>();
+
+				Map<S, T> previousSubmap = map.putIfAbsent(companyId, submap);
+
+				if (previousSubmap != null) {
+					submap = previousSubmap;
+				}
+			}
+
+			return submap;
 		}
 
-		private static Map<Long, Map<String, Long>> _classNameIdsMap =
+		private static final Map<Long, Map<String, Long>> _classNameIdsMap =
 			new ConcurrentHashMap<>();
-		private static Map<Long, Map<Long, ClassName>> _classNamesMap =
+		private static final Map<Long, Map<Long, ClassName>> _classNamesMap =
 			new ConcurrentHashMap<>();
 
 	}

@@ -6,18 +6,24 @@
 package com.liferay.change.tracking.rest.resource.v1_0.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.change.tracking.constants.CTDestinationNames;
 import com.liferay.change.tracking.model.CTCollection;
 import com.liferay.change.tracking.rest.client.dto.v1_0.CTEntry;
 import com.liferay.change.tracking.rest.client.pagination.Page;
 import com.liferay.change.tracking.rest.client.pagination.Pagination;
 import com.liferay.change.tracking.service.CTCollectionLocalService;
 import com.liferay.change.tracking.service.CTEntryLocalService;
+import com.liferay.change.tracking.spi.history.CTCollectionHistoryProvider;
+import com.liferay.change.tracking.spi.history.CTCollectionHistoryProviderRegistry;
 import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.model.JournalFolder;
 import com.liferay.journal.service.JournalFolderLocalService;
 import com.liferay.journal.test.util.JournalFolderFixture;
 import com.liferay.journal.test.util.JournalTestUtil;
+import com.liferay.knowledge.base.model.KBArticle;
+import com.liferay.knowledge.base.service.KBArticleLocalService;
+import com.liferay.knowledge.base.test.util.KBTestUtil;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
@@ -28,18 +34,23 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.AddressLocalService;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.ListTypeLocalService;
+import com.liferay.portal.kernel.test.rule.Sync;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.odata.entity.EntityField;
 import com.liferay.portal.test.rule.Inject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +60,7 @@ import org.junit.runner.RunWith;
  * @author Pei-Jung Lan
  */
 @RunWith(Arquillian.class)
+@Sync(destinationNames = CTDestinationNames.CT_ENTRY_REINDEX)
 public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 
 	@Before
@@ -58,6 +70,22 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 
 		_journalArticleClassNameId = _classNameLocalService.getClassNameId(
 			JournalArticle.class);
+		_kbArticleClassNameId = _classNameLocalService.getClassNameId(
+			KBArticle.class);
+	}
+
+	@After
+	@Override
+	public void tearDown() throws Exception {
+
+		// @DeleteAfterTestRun will not work because super#tearDown deletes
+		// groups that must be deleted after the change tracking collections
+
+		for (CTCollection ctCollection : _ctCollections) {
+			_ctCollectionLocalService.deleteCTCollection(ctCollection);
+		}
+
+		super.tearDown();
 	}
 
 	@Override
@@ -84,13 +112,15 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 
 		long ctCollectionId1 = _getCTCollectionId();
 
-		CTEntry ctEntry = _addJournalArticleCTEntry(
+		CTEntry ctEntry1 = _addJournalArticleCTEntry(
 			ctCollectionId1, journalArticle1);
+		CTEntry ctEntry2 = _addJournalArticleCTEntry(
+			ctCollectionId1, journalArticle2);
 
-		List<CTEntry> ctEntries = Arrays.asList(
-			ctEntry,
-			_addJournalArticleCTEntry(ctCollectionId1, journalArticle2),
-			_addJournalArticleCTEntry(_getCTCollectionId(), journalArticle2));
+		CTEntry ctEntry3 = _addJournalArticleCTEntry(
+			_getCTCollectionId(), journalArticle2);
+
+		List<CTEntry> ctEntries = Arrays.asList(ctEntry1, ctEntry2, ctEntry3);
 
 		page = ctEntryResource.getCTEntriesHistoryPage(
 			_journalArticleClassNameId, journalArticle1.getId(), null,
@@ -98,7 +128,7 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 
 		Assert.assertEquals(1, page.getTotalCount());
 
-		assertContains(ctEntry, (List<CTEntry>)page.getItems());
+		assertContains(ctEntry1, (List<CTEntry>)page.getItems());
 
 		page = ctEntryResource.getCTEntriesHistoryPage(
 			_journalArticleClassNameId, null, null, testGroup.getGroupId(),
@@ -107,6 +137,22 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 		Assert.assertEquals(3, page.getTotalCount());
 
 		assertEqualsIgnoringOrder(ctEntries, (List<CTEntry>)page.getItems());
+
+		_assertGetCTEntriesHistoryPageInPublicationContext(
+			_journalArticleClassNameId, ctEntry2.getModelClassPK(),
+			ctCollectionId1, ctEntry2, ctEntry3);
+
+		long ctCollectionId2 = _getCTCollectionId();
+
+		KBArticle kbArticle = KBTestUtil.addKBArticle(testGroup.getGroupId());
+
+		CTEntry ctEntry4 = _addKBArticleCTEntry(ctCollectionId2, kbArticle);
+		CTEntry ctEntry5 = _addKBArticleCTEntry(
+			_getCTCollectionId(), kbArticle);
+
+		_assertGetCTEntriesHistoryPageInPublicationContext(
+			_kbArticleClassNameId, ctEntry4.getModelClassPK(), ctCollectionId2,
+			ctEntry4, ctEntry5);
 	}
 
 	@Override
@@ -188,6 +234,37 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 		assertContains(ctEntry1, (List<CTEntry>)page3.getItems());
 		assertContains(ctEntry2, (List<CTEntry>)page3.getItems());
 		assertContains(ctEntry3, (List<CTEntry>)page3.getItems());
+	}
+
+	@Override
+	@Test
+	public void testGetCTEntry() throws Exception {
+		super.testGetCTEntry();
+
+		long ctCollectionId = _getCTCollectionId();
+
+		CTCollection serviceBuilderCTCollection =
+			_ctCollectionLocalService.getCTCollection(ctCollectionId);
+
+		serviceBuilderCTCollection.setStatus(
+			WorkflowConstants.STATUS_INCOMPLETE);
+
+		_ctCollectionLocalService.updateCTCollection(
+			serviceBuilderCTCollection);
+
+		CTEntry ctEntry = _addCTEntry(
+			ctCollectionId, RandomTestUtil.randomString());
+
+		Map<String, Map<String, String>> actions = ctEntry.getActions();
+
+		Assert.assertEquals(actions.toString(), 6, actions.size());
+
+		Assert.assertTrue(actions.containsKey("checkout"));
+		Assert.assertTrue(actions.containsKey("delete"));
+		Assert.assertTrue(actions.containsKey("get"));
+		Assert.assertTrue(actions.containsKey("move-changes"));
+		Assert.assertTrue(actions.containsKey("update"));
+		Assert.assertTrue(actions.containsKey("view-discard"));
 	}
 
 	@Override
@@ -332,41 +409,6 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 	}
 
 	@Override
-	protected CTEntry testGetCtCollectionCTEntriesPage_addCTEntry(
-			Long ctCollectionId, CTEntry ctEntry)
-		throws Exception {
-
-		return _addCTEntry(ctCollectionId, ctEntry.getTitle());
-	}
-
-	@Override
-	protected Long testGetCtCollectionCTEntriesPage_getCtCollectionId()
-		throws Exception {
-
-		return _getCTCollectionId();
-	}
-
-	@Override
-	protected Long
-			testGetCtCollectionCTEntriesPage_getIrrelevantCtCollectionId()
-		throws Exception {
-
-		CTCollection ctCollection = _ctCollectionLocalService.addCTCollection(
-			null, testCompany.getCompanyId(), testCompany.getUserId(), 0,
-			RandomTestUtil.randomString(), RandomTestUtil.randomString());
-
-		return ctCollection.getCtCollectionId();
-	}
-
-	@Override
-	protected CTEntry
-			testGetCtCollectionCTEntryByModelClassNameByModelClassPkModelClassPK_addCTEntry()
-		throws Exception {
-
-		return _addCTEntry(_getCTCollectionId(), RandomTestUtil.randomString());
-	}
-
-	@Override
 	protected void testGetCTEntriesHistoryPageWithFilter(
 			String operator, EntityField.Type type)
 		throws Exception {
@@ -461,8 +503,61 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 	}
 
 	@Override
+	protected CTEntry testGetCtCollectionCTEntriesPage_addCTEntry(
+			Long ctCollectionId, CTEntry ctEntry)
+		throws Exception {
+
+		return _addCTEntry(ctCollectionId, ctEntry.getTitle());
+	}
+
+	@Override
+	protected Long testGetCtCollectionCTEntriesPage_getCtCollectionId()
+		throws Exception {
+
+		return _getCTCollectionId();
+	}
+
+	@Override
+	protected Long
+			testGetCtCollectionCTEntriesPage_getIrrelevantCtCollectionId()
+		throws Exception {
+
+		CTCollection ctCollection = _ctCollectionLocalService.addCTCollection(
+			null, testCompany.getCompanyId(), testCompany.getUserId(), 0,
+			RandomTestUtil.randomString(), RandomTestUtil.randomString());
+
+		return ctCollection.getCtCollectionId();
+	}
+
+	@Override
+	protected CTEntry
+			testGetCtCollectionCTEntryByModelClassNameByModelClassPkModelClassPK_addCTEntry()
+		throws Exception {
+
+		return _addCTEntry(_getCTCollectionId(), RandomTestUtil.randomString());
+	}
+
+	@Override
+	protected Long
+			testGetCtCollectionCTEntryByModelClassNameByModelClassPkModelClassPK_getCtCollectionId(
+				CTEntry ctEntry)
+		throws Exception {
+
+		return ctEntry.getCtCollectionId();
+	}
+
+	@Override
 	protected CTEntry testGraphQLCTEntry_addCTEntry() throws Exception {
 		return _addCTEntry(_getCTCollectionId(), RandomTestUtil.randomString());
+	}
+
+	@Override
+	protected Long
+			testGraphQLGetCtCollectionCTEntryByModelClassNameByModelClassPkModelClassPK_getCtCollectionId(
+				CTEntry ctEntry)
+		throws Exception {
+
+		return ctEntry.getCtCollectionId();
 	}
 
 	private CTEntry _addCTEntry(long ctCollectionId, String name)
@@ -478,13 +573,13 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 
 			address = _addressLocalService.addAddress(
 				null, user.getUserId(), Contact.class.getName(),
-				user.getContactId(), name, RandomTestUtil.randomString(),
-				RandomTestUtil.randomString(), null, null,
-				RandomTestUtil.randomString(), null, 0, 0,
+				user.getContactId(), 0,
 				_listTypeLocalService.getListTypeId(
 					testCompany.getCompanyId(), "personal",
 					ListTypeConstants.CONTACT_ADDRESS),
-				false, false, null, ServiceContextTestUtil.getServiceContext());
+				0, RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				false, name, false, RandomTestUtil.randomString(), null, null,
+				null, null, null, ServiceContextTestUtil.getServiceContext());
 		}
 
 		com.liferay.change.tracking.model.CTEntry serviceBuilderCTEntry =
@@ -515,12 +610,68 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 			JournalTestUtil.updateArticle(journalArticle, title);
 		}
 
+		CTCollectionHistoryProvider<?> ctCollectionHistoryProvider =
+			_ctCollectionHistoryProviderRegistry.getCTCollectionHistoryProvider(
+				_journalArticleClassNameId);
+
 		com.liferay.change.tracking.model.CTEntry serviceBuilderCTEntry =
-			_ctEntryLocalService.fetchTimelineCTEntry(
+			ctCollectionHistoryProvider.getCTEntry(
 				ctCollectionId, _journalArticleClassNameId,
 				journalArticle.getId());
 
 		return ctEntryResource.getCTEntry(serviceBuilderCTEntry.getCtEntryId());
+	}
+
+	private CTEntry _addKBArticleCTEntry(
+			long ctCollectionId, KBArticle kbArticle)
+		throws Exception {
+
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					ctCollectionId)) {
+
+			_kbArticleLocalService.updateKBArticle(
+				kbArticle.getUserId(), kbArticle.getResourcePrimKey(),
+				RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+				kbArticle.getDescription(), new String[0],
+				kbArticle.getSourceURL(), kbArticle.getDisplayDate(),
+				kbArticle.getExpirationDate(), kbArticle.getReviewDate(), null,
+				null,
+				ServiceContextTestUtil.getServiceContext(
+					testGroup.getGroupId()));
+		}
+
+		CTCollectionHistoryProvider<?> ctCollectionHistoryProvider =
+			_ctCollectionHistoryProviderRegistry.getCTCollectionHistoryProvider(
+				_kbArticleClassNameId);
+
+		com.liferay.change.tracking.model.CTEntry serviceBuilderCTEntry =
+			ctCollectionHistoryProvider.getCTEntry(
+				ctCollectionId, _kbArticleClassNameId,
+				kbArticle.getKbArticleId());
+
+		return ctEntryResource.getCTEntry(serviceBuilderCTEntry.getCtEntryId());
+	}
+
+	private void _assertGetCTEntriesHistoryPageInPublicationContext(
+			long classNameId, long classPK, long ctCollectionId,
+			CTEntry... expectedCTEntries)
+		throws Exception {
+
+		Page<CTEntry> page = null;
+
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					ctCollectionId)) {
+
+			page = ctEntryResource.getCTEntriesHistoryPage(
+				classNameId, classPK, null, testGroup.getGroupId(), null,
+				Pagination.of(1, 10), null);
+		}
+
+		for (CTEntry expectedCTEntry : expectedCTEntries) {
+			assertContains(expectedCTEntry, (List<CTEntry>)page.getItems());
+		}
 	}
 
 	private long _getCTCollectionId() throws Exception {
@@ -528,10 +679,10 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 			null, testCompany.getCompanyId(), testCompany.getUserId(), 0,
 			RandomTestUtil.randomString(), RandomTestUtil.randomString());
 
+		_ctCollections.add(ctCollection);
+
 		return ctCollection.getCtCollectionId();
 	}
-
-	private static long _journalArticleClassNameId;
 
 	@Inject
 	private AddressLocalService _addressLocalService;
@@ -540,13 +691,26 @@ public class CTEntryResourceTest extends BaseCTEntryResourceTestCase {
 	private ClassNameLocalService _classNameLocalService;
 
 	@Inject
+	private CTCollectionHistoryProviderRegistry
+		_ctCollectionHistoryProviderRegistry;
+
+	@Inject
 	private CTCollectionLocalService _ctCollectionLocalService;
+
+	private final List<CTCollection> _ctCollections = new ArrayList<>();
 
 	@Inject
 	private CTEntryLocalService _ctEntryLocalService;
 
+	private long _journalArticleClassNameId;
+
 	@Inject
 	private JournalFolderLocalService _journalFolderLocalService;
+
+	private long _kbArticleClassNameId;
+
+	@Inject
+	private KBArticleLocalService _kbArticleLocalService;
 
 	@Inject
 	private ListTypeLocalService _listTypeLocalService;

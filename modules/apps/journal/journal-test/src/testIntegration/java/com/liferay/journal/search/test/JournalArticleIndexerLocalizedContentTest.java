@@ -19,7 +19,6 @@ import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.search.Document;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -79,8 +78,6 @@ public class JournalArticleIndexerLocalizedContentTest {
 		_journalArticles = _journalArticleSearchFixture.getJournalArticles();
 
 		UserTestUtil.setUser(TestPropsValues.getUser());
-
-		CompanyThreadLocal.setCompanyId(TestPropsValues.getCompanyId());
 	}
 
 	@After
@@ -400,26 +397,26 @@ public class JournalArticleIndexerLocalizedContentTest {
 	}
 
 	@Inject
-	private static DDMStructureLocalService _ddmStructureLocalService;
-
-	@Inject
-	private static JournalArticleLocalService _journalArticleLocalService;
-
-	@Inject
-	private static Portal _portal;
+	private DDMStructureLocalService _ddmStructureLocalService;
 
 	@DeleteAfterTestRun
 	private Group _group;
 
 	private IndexerFixture<JournalArticle> _indexerFixture;
 
-	@DeleteAfterTestRun
-	private List<JournalArticle> _journalArticles;
+	@Inject
+	private JournalArticleLocalService _journalArticleLocalService;
 
 	private JournalArticleSearchFixture _journalArticleSearchFixture;
 
+	@DeleteAfterTestRun
+	private List<JournalArticle> _journalArticles;
+
 	@Inject
 	private Language _language;
+
+	@Inject
+	private Portal _portal;
 
 	@Inject
 	private SearchRequestBuilderFactory _searchRequestBuilderFactory;

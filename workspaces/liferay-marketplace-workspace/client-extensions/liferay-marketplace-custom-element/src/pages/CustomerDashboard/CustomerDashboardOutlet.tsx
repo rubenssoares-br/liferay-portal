@@ -3,40 +3,67 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {Outlet} from 'react-router-dom';
+import {useEffect} from 'react';
+import {Outlet, useNavigate, useOutletContext} from 'react-router-dom';
 
 import {DashboardNavigation} from '../../components/DashboardNavigation/DashboardNavigation';
-import {getAccountImage} from '../../utils/util';
+import {PageRenderer} from '../../components/Page';
+import {useAccount} from '../../hooks/data/useAccounts';
+import i18n from '../../i18n';
 
 import './CustomerDashboard.scss';
-import {PageRenderer} from '../../components/Page';
-import useAccounts, {useAccount} from '../../hooks/data/useAccounts';
 
-export const dashboardNavigationItems = [
+const navigationItems = [
 	{
-		itemTitle: 'My Apps',
+		itemTitle: i18n.translate('my-products'),
+		path: '/products',
+		symbol: 'display-content',
+	},
+	{
+		itemTitle: i18n.translate('my-apps'),
 		path: '/',
 		symbol: 'grid',
 	},
 	{
-		itemTitle: 'My Solutions',
+		itemTitle: i18n.translate('my-solutions'),
 		path: '/solutions',
 		symbol: 'polls',
+	},
+	{
+		itemTitle: i18n.translate('dxp-connections'),
+		path: '/connections',
+		symbol: 'liferay-ac',
 	},
 ];
 
 const CustomerDashboardOutlet = () => {
 	const {data: selectedAccount, error, isLoading} = useAccount();
-	const accountsSearch = useAccounts();
+
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		const searchParams = new URLSearchParams(window.location.search);
+
+		const redirectTo = searchParams.get('redirectTo');
+
+		if (!redirectTo) {
+			return;
+		}
+
+		const url = new URL(window.location.href);
+
+		url.searchParams.delete('redirectTo');
+
+		window.history.replaceState({}, '', url);
+
+		navigate(redirectTo, {replace: true});
+	}, [navigate]);
 
 	return (
 		<PageRenderer error={error} isLoading={isLoading}>
 			<div className="purchased-apps-dashboard-page-container">
 				<DashboardNavigation
-					accountIcon={getAccountImage(selectedAccount?.logoURL)}
-					accountsSearch={accountsSearch}
-					currentAccount={selectedAccount as any}
-					dashboardNavigationItems={dashboardNavigationItems}
+					dashboardNavigationItems={navigationItems}
 				/>
 
 				<Outlet
@@ -48,5 +75,10 @@ const CustomerDashboardOutlet = () => {
 		</PageRenderer>
 	);
 };
+
+const useCustomerDashboardOutletContext = () =>
+	useOutletContext<{selectedAccount: Account}>();
+
+export {useCustomerDashboardOutletContext};
 
 export default CustomerDashboardOutlet;

@@ -6,7 +6,8 @@
 package com.liferay.portal.defaultpermissions.web.internal.portlet.action;
 
 import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
-import com.liferay.portal.defaultpermissions.kernel.configuration.manager.PortalDefaultPermissionsConfigurationManager;
+import com.liferay.portal.defaultpermissions.web.internal.util.PortalDefaultPermissionsConfigurationPermissionUtil;
+import com.liferay.portal.kernel.defaultpermissions.configuration.manager.PortalDefaultPermissionsConfigurationManager;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.log.Log;
@@ -23,16 +24,16 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.ActionParameters;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
-
-import javax.portlet.ActionParameters;
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -42,7 +43,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=com_liferay_portlet_configuration_web_portlet_PortletConfigurationPortlet",
+		"jakarta.portlet.name=com_liferay_portlet_configuration_web_portlet_PortletConfigurationPortlet",
 		"mvc.command.name=/configuration/edit_portal_default_permissions_configuration"
 	},
 	service = MVCActionCommand.class
@@ -57,6 +58,13 @@ public class EditPortalDefaultPermissionsConfigurationMVCActionCommand
 			ActionRequest actionRequest, ActionResponse actionResponse)
 		throws Exception {
 
+		String scope = ParamUtil.getString(actionRequest, "scope");
+		ThemeDisplay themeDisplay = (ThemeDisplay)actionRequest.getAttribute(
+			WebKeys.THEME_DISPLAY);
+
+		PortalDefaultPermissionsConfigurationPermissionUtil.check(
+			scope, themeDisplay);
+
 		JSONObject jsonObject = _jsonFactory.createJSONObject();
 
 		hideDefaultErrorMessage(actionRequest);
@@ -67,10 +75,6 @@ public class EditPortalDefaultPermissionsConfigurationMVCActionCommand
 
 			String modelResource = ParamUtil.getString(
 				actionRequest, "modelResource");
-			String scope = ParamUtil.getString(actionRequest, "scope");
-
-			ThemeDisplay themeDisplay =
-				(ThemeDisplay)actionRequest.getAttribute(WebKeys.THEME_DISPLAY);
 
 			if (cmd.equals("reset")) {
 				if (!scope.equals(
@@ -182,18 +186,17 @@ public class EditPortalDefaultPermissionsConfigurationMVCActionCommand
 		ActionParameters actionParameters = actionRequest.getActionParameters();
 
 		for (String name : actionParameters.getNames()) {
-			if (!name.startsWith(roleId + ACTION_SEPARATOR)) {
+			if (!name.startsWith(roleId + ACTION_SEPARATOR) ||
+				!valuePredicate.test(actionParameters.getValue(name))) {
+
 				continue;
 			}
 
-			if (valuePredicate.test(actionParameters.getValue(name))) {
-				int pos = name.indexOf(ACTION_SEPARATOR);
+			int pos = name.indexOf(ACTION_SEPARATOR);
 
-				String actionId = name.substring(
-					pos + ACTION_SEPARATOR.length());
+			String actionId = name.substring(pos + ACTION_SEPARATOR.length());
 
-				actionIds.add(actionId);
-			}
+			actionIds.add(actionId);
 		}
 
 		return actionIds;

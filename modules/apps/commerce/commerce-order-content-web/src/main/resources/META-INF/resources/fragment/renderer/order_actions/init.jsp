@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://liferay.com/tld/frontend" prefix="liferay-frontend" %><%@
 taglib uri="http://liferay.com/tld/react" prefix="react" %><%@
@@ -27,9 +27,13 @@ page import="java.util.Map" %>
 String checkoutURL = (String)request.getAttribute("liferay-commerce:order-actions:checkoutURL");
 long commerceOrderId = (long)request.getAttribute("liferay-commerce:order-actions:commerceOrderId");
 List<DropdownItem> dropdownItems = (List<DropdownItem>)request.getAttribute("liferay-commerce:order-actions:dropdownItems");
+boolean manageNotesPermission = (boolean)request.getAttribute("liferay-commerce:order-actions:notesPermission");
+boolean manageRestrictedNotesPermission = (boolean)request.getAttribute("liferay-commerce:order-actions:restrictedNotesPermission");
 String namespace = (String)request.getAttribute("liferay-commerce:order-actions:namespace");
 boolean open = (boolean)request.getAttribute("liferay-commerce:order-actions:open");
 String orderSummaryURL = (String)request.getAttribute("liferay-commerce:order-actions:orderSummaryURL");
+boolean priceOnApplication = (boolean)request.getAttribute("liferay-commerce:order-actions:priceOnApplication");
+boolean quickCheckoutEnabled = (boolean)request.getAttribute("liferay-commerce:order-actions:quickCheckoutEnabled");
 String reorderURL = (String)request.getAttribute("liferay-commerce:order-actions:reorderURL");
 Map<String, Object> returnableOrderItemsContextParams = (Map<String, Object>)request.getAttribute("liferay-commerce:order-actions:returnableOrderItemsContextParams");
 String viewReturnableOrderItemsURL = (String)request.getAttribute("liferay-commerce:order-actions:viewReturnableOrderItemsURL");

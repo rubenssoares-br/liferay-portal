@@ -8,20 +8,40 @@ package com.liferay.object.internal.info.collection.provider.test;
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.info.collection.provider.CollectionQuery;
 import com.liferay.info.collection.provider.InfoCollectionProvider;
+import com.liferay.info.collection.provider.SingleFormVariationInfoCollectionProvider;
+import com.liferay.info.item.InfoItemFieldValues;
 import com.liferay.info.item.InfoItemServiceRegistry;
+import com.liferay.info.item.provider.InfoItemFieldValuesProvider;
+import com.liferay.info.list.provider.item.selector.criterion.InfoListProviderItemSelectorReturnType;
 import com.liferay.info.pagination.InfoPage;
 import com.liferay.info.pagination.Pagination;
+import com.liferay.layout.provider.LayoutStructureProvider;
+import com.liferay.layout.test.util.ContentLayoutTestUtil;
+import com.liferay.layout.test.util.LayoutTestUtil;
+import com.liferay.layout.util.structure.CollectionStyledLayoutStructureItem;
+import com.liferay.layout.util.structure.LayoutStructure;
 import com.liferay.object.constants.ObjectDefinitionConstants;
+import com.liferay.object.constants.ObjectEntryFolderConstants;
+import com.liferay.object.constants.ObjectFieldConstants;
 import com.liferay.object.field.builder.TextObjectFieldBuilder;
 import com.liferay.object.model.ObjectDefinition;
-import com.liferay.object.rest.dto.v1_0.ObjectEntry;
+import com.liferay.object.model.ObjectEntry;
+import com.liferay.object.rest.test.util.ObjectEntryTestUtil;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
+import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.object.test.util.ObjectDefinitionTestUtil;
+import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.portal.kernel.json.JSONObject;
+import com.liferay.portal.kernel.json.JSONUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
+import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
@@ -29,15 +49,19 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.WebKeys;
+import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
+import com.liferay.segments.service.SegmentsExperienceLocalService;
 
 import java.io.Serializable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -64,6 +88,14 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 
 	@Before
 	public void setUp() throws Exception {
+		_group = GroupTestUtil.addGroup();
+
+		_layout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		_segmentsExperienceId =
+			_segmentsExperienceLocalService.fetchDefaultSegmentsExperienceId(
+				_layout.getPlid());
+
 		ServiceContextThreadLocal.pushServiceContext(_getServiceContext());
 	}
 
@@ -73,15 +105,158 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 	}
 
 	@Test
+	public void testAddCollectionDisplayToLayout() throws Exception {
+		ObjectDefinition objectDefinition =
+			ObjectDefinitionTestUtil.publishObjectDefinition();
+
+		InfoCollectionProvider<ObjectEntry> infoCollectionProvider =
+			_infoItemServiceRegistry.getFirstInfoItemService(
+				InfoCollectionProvider.class, objectDefinition.getClassName());
+
+		ContentLayoutTestUtil.addCollectionDisplayToLayout(
+			JSONUtil.put(
+				"itemSubtype",
+				() -> {
+					SingleFormVariationInfoCollectionProvider<?>
+						singleFormVariationInfoCollectionProvider =
+							(SingleFormVariationInfoCollectionProvider<?>)
+								infoCollectionProvider;
+
+					return singleFormVariationInfoCollectionProvider.
+						getFormVariationKey();
+				}
+			).put(
+				"itemType", infoCollectionProvider.getCollectionItemClassName()
+			).put(
+				"key", infoCollectionProvider.getKey()
+			).put(
+				"title",
+				infoCollectionProvider.getLabel(LocaleUtil.getDefault())
+			).put(
+				"type", InfoListProviderItemSelectorReturnType.class.getName()
+			),
+			_layout, _layoutStructureProvider, null, null, 0,
+			_segmentsExperienceId);
+
+		LayoutStructure layoutStructure =
+			_layoutStructureProvider.getLayoutStructure(
+				_layout.getPlid(), _segmentsExperienceId);
+
+		List<CollectionStyledLayoutStructureItem>
+			collectionStyledLayoutStructureItems =
+				layoutStructure.getCollectionStyledLayoutStructureItems();
+
+		Assert.assertEquals(
+			collectionStyledLayoutStructureItems.toString(), 1,
+			collectionStyledLayoutStructureItems.size());
+
+		CollectionStyledLayoutStructureItem
+			collectionStyledLayoutStructureItem =
+				collectionStyledLayoutStructureItems.get(0);
+
+		JSONObject collectionJSONObject =
+			collectionStyledLayoutStructureItem.getCollectionJSONObject();
+
+		Assert.assertEquals(
+			objectDefinition.getObjectDefinitionId(),
+			collectionJSONObject.getLong("itemSubtype"));
+		Assert.assertEquals(
+			objectDefinition.getClassName(),
+			collectionJSONObject.getString("itemType"));
+		Assert.assertEquals(
+			objectDefinition.getClassName(),
+			collectionJSONObject.getString("key"));
+		Assert.assertEquals(
+			objectDefinition.getPluralLabel(LocaleUtil.getDefault()),
+			collectionJSONObject.getString("title"));
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
+	@Test
 	public void testGetCollectionInfoPageDisplayAllItems() throws Exception {
-		_testGetCollectionInfoPageDisplayAllItems(false);
-		_testGetCollectionInfoPageDisplayAllItems(true);
+		_testGetCollectionInfoPageDisplayAllItems(false, false);
+		_testGetCollectionInfoPageDisplayAllItems(false, true);
+		_testGetCollectionInfoPageDisplayAllItems(true, false);
+		_testGetCollectionInfoPageDisplayAllItems(true, true);
+	}
+
+	@Test
+	public void testGetCollectionInfoPageWithDeletedObjectField()
+		throws Exception {
+
+		ObjectDefinition objectDefinition = _publishObjectDefinition(
+			"able", "baker");
+
+		ObjectEntryTestUtil.addObjectEntry(
+			objectDefinition, "able", RandomTestUtil.randomString());
+
+		_getInfoItemFieldValuesList(objectDefinition);
+
+		_objectFieldLocalService.deleteObjectField(
+			_objectFieldLocalService.getObjectField(
+				objectDefinition.getObjectDefinitionId(), "baker"));
+
+		_objectFieldLocalService.addCustomObjectField(
+			null, TestPropsValues.getUserId(), 0,
+			objectDefinition.getObjectDefinitionId(),
+			ObjectFieldConstants.BUSINESS_TYPE_TEXT,
+			ObjectFieldConstants.DB_TYPE_STRING, null, false, false, null,
+			LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
+			false, "charlie", null, null, false, false,
+			Collections.emptyList());
+
+		String value = RandomTestUtil.randomString();
+
+		ObjectEntryTestUtil.addObjectEntry(objectDefinition, "charlie", value);
+
+		List<InfoItemFieldValues> infoItemFieldValuesList =
+			_getInfoItemFieldValuesList(objectDefinition);
+
+		Assert.assertEquals(
+			infoItemFieldValuesList.toString(), 2,
+			infoItemFieldValuesList.size());
+
+		InfoItemFieldValues infoItemFieldValues = infoItemFieldValuesList.get(
+			1);
+
+		Assert.assertNull(infoItemFieldValues.getInfoFieldValue("baker"));
+
+		Map<String, Object> map = infoItemFieldValues.getMap(
+			LocaleUtil.getSiteDefault());
+
+		Assert.assertEquals(map.toString(), value, map.get("charlie"));
+
+		_objectDefinitionLocalService.deleteObjectDefinition(objectDefinition);
+	}
+
+	private List<InfoItemFieldValues> _getInfoItemFieldValuesList(
+		ObjectDefinition objectDefinition) {
+
+		InfoCollectionProvider<ObjectEntry> infoCollectionProvider =
+			_infoItemServiceRegistry.getFirstInfoItemService(
+				InfoCollectionProvider.class, objectDefinition.getClassName());
+
+		CollectionQuery collectionQuery = new CollectionQuery();
+
+		collectionQuery.setPagination(Pagination.of(-1, -1));
+
+		InfoPage<ObjectEntry> infoPage =
+			infoCollectionProvider.getCollectionInfoPage(collectionQuery);
+
+		InfoItemFieldValuesProvider<ObjectEntry> infoItemFieldValuesProvider =
+			_infoItemServiceRegistry.getFirstInfoItemService(
+				InfoItemFieldValuesProvider.class,
+				objectDefinition.getClassName());
+
+		return TransformUtil.transform(
+			infoPage.getPageItems(),
+			infoItemFieldValuesProvider::getInfoItemFieldValues);
 	}
 
 	private ServiceContext _getServiceContext() throws Exception {
 		ServiceContext serviceContext =
-			ServiceContextTestUtil.getServiceContext(
-				TestPropsValues.getGroupId());
+			ServiceContextTestUtil.getServiceContext(_group.getGroupId());
 
 		MockHttpServletRequest mockHttpServletRequest =
 			new MockHttpServletRequest();
@@ -91,7 +266,8 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 		themeDisplay.setCompany(
 			_companyLocalService.getCompany(TestPropsValues.getCompanyId()));
 		themeDisplay.setLocale(LocaleUtil.getSiteDefault());
-		themeDisplay.setScopeGroupId(TestPropsValues.getGroupId());
+		themeDisplay.setScopeGroupId(_group.getGroupId());
+		themeDisplay.setSiteGroupId(_group.getGroupId());
 		themeDisplay.setUser(TestPropsValues.getUser());
 
 		mockHttpServletRequest.setAttribute(
@@ -102,19 +278,51 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 		return serviceContext;
 	}
 
-	private void _testGetCollectionInfoPageDisplayAllItems(
-			boolean enableIndexSearch)
+	private ObjectDefinition _publishObjectDefinition(
+			String... objectFieldNames)
 		throws Exception {
 
 		ObjectDefinition objectDefinition =
 			_objectDefinitionLocalService.addCustomObjectDefinition(
-				TestPropsValues.getUserId(), 0, null, false, enableIndexSearch,
-				false, false,
+				null, TestPropsValues.getUserId(), 0, null, null, true, false,
+				true, false, false, false, false, false, false, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				ObjectDefinitionTestUtil.getRandomName(), null, null,
 				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
 				true, ObjectDefinitionConstants.SCOPE_COMPANY,
 				ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
+				TransformUtil.transformToList(
+					objectFieldNames,
+					objectFieldName -> new TextObjectFieldBuilder(
+					).labelMap(
+						LocalizedMapUtil.getLocalizedMap(
+							RandomTestUtil.randomString())
+					).name(
+						objectFieldName
+					).build()),
+				Collections.emptyList(), new ServiceContext());
+
+		return _objectDefinitionLocalService.publishCustomObjectDefinition(
+			TestPropsValues.getUserId(),
+			objectDefinition.getObjectDefinitionId());
+	}
+
+	private void _testGetCollectionInfoPageDisplayAllItems(
+			boolean enableIndexSearch, boolean enableObjectEntryVersioning)
+		throws Exception {
+
+		ObjectDefinition objectDefinition =
+			_objectDefinitionLocalService.addCustomObjectDefinition(
+				null, TestPropsValues.getUserId(), 0, null, null, true, false,
+				true, false, enableIndexSearch, false, false, false,
+				enableObjectEntryVersioning, null,
+				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
+				ObjectDefinitionTestUtil.getRandomName(), null, null,
+				LocalizedMapUtil.getLocalizedMap(RandomTestUtil.randomString()),
+				true, ObjectDefinitionConstants.SCOPE_COMPANY,
+				ObjectDefinitionConstants.STORAGE_TYPE_DEFAULT,
+				Collections.emptyList(),
 				Collections.singletonList(
 					new TextObjectFieldBuilder(
 					).labelMap(
@@ -122,7 +330,8 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 							RandomTestUtil.randomString())
 					).name(
 						"textObjectFieldName"
-					).build()));
+					).build()),
+				Collections.emptyList(), new ServiceContext());
 
 		objectDefinition =
 			_objectDefinitionLocalService.publishCustomObjectDefinition(
@@ -130,13 +339,33 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 				objectDefinition.getObjectDefinitionId());
 
 		try {
-			int expectedObjectEntriesSize = RandomTestUtil.randomInt(1, 10);
+			List<ObjectEntry> expectedObjectEntries = new ArrayList<>();
 
-			for (int i = 0; i < expectedObjectEntriesSize; i++) {
-				_objectEntryLocalService.addObjectEntry(
-					TestPropsValues.getUserId(), 0,
-					objectDefinition.getObjectDefinitionId(),
+			for (int i = 0; i < RandomTestUtil.randomInt(1, 10); i++) {
+				ObjectEntry objectEntry =
+					_objectEntryLocalService.addObjectEntry(
+						0, TestPropsValues.getUserId(),
+						objectDefinition.getObjectDefinitionId(),
+						ObjectEntryFolderConstants.
+							PARENT_OBJECT_ENTRY_FOLDER_ID_DEFAULT,
+						null,
+						HashMapBuilder.<String, Serializable>put(
+							"textObjectFieldName", RandomTestUtil.randomString()
+						).build(),
+						ServiceContextTestUtil.getServiceContext());
+
+				expectedObjectEntries.add(objectEntry);
+
+				if (!enableObjectEntryVersioning) {
+					continue;
+				}
+
+				_objectEntryLocalService.partialUpdateObjectEntry(
+					TestPropsValues.getUserId(), objectEntry.getObjectEntryId(),
+					objectEntry.getObjectEntryFolderId(),
 					HashMapBuilder.<String, Serializable>put(
+						"status", WorkflowConstants.STATUS_PENDING
+					).put(
 						"textObjectFieldName", RandomTestUtil.randomString()
 					).build(),
 					ServiceContextTestUtil.getServiceContext());
@@ -147,6 +376,10 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 					InfoCollectionProvider.class,
 					objectDefinition.getClassName());
 
+			Assert.assertEquals(
+				objectDefinition.getClassName(),
+				infoCollectionProvider.getKey());
+
 			CollectionQuery collectionQuery = new CollectionQuery();
 
 			collectionQuery.setPagination(Pagination.of(-1, -1));
@@ -155,14 +388,23 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 				infoCollectionProvider.getCollectionInfoPage(collectionQuery);
 
 			Assert.assertEquals(
-				expectedObjectEntriesSize, infoPage.getTotalCount());
+				expectedObjectEntries.size(), infoPage.getTotalCount());
 
-			List<ObjectEntry> objectEntries =
+			List<ObjectEntry> actualObjectEntries =
 				(List<ObjectEntry>)infoPage.getPageItems();
 
 			Assert.assertEquals(
-				objectEntries.toString(), expectedObjectEntriesSize,
-				objectEntries.size());
+				actualObjectEntries.toString(), expectedObjectEntries.size(),
+				actualObjectEntries.size());
+
+			for (int i = 0; i < expectedObjectEntries.size(); i++) {
+				ObjectEntry actualObjectEntry = actualObjectEntries.get(i);
+				ObjectEntry expectedObjectEntry = expectedObjectEntries.get(i);
+
+				Assert.assertEquals(
+					expectedObjectEntry.getObjectEntryId(),
+					actualObjectEntry.getObjectEntryId());
+			}
 		}
 		finally {
 			_objectDefinitionLocalService.deleteObjectDefinition(
@@ -173,13 +415,29 @@ public class ObjectEntrySingleFormVariationInfoCollectionProviderTest {
 	@Inject
 	private CompanyLocalService _companyLocalService;
 
+	@DeleteAfterTestRun
+	private Group _group;
+
 	@Inject
 	private InfoItemServiceRegistry _infoItemServiceRegistry;
+
+	private Layout _layout;
+
+	@Inject
+	private LayoutStructureProvider _layoutStructureProvider;
 
 	@Inject
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 
 	@Inject
 	private ObjectEntryLocalService _objectEntryLocalService;
+
+	@Inject
+	private ObjectFieldLocalService _objectFieldLocalService;
+
+	private long _segmentsExperienceId;
+
+	@Inject
+	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
 
 }

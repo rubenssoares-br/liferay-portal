@@ -115,12 +115,15 @@ public class LayoutUpgradeProcess extends UpgradeProcess {
 		ServiceContext serviceContext = new ServiceContext();
 
 		try (LoggingTimer loggingTimer = new LoggingTimer();
+
 			Statement s = connection.createStatement();
+
 			ResultSet resultSet = s.executeQuery(
 				StringBundler.concat(
 					"select layoutPageTemplateEntryId, groupId, companyId, ",
 					"userId, name, type_, layoutPrototypeId, companyId from ",
 					"LayoutPageTemplateEntry where plid is null or plid = 0"));
+
 			PreparedStatement preparedStatement =
 				AutoBatchPreparedStatementUtil.autoBatch(
 					connection,
@@ -169,7 +172,8 @@ public class LayoutUpgradeProcess extends UpgradeProcess {
 
 					_fragmentEntryLinkLocalService.addFragmentEntryLink(
 						null, draftLayout.getUserId(), draftLayout.getGroupId(),
-						0, fragmentEntryLink.getFragmentEntryId(), 0,
+						null, fragmentEntryLink.getFragmentEntryERC(),
+						fragmentEntryLink.getFragmentEntryScopeERC(), 0,
 						draftLayout.getPlid(), fragmentEntryLink.getCss(),
 						fragmentEntryLink.getHtml(), fragmentEntryLink.getJs(),
 						fragmentEntryLink.getConfiguration(),

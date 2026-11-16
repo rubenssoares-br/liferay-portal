@@ -15,56 +15,37 @@ import com.liferay.portal.search.engine.adapter.ccr.PutFollowCCRResponse;
 import com.liferay.portal.search.engine.adapter.ccr.UnfollowCCRRequest;
 import com.liferay.portal.search.engine.adapter.ccr.UnfollowCCRResponse;
 
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-
 /**
  * @author Bryan Engler
  */
-@Component(
-	property = "search.engine.impl=OpenSearch",
-	service = CCRRequestExecutor.class
-)
 public class OpenSearchCCRRequestExecutor implements CCRRequestExecutor {
 
 	@Override
 	public FollowInfoCCRResponse executeCCRRequest(
 		FollowInfoCCRRequest followInfoCCRRequest) {
 
-		return _followInfoCCRRequestExecutor.execute(followInfoCCRRequest);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public PauseFollowCCRResponse executeCCRRequest(
 		PauseFollowCCRRequest pauseFollowCCRRequest) {
 
-		return _pauseFollowCCRRequestExecutor.execute(pauseFollowCCRRequest);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public PutFollowCCRResponse executeCCRRequest(
 		PutFollowCCRRequest putFollowCCRRequest) {
 
-		return _putFollowCCRRequestExecutor.execute(putFollowCCRRequest);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public UnfollowCCRResponse executeCCRRequest(
 		UnfollowCCRRequest unfollowCCRRequest) {
 
-		return _unfollowCCRRequestExecutor.execute(unfollowCCRRequest);
+		throw new UnsupportedOperationException();
 	}
-
-	@Reference
-	private FollowInfoCCRRequestExecutor _followInfoCCRRequestExecutor;
-
-	@Reference
-	private PauseFollowCCRRequestExecutor _pauseFollowCCRRequestExecutor;
-
-	@Reference
-	private PutFollowCCRRequestExecutor _putFollowCCRRequestExecutor;
-
-	@Reference
-	private UnfollowCCRRequestExecutor _unfollowCCRRequestExecutor;
 
 }

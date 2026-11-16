@@ -9,6 +9,7 @@ import com.liferay.fragment.exception.FragmentEntryContentException;
 import com.liferay.fragment.processor.DocumentFragmentEntryValidator;
 import com.liferay.fragment.processor.PortletRegistry;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.model.ModelHintsConstants;
 import com.liferay.portal.kernel.model.Portlet;
@@ -38,7 +39,8 @@ public class PortletFragmentEntryValidator
 
 	@Override
 	public void validateFragmentEntryHTML(
-			Document document, String configuration, Locale locale)
+			Document document, JSONObject configurationJSONObject,
+			Locale locale)
 		throws PortalException {
 
 		for (Element element : document.getAllElements()) {
@@ -96,17 +98,18 @@ public class PortletFragmentEntryValidator
 							"have-an-id"));
 			}
 
-			if (elements.size() > 1) {
-				Portlet portlet = _portletLocalService.getPortletById(
-					_portletRegistry.getPortletName(alias));
+			if (elements.size() <= 1) {
+				continue;
+			}
 
-				if (!portlet.isInstanceable()) {
-					throw new FragmentEntryContentException(
-						_language.format(
-							locale,
-							"you-cannot-add-the-widget-x-more-than-once",
-							alias));
-				}
+			Portlet portlet = _portletLocalService.getPortletById(
+				_portletRegistry.getPortletName(alias));
+
+			if (!portlet.isInstanceable()) {
+				throw new FragmentEntryContentException(
+					_language.format(
+						locale, "you-cannot-add-the-widget-x-more-than-once",
+						alias));
 			}
 		}
 	}

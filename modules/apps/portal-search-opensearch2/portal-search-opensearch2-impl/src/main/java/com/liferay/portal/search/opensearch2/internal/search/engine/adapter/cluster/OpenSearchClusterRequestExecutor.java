@@ -16,9 +16,9 @@ import com.liferay.portal.search.engine.adapter.cluster.StatsClusterRequest;
 import com.liferay.portal.search.engine.adapter.cluster.StatsClusterResponse;
 import com.liferay.portal.search.engine.adapter.cluster.UpdateSettingsClusterRequest;
 import com.liferay.portal.search.engine.adapter.cluster.UpdateSettingsClusterResponse;
+import com.liferay.portal.search.opensearch2.internal.connection.OpenSearchConnectionManager;
 
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Dylan Rebelak
@@ -29,6 +29,20 @@ import org.osgi.service.component.annotations.Reference;
 )
 public class OpenSearchClusterRequestExecutor
 	implements ClusterRequestExecutor {
+
+	public OpenSearchClusterRequestExecutor(
+		OpenSearchConnectionManager openSearchConnectionManager) {
+
+		_healthClusterRequestExecutor = new HealthClusterRequestExecutor(
+			openSearchConnectionManager);
+		_stateClusterRequestExecutor = new StateClusterRequestExecutor(
+			openSearchConnectionManager);
+		_statsClusterRequestExecutor = new StatsClusterRequestExecutor(
+			openSearchConnectionManager);
+		_updateSettingsClusterRequestExecutor =
+			new UpdateSettingsClusterRequestExecutor(
+				openSearchConnectionManager);
+	}
 
 	@Override
 	public <T extends ClusterResponse> T execute(
@@ -66,17 +80,10 @@ public class OpenSearchClusterRequestExecutor
 			updateSettingsClusterRequest);
 	}
 
-	@Reference
-	private HealthClusterRequestExecutor _healthClusterRequestExecutor;
-
-	@Reference
-	private StateClusterRequestExecutor _stateClusterRequestExecutor;
-
-	@Reference
-	private StatsClusterRequestExecutor _statsClusterRequestExecutor;
-
-	@Reference
-	private UpdateSettingsClusterRequestExecutor
+	private final HealthClusterRequestExecutor _healthClusterRequestExecutor;
+	private final StateClusterRequestExecutor _stateClusterRequestExecutor;
+	private final StatsClusterRequestExecutor _statsClusterRequestExecutor;
+	private final UpdateSettingsClusterRequestExecutor
 		_updateSettingsClusterRequestExecutor;
 
 }

@@ -22,11 +22,14 @@ import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -38,12 +41,15 @@ import com.liferay.portal.tools.rest.builder.test.client.http.HttpInvoker;
 import com.liferay.portal.tools.rest.builder.test.client.pagination.Page;
 import com.liferay.portal.tools.rest.builder.test.client.resource.v1_0.TestEntityAddressResource;
 import com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0.TestEntityAddressSerDes;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,10 +61,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -82,8 +84,10 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -96,17 +100,16 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 
 		_testEntityAddressResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		TestEntityAddressResource.Builder builder =
-			TestEntityAddressResource.builder();
-
-		testEntityAddressResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		testEntityAddressResource = TestEntityAddressResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -197,13 +200,6 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 		assertValid(getTestEntityAddress);
 	}
 
-	protected Long testGetTestEntityTestEntityAddress_getTestEntityId()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
 	protected TestEntityAddress
 			testGetTestEntityTestEntityAddress_addTestEntityAddress()
 		throws Exception {
@@ -212,8 +208,122 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 			"This method needs to be implemented");
 	}
 
+	protected Long testGetTestEntityTestEntityAddress_getTestEntityId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetTestEntityTestEntityAddress() throws Exception {
+		TestEntityAddress testEntityAddress =
+			testGraphQLGetTestEntityTestEntityAddress_addTestEntityAddress();
+
+		// No namespace
+
+		Assert.assertTrue(
+			equals(
+				testEntityAddress,
+				TestEntityAddressSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"testEntityTestEntityAddress",
+								new HashMap<String, Object>() {
+									{
+										put(
+											"testEntityId",
+											testGraphQLGetTestEntityTestEntityAddress_getTestEntityId());
+									}
+								},
+								getGraphQLFields())),
+						"JSONObject/data",
+						"Object/testEntityTestEntityAddress"))));
+
+		// Using the namespace portalTools_v1_0
+
+		Assert.assertTrue(
+			equals(
+				testEntityAddress,
+				TestEntityAddressSerDes.toDTO(
+					JSONUtil.getValueAsString(
+						invokeGraphQLQuery(
+							new GraphQLField(
+								"portalTools_v1_0",
+								new GraphQLField(
+									"testEntityTestEntityAddress",
+									new HashMap<String, Object>() {
+										{
+											put(
+												"testEntityId",
+												testGraphQLGetTestEntityTestEntityAddress_getTestEntityId());
+										}
+									},
+									getGraphQLFields()))),
+						"JSONObject/data", "JSONObject/portalTools_v1_0",
+						"Object/testEntityTestEntityAddress"))));
+	}
+
+	protected Long testGraphQLGetTestEntityTestEntityAddress_getTestEntityId()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGraphQLGetTestEntityTestEntityAddressNotFound()
+		throws Exception {
+
+		Long irrelevantTestEntityId = RandomTestUtil.randomLong();
+
+		// No namespace
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"testEntityTestEntityAddress",
+						new HashMap<String, Object>() {
+							{
+								put("testEntityId", irrelevantTestEntityId);
+							}
+						},
+						getGraphQLFields())),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+
+		// Using the namespace portalTools_v1_0
+
+		Assert.assertEquals(
+			"Not Found",
+			JSONUtil.getValueAsString(
+				invokeGraphQLQuery(
+					new GraphQLField(
+						"portalTools_v1_0",
+						new GraphQLField(
+							"testEntityTestEntityAddress",
+							new HashMap<String, Object>() {
+								{
+									put("testEntityId", irrelevantTestEntityId);
+								}
+							},
+							getGraphQLFields()))),
+				"JSONArray/errors", "Object/0", "JSONObject/extensions",
+				"Object/code"));
+	}
+
 	protected TestEntityAddress
-			testGraphQLTestEntityAddress_addTestEntityAddress()
+			testGraphQLGetTestEntityTestEntityAddress_addTestEntityAddress()
+		throws Exception {
+
+		return testGraphQLTestEntityTestEntityAddress_addTestEntityAddress();
+	}
+
+	protected TestEntityAddress
+			testGraphQLTestEntityTestEntityAddress_addTestEntityAddress()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
@@ -406,6 +516,8 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -663,13 +775,11 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -679,8 +789,7 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(testEntityAddress.getDateCreated()));
+				sb.append(_format.format(testEntityAddress.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -695,13 +804,11 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -711,8 +818,7 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(
-					_dateFormat.format(testEntityAddress.getDateModified()));
+				sb.append(_format.format(testEntityAddress.getDateModified()));
 			}
 
 			return sb.toString();
@@ -879,7 +985,9 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -1140,10 +1248,13 @@ public abstract class BaseTestEntityAddressResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseTestEntityAddressResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.portal.tools.rest.builder.test.resource.v1_0.
 		TestEntityAddressResource _testEntityAddressResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-282487031

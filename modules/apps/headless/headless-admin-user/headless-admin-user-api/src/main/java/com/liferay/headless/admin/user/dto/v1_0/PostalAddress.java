@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -40,6 +41,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a mailing address. This follows the [`PostalAddress`](https://www.schema.org/PostalAddress) specification.",
 	value = "PostalAddress"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a mailing address. This follows the [`PostalAddress`](https://www.schema.org/PostalAddress) specification."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "PostalAddress")
@@ -53,7 +57,9 @@ public class PostalAddress implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(PostalAddress.class, json);
 	}
 
-	@Schema(description = "The address's country (e.g., USA).")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's country (e.g., USA)."
+	)
 	public String getAddressCountry() {
 		if (_addressCountrySupplier != null) {
 			addressCountry = _addressCountrySupplier.get();
@@ -94,7 +100,55 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _addressCountrySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address' country external reference code."
+	)
+	public String getAddressCountryExternalReferenceCode() {
+		if (_addressCountryExternalReferenceCodeSupplier != null) {
+			addressCountryExternalReferenceCode =
+				_addressCountryExternalReferenceCodeSupplier.get();
+
+			_addressCountryExternalReferenceCodeSupplier = null;
+		}
+
+		return addressCountryExternalReferenceCode;
+	}
+
+	public void setAddressCountryExternalReferenceCode(
+		String addressCountryExternalReferenceCode) {
+
+		this.addressCountryExternalReferenceCode =
+			addressCountryExternalReferenceCode;
+
+		_addressCountryExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setAddressCountryExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			addressCountryExternalReferenceCodeUnsafeSupplier) {
+
+		_addressCountryExternalReferenceCodeSupplier = () -> {
+			try {
+				return addressCountryExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The address' country external reference code.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String addressCountryExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _addressCountryExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, String> getAddressCountry_i18n() {
 		if (_addressCountry_i18nSupplier != null) {
@@ -139,7 +193,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, String>> _addressCountry_i18nSupplier;
 
-	@Schema(description = "The address's locality (e.g., city).")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's locality (e.g., city)."
+	)
 	public String getAddressLocality() {
 		if (_addressLocalitySupplier != null) {
 			addressLocality = _addressLocalitySupplier.get();
@@ -180,7 +236,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _addressLocalitySupplier;
 
-	@Schema(description = "The address's region (e.g., state).")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's region (e.g., state)."
+	)
 	public String getAddressRegion() {
 		if (_addressRegionSupplier != null) {
 			addressRegion = _addressRegionSupplier.get();
@@ -221,7 +279,100 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _addressRegionSupplier;
 
-	@Schema(description = "The address's type.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address' region external reference code."
+	)
+	public String getAddressRegionExternalReferenceCode() {
+		if (_addressRegionExternalReferenceCodeSupplier != null) {
+			addressRegionExternalReferenceCode =
+				_addressRegionExternalReferenceCodeSupplier.get();
+
+			_addressRegionExternalReferenceCodeSupplier = null;
+		}
+
+		return addressRegionExternalReferenceCode;
+	}
+
+	public void setAddressRegionExternalReferenceCode(
+		String addressRegionExternalReferenceCode) {
+
+		this.addressRegionExternalReferenceCode =
+			addressRegionExternalReferenceCode;
+
+		_addressRegionExternalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setAddressRegionExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			addressRegionExternalReferenceCodeUnsafeSupplier) {
+
+		_addressRegionExternalReferenceCodeSupplier = () -> {
+			try {
+				return addressRegionExternalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The address' region external reference code.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String addressRegionExternalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _addressRegionExternalReferenceCodeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's subtype."
+	)
+	public String getAddressSubtype() {
+		if (_addressSubtypeSupplier != null) {
+			addressSubtype = _addressSubtypeSupplier.get();
+
+			_addressSubtypeSupplier = null;
+		}
+
+		return addressSubtype;
+	}
+
+	public void setAddressSubtype(String addressSubtype) {
+		this.addressSubtype = addressSubtype;
+
+		_addressSubtypeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setAddressSubtype(
+		UnsafeSupplier<String, Exception> addressSubtypeUnsafeSupplier) {
+
+		_addressSubtypeSupplier = () -> {
+			try {
+				return addressSubtypeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The address's subtype.")
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String addressSubtype;
+
+	@JsonIgnore
+	private Supplier<String> _addressSubtypeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's type."
+	)
 	public String getAddressType() {
 		if (_addressTypeSupplier != null) {
 			addressType = _addressTypeSupplier.get();
@@ -262,7 +413,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _addressTypeSupplier;
 
-	@Schema(description = "The optional external key of this address.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The optional external key of this address."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -303,7 +456,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(description = "The address's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's ID."
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -336,13 +491,15 @@ public class PostalAddress implements Serializable {
 	}
 
 	@GraphQLField(description = "The address's ID.")
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(description = "The address's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -381,7 +538,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(description = "The phone number.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The phone number."
+	)
 	public String getPhoneNumber() {
 		if (_phoneNumberSupplier != null) {
 			phoneNumber = _phoneNumberSupplier.get();
@@ -422,7 +581,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _phoneNumberSupplier;
 
-	@Schema(description = "The address's postal code (e.g., zip code).")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The address's postal code (e.g., zip code)."
+	)
 	public String getPostalCode() {
 		if (_postalCodeSupplier != null) {
 			postalCode = _postalCodeSupplier.get();
@@ -463,7 +624,7 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _postalCodeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A flag that identifies whether this is the main address of the user/organization."
 	)
 	public Boolean getPrimary() {
@@ -508,7 +669,7 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _primarySupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The street address's first line (e.g., 1600 Amphitheatre Pkwy.)."
 	)
 	public String getStreetAddressLine1() {
@@ -553,7 +714,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _streetAddressLine1Supplier;
 
-	@Schema(description = "The street address's second line.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The street address's second line."
+	)
 	public String getStreetAddressLine2() {
 		if (_streetAddressLine2Supplier != null) {
 			streetAddressLine2 = _streetAddressLine2Supplier.get();
@@ -594,7 +757,9 @@ public class PostalAddress implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _streetAddressLine2Supplier;
 
-	@Schema(description = "The street address's third line.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The street address's third line."
+	)
 	public String getStreetAddressLine3() {
 		if (_streetAddressLine3Supplier != null) {
 			streetAddressLine3 = _streetAddressLine3Supplier.get();
@@ -678,6 +843,23 @@ public class PostalAddress implements Serializable {
 			sb.append("\"");
 		}
 
+		String addressCountryExternalReferenceCode =
+			getAddressCountryExternalReferenceCode();
+
+		if (addressCountryExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"addressCountryExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(addressCountryExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
 		Map<String, String> addressCountry_i18n = getAddressCountry_i18n();
 
 		if (addressCountry_i18n != null) {
@@ -718,6 +900,39 @@ public class PostalAddress implements Serializable {
 			sb.append("\"");
 
 			sb.append(_escape(addressRegion));
+
+			sb.append("\"");
+		}
+
+		String addressRegionExternalReferenceCode =
+			getAddressRegionExternalReferenceCode();
+
+		if (addressRegionExternalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"addressRegionExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(addressRegionExternalReferenceCode));
+
+			sb.append("\"");
+		}
+
+		String addressSubtype = getAddressSubtype();
+
+		if (addressSubtype != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"addressSubtype\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(addressSubtype));
 
 			sb.append("\"");
 		}
@@ -879,8 +1094,8 @@ public class PostalAddress implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.user.dto.v1_0.PostalAddress",
 		name = "x-class-name"
 	)
@@ -967,6 +1182,27 @@ public class PostalAddress implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -975,3 +1211,4 @@ public class PostalAddress implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:383094106

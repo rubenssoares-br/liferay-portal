@@ -18,7 +18,6 @@
 			"label": {
 				"en_US": "Bookmark"
 			},
-			"modifiable": true,
 			"name": "Bookmark",
 			"objectFields": [
 				{
@@ -183,6 +182,7 @@
 			"objectViews": [
 				{
 					"defaultObjectView": true,
+					"externalReferenceCode": "L_BOOKMARK_MAIN_OBJECT_VIEW",
 					"name": {
 						"en_US": "Main"
 					},

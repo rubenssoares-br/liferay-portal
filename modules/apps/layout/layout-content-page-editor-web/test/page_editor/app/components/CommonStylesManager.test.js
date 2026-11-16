@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import {render} from '@testing-library/react';
 import React from 'react';
 
@@ -67,6 +67,10 @@ const COMMON_CSS_STYLE = `
 	
 	.portlet-borderless .portlet-content{
 		padding: 0;
+	}
+
+	[data-lfr-editable-type="rich-text"] > p:only-child {
+		margin-bottom: 0;
 	}
 `;
 const FRAGMENT_ID = 'FRAGMENT_ID';
@@ -152,6 +156,9 @@ const renderCommonStylesManager = ({
 							},
 						},
 					},
+				},
+				permissions: {
+					UPDATE: true,
 				},
 				selectedViewportSize,
 			})}

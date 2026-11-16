@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {openToast} from 'frontend-js-web';
+import {openConfirmModal} from '@liferay/layout-js-components-web';
+import {openToast} from 'frontend-js-components-web';
 
 import deleteItemAction from '../actions/deleteItem';
 import {ITEM_ACTIVATION_ORIGINS} from '../config/constants/itemActivationOrigins';
 import {LAYOUT_DATA_ITEM_TYPES} from '../config/constants/layoutDataItemTypes';
+import {LAYOUT_STRUCTURE_ITEM_CLASS_NAME_PREFIX} from '../config/constants/layoutStructureItemClassNamePrefix';
 import selectFormConfiguration from '../selectors/selectFormConfiguration';
 import FormService from '../services/FormService';
 import LayoutService from '../services/LayoutService';
 import {CACHE_KEYS, getCacheItem, getCacheKey} from '../utils/cache';
+import {getDescendantIds} from '../utils/getDescendantIds';
 import {
 	FORM_ERROR_TYPES,
 	getFormErrorDescription,
@@ -20,7 +23,6 @@ import {getFormParent} from '../utils/getFormParent';
 import getFragmentEntryLinkIdsFromItemId from '../utils/getFragmentEntryLinkIdsFromItemId';
 import getPortletId from '../utils/getPortletId';
 import {isRequiredFormInput} from '../utils/isRequiredFormInput';
-import selectFirstControlsItem from '../utils/selectFirstControlsItem';
 import {clearPageContents} from '../utils/usePageContents';
 import filterSelectedItems from './filterSelectedItems';
 
@@ -52,79 +54,124 @@ export function getPreviousItemId(deletedItems, items, nextItems) {
 
 export default function deleteItem({itemIds, selectItems = () => {}}) {
 	return (dispatch, getState) => {
-		const {fragmentEntryLinks, layoutData, segmentsExperienceId} =
-			getState();
-
-		return markItemForDeletion({
+		const {
+			availableSegmentsExperiences = {},
+			elementVariations = [],
 			fragmentEntryLinks,
-			itemIds,
 			layoutData,
-			onNetworkStatus: dispatch,
 			segmentsExperienceId,
-		}).then(async ({portletIds = [], layoutData: nextLayoutData}) => {
-			const nextItemId = getPreviousItemId(
+		} = getState();
+
+		const handleDeleteItems = async () => {
+			return markItemForDeletion({
+				fragmentEntryLinks,
 				itemIds,
-				layoutData.items,
-				nextLayoutData.items
-			);
+				layoutData,
+				onNetworkStatus: dispatch,
+				segmentsExperienceId,
+			}).then(async ({portletIds = [], layoutData: nextLayoutData}) => {
+				const nextItemId = getPreviousItemId(
+					itemIds,
+					layoutData.items,
+					nextLayoutData.items
+				);
 
-			if (!nextItemId) {
-				document
-					.querySelector('button[data-panel-id="browser"]')
-					.focus();
+				if (!nextItemId) {
+					document
+						.querySelector('button[data-panel-id="browser"]')
+						.focus();
 
-				selectItems(null);
-			}
-			else {
-				selectFirstControlsItem({
-					itemId: nextItemId,
-					layoutData,
-					origin: ITEM_ACTIVATION_ORIGINS.itemActions,
-					selectItems,
+					selectItems(null);
+				}
+				else {
+					selectItems([nextItemId], {
+						origin: ITEM_ACTIVATION_ORIGINS.itemActions,
+					});
+				}
+
+				const fragmentEntryLinkIds = itemIds.flatMap((itemId) =>
+					getFragmentEntryLinkIdsFromItemId({
+						itemId,
+						layoutData: nextLayoutData,
+					})
+				);
+
+				dispatch(
+					deleteItemAction({
+						fragmentEntryLinkIds,
+						itemIds,
+						layoutData: nextLayoutData,
+						portletIds,
+					})
+				);
+
+				clearPageContents();
+
+				// Show warning if deleting some required form input
+
+				for (const itemId of itemIds) {
+					if (
+						await isRequiredFormField(
+							layoutData,
+							itemId,
+							fragmentEntryLinks
+						)
+					) {
+						const {message} = getFormErrorDescription({
+							type: FORM_ERROR_TYPES.deletedFragment,
+						});
+
+						openToast({
+							message,
+							type: 'warning',
+						});
+
+						break;
+					}
+				}
+			});
+		};
+
+		const handleRules = async () => {
+			if (isUsedInRule(itemIds, layoutData)) {
+				openConfirmModal({
+					buttonLabel: Liferay.Language.get('delete'),
+					onConfirm: handleDeleteItems,
+					status: 'warning',
+					text: Liferay.Language.get(
+						'one-or-more-of-the-selected-fragments-are-referenced-in-one-or-more-rules'
+					),
+					title: Liferay.Language.get('delete-referenced-fragments'),
 				});
 			}
-
-			const fragmentEntryLinkIds = itemIds.flatMap((itemId) =>
-				getFragmentEntryLinkIdsFromItemId({
-					itemId,
-					layoutData: nextLayoutData,
-				})
-			);
-
-			dispatch(
-				deleteItemAction({
-					fragmentEntryLinkIds,
-					itemIds,
-					layoutData: nextLayoutData,
-					portletIds,
-				})
-			);
-
-			clearPageContents();
-
-			// Show warning if deleting some required form input
-
-			for (const itemId of itemIds) {
-				if (
-					await isRequiredFormField(
-						layoutData,
-						itemId,
-						fragmentEntryLinks
-					)
-				) {
-					const {message} = getFormErrorDescription({
-						type: FORM_ERROR_TYPES.deletedFragment,
-					});
-
-					openToast({
-						message,
-						type: 'warning',
-					});
-
-					break;
-				}
+			else {
+				return handleDeleteItems();
 			}
-		});
+		};
+
+		if (
+			isUsedInElementVariation({
+				availableSegmentsExperiences,
+				elementVariations,
+				itemIds,
+				layoutData,
+				segmentsExperienceId,
+			})
+		) {
+			openConfirmModal({
+				buttonLabel: Liferay.Language.get('delete'),
+				center: true,
+				onConfirm: handleRules,
+				status: 'warning',
+				text: Liferay.Language.get(
+					'one-or-more-of-the-selected-fragments-are-referenced-in-one-or-more-element-variations.-are-you-sure-you-want-to-proceed-with-the-deletion'
+				),
+				title: Liferay.Language.get('delete-referenced-fragments'),
+			});
+		}
+		else {
+			return handleRules();
+		}
 	};
 }
 
@@ -221,4 +268,52 @@ async function isRequiredFormField(layoutData, itemId, fragmentEntryLinks) {
 	) {
 		return true;
 	}
+}
+
+function isUsedInElementVariation({
+	availableSegmentsExperiences,
+	elementVariations,
+	itemIds,
+	layoutData,
+	segmentsExperienceId,
+}) {
+	const segmentsExperienceERC =
+		availableSegmentsExperiences[segmentsExperienceId]
+			?.segmentsExperienceERC;
+
+	const experienceElementVariations = elementVariations.filter(
+		(elementVariation) =>
+			elementVariation.segmentsExperienceERC === segmentsExperienceERC
+	);
+
+	if (!experienceElementVariations.length) {
+		return false;
+	}
+
+	const deletedItemIds = itemIds.flatMap((itemId) => [
+		itemId,
+		...getDescendantIds(layoutData, itemId),
+	]);
+
+	return experienceElementVariations.some((elementVariation) =>
+		deletedItemIds.some((itemId) =>
+			elementVariation.targetElement.startsWith(
+				`.${LAYOUT_STRUCTURE_ITEM_CLASS_NAME_PREFIX}${itemId} `
+			)
+		)
+	);
+}
+
+function isUsedInRule(itemIds, layoutData) {
+	return layoutData.pageRules.some((rule) => {
+		const actionHasItem = rule.actions.some(({itemId}) =>
+			itemIds.includes(itemId)
+		);
+
+		const conditionHasItem = rule.conditions.some(({field}) =>
+			itemIds.includes(field)
+		);
+
+		return actionHasItem || conditionHasItem;
+	});
 }

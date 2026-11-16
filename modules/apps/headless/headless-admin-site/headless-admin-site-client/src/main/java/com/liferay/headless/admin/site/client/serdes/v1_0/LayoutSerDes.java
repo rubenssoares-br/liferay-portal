@@ -8,13 +8,14 @@ package com.liferay.headless.admin.site.client.serdes.v1_0;
 import com.liferay.headless.admin.site.client.dto.v1_0.Layout;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -52,9 +53,7 @@ public class LayoutSerDes {
 			sb.append("\"align\": ");
 
 			sb.append("\"");
-
 			sb.append(layout.getAlign());
-
 			sb.append("\"");
 		}
 
@@ -66,9 +65,7 @@ public class LayoutSerDes {
 			sb.append("\"contentDisplay\": ");
 
 			sb.append("\"");
-
 			sb.append(layout.getContentDisplay());
-
 			sb.append("\"");
 		}
 
@@ -80,9 +77,7 @@ public class LayoutSerDes {
 			sb.append("\"flexWrap\": ");
 
 			sb.append("\"");
-
 			sb.append(layout.getFlexWrap());
-
 			sb.append("\"");
 		}
 
@@ -94,9 +89,7 @@ public class LayoutSerDes {
 			sb.append("\"justify\": ");
 
 			sb.append("\"");
-
 			sb.append(layout.getJustify());
-
 			sb.append("\"");
 		}
 
@@ -108,9 +101,7 @@ public class LayoutSerDes {
 			sb.append("\"widthType\": ");
 
 			sb.append("\"");
-
 			sb.append(layout.getWidthType());
-
 			sb.append("\"");
 		}
 
@@ -285,6 +276,16 @@ public class LayoutSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -317,3 +318,4 @@ public class LayoutSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1800319397

@@ -10,12 +10,12 @@ import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 
+import jakarta.ws.rs.HttpMethod;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
 import java.util.function.Function;
-
-import javax.ws.rs.HttpMethod;
 
 import org.osgi.framework.BundleContext;
 
@@ -49,10 +49,12 @@ public class HttpMethodScopeLogic implements ScopeLogic {
 				HttpMethod[] annotationsByType =
 					annotationType.getAnnotationsByType(HttpMethod.class);
 
-				if (annotationsByType != null) {
-					for (HttpMethod httpMethod : annotationsByType) {
-						return httpMethod.value();
-					}
+				if (annotationsByType == null) {
+					continue;
+				}
+
+				for (HttpMethod httpMethod : annotationsByType) {
+					return httpMethod.value();
 				}
 			}
 

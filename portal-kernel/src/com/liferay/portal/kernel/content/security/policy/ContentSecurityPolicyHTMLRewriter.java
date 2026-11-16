@@ -5,6 +5,8 @@
 
 package com.liferay.portal.kernel.content.security.policy;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 /**
  * @author Iván Zaera Avellón
  */
@@ -12,16 +14,17 @@ public interface ContentSecurityPolicyHTMLRewriter {
 
 	/**
 	 * Transform a fragment of HTML extracting all inline event handlers (e.g.:
-	 * onclick, onfocus, etc.) to a &lt;script> node so that restrictive
+	 * onclick, onfocus, etc.) to a &lt;script> node and inline styles (e.g.:
+	 * style="color: red;...") to a &lt;style> node so that restrictive
 	 * content security policies like <code>script-src-attr 'none';</code> do
 	 * not prevent their execution.
 	 * @param html the HTML to transform
-	 * @param nonce the content security policy nonce to use in the &lt;script> node
+	 * @param httpServletRequest needed to obtain the content security policy nonce to use in the &lt;script> node
 	 * @param recursive whether to rewrite all nodes or only the top level ones
 	 * @return the transformed HTML
 	 * @review
 	 */
-	public String rewriteInlineEventHandlers(
-		String html, String nonce, boolean recursive);
+	public String rewriteInlineAttributes(
+		String html, HttpServletRequest httpServletRequest, boolean recursive);
 
 }

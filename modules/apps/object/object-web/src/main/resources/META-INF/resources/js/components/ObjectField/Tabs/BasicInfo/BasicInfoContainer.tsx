@@ -3,8 +3,12 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {CountryInfo} from '@liferay/object-js-components-web';
 import classNames from 'classnames';
-import {InputLocalized} from 'frontend-js-components-web';
+import {
+	ILearnResourceContext,
+	InputLocalized,
+} from 'frontend-js-components-web';
 import React from 'react';
 
 import {updateFieldSettings} from '../../../../utils/fieldSettings';
@@ -14,17 +18,22 @@ import ObjectFieldFormBase, {
 import {AttachmentProperties} from './AttachmentProperties';
 import {AggregationFilters} from './BasicInfoTab';
 import {MaxLengthProperties} from './MaxLengthProperties';
+import {PhoneNumberProperties} from './PhoneNumberProperties';
 
 import '../../EditObjectFieldContent.scss';
 
 interface BasicInfoContainerProps {
 	baseResourceURL: string;
+	countries: CountryInfo[];
 	creationLanguageId2?: Liferay.Language.Locale;
 	dbObjectFieldRequired?: boolean;
 	errors: ObjectFieldErrors;
 	handleChange: React.ChangeEventHandler<HTMLInputElement>;
+	hasDepotEntry?: boolean;
+	learnResources: ILearnResourceContext;
+	metadataObjectFieldNames?: string[];
 	modelBuilder?: boolean;
-	objectDefinition?: ObjectDefinition;
+	objectDefinition?: ObjectDefinition | ObjectDefinitionNodeData;
 	objectFieldBusinessTypes: ObjectFieldBusinessType[];
 	objectRelationshipId: number;
 	onSubmit?: () => void;
@@ -38,10 +47,14 @@ interface BasicInfoContainerProps {
 
 export function BasicInfoContainer({
 	baseResourceURL,
+	countries,
 	creationLanguageId2,
 	dbObjectFieldRequired,
 	errors,
 	handleChange,
+	hasDepotEntry,
+	learnResources,
+	metadataObjectFieldNames,
 	modelBuilder = false,
 	objectDefinition,
 	objectFieldBusinessTypes,
@@ -79,6 +92,7 @@ export function BasicInfoContainer({
 			<InputLocalized
 				disabled={readOnly}
 				error={errors.label}
+				id="objectFieldLabelInput"
 				label={Liferay.Language.get('label')}
 				onBlur={(event) => {
 					event.stopPropagation();
@@ -102,6 +116,9 @@ export function BasicInfoContainer({
 				editingObjectField
 				errors={errors}
 				handleChange={handleChange}
+				hasDepotEntry={hasDepotEntry}
+				learnResources={learnResources}
+				metadataObjectFieldNames={metadataObjectFieldNames}
 				modelBuilder={modelBuilder}
 				objectDefinition={objectDefinition}
 				objectField={values}
@@ -112,17 +129,20 @@ export function BasicInfoContainer({
 					setObjectDefinitionExternalReferenceCode2
 				}
 				onSubmit={onSubmit}
+				readOnly={readOnly}
 				setDbObjectFieldRequired={setDbObjectFieldRequired}
 				setValues={setValues}
 			>
 				{values.businessType === 'Attachment' && (
 					<AttachmentProperties
 						errors={errors}
+						modelBuilder={modelBuilder}
 						objectFieldSettings={
 							values.objectFieldSettings as ObjectFieldSetting[]
 						}
 						onSettingsChange={handleSettingsChange}
 						onSubmit={onSubmit}
+						values={values}
 					/>
 				)}
 
@@ -142,6 +162,18 @@ export function BasicInfoContainer({
 					/>
 				)}
 			</ObjectFieldFormBase>
+
+			{values.businessType === 'PhoneNumber' && (
+				<PhoneNumberProperties
+					countries={countries}
+					objectFieldSettings={
+						values.objectFieldSettings as ObjectFieldSetting[]
+					}
+					onSubmit={onSubmit}
+					setValues={setValues}
+					values={values}
+				/>
+			)}
 		</div>
 	);
 }

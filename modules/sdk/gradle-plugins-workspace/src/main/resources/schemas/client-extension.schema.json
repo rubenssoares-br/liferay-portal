@@ -205,10 +205,29 @@
 					],
 					"description": "Description for fdsFilter"
 				},
+				"fdsVisualizationMode": {
+					"allOf": [
+						{
+							"$ref": "#/definitions/propertySets/properties/url"
+						}
+					],
+					"description": "Description for fdsVisualizationMode"
+				},
 				"globalCSS": {
 					"allOf": [
 						{
 							"$ref": "#/definitions/propertySets/properties/url"
+						},
+						{
+							"properties": {
+								"scope": {
+									"default": "layout",
+									"enum": [
+										"company",
+										"layout"
+									]
+								}
+							}
 						}
 					],
 					"description": "Description for globalCSS"
@@ -221,8 +240,11 @@
 						{
 							"properties": {
 								"scope": {
-									"description": "",
-									"type": "string"
+									"default": "layout",
+									"enum": [
+										"company",
+										"layout"
+									]
 								},
 								"scriptElementAttributes": {
 									"additionalProperties": {
@@ -298,6 +320,14 @@
 					"allOf": [
 						{
 							"$ref": "#/definitions/propertySets/properties/externalService"
+						},
+						{
+							"properties": {
+								"forwardUpstreamToken": {
+									"type": "boolean"
+								}
+							},
+							"type": "object"
 						}
 					],
 					"description": "Description for oAuthApplicationHeadlessServer"
@@ -374,6 +404,12 @@
 								},
 								"siteName": {
 									"type": "string"
+								},
+								"siteName_i18n": {
+									"additionalProperties": {
+										"type": "string"
+									},
+									"type": "object"
 								}
 							},
 							"required": [
@@ -403,6 +439,13 @@
 								},
 								"mainURL": {
 									"type": "string"
+								},
+								"scope": {
+									"default": "layout",
+									"enum": [
+										"controlPanel",
+										"layout"
+									]
 								}
 							},
 							"type": "object"
@@ -478,6 +521,14 @@
 					"properties": {
 						"type": {
 							"const": "fdsFilter"
+						}
+					}
+				},
+				{
+					"$ref": "#/definitions/types/properties/fdsVisualizationMode",
+					"properties": {
+						"type": {
+							"const": "fdsVisualizationMode"
 						}
 					}
 				},
@@ -632,6 +683,7 @@
 						"editorConfigContributor",
 						"fdsCellRenderer",
 						"fdsFilter",
+						"fdsVisualizationMode",
 						"globalCSS",
 						"globalJS",
 						"iframe",

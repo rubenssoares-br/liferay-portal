@@ -15,14 +15,14 @@ LayoutPortletsDisplayContext layoutPortletsDisplayContext = new LayoutPortletsDi
 	managementToolbarDisplayContext="<%= new LayoutPortletsManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, layoutPortletsDisplayContext) %>"
 />
 
-<aui:form action="" cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form action="" cssClass="container-fluid container-fluid-max-xxxl" name="fm">
 	<liferay-ui:search-container
 		searchContainer="<%= layoutPortletsDisplayContext.getSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.portal.kernel.model.Portlet"
 			escapedModel="<%= true %>"
-			keyProperty="portletId"
+			keyPropertyName="portletId"
 			modelVar="portlet"
 		>
 			<liferay-ui:search-container-column-text

@@ -7,7 +7,8 @@ import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
 import ClayIcon from '@clayui/icon';
 import ClayLink from '@clayui/link';
 import {CommerceServiceProvider} from 'commerce-frontend-js';
-import {openToast, sub} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {sub} from 'frontend-js-web';
 import React, {useRef, useState} from 'react';
 
 import {isEditable} from '../util';
@@ -27,7 +28,7 @@ const PurchaseOrderDocumentView = ({
 	elementId,
 	field,
 	fieldValue,
-	hasPermission,
+	hasUpdatePermission,
 	isOpen,
 	label,
 	namespace,
@@ -42,18 +43,33 @@ const PurchaseOrderDocumentView = ({
 	const [inputValue, setInputValue] = useState(
 		additionalProps?.value ? additionalProps?.value : null
 	);
+	const [isOwner, setIsOwner] = useState(additionalProps?.isOwner);
 	const [value, setValue] = useState(fieldValue);
 
+	const refreshAttachmentsTable = () => {
+		if (additionalProps?.fdsId) {
+			window.top.Liferay.fire('fds-update-display', {
+				id: additionalProps.fdsId,
+			});
+		}
+	};
+
 	const addAttachment = async (file) => {
+		const payload = {
+			attachment: await getBase64(file),
+			title: file.name,
+			type: 'purchaseOrderDocument',
+		};
+
 		CommerceServiceProvider.DeliveryCartAPI('v1')
-			.addAttachment(orderId, {
-				attachment: await getBase64(file),
-				title: file.name,
-			})
+			.addAttachment(orderId, payload)
 			.then((response) => {
 				setDownloadURL(response.url);
 				setInputValue(response.id);
+				setIsOwner(true);
 				setValue(response.title);
+
+				refreshAttachmentsTable();
 			})
 			.catch((error) => {
 				openToast({
@@ -72,6 +88,8 @@ const PurchaseOrderDocumentView = ({
 				setDownloadURL(null);
 				setInputValue(null);
 				setValue('');
+
+				refreshAttachmentsTable();
 			})
 			.catch((error) => {
 				openToast({
@@ -113,7 +131,7 @@ const PurchaseOrderDocumentView = ({
 
 	return (
 		<div className={`${namespace}info-box my-3`} id={elementId}>
-			{hasPermission && !readOnly && isEditable(field, isOpen) ? (
+			{hasUpdatePermission && !readOnly && isEditable(field, isOpen) ? (
 				<input
 					className="d-none"
 					id="file"
@@ -128,12 +146,13 @@ const PurchaseOrderDocumentView = ({
 					<div className="h5 info-box-label m-0">{label}</div>
 				) : null}
 
-				{hasPermission &&
+				{hasUpdatePermission &&
 				!readOnly &&
 				!value &&
 				isEditable(field, isOpen) ? (
 					<ClayButton
-						aria-controls={`${namespace}infoBoxFileChooser`}
+						aria-expanded={isOpen}
+						aria-haspopup="dialog"
 						aria-label={sub(Liferay.Language.get('add-x'), label)}
 						className="ml-2"
 						data-qa-id={`${field}-infoBoxButton`}
@@ -164,10 +183,11 @@ const PurchaseOrderDocumentView = ({
 						</ClayLink>
 					)}
 
-					{hasPermission &&
+					{hasUpdatePermission &&
 					!readOnly &&
 					value &&
-					isEditable(field, isOpen) ? (
+					isEditable(field, isOpen) &&
+					isOwner ? (
 						<ClayButton.Group className="flex-nowrap">
 							<ClayButtonWithIcon
 								aria-label={sub(

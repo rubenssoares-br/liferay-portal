@@ -11,6 +11,7 @@ import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetTagLocalService;
 import com.liferay.expando.kernel.model.ExpandoBridge;
 import com.liferay.exportimport.kernel.staging.StagingUtil;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.bean.BeanReference;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -32,6 +33,7 @@ import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.UserBag;
+import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.permission.GroupPermissionUtil;
 import com.liferay.portal.kernel.service.permission.PortalPermissionUtil;
@@ -39,13 +41,11 @@ import com.liferay.portal.kernel.service.permission.PortletPermissionUtil;
 import com.liferay.portal.kernel.service.permission.RolePermissionUtil;
 import com.liferay.portal.kernel.service.permission.UserPermissionUtil;
 import com.liferay.portal.kernel.service.persistence.CompanyPersistence;
-import com.liferay.portal.kernel.service.persistence.UserPersistence;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.LinkedHashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
-import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PrefsPropsUtil;
@@ -83,12 +83,26 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 
 	@Override
 	public Group addGroup(
-			long parentGroupId, long liveGroupId, Map<Locale, String> nameMap,
-			Map<Locale, String> descriptionMap, int type,
-			boolean manualMembership, int membershipRestriction,
-			String friendlyURL, boolean site, boolean inheritContent,
-			boolean active, ServiceContext serviceContext)
+			String externalReferenceCode, long parentGroupId, long liveGroupId,
+			Map<Locale, String> nameMap, Map<Locale, String> descriptionMap,
+			int type, String typeSettings, boolean manualMembership,
+			int membershipRestriction, String friendlyURL, boolean site,
+			boolean inheritContent, boolean active,
+			ServiceContext serviceContext)
 		throws PortalException {
+
+		if (liveGroupId != GroupConstants.DEFAULT_LIVE_GROUP_ID) {
+			Group liveGroup = groupLocalService.getGroup(liveGroupId);
+
+			User user = getUser();
+
+			if (liveGroup.getCompanyId() != user.getCompanyId()) {
+				throw new PrincipalException();
+			}
+
+			GroupPermissionUtil.check(
+				getPermissionChecker(), liveGroupId, ActionKeys.MANAGE_STAGING);
+		}
 
 		if (parentGroupId == GroupConstants.DEFAULT_PARENT_GROUP_ID) {
 			PortalPermissionUtil.check(
@@ -101,30 +115,16 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 		}
 
 		Group group = groupLocalService.addGroup(
-			getUserId(), parentGroupId, null, 0, liveGroupId, nameMap,
-			descriptionMap, type, manualMembership, membershipRestriction,
-			friendlyURL, site, inheritContent, active, serviceContext);
+			externalReferenceCode, getUserId(), parentGroupId, null, 0,
+			liveGroupId, nameMap, descriptionMap, type, typeSettings,
+			manualMembership, membershipRestriction, friendlyURL, site,
+			inheritContent, active, serviceContext);
 
 		if (site) {
 			SiteMembershipPolicyUtil.verifyPolicy(group);
 		}
 
 		return group;
-	}
-
-	@Override
-	public Group addGroup(
-			long parentGroupId, long liveGroupId, Map<Locale, String> nameMap,
-			Map<Locale, String> descriptionMap, int type,
-			boolean manualMembership, int membershipRestriction,
-			String friendlyURL, boolean site, boolean active,
-			ServiceContext serviceContext)
-		throws PortalException {
-
-		return addGroup(
-			parentGroupId, liveGroupId, nameMap, descriptionMap, type,
-			manualMembership, membershipRestriction, friendlyURL, site, false,
-			active, serviceContext);
 	}
 
 	@Override
@@ -143,19 +143,16 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 
 		if (group == null) {
 			group = addGroup(
-				parentGroupId, liveGroupId, nameMap, descriptionMap, type,
-				manualMembership, membershipRestriction, friendlyURL, site,
-				inheritContent, active, serviceContext);
-
-			group.setExternalReferenceCode(externalReferenceCode);
-
-			group = groupPersistence.update(group);
+				externalReferenceCode, parentGroupId, liveGroupId, nameMap,
+				descriptionMap, type, null, manualMembership,
+				membershipRestriction, friendlyURL, site, inheritContent,
+				active, serviceContext);
 		}
 		else {
 			group = updateGroup(
 				group.getGroupId(), parentGroupId, nameMap, descriptionMap,
-				type, manualMembership, membershipRestriction, friendlyURL,
-				inheritContent, active, serviceContext);
+				type, null, manualMembership, membershipRestriction,
+				friendlyURL, inheritContent, active, serviceContext);
 		}
 
 		return group;
@@ -243,7 +240,7 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 			String externalReferenceCode, long companyId)
 		throws PortalException {
 
-		Group group = groupLocalService.fetchGroupByExternalReferenceCode(
+		Group group = groupPersistence.fetchByERC_C(
 			externalReferenceCode, companyId);
 
 		if (group != null) {
@@ -263,7 +260,9 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	 */
 	@Override
 	public Group getCompanyGroup(long companyId) throws PortalException {
-		Group group = groupLocalService.getCompanyGroup(companyId);
+		Group group = groupPersistence.findByC_C_C(
+			companyId, _classNameLocalService.getClassNameId(Company.class),
+			companyId);
 
 		GroupPermissionUtil.check(
 			getPermissionChecker(), group, ActionKeys.VIEW);
@@ -301,6 +300,20 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 		throws PortalException {
 
 		Group group = groupLocalService.getGroup(companyId, groupKey);
+
+		GroupPermissionUtil.check(
+			getPermissionChecker(), group, ActionKeys.VIEW);
+
+		return group;
+	}
+
+	@Override
+	public Group getGroupByExternalReferenceCode(
+			String externalReferenceCode, long companyId)
+		throws PortalException {
+
+		Group group = groupPersistence.findByERC_C(
+			externalReferenceCode, companyId);
 
 		GroupPermissionUtil.check(
 			getPermissionChecker(), group, ActionKeys.VIEW);
@@ -518,12 +531,14 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 		while (iterator.hasNext()) {
 			Group group = iterator.next();
 
-			if (group.isSite() &&
-				PortletPermissionUtil.hasControlPanelAccessPermission(
+			if (!group.isSite() ||
+				!PortletPermissionUtil.hasControlPanelAccessPermission(
 					permissionChecker, group.getGroupId(), portlets)) {
 
-				groups.add(group);
+				continue;
 			}
+
+			groups.add(group);
 		}
 
 		return new ArrayList<>(groups);
@@ -558,7 +573,9 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	public Group getUserGroup(long companyId, long userId)
 		throws PortalException {
 
-		Group group = groupLocalService.getUserGroup(companyId, userId);
+		Group group = groupPersistence.findByC_C_C(
+			companyId, _classNameLocalService.getClassNameId(User.class),
+			userId);
 
 		GroupPermissionUtil.check(
 			getPermissionChecker(), group, ActionKeys.VIEW);
@@ -668,7 +685,7 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 			long userId, String[] classNames, int max)
 		throws PortalException {
 
-		User user = _userPersistence.findByPrimaryKey(userId);
+		User user = userPersistence.findByPrimaryKey(userId);
 
 		boolean checkPermissions = true;
 
@@ -734,7 +751,7 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 		if (ArrayUtil.contains(classNames, Group.class.getName()) ||
 			ArrayUtil.contains(classNames, Organization.class.getName())) {
 
-			UserBag userBag = UserBagFactoryUtil.create(userId);
+			UserBag userBag = UserBagFactoryUtil.create(user);
 
 			if (ArrayUtil.contains(classNames, Group.class.getName())) {
 				for (Group group : userBag.getUserGroups()) {
@@ -928,19 +945,16 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	 */
 	@Override
 	public List<Group> search(
-			long companyId, String name, String description, String[] params,
-			int start, int end)
+			long companyId, String name, String description,
+			LinkedHashMap<String, Object> params, int start, int end)
 		throws PortalException {
 
 		if (params == null) {
-			params = new String[0];
+			params = new LinkedHashMap<>();
 		}
 
-		LinkedHashMap<String, Object> paramsObj = MapUtil.toLinkedHashMap(
-			params);
-
 		List<Group> groups = groupLocalService.search(
-			companyId, name, description, paramsObj, true, start, end);
+			companyId, name, description, params, true, start, end);
 
 		return filterGroups(groups);
 	}
@@ -973,17 +987,15 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	 */
 	@Override
 	public int searchCount(
-		long companyId, String name, String description, String[] params) {
+		long companyId, String name, String description,
+		LinkedHashMap<String, Object> params) {
 
 		if (params == null) {
-			params = new String[0];
+			params = new LinkedHashMap<>();
 		}
 
-		LinkedHashMap<String, Object> paramsObj = MapUtil.toLinkedHashMap(
-			params);
-
 		return groupLocalService.searchCount(
-			companyId, name, description, paramsObj, true);
+			companyId, name, description, params, true);
 	}
 
 	/**
@@ -1043,7 +1055,7 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	@Override
 	public Group updateGroup(
 			long groupId, long parentGroupId, Map<Locale, String> nameMap,
-			Map<Locale, String> descriptionMap, int type,
+			Map<Locale, String> descriptionMap, int type, String typeSettings,
 			boolean manualMembership, int membershipRestriction,
 			String friendlyURL, boolean inheritContent, boolean active,
 			ServiceContext serviceContext)
@@ -1083,8 +1095,8 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 
 			group = groupLocalService.updateGroup(
 				groupId, parentGroupId, nameMap, descriptionMap, type,
-				manualMembership, membershipRestriction, friendlyURL,
-				inheritContent, active, serviceContext);
+				typeSettings, manualMembership, membershipRestriction,
+				friendlyURL, inheritContent, active, serviceContext);
 
 			SiteMembershipPolicyUtil.verifyPolicy(
 				group, oldGroup, oldAssetCategories, oldAssetTags,
@@ -1094,7 +1106,7 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 		}
 
 		return groupLocalService.updateGroup(
-			groupId, parentGroupId, nameMap, descriptionMap, type,
+			groupId, parentGroupId, nameMap, descriptionMap, type, typeSettings,
 			manualMembership, membershipRestriction, friendlyURL,
 			inheritContent, active, serviceContext);
 	}
@@ -1164,19 +1176,19 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	protected List<Group> filterGroups(List<Group> groups)
 		throws PortalException {
 
-		List<Group> filteredGroups = new ArrayList<>();
-
 		PermissionChecker permissionChecker = getPermissionChecker();
 
-		for (Group group : groups) {
-			if (GroupPermissionUtil.contains(
-					permissionChecker, group, ActionKeys.VIEW)) {
+		return TransformUtil.transform(
+			groups,
+			group -> {
+				if (GroupPermissionUtil.contains(
+						permissionChecker, group, ActionKeys.VIEW)) {
 
-				filteredGroups.add(group);
-			}
-		}
+					return group;
+				}
 
-		return filteredGroups;
+				return null;
+			});
 	}
 
 	protected Map<Locale, String> getLocalizationMap(String value) {
@@ -1194,10 +1206,10 @@ public class GroupServiceImpl extends GroupServiceBaseImpl {
 	@BeanReference(type = AssetTagLocalService.class)
 	private AssetTagLocalService _assetTagLocalService;
 
+	@BeanReference(type = ClassNameLocalService.class)
+	private ClassNameLocalService _classNameLocalService;
+
 	@BeanReference(type = CompanyPersistence.class)
 	private CompanyPersistence _companyPersistence;
-
-	@BeanReference(type = UserPersistence.class)
-	private UserPersistence _userPersistence;
 
 }

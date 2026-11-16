@@ -11,24 +11,22 @@ import ClayLayout from '@clayui/layout';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import ClayModal from '@clayui/modal';
 import {
-	FDS_INTERNAL_CELL_RENDERERS,
+	FDS_INTERNAL_RENDERERS,
 	IClientExtensionRenderer,
 	IInternalRenderer,
 } from '@liferay/frontend-data-set-web';
-import {InputLocalized} from 'frontend-js-components-web';
-import {fetch, openModal} from 'frontend-js-web';
+import {InputLocalized, openModal} from 'frontend-js-components-web';
+import {fetch} from 'frontend-js-web';
 import fuzzy from 'fuzzy';
 import React, {useEffect, useState} from 'react';
 
-import FieldSelectModalContent, {
-	visit,
-} from '../../../components/AddDataSourceFieldsModalContent';
+import FieldSelectModalContent from '../../../components/AddDataSourceFieldsModalContent';
 import OrderableTable from '../../../components/OrderableTable';
 import {
-	API_URL,
 	DEFAULT_FETCH_HEADERS,
 	FUZZY_OPTIONS,
 	OBJECT_RELATIONSHIP,
+	PAGE_SIZE,
 } from '../../../utils/constants';
 import openDefaultFailureToast from '../../../utils/openDefaultFailureToast';
 import openDefaultSuccessToast from '../../../utils/openDefaultSuccessToast';
@@ -40,12 +38,13 @@ import '../../../../css/TableVisualizationMode.scss';
 import ClayAlert from '@clayui/alert';
 import ClayIcon from '@clayui/icon';
 
+import getDataSetResourceURL from '../../../utils/getDataSetResourceURL';
 import sortItems from '../../../utils/sortItems';
 import {
 	EFieldType,
+	IDataSet,
 	IDataSetTableSection,
 	IField,
-	IFieldTreeItem,
 } from '../../../utils/types';
 
 const defaultLanguageId = Liferay.ThemeDisplay.getDefaultLanguageId();
@@ -59,7 +58,7 @@ const getRendererLabel = ({
 }): string => {
 	let clientExtensionRenderer;
 
-	const internalRenderer = FDS_INTERNAL_CELL_RENDERERS.find(
+	const internalRenderer = FDS_INTERNAL_RENDERERS.find(
 		(renderer: IInternalRenderer) => {
 			return renderer.name === rendererName;
 		}
@@ -119,27 +118,27 @@ const RendererLabelCellRendererComponent = ({
 const EditTableSectionModalContent = ({
 	cellClientExtensionRenderers,
 	closeModal,
+	dataSet,
 	namespace,
 	onSaveButtonClick,
-	sortable,
 	tableSection,
 }: {
 	cellClientExtensionRenderers: IClientExtensionRenderer[];
 	closeModal: Function;
+	dataSet: IDataSet;
 	namespace: string;
 	onSaveButtonClick: Function;
-	sortable: boolean;
 	tableSection: IDataSetTableSection;
 }) => {
-	const [selectedCellRenderer, setSelectedCellRenderer] = useState(
+	const [selectedRenderer, setSelectedRenderer] = useState(
 		tableSection.renderer ?? 'default'
 	);
 	const [tableSectionSortable, setTableSectionSortable] = useState<boolean>(
 		tableSection.sortable
 	);
 
-	const fdsInternalCellRendererNames = FDS_INTERNAL_CELL_RENDERERS.map(
-		(cellRenderer: IInternalRenderer) => cellRenderer.name
+	const fdsInternalRendererNames = FDS_INTERNAL_RENDERERS.map(
+		(renderer: IInternalRenderer) => renderer.name
 	);
 
 	const tableSectionTranslations = tableSection.label_i18n;
@@ -151,23 +150,24 @@ const EditTableSectionModalContent = ({
 	const editTableSection = async () => {
 		const body = {
 			label_i18n: i18nFieldLabels,
-			renderer: selectedCellRenderer,
-			rendererType: !fdsInternalCellRendererNames.includes(
-				selectedCellRenderer
-			)
+			renderer: selectedRenderer,
+			rendererType: !fdsInternalRendererNames.includes(selectedRenderer)
 				? 'clientExtension'
 				: 'internal',
 			sortable: tableSectionSortable,
 		};
 
-		const response = await fetch(
-			`${API_URL.TABLE_SECTIONS}/by-external-reference-code/${tableSection.externalReferenceCode}`,
-			{
-				body: JSON.stringify(body),
-				headers: DEFAULT_FETCH_HEADERS,
-				method: 'PATCH',
-			}
-		);
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+			relatedResourceERC: tableSection.externalReferenceCode,
+			relationship: OBJECT_RELATIONSHIP.DATA_SET_TABLE_SECTIONS,
+		});
+
+		const response = await fetch(url, {
+			body: JSON.stringify(body),
+			headers: DEFAULT_FETCH_HEADERS,
+			method: 'PATCH',
+		});
 
 		if (!response.ok) {
 			openDefaultFailureToast();
@@ -188,7 +188,7 @@ const EditTableSectionModalContent = ({
 	const tableSectionLabelInputId = `${namespace}tableSectionLabelInput`;
 	const tableSectionRendererSelectId = `${namespace}tableSectionRendererSelectId`;
 
-	const options = FDS_INTERNAL_CELL_RENDERERS.map(
+	const options = FDS_INTERNAL_RENDERERS.map(
 		(renderer: IInternalRenderer) => ({
 			label: renderer.label!,
 			value: renderer.name!,
@@ -231,10 +231,10 @@ const EditTableSectionModalContent = ({
 						displayType="secondary"
 						id={tableSectionRendererSelectId}
 					>
-						{selectedCellRenderer
+						{selectedRenderer
 							? getRendererLabel({
 									cetRenderers: cellClientExtensionRenderers,
-									rendererName: selectedCellRenderer,
+									rendererName: selectedRenderer,
 								})
 							: Liferay.Language.get('choose-an-option')}
 					</ClayButton>
@@ -266,7 +266,9 @@ const EditTableSectionModalContent = ({
 
 	return (
 		<>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{Liferay.Util.sub(
 					Liferay.Language.get('edit-x'),
 					tableSection.label_i18n[defaultLanguageId] ??
@@ -307,7 +309,7 @@ const EditTableSectionModalContent = ({
 						cellRenderers={options}
 						namespace={namespace}
 						onItemClick={(item: string) =>
-							setSelectedCellRenderer(item)
+							setSelectedRenderer(item)
 						}
 					/>
 				</ClayForm.Group>
@@ -315,7 +317,6 @@ const EditTableSectionModalContent = ({
 				<ClayForm.Group>
 					<ClayCheckbox
 						checked={tableSectionSortable}
-						disabled={!sortable}
 						inline
 						label={Liferay.Language.get('sortable')}
 						onChange={({target: {checked}}) =>
@@ -371,12 +372,19 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 	const [saveButtonDisabled, setSaveButtonDisabled] = useState(false);
 
 	const getFDSFields = async () => {
-		const response = await fetch(
-			`${API_URL.TABLE_SECTIONS}?filter=(${OBJECT_RELATIONSHIP.DATA_SET_TABLE_SECTIONS_ID} eq '${dataSet.id}')&nestedFields=${OBJECT_RELATIONSHIP.DATA_SET_TABLE_SECTIONS}&sort=dateCreated:asc`,
-			{
-				headers: DEFAULT_FETCH_HEADERS,
-			}
-		);
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+			params: {
+				nestedFields: OBJECT_RELATIONSHIP.DATA_SET_TABLE_SECTIONS,
+				pageSize: PAGE_SIZE,
+				sort: 'dateCreated:asc',
+			},
+			relationship: OBJECT_RELATIONSHIP.DATA_SET_TABLE_SECTIONS,
+		});
+
+		const response = await fetch(url, {
+			headers: DEFAULT_FETCH_HEADERS,
+		});
 
 		if (!response.ok) {
 			openDefaultFailureToast();
@@ -431,7 +439,14 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 					}) => {
 						processClose();
 
-						const url = `${API_URL.TABLE_SECTIONS}/${item.id}`;
+						const url = getDataSetResourceURL({
+							dataSetERC: dataSet.externalReferenceCode,
+							relatedResourceERC: String(
+								item.externalReferenceCode
+							),
+							relationship:
+								OBJECT_RELATIONSHIP.DATA_SET_TABLE_SECTIONS,
+						});
 
 						const response = await fetch(url, {method: 'DELETE'});
 
@@ -520,14 +535,15 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 			tableSectionsOrder,
 		};
 
-		const response = await fetch(
-			`${API_URL.DATA_SETS}/by-external-reference-code/${dataSet.externalReferenceCode}`,
-			{
-				body: JSON.stringify(body),
-				headers: DEFAULT_FETCH_HEADERS,
-				method: 'PATCH',
-			}
-		);
+		const url = getDataSetResourceURL({
+			dataSetERC: dataSet.externalReferenceCode,
+		});
+
+		const response = await fetch(url, {
+			body: JSON.stringify(body),
+			headers: DEFAULT_FETCH_HEADERS,
+			method: 'PATCH',
+		});
 
 		if (!response.ok) {
 			openDefaultFailureToast();
@@ -561,6 +577,7 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 	useEffect(() => {
 		getFDSFields();
 
+		// eslint-disable-next-line react-compiler/react-compiler
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -607,7 +624,7 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 					onSaveButtonClick={({name}: {name: string}) => {
 						saveDataSetTableColumns({
 							closeModal,
-							fields: [{name, sortable: true}] as IField[],
+							fields: [{name, sortable: false}] as IField[],
 						});
 					}}
 				/>
@@ -623,6 +640,7 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 				<EditTableSectionModalContent
 					cellClientExtensionRenderers={cellClientExtensionRenderers}
 					closeModal={closeModal}
+					dataSet={dataSet}
 					namespace={namespace}
 					onSaveButtonClick={({
 						editedTableSection,
@@ -642,7 +660,6 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 							}) || null
 						);
 					}}
-					sortable={isSortable(fieldTreeItems, item)}
 					tableSection={item}
 				/>
 			),
@@ -651,15 +668,17 @@ function Table(props: IDataSetSectionProps & {title?: string}) {
 
 	return tableSections ? (
 		<ClayLayout.ContentCol className="c-gap-4 table-visualization-mode">
-			<ClayAlert
-				displayType="info"
-				title={`${Liferay.Language.get('info')}:`}
-				variant="stripe"
-			>
-				{Liferay.Language.get(
-					'this-visualization-mode-will-not-be-shown-until-you-assign-at-least-one-field'
-				)}
-			</ClayAlert>
+			{!tableSections.length && (
+				<ClayAlert
+					displayType="info"
+					title={`${Liferay.Language.get('info')}:`}
+					variant="stripe"
+				>
+					{Liferay.Language.get(
+						'this-visualization-mode-will-not-be-shown-until-you-assign-at-least-one-field'
+					)}
+				</ClayAlert>
+			)}
 
 			<OrderableTable
 				actions={[
@@ -747,23 +766,6 @@ export function Fields(props: IDataSetSectionProps) {
 			<Table {...props} title={Liferay.Language.get('fields')} />
 		</ClayLayout.ContainerFluid>
 	);
-}
-
-function isSortable(
-	fieldTreeItems: Array<IFieldTreeItem>,
-	selectedItem: IDataSetTableSection
-): boolean {
-	let isSortable = false;
-
-	visit(fieldTreeItems, (fieldTreeItem: IFieldTreeItem) => {
-		if (fieldTreeItem.name === selectedItem.fieldName) {
-			isSortable = fieldTreeItem.sortable || false;
-
-			return;
-		}
-	});
-
-	return isSortable;
 }
 
 export default Table;

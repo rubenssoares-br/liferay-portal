@@ -21,6 +21,9 @@ import com.liferay.headless.admin.site.client.pagination.Pagination;
 import com.liferay.headless.admin.site.client.permission.Permission;
 import com.liferay.headless.admin.site.client.resource.v1_0.SitePageResource;
 import com.liferay.headless.admin.site.client.serdes.v1_0.SitePageSerDes;
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
@@ -32,13 +35,16 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.RoleConstants;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -46,12 +52,15 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,10 +72,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -90,8 +95,10 @@ public abstract class BaseSitePageResourceTestCase {
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -104,18 +111,42 @@ public abstract class BaseSitePageResourceTestCase {
 
 		_sitePageResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		SitePageResource.Builder builder = SitePageResource.builder();
-
-		sitePageResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		sitePageResource = SitePageResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		permissionsSitePageResource = SitePageResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).parameter(
+			"nestedFields", "permissions"
 		).build();
 	}
 
@@ -175,10 +206,8 @@ public abstract class BaseSitePageResourceTestCase {
 
 		SitePage sitePage = randomSitePage();
 
-		sitePage.setCreatorExternalReferenceCode(regex);
 		sitePage.setExternalReferenceCode(regex);
 		sitePage.setParentSitePageExternalReferenceCode(regex);
-		sitePage.setSiteExternalReferenceCode(regex);
 		sitePage.setUuid(regex);
 
 		String json = SitePageSerDes.toJSON(sitePage);
@@ -187,62 +216,148 @@ public abstract class BaseSitePageResourceTestCase {
 
 		sitePage = SitePageSerDes.toDTO(json);
 
-		Assert.assertEquals(regex, sitePage.getCreatorExternalReferenceCode());
 		Assert.assertEquals(regex, sitePage.getExternalReferenceCode());
 		Assert.assertEquals(
 			regex, sitePage.getParentSitePageExternalReferenceCode());
-		Assert.assertEquals(regex, sitePage.getSiteExternalReferenceCode());
 		Assert.assertEquals(regex, sitePage.getUuid());
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPage()
+	public void testDeleteSiteSitePage() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		SitePage sitePage = testDeleteSiteSitePage_addSitePage();
+
+		assertHttpResponseStatusCode(
+			204,
+			sitePageResource.deleteSiteSitePageHttpResponse(
+				testDeleteSiteSitePage_getSiteExternalReferenceCode(),
+				sitePage.getExternalReferenceCode()));
+
+		assertHttpResponseStatusCode(
+			404,
+			sitePageResource.getSiteSitePageHttpResponse(
+				testDeleteSiteSitePage_getSiteExternalReferenceCode(),
+				sitePage.getExternalReferenceCode()));
+		assertHttpResponseStatusCode(
+			404,
+			sitePageResource.getSiteSitePageHttpResponse(
+				testDeleteSiteSitePage_getSiteExternalReferenceCode(), "-"));
+	}
+
+	protected SitePage testDeleteSiteSitePage_addSitePage() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String testDeleteSiteSitePage_getSiteExternalReferenceCode()
 		throws Exception {
 
-		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getSiteExternalReferenceCode();
-		String irrelevantSiteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getIrrelevantSiteExternalReferenceCode();
+		return testGroup.getExternalReferenceCode();
+	}
 
-		Page<SitePage> page =
-			sitePageResource.getSiteSiteByExternalReferenceCodeSitePagesPage(
-				siteExternalReferenceCode, null, null, null,
-				Pagination.of(1, 10), null);
+	@Test
+	public void testGetSiteSitePage() throws Exception {
+		SitePage postSitePage = testGetSiteSitePage_addSitePage();
+
+		SitePage getSitePage = sitePageResource.getSiteSitePage(
+			testGetSiteSitePage_getSiteExternalReferenceCode(),
+			postSitePage.getExternalReferenceCode());
+
+		assertEquals(postSitePage, getSitePage);
+		assertValid(getSitePage);
+
+		Assert.assertNull(getSitePage.getPermissions());
+
+		getSitePage = permissionsSitePageResource.getSiteSitePage(
+			testGetSiteSitePage_getSiteExternalReferenceCode(),
+			postSitePage.getExternalReferenceCode());
+
+		Assert.assertNotNull(getSitePage.getPermissions());
+	}
+
+	protected SitePage testGetSiteSitePage_addSitePage() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String testGetSiteSitePage_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
+	}
+
+	@Test
+	public void testGetSiteSitePagePermissionsPage() throws Exception {
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		SitePage postSitePage =
+			testGetSiteSitePagePermissionsPage_addSitePage();
+
+		Page<Permission> page = sitePageResource.getSiteSitePagePermissionsPage(
+			testGroup.getExternalReferenceCode(),
+			postSitePage.getExternalReferenceCode(), RoleConstants.GUEST);
+
+		Assert.assertNotNull(page);
+	}
+
+	protected SitePage testGetSiteSitePagePermissionsPage_addSitePage()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testGetSiteSitePageSitePagesPage() throws Exception {
+		String siteExternalReferenceCode =
+			testGetSiteSitePageSitePagesPage_getSiteExternalReferenceCode();
+		String irrelevantSiteExternalReferenceCode =
+			testGetSiteSitePageSitePagesPage_getIrrelevantSiteExternalReferenceCode();
+		String sitePageExternalReferenceCode =
+			testGetSiteSitePageSitePagesPage_getSitePageExternalReferenceCode();
+		String irrelevantSitePageExternalReferenceCode =
+			testGetSiteSitePageSitePagesPage_getIrrelevantSitePageExternalReferenceCode();
+
+		Page<SitePage> page = sitePageResource.getSiteSitePageSitePagesPage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode, null,
+			Pagination.of(1, 10));
 
 		long totalCount = page.getTotalCount();
 
-		if (irrelevantSiteExternalReferenceCode != null) {
+		if ((irrelevantSiteExternalReferenceCode != null) &&
+			(irrelevantSitePageExternalReferenceCode != null)) {
+
 			SitePage irrelevantSitePage =
-				testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
+				testGetSiteSitePageSitePagesPage_addSitePage(
 					irrelevantSiteExternalReferenceCode,
+					irrelevantSitePageExternalReferenceCode,
 					randomIrrelevantSitePage());
 
-			page =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						irrelevantSiteExternalReferenceCode, null, null, null,
-						Pagination.of(1, (int)totalCount + 1), null);
+			page = sitePageResource.getSiteSitePageSitePagesPage(
+				irrelevantSiteExternalReferenceCode,
+				irrelevantSitePageExternalReferenceCode, null,
+				Pagination.of(1, (int)totalCount + 1));
 
 			Assert.assertEquals(totalCount + 1, page.getTotalCount());
 
 			assertContains(irrelevantSitePage, (List<SitePage>)page.getItems());
 			assertValid(
 				page,
-				testGetSiteSiteByExternalReferenceCodeSitePagesPage_getExpectedActions(
-					irrelevantSiteExternalReferenceCode));
+				testGetSiteSitePageSitePagesPage_getExpectedActions(
+					irrelevantSiteExternalReferenceCode,
+					irrelevantSitePageExternalReferenceCode));
 		}
 
-		SitePage sitePage1 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage1 = testGetSiteSitePageSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode,
+			randomSitePage());
 
-		SitePage sitePage2 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage2 = testGetSiteSitePageSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode,
+			randomSitePage());
 
-		page = sitePageResource.getSiteSiteByExternalReferenceCodeSitePagesPage(
-			siteExternalReferenceCode, null, null, null, Pagination.of(1, 10),
-			null);
+		page = sitePageResource.getSiteSitePageSitePagesPage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode, null,
+			Pagination.of(1, (int)totalCount + 2));
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -250,13 +365,14 @@ public abstract class BaseSitePageResourceTestCase {
 		assertContains(sitePage2, (List<SitePage>)page.getItems());
 		assertValid(
 			page,
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getExpectedActions(
-				siteExternalReferenceCode));
+			testGetSiteSitePageSitePagesPage_getExpectedActions(
+				siteExternalReferenceCode, sitePageExternalReferenceCode));
 	}
 
 	protected Map<String, Map<String, String>>
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getExpectedActions(
-				String siteExternalReferenceCode)
+			testGetSiteSitePageSitePagesPage_getExpectedActions(
+				String siteExternalReferenceCode,
+				String sitePageExternalReferenceCode)
 		throws Exception {
 
 		Map<String, Map<String, String>> expectedActions = new HashMap<>();
@@ -265,7 +381,228 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilterDateTimeEquals()
+	public void testGetSiteSitePageSitePagesPageWithPagination()
+		throws Exception {
+
+		String siteExternalReferenceCode =
+			testGetSiteSitePageSitePagesPage_getSiteExternalReferenceCode();
+		String sitePageExternalReferenceCode =
+			testGetSiteSitePageSitePagesPage_getSitePageExternalReferenceCode();
+
+		Page<SitePage> sitePagesPage =
+			sitePageResource.getSiteSitePageSitePagesPage(
+				siteExternalReferenceCode, sitePageExternalReferenceCode, null,
+				null);
+
+		int totalCount = GetterUtil.getInteger(sitePagesPage.getTotalCount());
+
+		SitePage sitePage1 = testGetSiteSitePageSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode,
+			randomSitePage());
+
+		SitePage sitePage2 = testGetSiteSitePageSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode,
+			randomSitePage());
+
+		SitePage sitePage3 = testGetSiteSitePageSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePageExternalReferenceCode,
+			randomSitePage());
+
+		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
+
+		int pageSizeLimit = 500;
+
+		if (totalCount >= (pageSizeLimit - 2)) {
+			Page<SitePage> page1 =
+				sitePageResource.getSiteSitePageSitePagesPage(
+					siteExternalReferenceCode, sitePageExternalReferenceCode,
+					null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+						pageSizeLimit));
+
+			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
+
+			assertContains(sitePage1, (List<SitePage>)page1.getItems());
+
+			Page<SitePage> page2 =
+				sitePageResource.getSiteSitePageSitePagesPage(
+					siteExternalReferenceCode, sitePageExternalReferenceCode,
+					null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+						pageSizeLimit));
+
+			assertContains(sitePage2, (List<SitePage>)page2.getItems());
+
+			Page<SitePage> page3 =
+				sitePageResource.getSiteSitePageSitePagesPage(
+					siteExternalReferenceCode, sitePageExternalReferenceCode,
+					null,
+					Pagination.of(
+						(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+						pageSizeLimit));
+
+			assertContains(sitePage3, (List<SitePage>)page3.getItems());
+		}
+		else {
+			Page<SitePage> page1 =
+				sitePageResource.getSiteSitePageSitePagesPage(
+					siteExternalReferenceCode, sitePageExternalReferenceCode,
+					null, Pagination.of(1, totalCount + 2));
+
+			List<SitePage> sitePages1 = (List<SitePage>)page1.getItems();
+
+			Assert.assertEquals(
+				sitePages1.toString(), totalCount + 2, sitePages1.size());
+
+			Page<SitePage> page2 =
+				sitePageResource.getSiteSitePageSitePagesPage(
+					siteExternalReferenceCode, sitePageExternalReferenceCode,
+					null, Pagination.of(2, totalCount + 2));
+
+			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
+
+			List<SitePage> sitePages2 = (List<SitePage>)page2.getItems();
+
+			Assert.assertEquals(sitePages2.toString(), 1, sitePages2.size());
+
+			Page<SitePage> page3 =
+				sitePageResource.getSiteSitePageSitePagesPage(
+					siteExternalReferenceCode, sitePageExternalReferenceCode,
+					null, Pagination.of(1, (int)totalCount + 3));
+
+			assertContains(sitePage1, (List<SitePage>)page3.getItems());
+			assertContains(sitePage2, (List<SitePage>)page3.getItems());
+			assertContains(sitePage3, (List<SitePage>)page3.getItems());
+		}
+	}
+
+	protected SitePage testGetSiteSitePageSitePagesPage_addSitePage(
+			String siteExternalReferenceCode,
+			String sitePageExternalReferenceCode, SitePage sitePage)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetSiteSitePageSitePagesPage_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
+	}
+
+	protected String
+			testGetSiteSitePageSitePagesPage_getIrrelevantSiteExternalReferenceCode()
+		throws Exception {
+
+		return irrelevantGroup.getExternalReferenceCode();
+	}
+
+	protected String
+			testGetSiteSitePageSitePagesPage_getSitePageExternalReferenceCode()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String
+			testGetSiteSitePageSitePagesPage_getIrrelevantSitePageExternalReferenceCode()
+		throws Exception {
+
+		return null;
+	}
+
+	@Test
+	public void testGetSiteSitePagesPage() throws Exception {
+		String siteExternalReferenceCode =
+			testGetSiteSitePagesPage_getSiteExternalReferenceCode();
+		String irrelevantSiteExternalReferenceCode =
+			testGetSiteSitePagesPage_getIrrelevantSiteExternalReferenceCode();
+
+		Page<SitePage> page = sitePageResource.getSiteSitePagesPage(
+			siteExternalReferenceCode, null, null, null, null, null,
+			Pagination.of(1, 10), null);
+
+		long totalCount = page.getTotalCount();
+
+		if (irrelevantSiteExternalReferenceCode != null) {
+			SitePage irrelevantSitePage = testGetSiteSitePagesPage_addSitePage(
+				irrelevantSiteExternalReferenceCode,
+				randomIrrelevantSitePage());
+
+			page = sitePageResource.getSiteSitePagesPage(
+				irrelevantSiteExternalReferenceCode, null, null, null, null,
+				null, Pagination.of(1, (int)totalCount + 1), null);
+
+			Assert.assertEquals(totalCount + 1, page.getTotalCount());
+
+			assertContains(irrelevantSitePage, (List<SitePage>)page.getItems());
+			assertValid(
+				page,
+				testGetSiteSitePagesPage_getExpectedActions(
+					irrelevantSiteExternalReferenceCode));
+		}
+
+		SitePage sitePage1 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
+
+		SitePage sitePage2 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
+
+		page = sitePageResource.getSiteSitePagesPage(
+			siteExternalReferenceCode, null, null, null, null, null,
+			Pagination.of(1, (int)totalCount + 2), null);
+
+		Assert.assertEquals(totalCount + 2, page.getTotalCount());
+
+		assertContains(sitePage1, (List<SitePage>)page.getItems());
+		assertContains(sitePage2, (List<SitePage>)page.getItems());
+		assertValid(
+			page,
+			testGetSiteSitePagesPage_getExpectedActions(
+				siteExternalReferenceCode));
+
+		for (SitePage sitePage : page.getItems()) {
+			Assert.assertNull(sitePage.getPermissions());
+		}
+
+		page = permissionsSitePageResource.getSiteSitePagesPage(
+			siteExternalReferenceCode, null, null, null, null, null,
+			Pagination.of(1, 10), null);
+
+		for (SitePage sitePage : page.getItems()) {
+			Assert.assertNotNull(sitePage.getPermissions());
+		}
+	}
+
+	protected Map<String, Map<String, String>>
+			testGetSiteSitePagesPage_getExpectedActions(
+				String siteExternalReferenceCode)
+		throws Exception {
+
+		Map<String, Map<String, String>> expectedActions = new HashMap<>();
+
+		Map createBatchAction = new HashMap<>();
+		createBatchAction.put("method", "POST");
+		createBatchAction.put(
+			"href",
+			("http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/headless-admin-site/v1.0/sites/{siteExternalReferenceCode}/site-pages/batch").
+					replace(
+						"{siteExternalReferenceCode}",
+						String.valueOf(siteExternalReferenceCode)));
+
+		expectedActions.put("createBatch", createBatchAction);
+
+		return expectedActions;
+	}
+
+	@Test
+	public void testGetSiteSitePagesPageWithFilterDateTimeEquals()
 		throws Exception {
 
 		List<EntityField> entityFields = getEntityFields(
@@ -276,21 +613,18 @@ public abstract class BaseSitePageResourceTestCase {
 		}
 
 		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getSiteExternalReferenceCode();
+			testGetSiteSitePagesPage_getSiteExternalReferenceCode();
 
 		SitePage sitePage1 = randomSitePage();
 
-		sitePage1 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, sitePage1);
+		sitePage1 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePage1);
 
 		for (EntityField entityField : entityFields) {
-			Page<SitePage> page =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null,
-						getFilterString(entityField, "between", sitePage1),
-						Pagination.of(1, 2), null);
+			Page<SitePage> page = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null,
+				getFilterString(entityField, "between", sitePage1),
+				Pagination.of(1, 2), null);
 
 			assertEquals(
 				Collections.singletonList(sitePage1),
@@ -299,40 +633,36 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilterDoubleEquals()
+	public void testGetSiteSitePagesPageWithFilterDoubleEquals()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilter(
-			"eq", EntityField.Type.DOUBLE);
+		testGetSiteSitePagesPageWithFilter("eq", EntityField.Type.DOUBLE);
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilterStringContains()
+	public void testGetSiteSitePagesPageWithFilterStringContains()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilter(
-			"contains", EntityField.Type.STRING);
+		testGetSiteSitePagesPageWithFilter("contains", EntityField.Type.STRING);
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilterStringEquals()
+	public void testGetSiteSitePagesPageWithFilterStringEquals()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilter(
-			"eq", EntityField.Type.STRING);
+		testGetSiteSitePagesPageWithFilter("eq", EntityField.Type.STRING);
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilterStringStartsWith()
+	public void testGetSiteSitePagesPageWithFilterStringStartsWith()
 		throws Exception {
 
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilter(
+		testGetSiteSitePagesPageWithFilter(
 			"startswith", EntityField.Type.STRING);
 	}
 
-	protected void
-			testGetSiteSiteByExternalReferenceCodeSitePagesPageWithFilter(
-				String operator, EntityField.Type type)
+	protected void testGetSiteSitePagesPageWithFilter(
+			String operator, EntityField.Type type)
 		throws Exception {
 
 		List<EntityField> entityFields = getEntityFields(type);
@@ -342,24 +672,20 @@ public abstract class BaseSitePageResourceTestCase {
 		}
 
 		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getSiteExternalReferenceCode();
+			testGetSiteSitePagesPage_getSiteExternalReferenceCode();
 
-		SitePage sitePage1 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage1 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
 
 		@SuppressWarnings("PMD.UnusedLocalVariable")
-		SitePage sitePage2 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage2 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
 
 		for (EntityField entityField : entityFields) {
-			Page<SitePage> page =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null,
-						getFilterString(entityField, operator, sitePage1),
-						Pagination.of(1, 2), null);
+			Page<SitePage> page = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null,
+				getFilterString(entityField, operator, sitePage1),
+				Pagination.of(1, 2), null);
 
 			assertEquals(
 				Collections.singletonList(sitePage1),
@@ -368,87 +694,72 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithPagination()
-		throws Exception {
-
+	public void testGetSiteSitePagesPageWithPagination() throws Exception {
 		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getSiteExternalReferenceCode();
+			testGetSiteSitePagesPage_getSiteExternalReferenceCode();
 
-		Page<SitePage> sitePagePage =
-			sitePageResource.getSiteSiteByExternalReferenceCodeSitePagesPage(
-				siteExternalReferenceCode, null, null, null, null, null);
+		Page<SitePage> sitePagesPage = sitePageResource.getSiteSitePagesPage(
+			siteExternalReferenceCode, null, null, null, null, null, null,
+			null);
 
-		int totalCount = GetterUtil.getInteger(sitePagePage.getTotalCount());
+		int totalCount = GetterUtil.getInteger(sitePagesPage.getTotalCount());
 
-		SitePage sitePage1 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage1 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
 
-		SitePage sitePage2 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage2 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
 
-		SitePage sitePage3 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, randomSitePage());
+		SitePage sitePage3 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, randomSitePage());
 
 		// See com.liferay.portal.vulcan.internal.configuration.HeadlessAPICompanyConfiguration#pageSizeLimit
 
 		int pageSizeLimit = 500;
 
 		if (totalCount >= (pageSizeLimit - 2)) {
-			Page<SitePage> page1 =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(
-							(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
-							pageSizeLimit),
-						null);
+			Page<SitePage> page1 = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(
+					(int)Math.ceil((totalCount + 1.0) / pageSizeLimit),
+					pageSizeLimit),
+				null);
 
 			Assert.assertEquals(totalCount + 3, page1.getTotalCount());
 
 			assertContains(sitePage1, (List<SitePage>)page1.getItems());
 
-			Page<SitePage> page2 =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(
-							(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
-							pageSizeLimit),
-						null);
+			Page<SitePage> page2 = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(
+					(int)Math.ceil((totalCount + 2.0) / pageSizeLimit),
+					pageSizeLimit),
+				null);
 
 			assertContains(sitePage2, (List<SitePage>)page2.getItems());
 
-			Page<SitePage> page3 =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(
-							(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
-							pageSizeLimit),
-						null);
+			Page<SitePage> page3 = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(
+					(int)Math.ceil((totalCount + 3.0) / pageSizeLimit),
+					pageSizeLimit),
+				null);
 
 			assertContains(sitePage3, (List<SitePage>)page3.getItems());
 		}
 		else {
-			Page<SitePage> page1 =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(1, totalCount + 2), null);
+			Page<SitePage> page1 = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(1, totalCount + 2), null);
 
 			List<SitePage> sitePages1 = (List<SitePage>)page1.getItems();
 
 			Assert.assertEquals(
 				sitePages1.toString(), totalCount + 2, sitePages1.size());
 
-			Page<SitePage> page2 =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(2, totalCount + 2), null);
+			Page<SitePage> page2 = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(2, totalCount + 2), null);
 
 			Assert.assertEquals(totalCount + 3, page2.getTotalCount());
 
@@ -456,11 +767,9 @@ public abstract class BaseSitePageResourceTestCase {
 
 			Assert.assertEquals(sitePages2.toString(), 1, sitePages2.size());
 
-			Page<SitePage> page3 =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(1, (int)totalCount + 3), null);
+			Page<SitePage> page3 = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(1, (int)totalCount + 3), null);
 
 			assertContains(sitePage1, (List<SitePage>)page3.getItems());
 			assertContains(sitePage2, (List<SitePage>)page3.getItems());
@@ -469,10 +778,8 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSortDateTime()
-		throws Exception {
-
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSort(
+	public void testGetSiteSitePagesPageWithSortDateTime() throws Exception {
+		testGetSiteSitePagesPageWithSort(
 			EntityField.Type.DATE_TIME,
 			(entityField, sitePage1, sitePage2) -> {
 				BeanTestUtil.setProperty(
@@ -482,10 +789,8 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSortDouble()
-		throws Exception {
-
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSort(
+	public void testGetSiteSitePagesPageWithSortDouble() throws Exception {
+		testGetSiteSitePagesPageWithSort(
 			EntityField.Type.DOUBLE,
 			(entityField, sitePage1, sitePage2) -> {
 				BeanTestUtil.setProperty(sitePage1, entityField.getName(), 0.1);
@@ -494,10 +799,8 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSortInteger()
-		throws Exception {
-
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSort(
+	public void testGetSiteSitePagesPageWithSortInteger() throws Exception {
+		testGetSiteSitePagesPageWithSort(
 			EntityField.Type.INTEGER,
 			(entityField, sitePage1, sitePage2) -> {
 				BeanTestUtil.setProperty(sitePage1, entityField.getName(), 0);
@@ -506,10 +809,8 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSortString()
-		throws Exception {
-
-		testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSort(
+	public void testGetSiteSitePagesPageWithSortString() throws Exception {
+		testGetSiteSitePagesPageWithSort(
 			EntityField.Type.STRING,
 			(entityField, sitePage1, sitePage2) -> {
 				Class<?> clazz = sitePage1.getClass();
@@ -558,7 +859,7 @@ public abstract class BaseSitePageResourceTestCase {
 			});
 	}
 
-	protected void testGetSiteSiteByExternalReferenceCodeSitePagesPageWithSort(
+	protected void testGetSiteSitePagesPageWithSort(
 			EntityField.Type type,
 			UnsafeTriConsumer<EntityField, SitePage, SitePage, Exception>
 				unsafeTriConsumer)
@@ -571,7 +872,7 @@ public abstract class BaseSitePageResourceTestCase {
 		}
 
 		String siteExternalReferenceCode =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getSiteExternalReferenceCode();
+			testGetSiteSitePagesPage_getSiteExternalReferenceCode();
 
 		SitePage sitePage1 = randomSitePage();
 		SitePage sitePage2 = randomSitePage();
@@ -580,77 +881,124 @@ public abstract class BaseSitePageResourceTestCase {
 			unsafeTriConsumer.accept(entityField, sitePage1, sitePage2);
 		}
 
-		sitePage1 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, sitePage1);
+		sitePage1 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePage1);
 
-		sitePage2 =
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				siteExternalReferenceCode, sitePage2);
+		sitePage2 = testGetSiteSitePagesPage_addSitePage(
+			siteExternalReferenceCode, sitePage2);
 
-		Page<SitePage> page =
-			sitePageResource.getSiteSiteByExternalReferenceCodeSitePagesPage(
-				siteExternalReferenceCode, null, null, null, null, null);
+		Page<SitePage> page = sitePageResource.getSiteSitePagesPage(
+			siteExternalReferenceCode, null, null, null, null, null, null,
+			null);
 
 		for (EntityField entityField : entityFields) {
-			Page<SitePage> ascPage =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(1, (int)page.getTotalCount() + 1),
-						entityField.getName() + ":asc");
+			Page<SitePage> ascPage = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(1, (int)page.getTotalCount() + 1),
+				entityField.getName() + ":asc");
 
 			assertContains(sitePage1, (List<SitePage>)ascPage.getItems());
 			assertContains(sitePage2, (List<SitePage>)ascPage.getItems());
 
-			Page<SitePage> descPage =
-				sitePageResource.
-					getSiteSiteByExternalReferenceCodeSitePagesPage(
-						siteExternalReferenceCode, null, null, null,
-						Pagination.of(1, (int)page.getTotalCount() + 1),
-						entityField.getName() + ":desc");
+			Page<SitePage> descPage = sitePageResource.getSiteSitePagesPage(
+				siteExternalReferenceCode, null, null, null, null, null,
+				Pagination.of(1, (int)page.getTotalCount() + 1),
+				entityField.getName() + ":desc");
 
 			assertContains(sitePage2, (List<SitePage>)descPage.getItems());
 			assertContains(sitePage1, (List<SitePage>)descPage.getItems());
 		}
 	}
 
-	protected SitePage
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_addSitePage(
-				String siteExternalReferenceCode, SitePage sitePage)
+	protected SitePage testGetSiteSitePagesPage_addSitePage(
+			String siteExternalReferenceCode, SitePage sitePage)
 		throws Exception {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
-	protected String
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getSiteExternalReferenceCode()
+	protected String testGetSiteSitePagesPage_getSiteExternalReferenceCode()
 		throws Exception {
 
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
+		return testGroup.getExternalReferenceCode();
 	}
 
 	protected String
-			testGetSiteSiteByExternalReferenceCodeSitePagesPage_getIrrelevantSiteExternalReferenceCode()
+			testGetSiteSitePagesPage_getIrrelevantSiteExternalReferenceCode()
 		throws Exception {
 
-		return null;
+		return irrelevantGroup.getExternalReferenceCode();
 	}
 
 	@Test
-	public void testPostByExternalReferenceCodeSitePage() throws Exception {
+	public void testPatchSiteSitePage() throws Exception {
+		SitePage postSitePage = testPatchSiteSitePage_addSitePage();
+
+		SitePage randomPatchSitePage = randomPatchSitePage();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		SitePage patchSitePage = sitePageResource.patchSiteSitePage(
+			null, postSitePage.getExternalReferenceCode(),
+			testPatchSiteSitePage_getPrivateLayout(), randomPatchSitePage);
+
+		SitePage expectedPatchSitePage = postSitePage.clone();
+
+		BeanTestUtil.copyProperties(randomPatchSitePage, expectedPatchSitePage);
+
+		SitePage getSitePage = sitePageResource.getSiteSitePage(
+			null, patchSitePage.getExternalReferenceCode());
+
+		assertEquals(expectedPatchSitePage, getSitePage);
+		assertValid(getSitePage);
+	}
+
+	protected SitePage testPatchSiteSitePage_addSitePage() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected Boolean testPatchSiteSitePage_getPrivateLayout()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostSiteSitePage() throws Exception {
 		SitePage randomSitePage = randomSitePage();
 
-		SitePage postSitePage =
-			testPostByExternalReferenceCodeSitePage_addSitePage(randomSitePage);
+		SitePage postSitePage = testPostSiteSitePage_addSitePage(
+			randomSitePage);
 
 		assertEquals(randomSitePage, postSitePage);
 		assertValid(postSitePage);
+
+		SitePage randomPermissionsSitePage1 = randomPermissionsSitePage();
+
+		SitePage postPermissionsSitePage1 = testPostSiteSitePage_addSitePage(
+			randomPermissionsSitePage1);
+
+		Assert.assertNull(postPermissionsSitePage1.getPermissions());
+
+		SitePage randomPermissionsSitePage2 = randomPermissionsSitePage();
+
+		SitePage postPermissionsSitePage2 =
+			testPostSiteSitePage_addPermissionsSitePage(
+				randomPermissionsSitePage2);
+
+		Assert.assertNotNull(postPermissionsSitePage2.getPermissions());
 	}
 
-	protected SitePage testPostByExternalReferenceCodeSitePage_addSitePage(
+	protected SitePage testPostSiteSitePage_addSitePage(SitePage sitePage)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected SitePage testPostSiteSitePage_addPermissionsSitePage(
 			SitePage sitePage)
 		throws Exception {
 
@@ -659,151 +1007,68 @@ public abstract class BaseSitePageResourceTestCase {
 	}
 
 	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePagePermissionsPage()
-		throws Exception {
+	public void testPutSiteSitePage() throws Exception {
+		SitePage postSitePage = testPutSiteSitePage_addSitePage();
 
-		SitePage postSitePage =
-			testGetSiteSiteByExternalReferenceCodeSitePagePermissionsPage_addSitePage();
+		SitePage randomSitePage = randomSitePage();
 
-		Page<Permission> page =
-			sitePageResource.
-				getSiteSiteByExternalReferenceCodeSitePagePermissionsPage(
-					testGroup.getExternalReferenceCode(), RoleConstants.GUEST);
+		SitePage putSitePage = sitePageResource.putSiteSitePage(
+			testPutSiteSitePage_getSiteExternalReferenceCode(),
+			postSitePage.getExternalReferenceCode(),
+			testPutSiteSitePage_getPrivateLayout(), randomSitePage);
 
-		Assert.assertNotNull(page);
+		assertEquals(randomSitePage, putSitePage);
+		assertValid(putSitePage);
+
+		Assert.assertNull(putSitePage.getPermissions());
+
+		SitePage getSitePage = sitePageResource.getSiteSitePage(
+			testPutSiteSitePage_getSiteExternalReferenceCode(),
+			putSitePage.getExternalReferenceCode());
+
+		assertEquals(randomSitePage, getSitePage);
+		assertValid(getSitePage);
+
+		SitePage randomPermissionsSitePage = randomPermissionsSitePage();
+
+		putSitePage = sitePageResource.putSiteSitePage(
+			testPutSiteSitePage_getSiteExternalReferenceCode(),
+			postSitePage.getExternalReferenceCode(),
+			testPutSiteSitePage_getPrivateLayout(), randomPermissionsSitePage);
+
+		assertEquals(randomPermissionsSitePage, putSitePage);
+		assertValid(putSitePage);
+
+		Assert.assertNull(putSitePage.getPermissions());
+
+		putSitePage = permissionsSitePageResource.putSiteSitePage(
+			testPutSiteSitePage_getSiteExternalReferenceCode(),
+			postSitePage.getExternalReferenceCode(),
+			testPutSiteSitePage_getPrivateLayout(), randomPermissionsSitePage);
+
+		Assert.assertNotNull(putSitePage.getPermissions());
 	}
 
-	protected SitePage
-			testGetSiteSiteByExternalReferenceCodeSitePagePermissionsPage_addSitePage()
+	protected SitePage testPutSiteSitePage_addSitePage() throws Exception {
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	protected String testPutSiteSitePage_getSiteExternalReferenceCode()
 		throws Exception {
 
+		return testGroup.getExternalReferenceCode();
+	}
+
+	protected Boolean testPutSiteSitePage_getPrivateLayout() throws Exception {
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
 	}
 
 	@Test
-	public void testPutSiteSiteByExternalReferenceCodeSitePagePermissionsPage()
-		throws Exception {
-
+	public void testPutSiteSitePagePermissionsPage() throws Exception {
 		@SuppressWarnings("PMD.UnusedLocalVariable")
-		SitePage sitePage =
-			testPutSiteSiteByExternalReferenceCodeSitePagePermissionsPage_addSitePage();
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
-			RoleConstants.TYPE_REGULAR);
-
-		assertHttpResponseStatusCode(
-			200,
-			sitePageResource.
-				putSiteSiteByExternalReferenceCodeSitePagePermissionsPageHttpResponse(
-					sitePage.getSiteExternalReferenceCode(),
-					new Permission[] {
-						new Permission() {
-							{
-								setActionIds(new String[] {"PERMISSIONS"});
-								setRoleName(role.getName());
-							}
-						}
-					}));
-
-		assertHttpResponseStatusCode(
-			404,
-			sitePageResource.
-				putSiteSiteByExternalReferenceCodeSitePagePermissionsPageHttpResponse(
-					sitePage.getSiteExternalReferenceCode(),
-					new Permission[] {
-						new Permission() {
-							{
-								setActionIds(new String[] {"-"});
-								setRoleName("-");
-							}
-						}
-					}));
-	}
-
-	protected SitePage
-			testPutSiteSiteByExternalReferenceCodeSitePagePermissionsPage_addSitePage()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testDeleteSiteSiteByExternalReferenceCodeSitePage()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGetSiteSiteByExternalReferenceCodeSitePage()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGraphQLGetSiteSiteByExternalReferenceCodeSitePage()
-		throws Exception {
-
-		Assert.assertTrue(true);
-	}
-
-	@Test
-	public void testGraphQLGetSiteSiteByExternalReferenceCodeSitePageNotFound()
-		throws Exception {
-
-		Assert.assertTrue(true);
-	}
-
-	@Test
-	public void testPatchSiteSiteByExternalReferenceCodeSitePage()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testPutSiteSiteByExternalReferenceCodeSitePage()
-		throws Exception {
-
-		Assert.assertTrue(false);
-	}
-
-	@Test
-	public void testGetSiteSiteExternalReferenceCodeSitePagePermissionsPage()
-		throws Exception {
-
-		SitePage postSitePage =
-			testGetSiteSiteExternalReferenceCodeSitePagePermissionsPage_addSitePage();
-
-		Page<Permission> page =
-			sitePageResource.
-				getSiteSiteExternalReferenceCodeSitePagePermissionsPage(
-					testGroup.getExternalReferenceCode(),
-					postSitePage.getExternalReferenceCode(),
-					RoleConstants.GUEST);
-
-		Assert.assertNotNull(page);
-	}
-
-	protected SitePage
-			testGetSiteSiteExternalReferenceCodeSitePagePermissionsPage_addSitePage()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
-	public void testPutSiteSiteExternalReferenceCodeSitePagePermissionsPage()
-		throws Exception {
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		SitePage sitePage =
-			testPutSiteSiteExternalReferenceCodeSitePagePermissionsPage_addSitePage();
+		SitePage sitePage = testPutSiteSitePagePermissionsPage_addSitePage();
 
 		@SuppressWarnings("PMD.UnusedLocalVariable")
 		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
@@ -811,32 +1076,106 @@ public abstract class BaseSitePageResourceTestCase {
 
 		assertHttpResponseStatusCode(
 			200,
-			sitePageResource.
-				putSiteSiteExternalReferenceCodeSitePagePermissionsPageHttpResponse(
-					sitePage.getSiteExternalReferenceCode(), null));
+			sitePageResource.putSiteSitePagePermissionsPageHttpResponse(
+				testGroup.getExternalReferenceCode(),
+				sitePage.getExternalReferenceCode(),
+				new Permission[] {
+					new Permission() {
+						{
+							setActionIds(new String[] {"PERMISSIONS"});
+							setRoleName(role.getName());
+						}
+					}
+				}));
 
 		assertHttpResponseStatusCode(
 			404,
-			sitePageResource.
-				putSiteSiteExternalReferenceCodeSitePagePermissionsPageHttpResponse(
-					sitePage.getSiteExternalReferenceCode(), null));
+			sitePageResource.putSiteSitePagePermissionsPageHttpResponse(
+				testGroup.getExternalReferenceCode(),
+				sitePage.getExternalReferenceCode(),
+				new Permission[] {
+					new Permission() {
+						{
+							setActionIds(new String[] {"-"});
+							setRoleName("-");
+						}
+					}
+				}));
 	}
 
-	protected SitePage
-			testPutSiteSiteExternalReferenceCodeSitePagePermissionsPage_addSitePage()
+	protected SitePage testPutSiteSitePagePermissionsPage_addSitePage()
 		throws Exception {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		SitePage sitePage1 = testBatchEngineDeleteImportTask_addSiteSitePage();
+
+		testBatchEngineDeleteImportTask_deleteSitePage(
+			200, sitePage1.getExternalReferenceCode(),
+			"siteExternalReferenceCode", testGroup.getExternalReferenceCode());
+
+		assertHttpResponseStatusCode(
+			404,
+			sitePageResource.getSiteSitePageHttpResponse(
+				testBatchEngineDeleteImportTask_getSiteExternalReferenceCode(),
+				sitePage1.getExternalReferenceCode()));
+	}
+
+	protected SitePage testBatchEngineDeleteImportTask_addSiteSitePage()
+		throws Exception {
+
+		return testDeleteSiteSitePage_addSitePage();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteSitePage(
+			int expectedStatusCode, String externalReferenceCode,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.admin.site.dto.v1_0.SitePage", null, null,
+				null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
+	}
+
+	protected String
+			testBatchEngineDeleteImportTask_getSiteExternalReferenceCode()
+		throws Exception {
+
+		return testGroup.getExternalReferenceCode();
 	}
 
 	@Rule
 	public SearchTestRule searchTestRule = new SearchTestRule();
 
 	@Test
-	public void testPostSiteSiteByExternalReferenceCodeSitePagePageSpecification()
-		throws Exception {
-
+	public void testPostSiteSitePagePageSpecification() throws Exception {
 		Assert.assertTrue(true);
 	}
 
@@ -945,25 +1284,6 @@ public abstract class BaseSitePageResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"creatorExternalReferenceCode",
-					additionalAssertFieldName)) {
-
-				if (sitePage.getCreatorExternalReferenceCode() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("customFields", additionalAssertFieldName)) {
-				if (sitePage.getCustomFields() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
 			if (Objects.equals("datePublished", additionalAssertFieldName)) {
 				if (sitePage.getDatePublished() == null) {
 					valid = false;
@@ -1002,17 +1322,6 @@ public abstract class BaseSitePageResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"keywordItemExternalReferences",
-					additionalAssertFieldName)) {
-
-				if (sitePage.getKeywordItemExternalReferences() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
 			if (Objects.equals("keywords", additionalAssertFieldName)) {
 				if (sitePage.getKeywords() == null) {
 					valid = false;
@@ -1031,6 +1340,16 @@ public abstract class BaseSitePageResourceTestCase {
 
 			if (Objects.equals("pageSettings", additionalAssertFieldName)) {
 				if (sitePage.getPageSettings() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"pageSpecificationVersions", additionalAssertFieldName)) {
+
+				if (sitePage.getPageSpecificationVersions() == null) {
 					valid = false;
 				}
 
@@ -1058,10 +1377,8 @@ public abstract class BaseSitePageResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"siteExternalReferenceCode", additionalAssertFieldName)) {
-
-				if (sitePage.getSiteExternalReferenceCode() == null) {
+			if (Objects.equals("permissions", additionalAssertFieldName)) {
+				if (sitePage.getPermissions() == null) {
 					valid = false;
 				}
 
@@ -1069,22 +1386,9 @@ public abstract class BaseSitePageResourceTestCase {
 			}
 
 			if (Objects.equals(
-					"taxonomyCategories", additionalAssertFieldName)) {
+					"taxonomyCategoryBriefs", additionalAssertFieldName)) {
 
-				if (sitePage.getTaxonomyCategories() == null) {
-					valid = false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"taxonomyCategoryItemExternalReferences",
-					additionalAssertFieldName)) {
-
-				if (sitePage.getTaxonomyCategoryItemExternalReferences() ==
-						null) {
-
+				if (sitePage.getTaxonomyCategoryBriefs() == null) {
 					valid = false;
 				}
 
@@ -1173,8 +1477,30 @@ public abstract class BaseSitePageResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalContentPageSpecificationAssertFieldNames()) {
 
+			if (Objects.equals(
+					"draftContentPageSpecificationExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (contentPageSpecification.
+						getDraftContentPageSpecificationExternalReferenceCode() ==
+							null) {
+
+					valid = false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("pageExperiences", additionalAssertFieldName)) {
 				if (contentPageSpecification.getPageExperiences() == null) {
+					valid = false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("settings", additionalAssertFieldName)) {
+				if (contentPageSpecification.getSettings() == null) {
 					valid = false;
 				}
 
@@ -1199,6 +1525,8 @@ public abstract class BaseSitePageResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("externalReferenceCode"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -1281,31 +1609,6 @@ public abstract class BaseSitePageResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"creatorExternalReferenceCode",
-					additionalAssertFieldName)) {
-
-				if (!Objects.deepEquals(
-						sitePage1.getCreatorExternalReferenceCode(),
-						sitePage2.getCreatorExternalReferenceCode())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals("customFields", additionalAssertFieldName)) {
-				if (!Objects.deepEquals(
-						sitePage1.getCustomFields(),
-						sitePage2.getCustomFields())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
 			if (Objects.equals("dateCreated", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						sitePage1.getDateCreated(),
@@ -1378,20 +1681,6 @@ public abstract class BaseSitePageResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"keywordItemExternalReferences",
-					additionalAssertFieldName)) {
-
-				if (!Objects.deepEquals(
-						sitePage1.getKeywordItemExternalReferences(),
-						sitePage2.getKeywordItemExternalReferences())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
 			if (Objects.equals("keywords", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						sitePage1.getKeywords(), sitePage2.getKeywords())) {
@@ -1417,6 +1706,19 @@ public abstract class BaseSitePageResourceTestCase {
 				if (!Objects.deepEquals(
 						sitePage1.getPageSettings(),
 						sitePage2.getPageSettings())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals(
+					"pageSpecificationVersions", additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						sitePage1.getPageSpecificationVersions(),
+						sitePage2.getPageSpecificationVersions())) {
 
 					return false;
 				}
@@ -1451,12 +1753,10 @@ public abstract class BaseSitePageResourceTestCase {
 				continue;
 			}
 
-			if (Objects.equals(
-					"siteExternalReferenceCode", additionalAssertFieldName)) {
-
+			if (Objects.equals("permissions", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
-						sitePage1.getSiteExternalReferenceCode(),
-						sitePage2.getSiteExternalReferenceCode())) {
+						sitePage1.getPermissions(),
+						sitePage2.getPermissions())) {
 
 					return false;
 				}
@@ -1465,26 +1765,11 @@ public abstract class BaseSitePageResourceTestCase {
 			}
 
 			if (Objects.equals(
-					"taxonomyCategories", additionalAssertFieldName)) {
+					"taxonomyCategoryBriefs", additionalAssertFieldName)) {
 
 				if (!Objects.deepEquals(
-						sitePage1.getTaxonomyCategories(),
-						sitePage2.getTaxonomyCategories())) {
-
-					return false;
-				}
-
-				continue;
-			}
-
-			if (Objects.equals(
-					"taxonomyCategoryItemExternalReferences",
-					additionalAssertFieldName)) {
-
-				if (!Objects.deepEquals(
-						sitePage1.getTaxonomyCategoryItemExternalReferences(),
-						sitePage2.
-							getTaxonomyCategoryItemExternalReferences())) {
+						sitePage1.getTaxonomyCategoryBriefs(),
+						sitePage2.getTaxonomyCategoryBriefs())) {
 
 					return false;
 				}
@@ -1567,10 +1852,37 @@ public abstract class BaseSitePageResourceTestCase {
 		for (String additionalAssertFieldName :
 				getAdditionalContentPageSpecificationAssertFieldNames()) {
 
+			if (Objects.equals(
+					"draftContentPageSpecificationExternalReferenceCode",
+					additionalAssertFieldName)) {
+
+				if (!Objects.deepEquals(
+						contentPageSpecification1.
+							getDraftContentPageSpecificationExternalReferenceCode(),
+						contentPageSpecification2.
+							getDraftContentPageSpecificationExternalReferenceCode())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
 			if (Objects.equals("pageExperiences", additionalAssertFieldName)) {
 				if (!Objects.deepEquals(
 						contentPageSpecification1.getPageExperiences(),
 						contentPageSpecification2.getPageExperiences())) {
+
+					return false;
+				}
+
+				continue;
+			}
+
+			if (Objects.equals("settings", additionalAssertFieldName)) {
+				if (!Objects.deepEquals(
+						contentPageSpecification1.getSettings(),
+						contentPageSpecification2.getSettings())) {
 
 					return false;
 				}
@@ -1669,57 +1981,6 @@ public abstract class BaseSitePageResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
-		if (entityFieldName.equals("creatorExternalReferenceCode")) {
-			Object object = sitePage.getCreatorExternalReferenceCode();
-
-			String value = String.valueOf(object);
-
-			if (operator.equals("contains")) {
-				sb = new StringBundler();
-
-				sb.append("contains(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 2)) {
-					sb.append(value.substring(1, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else if (operator.equals("startswith")) {
-				sb = new StringBundler();
-
-				sb.append("startswith(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 1)) {
-					sb.append(value.substring(0, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else {
-				sb.append("'");
-				sb.append(value);
-				sb.append("'");
-			}
-
-			return sb.toString();
-		}
-
-		if (entityFieldName.equals("customFields")) {
-			throw new IllegalArgumentException(
-				"Invalid entity field " + entityFieldName);
-		}
-
 		if (entityFieldName.equals("dateCreated")) {
 			if (operator.equals("between")) {
 				Date date = sitePage.getDateCreated();
@@ -1729,13 +1990,11 @@ public abstract class BaseSitePageResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1745,7 +2004,7 @@ public abstract class BaseSitePageResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(sitePage.getDateCreated()));
+				sb.append(_format.format(sitePage.getDateCreated()));
 			}
 
 			return sb.toString();
@@ -1760,13 +2019,11 @@ public abstract class BaseSitePageResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1776,7 +2033,7 @@ public abstract class BaseSitePageResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(sitePage.getDateModified()));
+				sb.append(_format.format(sitePage.getDateModified()));
 			}
 
 			return sb.toString();
@@ -1791,13 +2048,11 @@ public abstract class BaseSitePageResourceTestCase {
 				sb.append("(");
 				sb.append(entityFieldName);
 				sb.append(" gt ");
-				sb.append(
-					_dateFormat.format(date.getTime() - (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() - (2 * Time.SECOND)));
 				sb.append(" and ");
 				sb.append(entityFieldName);
 				sb.append(" lt ");
-				sb.append(
-					_dateFormat.format(date.getTime() + (2 * Time.SECOND)));
+				sb.append(_format.format(date.getTime() + (2 * Time.SECOND)));
 				sb.append(")");
 			}
 			else {
@@ -1807,7 +2062,7 @@ public abstract class BaseSitePageResourceTestCase {
 				sb.append(operator);
 				sb.append(" ");
 
-				sb.append(_dateFormat.format(sitePage.getDatePublished()));
+				sb.append(_format.format(sitePage.getDatePublished()));
 			}
 
 			return sb.toString();
@@ -1869,11 +2124,6 @@ public abstract class BaseSitePageResourceTestCase {
 				"Invalid entity field " + entityFieldName);
 		}
 
-		if (entityFieldName.equals("keywordItemExternalReferences")) {
-			throw new IllegalArgumentException(
-				"Invalid entity field " + entityFieldName);
-		}
-
 		if (entityFieldName.equals("keywords")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
@@ -1885,6 +2135,11 @@ public abstract class BaseSitePageResourceTestCase {
 		}
 
 		if (entityFieldName.equals("pageSettings")) {
+			throw new IllegalArgumentException(
+				"Invalid entity field " + entityFieldName);
+		}
+
+		if (entityFieldName.equals("pageSpecificationVersions")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
 		}
@@ -1940,58 +2195,12 @@ public abstract class BaseSitePageResourceTestCase {
 			return sb.toString();
 		}
 
-		if (entityFieldName.equals("siteExternalReferenceCode")) {
-			Object object = sitePage.getSiteExternalReferenceCode();
-
-			String value = String.valueOf(object);
-
-			if (operator.equals("contains")) {
-				sb = new StringBundler();
-
-				sb.append("contains(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 2)) {
-					sb.append(value.substring(1, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else if (operator.equals("startswith")) {
-				sb = new StringBundler();
-
-				sb.append("startswith(");
-				sb.append(entityFieldName);
-				sb.append(",'");
-
-				if ((object != null) && (value.length() > 1)) {
-					sb.append(value.substring(0, value.length() - 1));
-				}
-				else {
-					sb.append(value);
-				}
-
-				sb.append("')");
-			}
-			else {
-				sb.append("'");
-				sb.append(value);
-				sb.append("'");
-			}
-
-			return sb.toString();
-		}
-
-		if (entityFieldName.equals("taxonomyCategories")) {
+		if (entityFieldName.equals("permissions")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
 		}
 
-		if (entityFieldName.equals("taxonomyCategoryItemExternalReferences")) {
+		if (entityFieldName.equals("taxonomyCategoryBriefs")) {
 			throw new IllegalArgumentException(
 				"Invalid entity field " + entityFieldName);
 		}
@@ -2065,7 +2274,9 @@ public abstract class BaseSitePageResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2097,16 +2308,12 @@ public abstract class BaseSitePageResourceTestCase {
 	protected SitePage randomSitePage() throws Exception {
 		return new SitePage() {
 			{
-				creatorExternalReferenceCode = StringUtil.toLowerCase(
-					RandomTestUtil.randomString());
 				dateCreated = RandomTestUtil.nextDate();
 				dateModified = RandomTestUtil.nextDate();
 				datePublished = RandomTestUtil.nextDate();
 				externalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				parentSitePageExternalReferenceCode = StringUtil.toLowerCase(
-					RandomTestUtil.randomString());
-				siteExternalReferenceCode = StringUtil.toLowerCase(
 					RandomTestUtil.randomString());
 				uuid = StringUtil.toLowerCase(RandomTestUtil.randomString());
 			}
@@ -2123,17 +2330,62 @@ public abstract class BaseSitePageResourceTestCase {
 		return randomSitePage();
 	}
 
+	protected SitePage randomPermissionsSitePage() throws Exception {
+		SitePage sitePage = randomSitePage();
+
+		com.liferay.portal.kernel.model.Role role = RoleTestUtil.addRole(
+			RoleConstants.TYPE_REGULAR);
+
+		sitePage.setPermissions(
+			new Permission[] {
+				new Permission() {
+					{
+						setActionIds(new String[] {"VIEW"});
+						setRoleName(role.getName());
+					}
+				}
+			});
+
+		return sitePage;
+	}
+
 	protected ContentPageSpecification randomContentPageSpecification()
 		throws Exception {
 
 		return new ContentPageSpecification() {
 			{
+				draftContentPageSpecificationExternalReferenceCode =
+					RandomTestUtil.randomString();
 			}
 		};
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected SitePageResource sitePageResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
+	protected SitePageResource permissionsSitePageResource;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
 
@@ -2333,10 +2585,13 @@ public abstract class BaseSitePageResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseSitePageResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.admin.site.resource.v1_0.SitePageResource
 		_sitePageResource;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-203616901

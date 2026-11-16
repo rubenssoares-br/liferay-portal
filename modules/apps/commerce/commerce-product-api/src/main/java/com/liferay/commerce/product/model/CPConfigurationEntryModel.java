@@ -9,6 +9,7 @@ import com.liferay.portal.kernel.bean.AutoEscape;
 import com.liferay.portal.kernel.model.AttachedModel;
 import com.liferay.portal.kernel.model.BaseModel;
 import com.liferay.portal.kernel.model.ExternalReferenceCodeModel;
+import com.liferay.portal.kernel.model.GroupedModel;
 import com.liferay.portal.kernel.model.MVCCModel;
 import com.liferay.portal.kernel.model.ShardedModel;
 import com.liferay.portal.kernel.model.StagedAuditedModel;
@@ -35,7 +36,7 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface CPConfigurationEntryModel
 	extends AttachedModel, BaseModel<CPConfigurationEntry>,
 			CTModel<CPConfigurationEntry>, ExternalReferenceCodeModel,
-			MVCCModel, ShardedModel, StagedAuditedModel {
+			GroupedModel, MVCCModel, ShardedModel, StagedAuditedModel {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -138,6 +139,22 @@ public interface CPConfigurationEntryModel
 	 * @param CPConfigurationEntryId the cp configuration entry ID of this cp configuration entry
 	 */
 	public void setCPConfigurationEntryId(long CPConfigurationEntryId);
+
+	/**
+	 * Returns the group ID of this cp configuration entry.
+	 *
+	 * @return the group ID of this cp configuration entry
+	 */
+	@Override
+	public long getGroupId();
+
+	/**
+	 * Sets the group ID of this cp configuration entry.
+	 *
+	 * @param groupId the group ID of this cp configuration entry
+	 */
+	@Override
+	public void setGroupId(long groupId);
 
 	/**
 	 * Returns the company ID of this cp configuration entry.
@@ -341,6 +358,21 @@ public interface CPConfigurationEntryModel
 	 * @param backOrders the back orders of this cp configuration entry
 	 */
 	public void setBackOrders(boolean backOrders);
+
+	/**
+	 * Returns the commerce availability estimate ID of this cp configuration entry.
+	 *
+	 * @return the commerce availability estimate ID of this cp configuration entry
+	 */
+	public long getCommerceAvailabilityEstimateId();
+
+	/**
+	 * Sets the commerce availability estimate ID of this cp configuration entry.
+	 *
+	 * @param commerceAvailabilityEstimateId the commerce availability estimate ID of this cp configuration entry
+	 */
+	public void setCommerceAvailabilityEstimateId(
+		long commerceAvailabilityEstimateId);
 
 	/**
 	 * Returns the cp definition inventory engine of this cp configuration entry.
@@ -619,27 +651,6 @@ public interface CPConfigurationEntryModel
 	public void setTaxExempt(boolean taxExempt);
 
 	/**
-	 * Returns the visible of this cp configuration entry.
-	 *
-	 * @return the visible of this cp configuration entry
-	 */
-	public boolean getVisible();
-
-	/**
-	 * Returns <code>true</code> if this cp configuration entry is visible.
-	 *
-	 * @return <code>true</code> if this cp configuration entry is visible; <code>false</code> otherwise
-	 */
-	public boolean isVisible();
-
-	/**
-	 * Sets whether this cp configuration entry is visible.
-	 *
-	 * @param visible the visible of this cp configuration entry
-	 */
-	public void setVisible(boolean visible);
-
-	/**
 	 * Returns the weight of this cp configuration entry.
 	 *
 	 * @return the weight of this cp configuration entry
@@ -675,3 +686,4 @@ public interface CPConfigurationEntryModel
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2145758956

@@ -29,7 +29,7 @@
 							>
 								<liferay-ui:search-container-row
 									className="com.liferay.portal.kernel.model.Group"
-									keyProperty="groupId"
+									keyPropertyName="groupId"
 									modelVar="childGroup"
 								>
 									<c:choose>
@@ -64,7 +64,7 @@
 											>
 												<div class="h5">
 													<aui:a href="<%= (childGroup.getGroupId() != scopeGroupId) ? childGroup.getDisplayURL(themeDisplay) : null %>">
-														<%= childGroup.getDescriptiveName(locale) %>
+														<%= HtmlUtil.escape(childGroup.getDescriptiveName(locale)) %>
 													</aui:a>
 												</div>
 

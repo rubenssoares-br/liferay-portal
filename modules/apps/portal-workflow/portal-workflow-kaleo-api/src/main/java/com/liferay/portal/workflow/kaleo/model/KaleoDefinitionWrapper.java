@@ -5,6 +5,7 @@
 
 package com.liferay.portal.workflow.kaleo.model;
 
+import com.liferay.exportimport.kernel.lar.StagedModelType;
 import com.liferay.portal.kernel.model.ModelWrapper;
 import com.liferay.portal.kernel.model.wrapper.BaseModelWrapper;
 
@@ -37,6 +38,7 @@ public class KaleoDefinitionWrapper
 
 		attributes.put("mvccVersion", getMvccVersion());
 		attributes.put("ctCollectionId", getCtCollectionId());
+		attributes.put("uuid", getUuid());
 		attributes.put("externalReferenceCode", getExternalReferenceCode());
 		attributes.put("kaleoDefinitionId", getKaleoDefinitionId());
 		attributes.put("groupId", getGroupId());
@@ -52,6 +54,8 @@ public class KaleoDefinitionWrapper
 		attributes.put("scope", getScope());
 		attributes.put("version", getVersion());
 		attributes.put("active", isActive());
+		attributes.put("system", isSystem());
+		attributes.put("status", getStatus());
 
 		return attributes;
 	}
@@ -68,6 +72,12 @@ public class KaleoDefinitionWrapper
 
 		if (ctCollectionId != null) {
 			setCtCollectionId(ctCollectionId);
+		}
+
+		String uuid = (String)attributes.get("uuid");
+
+		if (uuid != null) {
+			setUuid(uuid);
 		}
 
 		String externalReferenceCode = (String)attributes.get(
@@ -159,6 +169,18 @@ public class KaleoDefinitionWrapper
 
 		if (active != null) {
 			setActive(active);
+		}
+
+		Boolean system = (Boolean)attributes.get("system");
+
+		if (system != null) {
+			setSystem(system);
+		}
+
+		Integer status = (Integer)attributes.get("status");
+
+		if (status != null) {
+			setStatus(status);
 		}
 	}
 
@@ -330,6 +352,26 @@ public class KaleoDefinitionWrapper
 	}
 
 	/**
+	 * Returns the status of this kaleo definition.
+	 *
+	 * @return the status of this kaleo definition
+	 */
+	@Override
+	public int getStatus() {
+		return model.getStatus();
+	}
+
+	/**
+	 * Returns the system of this kaleo definition.
+	 *
+	 * @return the system of this kaleo definition
+	 */
+	@Override
+	public boolean getSystem() {
+		return model.getSystem();
+	}
+
+	/**
 	 * Returns the title of this kaleo definition.
 	 *
 	 * @return the title of this kaleo definition
@@ -436,6 +478,16 @@ public class KaleoDefinitionWrapper
 	}
 
 	/**
+	 * Returns the uuid of this kaleo definition.
+	 *
+	 * @return the uuid of this kaleo definition
+	 */
+	@Override
+	public String getUuid() {
+		return model.getUuid();
+	}
+
+	/**
 	 * Returns the version of this kaleo definition.
 	 *
 	 * @return the version of this kaleo definition
@@ -453,6 +505,16 @@ public class KaleoDefinitionWrapper
 	@Override
 	public boolean isActive() {
 		return model.isActive();
+	}
+
+	/**
+	 * Returns <code>true</code> if this kaleo definition is system.
+	 *
+	 * @return <code>true</code> if this kaleo definition is system; <code>false</code> otherwise
+	 */
+	@Override
+	public boolean isSystem() {
+		return model.isSystem();
 	}
 
 	@Override
@@ -503,6 +565,11 @@ public class KaleoDefinitionWrapper
 	@Override
 	public void setContent(String content) {
 		model.setContent(content);
+	}
+
+	@Override
+	public void setContentAsXML(String contentAsXML) {
+		model.setContentAsXML(contentAsXML);
 	}
 
 	/**
@@ -616,6 +683,26 @@ public class KaleoDefinitionWrapper
 	}
 
 	/**
+	 * Sets the status of this kaleo definition.
+	 *
+	 * @param status the status of this kaleo definition
+	 */
+	@Override
+	public void setStatus(int status) {
+		model.setStatus(status);
+	}
+
+	/**
+	 * Sets whether this kaleo definition is system.
+	 *
+	 * @param system the system of this kaleo definition
+	 */
+	@Override
+	public void setSystem(boolean system) {
+		model.setSystem(system);
+	}
+
+	/**
 	 * Sets the title of this kaleo definition.
 	 *
 	 * @param title the title of this kaleo definition
@@ -710,6 +797,16 @@ public class KaleoDefinitionWrapper
 	}
 
 	/**
+	 * Sets the uuid of this kaleo definition.
+	 *
+	 * @param uuid the uuid of this kaleo definition
+	 */
+	@Override
+	public void setUuid(String uuid) {
+		model.setUuid(uuid);
+	}
+
+	/**
 	 * Sets the version of this kaleo definition.
 	 *
 	 * @param version the version of this kaleo definition
@@ -739,8 +836,14 @@ public class KaleoDefinitionWrapper
 	}
 
 	@Override
+	public StagedModelType getStagedModelType() {
+		return model.getStagedModelType();
+	}
+
+	@Override
 	protected KaleoDefinitionWrapper wrap(KaleoDefinition kaleoDefinition) {
 		return new KaleoDefinitionWrapper(kaleoDefinition);
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2118246173

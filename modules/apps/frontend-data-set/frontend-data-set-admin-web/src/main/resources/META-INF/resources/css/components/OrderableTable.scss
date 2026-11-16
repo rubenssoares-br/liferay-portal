@@ -1,7 +1,7 @@
-@import 'atlas-variables';
+@import '_atlas-custom-properties-variables';
 @import 'cadmin-variables';
 
-html#{$cadmin-selector} .cadmin {
+html#{$cadmin-selector} .cadmin.fds-admin {
 	.orderable-table-sheet {
 		margin-top: 1rem;
 
@@ -22,14 +22,22 @@ html#{$cadmin-selector} .cadmin {
 				&.drag-handle-cell {
 					width: 0;
 				}
+
+				&.cell-active {
+					min-width: 150px;
+				}
 			}
+		}
+
+		.orderable-table-row-clickable {
+			cursor: pointer;
 		}
 
 		.orderable-table-row.dragging {
 			opacity: 0.5;
 
 			td.drag-handle-cell {
-				background-color: #528eff !important;
+				background-color: $primary-l0 !important;
 			}
 		}
 
@@ -60,7 +68,8 @@ html#{$cadmin-selector} .cadmin {
 		}
 	}
 
-	.tab-pane .orderable-table-sheet {
+	.tab-pane .orderable-table-sheet,
+	.visualization-mode-detail .orderable-table-sheet {
 		border-width: 0;
 		margin-top: 0;
 		padding: 0;

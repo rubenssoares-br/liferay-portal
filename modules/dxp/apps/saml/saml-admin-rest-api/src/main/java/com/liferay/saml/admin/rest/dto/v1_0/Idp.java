@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Stian Sigvartsen
@@ -38,6 +39,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Configuration of the SAML provider's IDP capability.",
 	value = "Idp"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Configuration of the SAML provider's IDP capability."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Idp")
@@ -51,7 +55,7 @@ public class Idp implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Idp.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getAuthnRequestSignatureRequired() {
 		if (_authnRequestSignatureRequiredSupplier != null) {
 			authnRequestSignatureRequired =
@@ -96,7 +100,7 @@ public class Idp implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _authnRequestSignatureRequiredSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getDefaultAssertionLifetime() {
 		if (_defaultAssertionLifetimeSupplier != null) {
 			defaultAssertionLifetime = _defaultAssertionLifetimeSupplier.get();
@@ -138,7 +142,7 @@ public class Idp implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _defaultAssertionLifetimeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getSessionMaximumAge() {
 		if (_sessionMaximumAgeSupplier != null) {
 			sessionMaximumAge = _sessionMaximumAgeSupplier.get();
@@ -179,7 +183,7 @@ public class Idp implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _sessionMaximumAgeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getSessionTimeout() {
 		if (_sessionTimeoutSupplier != null) {
 			sessionTimeout = _sessionTimeoutSupplier.get();
@@ -301,8 +305,8 @@ public class Idp implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.saml.admin.rest.dto.v1_0.Idp",
 		name = "x-class-name"
 	)
@@ -389,6 +393,27 @@ public class Idp implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -397,3 +422,4 @@ public class Idp implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:384280643

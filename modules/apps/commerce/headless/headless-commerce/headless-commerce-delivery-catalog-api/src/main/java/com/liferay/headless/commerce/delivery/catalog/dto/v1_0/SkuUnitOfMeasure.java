@@ -11,36 +11,43 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.math.BigDecimal;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("SkuUnitOfMeasure")
+@GraphQLName(
+	description = "Unit of measure available for a SKU, including its conversion rate to the SKU's primary unit, its decimal precision, and its own pricing.",
+	value = "SkuUnitOfMeasure"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Unit of measure available for a SKU, including its conversion rate to the SKU's primary unit, its decimal precision, and its own pricing."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "SkuUnitOfMeasure")
 public class SkuUnitOfMeasure implements Serializable {
@@ -54,7 +61,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "1.5")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Order-quantity step (in base units) that order lines must respect when using this unit of measure. Defaults to 1.",
+		example = "1.5"
+	)
 	@Valid
 	public BigDecimal getIncrementalOrderQuantity() {
 		if (_incrementalOrderQuantitySupplier != null) {
@@ -92,14 +102,19 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Order-quantity step (in base units) that order lines must respect when using this unit of measure. Defaults to 1."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal incrementalOrderQuantity;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _incrementalOrderQuantitySupplier;
 
-	@Schema(example = "pl")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Stable key identifying the unit of measure within the SKU.",
+		example = "pl"
+	)
 	public String getKey() {
 		if (_keySupplier != null) {
 			key = _keySupplier.get();
@@ -131,14 +146,18 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Stable key identifying the unit of measure within the SKU."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String key;
 
 	@JsonIgnore
 	private Supplier<String> _keySupplier;
 
-	@Schema(example = "Pallet")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the unit of measure.", example = "Pallet"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -170,14 +189,17 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Display name of the unit of measure.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(example = "3")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Number of decimal places accepted when quantities are entered in this unit.",
+		example = "3"
+	)
 	public Integer getPrecision() {
 		if (_precisionSupplier != null) {
 			precision = _precisionSupplier.get();
@@ -211,14 +233,16 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Number of decimal places accepted when quantities are entered in this unit."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer precision;
 
 	@JsonIgnore
 	private Supplier<Integer> _precisionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Price getPrice() {
 		if (_priceSupplier != null) {
@@ -258,7 +282,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	@JsonIgnore
 	private Supplier<Price> _priceSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, this is the SKU's primary (base) unit of measure. At most one unit of measure per SKU is primary.",
+		example = "true"
+	)
 	public Boolean getPrimary() {
 		if (_primarySupplier != null) {
 			primary = _primarySupplier.get();
@@ -292,7 +319,9 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, this is the SKU's primary (base) unit of measure. At most one unit of measure per SKU is primary."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean primary;
 
@@ -300,7 +329,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	private Supplier<Boolean> _primarySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "1.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Sort priority among the SKU's units of measure; lower values sort first.",
+		example = "1.1"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -334,7 +366,9 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Sort priority among the SKU's units of measure; lower values sort first."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
@@ -342,7 +376,10 @@ public class SkuUnitOfMeasure implements Serializable {
 	private Supplier<Double> _prioritySupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "202.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Conversion factor from this unit to the SKU's primary unit. The primary unit itself always carries the rate 1.",
+		example = "202.1"
+	)
 	@Valid
 	public BigDecimal getRate() {
 		if (_rateSupplier != null) {
@@ -377,14 +414,18 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Conversion factor from this unit to the SKU's primary unit. The primary unit itself always carries the rate 1."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal rate;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _rateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Tier-pricing breakpoints applied when buying in this unit of measure."
+	)
 	@Valid
 	public TierPrice[] getTierPrices() {
 		if (_tierPricesSupplier != null) {
@@ -419,7 +460,9 @@ public class SkuUnitOfMeasure implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Tier-pricing breakpoints applied when buying in this unit of measure."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected TierPrice[] tierPrices;
 
@@ -584,8 +627,8 @@ public class SkuUnitOfMeasure implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.SkuUnitOfMeasure",
 		name = "x-class-name"
 	)
@@ -672,6 +715,27 @@ public class SkuUnitOfMeasure implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -680,3 +744,4 @@ public class SkuUnitOfMeasure implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1513799265

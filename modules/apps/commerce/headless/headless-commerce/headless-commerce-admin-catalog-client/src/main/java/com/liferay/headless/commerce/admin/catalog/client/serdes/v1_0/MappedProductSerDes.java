@@ -5,17 +5,17 @@
 
 package com.liferay.headless.commerce.admin.catalog.client.serdes.v1_0;
 
-import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.CustomField;
 import com.liferay.headless.commerce.admin.catalog.client.dto.v1_0.MappedProduct;
 import com.liferay.headless.commerce.admin.catalog.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Zoltán Takács
@@ -67,7 +67,7 @@ public class MappedProductSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < mappedProduct.getCustomFields().length; i++) {
-				sb.append(String.valueOf(mappedProduct.getCustomFields()[i]));
+				sb.append(mappedProduct.getCustomFields()[i]);
 
 				if ((i + 1) < mappedProduct.getCustomFields().length) {
 					sb.append(", ");
@@ -119,6 +119,20 @@ public class MappedProductSerDes {
 			sb.append("\"productName\": ");
 
 			sb.append(_toJSON(mappedProduct.getProductName()));
+		}
+
+		if (mappedProduct.getProductType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productType\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(mappedProduct.getProductType()));
+
+			sb.append("\"");
 		}
 
 		if (mappedProduct.getQuantity() != null) {
@@ -191,9 +205,7 @@ public class MappedProductSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(mappedProduct.getType());
-
 			sb.append("\"");
 		}
 
@@ -262,6 +274,14 @@ public class MappedProductSerDes {
 		else {
 			map.put(
 				"productName", String.valueOf(mappedProduct.getProductName()));
+		}
+
+		if (mappedProduct.getProductType() == null) {
+			map.put("productType", null);
+		}
+		else {
+			map.put(
+				"productType", String.valueOf(mappedProduct.getProductType()));
 		}
 
 		if (mappedProduct.getQuantity() == null) {
@@ -346,6 +366,9 @@ public class MappedProductSerDes {
 			else if (Objects.equals(jsonParserFieldName, "productName")) {
 				return true;
 			}
+			else if (Objects.equals(jsonParserFieldName, "productType")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "quantity")) {
 				return false;
 			}
@@ -386,12 +409,17 @@ public class MappedProductSerDes {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.commerce.admin.catalog.client.custom.
+						field.CustomField[] customFieldsArray = new
+						com.liferay.headless.commerce.admin.catalog.client.
+							custom.field.CustomField
+							[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.commerce.admin.catalog.client.
+								custom.field.CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					mappedProduct.setCustomFields(customFieldsArray);
@@ -421,6 +449,11 @@ public class MappedProductSerDes {
 				if (jsonParserFieldValue != null) {
 					mappedProduct.setProductName(
 						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "productType")) {
+				if (jsonParserFieldValue != null) {
+					mappedProduct.setProductType((String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "quantity")) {
@@ -505,6 +538,16 @@ public class MappedProductSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -537,3 +580,4 @@ public class MappedProductSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1194750399

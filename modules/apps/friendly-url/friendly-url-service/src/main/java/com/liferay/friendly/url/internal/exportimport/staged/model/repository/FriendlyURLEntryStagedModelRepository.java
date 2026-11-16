@@ -140,8 +140,9 @@ public class FriendlyURLEntryStagedModelRepository
 				_friendlyURLEntryLocalService.getUniqueUrlTitle(
 					friendlyURLEntry.getGroupId(),
 					friendlyURLEntry.getClassNameId(),
+					friendlyURLEntry.getParentClassPK(),
 					friendlyURLEntry.getClassPK(),
-					friendlyURLEntryLocalization.getUrlTitle(), null));
+					friendlyURLEntryLocalization.getUrlTitle()));
 
 			_friendlyURLEntryLocalService.updateFriendlyURLLocalization(
 				friendlyURLEntryLocalization);
@@ -196,13 +197,15 @@ public class FriendlyURLEntryStagedModelRepository
 			FriendlyURLEntry existingFriendlyURLEntry =
 				_friendlyURLEntryLocalService.fetchFriendlyURLEntry(
 					friendlyURLEntry.getGroupId(),
-					friendlyURLEntry.getClassNameId(), urlTitle);
+					friendlyURLEntry.getClassNameId(),
+					friendlyURLEntry.getParentClassPK(), urlTitle);
 
 			if (existingFriendlyURLEntry != null) {
 				urlTitle = _friendlyURLEntryLocalService.getUniqueUrlTitle(
 					friendlyURLEntry.getGroupId(),
 					friendlyURLEntry.getClassNameId(),
-					friendlyURLEntry.getClassPK(), urlTitle, null);
+					friendlyURLEntry.getParentClassPK(),
+					friendlyURLEntry.getClassPK(), urlTitle);
 			}
 
 			languageIdLocalizationMap.put(

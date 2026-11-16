@@ -15,30 +15,31 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.liferay.headless.admin.user.dto.v1_0.Creator;
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -47,6 +48,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "The definition of a Utility Page.", value = "UtilityPage"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "The definition of a Utility Page."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "UtilityPage")
@@ -60,7 +64,7 @@ public class UtilityPage implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(UtilityPage.class, json);
 	}
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The utility page's creator. It is not returned by default. It can be embedded via nestedFields."
 	)
 	@Valid
@@ -106,54 +110,9 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _creatorSupplier;
 
-	@Schema(description = "The utility page's creator external reference code.")
-	public String getCreatorExternalReferenceCode() {
-		if (_creatorExternalReferenceCodeSupplier != null) {
-			creatorExternalReferenceCode =
-				_creatorExternalReferenceCodeSupplier.get();
-
-			_creatorExternalReferenceCodeSupplier = null;
-		}
-
-		return creatorExternalReferenceCode;
-	}
-
-	public void setCreatorExternalReferenceCode(
-		String creatorExternalReferenceCode) {
-
-		this.creatorExternalReferenceCode = creatorExternalReferenceCode;
-
-		_creatorExternalReferenceCodeSupplier = null;
-	}
-
-	@JsonIgnore
-	public void setCreatorExternalReferenceCode(
-		UnsafeSupplier<String, Exception>
-			creatorExternalReferenceCodeUnsafeSupplier) {
-
-		_creatorExternalReferenceCodeSupplier = () -> {
-			try {
-				return creatorExternalReferenceCodeUnsafeSupplier.get();
-			}
-			catch (RuntimeException runtimeException) {
-				throw runtimeException;
-			}
-			catch (Exception exception) {
-				throw new RuntimeException(exception);
-			}
-		};
-	}
-
-	@GraphQLField(
-		description = "The utility page's creator external reference code."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The utility page's creation date."
 	)
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected String creatorExternalReferenceCode;
-
-	@JsonIgnore
-	private Supplier<String> _creatorExternalReferenceCodeSupplier;
-
-	@Schema(description = "The utility page's creation date.")
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -194,7 +153,9 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The last time the utility page changed.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time the utility page changed."
+	)
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -235,7 +196,9 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema(description = "The last time the utility page changed.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The last time the utility page changed."
+	)
 	public Date getDatePublished() {
 		if (_datePublishedSupplier != null) {
 			datePublished = _datePublishedSupplier.get();
@@ -276,7 +239,9 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _datePublishedSupplier;
 
-	@Schema(description = "The utility page's external reference code.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The utility page's external reference code."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -317,7 +282,103 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The history of previously used URLs to the utility page's rendered content. This field is not returned by default. It can be requested via nestedFields."
+	)
+	@Valid
+	public FriendlyUrlHistory getFriendlyUrlHistory() {
+		if (_friendlyUrlHistorySupplier != null) {
+			friendlyUrlHistory = _friendlyUrlHistorySupplier.get();
+
+			_friendlyUrlHistorySupplier = null;
+		}
+
+		return friendlyUrlHistory;
+	}
+
+	public void setFriendlyUrlHistory(FriendlyUrlHistory friendlyUrlHistory) {
+		this.friendlyUrlHistory = friendlyUrlHistory;
+
+		_friendlyUrlHistorySupplier = null;
+	}
+
+	@JsonIgnore
+	public void setFriendlyUrlHistory(
+		UnsafeSupplier<FriendlyUrlHistory, Exception>
+			friendlyUrlHistoryUnsafeSupplier) {
+
+		_friendlyUrlHistorySupplier = () -> {
+			try {
+				return friendlyUrlHistoryUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "The history of previously used URLs to the utility page's rendered content. This field is not returned by default. It can be requested via nestedFields."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected FriendlyUrlHistory friendlyUrlHistory;
+
+	@JsonIgnore
+	private Supplier<FriendlyUrlHistory> _friendlyUrlHistorySupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized relative URLs to the utility page's rendered content."
+	)
+	@Valid
+	public Map<String, String> getFriendlyUrlPath_i18n() {
+		if (_friendlyUrlPath_i18nSupplier != null) {
+			friendlyUrlPath_i18n = _friendlyUrlPath_i18nSupplier.get();
+
+			_friendlyUrlPath_i18nSupplier = null;
+		}
+
+		return friendlyUrlPath_i18n;
+	}
+
+	public void setFriendlyUrlPath_i18n(
+		Map<String, String> friendlyUrlPath_i18n) {
+
+		this.friendlyUrlPath_i18n = friendlyUrlPath_i18n;
+
+		_friendlyUrlPath_i18nSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setFriendlyUrlPath_i18n(
+		UnsafeSupplier<Map<String, String>, Exception>
+			friendlyUrlPath_i18nUnsafeSupplier) {
+
+		_friendlyUrlPath_i18nSupplier = () -> {
+			try {
+				return friendlyUrlPath_i18nUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "The localized relative URLs to the utility page's rendered content."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected Map<String, String> friendlyUrlPath_i18n;
+
+	@JsonIgnore
+	private Supplier<Map<String, String>> _friendlyUrlPath_i18nSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Specifies if the utility page should be the default for the given type."
 	)
 	public Boolean getMarkedAsDefault() {
@@ -362,7 +423,9 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _markedAsDefaultSupplier;
 
-	@Schema(description = "The utility page's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The utility page's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -401,8 +464,8 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
-		description = "The utility page's specifications. A utility page may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status."
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The utility page's specifications. A utility page will contain 1 page specification for its draft layout and 1 page specification for its published layout. This field is not returned by default. It can be requested via nestedFields."
 	)
 	@Valid
 	public PageSpecification[] getPageSpecifications() {
@@ -440,7 +503,7 @@ public class UtilityPage implements Serializable {
 	}
 
 	@GraphQLField(
-		description = "The utility page's specifications. A utility page may contain 0 or 1 page specifications in draft status and 0 or 1 page specifications in published status."
+		description = "The utility page's specifications. A utility page will contain 1 page specification for its draft layout and 1 page specification for its published layout. This field is not returned by default. It can be requested via nestedFields."
 	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected PageSpecification[] pageSpecifications;
@@ -448,32 +511,83 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<PageSpecification[]> _pageSpecificationsSupplier;
 
-	@Schema(description = "The utility page's thumbnail.")
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public ItemExternalReference getThumbnail() {
-		if (_thumbnailSupplier != null) {
-			thumbnail = _thumbnailSupplier.get();
+	public com.liferay.portal.vulcan.permission.Permission[] getPermissions() {
+		if (_permissionsSupplier != null) {
+			permissions = _permissionsSupplier.get();
 
-			_thumbnailSupplier = null;
+			_permissionsSupplier = null;
 		}
 
-		return thumbnail;
+		return permissions;
 	}
 
-	public void setThumbnail(ItemExternalReference thumbnail) {
-		this.thumbnail = thumbnail;
+	public void setPermissions(
+		com.liferay.portal.vulcan.permission.Permission[] permissions) {
 
-		_thumbnailSupplier = null;
+		this.permissions = permissions;
+
+		_permissionsSupplier = null;
 	}
 
 	@JsonIgnore
-	public void setThumbnail(
-		UnsafeSupplier<ItemExternalReference, Exception>
-			thumbnailUnsafeSupplier) {
+	public void setPermissions(
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.permission.Permission[], Exception>
+				permissionsUnsafeSupplier) {
 
-		_thumbnailSupplier = () -> {
+		_permissionsSupplier = () -> {
 			try {
-				return thumbnailUnsafeSupplier.get();
+				return permissionsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected com.liferay.portal.vulcan.permission.Permission[] permissions;
+
+	@JsonIgnore
+	private Supplier<com.liferay.portal.vulcan.permission.Permission[]>
+		_permissionsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The utility page's thumbnail."
+	)
+	@Valid
+	public ThumbnailURLReference getThumbnailURLReference() {
+		if (_thumbnailURLReferenceSupplier != null) {
+			thumbnailURLReference = _thumbnailURLReferenceSupplier.get();
+
+			_thumbnailURLReferenceSupplier = null;
+		}
+
+		return thumbnailURLReference;
+	}
+
+	public void setThumbnailURLReference(
+		ThumbnailURLReference thumbnailURLReference) {
+
+		this.thumbnailURLReference = thumbnailURLReference;
+
+		_thumbnailURLReferenceSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setThumbnailURLReference(
+		UnsafeSupplier<ThumbnailURLReference, Exception>
+			thumbnailURLReferenceUnsafeSupplier) {
+
+		_thumbnailURLReferenceSupplier = () -> {
+			try {
+				return thumbnailURLReferenceUnsafeSupplier.get();
 			}
 			catch (RuntimeException runtimeException) {
 				throw runtimeException;
@@ -486,13 +600,15 @@ public class UtilityPage implements Serializable {
 
 	@GraphQLField(description = "The utility page's thumbnail.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected ItemExternalReference thumbnail;
+	protected ThumbnailURLReference thumbnailURLReference;
 
 	@JsonIgnore
-	private Supplier<ItemExternalReference> _thumbnailSupplier;
+	private Supplier<ThumbnailURLReference> _thumbnailURLReferenceSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The utility page's type."
+	)
 	@JsonGetter("type")
-	@Schema(description = "The utility page's type.")
 	@Valid
 	public Type getType() {
 		if (_typeSupplier != null) {
@@ -543,7 +659,9 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<Type> _typeSupplier;
 
-	@Schema(description = "Settings of the utility page.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Settings of the utility page."
+	)
 	@Valid
 	public UtilityPageSettings getUtilityPageSettings() {
 		if (_utilityPageSettingsSupplier != null) {
@@ -588,7 +706,7 @@ public class UtilityPage implements Serializable {
 	@JsonIgnore
 	private Supplier<UtilityPageSettings> _utilityPageSettingsSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "A valid external identifier to reference this utility page."
 	)
 	public String getUuid() {
@@ -673,22 +791,6 @@ public class UtilityPage implements Serializable {
 			sb.append(creator);
 		}
 
-		String creatorExternalReferenceCode = getCreatorExternalReferenceCode();
-
-		if (creatorExternalReferenceCode != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(creatorExternalReferenceCode));
-
-			sb.append("\"");
-		}
-
 		Date dateCreated = getDateCreated();
 
 		if (dateCreated != null) {
@@ -753,6 +855,30 @@ public class UtilityPage implements Serializable {
 			sb.append("\"");
 		}
 
+		FriendlyUrlHistory friendlyUrlHistory = getFriendlyUrlHistory();
+
+		if (friendlyUrlHistory != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"friendlyUrlHistory\": ");
+
+			sb.append(String.valueOf(friendlyUrlHistory));
+		}
+
+		Map<String, String> friendlyUrlPath_i18n = getFriendlyUrlPath_i18n();
+
+		if (friendlyUrlPath_i18n != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"friendlyUrlPath_i18n\": ");
+
+			sb.append(_toJSON(friendlyUrlPath_i18n));
+		}
+
 		Boolean markedAsDefault = getMarkedAsDefault();
 
 		if (markedAsDefault != null) {
@@ -803,16 +929,40 @@ public class UtilityPage implements Serializable {
 			sb.append("]");
 		}
 
-		ItemExternalReference thumbnail = getThumbnail();
+		com.liferay.portal.vulcan.permission.Permission[] permissions =
+			getPermissions();
 
-		if (thumbnail != null) {
+		if (permissions != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"thumbnail\": ");
+			sb.append("\"permissions\": ");
 
-			sb.append(String.valueOf(thumbnail));
+			sb.append("[");
+
+			for (int i = 0; i < permissions.length; i++) {
+				sb.append(permissions[i]);
+
+				if ((i + 1) < permissions.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		ThumbnailURLReference thumbnailURLReference =
+			getThumbnailURLReference();
+
+		if (thumbnailURLReference != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"thumbnailURLReference\": ");
+
+			sb.append(String.valueOf(thumbnailURLReference));
 		}
 
 		Type type = getType();
@@ -825,9 +975,7 @@ public class UtilityPage implements Serializable {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(type);
-
 			sb.append("\"");
 		}
 
@@ -864,8 +1012,8 @@ public class UtilityPage implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.UtilityPage",
 		name = "x-class-name"
 	)
@@ -876,8 +1024,9 @@ public class UtilityPage implements Serializable {
 
 		COOKIE_POLICY("CookiePolicy"), CREATE_ACCOUNT("CreateAccount"),
 		ERROR("Error"), ERROR_CODE404("ErrorCode404"),
-		ERROR_CODE500("ErrorCode500"), FORGOT_PASSWORD("ForgotPassword"),
-		LOGIN("Login"), TERMS_OF_USE("TermsOfUse");
+		ERROR_CODE500("ErrorCode500"), ERROR_CODE503("ErrorCode503"),
+		FORGOT_PASSWORD("ForgotPassword"), LOGIN("Login"),
+		TERMS_OF_USE("TermsOfUse");
 
 		@JsonCreator
 		public static Type create(String value) {
@@ -993,6 +1142,27 @@ public class UtilityPage implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1001,3 +1171,4 @@ public class UtilityPage implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:315132202

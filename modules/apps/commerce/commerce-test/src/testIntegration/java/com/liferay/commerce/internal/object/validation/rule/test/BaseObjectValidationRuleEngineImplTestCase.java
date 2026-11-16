@@ -22,7 +22,6 @@ import com.liferay.commerce.product.test.util.CPTestUtil;
 import com.liferay.commerce.test.util.CommerceTestUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.User;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
@@ -31,9 +30,10 @@ import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
-import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.test.rule.Inject;
+
+import java.util.List;
 
 import org.junit.Before;
 
@@ -44,8 +44,6 @@ public abstract class BaseObjectValidationRuleEngineImplTestCase {
 
 	@Before
 	public void setUp() throws Exception {
-		CompanyThreadLocal.setCompanyId(TestPropsValues.getCompanyId());
-
 		group = GroupTestUtil.addGroup();
 
 		user = UserTestUtil.addUser();
@@ -92,10 +90,10 @@ public abstract class BaseObjectValidationRuleEngineImplTestCase {
 		CommerceTestUtil.updateBackOrderCPDefinitionInventory(
 			cpInstance.getCPDefinition());
 
-		commerceOrderItem = commerceOrder.getCommerceOrderItems(
-		).get(
-			0
-		);
+		List<CommerceOrderItem> commerceOrderItems =
+			commerceOrder.getCommerceOrderItems();
+
+		commerceOrderItem = commerceOrderItems.get(0);
 	}
 
 	@DeleteAfterTestRun

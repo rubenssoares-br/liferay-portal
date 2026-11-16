@@ -286,6 +286,9 @@ public interface RepositoryLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<Repository> getRepositories(int start, int end);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<Repository> getRepositories(String portletId);
+
 	/**
 	 * Returns all the repositories matching the UUID and company.
 	 *
@@ -359,6 +362,9 @@ public interface RepositoryLocalService
 	public UnicodeProperties getTypeSettingsProperties(long repositoryId)
 		throws PortalException;
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public boolean isHidden(long repositoryId) throws PortalException;
+
 	public void updateRepository(
 			long repositoryId, String name, String description)
 		throws PortalException;
@@ -396,3 +402,4 @@ public interface RepositoryLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-819740494

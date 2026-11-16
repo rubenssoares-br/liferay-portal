@@ -5,6 +5,7 @@
 
 package com.liferay.layout.admin.web.internal.product.navigation.control.menu;
 
+import com.liferay.fragment.processor.PortletRegistry;
 import com.liferay.layout.admin.web.internal.constants.LayoutAdminWebKeys;
 import com.liferay.layout.admin.web.internal.display.context.LayoutActionsDisplayContext;
 import com.liferay.layout.admin.web.internal.helper.LayoutActionsHelper;
@@ -24,13 +25,13 @@ import com.liferay.product.navigation.control.menu.constants.ProductNavigationCo
 import com.liferay.segments.service.SegmentsExperienceLocalService;
 import com.liferay.translation.security.permission.TranslationPermission;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 import java.util.Locale;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -75,7 +76,8 @@ public class LayoutActionsProductNavigationControlMenuEntry
 				WebKeys.THEME_DISPLAY);
 
 		LayoutActionsHelper layoutActionsHelper = new LayoutActionsHelper(
-			_layoutConverterRegistry, themeDisplay, _translationPermission);
+			_layoutConverterRegistry, _portletRegistry, themeDisplay,
+			_translationPermission);
 
 		httpServletRequest.setAttribute(
 			LayoutAdminWebKeys.LAYOUT_ACTIONS_DISPLAY_CONTEXT,
@@ -136,6 +138,9 @@ public class LayoutActionsProductNavigationControlMenuEntry
 
 	@Reference
 	private LayoutContentModelResourcePermission _modelResourcePermission;
+
+	@Reference
+	private PortletRegistry _portletRegistry;
 
 	@Reference
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;

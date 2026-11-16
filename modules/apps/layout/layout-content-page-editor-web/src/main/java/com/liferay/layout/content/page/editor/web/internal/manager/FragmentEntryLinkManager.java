@@ -61,15 +61,16 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -82,6 +83,37 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(service = FragmentEntryLinkManager.class)
 public class FragmentEntryLinkManager {
+
+	public List<FragmentEntryLink> getChildrenFragmentEntryLinks(
+			List<String> itemIds, LayoutStructure layoutStructure)
+		throws PortalException {
+
+		List<FragmentEntryLink> fragmentEntryLinks = new ArrayList<>();
+
+		for (String itemId : itemIds) {
+			LayoutStructureItem layoutStructureItem =
+				layoutStructure.getLayoutStructureItem(itemId);
+
+			if (layoutStructureItem instanceof
+					FragmentStyledLayoutStructureItem) {
+
+				FragmentStyledLayoutStructureItem
+					fragmentStyledLayoutStructureItem =
+						(FragmentStyledLayoutStructureItem)layoutStructureItem;
+
+				fragmentEntryLinks.add(
+					_fragmentEntryLinkLocalService.getFragmentEntryLink(
+						fragmentStyledLayoutStructureItem.
+							getFragmentEntryLinkId()));
+			}
+
+			fragmentEntryLinks.addAll(
+				getChildrenFragmentEntryLinks(
+					layoutStructureItem.getChildrenItemIds(), layoutStructure));
+		}
+
+		return fragmentEntryLinks;
+	}
 
 	public FragmentEntry getFragmentEntry(
 		long groupId, String fragmentEntryKey, Locale locale) {
@@ -101,7 +133,7 @@ public class FragmentEntryLinkManager {
 	}
 
 	public Set<String> getFragmentEntryLinkFieldTypes(
-		long fragmentEntryLinkId, Locale locale) {
+		long fragmentEntryLinkId) {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkLocalService.fetchFragmentEntryLink(
@@ -111,19 +143,19 @@ public class FragmentEntryLinkManager {
 			return Collections.emptySet();
 		}
 
-		FragmentEntry fragmentEntry = _getFragmentEntry(
-			fragmentEntryLink, locale);
-
-		if (fragmentEntry != null) {
-			return _getFieldTypes(fragmentEntry.getTypeOptions());
-		}
-
 		FragmentRenderer fragmentRenderer =
 			_fragmentRendererRegistry.getFragmentRenderer(
 				fragmentEntryLink.getRendererKey());
 
 		if (fragmentRenderer != null) {
 			return _getFieldTypes(fragmentRenderer.getTypeOptions());
+		}
+
+		FragmentEntry fragmentEntry = _getFragmentEntry(
+			fragmentEntryLink, LocaleUtil.getMostRelevantLocale());
+
+		if (fragmentEntry != null) {
+			return _getFieldTypes(fragmentEntry.getTypeOptions());
 		}
 
 		return Collections.emptySet();
@@ -146,8 +178,9 @@ public class FragmentEntryLinkManager {
 		themeDisplay.setIsolated(true);
 
 		try {
-			JSONObject editableValuesJSONObject = _jsonFactory.createJSONObject(
-				fragmentEntryLink.getEditableValues());
+			JSONObject editableValuesJSONObject =
+				defaultFragmentRendererContext.
+					getModifiableEditableValuesJSONObject();
 
 			String content = _getContent(
 				defaultFragmentRendererContext, editableValuesJSONObject,
@@ -192,12 +225,12 @@ public class FragmentEntryLinkManager {
 											fragmentEntryLink.
 												getFragmentEntryLinkId());
 
-						if (fragmentStyledLayoutStructureItem != null) {
-							return fragmentStyledLayoutStructureItem.
-								getFragmentEntryLinkCssClass(fragmentEntryLink);
+						if (fragmentStyledLayoutStructureItem == null) {
+							return null;
 						}
 
-						return null;
+						return fragmentStyledLayoutStructureItem.
+							getFragmentEntryLinkCssClass(fragmentEntryLink);
 					}
 				).put(
 					"defaultConfigurationValues",
@@ -206,14 +239,14 @@ public class FragmentEntryLinkManager {
 					"editableTypes", Collections.emptyMap()
 				).put(
 					"editableValues",
-					_jsonFactory.createJSONObject(
-						fragmentEntryLink.getEditableValues())
+					defaultFragmentRendererContext.
+						getModifiableEditableValuesJSONObject()
 				).put(
 					"fragmentEntryId", 0
 				).put(
 					"fragmentEntryKey",
 					FragmentRendererConstants.
-						FRAGMENT_ENTRY_FRAGMENT_RENDERER_KEY
+						FRAGMENT_RENDERER_KEY_FRAGMENT_ENTRY
 				).put(
 					"fragmentEntryLinkId",
 					String.valueOf(fragmentEntryLink.getFragmentEntryLinkId())
@@ -234,11 +267,9 @@ public class FragmentEntryLinkManager {
 
 			defaultFragmentRendererContext.setLocale(themeDisplay.getLocale());
 
-			String configuration = _fragmentRendererController.getConfiguration(
-				defaultFragmentRendererContext);
-
-			JSONObject configurationJSONObject = _jsonFactory.createJSONObject(
-				configuration);
+			JSONObject configurationJSONObject =
+				_fragmentRendererController.getConfigurationJSONObject(
+					defaultFragmentRendererContext);
 
 			FragmentEntryLinkItemSelectorUtil.
 				addFragmentEntryLinkFieldsSelectorURL(
@@ -266,17 +297,18 @@ public class FragmentEntryLinkManager {
 										fragmentEntryLink.
 											getFragmentEntryLinkId());
 
-					if (fragmentStyledLayoutStructureItem != null) {
-						return fragmentStyledLayoutStructureItem.
-							getFragmentEntryLinkCssClass(fragmentEntryLink);
+					if (fragmentStyledLayoutStructureItem == null) {
+						return null;
 					}
 
-					return null;
+					return fragmentStyledLayoutStructureItem.
+						getFragmentEntryLinkCssClass(fragmentEntryLink);
 				}
 			).put(
 				"defaultConfigurationValues",
 				_fragmentEntryConfigurationParser.
-					getConfigurationDefaultValuesJSONObject(configuration)
+					getConfigurationDefaultValuesJSONObject(
+						configurationJSONObject)
 			).put(
 				"editableTypes",
 				EditableFragmentEntryProcessorUtil.getEditableTypes(content)
@@ -322,7 +354,7 @@ public class FragmentEntryLinkManager {
 					if (Validator.isNull(rendererKey)) {
 						rendererKey =
 							FragmentRendererConstants.
-								FRAGMENT_ENTRY_FRAGMENT_RENDERER_KEY;
+								FRAGMENT_RENDERER_KEY_FRAGMENT_ENTRY;
 					}
 
 					FragmentRenderer fragmentRenderer =
@@ -429,11 +461,12 @@ public class FragmentEntryLinkManager {
 				while (iterator.hasNext()) {
 					String key = iterator.next();
 
-					if (editableFragmentEntryProcessorJSONObject.has(key)) {
-						defaultEditableFragmentEntryProcessorJSONObject.put(
-							key,
-							editableFragmentEntryProcessorJSONObject.get(key));
+					if (!editableFragmentEntryProcessorJSONObject.has(key)) {
+						continue;
 					}
+
+					defaultEditableFragmentEntryProcessorJSONObject.put(
+						key, editableFragmentEntryProcessorJSONObject.get(key));
 				}
 			}
 
@@ -478,6 +511,10 @@ public class FragmentEntryLinkManager {
 			jsonObject.put(
 				clazz.getSimpleName(),
 				JSONUtil.put(
+					"group",
+					editModePortletConfigurationIcon.
+						getPortletConfigurationIconGroup()
+				).put(
 					"icon", editModePortletConfigurationIcon.getIcon()
 				).put(
 					"title",
@@ -554,14 +591,15 @@ public class FragmentEntryLinkManager {
 	private FragmentEntry _getFragmentEntry(
 		FragmentEntryLink fragmentEntryLink, Locale locale) {
 
-		if (fragmentEntryLink.getFragmentEntryId() <= 0) {
-			return getFragmentEntry(
-				fragmentEntryLink.getGroupId(),
-				fragmentEntryLink.getRendererKey(), locale);
+		FragmentEntry fragmentEntry = fragmentEntryLink.fetchFragmentEntry();
+
+		if (fragmentEntry != null) {
+			return fragmentEntry;
 		}
 
-		return _fragmentEntryLocalService.fetchFragmentEntry(
-			fragmentEntryLink.getFragmentEntryId());
+		return getFragmentEntry(
+			fragmentEntryLink.getGroupId(), fragmentEntryLink.getRendererKey(),
+			locale);
 	}
 
 	private JSONArray _getFragmentEntryLinkCommentsJSONArray(
@@ -589,9 +627,8 @@ public class FragmentEntryLinkManager {
 					rootComment, httpServletRequest);
 
 				List<Comment> childComments = _commentManager.getChildComments(
-					rootComment.getCommentId(),
-					WorkflowConstants.STATUS_APPROVED, QueryUtil.ALL_POS,
-					QueryUtil.ALL_POS);
+					rootComment.getCommentId(), WorkflowConstants.STATUS_ANY,
+					QueryUtil.ALL_POS, QueryUtil.ALL_POS);
 
 				JSONArray childCommentsJSONArray =
 					_jsonFactory.createJSONArray();
@@ -634,23 +671,22 @@ public class FragmentEntryLinkManager {
 			_infoItemServiceRegistry.getFirstInfoItemService(
 				InfoItemFormProvider.class, className);
 
-		if (infoItemFormProvider != null) {
-			try {
-				return infoItemFormProvider.getInfoForm(
-					String.valueOf(
-						formStyledLayoutStructureItem.getClassTypeId()),
-					groupId);
-			}
-			catch (NoSuchFormVariationException noSuchFormVariationException) {
-				if (_log.isDebugEnabled()) {
-					_log.debug(noSuchFormVariationException);
-				}
-
-				return null;
-			}
+		if (infoItemFormProvider == null) {
+			return null;
 		}
 
-		return null;
+		try {
+			return infoItemFormProvider.getInfoForm(
+				String.valueOf(formStyledLayoutStructureItem.getClassTypeId()),
+				groupId);
+		}
+		catch (NoSuchFormVariationException noSuchFormVariationException) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(noSuchFormVariationException);
+			}
+
+			return null;
+		}
 	}
 
 	private InfoForm _getInfoForm(

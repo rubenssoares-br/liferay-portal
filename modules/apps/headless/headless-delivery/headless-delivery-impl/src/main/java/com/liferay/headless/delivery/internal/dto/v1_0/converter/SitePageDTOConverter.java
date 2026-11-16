@@ -8,9 +8,8 @@ package com.liferay.headless.delivery.internal.dto.v1_0.converter;
 import com.liferay.asset.kernel.model.AssetTag;
 import com.liferay.asset.kernel.service.AssetCategoryLocalService;
 import com.liferay.asset.kernel.service.AssetTagLocalService;
+import com.liferay.document.library.helper.DLURLHelper;
 import com.liferay.document.library.kernel.service.DLAppService;
-import com.liferay.document.library.util.DLURLHelper;
-import com.liferay.dynamic.data.mapping.storage.DDMStorageEngineManager;
 import com.liferay.headless.delivery.dto.v1_0.Experience;
 import com.liferay.headless.delivery.dto.v1_0.PageDefinition;
 import com.liferay.headless.delivery.dto.v1_0.PagePermission;
@@ -18,7 +17,6 @@ import com.liferay.headless.delivery.dto.v1_0.ParentSitePage;
 import com.liferay.headless.delivery.dto.v1_0.SitePage;
 import com.liferay.headless.delivery.dto.v1_0.TaxonomyCategoryBrief;
 import com.liferay.headless.delivery.dto.v1_0.util.CreatorUtil;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.AggregateRatingUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.PageSettingsUtil;
 import com.liferay.headless.delivery.internal.dto.v1_0.util.RenderedPageUtil;
@@ -40,7 +38,7 @@ import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.model.ResourcePermission;
 import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.Team;
-import com.liferay.portal.kernel.service.LayoutLocalService;
+import com.liferay.portal.kernel.service.LayoutService;
 import com.liferay.portal.kernel.service.ResourceActionLocalService;
 import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
@@ -52,6 +50,7 @@ import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
 import com.liferay.portal.util.LayoutTypeControllerTracker;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 import com.liferay.portal.vulcan.util.LocalizedMapUtil;
@@ -72,7 +71,9 @@ import org.osgi.service.component.annotations.Reference;
  * @author Jürgen Kappler
  */
 @Component(
-	property = "dto.class.name=com.liferay.portal.kernel.model.Layout",
+	property = {
+		"default=true", "dto.class.name=com.liferay.portal.kernel.model.Layout"
+	},
 	service = DTOConverter.class
 )
 public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
@@ -239,12 +240,13 @@ public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
 								long bitwiseValue =
 									resourceAction.getBitwiseValue();
 
-								if ((actionIds & bitwiseValue) ==
+								if ((actionIds & bitwiseValue) !=
 										bitwiseValue) {
 
-									actionIdsSet.add(
-										resourceAction.getActionId());
+									continue;
 								}
+
+								actionIdsSet.add(resourceAction.getActionId());
 							}
 
 							String roleKey = role.getName();
@@ -277,9 +279,8 @@ public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
 					});
 				setPageSettings(
 					() -> PageSettingsUtil.getPageSettings(
-						_ddmStorageEngineManager, _dlAppService, _dlURLHelper,
-						dtoConverterContext, _layoutSEOEntryLocalService,
-						layout));
+						_dlAppService, _dlURLHelper, dtoConverterContext,
+						_layoutSEOEntryLocalService, layout));
 				setPageType(
 					() -> {
 						LayoutTypeController layoutTypeController =
@@ -302,7 +303,7 @@ public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
 							return null;
 						}
 
-						Layout parentLayout = _layoutLocalService.fetchLayout(
+						Layout parentLayout = _layoutService.getLayout(
 							layout.getParentPlid());
 
 						return new ParentSitePage() {
@@ -345,9 +346,6 @@ public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
 	private AssetTagLocalService _assetTagLocalService;
 
 	@Reference
-	private DDMStorageEngineManager _ddmStorageEngineManager;
-
-	@Reference
 	private DLAppService _dlAppService;
 
 	@Reference
@@ -363,9 +361,6 @@ public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
 	private Language _language;
 
 	@Reference
-	private LayoutLocalService _layoutLocalService;
-
-	@Reference
 	private LayoutPageTemplateEntryLocalService
 		_layoutPageTemplateEntryLocalService;
 
@@ -375,6 +370,9 @@ public class SitePageDTOConverter implements DTOConverter<Layout, SitePage> {
 
 	@Reference
 	private LayoutSEOEntryLocalService _layoutSEOEntryLocalService;
+
+	@Reference
+	private LayoutService _layoutService;
 
 	@Reference(
 		target = "(component.name=com.liferay.headless.delivery.internal.dto.v1_0.converter.PageDefinitionDTOConverter)"

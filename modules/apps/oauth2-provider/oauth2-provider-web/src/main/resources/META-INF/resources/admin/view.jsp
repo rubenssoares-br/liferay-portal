@@ -15,6 +15,15 @@ OAuth2ApplicationsManagementToolbarDisplayContext oAuth2ApplicationsManagementTo
 String displayStyle = oAuth2ApplicationsManagementToolbarDisplayContext.getDisplayStyle();
 %>
 
+<liferay-ui:error embed="<%= false %>" exception="<%= RequiredOAuth2ApplicationException.class %>">
+
+	<%
+	RequiredOAuth2ApplicationException requiredOAuth2ApplicationException = (RequiredOAuth2ApplicationException)errorException;
+	%>
+
+	<liferay-ui:message key="<%= requiredOAuth2ApplicationException.getMessage() %>" />
+</liferay-ui:error>
+
 <clay:management-toolbar
 	managementToolbarDisplayContext="<%= oAuth2ApplicationsManagementToolbarDisplayContext %>"
 	propsTransformer="{OAuth2ApplicationsManagementToolbarPropsTransformer} from oauth2-provider-web"
@@ -33,7 +42,7 @@ String displayStyle = oAuth2ApplicationsManagementToolbarDisplayContext.getDispl
 			<liferay-ui:search-container-row
 				className="com.liferay.oauth2.provider.model.OAuth2Application"
 				escapedModel="<%= true %>"
-				keyProperty="OAuth2ApplicationId"
+				keyPropertyName="OAuth2ApplicationId"
 				modelVar="oAuth2Application"
 			>
 				<portlet:renderURL var="editURL">

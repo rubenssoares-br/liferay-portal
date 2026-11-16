@@ -27,12 +27,12 @@ import com.liferay.portal.kernel.util.Localization;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.trash.model.TrashEntry;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -76,10 +76,11 @@ public class TrashIndexer extends BaseIndexer<TrashEntry> {
 			for (TrashHandler trashHandler : trashHandlers) {
 				Filter filter = trashHandler.getExcludeFilter(searchContext);
 
-				if (filter != null) {
-					fullQueryBooleanFilter.add(
-						filter, BooleanClauseOccur.MUST_NOT);
+				if (filter == null) {
+					continue;
 				}
+
+				fullQueryBooleanFilter.add(filter, BooleanClauseOccur.MUST_NOT);
 			}
 
 			long[] groupIds = searchContext.getGroupIds();
@@ -104,6 +105,11 @@ public class TrashIndexer extends BaseIndexer<TrashEntry> {
 		catch (Exception exception) {
 			throw new SearchException(exception);
 		}
+	}
+
+	@Override
+	public long getReindexEntryCount(long companyId) {
+		return 0;
 	}
 
 	@Override
@@ -192,11 +198,11 @@ public class TrashIndexer extends BaseIndexer<TrashEntry> {
 	}
 
 	@Override
-	protected void doReindex(String[] ids) {
+	protected void doReindex(TrashEntry trashEntry) {
 	}
 
 	@Override
-	protected void doReindex(TrashEntry trashEntry) {
+	protected void doReindexCompany(long companyId) {
 	}
 
 	@Reference

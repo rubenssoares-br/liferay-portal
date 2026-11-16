@@ -118,11 +118,8 @@ public class CPConfigurationEntryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		CPConfigurationEntry newCPConfigurationEntry = _persistence.create(pk);
-
-		newCPConfigurationEntry.setMvccVersion(RandomTestUtil.nextLong());
+		CPConfigurationEntry newCPConfigurationEntry =
+			addCPConfigurationEntry();
 
 		newCPConfigurationEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -130,6 +127,8 @@ public class CPConfigurationEntryPersistenceTest {
 
 		newCPConfigurationEntry.setExternalReferenceCode(
 			RandomTestUtil.randomString());
+
+		newCPConfigurationEntry.setGroupId(RandomTestUtil.nextLong());
 
 		newCPConfigurationEntry.setCompanyId(RandomTestUtil.nextLong());
 
@@ -154,6 +153,9 @@ public class CPConfigurationEntryPersistenceTest {
 			RandomTestUtil.randomString());
 
 		newCPConfigurationEntry.setBackOrders(RandomTestUtil.randomBoolean());
+
+		newCPConfigurationEntry.setCommerceAvailabilityEstimateId(
+			RandomTestUtil.nextLong());
 
 		newCPConfigurationEntry.setCPDefinitionInventoryEngine(
 			RandomTestUtil.randomString());
@@ -197,14 +199,13 @@ public class CPConfigurationEntryPersistenceTest {
 
 		newCPConfigurationEntry.setTaxExempt(RandomTestUtil.randomBoolean());
 
-		newCPConfigurationEntry.setVisible(RandomTestUtil.randomBoolean());
-
 		newCPConfigurationEntry.setWeight(RandomTestUtil.nextDouble());
 
 		newCPConfigurationEntry.setWidth(RandomTestUtil.nextDouble());
 
-		_cpConfigurationEntries.add(
-			_persistence.update(newCPConfigurationEntry));
+		newCPConfigurationEntry = _persistence.update(newCPConfigurationEntry);
+
+		_cpConfigurationEntries.add(newCPConfigurationEntry);
 
 		CPConfigurationEntry existingCPConfigurationEntry =
 			_persistence.findByPrimaryKey(
@@ -225,6 +226,9 @@ public class CPConfigurationEntryPersistenceTest {
 		Assert.assertEquals(
 			existingCPConfigurationEntry.getCPConfigurationEntryId(),
 			newCPConfigurationEntry.getCPConfigurationEntryId());
+		Assert.assertEquals(
+			existingCPConfigurationEntry.getGroupId(),
+			newCPConfigurationEntry.getGroupId());
 		Assert.assertEquals(
 			existingCPConfigurationEntry.getCompanyId(),
 			newCPConfigurationEntry.getCompanyId());
@@ -260,6 +264,9 @@ public class CPConfigurationEntryPersistenceTest {
 		Assert.assertEquals(
 			existingCPConfigurationEntry.isBackOrders(),
 			newCPConfigurationEntry.isBackOrders());
+		Assert.assertEquals(
+			existingCPConfigurationEntry.getCommerceAvailabilityEstimateId(),
+			newCPConfigurationEntry.getCommerceAvailabilityEstimateId());
 		Assert.assertEquals(
 			existingCPConfigurationEntry.getCPDefinitionInventoryEngine(),
 			newCPConfigurationEntry.getCPDefinitionInventoryEngine());
@@ -308,9 +315,6 @@ public class CPConfigurationEntryPersistenceTest {
 		Assert.assertEquals(
 			existingCPConfigurationEntry.isTaxExempt(),
 			newCPConfigurationEntry.isTaxExempt());
-		Assert.assertEquals(
-			existingCPConfigurationEntry.isVisible(),
-			newCPConfigurationEntry.isVisible());
 		AssertUtils.assertEquals(
 			existingCPConfigurationEntry.getWeight(),
 			newCPConfigurationEntry.getWeight());
@@ -353,6 +357,15 @@ public class CPConfigurationEntryPersistenceTest {
 	}
 
 	@Test
+	public void testCountByUUID_G() throws Exception {
+		_persistence.countByUUID_G("", RandomTestUtil.nextLong());
+
+		_persistence.countByUUID_G("null", 0L);
+
+		_persistence.countByUUID_G((String)null, 0L);
+	}
+
+	@Test
 	public void testCountByUuid_C() throws Exception {
 		_persistence.countByUuid_C("", RandomTestUtil.nextLong());
 
@@ -362,17 +375,27 @@ public class CPConfigurationEntryPersistenceTest {
 	}
 
 	@Test
-	public void testCountByCompanyId() throws Exception {
-		_persistence.countByCompanyId(RandomTestUtil.nextLong());
-
-		_persistence.countByCompanyId(0L);
-	}
-
-	@Test
 	public void testCountByCPConfigurationListId() throws Exception {
 		_persistence.countByCPConfigurationListId(RandomTestUtil.nextLong());
 
 		_persistence.countByCPConfigurationListId(0L);
+	}
+
+	@Test
+	public void testCountByC_C() throws Exception {
+		_persistence.countByC_C(
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
+
+		_persistence.countByC_C(0L, 0L);
+	}
+
+	@Test
+	public void testCountByC_C_C() throws Exception {
+		_persistence.countByC_C_C(
+			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
+			RandomTestUtil.nextLong());
+
+		_persistence.countByC_C_C(0L, 0L, 0L);
 	}
 
 	@Test
@@ -414,18 +437,20 @@ public class CPConfigurationEntryPersistenceTest {
 		return OrderByComparatorFactoryUtil.create(
 			"CPConfigurationEntry", "mvccVersion", true, "ctCollectionId", true,
 			"uuid", true, "externalReferenceCode", true,
-			"CPConfigurationEntryId", true, "companyId", true, "userId", true,
-			"userName", true, "createDate", true, "modifiedDate", true,
-			"classNameId", true, "classPK", true, "CPConfigurationListId", true,
-			"CPTaxCategoryId", true, "allowedOrderQuantities", true,
-			"backOrders", true, "CPDefinitionInventoryEngine", true, "depth",
-			true, "displayAvailability", true, "displayStockQuantity", true,
+			"CPConfigurationEntryId", true, "groupId", true, "companyId", true,
+			"userId", true, "userName", true, "createDate", true,
+			"modifiedDate", true, "classNameId", true, "classPK", true,
+			"CPConfigurationListId", true, "CPTaxCategoryId", true,
+			"allowedOrderQuantities", true, "backOrders", true,
+			"commerceAvailabilityEstimateId", true,
+			"CPDefinitionInventoryEngine", true, "depth", true,
+			"displayAvailability", true, "displayStockQuantity", true,
 			"freeShipping", true, "height", true, "lowStockActivity", true,
 			"maxOrderQuantity", true, "minOrderQuantity", true,
 			"minStockQuantity", true, "multipleOrderQuantity", true,
 			"purchasable", true, "shippable", true, "shippingExtraPrice", true,
-			"shipSeparately", true, "taxExempt", true, "visible", true,
-			"weight", true, "width", true);
+			"shipSeparately", true, "taxExempt", true, "weight", true, "width",
+			true);
 	}
 
 	@Test
@@ -722,6 +747,33 @@ public class CPConfigurationEntryPersistenceTest {
 		CPConfigurationEntry cpConfigurationEntry) {
 
 		Assert.assertEquals(
+			cpConfigurationEntry.getUuid(),
+			ReflectionTestUtil.invoke(
+				cpConfigurationEntry, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "uuid_"));
+		Assert.assertEquals(
+			Long.valueOf(cpConfigurationEntry.getGroupId()),
+			ReflectionTestUtil.<Long>invoke(
+				cpConfigurationEntry, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "groupId"));
+
+		Assert.assertEquals(
+			Long.valueOf(cpConfigurationEntry.getClassNameId()),
+			ReflectionTestUtil.<Long>invoke(
+				cpConfigurationEntry, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "classNameId"));
+		Assert.assertEquals(
+			Long.valueOf(cpConfigurationEntry.getClassPK()),
+			ReflectionTestUtil.<Long>invoke(
+				cpConfigurationEntry, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "classPK"));
+		Assert.assertEquals(
+			Long.valueOf(cpConfigurationEntry.getCPConfigurationListId()),
+			ReflectionTestUtil.<Long>invoke(
+				cpConfigurationEntry, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "CPConfigurationListId"));
+
+		Assert.assertEquals(
 			cpConfigurationEntry.getExternalReferenceCode(),
 			ReflectionTestUtil.invoke(
 				cpConfigurationEntry, "getColumnOriginalValue",
@@ -738,14 +790,14 @@ public class CPConfigurationEntryPersistenceTest {
 
 		CPConfigurationEntry cpConfigurationEntry = _persistence.create(pk);
 
-		cpConfigurationEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		cpConfigurationEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		cpConfigurationEntry.setUuid(RandomTestUtil.randomString());
 
 		cpConfigurationEntry.setExternalReferenceCode(
 			RandomTestUtil.randomString());
+
+		cpConfigurationEntry.setGroupId(RandomTestUtil.nextLong());
 
 		cpConfigurationEntry.setCompanyId(RandomTestUtil.nextLong());
 
@@ -770,6 +822,9 @@ public class CPConfigurationEntryPersistenceTest {
 			RandomTestUtil.randomString());
 
 		cpConfigurationEntry.setBackOrders(RandomTestUtil.randomBoolean());
+
+		cpConfigurationEntry.setCommerceAvailabilityEstimateId(
+			RandomTestUtil.nextLong());
 
 		cpConfigurationEntry.setCPDefinitionInventoryEngine(
 			RandomTestUtil.randomString());
@@ -810,8 +865,6 @@ public class CPConfigurationEntryPersistenceTest {
 
 		cpConfigurationEntry.setTaxExempt(RandomTestUtil.randomBoolean());
 
-		cpConfigurationEntry.setVisible(RandomTestUtil.randomBoolean());
-
 		cpConfigurationEntry.setWeight(RandomTestUtil.nextDouble());
 
 		cpConfigurationEntry.setWidth(RandomTestUtil.nextDouble());
@@ -827,3 +880,4 @@ public class CPConfigurationEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2105277717

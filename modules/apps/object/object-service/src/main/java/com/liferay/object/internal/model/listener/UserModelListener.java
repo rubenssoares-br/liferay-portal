@@ -8,6 +8,7 @@ package com.liferay.object.internal.model.listener;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
+import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.system.SystemObjectDefinitionManager;
 import com.liferay.object.system.SystemObjectDefinitionManagerRegistry;
 import com.liferay.portal.kernel.exception.ModelListenerException;
@@ -17,6 +18,7 @@ import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.ModelListener;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.util.LocaleUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
 import java.util.Locale;
@@ -46,8 +48,10 @@ public class UserModelListener extends BaseModelListener<User> {
 			_objectDefinitionLocalService.updateUserId(
 				user.getCompanyId(), user.getUserId(),
 				defaultServiceAccountUser.getUserId());
-
 			_objectFieldLocalService.updateUserId(
+				user.getCompanyId(), user.getUserId(),
+				defaultServiceAccountUser.getUserId());
+			_objectRelationshipLocalService.updateUserId(
 				user.getCompanyId(), user.getUserId(),
 				defaultServiceAccountUser.getUserId());
 		}
@@ -93,10 +97,15 @@ public class UserModelListener extends BaseModelListener<User> {
 			Map<String, String> labelKeys =
 				systemObjectDefinitionManager.getLabelKeys();
 
+			Locale defaultLocale = LocaleUtil.fromLanguageId(
+				systemObjectDefinition.getDefaultLanguageId(), false);
+
 			systemObjectDefinition.setLabel(
-				_language.get(locale, labelKeys.get("label")), locale);
+				_language.get(locale, labelKeys.get("label")), locale,
+				defaultLocale);
 			systemObjectDefinition.setPluralLabel(
-				_language.get(locale, labelKeys.get("pluralLabel")), locale);
+				_language.get(locale, labelKeys.get("pluralLabel")), locale,
+				defaultLocale);
 
 			_objectDefinitionLocalService.updateObjectDefinition(
 				systemObjectDefinition);
@@ -111,6 +120,9 @@ public class UserModelListener extends BaseModelListener<User> {
 
 	@Reference
 	private ObjectFieldLocalService _objectFieldLocalService;
+
+	@Reference
+	private ObjectRelationshipLocalService _objectRelationshipLocalService;
 
 	@Reference
 	private SystemObjectDefinitionManagerRegistry

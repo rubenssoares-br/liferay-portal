@@ -22,10 +22,10 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Alejandro Tardín
@@ -165,6 +165,13 @@ public class AnnouncementsAdminViewManagementToolbarDisplayContext
 	@Override
 	public Boolean isShowSearch() {
 		return false;
+	}
+
+	@Override
+	protected String[] getOrderByKeys() {
+		return new String[] {
+			"modified-date", "display-date", "expiration-date", "title", "type"
+		};
 	}
 
 	private List<DropdownItem> _getFilterNavigationDropdownItems()

@@ -12,12 +12,12 @@ import com.liferay.saml.persistence.model.SamlSpSession;
 import com.liferay.saml.runtime.configuration.SamlProviderConfigurationHelper;
 import com.liferay.saml.runtime.servlet.profile.SingleLogoutProfile;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -27,9 +27,9 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"before-filter=Session Id Filter", "dispatcher=FORWARD",
+		"before-filter=Absolute Redirects Filter", "dispatcher=FORWARD",
 		"dispatcher=REQUEST",
-		"init-param.url-regex-ignore-pattern=^/html/.+\\.(css|gif|html|ico|jpg|js|png)(\\?.*)?$",
+		"init-param.url-regex-ignore-pattern=^/(html|o)/.+\\.(css|gif|html|ico|jpg|js|png)(\\?.*)?$",
 		"servlet-context-name=",
 		"servlet-filter-name=SP Session Termination SAML Portal Filter",
 		"url-pattern=/*"
@@ -76,6 +76,8 @@ public class SpSessionTerminationSamlPortalFilter extends BaseSamlPortalFilter {
 				!requestPath.equals("/c/portal/saml/slo")) {
 
 				_singleLogoutProfile.terminateSpSession(
+					httpServletRequest, httpServletResponse);
+				_singleLogoutProfile.terminateSsoSession(
 					httpServletRequest, httpServletResponse);
 
 				_singleLogoutProfile.logout(

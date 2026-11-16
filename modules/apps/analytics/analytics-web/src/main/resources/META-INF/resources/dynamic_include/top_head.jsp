@@ -20,8 +20,16 @@
 		<%= (String)request.getAttribute(AnalyticsWebKeys.ANALYTICS_CLIENT_GROUP_IDS) %>;
 	var analyticsCookiesConsentMode =
 		<%= (boolean)request.getAttribute(AnalyticsWebKeys.ANALYTICS_COOKIES_EXPLICIT_CONSENT_MODE) %>;
-	var analyticsFeatureFlagEnabled =
-		<%= FeatureFlagManagerUtil.isEnabled("LPD-10588") %>;
+	var analyticsExternalReferenceCode =
+		'<%= (String)request.getAttribute(AnalyticsWebKeys.ANALYTICS_EXTERNAL_REFERENCE_CODE) %>';
+
+	// Snapshot the page title in the same script block that publishes
+	// themeDisplay, so both are refreshed at the same point of a SPA
+	// transition. Reading document.title when the event is created instead
+	// pairs the incoming page's title with the outgoing page's canonical URL,
+	// because SPA updates the title before it re-evaluates this block.
+
+	var analyticsPageTitle = document.title;
 
 	var cookieManagers = {
 		'cookie.onetrust': {
@@ -93,7 +101,7 @@
 				return performanceCookieEnabled === 'true';
 			},
 			enabled: () => {
-				return Promise.resolve(analyticsFeatureFlagEnabled);
+				return Promise.resolve(true);
 			},
 			onConsentChange: (callbackFn) => {
 				Liferay.on('cookieBannerSetCookie', callbackFn);
@@ -146,6 +154,9 @@
 					request.context.channelId = analyticsClientChannelId;
 					request.context.groupId =
 						themeDisplay.getScopeGroupIdOrLiveGroupId();
+					request.context.layoutExternalReferenceCode =
+						analyticsExternalReferenceCode;
+					request.context.title = analyticsPageTitle;
 
 					return request;
 				};
@@ -161,9 +172,11 @@
 
 				runMiddlewares();
 
-				Analytics.send('pageViewed', 'Page');
+				Analytics.send('pageViewed', 'Page', {
+					externalReferenceCode: analyticsExternalReferenceCode,
+				});
 
-				<c:if test="<%= GetterUtil.getBoolean(PropsUtil.get(PropsKeys.JAVASCRIPT_SINGLE_PAGE_APPLICATION_ENABLED)) %>">
+				<c:if test="<%= FrontendSPAUtil.isEnabled(company.getCompanyId()) %>">
 					Liferay.on('endNavigate', (event) => {
 						var allPromises = Object.keys(cookieManagers).map((key) =>
 							cookieManagers[key].enabled()
@@ -175,12 +188,13 @@
 							) {
 								Analytics.dispose();
 
-								var groupId =
-									themeDisplay.getScopeGroupIdOrLiveGroupId();
-
 								if (
 									!themeDisplay.isControlPanel() &&
-									analyticsClientGroupIds.indexOf(groupId) >= 0
+									analyticsClientGroupIds.indexOf(
+										String(
+											themeDisplay.getScopeGroupIdOrLiveGroupId()
+										)
+									) >= 0
 								) {
 									Analytics.create(config, [dxpMiddleware]);
 
@@ -194,6 +208,8 @@
 									runMiddlewares();
 
 									Analytics.send('pageViewed', 'Page', {
+										externalReferenceCode:
+											analyticsExternalReferenceCode,
 										page: event.path,
 									});
 								}
@@ -253,3 +269,5 @@
 		}
 	});
 </aui:script>
+
+<liferay-util:dynamic-include key="com.liferay.analytics.web#/dynamic_include/top_head.jsp#post" />

@@ -9,16 +9,17 @@ import com.liferay.headless.admin.user.client.dto.v1_0.Role;
 import com.liferay.headless.admin.user.client.dto.v1_0.RolePermission;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -191,6 +192,26 @@ public class RoleSerDes {
 			sb.append(_toJSON(role.getName_i18n()));
 		}
 
+		if (role.getPermissions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"permissions\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < role.getPermissions().length; i++) {
+				sb.append(role.getPermissions()[i]);
+
+				if ((i + 1) < role.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		if (role.getRolePermissions() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -221,6 +242,20 @@ public class RoleSerDes {
 			sb.append("\"");
 
 			sb.append(_escape(role.getRoleType()));
+
+			sb.append("\"");
+		}
+
+		if (role.getSubtype() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"subtype\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(role.getSubtype()));
 
 			sb.append("\"");
 		}
@@ -332,6 +367,13 @@ public class RoleSerDes {
 			map.put("name_i18n", String.valueOf(role.getName_i18n()));
 		}
 
+		if (role.getPermissions() == null) {
+			map.put("permissions", null);
+		}
+		else {
+			map.put("permissions", String.valueOf(role.getPermissions()));
+		}
+
 		if (role.getRolePermissions() == null) {
 			map.put("rolePermissions", null);
 		}
@@ -345,6 +387,13 @@ public class RoleSerDes {
 		}
 		else {
 			map.put("roleType", String.valueOf(role.getRoleType()));
+		}
+
+		if (role.getSubtype() == null) {
+			map.put("subtype", null);
+		}
+		else {
+			map.put("subtype", String.valueOf(role.getSubtype()));
 		}
 
 		return map;
@@ -401,10 +450,16 @@ public class RoleSerDes {
 			else if (Objects.equals(jsonParserFieldName, "name_i18n")) {
 				return true;
 			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "rolePermissions")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "roleType")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "subtype")) {
 				return false;
 			}
 
@@ -480,6 +535,26 @@ public class RoleSerDes {
 						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.user.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.user.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.user.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					role.setPermissions(permissionsArray);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "rolePermissions")) {
 				if (jsonParserFieldValue != null) {
 					Object[] jsonParserFieldValues =
@@ -499,6 +574,11 @@ public class RoleSerDes {
 			else if (Objects.equals(jsonParserFieldName, "roleType")) {
 				if (jsonParserFieldValue != null) {
 					role.setRoleType((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "subtype")) {
+				if (jsonParserFieldValue != null) {
+					role.setSubtype((String)jsonParserFieldValue);
 				}
 			}
 		}
@@ -546,6 +626,16 @@ public class RoleSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -578,3 +668,4 @@ public class RoleSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-98125491

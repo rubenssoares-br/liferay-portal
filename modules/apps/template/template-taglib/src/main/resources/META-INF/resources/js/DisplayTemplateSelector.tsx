@@ -7,7 +7,7 @@ import {Option, Picker} from '@clayui/core';
 import DropDown from '@clayui/drop-down';
 import Form, {ClayInput} from '@clayui/form';
 import {InternalDispatch} from '@clayui/shared';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 
 type Props = {
 	namespace: string;
@@ -61,11 +61,13 @@ export default function DisplayTemplateSelector({namespace, props}: Props) {
 			groupKey,
 			name: value,
 		});
-
-		Liferay.fire('templateSelector:changedTemplate', {
-			value,
-		});
 	};
+
+	useEffect(() => {
+		Liferay.fire('templateSelector:changedTemplate', {
+			value: selectedDisplayStyle.name,
+		});
+	}, [selectedDisplayStyle.name]);
 
 	return (
 		<>
@@ -100,6 +102,16 @@ export default function DisplayTemplateSelector({namespace, props}: Props) {
 					className="display-template-selector"
 					id={`${namespace}displayStyle`}
 					items={items}
+					messages={{
+						itemDescribedby: Liferay.Language.get(
+							'you-are-currently-on-a-text-element,-inside-of-a-list-box'
+						),
+						itemSelected: Liferay.Language.get('x-selected'),
+						scrollToBottomAriaLabel:
+							Liferay.Language.get('scroll-to-bottom'),
+						scrollToTopAriaLabel:
+							Liferay.Language.get('scroll-to-top'),
+					}}
 					onSelectionChange={onSelectionChangeHandlder}
 					selectedKey={`${selectedDisplayStyle.groupId}${SEPARATOR}${selectedDisplayStyle.groupKey}${SEPARATOR}${selectedDisplayStyle.name}`}
 				>

@@ -11,11 +11,11 @@ import com.liferay.portal.kernel.json.JSONArray;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 
+import jakarta.ws.rs.core.UriInfo;
+
 import java.math.BigDecimal;
 
 import java.util.Locale;
-
-import javax.ws.rs.core.UriInfo;
 
 /**
  * @author Andrea Sbarra
@@ -39,16 +39,16 @@ public class SkuDTOConverterContext extends DefaultDTOConverterContext {
 		_unitOfMeasureKey = unitOfMeasureKey;
 	}
 
+	public CPDefinition getCPDefinition() {
+		return _cpDefinition;
+	}
+
 	public CommerceContext getCommerceContext() {
 		return _commerceContext;
 	}
 
 	public long getCompanyId() {
 		return _companyId;
-	}
-
-	public CPDefinition getCPDefinition() {
-		return _cpDefinition;
 	}
 
 	public BigDecimal getQuantity() {

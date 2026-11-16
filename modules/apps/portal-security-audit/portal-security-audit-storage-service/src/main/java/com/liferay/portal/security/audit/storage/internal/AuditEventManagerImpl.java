@@ -5,19 +5,18 @@
 
 package com.liferay.portal.security.audit.storage.internal;
 
+import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.portal.kernel.audit.AuditMessage;
-import com.liferay.portal.kernel.db.partition.DBPartition;
-import com.liferay.portal.kernel.instance.PortalInstancePool;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.service.CompanyLocalService;
-import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.security.audit.AuditEvent;
 import com.liferay.portal.security.audit.AuditEventManager;
 import com.liferay.portal.security.audit.storage.service.AuditEventLocalService;
-import com.liferay.portal.util.PortalInstances;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +39,7 @@ public class AuditEventManagerImpl implements AuditEventManager {
 
 	@Override
 	public void addAuditEvents(List<AuditMessage> auditMessages) {
-		if (DBPartition.isPartitionEnabled()) {
+		if (PropsValues.DATABASE_PARTITION_ENABLED) {
 			Map<Long, List<AuditMessage>> auditMessagesMap = new HashMap<>();
 
 			for (AuditMessage auditMessage : auditMessages) {
@@ -51,21 +50,15 @@ public class AuditEventManagerImpl implements AuditEventManager {
 				companyAuditMessages.add(auditMessage);
 			}
 
-			for (Map.Entry<Long, List<AuditMessage>> entry :
-					auditMessagesMap.entrySet()) {
+			try (SafeCloseable safeCloseable = CompanyThreadLocal.unlock()) {
+				for (Map.Entry<Long, List<AuditMessage>> entry :
+						auditMessagesMap.entrySet()) {
 
-				if (PortalInstances.isCompanyInDeletionProcess(
-						entry.getKey()) ||
-					!ArrayUtil.contains(
-						PortalInstancePool.getCompanyIds(), entry.getKey())) {
-
-					continue;
+					_companyLocalService.forEachCompanyId(
+						companyId -> _auditEventLocalService.addAuditEvents(
+							entry.getValue()),
+						new long[] {entry.getKey()});
 				}
-
-				_companyLocalService.forEachCompanyId(
-					companyId -> _auditEventLocalService.addAuditEvents(
-						entry.getValue()),
-					new long[] {entry.getKey()});
 			}
 		}
 		else {
@@ -94,10 +87,10 @@ public class AuditEventManagerImpl implements AuditEventManager {
 	@Override
 	public List<AuditEvent> getAuditEvents(
 		long companyId, long groupId, long userId, String userName,
-		Date createDateGT, Date createDateLT, String eventType,
+		Date createDateGT, Date createDateLT, long[] accountEntryIds,
 		String className, String classPK, String clientHost, String clientIP,
-		String serverName, int serverPort, String sessionID, boolean andSearch,
-		int start, int end,
+		String contextName, String eventType, String serverName, int serverPort,
+		String sessionID, boolean andSearch, int start, int end,
 		OrderByComparator
 			<com.liferay.portal.security.audit.storage.model.AuditEvent>
 				orderByComparator) {
@@ -105,9 +98,9 @@ public class AuditEventManagerImpl implements AuditEventManager {
 		return _translate(
 			_auditEventLocalService.getAuditEvents(
 				companyId, groupId, userId, userName, createDateGT,
-				createDateLT, eventType, className, classPK, clientHost,
-				clientIP, serverName, serverPort, sessionID, andSearch, start,
-				end, orderByComparator));
+				createDateLT, accountEntryIds, className, classPK, clientHost,
+				clientIP, contextName, eventType, serverName, serverPort,
+				sessionID, andSearch, start, end, orderByComparator));
 	}
 
 	@Override
@@ -118,15 +111,16 @@ public class AuditEventManagerImpl implements AuditEventManager {
 	@Override
 	public int getAuditEventsCount(
 		long companyId, long groupId, long userId, String userName,
-		Date createDateGT, Date createDateLT, String eventType,
+		Date createDateGT, Date createDateLT, long[] accountEntryIds,
 		String className, String classPK, String clientHost, String clientIP,
-		String serverName, int serverPort, String sessionID,
-		boolean andSearch) {
+		String contextName, String eventType, String serverName, int serverPort,
+		String sessionID, boolean andSearch) {
 
 		return _auditEventLocalService.getAuditEventsCount(
 			companyId, groupId, userId, userName, createDateGT, createDateLT,
-			eventType, className, classPK, clientHost, clientIP, serverName,
-			serverPort, sessionID, andSearch);
+			accountEntryIds, className, classPK, clientHost, clientIP,
+			contextName, eventType, serverName, serverPort, sessionID,
+			andSearch);
 	}
 
 	private AuditEvent _createAuditEvent(
@@ -138,21 +132,10 @@ public class AuditEventManagerImpl implements AuditEventManager {
 
 	private List<AuditEvent> _translate(
 		List<com.liferay.portal.security.audit.storage.model.AuditEvent>
-			auditEventModels) {
+			auditEvents) {
 
-		if (auditEventModels.isEmpty()) {
-			return Collections.emptyList();
-		}
-
-		List<AuditEvent> auditEvents = new ArrayList<>(auditEventModels.size());
-
-		for (com.liferay.portal.security.audit.storage.model.AuditEvent
-				auditEventModel : auditEventModels) {
-
-			auditEvents.add(_createAuditEvent(auditEventModel));
-		}
-
-		return auditEvents;
+		return TransformUtil.transform(
+			auditEvents, auditEvent -> _createAuditEvent(auditEvent));
 	}
 
 	@Reference

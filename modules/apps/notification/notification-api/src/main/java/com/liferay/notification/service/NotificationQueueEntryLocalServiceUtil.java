@@ -83,6 +83,12 @@ public class NotificationQueueEntryLocalServiceUtil {
 		return getService().createPersistedModel(primaryKeyObj);
 	}
 
+	public static void deleteCompanyNotificationQueueEntries(long companyId)
+		throws PortalException {
+
+		getService().deleteCompanyNotificationQueueEntries(companyId);
+	}
+
 	public static void deleteNotificationQueueEntries(java.util.Date sentDate)
 		throws PortalException {
 
@@ -348,3 +354,4 @@ public class NotificationQueueEntryLocalServiceUtil {
 			NotificationQueueEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1448158606

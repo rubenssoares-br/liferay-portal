@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -38,6 +39,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "An array of images in several resolutions and sizes, created by the Adaptive Media framework.",
 	value = "AdaptedImage"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "An array of images in several resolutions and sizes, created by the Adaptive Media framework."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "AdaptedImage")
@@ -51,7 +55,9 @@ public class AdaptedImage implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(AdaptedImage.class, json);
 	}
 
-	@Schema(description = "The image's relative URL.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The image's relative URL."
+	)
 	public String getContentUrl() {
 		if (_contentUrlSupplier != null) {
 			contentUrl = _contentUrlSupplier.get();
@@ -92,7 +98,7 @@ public class AdaptedImage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentUrlSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "Optional field with the content of the image in Base64, can be embedded with nestedFields."
 	)
 	public String getContentValue() {
@@ -137,7 +143,9 @@ public class AdaptedImage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _contentValueSupplier;
 
-	@Schema(description = "The image's height in pixels.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The image's height in pixels."
+	)
 	public Integer getHeight() {
 		if (_heightSupplier != null) {
 			height = _heightSupplier.get();
@@ -178,7 +186,7 @@ public class AdaptedImage implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _heightSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The name of the image's Adaptive Media image resolution."
 	)
 	public String getResolutionName() {
@@ -223,7 +231,9 @@ public class AdaptedImage implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _resolutionNameSupplier;
 
-	@Schema(description = "The image's size in bytes.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The image's size in bytes."
+	)
 	public Long getSizeInBytes() {
 		if (_sizeInBytesSupplier != null) {
 			sizeInBytes = _sizeInBytesSupplier.get();
@@ -264,7 +274,9 @@ public class AdaptedImage implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _sizeInBytesSupplier;
 
-	@Schema(description = "The image's width in pixels.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The image's width in pixels."
+	)
 	public Integer getWidth() {
 		if (_widthSupplier != null) {
 			width = _widthSupplier.get();
@@ -421,8 +433,8 @@ public class AdaptedImage implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.delivery.dto.v1_0.AdaptedImage",
 		name = "x-class-name"
 	)
@@ -509,6 +521,27 @@ public class AdaptedImage implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -517,3 +550,4 @@ public class AdaptedImage implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:986362524

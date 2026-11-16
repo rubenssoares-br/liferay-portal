@@ -163,7 +163,7 @@ if (commerceAddress != null) {
 
 	<div class="autofit-col autofit-col-expand">
 		<div class="autofit-section">
-			<h3 class="shipment-details-title"><liferay-ui:message key="method" /></h3>
+			<h3 class="shipment-details-title"><liferay-ui:message key="method[shipping]" /></h3>
 
 			<%
 			String shippingMethodName = commerceShipmentContentDisplayContext.getCommerceShipmentShippingMethodName(commerceShipment);
@@ -206,7 +206,7 @@ if (commerceAddress != null) {
 	<liferay-ui:search-container-row
 		className="com.liferay.commerce.model.CommerceShipmentItem"
 		escapedModel="<%= true %>"
-		keyProperty="commerceShipmentItemId"
+		keyPropertyName="commerceShipmentItemId"
 		modelVar="commerceShipmentItem"
 	>
 
@@ -223,7 +223,7 @@ if (commerceAddress != null) {
 		<liferay-ui:search-container-column-text
 			cssClass="table-cell-expand"
 			name="name"
-			value="<%= (commerceOrderItem == null) ? StringPool.BLANK : commerceOrderItem.getName(languageId) %>"
+			value="<%= (commerceOrderItem == null) ? StringPool.BLANK : HtmlUtil.escape(commerceOrderItem.getName(languageId)) %>"
 		/>
 
 		<liferay-ui:search-container-column-text

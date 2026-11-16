@@ -52,12 +52,12 @@ import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 
+import jakarta.portlet.PortletPreferences;
+import jakarta.portlet.PortletRequest;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import javax.portlet.PortletPreferences;
-import javax.portlet.PortletRequest;
 
 /**
  * @author Roberto Díaz
@@ -78,9 +78,11 @@ public class KBUtil {
 		while (iterator.hasNext()) {
 			KBFolder kbFolder = iterator.next();
 
-			if (kbFolder.isEmpty()) {
-				iterator.remove();
+			if (!kbFolder.isEmpty()) {
+				continue;
 			}
+
+			iterator.remove();
 		}
 
 		return ListUtil.sort(

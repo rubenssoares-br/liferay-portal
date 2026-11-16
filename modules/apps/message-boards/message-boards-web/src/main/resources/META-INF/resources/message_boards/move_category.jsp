@@ -14,7 +14,7 @@ MBCategory category = (MBCategory)request.getAttribute(WebKeys.MESSAGE_BOARDS_CA
 
 long categoryId = MBUtil.getCategoryId(request, category);
 
-long parentCategoryId = BeanParamUtil.getLong(category, request, "parentCategoryId", MBCategoryConstants.DEFAULT_PARENT_CATEGORY_ID);
+long parentCategoryId = BeanParamUtil.getLong(category, request, "parentCategoryId", MBCategory::getParentCategoryId, MBCategoryConstants.DEFAULT_PARENT_CATEGORY_ID);
 
 boolean portletTitleBasedNavigation = GetterUtil.getBoolean(portletConfig.getInitParameter("portlet-title-based-navigation"));
 
@@ -30,7 +30,7 @@ if (portletTitleBasedNavigation) {
 
 <div <%= portletTitleBasedNavigation ? "class=\"container-fluid container-fluid-max-xl container-form-lg\"" : StringPool.BLANK %>>
 	<c:if test="<%= !portletTitleBasedNavigation %>">
-		<h3><%= LanguageUtil.format(request, "move-x", category.getName(), false) %></h3>
+		<h3><%= LanguageUtil.format(request, "move-x", HtmlUtil.escape(category.getName()), false) %></h3>
 	</c:if>
 
 	<portlet:actionURL name="/message_boards/move_category" var="moveCategoryURL" />
@@ -60,7 +60,7 @@ if (portletTitleBasedNavigation) {
 					<liferay-frontend:resource-selector
 						inputLabel='<%= LanguageUtil.get(request, "parent-category") %>'
 						inputName="parentCategoryId"
-						modalTitle='<%= LanguageUtil.format(request, "select-x", "category") %>'
+						modalTitle='<%= LanguageUtil.format(request, "select-x", "category[message-board]") %>'
 						resourceName="<%= parentCategoryName %>"
 						resourceValue="<%= String.valueOf(parentCategoryId) %>"
 						selectEventName="selectCategory"

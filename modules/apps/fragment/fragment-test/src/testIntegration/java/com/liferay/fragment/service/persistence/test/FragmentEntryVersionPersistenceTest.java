@@ -115,8 +115,6 @@ public class FragmentEntryVersionPersistenceTest {
 
 		FragmentEntryVersion newFragmentEntryVersion = _persistence.create(pk);
 
-		newFragmentEntryVersion.setMvccVersion(RandomTestUtil.nextLong());
-
 		newFragmentEntryVersion.setCtCollectionId(RandomTestUtil.nextLong());
 
 		newFragmentEntryVersion.setVersion(RandomTestUtil.nextInt());
@@ -163,6 +161,8 @@ public class FragmentEntryVersionPersistenceTest {
 		newFragmentEntryVersion.setPreviewFileEntryId(
 			RandomTestUtil.nextLong());
 
+		newFragmentEntryVersion.setMarketplace(RandomTestUtil.randomBoolean());
+
 		newFragmentEntryVersion.setReadOnly(RandomTestUtil.randomBoolean());
 
 		newFragmentEntryVersion.setType(RandomTestUtil.nextInt());
@@ -180,8 +180,9 @@ public class FragmentEntryVersionPersistenceTest {
 
 		newFragmentEntryVersion.setStatusDate(RandomTestUtil.nextDate());
 
-		_fragmentEntryVersions.add(
-			_persistence.update(newFragmentEntryVersion));
+		newFragmentEntryVersion = _persistence.update(newFragmentEntryVersion);
+
+		_fragmentEntryVersions.add(newFragmentEntryVersion);
 
 		FragmentEntryVersion existingFragmentEntryVersion =
 			_persistence.findByPrimaryKey(
@@ -258,6 +259,9 @@ public class FragmentEntryVersionPersistenceTest {
 		Assert.assertEquals(
 			existingFragmentEntryVersion.getPreviewFileEntryId(),
 			newFragmentEntryVersion.getPreviewFileEntryId());
+		Assert.assertEquals(
+			existingFragmentEntryVersion.isMarketplace(),
+			newFragmentEntryVersion.isMarketplace());
 		Assert.assertEquals(
 			existingFragmentEntryVersion.isReadOnly(),
 			newFragmentEntryVersion.isReadOnly());
@@ -359,21 +363,6 @@ public class FragmentEntryVersionPersistenceTest {
 	}
 
 	@Test
-	public void testCountByGroupId() throws Exception {
-		_persistence.countByGroupId(RandomTestUtil.nextLong());
-
-		_persistence.countByGroupId(0L);
-	}
-
-	@Test
-	public void testCountByGroupId_Version() throws Exception {
-		_persistence.countByGroupId_Version(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByGroupId_Version(0L, 0);
-	}
-
-	@Test
 	public void testCountByFragmentCollectionId() throws Exception {
 		_persistence.countByFragmentCollectionId(RandomTestUtil.nextLong());
 
@@ -386,21 +375,6 @@ public class FragmentEntryVersionPersistenceTest {
 			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
 
 		_persistence.countByFragmentCollectionId_Version(0L, 0);
-	}
-
-	@Test
-	public void testCountByType() throws Exception {
-		_persistence.countByType(RandomTestUtil.nextInt());
-
-		_persistence.countByType(0);
-	}
-
-	@Test
-	public void testCountByType_Version() throws Exception {
-		_persistence.countByType_Version(
-			RandomTestUtil.nextInt(), RandomTestUtil.nextInt());
-
-		_persistence.countByType_Version(0, 0);
 	}
 
 	@Test
@@ -571,9 +545,10 @@ public class FragmentEntryVersionPersistenceTest {
 			true, "companyId", true, "userId", true, "userName", true,
 			"createDate", true, "modifiedDate", true, "fragmentCollectionId",
 			true, "fragmentEntryKey", true, "name", true, "cacheable", true,
-			"icon", true, "previewFileEntryId", true, "readOnly", true, "type",
-			true, "lastPublishDate", true, "status", true, "statusByUserId",
-			true, "statusByUserName", true, "statusDate", true);
+			"icon", true, "previewFileEntryId", true, "marketplace", true,
+			"readOnly", true, "type", true, "lastPublishDate", true, "status",
+			true, "statusByUserId", true, "statusByUserName", true,
+			"statusDate", true);
 	}
 
 	@Test
@@ -889,8 +864,6 @@ public class FragmentEntryVersionPersistenceTest {
 
 		FragmentEntryVersion fragmentEntryVersion = _persistence.create(pk);
 
-		fragmentEntryVersion.setMvccVersion(RandomTestUtil.nextLong());
-
 		fragmentEntryVersion.setCtCollectionId(RandomTestUtil.nextLong());
 
 		fragmentEntryVersion.setVersion(RandomTestUtil.nextInt());
@@ -934,6 +907,8 @@ public class FragmentEntryVersionPersistenceTest {
 
 		fragmentEntryVersion.setPreviewFileEntryId(RandomTestUtil.nextLong());
 
+		fragmentEntryVersion.setMarketplace(RandomTestUtil.randomBoolean());
+
 		fragmentEntryVersion.setReadOnly(RandomTestUtil.randomBoolean());
 
 		fragmentEntryVersion.setType(RandomTestUtil.nextInt());
@@ -961,3 +936,4 @@ public class FragmentEntryVersionPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1212360402

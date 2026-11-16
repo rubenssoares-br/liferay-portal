@@ -14,6 +14,7 @@ const MY_WORKFLOW_TASK_PORTLET_NAMESPACE =
 export class WorkflowTaskDetailsPage {
 	readonly activitiesButton: Locator;
 	readonly approveMenuItem: Locator;
+	readonly assetTableRow: (...textFilters: string[]) => Locator;
 	readonly assignToDialogIFRAME: FrameLocator;
 	readonly assignToMenuItem: Locator;
 	readonly assignToSingleSelect: Locator;
@@ -32,15 +33,23 @@ export class WorkflowTaskDetailsPage {
 	readonly reviewActionMenu: Locator;
 	readonly reviewComment: Locator;
 	readonly subscribeButton: Locator;
+	readonly viewButton: Locator;
 	readonly workflowTasksPage: WorkflowTasksPage;
 
 	constructor(page: Page) {
 		this.activitiesButton = page.getByRole('button', {name: 'Activities'});
 		this.approveMenuItem = page.getByRole('menuitem', {name: 'approve'});
+		this.assetTableRow = (...textFilters: string[]) =>
+			textFilters.reduce(
+				(row, text) => row.filter({hasText: text}),
+				page.getByRole('row')
+			);
 		this.assignToDialogIFRAME = page.frameLocator(
-			`iframe[name="${MY_WORKFLOW_TASK_PORTLET_NAMESPACE}assignToDialog_iframe_"]`
+			`iframe[id="${MY_WORKFLOW_TASK_PORTLET_NAMESPACE}assignToDialog_iframe_"]`
 		);
-		this.assignToMenuItem = page.getByRole('link', {name: 'Assign to...'});
+		this.assignToMenuItem = page.locator(
+			'button[data-title="Assign to..."]'
+		);
 		this.assignToSingleSelect =
 			this.assignToDialogIFRAME.getByLabel('Assign to');
 		this.assigneeDoneButton = this.assignToDialogIFRAME.getByRole(
@@ -61,12 +70,13 @@ export class WorkflowTaskDetailsPage {
 		});
 		this.rejectMenuItem = page.getByRole('menuitem', {name: 'reject'});
 		this.replyButton = page.getByRole('button', {name: 'Reply'});
-		this.reviewActionMenu = page.locator(
-			`[id="${MY_WORKFLOW_TASK_PORTLET_NAMESPACE}kldx___menu"]`
-		);
+		this.reviewActionMenu = page.getByRole('button', {
+			name: 'Open Actions Menu',
+		});
 		this.reviewComment = page.getByRole('textbox', {name: 'Comment'});
 		this.subscribeButton = page.getByLabel('Subscribe to Comments');
 		this.commentsTextbox = page.frameLocator('iframe').getByRole('textbox');
+		this.viewButton = page.getByRole('button', {name: 'View'});
 		this.workflowTasksPage = new WorkflowTasksPage(page);
 	}
 
@@ -74,6 +84,7 @@ export class WorkflowTaskDetailsPage {
 		await this.commentsButton.click();
 		await this.commentsTextbox.fill(comment);
 		await this.replyButton.click();
+		await this.page.waitForLoadState('networkidle');
 	}
 
 	async clickDoneButton() {
@@ -82,15 +93,19 @@ export class WorkflowTaskDetailsPage {
 		await waitForAlert(this.page);
 	}
 
-	async goTo(assetTitle: string) {
+	async goTo(assetTitle: string, taskName?: string) {
 		await this.workflowTasksPage.goto();
 
-		await this.selectAsset(assetTitle);
+		await this.workflowTasksPage.waitForTask(assetTitle, taskName);
+
+		await this.selectAsset(assetTitle, taskName);
 	}
 
-	async selectAsset(assetTitle: string) {
-		const assetLink = this.page.getByRole('link', {name: assetTitle});
-		await assetLink.click({force: true});
+	async selectAsset(assetText: string, taskName?: string) {
+		await this._getRow(assetText, taskName)
+			.locator('.lfr-asset-title-column')
+			.getByRole('link')
+			.click();
 	}
 
 	async selectAssignee(assignee: string) {
@@ -101,5 +116,11 @@ export class WorkflowTaskDetailsPage {
 		await this.selectAsset(threadTitle);
 
 		await this.addComment(comment);
+	}
+
+	private _getRow(assetText: string, taskName?: string) {
+		const row = this.page.getByRole('row').filter({hasText: assetText});
+
+		return taskName ? row.filter({hasText: taskName}) : row;
 	}
 }

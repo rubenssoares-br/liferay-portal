@@ -26,7 +26,7 @@ renderResponse.setTitle(layoutPageTemplateEntry.getName());
 	propsTransformer="{AssetDisplayPageUsagesManagementToolbarPropsTransformer} from layout-page-template-admin-web"
 />
 
-<aui:form cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form cssClass="container-fluid container-fluid-max-xxxl" name="fm">
 
 	<%
 	LayoutPageTemplateEntry defaultLayoutPageTemplateEntry = assetDisplayPageUsagesManagementToolbarDisplayContext.getDefaultLayoutPageTemplateEntry();
@@ -48,7 +48,7 @@ renderResponse.setTitle(layoutPageTemplateEntry.getName());
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.asset.display.page.model.AssetDisplayPageEntry"
-			keyProperty="assetDisplayPageEntryId"
+			keyPropertyName="assetDisplayPageEntryId"
 			modelVar="assetDisplayPageEntry"
 		>
 			<liferay-ui:search-container-column-text

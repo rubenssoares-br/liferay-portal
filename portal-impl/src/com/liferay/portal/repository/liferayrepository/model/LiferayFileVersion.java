@@ -58,11 +58,8 @@ public class LiferayFileVersion extends LiferayModel implements FileVersion {
 
 		LiferayFileVersion liferayFileVersion = (LiferayFileVersion)object;
 
-		if (Objects.equals(_dlFileVersion, liferayFileVersion._dlFileVersion)) {
-			return true;
-		}
-
-		return false;
+		return Objects.equals(
+			_dlFileVersion, liferayFileVersion._dlFileVersion);
 	}
 
 	@Override
@@ -77,6 +74,10 @@ public class LiferayFileVersion extends LiferayModel implements FileVersion {
 		ExpandoBridge expandoBridge = _dlFileVersion.getExpandoBridge();
 
 		return expandoBridge.getAttributes();
+	}
+
+	public long getCTCollectionId() {
+		return _dlFileVersion.getCtCollectionId();
 	}
 
 	@Override
@@ -113,7 +114,8 @@ public class LiferayFileVersion extends LiferayModel implements FileVersion {
 		return _dlFileVersion.getCreateDate();
 	}
 
-	public long getCTCollectionId() {
+	@Override
+	public long getCtCollectionId() {
 		return _dlFileVersion.getCtCollectionId();
 	}
 

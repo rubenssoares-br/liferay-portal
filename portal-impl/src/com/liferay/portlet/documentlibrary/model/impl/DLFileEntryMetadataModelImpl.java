@@ -87,6 +87,8 @@ public class DLFileEntryMetadataModelImpl
 	public static final String TABLE_SQL_DROP =
 		"drop table DLFileEntryMetadata";
 
+	public static final String ENTITY_ALIAS = "dlFileEntryMetadata";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY dlFileEntryMetadata.fileEntryMetadataId ASC";
 
@@ -161,7 +163,7 @@ public class DLFileEntryMetadataModelImpl
 	public static final long FILEENTRYMETADATAID_COLUMN_BITMASK = 64L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.document.library.kernel.model.DLFileEntryMetadata"));
 
 	public DLFileEntryMetadataModelImpl() {
@@ -933,3 +935,4 @@ public class DLFileEntryMetadataModelImpl
 	private DLFileEntryMetadata _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1883637741

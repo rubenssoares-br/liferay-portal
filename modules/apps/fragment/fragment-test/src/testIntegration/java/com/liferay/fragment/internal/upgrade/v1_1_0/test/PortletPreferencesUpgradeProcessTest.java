@@ -18,6 +18,7 @@ import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.layout.util.LayoutServiceContextHelper;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.petra.reflect.ReflectionUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.cache.MultiVMPool;
 import com.liferay.portal.kernel.dao.orm.EntityCache;
@@ -40,6 +41,7 @@ import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.kernel.version.Version;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.test.log.LogCapture;
@@ -81,7 +83,12 @@ public class PortletPreferencesUpgradeProcessTest {
 	}
 
 	@Test
+	@TestInfo("LPD-45005")
 	public void testUpgrade() throws Exception {
+		Assert.assertNotNull(
+			ReflectionUtil.getDeclaredField(
+				_upgradeStepRegistrator.getClass(), "viewCountManager"));
+
 		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
 
 		PortletPreferences layoutPortletPreferences = _getPortletPreferences(
@@ -285,6 +292,38 @@ public class PortletPreferencesUpgradeProcessTest {
 			layout.getPlid(), groupControlPanelPortletPreferences.getPlid());
 	}
 
+	@Test
+	public void testUpgradeWithGroupWithoutControlPanelLayout()
+		throws Exception {
+
+		Layout layout1 = LayoutTestUtil.addTypeContentLayout(_group);
+
+		Layout controlPanelLayout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		_layoutLocalService.updateType(
+			controlPanelLayout.getPlid(), LayoutConstants.TYPE_CONTROL_PANEL);
+
+		_clonePortletPreferences(
+			controlPanelLayout.getPlid(),
+			_getPortletPreferences(
+				layout1, _addPortletFragmentEntryLink(layout1)));
+
+		Group group2 = GroupTestUtil.addGroup();
+
+		Layout layout2 = LayoutTestUtil.addTypeContentLayout(group2);
+
+		PortletPreferences portletPreferences2 = _getPortletPreferences(
+			layout2, _addPortletFragmentEntryLink(layout2));
+
+		_assertUpgrade();
+
+		portletPreferences2 =
+			_portletPreferencesLocalService.fetchPortletPreferences(
+				portletPreferences2.getPortletPreferencesId());
+
+		Assert.assertEquals(layout2.getPlid(), portletPreferences2.getPlid());
+	}
+
 	private void _addFragmentEntryLink(Layout layout) throws Exception {
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(
@@ -305,7 +344,7 @@ public class PortletPreferencesUpgradeProcessTest {
 					RandomTestUtil.randomString() +
 						"<lfr-widget-nav></lfr-widget-nav></div>",
 				RandomTestUtil.randomString(), false, StringPool.BLANK, null, 0,
-				false, FragmentConstants.TYPE_COMPONENT, null,
+				false, false, FragmentConstants.TYPE_COMPONENT, null,
 				WorkflowConstants.STATUS_APPROVED, serviceContext);
 
 		long segmentsExperienceId =
@@ -314,9 +353,11 @@ public class PortletPreferencesUpgradeProcessTest {
 
 		ContentLayoutTestUtil.addFragmentEntryLinkToLayout(
 			_fragmentEntryLinkLocalService.addFragmentEntryLink(
-				null, TestPropsValues.getUserId(), layout.getGroupId(), 0,
-				fragmentEntry.getFragmentEntryId(), segmentsExperienceId,
-				layout.getPlid(), fragmentEntry.getCss(),
+				null, TestPropsValues.getUserId(), layout.getGroupId(), null,
+				fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					fragmentEntry.getGroupId(), layout.getGroupId()),
+				segmentsExperienceId, layout.getPlid(), fragmentEntry.getCss(),
 				fragmentEntry.getHtml(), fragmentEntry.getJs(),
 				fragmentEntry.getConfiguration(), StringPool.BLANK,
 				StringPool.BLANK, 0, StringPool.BLANK, fragmentEntry.getType(),
@@ -431,11 +472,6 @@ public class PortletPreferencesUpgradeProcessTest {
 		_multiVMPool.clear();
 	}
 
-	@Inject(
-		filter = "(&(component.name=com.liferay.fragment.internal.upgrade.registry.FragmentServiceUpgradeStepRegistrator))"
-	)
-	private static UpgradeStepRegistrator _upgradeStepRegistrator;
-
 	@Inject
 	private EntityCache _entityCache;
 
@@ -468,5 +504,10 @@ public class PortletPreferencesUpgradeProcessTest {
 
 	@Inject
 	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
+
+	@Inject(
+		filter = "(&(component.name=com.liferay.fragment.internal.upgrade.registry.FragmentServiceUpgradeStepRegistrator))"
+	)
+	private UpgradeStepRegistrator _upgradeStepRegistrator;
 
 }

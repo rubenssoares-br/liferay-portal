@@ -50,9 +50,11 @@ public class LayoutColumn {
 			(LayoutTypePortlet)_layout.getLayoutType();
 
 		for (String portletId : layoutTypePortlet.getPortletIds()) {
-			if (!portletId.startsWith(PortletKeys.NESTED_PORTLETS)) {
-				_addPortlet(portletId);
+			if (portletId.startsWith(PortletKeys.NESTED_PORTLETS)) {
+				continue;
 			}
+
+			_addPortlet(portletId);
 		}
 	}
 
@@ -97,7 +99,7 @@ public class LayoutColumn {
 		FragmentEntryLink fragmentEntryLink =
 			FragmentEntryLinkLocalServiceUtil.addFragmentEntryLink(
 				null, serviceContext.getUserId(),
-				serviceContext.getScopeGroupId(), 0, 0,
+				serviceContext.getScopeGroupId(), null, null, null,
 				SegmentsExperienceLocalServiceUtil.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), StringPool.BLANK, StringPool.BLANK,
@@ -122,11 +124,13 @@ public class LayoutColumn {
 		String[] nestedColumnIds = property.split(StringPool.COMMA);
 
 		for (String nestedColumnId : nestedColumnIds) {
-			if (Validator.isNotNull(nestedColumnId) &&
-				nestedColumnId.startsWith(StringPool.UNDERLINE + portletId)) {
+			if (Validator.isNull(nestedColumnId) ||
+				!nestedColumnId.startsWith(StringPool.UNDERLINE + portletId)) {
 
-				portletNestedColumnIds.add(nestedColumnId);
+				continue;
 			}
+
+			portletNestedColumnIds.add(nestedColumnId);
 		}
 
 		return portletNestedColumnIds;

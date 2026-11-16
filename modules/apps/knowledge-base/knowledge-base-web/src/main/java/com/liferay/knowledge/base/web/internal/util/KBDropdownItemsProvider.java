@@ -52,10 +52,10 @@ import com.liferay.subscription.service.SubscriptionLocalServiceUtil;
 import com.liferay.taglib.security.PermissionsURLTag;
 import com.liferay.trash.TrashHelper;
 
+import jakarta.portlet.PortletRequest;
+
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletRequest;
 
 /**
  * @author Adolfo Pérez
@@ -411,6 +411,94 @@ public class KBDropdownItemsProvider {
 		};
 	}
 
+	private String _getDeleteActionURL(
+		String cmd, KBArticle kbArticle, List<Long> selectedItemAncestorIds) {
+
+		return PortletURLBuilder.createActionURL(
+			_liferayPortletResponse
+		).setActionName(
+			"/knowledge_base/delete_kb_article"
+		).setCMD(
+			cmd
+		).setRedirect(
+			() -> {
+				PortletDisplay portletDisplay =
+					_themeDisplay.getPortletDisplay();
+
+				if (!Objects.equals(
+						portletDisplay.getRootPortletId(),
+						KBPortletKeys.KNOWLEDGE_BASE_ADMIN) &&
+					!Objects.equals(
+						portletDisplay.getRootPortletId(),
+						KBPortletKeys.KNOWLEDGE_BASE_DISPLAY)) {
+
+					return _createKbHomeRenderURL();
+				}
+
+				if (Objects.equals(
+						portletDisplay.getRootPortletId(),
+						KBPortletKeys.KNOWLEDGE_BASE_DISPLAY)) {
+
+					return PortletURLBuilder.createActionURL(
+						_liferayPortletResponse
+					).setParameter(
+						"resourcePrimKey",
+						() -> {
+							if (kbArticle.getParentResourcePrimKey() ==
+									kbArticle.getKbFolderId()) {
+
+								return null;
+							}
+
+							return kbArticle.getParentResourcePrimKey();
+						}
+					).buildString();
+				}
+
+				if (((selectedItemAncestorIds == null) &&
+					 _isKBArticleSelected(kbArticle)) ||
+					((selectedItemAncestorIds != null) &&
+					 selectedItemAncestorIds.contains(
+						 kbArticle.getResourcePrimKey()))) {
+
+					return _getParentNodeURL(kbArticle);
+				}
+
+				return _currentURL;
+			}
+		).setParameter(
+			"resourcePrimKey", kbArticle.getResourcePrimKey()
+		).buildString();
+	}
+
+	private String _getDeleteActionURL(
+		String cmd, KBFolder kbFolder, List<Long> selectedItemAncestorIds) {
+
+		return PortletURLBuilder.createActionURL(
+			_liferayPortletResponse
+		).setActionName(
+			"/knowledge_base/delete_kb_folder"
+		).setCMD(
+			cmd
+		).setRedirect(
+			() -> {
+				if (((selectedItemAncestorIds == null) &&
+					 _isKBFolderSelected(kbFolder)) ||
+					((selectedItemAncestorIds != null) &&
+					 selectedItemAncestorIds.contains(
+						 kbFolder.getKbFolderId()))) {
+
+					return _createKBFolderRenderURL(
+						kbFolder.getParentKBFolderId());
+				}
+
+				return _currentURL;
+			}
+		).setParameter(
+			"kbFolderId", kbFolder.getKbFolderId()
+		).buildString();
+	}
+
 	private UnsafeConsumer<DropdownItem, Exception>
 		_getDeleteActionUnsafeConsumer(
 			KBArticle kbArticle, List<Long> selectedItemAncestorIds) {
@@ -512,94 +600,6 @@ public class KBDropdownItemsProvider {
 				LanguageUtil.get(
 					_liferayPortletRequest.getHttpServletRequest(), "delete"));
 		};
-	}
-
-	private String _getDeleteActionURL(
-		String cmd, KBArticle kbArticle, List<Long> selectedItemAncestorIds) {
-
-		return PortletURLBuilder.createActionURL(
-			_liferayPortletResponse
-		).setActionName(
-			"/knowledge_base/delete_kb_article"
-		).setCMD(
-			cmd
-		).setRedirect(
-			() -> {
-				PortletDisplay portletDisplay =
-					_themeDisplay.getPortletDisplay();
-
-				if (!Objects.equals(
-						portletDisplay.getRootPortletId(),
-						KBPortletKeys.KNOWLEDGE_BASE_ADMIN) &&
-					!Objects.equals(
-						portletDisplay.getRootPortletId(),
-						KBPortletKeys.KNOWLEDGE_BASE_DISPLAY)) {
-
-					return _createKbHomeRenderURL();
-				}
-
-				if (Objects.equals(
-						portletDisplay.getRootPortletId(),
-						KBPortletKeys.KNOWLEDGE_BASE_DISPLAY)) {
-
-					return PortletURLBuilder.createActionURL(
-						_liferayPortletResponse
-					).setParameter(
-						"resourcePrimKey",
-						() -> {
-							if (kbArticle.getParentResourcePrimKey() ==
-									kbArticle.getKbFolderId()) {
-
-								return null;
-							}
-
-							return kbArticle.getParentResourcePrimKey();
-						}
-					).buildString();
-				}
-
-				if (((selectedItemAncestorIds == null) &&
-					 _isKBArticleSelected(kbArticle)) ||
-					((selectedItemAncestorIds != null) &&
-					 selectedItemAncestorIds.contains(
-						 kbArticle.getResourcePrimKey()))) {
-
-					return _getParentNodeURL(kbArticle);
-				}
-
-				return _currentURL;
-			}
-		).setParameter(
-			"resourcePrimKey", kbArticle.getResourcePrimKey()
-		).buildString();
-	}
-
-	private String _getDeleteActionURL(
-		String cmd, KBFolder kbFolder, List<Long> selectedItemAncestorIds) {
-
-		return PortletURLBuilder.createActionURL(
-			_liferayPortletResponse
-		).setActionName(
-			"/knowledge_base/delete_kb_folder"
-		).setCMD(
-			cmd
-		).setRedirect(
-			() -> {
-				if (((selectedItemAncestorIds == null) &&
-					 _isKBFolderSelected(kbFolder)) ||
-					((selectedItemAncestorIds != null) &&
-					 selectedItemAncestorIds.contains(
-						 kbFolder.getKbFolderId()))) {
-
-					return _createKBFolderRenderURL(
-						kbFolder.getParentKBFolderId());
-				}
-
-				return _currentURL;
-			}
-		).setParameter(
-			"kbFolderId", kbFolder.getKbFolderId()
-		).buildString();
 	}
 
 	private UnsafeConsumer<DropdownItem, Exception>
@@ -755,7 +755,8 @@ public class KBDropdownItemsProvider {
 			dropdownItem.setIcon("date-time");
 			dropdownItem.setLabel(
 				LanguageUtil.get(
-					_liferayPortletRequest.getHttpServletRequest(), "history"));
+					_liferayPortletRequest.getHttpServletRequest(),
+					"history[record]"));
 		};
 	}
 
@@ -1147,25 +1148,15 @@ public class KBDropdownItemsProvider {
 	}
 
 	private boolean _hasDeletePermission(KBArticle kbArticle) throws Exception {
-		if (KBArticlePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbArticle,
-				KBActionKeys.DELETE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBArticlePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbArticle,
+			KBActionKeys.DELETE);
 	}
 
 	private boolean _hasDeletePermission(KBComment kbComment) throws Exception {
-		if (KBCommentPermission.contains(
-				_themeDisplay.getPermissionChecker(), kbComment,
-				KBActionKeys.DELETE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBCommentPermission.contains(
+			_themeDisplay.getPermissionChecker(), kbComment,
+			KBActionKeys.DELETE);
 	}
 
 	private boolean _hasDeletePermission(KBFolder kbFolder) throws Exception {
@@ -1173,27 +1164,17 @@ public class KBDropdownItemsProvider {
 			return false;
 		}
 
-		if (KBFolderPermission.contains(
-				_themeDisplay.getPermissionChecker(), kbFolder,
-				KBActionKeys.DELETE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBFolderPermission.contains(
+			_themeDisplay.getPermissionChecker(), kbFolder,
+			KBActionKeys.DELETE);
 	}
 
 	private boolean _hasDeletePermission(KBTemplate kbTemplate)
 		throws Exception {
 
-		if (KBTemplatePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbTemplate,
-				KBActionKeys.DELETE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBTemplatePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbTemplate,
+			KBActionKeys.DELETE);
 	}
 
 	private boolean _hasExpirationPermission(KBArticle kbArticle)
@@ -1241,14 +1222,9 @@ public class KBDropdownItemsProvider {
 	}
 
 	private boolean _hasMovePermission(KBArticle kbArticle) throws Exception {
-		if (KBArticlePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbArticle,
-				KBActionKeys.MOVE_KB_ARTICLE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBArticlePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbArticle,
+			KBActionKeys.MOVE_KB_ARTICLE);
 	}
 
 	private boolean _hasMovePermission(KBFolder kbFolder) throws Exception {
@@ -1256,27 +1232,17 @@ public class KBDropdownItemsProvider {
 			return false;
 		}
 
-		if (KBFolderPermission.contains(
-				_themeDisplay.getPermissionChecker(), kbFolder,
-				KBActionKeys.MOVE_KB_FOLDER)) {
-
-			return true;
-		}
-
-		return false;
+		return KBFolderPermission.contains(
+			_themeDisplay.getPermissionChecker(), kbFolder,
+			KBActionKeys.MOVE_KB_FOLDER);
 	}
 
 	private boolean _hasPermissionsPermission(KBArticle kbArticle)
 		throws Exception {
 
-		if (KBArticlePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbArticle,
-				KBActionKeys.PERMISSIONS)) {
-
-			return true;
-		}
-
-		return false;
+		return KBArticlePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbArticle,
+			KBActionKeys.PERMISSIONS);
 	}
 
 	private boolean _hasPermissionsPermission(KBFolder kbFolder)
@@ -1296,27 +1262,17 @@ public class KBDropdownItemsProvider {
 			return false;
 		}
 
-		if (KBFolderPermission.contains(
-				_themeDisplay.getPermissionChecker(), kbFolder,
-				KBActionKeys.PERMISSIONS)) {
-
-			return true;
-		}
-
-		return false;
+		return KBFolderPermission.contains(
+			_themeDisplay.getPermissionChecker(), kbFolder,
+			KBActionKeys.PERMISSIONS);
 	}
 
 	private boolean _hasPermissionsPermission(KBTemplate kbTemplate)
 		throws Exception {
 
-		if (KBTemplatePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbTemplate,
-				KBActionKeys.PERMISSIONS)) {
-
-			return true;
-		}
-
-		return false;
+		return KBTemplatePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbTemplate,
+			KBActionKeys.PERMISSIONS);
 	}
 
 	private Boolean _hasPrintPermission() {
@@ -1340,25 +1296,15 @@ public class KBDropdownItemsProvider {
 	}
 
 	private boolean _hasSubscription() {
-		if (SubscriptionLocalServiceUtil.isSubscribed(
-				_themeDisplay.getCompanyId(), _themeDisplay.getUserId(),
-				KBArticle.class.getName(), _themeDisplay.getScopeGroupId())) {
-
-			return true;
-		}
-
-		return false;
+		return SubscriptionLocalServiceUtil.isSubscribed(
+			_themeDisplay.getCompanyId(), _themeDisplay.getUserId(),
+			KBArticle.class.getName(), _themeDisplay.getScopeGroupId());
 	}
 
 	private boolean _hasSubscription(KBArticle kbArticle) {
-		if (SubscriptionLocalServiceUtil.isSubscribed(
-				_themeDisplay.getCompanyId(), _themeDisplay.getUserId(),
-				KBArticle.class.getName(), kbArticle.getResourcePrimKey())) {
-
-			return true;
-		}
-
-		return false;
+		return SubscriptionLocalServiceUtil.isSubscribed(
+			_themeDisplay.getCompanyId(), _themeDisplay.getUserId(),
+			KBArticle.class.getName(), kbArticle.getResourcePrimKey());
 	}
 
 	private boolean _hasSubscriptionPermission(KBArticle kbArticle)
@@ -1388,14 +1334,9 @@ public class KBDropdownItemsProvider {
 	}
 
 	private boolean _hasUpdatePermission(KBArticle kbArticle) throws Exception {
-		if (KBArticlePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbArticle,
-				KBActionKeys.UPDATE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBArticlePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbArticle,
+			KBActionKeys.UPDATE);
 	}
 
 	private boolean _hasUpdatePermission(KBFolder kbFolder) throws Exception {
@@ -1403,51 +1344,31 @@ public class KBDropdownItemsProvider {
 			return false;
 		}
 
-		if (KBFolderPermission.contains(
-				_themeDisplay.getPermissionChecker(), kbFolder,
-				KBActionKeys.UPDATE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBFolderPermission.contains(
+			_themeDisplay.getPermissionChecker(), kbFolder,
+			KBActionKeys.UPDATE);
 	}
 
 	private boolean _hasUpdatePermission(KBTemplate kbTemplate)
 		throws Exception {
 
-		if (KBTemplatePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbTemplate,
-				KBActionKeys.UPDATE)) {
-
-			return true;
-		}
-
-		return false;
+		return KBTemplatePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbTemplate,
+			KBActionKeys.UPDATE);
 	}
 
 	private boolean _hasViewChildKBArticlesPermission() {
 		PortletDisplay portletDisplay = _themeDisplay.getPortletDisplay();
 
-		if (Objects.equals(
-				portletDisplay.getRootPortletId(),
-				KBPortletKeys.KNOWLEDGE_BASE_ADMIN)) {
-
-			return true;
-		}
-
-		return false;
+		return Objects.equals(
+			portletDisplay.getRootPortletId(),
+			KBPortletKeys.KNOWLEDGE_BASE_ADMIN);
 	}
 
 	private boolean _hasViewPermission(KBTemplate kbTemplate) throws Exception {
-		if (KBTemplatePermission.contains(
-				_themeDisplay.getPermissionChecker(), kbTemplate,
-				KBActionKeys.VIEW)) {
-
-			return true;
-		}
-
-		return false;
+		return KBTemplatePermission.contains(
+			_themeDisplay.getPermissionChecker(), kbTemplate,
+			KBActionKeys.VIEW);
 	}
 
 	private Boolean _isHistoryEnabled() {

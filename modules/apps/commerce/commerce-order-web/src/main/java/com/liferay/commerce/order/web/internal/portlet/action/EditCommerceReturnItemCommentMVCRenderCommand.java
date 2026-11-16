@@ -8,6 +8,7 @@ package com.liferay.commerce.order.web.internal.portlet.action;
 import com.liferay.commerce.constants.CommercePortletKeys;
 import com.liferay.commerce.exception.NoSuchOrderException;
 import com.liferay.commerce.order.web.internal.display.context.CommerceReturnItemCommentEditDisplayContext;
+import com.liferay.portal.kernel.comment.DiscussionPermission;
 import com.liferay.portal.kernel.portlet.LiferayWindowState;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCRenderCommand;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
@@ -19,10 +20,10 @@ import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import javax.portlet.PortletException;
-import javax.portlet.PortletRequest;
-import javax.portlet.RenderRequest;
-import javax.portlet.RenderResponse;
+import jakarta.portlet.PortletException;
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.RenderRequest;
+import jakarta.portlet.RenderResponse;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -32,7 +33,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + CommercePortletKeys.COMMERCE_RETURN,
+		"jakarta.portlet.name=" + CommercePortletKeys.COMMERCE_RETURN,
 		"mvc.command.name=/commerce_return/edit_commerce_return_item_comment"
 	},
 	service = MVCRenderCommand.class
@@ -49,7 +50,7 @@ public class EditCommerceReturnItemCommentMVCRenderCommand
 			CommerceReturnItemCommentEditDisplayContext
 				commerceReturnItemCommentEditDisplayContext =
 					new CommerceReturnItemCommentEditDisplayContext(
-						renderRequest);
+						_discussionPermission, renderRequest);
 
 			renderRequest.setAttribute(
 				WebKeys.PORTLET_DISPLAY_CONTEXT,
@@ -96,6 +97,9 @@ public class EditCommerceReturnItemCommentMVCRenderCommand
 				LiferayWindowState.POP_UP
 			).buildString());
 	}
+
+	@Reference
+	private DiscussionPermission _discussionPermission;
 
 	@Reference
 	private Portal _portal;

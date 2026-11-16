@@ -15,24 +15,24 @@
 	/>
 </liferay-util:buffer>
 
-<%
-List<DropdownItem> dropdownItems = inputAssetLinksDisplayContext.getActionDropdownItems();
-%>
-
-<clay:dropdown-menu
+<clay:button
 	additionalProps='<%=
 		HashMapBuilder.<String, Object>put(
+			"assetEntryTypes", inputAssetLinksDisplayContext.getAssetEntryTypesJSONArray()
+		).put(
+			"groupIds", inputAssetLinksDisplayContext.getConnectedGroupIdsString()
+		).put(
+			"refererClassNameId", inputAssetLinksDisplayContext.getRefererClassNameId()
+		).put(
+			"refererClassPK", inputAssetLinksDisplayContext.getRefererClassPK()
+		).put(
 			"removeIcon", removeLinkIcon
 		).build()
 	%>'
-	alignmentByViewport="<%= true %>"
-	alignmentPosition="<%= 6 %>"
 	aria-label='<%= LanguageUtil.get(request, "select-items") %>'
 	cssClass="btn btn-secondary"
-	dropdownItems="<%= dropdownItems %>"
 	label='<%= LanguageUtil.get(request, "select") %>'
 	propsTransformer="{InputAssetLinkDropdownDefaultPropsTransformer} from asset-taglib"
-	searchable="<%= dropdownItems.size() > 7 %>"
 />
 
 <liferay-ui:search-container
@@ -47,7 +47,7 @@ List<DropdownItem> dropdownItems = inputAssetLinksDisplayContext.getActionDropdo
 
 	<liferay-ui:search-container-row
 		className="com.liferay.asset.link.model.AssetLink"
-		keyProperty="entryId2"
+		keyPropertyName="entryId2"
 		modelVar="assetLink"
 	>
 

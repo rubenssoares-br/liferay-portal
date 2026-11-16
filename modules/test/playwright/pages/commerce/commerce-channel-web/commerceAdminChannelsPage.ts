@@ -6,11 +6,13 @@
 import {FrameLocator, Locator, Page, expect} from '@playwright/test';
 
 import {waitForAlert} from '../../../utils/waitForAlert';
-import {ApplicationsMenuPage} from '../../product-navigation-applications-menu/ApplicationsMenuPage';
+import {GlobalMenuPage} from '../../product-navigation-applications-menu/GlobalMenuPage';
 import {searchTableRowByValue} from '../commerceDNDTablePage';
+import {CommerceAdminChannelDetailsPage} from './commerceAdminChannelDetailsPage';
 
 export class CommerceAdminChannelsPage {
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly addButton: Locator;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly buyerOrderApprovalWorkflow: Locator;
 	readonly channelsTable: Locator;
 	readonly channelsTableRow: (
@@ -18,30 +20,41 @@ export class CommerceAdminChannelsPage {
 		value: number | string,
 		strictEqual?: boolean
 	) => Promise<{column: Locator; row: Locator}>;
+	readonly channelActionsButton: (channelName: string) => Locator;
+	readonly channelLink: (name: string) => Locator;
 	readonly channelsTableRowLink: (channelName: string) => Promise<Locator>;
+	readonly modalAddButton: Locator;
+	readonly modalFieldName: Locator;
+	readonly modalFrameLocator: FrameLocator;
+	readonly modalSelectType: Locator;
 	readonly commerceSiteType: Locator;
 	readonly healthCheckAction: (actionName: string) => Locator;
 	readonly headerActions: Locator;
 	readonly headerActionsSaveButton: Locator;
+	readonly ordersTabToggle: (toggleName: string) => Locator;
 	readonly page: Page;
 	readonly sellerOrderAcceptanceWorkflow: Locator;
+	readonly sidePanelFrameLocator: FrameLocator;
 	readonly shippingMethodActiveField: Locator;
 	readonly shippingMethodOptionsAddButton: Locator;
 	readonly shippingMethodOptionsLink: Locator;
 	readonly shippingMethodSaveButton: Locator;
-	readonly shippingMethodsPanel: FrameLocator;
+	readonly shippingOptionAmountField: Locator;
 	readonly shippingOptionKeyField: Locator;
 	readonly shippingOptionNameField: Locator;
 	readonly shippingOptionSaveButton: Locator;
 	readonly shippingOptionsPanel: FrameLocator;
 
 	constructor(page: Page) {
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
+		this.addButton = page
+			.getByTestId('managementToolbar')
+			.locator('[data-testid="fdsCreationActionButton"]');
+		this.globalMenuPage = new GlobalMenuPage(page);
 		this.buyerOrderApprovalWorkflow = page.getByLabel(
 			'Buyer Order Approval Workflow'
 		);
 		this.channelsTable = page.locator(
-			'#portlet_com_liferay_commerce_channel_web_internal_portlet_CommerceChannelsPortlet .dnd-table'
+			'#portlet_com_liferay_commerce_channel_web_internal_portlet_CommerceChannelsPortlet .fds table'
 		);
 		this.channelsTableRow = async (
 			colPosition: number,
@@ -55,6 +68,13 @@ export class CommerceAdminChannelsPage {
 				strictEqual
 			);
 		};
+		this.channelActionsButton = (channelName: string) =>
+			page.getByRole('button', {
+				exact: true,
+				name: `${channelName} Actions`,
+			});
+		this.channelLink = (name: string) =>
+			page.getByRole('link', {exact: true, name});
 		this.channelsTableRowLink = async (channelName: string) => {
 			const channelsTableRow = await this.channelsTableRow(
 				0,
@@ -75,33 +95,46 @@ export class CommerceAdminChannelsPage {
 		this.commerceSiteType = page.getByLabel('Commerce Site Type');
 		this.healthCheckAction = (actionName: string) =>
 			page
-				.locator('.dnd-tr')
-				.filter({has: page.getByText(actionName, {exact: true})})
-				.locator('.item-actions .btn');
+				.locator('tr')
+				.filter({
+					has: page.locator('td.cell-name', {hasText: actionName}),
+				})
+				.locator('td.cell-item-actions .btn');
 		this.headerActions = page.locator('.header-actions');
 		this.headerActionsSaveButton = this.headerActions.getByText('Save');
+		this.modalFrameLocator = page.frameLocator('.fds-modal-body iframe');
+		this.modalAddButton = this.modalFrameLocator.getByRole('button', {
+			name: 'Add',
+		});
+		this.modalFieldName =
+			this.modalFrameLocator.getByLabel('Name Required');
+		this.modalSelectType =
+			this.modalFrameLocator.getByLabel('Type Required');
+		this.ordersTabToggle = (toggleName) => page.getByLabel(toggleName);
 		this.page = page;
 		this.sellerOrderAcceptanceWorkflow = page.getByLabel(
 			'Seller Order Acceptance Workflow'
 		);
-		this.shippingMethodsPanel = page.frameLocator('iframe').nth(2);
+		this.sidePanelFrameLocator = page.frameLocator('.is-visible iframe');
 
 		this.shippingMethodActiveField =
-			this.shippingMethodsPanel.getByLabel('Active');
-		this.shippingMethodOptionsAddButton = this.shippingMethodsPanel
-			.getByTestId('management-toolbar')
+			this.sidePanelFrameLocator.getByLabel('Active');
+		this.shippingMethodOptionsAddButton = this.sidePanelFrameLocator
+			.getByTestId('managementToolbar')
 			.locator('[data-testid="fdsCreationActionButton"]');
-		this.shippingMethodOptionsLink = this.shippingMethodsPanel.getByRole(
+		this.shippingMethodOptionsLink = this.sidePanelFrameLocator.getByRole(
 			'link',
 			{name: 'Shipping Options'}
 		);
-		this.shippingMethodSaveButton = this.shippingMethodsPanel.getByRole(
+		this.shippingMethodSaveButton = this.sidePanelFrameLocator.getByRole(
 			'button',
 			{exact: true, name: 'Save'}
 		);
 		this.shippingOptionsPanel =
-			this.shippingMethodsPanel.frameLocator('iframe');
+			this.sidePanelFrameLocator.frameLocator('.is-visible iframe');
 
+		this.shippingOptionAmountField =
+			this.shippingOptionsPanel.getByLabel('Amount');
 		this.shippingOptionKeyField =
 			this.shippingOptionsPanel.getByLabel('Key');
 		this.shippingOptionNameField =
@@ -112,8 +145,66 @@ export class CommerceAdminChannelsPage {
 		);
 	}
 
-	async goto() {
-		await this.applicationsMenuPage.goToCommerceChannels();
+	async addFlatRateDeliveryTermEligibility(
+		commerceAdminChannelDetailsPage: CommerceAdminChannelDetailsPage,
+		channelName: string,
+		termLabel: string
+	) {
+		await this.goto();
+
+		await (await this.channelsTableRowLink(channelName)).click();
+		await (
+			await commerceAdminChannelDetailsPage.generalCommerceAdminChannelTableLink(
+				'Flat Rate'
+			)
+		).click();
+		await commerceAdminChannelDetailsPage.setEntryEligibility(
+			'Specific Delivery Terms',
+			termLabel,
+			'Shipping Methods',
+			'Standard Delivery'
+		);
+	}
+
+	async addMoneyOrderPaymentTermEligibility(
+		commerceAdminChannelDetailsPage: CommerceAdminChannelDetailsPage,
+		channelName: string,
+		termLabel: string
+	) {
+		await this.goto();
+
+		await (await this.channelsTableRowLink(channelName)).click();
+		await (
+			await commerceAdminChannelDetailsPage.generalCommerceAdminChannelTableLink(
+				'Money Order'
+			)
+		).click();
+		await commerceAdminChannelDetailsPage.setEntryEligibility(
+			'Specific Payment Terms',
+			termLabel,
+			'Payment Methods',
+			'Money Order'
+		);
+	}
+
+	async changeCommerceChannelAllowMultishipping(
+		commerceAdminChannelDetailsPage: CommerceAdminChannelDetailsPage,
+		allowMultishipping: boolean,
+		channelName: string,
+		skipNavigation: boolean = false
+	) {
+		if (!skipNavigation) {
+			await this.goto();
+
+			await (await this.channelsTableRowLink(channelName)).click();
+		}
+
+		await commerceAdminChannelDetailsPage.allowMultishippingToggle.setChecked(
+			allowMultishipping
+		);
+		await this.headerActionsSaveButton.click();
+
+		await waitForAlert(this.page);
 	}
 
 	async changeCommerceChannelBuyerOrderApprovalWorkflow(
@@ -190,29 +281,80 @@ export class CommerceAdminChannelsPage {
 		);
 	}
 
+	async goto() {
+		await this.globalMenuPage.goToCommerce('Channels');
+	}
+
 	async setupCommerceChannelShippingMethod(
 		channelName: string,
 		shippingMethodName: string,
-		shippingOptions: string[]
+		shippingOptions: string[],
+		amount: boolean = false,
+		skipNavigation: boolean = false
 	) {
-		await this.goto();
+		if (!skipNavigation) {
+			await this.goto();
 
-		await (await this.channelsTableRowLink(channelName)).click();
+			await (await this.channelsTableRowLink(channelName)).click();
+		}
 
-		await this.page
-			.getByRole('link', {exact: true, name: shippingMethodName})
-			.click();
+		const shippingMethodLink = this.page.getByRole('link', {
+			exact: true,
+			name: shippingMethodName,
+		});
+
+		await expect(async () => {
+			if (await this.shippingMethodActiveField.isHidden()) {
+				await shippingMethodLink.click({timeout: 5000});
+			}
+
+			await expect(this.shippingMethodActiveField).toBeVisible({
+				timeout: 5000,
+			});
+		}).toPass({timeout: 30000});
+
 		await this.shippingMethodActiveField.check();
+
+		await expect(this.shippingMethodActiveField).toBeChecked({
+			timeout: 5000,
+		});
+
 		await this.shippingMethodSaveButton.click();
-		await this.shippingMethodOptionsLink.click();
+
+		await expect(async () => {
+			if (await this.shippingMethodOptionsAddButton.isHidden()) {
+				await this.shippingMethodOptionsLink.click({timeout: 5000});
+			}
+
+			await expect(this.shippingMethodOptionsAddButton).toBeVisible({
+				timeout: 5000,
+			});
+		}).toPass({timeout: 30000});
+
+		let shippingPrice = 10;
+
 		await this.shippingMethodOptionsAddButton.click();
+
+		await expect(this.shippingOptionNameField).toBeVisible({
+			timeout: 15000,
+		});
 
 		for (const shippingOption of shippingOptions) {
 			await this.shippingOptionNameField.fill(shippingOption);
+			if (amount) {
+				await this.shippingOptionAmountField.fill(
+					String(shippingPrice++)
+				);
+			}
 			await this.shippingOptionKeyField.fill(shippingOption);
 			await this.shippingOptionSaveButton.click();
+
+			await waitForAlert(this.shippingOptionsPanel);
+
 			await expect(
-				this.shippingMethodsPanel.getByText(shippingOption)
+				this.sidePanelFrameLocator.getByText(shippingOption, {
+					exact: true,
+				})
 			).toBeVisible();
 		}
 	}

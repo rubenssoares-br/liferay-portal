@@ -22,9 +22,9 @@ String languageId = LanguageUtil.getLanguageId(request);
 
 WorkflowTask workflowTask = workflowTaskDisplayContext.getWorkflowTask();
 
-long classPK = workflowTaskDisplayContext.getWorkflowContextEntryClassPK(workflowTask);
-
 WorkflowHandler<?> workflowHandler = workflowTaskDisplayContext.getWorkflowHandler(workflowTask);
+
+long classPK = workflowTaskDisplayContext.getWorkflowContextEntryClassPK(workflowHandler, workflowTask);
 
 AssetRenderer<?> assetRenderer = workflowHandler.getAssetRenderer(classPK);
 
@@ -36,7 +36,7 @@ if (assetRenderer != null) {
 	assetRendererFactory = assetRenderer.getAssetRendererFactory();
 
 	if (assetRendererFactory != null) {
-		assetEntry = assetRendererFactory.getAssetEntry(workflowHandler.getClassName(), assetRenderer.getClassPK());
+		assetEntry = workflowTaskDisplayContext.getWorkflowAssetEntry(workflowHandler.getClassName(), classPK, assetRenderer.getClassPK());
 	}
 
 	String[] availableLanguageIds = assetRenderer.getAvailableLanguageIds();

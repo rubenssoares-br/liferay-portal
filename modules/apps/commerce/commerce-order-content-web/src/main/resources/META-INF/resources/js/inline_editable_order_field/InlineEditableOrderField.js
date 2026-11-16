@@ -7,7 +7,8 @@ import ClayButton, {ClayButtonWithIcon} from '@clayui/button';
 import ClayForm, {ClayInput} from '@clayui/form';
 import ClayModal, {useModal} from '@clayui/modal';
 import {CommerceServiceProvider} from 'commerce-frontend-js';
-import {openToast, sub} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {sub} from 'frontend-js-web';
 import React, {useCallback, useState} from 'react';
 
 const InlineEditableOrderField = ({
@@ -62,7 +63,7 @@ const InlineEditableOrderField = ({
 				className="align-items-center d-flex"
 				id={`${namespace}inlineEditableOrderField`}
 			>
-				<span className="text-black-50">{label && `${label}`}</span>
+				<span className="text-secondary">{label && `${label}`}</span>
 
 				{currentValue ? (
 					<span className="font-weight-bold ml-2">
@@ -71,7 +72,7 @@ const InlineEditableOrderField = ({
 				) : (
 					<ClayButton
 						aria-label={Liferay.Language.get('not-set')}
-						className="border-bottom border-dashed btn-sm ml-2 p-0 small text-black-50 text-decoration-none"
+						className="border-bottom border-dashed btn-sm ml-2 p-0 small text-decoration-none text-secondary"
 						displayType="link"
 						onClick={() =>
 							hasPermission &&
@@ -111,7 +112,9 @@ const InlineEditableOrderField = ({
 					spritemap={spritemap}
 				>
 					<ClayForm onSubmit={onSubmit}>
-						<ClayModal.Header>
+						<ClayModal.Header
+							closeButtonAriaLabel={Liferay.Language.get('close')}
+						>
 							{sub(Liferay.Language.get('edit-x'), label)}
 						</ClayModal.Header>
 

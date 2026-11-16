@@ -12,13 +12,6 @@
 <clay:container-fluid
 	cssClass="container-view"
 >
-
-	<%
-	AuditDisplayContext auditDisplayContext = new AuditDisplayContext(request, liferayPortletRequest, liferayPortletResponse, timeZone);
-
-	request.setAttribute(AuditDisplayContext.class.getName(), auditDisplayContext);
-	%>
-
 	<aui:form action="<%= searchURL %>" method="get" name="fm">
 		<liferay-portlet:renderURLParams varImpl="searchURL" />
 
@@ -33,7 +26,7 @@
 			<liferay-ui:search-container-row
 				className="com.liferay.portal.security.audit.AuditEvent"
 				escapedModel="<%= true %>"
-				keyProperty="auditEventId"
+				keyPropertyName="auditEventId"
 				modelVar="event"
 			>
 				<liferay-portlet:renderURL varImpl="rowURL">

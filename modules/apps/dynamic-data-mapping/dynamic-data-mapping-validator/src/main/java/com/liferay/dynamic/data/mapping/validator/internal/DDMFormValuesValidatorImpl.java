@@ -289,6 +289,29 @@ public class DDMFormValuesValidatorImpl implements DDMFormValuesValidator {
 		}
 	}
 
+	private void _traverseDDMFormFieldValues(
+			List<DDMFormFieldValue> ddmFormFieldValues,
+			Map<String, DDMFormField> ddmFormFieldsMap)
+		throws DDMFormValuesValidationException {
+
+		for (DDMFormFieldValue ddmFormFieldValue : ddmFormFieldValues) {
+			DDMFormField ddmFormField = ddmFormFieldsMap.get(
+				ddmFormFieldValue.getName());
+
+			if (ddmFormField == null) {
+				continue;
+			}
+
+			_validateDDMFormFieldValue(
+				ddmFormFieldsMap.get(ddmFormFieldValue.getName()),
+				ddmFormFieldValue);
+
+			_traverseDDMFormFieldValues(
+				ddmFormFieldValue.getNestedDDMFormFieldValues(),
+				ddmFormField.getNestedDDMFormFieldsMap());
+		}
+	}
+
 	private void _traverseDDMFormFields(
 			List<DDMFormField> ddmFormFields,
 			Map<String, List<DDMFormFieldValue>> ddmFormFieldValuesMap)
@@ -305,27 +328,6 @@ public class DDMFormValuesValidatorImpl implements DDMFormValuesValidator {
 				_traverseDDMFormFields(
 					ddmFormField.getNestedDDMFormFields(),
 					ddmFormFieldValue.getNestedDDMFormFieldValuesMap());
-			}
-		}
-	}
-
-	private void _traverseDDMFormFieldValues(
-			List<DDMFormFieldValue> ddmFormFieldValues,
-			Map<String, DDMFormField> ddmFormFieldsMap)
-		throws DDMFormValuesValidationException {
-
-		for (DDMFormFieldValue ddmFormFieldValue : ddmFormFieldValues) {
-			DDMFormField ddmFormField = ddmFormFieldsMap.get(
-				ddmFormFieldValue.getName());
-
-			if (ddmFormField != null) {
-				_validateDDMFormFieldValue(
-					ddmFormFieldsMap.get(ddmFormFieldValue.getName()),
-					ddmFormFieldValue);
-
-				_traverseDDMFormFieldValues(
-					ddmFormFieldValue.getNestedDDMFormFieldValues(),
-					ddmFormField.getNestedDDMFormFieldsMap());
 			}
 		}
 	}
@@ -398,7 +400,7 @@ public class DDMFormValuesValidatorImpl implements DDMFormValuesValidator {
 			return;
 		}
 
-		if (!availableLocales.equals(value.getAvailableLocales())) {
+		if (!availableLocales.containsAll(value.getAvailableLocales())) {
 			throw new MustSetValidAvailableLocales(
 				ddmFormField.getLabel(), ddmFormField.getName());
 		}

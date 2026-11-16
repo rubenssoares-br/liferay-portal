@@ -27,8 +27,10 @@ import java.util.List;
  *
  * @author Alessio Antonio Rendina
  * @see CommerceNotificationAttachmentLocalService
+ * @deprecated As of Cavanaugh (7.4.x)
  * @generated
  */
+@Deprecated
 public class CommerceNotificationAttachmentLocalServiceUtil {
 
 	/*
@@ -53,18 +55,6 @@ public class CommerceNotificationAttachmentLocalServiceUtil {
 
 		return getService().addCommerceNotificationAttachment(
 			commerceNotificationAttachment);
-	}
-
-	public static CommerceNotificationAttachment
-			addCommerceNotificationAttachment(
-				long commerceNotificationQueueEntryId, long fileEntryId,
-				boolean deleteOnSend,
-				com.liferay.portal.kernel.service.ServiceContext serviceContext)
-		throws PortalException {
-
-		return getService().addCommerceNotificationAttachment(
-			commerceNotificationQueueEntryId, fileEntryId, deleteOnSend,
-			serviceContext);
 	}
 
 	/**
@@ -310,16 +300,6 @@ public class CommerceNotificationAttachmentLocalServiceUtil {
 		return getService().getCommerceNotificationAttachments(start, end);
 	}
 
-	public static List<CommerceNotificationAttachment>
-		getCommerceNotificationAttachments(
-			long commerceNotificationQueueEntryId, int start, int end,
-			OrderByComparator<CommerceNotificationAttachment>
-				orderByComparator) {
-
-		return getService().getCommerceNotificationAttachments(
-			commerceNotificationQueueEntryId, start, end, orderByComparator);
-	}
-
 	/**
 	 * Returns all the commerce notification attachments matching the UUID and company.
 	 *
@@ -427,3 +407,4 @@ public class CommerceNotificationAttachmentLocalServiceUtil {
 			CommerceNotificationAttachmentLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1911605894

@@ -289,13 +289,8 @@ public class TestIntegrationPlugin implements Plugin<Project> {
 					_startedAppServersReentrantLock.lock();
 
 					try {
-						if (_startedAppServerBinDirs.contains(
-								setUpTestableTomcatTask.getBinDir())) {
-
-							return false;
-						}
-
-						return true;
+						return !_startedAppServerBinDirs.contains(
+							setUpTestableTomcatTask.getBinDir());
 					}
 					finally {
 						_startedAppServersReentrantLock.unlock();
@@ -406,11 +401,7 @@ public class TestIntegrationPlugin implements Plugin<Project> {
 					StartTestableTomcatTask startTestableTomcatTask =
 						(StartTestableTomcatTask)task;
 
-					if (startTestableTomcatTask.isReachable()) {
-						return false;
-					}
-
-					return true;
+					return !startTestableTomcatTask.isReachable();
 				}
 
 			});
@@ -664,9 +655,7 @@ public class TestIntegrationPlugin implements Plugin<Project> {
 		Map<String, Object> systemProperties =
 			javaForkOptions.getSystemProperties();
 
-		if (!systemProperties.containsKey(key)) {
-			systemProperties.put(key, FileUtil.getAbsolutePath(file));
-		}
+		systemProperties.putIfAbsent(key, FileUtil.getAbsolutePath(file));
 	}
 
 	@SuppressWarnings("serial")
@@ -720,16 +709,18 @@ public class TestIntegrationPlugin implements Plugin<Project> {
 		Properties systemProperties = System.getProperties();
 
 		for (String propertyName : systemProperties.stringPropertyNames()) {
-			if (propertyName.startsWith("liferay.arquillian.")) {
-				StringBuilder sb = new StringBuilder();
-
-				sb.append("-D");
-				sb.append(propertyName);
-				sb.append("=");
-				sb.append(systemProperties.get(propertyName));
-
-				test.jvmArgs(sb.toString());
+			if (!propertyName.startsWith("liferay.arquillian.")) {
+				continue;
 			}
+
+			StringBuilder sb = new StringBuilder();
+
+			sb.append("-D");
+			sb.append(propertyName);
+			sb.append("=");
+			sb.append(systemProperties.get(propertyName));
+
+			test.jvmArgs(sb.toString());
 		}
 
 		Project project = test.getProject();
@@ -802,11 +793,8 @@ public class TestIntegrationPlugin implements Plugin<Project> {
 	private int _updateStartedAppServerStopCounters(
 		File binDir, boolean increment) {
 
-		int originalCounter = 0;
-
-		if (_startedAppServerStopCounters.containsKey(binDir)) {
-			originalCounter = _startedAppServerStopCounters.get(binDir);
-		}
+		int originalCounter = _startedAppServerStopCounters.getOrDefault(
+			binDir, 0);
 
 		int counter = originalCounter;
 
@@ -826,9 +814,9 @@ public class TestIntegrationPlugin implements Plugin<Project> {
 		"skip.managed.app.server";
 
 	private static final Set<File> _startedAppServerBinDirs = new HashSet<>();
-	private static final ReentrantLock _startedAppServersReentrantLock =
-		new ReentrantLock();
 	private static final Map<File, Integer> _startedAppServerStopCounters =
 		new HashMap<>();
+	private static final ReentrantLock _startedAppServersReentrantLock =
+		new ReentrantLock();
 
 }

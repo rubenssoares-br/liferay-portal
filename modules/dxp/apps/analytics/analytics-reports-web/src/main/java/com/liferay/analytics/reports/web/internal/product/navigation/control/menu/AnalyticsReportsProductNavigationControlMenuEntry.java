@@ -20,6 +20,9 @@ import com.liferay.frontend.taglib.clay.servlet.taglib.IconTag;
 import com.liferay.info.item.ClassPKInfoItemIdentifier;
 import com.liferay.info.item.InfoItemReference;
 import com.liferay.petra.reflect.ReflectionUtil;
+import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
+import com.liferay.petra.sql.dsl.expression.Predicate;
+import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.content.security.policy.ContentSecurityPolicyNonceProviderUtil;
@@ -28,7 +31,7 @@ import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Layout;
-import com.liferay.portal.kernel.model.PortletPreferences;
+import com.liferay.portal.kernel.model.PortletPreferencesTable;
 import com.liferay.portal.kernel.portlet.PortletURLFactory;
 import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
@@ -36,9 +39,11 @@ import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
 import com.liferay.portal.kernel.service.PortletPreferencesLocalService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
+import com.liferay.portal.kernel.util.Constants;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HtmlUtil;
+import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.ResourceBundleUtil;
 import com.liferay.portal.kernel.util.StringUtil;
@@ -51,6 +56,14 @@ import com.liferay.product.navigation.control.menu.ProductNavigationControlMenuE
 import com.liferay.product.navigation.control.menu.constants.ProductNavigationControlMenuCategoryKeys;
 import com.liferay.taglib.util.BodyBottomTag;
 
+import jakarta.portlet.PortletRequest;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.JspWriter;
+import jakarta.servlet.jsp.PageContext;
+
 import java.io.IOException;
 import java.io.Writer;
 
@@ -60,16 +73,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Set;
-
-import javax.portlet.PortletRequest;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.JspWriter;
-import javax.servlet.jsp.PageContext;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -181,6 +187,13 @@ public class AnalyticsReportsProductNavigationControlMenuEntry
 	@Override
 	public boolean isShow(HttpServletRequest httpServletRequest)
 		throws PortalException {
+
+		String mode = ParamUtil.getString(
+			httpServletRequest, "p_l_mode", Constants.VIEW);
+
+		if (Objects.equals(mode, Constants.HISTORY)) {
+			return false;
+		}
 
 		InfoItemReference infoItemReference = _getInfoItemReference(
 			httpServletRequest);
@@ -349,16 +362,39 @@ public class AnalyticsReportsProductNavigationControlMenuEntry
 
 			Set<String> resourceNamesSet = new HashSet<>();
 
-			List<PortletPreferences> portletPreferencesList =
-				_portletPreferencesLocalService.getPortletPreferencesByPlid(
-					GetterUtil.getLong(plid));
+			Predicate predicate = null;
 
-			for (PortletPreferences portletPreferences :
-					portletPreferencesList) {
+			for (String resourceName : resourceNames.keySet()) {
+				if (predicate == null) {
+					predicate = PortletPreferencesTable.INSTANCE.portletId.like(
+						StringUtil.quote(resourceName, CharPool.PERCENT));
+				}
+				else {
+					predicate = predicate.or(
+						PortletPreferencesTable.INSTANCE.portletId.like(
+							StringUtil.quote(resourceName, CharPool.PERCENT)));
+				}
+			}
 
+			List<String> portletIds = _portletPreferencesLocalService.dslQuery(
+				DSLQueryFactoryUtil.selectDistinct(
+					PortletPreferencesTable.INSTANCE.portletId
+				).from(
+					PortletPreferencesTable.INSTANCE
+				).where(
+					PortletPreferencesTable.INSTANCE.companyId.eq(
+						themeDisplay.getCompanyId()
+					).and(
+						PortletPreferencesTable.INSTANCE.plid.eq(
+							GetterUtil.getLong(plid))
+					).and(
+						Predicate.withParentheses(predicate)
+					)
+				));
+
+			for (String portletId : portletIds) {
 				resourceNamesSet.addAll(
-					_getResourceNames(
-						portletPreferences.getPortletId(), resourceNames));
+					_getResourceNames(portletId, resourceNames));
 			}
 
 			for (String resourceName : resourceNamesSet) {
@@ -414,8 +450,7 @@ public class AnalyticsReportsProductNavigationControlMenuEntry
 			sb.append("<div class=\"d-flex justify-content-between p-3 ");
 			sb.append("sidebar-header\">");
 			sb.append("<h1 class=\"sr-only\">");
-			sb.append(
-				_language.get(httpServletRequest, "content-performance-panel"));
+			sb.append(_language.get(httpServletRequest, "content-performance"));
 			sb.append("</h1>");
 			sb.append("<span class=\"font-weight-bold\">");
 			sb.append(_language.get(httpServletRequest, "content-performance"));

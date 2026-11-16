@@ -15,7 +15,7 @@ RolesDisplayContext rolesDisplayContext = new RolesDisplayContext(request, rende
 	managementToolbarDisplayContext="<%= new RolesManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, rolesDisplayContext) %>"
 />
 
-<aui:form cssClass="container-fluid container-fluid-max-xl portlet-site-memberships-assign-roles" name="fm">
+<aui:form cssClass="container-fluid portlet-site-memberships-assign-roles" name="fm">
 	<liferay-ui:search-container
 		id="roles"
 		searchContainer="<%= rolesDisplayContext.getRoleSearchSearchContainer() %>"
@@ -23,7 +23,7 @@ RolesDisplayContext rolesDisplayContext = new RolesDisplayContext(request, rende
 		<liferay-ui:search-container-row
 			className="com.liferay.portal.kernel.model.Role"
 			escapedModel="<%= true %>"
-			keyProperty="roleId"
+			keyPropertyName="roleId"
 			modelVar="role"
 		>
 

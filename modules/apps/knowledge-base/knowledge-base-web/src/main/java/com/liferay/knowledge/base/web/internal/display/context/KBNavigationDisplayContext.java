@@ -23,10 +23,10 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.portlet.PortletRequest;
+
 import java.util.Collections;
 import java.util.List;
-
-import javax.portlet.PortletRequest;
 
 /**
  * @author Adolfo Pérez
@@ -200,7 +200,7 @@ public class KBNavigationDisplayContext {
 	}
 
 	public boolean isFurtherExpansionRequired(
-			long parentResourcePrimKey, KBArticle childKBArticle, int level)
+			KBArticle childKBArticle, int level)
 		throws PortalException {
 
 		List<Long> ancestorResourcePrimaryKeys =

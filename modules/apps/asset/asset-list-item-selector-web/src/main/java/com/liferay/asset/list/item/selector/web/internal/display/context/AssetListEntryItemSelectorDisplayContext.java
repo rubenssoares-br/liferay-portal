@@ -10,17 +10,19 @@ import com.liferay.asset.kernel.model.AssetRendererFactory;
 import com.liferay.asset.kernel.model.ClassType;
 import com.liferay.asset.kernel.model.ClassTypeReader;
 import com.liferay.asset.list.model.AssetListEntry;
+import com.liferay.asset.list.service.AssetListEntryAudienceEntryRelLocalServiceUtil;
 import com.liferay.asset.list.service.AssetListEntrySegmentsEntryRelLocalServiceUtil;
 import com.liferay.asset.list.service.AssetListEntryServiceUtil;
 import com.liferay.asset.list.service.AssetListEntryUsageLocalServiceUtil;
 import com.liferay.asset.list.util.AssetListPortletUtil;
-import com.liferay.info.collection.provider.item.selector.criterion.InfoCollectionProviderItemSelectorCriterion;
+import com.liferay.info.collection.provider.item.selector.InfoCollectionProviderItemSelectorCriterion;
 import com.liferay.info.item.InfoItemServiceRegistry;
 import com.liferay.info.item.provider.InfoItemFormProvider;
 import com.liferay.info.search.InfoSearchClassMapperRegistry;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.search.SearchContainer;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
@@ -36,14 +38,14 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Eudaldo Alonso
@@ -67,21 +69,6 @@ public class AssetListEntryItemSelectorDisplayContext {
 			infoCollectionProviderItemSelectorCriterion;
 	}
 
-	public int getAssetListEntrySegmentsEntryRelsCount(
-		AssetListEntry assetListEntry) {
-
-		int assetListEntrySegmentsEntryRelsCount =
-			AssetListEntrySegmentsEntryRelLocalServiceUtil.
-				getAssetListEntrySegmentsEntryRelsCount(
-					assetListEntry.getAssetListEntryId());
-
-		if (assetListEntrySegmentsEntryRelsCount < 2) {
-			return 0;
-		}
-
-		return assetListEntrySegmentsEntryRelsCount;
-	}
-
 	public int getAssetListEntryUsageCount(AssetListEntry assetListEntry) {
 		ThemeDisplay themeDisplay =
 			(ThemeDisplay)_httpServletRequest.getAttribute(
@@ -103,6 +90,34 @@ public class AssetListEntryItemSelectorDisplayContext {
 			String.valueOf(assetListEntry.getAssetListEntryId()));
 	}
 
+	public int getAssetListEntryVariationsCount(AssetListEntry assetListEntry) {
+		if (FeatureFlagManagerUtil.isEnabled(
+				assetListEntry.getCompanyId(), "LPD-109242")) {
+
+			int assetListEntryAudienceEntryRelsCount =
+				AssetListEntryAudienceEntryRelLocalServiceUtil.
+					getAssetListEntryAudienceEntryRelsCount(
+						assetListEntry.getAssetListEntryId());
+
+			if (assetListEntryAudienceEntryRelsCount == 0) {
+				return 0;
+			}
+
+			return assetListEntryAudienceEntryRelsCount + 1;
+		}
+
+		int assetListEntrySegmentsEntryRelsCount =
+			AssetListEntrySegmentsEntryRelLocalServiceUtil.
+				getAssetListEntrySegmentsEntryRelsCount(
+					assetListEntry.getAssetListEntryId());
+
+		if (assetListEntrySegmentsEntryRelsCount < 2) {
+			return 0;
+		}
+
+		return assetListEntrySegmentsEntryRelsCount;
+	}
+
 	public SearchContainer<AssetListEntry> getSearchContainer() {
 		ThemeDisplay themeDisplay =
 			(ThemeDisplay)_httpServletRequest.getAttribute(
@@ -110,7 +125,7 @@ public class AssetListEntryItemSelectorDisplayContext {
 
 		PortletRequest portletRequest =
 			(PortletRequest)_httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_REQUEST);
+				JavaConstants.JAKARTA_PORTLET_REQUEST);
 
 		SearchContainer<AssetListEntry> searchContainer = new SearchContainer<>(
 			portletRequest, _portletURL, null,

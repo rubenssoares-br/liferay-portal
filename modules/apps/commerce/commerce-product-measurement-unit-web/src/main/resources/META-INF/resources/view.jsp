@@ -11,7 +11,7 @@
 CPMeasurementUnitsDisplayContext cpMeasurementUnitsDisplayContext = (CPMeasurementUnitsDisplayContext)request.getAttribute(WebKeys.PORTLET_DISPLAY_CONTEXT);
 %>
 
-<c:if test="<%= cpMeasurementUnitsDisplayContext.hasManageCPMeasurementUnitsPermission() %>">
+<c:if test="<%= cpMeasurementUnitsDisplayContext.hasAddPermission() %>">
 	<clay:navigation-bar
 		inverted="<%= false %>"
 		navigationItems="<%= cpMeasurementUnitsDisplayContext.getNavigationItems() %>"
@@ -35,7 +35,7 @@ CPMeasurementUnitsDisplayContext cpMeasurementUnitsDisplayContext = (CPMeasureme
 			>
 				<liferay-ui:search-container-row
 					className="com.liferay.commerce.product.model.CPMeasurementUnit"
-					keyProperty="CPMeasurementUnitId"
+					keyPropertyName="CPMeasurementUnitId"
 					modelVar="cpMeasurementUnit"
 				>
 					<liferay-ui:search-container-column-text

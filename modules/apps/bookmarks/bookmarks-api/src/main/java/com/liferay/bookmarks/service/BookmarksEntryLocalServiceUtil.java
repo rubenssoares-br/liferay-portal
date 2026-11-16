@@ -397,26 +397,6 @@ public class BookmarksEntryLocalServiceUtil {
 		return getService().getFoldersEntriesCount(groupId, folderIds);
 	}
 
-	public static List<BookmarksEntry> getGroupEntries(
-		long groupId, int start, int end) {
-
-		return getService().getGroupEntries(groupId, start, end);
-	}
-
-	public static List<BookmarksEntry> getGroupEntries(
-		long groupId, long userId, int start, int end) {
-
-		return getService().getGroupEntries(groupId, userId, start, end);
-	}
-
-	public static int getGroupEntriesCount(long groupId) {
-		return getService().getGroupEntriesCount(groupId);
-	}
-
-	public static int getGroupEntriesCount(long groupId, long userId) {
-		return getService().getGroupEntriesCount(groupId, userId);
-	}
-
 	public static
 		com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery
 			getIndexableActionableDynamicQuery() {
@@ -567,3 +547,4 @@ public class BookmarksEntryLocalServiceUtil {
 			BookmarksEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1918355130

@@ -32,47 +32,77 @@ public class ObjectDefinitionServiceUtil {
 	 * Never modify this class directly. Add custom service methods to <code>com.liferay.object.service.impl.ObjectDefinitionServiceImpl</code> and rerun ServiceBuilder to regenerate this class.
 	 */
 	public static ObjectDefinition addCustomObjectDefinition(
-			long objectFolderId, String className, boolean enableComments,
-			boolean enableIndexSearch, boolean enableLocalization,
-			boolean enableObjectEntryDraft,
+			String externalReferenceCode, long objectFolderId, String className,
+			Map<java.util.Locale, String> descriptionMap,
+			boolean enableCategorization, boolean enableComments,
+			boolean enableFormContainer, boolean enableFriendlyURLCustomization,
+			boolean enableIndexSearch, boolean enableObjectEntryDraft,
+			boolean enableObjectEntrySchedule,
+			boolean enableObjectEntrySubscription,
+			boolean enableObjectEntryVersioning, String friendlyURLSeparator,
 			Map<java.util.Locale, String> labelMap, String name,
 			String panelAppOrder, String panelCategoryKey,
 			Map<java.util.Locale, String> pluralLabelMap, boolean portlet,
 			String scope, String storageType,
-			List<com.liferay.object.model.ObjectField> objectFields)
+			List<com.liferay.object.model.ObjectDefinitionSetting>
+				objectDefinitionSettings,
+			List<com.liferay.object.model.ObjectField> objectFields,
+			List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
+				workflowDefinitionLinks,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().addCustomObjectDefinition(
-			objectFolderId, className, enableComments, enableIndexSearch,
-			enableLocalization, enableObjectEntryDraft, labelMap, name,
-			panelAppOrder, panelCategoryKey, pluralLabelMap, portlet, scope,
-			storageType, objectFields);
+			externalReferenceCode, objectFolderId, className, descriptionMap,
+			enableCategorization, enableComments, enableFormContainer,
+			enableFriendlyURLCustomization, enableIndexSearch,
+			enableObjectEntryDraft, enableObjectEntrySchedule,
+			enableObjectEntrySubscription, enableObjectEntryVersioning,
+			friendlyURLSeparator, labelMap, name, panelAppOrder,
+			panelCategoryKey, pluralLabelMap, portlet, scope, storageType,
+			objectDefinitionSettings, objectFields, workflowDefinitionLinks,
+			serviceContext);
 	}
 
-	public static ObjectDefinition addObjectDefinition(
-			String externalReferenceCode, long objectFolderId,
-			boolean modifiable, boolean system)
+	public static void addOrUpdateWorkflowDefinitionLinks(
+			long objectDefinitionId,
+			List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
+				workflowDefinitionLinks)
 		throws PortalException {
 
-		return getService().addObjectDefinition(
-			externalReferenceCode, objectFolderId, modifiable, system);
+		getService().addOrUpdateWorkflowDefinitionLinks(
+			objectDefinitionId, workflowDefinitionLinks);
 	}
 
 	public static ObjectDefinition addSystemObjectDefinition(
 			String externalReferenceCode, long userId, long objectFolderId,
-			boolean enableComments, boolean enableIndexSearch,
-			boolean enableLocalization, Map<java.util.Locale, String> labelMap,
-			String name, String panelAppOrder, String panelCategoryKey,
+			String className, Map<java.util.Locale, String> descriptionMap,
+			boolean enableCategorization, boolean enableComments,
+			boolean enableFormContainer, boolean enableFriendlyURLCustomization,
+			boolean enableIndexSearch, boolean enableObjectEntryDraft,
+			boolean enableObjectEntryHistory, boolean enableObjectEntrySchedule,
+			boolean enableObjectEntrySubscription,
+			boolean enableObjectEntryVersioning, String friendlyURLSeparator,
+			Map<java.util.Locale, String> labelMap, String name,
+			String panelAppOrder, String panelCategoryKey,
 			Map<java.util.Locale, String> pluralLabelMap, boolean portlet,
 			String scope,
-			List<com.liferay.object.model.ObjectField> objectFields)
+			List<com.liferay.object.model.ObjectDefinitionSetting>
+				objectDefinitionSettings,
+			List<com.liferay.object.model.ObjectField> objectFields,
+			List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
+				workflowDefinitionLinks)
 		throws PortalException {
 
 		return getService().addSystemObjectDefinition(
-			externalReferenceCode, userId, objectFolderId, enableComments,
-			enableIndexSearch, enableLocalization, labelMap, name,
+			externalReferenceCode, userId, objectFolderId, className,
+			descriptionMap, enableCategorization, enableComments,
+			enableFormContainer, enableFriendlyURLCustomization,
+			enableIndexSearch, enableObjectEntryDraft, enableObjectEntryHistory,
+			enableObjectEntrySchedule, enableObjectEntrySubscription,
+			enableObjectEntryVersioning, friendlyURLSeparator, labelMap, name,
 			panelAppOrder, panelCategoryKey, pluralLabelMap, portlet, scope,
-			objectFields);
+			objectDefinitionSettings, objectFields, workflowDefinitionLinks);
 	}
 
 	public static ObjectDefinition deleteObjectDefinition(
@@ -90,6 +120,13 @@ public class ObjectDefinitionServiceUtil {
 			externalReferenceCode, companyId);
 	}
 
+	public static List<ObjectDefinition> getCMSObjectDefinitions(
+		long companyId, String[] objectFolderExternalReferenceCodes) {
+
+		return getService().getCMSObjectDefinitions(
+			companyId, objectFolderExternalReferenceCodes);
+	}
+
 	public static ObjectDefinition getObjectDefinition(long objectDefinitionId)
 		throws PortalException {
 
@@ -105,25 +142,14 @@ public class ObjectDefinitionServiceUtil {
 	}
 
 	public static List<ObjectDefinition> getObjectDefinitions(
-		int start, int end) {
+			int start, int end)
+		throws PortalException {
 
 		return getService().getObjectDefinitions(start, end);
 	}
 
-	public static List<ObjectDefinition> getObjectDefinitions(
-		long companyId, int start, int end) {
-
-		return getService().getObjectDefinitions(companyId, start, end);
-	}
-
 	public static int getObjectDefinitionsCount() throws PortalException {
 		return getService().getObjectDefinitionsCount();
-	}
-
-	public static int getObjectDefinitionsCount(long companyId)
-		throws PortalException {
-
-		return getService().getObjectDefinitionsCount(companyId);
 	}
 
 	/**
@@ -154,24 +180,38 @@ public class ObjectDefinitionServiceUtil {
 			long accountEntryRestrictedObjectFieldId,
 			long descriptionObjectFieldId, long objectFolderId,
 			long titleObjectFieldId, boolean accountEntryRestricted,
-			boolean active, String className, boolean enableCategorization,
-			boolean enableComments, boolean enableIndexSearch,
-			boolean enableLocalization, boolean enableObjectEntryDraft,
-			boolean enableObjectEntryHistory,
+			boolean active, String className,
+			Map<java.util.Locale, String> descriptionMap,
+			boolean enableCategorization, boolean enableComments,
+			boolean enableFormContainer, boolean enableFriendlyURLCustomization,
+			boolean enableIndexSearch, boolean enableObjectEntryDraft,
+			boolean enableObjectEntryHistory, boolean enableObjectEntrySchedule,
+			boolean enableObjectEntrySubscription,
+			boolean enableObjectEntryVersioning, String friendlyURLSeparator,
 			Map<java.util.Locale, String> labelMap, String name,
 			String panelAppOrder, String panelCategoryKey, boolean portlet,
 			Map<java.util.Locale, String> pluralLabelMap, String scope,
-			int status)
+			int status,
+			List<com.liferay.object.model.ObjectDefinitionSetting>
+				objectDefinitionSettings,
+			List<com.liferay.object.model.ObjectField> objectFields,
+			List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
+				workflowDefinitionLinks,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws PortalException {
 
 		return getService().updateCustomObjectDefinition(
 			externalReferenceCode, objectDefinitionId,
 			accountEntryRestrictedObjectFieldId, descriptionObjectFieldId,
 			objectFolderId, titleObjectFieldId, accountEntryRestricted, active,
-			className, enableCategorization, enableComments, enableIndexSearch,
-			enableLocalization, enableObjectEntryDraft,
-			enableObjectEntryHistory, labelMap, name, panelAppOrder,
-			panelCategoryKey, portlet, pluralLabelMap, scope, status);
+			className, descriptionMap, enableCategorization, enableComments,
+			enableFormContainer, enableFriendlyURLCustomization,
+			enableIndexSearch, enableObjectEntryDraft, enableObjectEntryHistory,
+			enableObjectEntrySchedule, enableObjectEntrySubscription,
+			enableObjectEntryVersioning, friendlyURLSeparator, labelMap, name,
+			panelAppOrder, panelCategoryKey, portlet, pluralLabelMap, scope,
+			status, objectDefinitionSettings, objectFields,
+			workflowDefinitionLinks, serviceContext);
 	}
 
 	public static ObjectDefinition updateExternalReferenceCode(
@@ -182,22 +222,20 @@ public class ObjectDefinitionServiceUtil {
 			objectDefinitionId, externalReferenceCode);
 	}
 
-	public static ObjectDefinition updateRootObjectDefinitionId(
-			long objectDefinitionId, long rootObjectDefinitionId)
-		throws PortalException {
-
-		return getService().updateRootObjectDefinitionId(
-			objectDefinitionId, rootObjectDefinitionId);
-	}
-
 	public static ObjectDefinition updateSystemObjectDefinition(
 			String externalReferenceCode, long objectDefinitionId,
-			long objectFolderId, long titleObjectFieldId)
+			long objectFolderId, long titleObjectFieldId,
+			List<com.liferay.object.model.ObjectDefinitionSetting>
+				objectDefinitionSettings,
+			List<com.liferay.object.model.ObjectField> objectFields,
+			List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
+				workflowDefinitionLinks)
 		throws PortalException {
 
 		return getService().updateSystemObjectDefinition(
 			externalReferenceCode, objectDefinitionId, objectFolderId,
-			titleObjectFieldId);
+			titleObjectFieldId, objectDefinitionSettings, objectFields,
+			workflowDefinitionLinks);
 	}
 
 	public static ObjectDefinition updateTitleObjectFieldId(
@@ -217,3 +255,4 @@ public class ObjectDefinitionServiceUtil {
 			ObjectDefinitionServiceUtil.class, ObjectDefinitionService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1331019794

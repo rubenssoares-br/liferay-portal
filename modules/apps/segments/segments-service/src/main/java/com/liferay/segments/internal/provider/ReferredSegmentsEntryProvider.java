@@ -46,7 +46,8 @@ public class ReferredSegmentsEntryProvider
 	@Override
 	protected boolean isMember(
 		String className, long classPK, Context context,
-		SegmentsEntry segmentsEntry, long[] segmentsEntryIds) {
+		SegmentsEntry segmentsEntry, long[] segmentsEntryIds,
+		Map<String, Object> userAttributes) {
 
 		Criteria criteria = segmentsEntry.getCriteriaObj();
 
@@ -60,14 +61,18 @@ public class ReferredSegmentsEntryProvider
 			segmentsEntry, Criteria.Type.REFERRED);
 
 		boolean member = super.isMember(
-			className, classPK, context, segmentsEntry, segmentsEntryIds);
+			className, classPK, context, segmentsEntry, segmentsEntryIds,
+			userAttributes);
 
-		if (ArrayUtil.isEmpty(segmentsEntryIds) ||
-			Validator.isNull(referredFilterString) ||
+		if (Validator.isNull(referredFilterString) ||
 			(member && referredConjunction.equals(Criteria.Conjunction.OR)) ||
 			(!member && referredConjunction.equals(Criteria.Conjunction.AND))) {
 
 			return member;
+		}
+
+		if (ArrayUtil.isEmpty(segmentsEntryIds)) {
+			return false;
 		}
 
 		Map<String, String> segmentsEntryMap = HashMapBuilder.put(

@@ -78,6 +78,10 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.upload.UniqueFileNameProvider;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.WindowState;
+
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -86,11 +90,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.WindowState;
-
-import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -102,8 +101,8 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + MBPortletKeys.MESSAGE_BOARDS,
-		"javax.portlet.name=" + MBPortletKeys.MESSAGE_BOARDS_ADMIN,
+		"jakarta.portlet.name=" + MBPortletKeys.MESSAGE_BOARDS,
+		"jakarta.portlet.name=" + MBPortletKeys.MESSAGE_BOARDS_ADMIN,
 		"mvc.command.name=/message_boards/edit_message"
 	},
 	service = MVCActionCommand.class
@@ -111,7 +110,7 @@ import org.osgi.service.component.annotations.Reference;
 public class EditMessageMVCActionCommand extends BaseMVCActionCommand {
 
 	@Activate
-	protected void activate(BundleContext bundleContext) {
+	protected void activate() {
 		_mbMessageFormatUploadHandlers.put(
 			"bbcode",
 			new MBMessageBBCodeFormatUploadHandler(_portletFileRepository));
@@ -244,12 +243,14 @@ public class EditMessageMVCActionCommand extends BaseMVCActionCommand {
 		}
 	}
 
-	protected CaptchaConfiguration getCaptchaConfiguration()
+	protected CaptchaConfiguration getCaptchaConfiguration(
+			ActionRequest actionRequest)
 		throws CaptchaConfigurationException {
 
 		try {
-			return _configurationProvider.getSystemConfiguration(
-				CaptchaConfiguration.class);
+			return _configurationProvider.getCompanyConfiguration(
+				CaptchaConfiguration.class,
+				_portal.getCompanyId(actionRequest));
 		}
 		catch (Exception exception) {
 			throw new CaptchaConfigurationException(exception);
@@ -520,7 +521,7 @@ public class EditMessageMVCActionCommand extends BaseMVCActionCommand {
 
 			if (messageId <= 0) {
 				CaptchaConfiguration captchaConfiguration =
-					getCaptchaConfiguration();
+					getCaptchaConfiguration(actionRequest);
 
 				if (captchaConfiguration.
 						messageBoardsEditMessageCaptchaEnabled()) {

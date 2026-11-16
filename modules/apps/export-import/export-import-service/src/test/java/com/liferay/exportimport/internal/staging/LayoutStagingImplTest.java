@@ -8,9 +8,7 @@ package com.liferay.exportimport.internal.staging;
 import com.liferay.exportimport.internal.staging.permission.StagingPermissionImpl;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
-import com.liferay.portal.kernel.test.util.PropsTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
 import java.util.Objects;
@@ -49,16 +47,9 @@ public class LayoutStagingImplTest {
 				String portletId = invocationOnMock.getArgument(
 					0, String.class);
 
-				if (Objects.equals(_STAGED_PORTLET_ID, portletId)) {
-					return true;
-				}
-
-				return false;
+				return Objects.equals(_STAGED_PORTLET_ID, portletId);
 			}
 		);
-
-		PropsTestUtil.setProps(
-			PropsKeys.STAGING_LIVE_GROUP_LOCKING_ENABLED, "true");
 	}
 
 	@Test

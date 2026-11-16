@@ -116,15 +116,13 @@ public class DDMStructurePersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		DDMStructure newDDMStructure = _persistence.create(pk);
-
-		newDDMStructure.setMvccVersion(RandomTestUtil.nextLong());
+		DDMStructure newDDMStructure = addDDMStructure();
 
 		newDDMStructure.setCtCollectionId(RandomTestUtil.nextLong());
 
 		newDDMStructure.setUuid(RandomTestUtil.randomString());
+
+		newDDMStructure.setExternalReferenceCode(RandomTestUtil.randomString());
 
 		newDDMStructure.setGroupId(RandomTestUtil.nextLong());
 
@@ -162,7 +160,9 @@ public class DDMStructurePersistenceTest {
 
 		newDDMStructure.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_ddmStructures.add(_persistence.update(newDDMStructure));
+		newDDMStructure = _persistence.update(newDDMStructure);
+
+		_ddmStructures.add(newDDMStructure);
 
 		DDMStructure existingDDMStructure = _persistence.findByPrimaryKey(
 			newDDMStructure.getPrimaryKey());
@@ -175,6 +175,9 @@ public class DDMStructurePersistenceTest {
 			newDDMStructure.getCtCollectionId());
 		Assert.assertEquals(
 			existingDDMStructure.getUuid(), newDDMStructure.getUuid());
+		Assert.assertEquals(
+			existingDDMStructure.getExternalReferenceCode(),
+			newDDMStructure.getExternalReferenceCode());
 		Assert.assertEquals(
 			existingDDMStructure.getStructureId(),
 			newDDMStructure.getStructureId());
@@ -275,23 +278,6 @@ public class DDMStructurePersistenceTest {
 	}
 
 	@Test
-	public void testCountByStructureKey() throws Exception {
-		_persistence.countByStructureKey("");
-
-		_persistence.countByStructureKey("null");
-
-		_persistence.countByStructureKey((String)null);
-	}
-
-	@Test
-	public void testCountByG_P() throws Exception {
-		_persistence.countByG_P(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
-
-		_persistence.countByG_P(0L, 0L);
-	}
-
-	@Test
 	public void testCountByG_C() throws Exception {
 		_persistence.countByG_C(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
@@ -315,6 +301,16 @@ public class DDMStructurePersistenceTest {
 	}
 
 	@Test
+	public void testCountByERC_G_C() throws Exception {
+		_persistence.countByERC_G_C(
+			"", RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
+
+		_persistence.countByERC_G_C("null", 0L, 0L);
+
+		_persistence.countByERC_G_C((String)null, 0L, 0L);
+	}
+
+	@Test
 	public void testCountByG_C_S() throws Exception {
 		_persistence.countByG_C_S(
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "");
@@ -322,33 +318,6 @@ public class DDMStructurePersistenceTest {
 		_persistence.countByG_C_S(0L, 0L, "null");
 
 		_persistence.countByG_C_S(0L, 0L, (String)null);
-	}
-
-	@Test
-	public void testCountByG_N_D() throws Exception {
-		_persistence.countByG_N_D(RandomTestUtil.nextLong(), "", "");
-
-		_persistence.countByG_N_D(0L, "null", "null");
-
-		_persistence.countByG_N_D(0L, (String)null, (String)null);
-	}
-
-	@Test
-	public void testCountByG_C_N_D() throws Exception {
-		_persistence.countByG_C_N_D(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(), "", "");
-
-		_persistence.countByG_C_N_D(0L, 0L, "null", "null");
-
-		_persistence.countByG_C_N_D(0L, 0L, (String)null, (String)null);
-	}
-
-	@Test
-	public void testCountByG_C_N_DArrayable() throws Exception {
-		_persistence.countByG_C_N_D(
-			new long[] {RandomTestUtil.nextLong(), 0L},
-			RandomTestUtil.nextLong(), RandomTestUtil.randomString(),
-			RandomTestUtil.randomString());
 	}
 
 	@Test
@@ -401,12 +370,12 @@ public class DDMStructurePersistenceTest {
 	protected OrderByComparator<DDMStructure> getOrderByComparator() {
 		return OrderByComparatorFactoryUtil.create(
 			"DDMStructure", "mvccVersion", true, "ctCollectionId", true, "uuid",
-			true, "structureId", true, "groupId", true, "companyId", true,
-			"userId", true, "userName", true, "versionUserId", true,
-			"versionUserName", true, "createDate", true, "modifiedDate", true,
-			"parentStructureId", true, "classNameId", true, "structureKey",
-			true, "version", true, "name", true, "storageType", true, "type",
-			true, "lastPublishDate", true);
+			true, "externalReferenceCode", true, "structureId", true, "groupId",
+			true, "companyId", true, "userId", true, "userName", true,
+			"versionUserId", true, "versionUserName", true, "createDate", true,
+			"modifiedDate", true, "parentStructureId", true, "classNameId",
+			true, "structureKey", true, "version", true, "storageType", true,
+			"type", true, "lastPublishDate", true);
 	}
 
 	@Test
@@ -685,6 +654,22 @@ public class DDMStructurePersistenceTest {
 				new Class<?>[] {String.class}, "groupId"));
 
 		Assert.assertEquals(
+			ddmStructure.getExternalReferenceCode(),
+			ReflectionTestUtil.invoke(
+				ddmStructure, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "externalReferenceCode"));
+		Assert.assertEquals(
+			Long.valueOf(ddmStructure.getGroupId()),
+			ReflectionTestUtil.<Long>invoke(
+				ddmStructure, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "groupId"));
+		Assert.assertEquals(
+			Long.valueOf(ddmStructure.getClassNameId()),
+			ReflectionTestUtil.<Long>invoke(
+				ddmStructure, "getColumnOriginalValue",
+				new Class<?>[] {String.class}, "classNameId"));
+
+		Assert.assertEquals(
 			Long.valueOf(ddmStructure.getGroupId()),
 			ReflectionTestUtil.<Long>invoke(
 				ddmStructure, "getColumnOriginalValue",
@@ -706,11 +691,11 @@ public class DDMStructurePersistenceTest {
 
 		DDMStructure ddmStructure = _persistence.create(pk);
 
-		ddmStructure.setMvccVersion(RandomTestUtil.nextLong());
-
 		ddmStructure.setCtCollectionId(RandomTestUtil.nextLong());
 
 		ddmStructure.setUuid(RandomTestUtil.randomString());
+
+		ddmStructure.setExternalReferenceCode(RandomTestUtil.randomString());
 
 		ddmStructure.setGroupId(RandomTestUtil.nextLong());
 
@@ -758,3 +743,4 @@ public class DDMStructurePersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1108638229

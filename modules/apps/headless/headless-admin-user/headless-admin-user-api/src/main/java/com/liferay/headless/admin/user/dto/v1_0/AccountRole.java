@@ -11,24 +11,25 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -37,6 +38,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Generated("")
 @GraphQLName(
 	description = "A role that belongs to an account", value = "AccountRole"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A role that belongs to an account"
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "AccountRole")
@@ -50,7 +54,9 @@ public class AccountRole implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(AccountRole.class, json);
 	}
 
-	@Schema(description = "The primary key of the account that owns this role.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The primary key of the account that owns this role."
+	)
 	public Long getAccountId() {
 		if (_accountIdSupplier != null) {
 			accountId = _accountIdSupplier.get();
@@ -93,7 +99,7 @@ public class AccountRole implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _accountIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -134,7 +140,7 @@ public class AccountRole implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDisplayName() {
 		if (_displayNameSupplier != null) {
 			displayName = _displayNameSupplier.get();
@@ -175,7 +181,9 @@ public class AccountRole implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _displayNameSupplier;
 
-	@Schema(description = "The optional external key of this account role.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The optional external key of this account role."
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -218,7 +226,7 @@ public class AccountRole implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -257,7 +265,7 @@ public class AccountRole implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -296,7 +304,9 @@ public class AccountRole implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(description = "The primary key of the underlying system role.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The primary key of the underlying system role."
+	)
 	public Long getRoleId() {
 		if (_roleIdSupplier != null) {
 			roleId = _roleIdSupplier.get();
@@ -338,6 +348,49 @@ public class AccountRole implements Serializable {
 
 	@JsonIgnore
 	private Supplier<Long> _roleIdSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The role's type."
+	)
+	public Integer getRoleType() {
+		if (_roleTypeSupplier != null) {
+			roleType = _roleTypeSupplier.get();
+
+			_roleTypeSupplier = null;
+		}
+
+		return roleType;
+	}
+
+	public void setRoleType(Integer roleType) {
+		this.roleType = roleType;
+
+		_roleTypeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setRoleType(
+		UnsafeSupplier<Integer, Exception> roleTypeUnsafeSupplier) {
+
+		_roleTypeSupplier = () -> {
+			try {
+				return roleTypeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The role's type.")
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Integer roleType;
+
+	@JsonIgnore
+	private Supplier<Integer> _roleTypeSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -466,13 +519,25 @@ public class AccountRole implements Serializable {
 			sb.append(roleId);
 		}
 
+		Integer roleType = getRoleType();
+
+		if (roleType != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"roleType\": ");
+
+			sb.append(roleType);
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.user.dto.v1_0.AccountRole",
 		name = "x-class-name"
 	)
@@ -559,6 +624,27 @@ public class AccountRole implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -567,3 +653,4 @@ public class AccountRole implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-373741166

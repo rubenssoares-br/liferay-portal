@@ -9,7 +9,12 @@ import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.test.util.HTTPTestUtil;
 import com.liferay.portal.kernel.util.Http;
+import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 
+import java.util.Collections;
+
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -21,6 +26,11 @@ import org.skyscreamer.jsonassert.JSONAssert;
 @RunWith(Arquillian.class)
 public class OpenAPIResourceTest {
 
+	@ClassRule
+	@Rule
+	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
+		new LiferayIntegrationTestRule();
+
 	@Test
 	public void testGetOpenAPI() throws Exception {
 		JSONAssert.assertEquals(
@@ -28,10 +38,136 @@ public class OpenAPIResourceTest {
 				"components",
 				JSONUtil.put(
 					"schemas",
-					JSONUtil.put("TestEntity", JSONUtil.put("x-test", true)))
+					JSONUtil.put(
+						"EntityModelResourceTestEntity1",
+						JSONUtil.put("x-filterable", Collections.emptyMap())
+					).put(
+						"EntityModelResourceTestEntity2",
+						JSONUtil.put(
+							"x-filterable",
+							JSONUtil.put("id", JSONUtil.put("type", "id")))
+					).put(
+						"NestedTestEntity",
+						JSONUtil.put(
+							"properties",
+							JSONUtil.put(
+								"password",
+								JSONUtil.put(
+									"format", "password"
+								).put(
+									"type", "string"
+								)))
+					).put(
+						"TestEntity",
+						JSONUtil.put(
+							"x-filterable",
+							JSONUtil.put(
+								"companyId", JSONUtil.put("type", "id")
+							).put(
+								"customFields/booleanField",
+								JSONUtil.put("type", "boolean")
+							).put(
+								"customFields/integerField",
+								JSONUtil.put("type", "integer")
+							).put(
+								"customFields/stringField",
+								JSONUtil.put("type", "string")
+							).put(
+								"dateModified",
+								JSONUtil.put("type", "date_time")
+							).put(
+								"description", JSONUtil.put("type", "string")
+							).put(
+								"id", JSONUtil.put("type", "id")
+							).put(
+								"keywords",
+								JSONUtil.put(
+									"items", "string"
+								).put(
+									"type", "array"
+								)
+							).put(
+								"published", JSONUtil.put("type", "boolean")
+							).put(
+								"statusCode",
+								JSONUtil.put(
+									"items", "integer"
+								).put(
+									"type", "array"
+								)
+							)
+						).put(
+							"x-test", true
+						)
+					))
+			).put(
+				"paths",
+				JSONUtil.put(
+					"/v1.0/test-entities",
+					JSONUtil.put(
+						"get",
+						JSONUtil.put(
+							"parameters",
+							JSONUtil.putAll(
+								JSONUtil.put(
+									"schema",
+									JSONUtil.put(
+										"x-filterable",
+										JSONUtil.put(
+											"companyId",
+											JSONUtil.put("type", "id")
+										).put(
+											"customFields/booleanField",
+											JSONUtil.put("type", "boolean")
+										).put(
+											"customFields/integerField",
+											JSONUtil.put("type", "integer")
+										).put(
+											"customFields/stringField",
+											JSONUtil.put("type", "string")
+										).put(
+											"dateModified",
+											JSONUtil.put("type", "date_time")
+										).put(
+											"description",
+											JSONUtil.put("type", "string")
+										).put(
+											"id", JSONUtil.put("type", "id")
+										).put(
+											"keywords",
+											JSONUtil.put(
+												"items", "string"
+											).put(
+												"type", "array"
+											)
+										).put(
+											"published",
+											JSONUtil.put("type", "boolean")
+										).put(
+											"statusCode",
+											JSONUtil.put(
+												"items", "integer"
+											).put(
+												"type", "array"
+											)
+										))))))
+				).put(
+					"/v1.0/test-entities/count",
+					JSONUtil.put(
+						"get",
+						JSONUtil.put(
+							"parameters",
+							JSONUtil.putAll(
+								JSONUtil.put(
+									"name", "requiredQueryParameter"
+								).put(
+									"required", true
+								))))
+				)
 			).toString(),
 			HTTPTestUtil.invokeToJSONObject(
-				null, "test/v1.0/openapi.json", Http.Method.GET
+				null, "portal-tools-rest-builder-test/v1.0/openapi.json",
+				Http.Method.GET
 			).toString(),
 			false);
 	}

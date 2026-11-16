@@ -9,16 +9,17 @@ import com.liferay.headless.admin.site.client.dto.v1_0.PageSpecification;
 import com.liferay.headless.admin.site.client.dto.v1_0.UtilityPage;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -61,20 +62,6 @@ public class UtilityPageSerDes {
 			sb.append("\"creator\": ");
 
 			sb.append(utilityPage.getCreator());
-		}
-
-		if (utilityPage.getCreatorExternalReferenceCode() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(_escape(utilityPage.getCreatorExternalReferenceCode()));
-
-			sb.append("\"");
 		}
 
 		if (utilityPage.getDateCreated() != null) {
@@ -136,6 +123,26 @@ public class UtilityPageSerDes {
 			sb.append("\"");
 		}
 
+		if (utilityPage.getFriendlyUrlHistory() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"friendlyUrlHistory\": ");
+
+			sb.append(String.valueOf(utilityPage.getFriendlyUrlHistory()));
+		}
+
+		if (utilityPage.getFriendlyUrlPath_i18n() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"friendlyUrlPath_i18n\": ");
+
+			sb.append(_toJSON(utilityPage.getFriendlyUrlPath_i18n()));
+		}
+
 		if (utilityPage.getMarkedAsDefault() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -183,14 +190,34 @@ public class UtilityPageSerDes {
 			sb.append("]");
 		}
 
-		if (utilityPage.getThumbnail() != null) {
+		if (utilityPage.getPermissions() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"thumbnail\": ");
+			sb.append("\"permissions\": ");
 
-			sb.append(String.valueOf(utilityPage.getThumbnail()));
+			sb.append("[");
+
+			for (int i = 0; i < utilityPage.getPermissions().length; i++) {
+				sb.append(utilityPage.getPermissions()[i]);
+
+				if ((i + 1) < utilityPage.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		if (utilityPage.getThumbnailURLReference() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"thumbnailURLReference\": ");
+
+			sb.append(String.valueOf(utilityPage.getThumbnailURLReference()));
 		}
 
 		if (utilityPage.getType() != null) {
@@ -201,9 +228,7 @@ public class UtilityPageSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(utilityPage.getType());
-
 			sb.append("\"");
 		}
 
@@ -260,15 +285,6 @@ public class UtilityPageSerDes {
 			map.put("creator", String.valueOf(utilityPage.getCreator()));
 		}
 
-		if (utilityPage.getCreatorExternalReferenceCode() == null) {
-			map.put("creatorExternalReferenceCode", null);
-		}
-		else {
-			map.put(
-				"creatorExternalReferenceCode",
-				String.valueOf(utilityPage.getCreatorExternalReferenceCode()));
-		}
-
 		if (utilityPage.getDateCreated() == null) {
 			map.put("dateCreated", null);
 		}
@@ -305,6 +321,24 @@ public class UtilityPageSerDes {
 				String.valueOf(utilityPage.getExternalReferenceCode()));
 		}
 
+		if (utilityPage.getFriendlyUrlHistory() == null) {
+			map.put("friendlyUrlHistory", null);
+		}
+		else {
+			map.put(
+				"friendlyUrlHistory",
+				String.valueOf(utilityPage.getFriendlyUrlHistory()));
+		}
+
+		if (utilityPage.getFriendlyUrlPath_i18n() == null) {
+			map.put("friendlyUrlPath_i18n", null);
+		}
+		else {
+			map.put(
+				"friendlyUrlPath_i18n",
+				String.valueOf(utilityPage.getFriendlyUrlPath_i18n()));
+		}
+
 		if (utilityPage.getMarkedAsDefault() == null) {
 			map.put("markedAsDefault", null);
 		}
@@ -330,11 +364,21 @@ public class UtilityPageSerDes {
 				String.valueOf(utilityPage.getPageSpecifications()));
 		}
 
-		if (utilityPage.getThumbnail() == null) {
-			map.put("thumbnail", null);
+		if (utilityPage.getPermissions() == null) {
+			map.put("permissions", null);
 		}
 		else {
-			map.put("thumbnail", String.valueOf(utilityPage.getThumbnail()));
+			map.put(
+				"permissions", String.valueOf(utilityPage.getPermissions()));
+		}
+
+		if (utilityPage.getThumbnailURLReference() == null) {
+			map.put("thumbnailURLReference", null);
+		}
+		else {
+			map.put(
+				"thumbnailURLReference",
+				String.valueOf(utilityPage.getThumbnailURLReference()));
 		}
 
 		if (utilityPage.getType() == null) {
@@ -381,11 +425,6 @@ public class UtilityPageSerDes {
 			if (Objects.equals(jsonParserFieldName, "creator")) {
 				return false;
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
-				return false;
-			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
 				return false;
 			}
@@ -400,6 +439,16 @@ public class UtilityPageSerDes {
 
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "friendlyUrlHistory")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "friendlyUrlPath_i18n")) {
+
+				return true;
+			}
 			else if (Objects.equals(jsonParserFieldName, "markedAsDefault")) {
 				return false;
 			}
@@ -411,7 +460,12 @@ public class UtilityPageSerDes {
 
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "thumbnail")) {
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "thumbnailURLReference")) {
+
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -440,14 +494,6 @@ public class UtilityPageSerDes {
 						CreatorSerDes.toDTO((String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
-				if (jsonParserFieldValue != null) {
-					utilityPage.setCreatorExternalReferenceCode(
-						(String)jsonParserFieldValue);
-				}
-			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
 				if (jsonParserFieldValue != null) {
 					utilityPage.setDateCreated(
@@ -472,6 +518,23 @@ public class UtilityPageSerDes {
 				if (jsonParserFieldValue != null) {
 					utilityPage.setExternalReferenceCode(
 						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "friendlyUrlHistory")) {
+
+				if (jsonParserFieldValue != null) {
+					utilityPage.setFriendlyUrlHistory(
+						FriendlyUrlHistorySerDes.toDTO(
+							(String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "friendlyUrlPath_i18n")) {
+
+				if (jsonParserFieldValue != null) {
+					utilityPage.setFriendlyUrlPath_i18n(
+						(Map<String, String>)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "markedAsDefault")) {
@@ -504,10 +567,32 @@ public class UtilityPageSerDes {
 					utilityPage.setPageSpecifications(pageSpecificationsArray);
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "thumbnail")) {
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
 				if (jsonParserFieldValue != null) {
-					utilityPage.setThumbnail(
-						ItemExternalReferenceSerDes.toDTO(
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.site.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.site.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.site.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					utilityPage.setPermissions(permissionsArray);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "thumbnailURLReference")) {
+
+				if (jsonParserFieldValue != null) {
+					utilityPage.setThumbnailURLReference(
+						ThumbnailURLReferenceSerDes.toDTO(
 							(String)jsonParserFieldValue));
 				}
 			}
@@ -576,6 +661,16 @@ public class UtilityPageSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -608,3 +703,4 @@ public class UtilityPageSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1654904830

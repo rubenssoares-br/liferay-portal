@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+const SCRIPT_URL = document.currentScript.src;
+
 AUI.add(
 	'liferay-upload',
 	(A) => {
@@ -522,6 +524,15 @@ AUI.add(
 				_handleDrop(event) {
 					const instance = this;
 
+					const dataTransfer = event._event.dataTransfer;
+
+					const dragDropFiles =
+						dataTransfer && AArray(dataTransfer.files);
+
+					if (!dragDropFiles || !dragDropFiles.length) {
+						return;
+					}
+
 					event.halt();
 
 					const uploaderBoundingBox = instance._uploaderBoundingBox;
@@ -530,15 +541,9 @@ AUI.add(
 
 					const uploader = instance._uploader;
 
-					const dataTransfer = event._event.dataTransfer;
-
-					const dragDropFiles =
-						dataTransfer && AArray(dataTransfer.files);
-
 					if (
-						dragDropFiles &&
-						(target === uploaderBoundingBox ||
-							uploaderBoundingBox.contains(target))
+						target === uploaderBoundingBox ||
+						uploaderBoundingBox.contains(target)
 					) {
 						event.fileList = dragDropFiles.map((item) => {
 							return new A.FileHTML5(item);
@@ -589,22 +594,30 @@ AUI.add(
 				_onAllRowIdsClick() {
 					const instance = this;
 
-					Liferay.Util.checkAll(
-						instance._fileListSelector,
-						instance._selectUploadedFileCheckboxId,
-						instance._allRowIdsCheckboxSelector
-					);
+					import(
+						Liferay.FrontendESM.buildURL(
+							SCRIPT_URL,
+							'frontend-js-web',
+							'legacy'
+						)
+					).then(({checkAll}) => {
+						checkAll(
+							instance._fileListSelector,
+							instance._selectUploadedFileCheckboxId,
+							instance._allRowIdsCheckboxSelector
+						);
 
-					const uploadedFiles = instance._fileListContent.all(
-						'.upload-file.upload-complete'
-					);
+						const uploadedFiles = instance._fileListContent.all(
+							'.upload-file.upload-complete'
+						);
 
-					uploadedFiles.toggleClass(
-						'selected',
-						instance._allRowIdsCheckbox.attr('checked')
-					);
+						uploadedFiles.toggleClass(
+							'selected',
+							instance._allRowIdsCheckbox.attr('checked')
+						);
 
-					instance._updateMetadataContainer();
+						instance._updateMetadataContainer();
+					});
 				},
 
 				_onAllUploadsComplete() {
@@ -787,16 +800,29 @@ AUI.add(
 					const instance = this;
 
 					if (instance.get('multipleFiles')) {
-						Liferay.Util.checkAllBox(
-							instance._fileListSelector,
-							instance._selectUploadedFileCheckboxId,
-							instance._allRowIdsCheckboxSelector
-						);
+						import(
+							Liferay.FrontendESM.buildURL(
+								SCRIPT_URL,
+								'frontend-js-web',
+								'legacy'
+							)
+						).then(({checkAllBox}) => {
+							checkAllBox(
+								instance._fileListSelector,
+								instance._selectUploadedFileCheckboxId,
+								instance._allRowIdsCheckboxSelector
+							);
+
+							instance._markSelected(currentTarget);
+
+							instance._updateMetadataContainer();
+						});
 					}
+					else {
+						instance._markSelected(currentTarget);
 
-					instance._markSelected(currentTarget);
-
-					instance._updateMetadataContainer();
+						instance._updateMetadataContainer();
+					}
 				},
 
 				_onUploadComplete(event) {

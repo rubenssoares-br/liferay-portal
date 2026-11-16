@@ -395,14 +395,6 @@ public class ObjectValidationRuleLocalServiceWrapper
 			objectDefinitionId, active);
 	}
 
-	@Override
-	public java.util.List<com.liferay.object.model.ObjectValidationRule>
-		getObjectValidationRules(long objectDefinitionId, String engine) {
-
-		return _objectValidationRuleLocalService.getObjectValidationRules(
-			objectDefinitionId, engine);
-	}
-
 	/**
 	 * Returns the number of object validation rules.
 	 *
@@ -503,6 +495,16 @@ public class ObjectValidationRuleLocalServiceWrapper
 	}
 
 	@Override
+	public void validate(
+			java.util.List<String> externalReferenceCodes,
+			com.liferay.object.model.ObjectEntry objectEntry, long userId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		_objectValidationRuleLocalService.validate(
+			externalReferenceCodes, objectEntry, userId);
+	}
+
+	@Override
 	public BasePersistence<?> getBasePersistence() {
 		return _objectValidationRuleLocalService.getBasePersistence();
 	}
@@ -522,3 +524,4 @@ public class ObjectValidationRuleLocalServiceWrapper
 	private ObjectValidationRuleLocalService _objectValidationRuleLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1264271286

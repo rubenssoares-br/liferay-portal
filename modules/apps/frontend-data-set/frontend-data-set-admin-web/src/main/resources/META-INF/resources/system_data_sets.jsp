@@ -7,16 +7,20 @@
 
 <%@ include file="/init.jsp" %>
 
-<%
-portletDisplay.setBeta(true);
-%>
-
-<div>
+<div class="container-fluid container-fluid-max-xxxl">
 	<react:component
 		module="{SystemDataSets} from frontend-data-set-admin-web"
 		props='<%=
 			HashMapBuilder.<String, Object>put(
+				"editDataSetURL", fdsAdminDisplayContext.getEditDataSetURL()
+			).put(
+				"importedSystemFDSEntriesDataProviderURL", fdsAdminDisplayContext.getImportedSystemFDSEntriesDataProviderURL()
+			).put(
+				"importSystemDataSetURL", fdsAdminDisplayContext.getImportSystemDataSetURL()
+			).put(
 				"namespace", liferayPortletResponse.getNamespace()
+			).put(
+				"systemDataSets", fdsAdminDisplayContext.getSystemFDSEntryJSONArray()
 			).build()
 		%>'
 	/>

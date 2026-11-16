@@ -387,6 +387,14 @@ public class KBArticleLocalServiceWrapper
 	}
 
 	@Override
+	public KBArticle fetchKBArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int version) {
+
+		return _kbArticleLocalService.fetchKBArticleByExternalReferenceCode(
+			groupId, externalReferenceCode, version);
+	}
+
+	@Override
 	public KBArticle fetchKBArticleByUrlTitle(
 		long groupId, long kbFolderId, String urlTitle) {
 
@@ -437,6 +445,15 @@ public class KBArticleLocalServiceWrapper
 	}
 
 	@Override
+	public KBArticle fetchLatestKBArticleByExternalReferenceCode(
+		long groupId, String externalReferenceCode, int status) {
+
+		return _kbArticleLocalService.
+			fetchLatestKBArticleByExternalReferenceCode(
+				groupId, externalReferenceCode, status);
+	}
+
+	@Override
 	public KBArticle fetchLatestKBArticleByUrlTitle(
 		long groupId, long kbFolderId, String urlTitle, int status) {
 
@@ -466,22 +483,6 @@ public class KBArticleLocalServiceWrapper
 
 		return _kbArticleLocalService.getAllDescendantKBArticles(
 			resourcePrimKey, status, orderByComparator);
-	}
-
-	@Override
-	public java.util.List<KBArticle> getCompanyKBArticles(
-		long companyId, int status, int start, int end,
-		com.liferay.portal.kernel.util.OrderByComparator<KBArticle>
-			orderByComparator) {
-
-		return _kbArticleLocalService.getCompanyKBArticles(
-			companyId, status, start, end, orderByComparator);
-	}
-
-	@Override
-	public int getCompanyKBArticlesCount(long companyId, int status) {
-		return _kbArticleLocalService.getCompanyKBArticlesCount(
-			companyId, status);
 	}
 
 	@Override
@@ -686,22 +687,6 @@ public class KBArticleLocalServiceWrapper
 	public int getKBArticleVersionsCount(long resourcePrimKey, int status) {
 		return _kbArticleLocalService.getKBArticleVersionsCount(
 			resourcePrimKey, status);
-	}
-
-	@Override
-	public java.util.List<KBArticle> getKBFolderKBArticles(
-		long groupId, long kbFolderId) {
-
-		return _kbArticleLocalService.getKBFolderKBArticles(
-			groupId, kbFolderId);
-	}
-
-	@Override
-	public int getKBFolderKBArticlesCount(
-		long groupId, long kbFolderId, int status) {
-
-		return _kbArticleLocalService.getKBFolderKBArticlesCount(
-			groupId, kbFolderId, status);
 	}
 
 	@Override
@@ -1096,3 +1081,4 @@ public class KBArticleLocalServiceWrapper
 	private KBArticleLocalService _kbArticleLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1189730527

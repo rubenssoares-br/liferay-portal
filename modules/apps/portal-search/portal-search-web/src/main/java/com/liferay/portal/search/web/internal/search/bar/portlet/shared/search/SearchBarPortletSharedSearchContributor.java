@@ -35,7 +35,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author André de Oliveira
  */
 @Component(
-	property = "javax.portlet.name=" + SearchBarPortletKeys.SEARCH_BAR,
+	property = "jakarta.portlet.name=" + SearchBarPortletKeys.SEARCH_BAR,
 	service = PortletSharedSearchContributor.class
 )
 public class SearchBarPortletSharedSearchContributor
@@ -59,6 +59,19 @@ public class SearchBarPortletSharedSearchContributor
 		if (!_shouldContributeToCurrentPageSearch(
 				searchBarPortletPreferences, portletSharedSearchSettings)) {
 
+			searchRequestBuilder.withSearchContext(
+				searchContext -> {
+					Object executeSearch = searchContext.getAttribute(
+						SearchContextAttributes.ATTRIBUTE_KEY_EXECUTE_SEARCH);
+
+					if (executeSearch == null) {
+						searchContext.setAttribute(
+							SearchContextAttributes.
+								ATTRIBUTE_KEY_EXECUTE_SEARCH,
+							Boolean.FALSE);
+					}
+				});
+
 			return;
 		}
 
@@ -67,6 +80,9 @@ public class SearchBarPortletSharedSearchContributor
 				searchContext.setAttribute(
 					SearchContextAttributes.
 						ATTRIBUTE_KEY_CONTRIBUTE_TUNING_RANKINGS,
+					Boolean.TRUE);
+				searchContext.setAttribute(
+					SearchContextAttributes.ATTRIBUTE_KEY_EXECUTE_SEARCH,
 					Boolean.TRUE);
 				searchContext.setIncludeAttachments(
 					searchBarPortletPreferences.isIncludeAttachments());

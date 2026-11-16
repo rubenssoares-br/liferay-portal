@@ -16,7 +16,11 @@ import deleteFragmentEntryLinkComment from '../actions/deleteFragmentEntryLinkCo
 import deleteItem from '../actions/deleteItem';
 import duplicateItem from '../actions/duplicateItem';
 import editFragmentEntryLinkComment from '../actions/editFragmentEntryLinkComment';
-import pasteItem from '../actions/pasteItem';
+import moveItems from '../actions/moveItems';
+import moveStepper from '../actions/moveStepper';
+import pasteItems from '../actions/pasteItems';
+import removeFormStep from '../actions/removeFormStep';
+import swapFragment from '../actions/swapFragment';
 import {
 	ADD_FRAGMENT_ENTRY_LINKS,
 	ADD_FRAGMENT_ENTRY_LINK_COMMENT,
@@ -27,7 +31,11 @@ import {
 	DELETE_ITEM,
 	DUPLICATE_ITEM,
 	EDIT_FRAGMENT_ENTRY_LINK_COMMENT,
+	MOVE_ITEM,
+	MOVE_STEPPER,
 	PASTE_ITEM,
+	REMOVE_FORM_STEP,
+	SWAP_FRAGMENT,
 	UPDATE_COLLECTION_DISPLAY_COLLECTION,
 	UPDATE_EDITABLE_VALUES,
 	UPDATE_FORM_ITEM_CONFIG,
@@ -57,8 +65,12 @@ export default function fragmentEntryLinksReducer(
 		| typeof deleteItem
 		| typeof deleteFragmentEntryLinkComment
 		| typeof duplicateItem
-		| typeof pasteItem
+		| typeof pasteItems
 		| typeof editFragmentEntryLinkComment
+		| typeof moveItems
+		| typeof moveStepper
+		| typeof removeFormStep
+		| typeof swapFragment
 		| typeof updateCollectionDisplayCollection
 		| typeof updateEditableValues
 		| typeof updateFormItemConfig
@@ -90,7 +102,7 @@ export default function fragmentEntryLinksReducer(
 		}
 
 		case ADD_FRAGMENT_ENTRY_LINKS:
-		case ADD_STEPPER: {
+		case MOVE_ITEM: {
 			const newFragmentEntryLinks: FragmentEntryLinkMap = {};
 
 			action.fragmentEntryLinks.forEach((fragmentEntryLink) => {
@@ -101,6 +113,13 @@ export default function fragmentEntryLinksReducer(
 			return {
 				...fragmentEntryLinks,
 				...newFragmentEntryLinks,
+			};
+		}
+
+		case ADD_STEPPER: {
+			return {
+				...fragmentEntryLinks,
+				...action.fragmentEntryLinks,
 			};
 		}
 
@@ -269,6 +288,14 @@ export default function fragmentEntryLinksReducer(
 			};
 		}
 
+		case SWAP_FRAGMENT: {
+			return {
+				...fragmentEntryLinks,
+				[action.fragmentEntryLink.fragmentEntryLinkId]:
+					action.fragmentEntryLink,
+			};
+		}
+
 		case UPDATE_COLLECTION_DISPLAY_COLLECTION:
 			return {
 				...fragmentEntryLinks,
@@ -297,8 +324,8 @@ export default function fragmentEntryLinksReducer(
 
 		case UPDATE_FORM_ITEM_CONFIG: {
 			const newFragmentEntryLinks: FragmentEntryLinkMap =
-				action.addedFragmentEntryLinks
-					? {...fragmentEntryLinks, ...action.addedFragmentEntryLinks}
+				action.fragmentEntryLinks
+					? {...fragmentEntryLinks, ...action.fragmentEntryLinks}
 					: {...fragmentEntryLinks};
 
 			if (action.removedFragmentEntryLinkIds) {
@@ -327,6 +354,13 @@ export default function fragmentEntryLinksReducer(
 				);
 			}
 
+			if (action.fragmentEntryLinks) {
+				return {
+					...newFragmentEntryLinks,
+					...action.fragmentEntryLinks,
+				};
+			}
+
 			return {
 				...newFragmentEntryLinks,
 			};
@@ -350,10 +384,10 @@ export default function fragmentEntryLinksReducer(
 
 			let collectionContent = fragmentEntryLink.collectionContent || {};
 
-			if (!isNullOrUndefined(action.collectionContentId)) {
+			if (!isNullOrUndefined(action.collectionItemId)) {
 				collectionContent = {
 					...collectionContent,
-					[action.collectionContentId]: action.content,
+					[action.collectionItemId]: action.content,
 				};
 			}
 
@@ -363,6 +397,8 @@ export default function fragmentEntryLinksReducer(
 					...fragmentEntryLinks[action.fragmentEntryLinkId],
 					collectionContent,
 					content: action.content,
+					editableTypes:
+						action.editableTypes || fragmentEntryLink.editableTypes,
 				},
 			};
 		}
@@ -437,6 +473,18 @@ export default function fragmentEntryLinksReducer(
 				...fragmentEntryLinks,
 				...Object.fromEntries(newFragmentEntryLinks),
 			};
+		}
+
+		case MOVE_STEPPER:
+		case REMOVE_FORM_STEP: {
+			if (action.fragmentEntryLinks) {
+				return {
+					...fragmentEntryLinks,
+					...action.fragmentEntryLinks,
+				};
+			}
+
+			return fragmentEntryLinks;
 		}
 
 		default:

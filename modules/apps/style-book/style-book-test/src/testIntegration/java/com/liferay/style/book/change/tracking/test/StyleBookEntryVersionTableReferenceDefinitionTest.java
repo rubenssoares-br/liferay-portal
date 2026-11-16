@@ -45,21 +45,28 @@ public class StyleBookEntryVersionTableReferenceDefinitionTest
 
 		_styleBookEntry = _styleBookEntryLocalService.addStyleBookEntry(
 			null, TestPropsValues.getUserId(), TestPropsValues.getGroupId(),
-			false, StringPool.BLANK, RandomTestUtil.randomString(),
+			false, StringPool.BLANK, StringPool.BLANK,
 			RandomTestUtil.randomString(), RandomTestUtil.randomString(),
+			RandomTestUtil.randomString(),
 			ServiceContextTestUtil.getServiceContext());
 	}
 
 	@Override
 	protected CTModel<?> addCTModel() throws Exception {
 		return _styleBookEntryLocalService.updateStyleBookEntry(
-			_styleBookEntry.getStyleBookEntryId(),
-			RandomTestUtil.randomString(), RandomTestUtil.randomString());
+			TestPropsValues.getUserId(), _styleBookEntry.getStyleBookEntryId(),
+			_styleBookEntry.isDefaultStyleBookEntry(),
+			_styleBookEntry.getFrontendTokenDefinition(), "{}",
+			RandomTestUtil.randomString(),
+			_styleBookEntry.getStyleBookEntryKey(),
+			_styleBookEntry.getPreviewFileEntryId(),
+			_styleBookEntry.getThemeId(),
+			ServiceContextTestUtil.getServiceContext());
 	}
 
-	private static StyleBookEntry _styleBookEntry;
+	private StyleBookEntry _styleBookEntry;
 
 	@Inject
-	private static StyleBookEntryLocalService _styleBookEntryLocalService;
+	private StyleBookEntryLocalService _styleBookEntryLocalService;
 
 }

@@ -20,14 +20,14 @@ SiteNavigationAdminManagementToolbarDisplayContext siteNavigationAdminManagement
 	<portlet:param name="redirect" value="<%= currentURL %>" />
 </portlet:actionURL>
 
-<aui:form action="<%= deleteSitaNavigationMenuURL %>" cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form action="<%= deleteSitaNavigationMenuURL %>" cssClass="container-fluid" name="fm">
 	<liferay-ui:search-container
 		id="siteNavigationMenus"
 		searchContainer="<%= siteNavigationAdminDisplayContext.getSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.site.navigation.model.SiteNavigationMenu"
-			keyProperty="siteNavigationMenuId"
+			keyPropertyName="siteNavigationMenuId"
 			modelVar="siteNavigationMenu"
 		>
 

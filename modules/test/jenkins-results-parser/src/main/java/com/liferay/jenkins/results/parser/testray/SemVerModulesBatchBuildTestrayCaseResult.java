@@ -1,230 +1,107 @@
 /**
- * SPDX-FileCopyrightText: (c) 2024 Liferay, Inc. https://liferay.com
+ * SPDX-FileCopyrightText: (c) 2026 Liferay, Inc. https://liferay.com
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
 package com.liferay.jenkins.results.parser.testray;
 
-import com.liferay.jenkins.results.parser.Build;
-import com.liferay.jenkins.results.parser.JenkinsResultsParserUtil;
-import com.liferay.jenkins.results.parser.TestClassResult;
-import com.liferay.jenkins.results.parser.TestResult;
-import com.liferay.jenkins.results.parser.TopLevelBuild;
-import com.liferay.jenkins.results.parser.test.clazz.SemVerModulesTestClass;
+import com.liferay.jenkins.results.parser.DownstreamBuildReport;
+import com.liferay.jenkins.results.parser.TestClassReport;
+import com.liferay.jenkins.results.parser.TestReport;
+import com.liferay.jenkins.results.parser.TestReportFactory;
+import com.liferay.jenkins.results.parser.TopLevelBuildReport;
+import com.liferay.jenkins.results.parser.test.clazz.ModulesTestClass;
 import com.liferay.jenkins.results.parser.test.clazz.TestClass;
+import com.liferay.jenkins.results.parser.test.clazz.TestClassMethod;
 import com.liferay.jenkins.results.parser.test.clazz.group.AxisTestClassGroup;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * @author Kenji Heigel
+ * @author Michael Hashimoto
  */
 public class SemVerModulesBatchBuildTestrayCaseResult
-	extends BatchBuildTestrayCaseResult {
+	extends ModulesBatchBuildTestrayCaseResult {
 
 	public SemVerModulesBatchBuildTestrayCaseResult(
-		TestrayBuild testrayBuild, TopLevelBuild topLevelBuild,
-		AxisTestClassGroup axisTestClassGroup, TestClass testClass) {
+		AxisTestClassGroup axisTestClassGroup, TestClass testClass,
+		TestrayBuild testrayBuild, TopLevelBuildReport topLevelBuildReport) {
 
-		super(testrayBuild, topLevelBuild, axisTestClassGroup);
-
-		_semVerModulesTestClass = (SemVerModulesTestClass)testClass;
+		super(axisTestClassGroup, testClass, testrayBuild, topLevelBuildReport);
 	}
 
 	@Override
-	public String getComponentName() {
-		String componentName =
-			_semVerModulesTestClass.getTestrayMainComponentName();
-
-		if (JenkinsResultsParserUtil.isNullOrEmpty(componentName)) {
-			return super.getComponentName();
+	public TestClassReport getTestClassReport() {
+		if (_testClassReport != null) {
+			return _testClassReport;
 		}
 
-		return componentName;
-	}
+		DownstreamBuildReport downstreamBuildReport =
+			getDownstreamBuildReport();
 
-	@Override
-	public long getDuration() {
-		List<TestResult> testResults = getTestResults();
-
-		if (testResults.isEmpty()) {
-			return super.getDuration();
-		}
-
-		long duration = 0;
-
-		for (TestResult testResult : testResults) {
-			duration += testResult.getDuration();
-		}
-
-		return duration;
-	}
-
-	@Override
-	public String getErrors() {
-		List<TestResult> testResults = getTestResults();
-
-		Build build = getBuild();
-
-		if (testResults.isEmpty()) {
-			if (build == null) {
-				return "Unable to run build on CI";
-			}
-
-			String result = build.getResult();
-
-			if (result == null) {
-				return "Unable to finish build on CI";
-			}
-
-			if (result.equals("ABORTED")) {
-				return build.getJobName() + " timed out after 2 hours";
-			}
-
-			if (result.equals("SUCCESS") || result.equals("UNSTABLE")) {
-				return "Unable to run test on CI";
-			}
-
-			return "Failed prior to running test";
-		}
-
-		StringBuilder sb = new StringBuilder();
-
-		for (TestResult testResult : testResults) {
-			if (testResult.isFailing()) {
-				sb.append(testResult.getTestName());
-				sb.append(": ");
-				sb.append(testResult.getErrorDetails());
-				sb.append("\n");
-			}
-		}
-
-		if (sb.length() == 0) {
+		if (downstreamBuildReport == null) {
 			return null;
 		}
 
-		sb.setLength(sb.length() - 1);
+		TestClassReport testClassReport = null;
 
-		String errorMessage = sb.toString();
+		Set<String> modulePaths = _getModulePaths();
 
-		if (JenkinsResultsParserUtil.isNullOrEmpty(errorMessage)) {
-			errorMessage = build.getFailureMessage();
-		}
+		for (TestReport testReport : downstreamBuildReport.getTestReports()) {
+			String testName = testReport.getTestName();
 
-		if (JenkinsResultsParserUtil.isNullOrEmpty(errorMessage)) {
-			return "Failed for unknown reason";
-		}
-
-		if (errorMessage.contains("\n")) {
-			errorMessage = errorMessage.substring(
-				0, errorMessage.indexOf("\n"));
-		}
-
-		errorMessage = errorMessage.trim();
-
-		if (JenkinsResultsParserUtil.isNullOrEmpty(errorMessage)) {
-			return "Failed for unknown reason";
-		}
-
-		return errorMessage;
-	}
-
-	@Override
-	public String getName() {
-		if (_semVerModulesTestClass == null) {
-			return super.getName();
-		}
-
-		return getBatchName() + "[" + _semVerModulesTestClass.getName() + "]";
-	}
-
-	@Override
-	public Status getStatus() {
-		Build build = getBuild();
-
-		if (build == null) {
-			return Status.UNTESTED;
-		}
-
-		List<TestResult> testResults = getTestResults();
-
-		if (testResults.isEmpty()) {
-			String result = build.getResult();
-
-			if ((result == null) || result.equals("SUCCESS") ||
-				result.equals("UNSTABLE")) {
-
-				return Status.UNTESTED;
+			if (!testName.contains(_TEST_NAME_PREFIX)) {
+				continue;
 			}
 
-			return Status.FAILED;
-		}
+			String modulePath = testName.substring(
+				testName.lastIndexOf("[") + 1);
 
-		for (TestResult testResult : testResults) {
-			if (testResult.isFailing()) {
-				return Status.FAILED;
+			modulePath = modulePath.replace("]", "");
+
+			if (!modulePaths.contains(modulePath)) {
+				continue;
 			}
-		}
 
-		return Status.PASSED;
-	}
+			if (testClassReport == null) {
+				ModulesTestClass modulesTestClass = getTestClass();
 
-	public List<TestResult> getTestResults() {
-		if (_testResults != null) {
-			return _testResults;
-		}
-
-		_testResults = new ArrayList<>();
-
-		Build build = getBuild();
-
-		if (build == null) {
-			return _testResults;
-		}
-
-		TestClassResult testClassResult = build.getTestClassResult(
-			_TEST_CLASS_NAME);
-
-		if (testClassResult == null) {
-			return _testResults;
-		}
-
-		for (TestResult testResult : testClassResult.getTestResults()) {
-			Matcher matcher = _modulePathPattern.matcher(
-				testResult.getTestName());
-
-			if (matcher.find()) {
-				String modulePath = matcher.group("modulePath");
-
-				if (modulePath.startsWith(_getModulePath())) {
-					_testResults.add(testResult);
-				}
+				testClassReport = TestReportFactory.newTestClassReport(
+					downstreamBuildReport, modulesTestClass.getTestClassName());
 			}
+
+			testClassReport.addTestReport(testReport);
 		}
 
-		return _testResults;
+		_testClassReport = testClassReport;
+
+		return _testClassReport;
 	}
 
-	private String _getModulePath() {
-		String modulePath = _semVerModulesTestClass.getName();
+	private Set<String> _getModulePaths() {
+		Set<String> modulePaths = new HashSet<>();
 
-		if (modulePath.startsWith("modules")) {
-			modulePath = modulePath.substring(7);
+		ModulesTestClass modulesTestClass = getTestClass();
+
+		for (TestClassMethod testClassMethod :
+				modulesTestClass.getTestClassMethods()) {
+
+			String modulePath = testClassMethod.getName();
+
+			modulePath = modulePath.replace(":", "/");
+
+			modulePath = modulePath.replace("/baseline", "");
+
+			modulePaths.add(modulePath);
 		}
 
-		return modulePath;
+		return modulePaths;
 	}
 
-	private static final String _TEST_CLASS_NAME =
-		"com.liferay.semantic.versioning.SemanticVersioningTest";
+	private static final String _TEST_NAME_PREFIX =
+		"SemanticVersioningTest.testSemanticVersioning[";
 
-	private static final Pattern _modulePathPattern = Pattern.compile(
-		"testSemanticVersioning\\[(?<modulePath>[\\w\\/-]+)\\]");
-
-	private final SemVerModulesTestClass _semVerModulesTestClass;
-	private List<TestResult> _testResults;
+	private TestClassReport _testClassReport;
 
 }

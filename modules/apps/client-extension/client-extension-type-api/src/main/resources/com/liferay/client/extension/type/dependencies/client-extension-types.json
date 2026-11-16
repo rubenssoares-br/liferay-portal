@@ -1,6 +1,49 @@
 [
 	{
 		"description": "This is a description.",
+		"name": "audiencesCustomAttributes",
+		"properties": [
+			{
+				"name": "description",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"name": "name",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "",
+				"name": "names",
+				"type": "CETProperty.Type.StringList"
+			},
+			{
+				"default": "https://www.liferay.com",
+				"name": "sourceCodeURL",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "",
+				"name": "symbols",
+				"type": "CETProperty.Type.StringList"
+			},
+			{
+				"name": "type",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "",
+				"name": "types",
+				"type": "CETProperty.Type.StringList"
+			},
+			{
+				"default": "",
+				"name": "url",
+				"type": "CETProperty.Type.URL"
+			}
+		]
+	},
+	{
+		"description": "This is a description.",
 		"name": "commerceCheckoutStep",
 		"properties": [
 			{
@@ -22,6 +65,11 @@
 				"default": "",
 				"name": "checkoutStepOrder",
 				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "",
+				"name": "continueAfterPayment",
+				"type": "CETProperty.Type.Boolean"
 			},
 			{
 				"name": "description",
@@ -241,6 +289,39 @@
 	},
 	{
 		"description": "This is a description.",
+		"name": "fdsVisualizationMode",
+		"properties": [
+			{
+				"name": "description",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "",
+				"name": "icon",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"name": "name",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "https://www.liferay.com",
+				"name": "sourceCodeURL",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"name": "type",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "",
+				"name": "url",
+				"type": "CETProperty.Type.URL"
+			}
+		]
+	},
+	{
+		"description": "This is a description.",
 		"name": "globalCSS",
 		"properties": [
 			{
@@ -249,6 +330,11 @@
 			},
 			{
 				"name": "name",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "layout",
+				"name": "scope",
 				"type": "CETProperty.Type.String"
 			},
 			{
@@ -280,7 +366,7 @@
 				"type": "CETProperty.Type.String"
 			},
 			{
-				"default": "page",
+				"default": "layout",
 				"name": "scope",
 				"type": "CETProperty.Type.String"
 			},
@@ -449,6 +535,11 @@
 			},
 			{
 				"name": "name",
+				"type": "CETProperty.Type.String"
+			},
+			{
+				"default": "layout",
+				"name": "scope",
 				"type": "CETProperty.Type.String"
 			},
 			{

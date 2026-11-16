@@ -17,21 +17,21 @@ import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Rubén Pulido
@@ -39,8 +39,11 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName(
-	description = "The widget instance's look and feel configuration.",
+	description = "A widget instance's look and feel configuration.",
 	value = "WidgetLookAndFeelConfig"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A widget instance's look and feel configuration."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "WidgetLookAndFeelConfig")
@@ -55,9 +58,9 @@ public class WidgetLookAndFeelConfig implements Serializable {
 			WidgetLookAndFeelConfig.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Object getAdvancedStylingConfig() {
+	public AdvancedStylingConfig getAdvancedStylingConfig() {
 		if (_advancedStylingConfigSupplier != null) {
 			advancedStylingConfig = _advancedStylingConfigSupplier.get();
 
@@ -67,7 +70,9 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return advancedStylingConfig;
 	}
 
-	public void setAdvancedStylingConfig(Object advancedStylingConfig) {
+	public void setAdvancedStylingConfig(
+		AdvancedStylingConfig advancedStylingConfig) {
+
 		this.advancedStylingConfig = advancedStylingConfig;
 
 		_advancedStylingConfigSupplier = null;
@@ -75,7 +80,8 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@JsonIgnore
 	public void setAdvancedStylingConfig(
-		UnsafeSupplier<Object, Exception> advancedStylingConfigUnsafeSupplier) {
+		UnsafeSupplier<AdvancedStylingConfig, Exception>
+			advancedStylingConfigUnsafeSupplier) {
 
 		_advancedStylingConfigSupplier = () -> {
 			try {
@@ -92,14 +98,14 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object advancedStylingConfig;
+	protected AdvancedStylingConfig advancedStylingConfig;
 
 	@JsonIgnore
-	private Supplier<Object> _advancedStylingConfigSupplier;
+	private Supplier<AdvancedStylingConfig> _advancedStylingConfigSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Object getBackgroundStylesConfig() {
+	public BackgroundStylesConfig getBackgroundStylesConfig() {
 		if (_backgroundStylesConfigSupplier != null) {
 			backgroundStylesConfig = _backgroundStylesConfigSupplier.get();
 
@@ -109,7 +115,9 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return backgroundStylesConfig;
 	}
 
-	public void setBackgroundStylesConfig(Object backgroundStylesConfig) {
+	public void setBackgroundStylesConfig(
+		BackgroundStylesConfig backgroundStylesConfig) {
+
 		this.backgroundStylesConfig = backgroundStylesConfig;
 
 		_backgroundStylesConfigSupplier = null;
@@ -117,7 +125,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@JsonIgnore
 	public void setBackgroundStylesConfig(
-		UnsafeSupplier<Object, Exception>
+		UnsafeSupplier<BackgroundStylesConfig, Exception>
 			backgroundStylesConfigUnsafeSupplier) {
 
 		_backgroundStylesConfigSupplier = () -> {
@@ -135,14 +143,14 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object backgroundStylesConfig;
+	protected BackgroundStylesConfig backgroundStylesConfig;
 
 	@JsonIgnore
-	private Supplier<Object> _backgroundStylesConfigSupplier;
+	private Supplier<BackgroundStylesConfig> _backgroundStylesConfigSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Object getBorderStylesConfig() {
+	public BorderStylesConfig getBorderStylesConfig() {
 		if (_borderStylesConfigSupplier != null) {
 			borderStylesConfig = _borderStylesConfigSupplier.get();
 
@@ -152,7 +160,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return borderStylesConfig;
 	}
 
-	public void setBorderStylesConfig(Object borderStylesConfig) {
+	public void setBorderStylesConfig(BorderStylesConfig borderStylesConfig) {
 		this.borderStylesConfig = borderStylesConfig;
 
 		_borderStylesConfigSupplier = null;
@@ -160,7 +168,8 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@JsonIgnore
 	public void setBorderStylesConfig(
-		UnsafeSupplier<Object, Exception> borderStylesConfigUnsafeSupplier) {
+		UnsafeSupplier<BorderStylesConfig, Exception>
+			borderStylesConfigUnsafeSupplier) {
 
 		_borderStylesConfigSupplier = () -> {
 			try {
@@ -177,14 +186,14 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object borderStylesConfig;
+	protected BorderStylesConfig borderStylesConfig;
 
 	@JsonIgnore
-	private Supplier<Object> _borderStylesConfigSupplier;
+	private Supplier<BorderStylesConfig> _borderStylesConfigSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Object getGeneralConfig() {
+	public GeneralConfig getGeneralConfig() {
 		if (_generalConfigSupplier != null) {
 			generalConfig = _generalConfigSupplier.get();
 
@@ -194,7 +203,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return generalConfig;
 	}
 
-	public void setGeneralConfig(Object generalConfig) {
+	public void setGeneralConfig(GeneralConfig generalConfig) {
 		this.generalConfig = generalConfig;
 
 		_generalConfigSupplier = null;
@@ -202,7 +211,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@JsonIgnore
 	public void setGeneralConfig(
-		UnsafeSupplier<Object, Exception> generalConfigUnsafeSupplier) {
+		UnsafeSupplier<GeneralConfig, Exception> generalConfigUnsafeSupplier) {
 
 		_generalConfigSupplier = () -> {
 			try {
@@ -219,14 +228,14 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object generalConfig;
+	protected GeneralConfig generalConfig;
 
 	@JsonIgnore
-	private Supplier<Object> _generalConfigSupplier;
+	private Supplier<GeneralConfig> _generalConfigSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Object getMarginAndPaddingConfig() {
+	public MarginAndPaddingConfig getMarginAndPaddingConfig() {
 		if (_marginAndPaddingConfigSupplier != null) {
 			marginAndPaddingConfig = _marginAndPaddingConfigSupplier.get();
 
@@ -236,7 +245,9 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return marginAndPaddingConfig;
 	}
 
-	public void setMarginAndPaddingConfig(Object marginAndPaddingConfig) {
+	public void setMarginAndPaddingConfig(
+		MarginAndPaddingConfig marginAndPaddingConfig) {
+
 		this.marginAndPaddingConfig = marginAndPaddingConfig;
 
 		_marginAndPaddingConfigSupplier = null;
@@ -244,7 +255,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@JsonIgnore
 	public void setMarginAndPaddingConfig(
-		UnsafeSupplier<Object, Exception>
+		UnsafeSupplier<MarginAndPaddingConfig, Exception>
 			marginAndPaddingConfigUnsafeSupplier) {
 
 		_marginAndPaddingConfigSupplier = () -> {
@@ -262,14 +273,14 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object marginAndPaddingConfig;
+	protected MarginAndPaddingConfig marginAndPaddingConfig;
 
 	@JsonIgnore
-	private Supplier<Object> _marginAndPaddingConfigSupplier;
+	private Supplier<MarginAndPaddingConfig> _marginAndPaddingConfigSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
-	public Object getTextStylesConfig() {
+	public TextStylesConfig getTextStylesConfig() {
 		if (_textStylesConfigSupplier != null) {
 			textStylesConfig = _textStylesConfigSupplier.get();
 
@@ -279,7 +290,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return textStylesConfig;
 	}
 
-	public void setTextStylesConfig(Object textStylesConfig) {
+	public void setTextStylesConfig(TextStylesConfig textStylesConfig) {
 		this.textStylesConfig = textStylesConfig;
 
 		_textStylesConfigSupplier = null;
@@ -287,7 +298,8 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@JsonIgnore
 	public void setTextStylesConfig(
-		UnsafeSupplier<Object, Exception> textStylesConfigUnsafeSupplier) {
+		UnsafeSupplier<TextStylesConfig, Exception>
+			textStylesConfigUnsafeSupplier) {
 
 		_textStylesConfigSupplier = () -> {
 			try {
@@ -304,10 +316,10 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 	@GraphQLField
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
-	protected Object textStylesConfig;
+	protected TextStylesConfig textStylesConfig;
 
 	@JsonIgnore
-	private Supplier<Object> _textStylesConfigSupplier;
+	private Supplier<TextStylesConfig> _textStylesConfigSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -337,7 +349,8 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 		sb.append("{");
 
-		Object advancedStylingConfig = getAdvancedStylingConfig();
+		AdvancedStylingConfig advancedStylingConfig =
+			getAdvancedStylingConfig();
 
 		if (advancedStylingConfig != null) {
 			if (sb.length() > 1) {
@@ -346,22 +359,11 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 			sb.append("\"advancedStylingConfig\": ");
 
-			if (advancedStylingConfig instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)advancedStylingConfig));
-			}
-			else if (advancedStylingConfig instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)advancedStylingConfig));
-				sb.append("\"");
-			}
-			else {
-				sb.append(advancedStylingConfig);
-			}
+			sb.append(String.valueOf(advancedStylingConfig));
 		}
 
-		Object backgroundStylesConfig = getBackgroundStylesConfig();
+		BackgroundStylesConfig backgroundStylesConfig =
+			getBackgroundStylesConfig();
 
 		if (backgroundStylesConfig != null) {
 			if (sb.length() > 1) {
@@ -370,22 +372,10 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 			sb.append("\"backgroundStylesConfig\": ");
 
-			if (backgroundStylesConfig instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)backgroundStylesConfig));
-			}
-			else if (backgroundStylesConfig instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)backgroundStylesConfig));
-				sb.append("\"");
-			}
-			else {
-				sb.append(backgroundStylesConfig);
-			}
+			sb.append(String.valueOf(backgroundStylesConfig));
 		}
 
-		Object borderStylesConfig = getBorderStylesConfig();
+		BorderStylesConfig borderStylesConfig = getBorderStylesConfig();
 
 		if (borderStylesConfig != null) {
 			if (sb.length() > 1) {
@@ -394,22 +384,10 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 			sb.append("\"borderStylesConfig\": ");
 
-			if (borderStylesConfig instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)borderStylesConfig));
-			}
-			else if (borderStylesConfig instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)borderStylesConfig));
-				sb.append("\"");
-			}
-			else {
-				sb.append(borderStylesConfig);
-			}
+			sb.append(String.valueOf(borderStylesConfig));
 		}
 
-		Object generalConfig = getGeneralConfig();
+		GeneralConfig generalConfig = getGeneralConfig();
 
 		if (generalConfig != null) {
 			if (sb.length() > 1) {
@@ -418,21 +396,11 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 			sb.append("\"generalConfig\": ");
 
-			if (generalConfig instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject((Map<?, ?>)generalConfig));
-			}
-			else if (generalConfig instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)generalConfig));
-				sb.append("\"");
-			}
-			else {
-				sb.append(generalConfig);
-			}
+			sb.append(String.valueOf(generalConfig));
 		}
 
-		Object marginAndPaddingConfig = getMarginAndPaddingConfig();
+		MarginAndPaddingConfig marginAndPaddingConfig =
+			getMarginAndPaddingConfig();
 
 		if (marginAndPaddingConfig != null) {
 			if (sb.length() > 1) {
@@ -441,22 +409,10 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 			sb.append("\"marginAndPaddingConfig\": ");
 
-			if (marginAndPaddingConfig instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)marginAndPaddingConfig));
-			}
-			else if (marginAndPaddingConfig instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)marginAndPaddingConfig));
-				sb.append("\"");
-			}
-			else {
-				sb.append(marginAndPaddingConfig);
-			}
+			sb.append(String.valueOf(marginAndPaddingConfig));
 		}
 
-		Object textStylesConfig = getTextStylesConfig();
+		TextStylesConfig textStylesConfig = getTextStylesConfig();
 
 		if (textStylesConfig != null) {
 			if (sb.length() > 1) {
@@ -465,19 +421,7 @@ public class WidgetLookAndFeelConfig implements Serializable {
 
 			sb.append("\"textStylesConfig\": ");
 
-			if (textStylesConfig instanceof Map) {
-				sb.append(
-					JSONFactoryUtil.createJSONObject(
-						(Map<?, ?>)textStylesConfig));
-			}
-			else if (textStylesConfig instanceof String) {
-				sb.append("\"");
-				sb.append(_escape((String)textStylesConfig));
-				sb.append("\"");
-			}
-			else {
-				sb.append(textStylesConfig);
-			}
+			sb.append(String.valueOf(textStylesConfig));
 		}
 
 		sb.append("}");
@@ -485,8 +429,8 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.site.dto.v1_0.WidgetLookAndFeelConfig",
 		name = "x-class-name"
 	)
@@ -573,6 +517,27 @@ public class WidgetLookAndFeelConfig implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -581,3 +546,4 @@ public class WidgetLookAndFeelConfig implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1880873742

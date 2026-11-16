@@ -9,16 +9,17 @@ import com.liferay.headless.admin.site.client.dto.v1_0.DisplayPageTemplate;
 import com.liferay.headless.admin.site.client.dto.v1_0.PageSpecification;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -53,6 +54,16 @@ public class DisplayPageTemplateSerDes {
 		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ssXX");
 
+		if (displayPageTemplate.getActions() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"actions\": ");
+
+			sb.append(_toJSON(displayPageTemplate.getActions()));
+		}
+
 		if (displayPageTemplate.getContentTypeReference() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -72,21 +83,6 @@ public class DisplayPageTemplateSerDes {
 			sb.append("\"creator\": ");
 
 			sb.append(displayPageTemplate.getCreator());
-		}
-
-		if (displayPageTemplate.getCreatorExternalReferenceCode() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"creatorExternalReferenceCode\": ");
-
-			sb.append("\"");
-
-			sb.append(
-				_escape(displayPageTemplate.getCreatorExternalReferenceCode()));
-
-			sb.append("\"");
 		}
 
 		if (displayPageTemplate.getDateCreated() != null) {
@@ -161,6 +157,17 @@ public class DisplayPageTemplateSerDes {
 			sb.append(_escape(displayPageTemplate.getExternalReferenceCode()));
 
 			sb.append("\"");
+		}
+
+		if (displayPageTemplate.getFriendlyUrlHistory() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"friendlyUrlHistory\": ");
+
+			sb.append(
+				String.valueOf(displayPageTemplate.getFriendlyUrlHistory()));
 		}
 
 		if (displayPageTemplate.getFriendlyUrlPath_i18n() != null) {
@@ -247,14 +254,37 @@ public class DisplayPageTemplateSerDes {
 			sb.append(String.valueOf(displayPageTemplate.getParentFolder()));
 		}
 
-		if (displayPageTemplate.getThumbnail() != null) {
+		if (displayPageTemplate.getPermissions() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"thumbnail\": ");
+			sb.append("\"permissions\": ");
 
-			sb.append(String.valueOf(displayPageTemplate.getThumbnail()));
+			sb.append("[");
+
+			for (int i = 0; i < displayPageTemplate.getPermissions().length;
+				 i++) {
+
+				sb.append(displayPageTemplate.getPermissions()[i]);
+
+				if ((i + 1) < displayPageTemplate.getPermissions().length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
+		if (displayPageTemplate.getThumbnailURLReference() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"thumbnailURLReference\": ");
+
+			sb.append(
+				String.valueOf(displayPageTemplate.getThumbnailURLReference()));
 		}
 
 		if (displayPageTemplate.getUuid() != null) {
@@ -295,6 +325,14 @@ public class DisplayPageTemplateSerDes {
 		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ssXX");
 
+		if (displayPageTemplate.getActions() == null) {
+			map.put("actions", null);
+		}
+		else {
+			map.put(
+				"actions", String.valueOf(displayPageTemplate.getActions()));
+		}
+
 		if (displayPageTemplate.getContentTypeReference() == null) {
 			map.put("contentTypeReference", null);
 		}
@@ -310,16 +348,6 @@ public class DisplayPageTemplateSerDes {
 		else {
 			map.put(
 				"creator", String.valueOf(displayPageTemplate.getCreator()));
-		}
-
-		if (displayPageTemplate.getCreatorExternalReferenceCode() == null) {
-			map.put("creatorExternalReferenceCode", null);
-		}
-		else {
-			map.put(
-				"creatorExternalReferenceCode",
-				String.valueOf(
-					displayPageTemplate.getCreatorExternalReferenceCode()));
 		}
 
 		if (displayPageTemplate.getDateCreated() == null) {
@@ -369,6 +397,15 @@ public class DisplayPageTemplateSerDes {
 			map.put(
 				"externalReferenceCode",
 				String.valueOf(displayPageTemplate.getExternalReferenceCode()));
+		}
+
+		if (displayPageTemplate.getFriendlyUrlHistory() == null) {
+			map.put("friendlyUrlHistory", null);
+		}
+		else {
+			map.put(
+				"friendlyUrlHistory",
+				String.valueOf(displayPageTemplate.getFriendlyUrlHistory()));
 		}
 
 		if (displayPageTemplate.getFriendlyUrlPath_i18n() == null) {
@@ -421,13 +458,22 @@ public class DisplayPageTemplateSerDes {
 				String.valueOf(displayPageTemplate.getParentFolder()));
 		}
 
-		if (displayPageTemplate.getThumbnail() == null) {
-			map.put("thumbnail", null);
+		if (displayPageTemplate.getPermissions() == null) {
+			map.put("permissions", null);
 		}
 		else {
 			map.put(
-				"thumbnail",
-				String.valueOf(displayPageTemplate.getThumbnail()));
+				"permissions",
+				String.valueOf(displayPageTemplate.getPermissions()));
+		}
+
+		if (displayPageTemplate.getThumbnailURLReference() == null) {
+			map.put("thumbnailURLReference", null);
+		}
+		else {
+			map.put(
+				"thumbnailURLReference",
+				String.valueOf(displayPageTemplate.getThumbnailURLReference()));
 		}
 
 		if (displayPageTemplate.getUuid() == null) {
@@ -455,15 +501,15 @@ public class DisplayPageTemplateSerDes {
 
 		@Override
 		protected boolean parseMaps(String jsonParserFieldName) {
-			if (Objects.equals(jsonParserFieldName, "contentTypeReference")) {
+			if (Objects.equals(jsonParserFieldName, "actions")) {
+				return true;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "contentTypeReference")) {
+
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "creator")) {
-				return false;
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
@@ -482,6 +528,11 @@ public class DisplayPageTemplateSerDes {
 			}
 			else if (Objects.equals(
 						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "friendlyUrlHistory")) {
 
 				return false;
 			}
@@ -507,7 +558,12 @@ public class DisplayPageTemplateSerDes {
 			else if (Objects.equals(jsonParserFieldName, "parentFolder")) {
 				return false;
 			}
-			else if (Objects.equals(jsonParserFieldName, "thumbnail")) {
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "thumbnailURLReference")) {
+
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "uuid")) {
@@ -522,7 +578,15 @@ public class DisplayPageTemplateSerDes {
 			DisplayPageTemplate displayPageTemplate, String jsonParserFieldName,
 			Object jsonParserFieldValue) {
 
-			if (Objects.equals(jsonParserFieldName, "contentTypeReference")) {
+			if (Objects.equals(jsonParserFieldName, "actions")) {
+				if (jsonParserFieldValue != null) {
+					displayPageTemplate.setActions(
+						(Map<String, Map<String, String>>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "contentTypeReference")) {
+
 				if (jsonParserFieldValue != null) {
 					displayPageTemplate.setContentTypeReference(
 						ClassSubtypeReferenceSerDes.toDTO(
@@ -533,14 +597,6 @@ public class DisplayPageTemplateSerDes {
 				if (jsonParserFieldValue != null) {
 					displayPageTemplate.setCreator(
 						CreatorSerDes.toDTO((String)jsonParserFieldValue));
-				}
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "creatorExternalReferenceCode")) {
-
-				if (jsonParserFieldValue != null) {
-					displayPageTemplate.setCreatorExternalReferenceCode(
-						(String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
@@ -576,6 +632,15 @@ public class DisplayPageTemplateSerDes {
 				if (jsonParserFieldValue != null) {
 					displayPageTemplate.setExternalReferenceCode(
 						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "friendlyUrlHistory")) {
+
+				if (jsonParserFieldValue != null) {
+					displayPageTemplate.setFriendlyUrlHistory(
+						FriendlyUrlHistorySerDes.toDTO(
+							(String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(
@@ -629,10 +694,32 @@ public class DisplayPageTemplateSerDes {
 							(String)jsonParserFieldValue));
 				}
 			}
-			else if (Objects.equals(jsonParserFieldName, "thumbnail")) {
+			else if (Objects.equals(jsonParserFieldName, "permissions")) {
 				if (jsonParserFieldValue != null) {
-					displayPageTemplate.setThumbnail(
-						ItemExternalReferenceSerDes.toDTO(
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					com.liferay.headless.admin.site.client.permission.
+						Permission[] permissionsArray = new
+						com.liferay.headless.admin.site.client.permission.
+							Permission[jsonParserFieldValues.length];
+
+					for (int i = 0; i < permissionsArray.length; i++) {
+						permissionsArray[i] =
+							com.liferay.headless.admin.site.client.permission.
+								Permission.toDTO(
+									(String)jsonParserFieldValues[i]);
+					}
+
+					displayPageTemplate.setPermissions(permissionsArray);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "thumbnailURLReference")) {
+
+				if (jsonParserFieldValue != null) {
+					displayPageTemplate.setThumbnailURLReference(
+						ThumbnailURLReferenceSerDes.toDTO(
 							(String)jsonParserFieldValue));
 				}
 			}
@@ -686,6 +773,16 @@ public class DisplayPageTemplateSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -718,3 +815,4 @@ public class DisplayPageTemplateSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2071280293

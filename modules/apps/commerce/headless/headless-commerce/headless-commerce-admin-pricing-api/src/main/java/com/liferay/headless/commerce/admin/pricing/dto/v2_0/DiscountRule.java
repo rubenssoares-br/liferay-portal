@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("DiscountRule")
+@GraphQLName(
+	description = "Pre-qualification, post-qualification, or target validator attached to a discount. Carries a type string and a JSON typeSettings payload interpreted by the matching discount rule type at evaluation time.",
+	value = "DiscountRule"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Pre-qualification, post-qualification, or target validator attached to a discount. Carries a type string and a JSON typeSettings payload interpreted by the matching discount rule type at evaluation time.",
+	requiredProperties = {"type"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"type"})
 @XmlRootElement(name = "DiscountRule")
 public class DiscountRule implements Serializable {
 
@@ -53,7 +60,9 @@ public class DiscountRule implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(DiscountRule.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -89,7 +98,9 @@ public class DiscountRule implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of HATEOAS actions available to the current user, keyed by action name. Each value carries the href template and HTTP method, computed dynamically from user permissions. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, Map<String, String>> actions;
 
@@ -97,7 +108,10 @@ public class DiscountRule implements Serializable {
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30324")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the discount entity (FK identifier).",
+		example = "30324"
+	)
 	public Long getDiscountId() {
 		if (_discountIdSupplier != null) {
 			discountId = _discountIdSupplier.get();
@@ -131,15 +145,66 @@ public class DiscountRule implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the discount entity (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long discountId;
 
 	@JsonIgnore
 	private Supplier<Long> _discountIdSupplier;
 
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique within the company. On import it is what binds the payload to the discount rule already stored, so a repeated import updates that rule instead of adding another one.",
+		example = "DR-0001"
+	)
+	public String getExternalReferenceCode() {
+		if (_externalReferenceCodeSupplier != null) {
+			externalReferenceCode = _externalReferenceCodeSupplier.get();
+
+			_externalReferenceCodeSupplier = null;
+		}
+
+		return externalReferenceCode;
+	}
+
+	public void setExternalReferenceCode(String externalReferenceCode) {
+		this.externalReferenceCode = externalReferenceCode;
+
+		_externalReferenceCodeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setExternalReferenceCode(
+		UnsafeSupplier<String, Exception> externalReferenceCodeUnsafeSupplier) {
+
+		_externalReferenceCodeSupplier = () -> {
+			try {
+				return externalReferenceCodeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique within the company. On import it is what binds the payload to the discount rule already stored, so a repeated import updates that rule instead of adding another one."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String externalReferenceCode;
+
+	@JsonIgnore
+	private Supplier<String> _externalReferenceCodeSupplier;
+
 	@DecimalMin("0")
-	@Schema(example = "30643")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the discountrule. Server-assigned and stable.",
+		example = "30643"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -171,14 +236,19 @@ public class DiscountRule implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the discountrule. Server-assigned and stable."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the discountrule.",
+		example = "Cart Total"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -210,14 +280,17 @@ public class DiscountRule implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Display name of the discountrule.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(example = "cart-total")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Type discriminator for the record. Refer to the parent schema's documentation for the allowed values.",
+		example = "cart-total"
+	)
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -249,7 +322,9 @@ public class DiscountRule implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Type discriminator for the record. Refer to the parent schema's documentation for the allowed values."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String type;
@@ -257,7 +332,10 @@ public class DiscountRule implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema(example = "22.50")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-form JSON payload interpreted by the matching type handler at evaluation time.",
+		example = "22.50"
+	)
 	public String getTypeSettings() {
 		if (_typeSettingsSupplier != null) {
 			typeSettings = _typeSettingsSupplier.get();
@@ -291,12 +369,60 @@ public class DiscountRule implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Free-form JSON payload interpreted by the matching type handler at evaluation time."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String typeSettings;
 
 	@JsonIgnore
 	private Supplier<String> _typeSettingsSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Value of the type settings for the rule type, without the type prefix the stored settings carry. Takes precedence over `typeSettings` on input.",
+		example = "22.50"
+	)
+	public String getTypeSettingsValue() {
+		if (_typeSettingsValueSupplier != null) {
+			typeSettingsValue = _typeSettingsValueSupplier.get();
+
+			_typeSettingsValueSupplier = null;
+		}
+
+		return typeSettingsValue;
+	}
+
+	public void setTypeSettingsValue(String typeSettingsValue) {
+		this.typeSettingsValue = typeSettingsValue;
+
+		_typeSettingsValueSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setTypeSettingsValue(
+		UnsafeSupplier<String, Exception> typeSettingsValueUnsafeSupplier) {
+
+		_typeSettingsValueSupplier = () -> {
+			try {
+				return typeSettingsValueUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Value of the type settings for the rule type, without the type prefix the stored settings carry. Takes precedence over `typeSettings` on input."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected String typeSettingsValue;
+
+	@JsonIgnore
+	private Supplier<String> _typeSettingsValueSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -347,6 +473,22 @@ public class DiscountRule implements Serializable {
 			sb.append("\"discountId\": ");
 
 			sb.append(discountId);
+		}
+
+		String externalReferenceCode = getExternalReferenceCode();
+
+		if (externalReferenceCode != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"externalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(externalReferenceCode));
+
+			sb.append("\"");
 		}
 
 		Long id = getId();
@@ -409,13 +551,29 @@ public class DiscountRule implements Serializable {
 			sb.append("\"");
 		}
 
+		String typeSettingsValue = getTypeSettingsValue();
+
+		if (typeSettingsValue != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"typeSettingsValue\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(typeSettingsValue));
+
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v2_0.DiscountRule",
 		name = "x-class-name"
 	)
@@ -502,6 +660,27 @@ public class DiscountRule implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -510,3 +689,4 @@ public class DiscountRule implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1245425944

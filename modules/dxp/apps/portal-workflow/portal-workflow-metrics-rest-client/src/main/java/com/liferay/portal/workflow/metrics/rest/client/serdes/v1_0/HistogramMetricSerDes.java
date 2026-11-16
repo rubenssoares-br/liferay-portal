@@ -9,13 +9,14 @@ import com.liferay.portal.workflow.metrics.rest.client.dto.v1_0.Histogram;
 import com.liferay.portal.workflow.metrics.rest.client.dto.v1_0.HistogramMetric;
 import com.liferay.portal.workflow.metrics.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rafael Praxedes
@@ -75,9 +76,7 @@ public class HistogramMetricSerDes {
 			sb.append("\"unit\": ");
 
 			sb.append("\"");
-
 			sb.append(histogramMetric.getUnit());
-
 			sb.append("\"");
 		}
 
@@ -242,6 +241,16 @@ public class HistogramMetricSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -274,3 +283,4 @@ public class HistogramMetricSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-793711402

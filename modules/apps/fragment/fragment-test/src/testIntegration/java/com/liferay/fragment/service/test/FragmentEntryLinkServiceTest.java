@@ -15,7 +15,6 @@ import com.liferay.fragment.test.util.FragmentEntryTestUtil;
 import com.liferay.fragment.test.util.FragmentTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
@@ -23,15 +22,15 @@ import com.liferay.portal.kernel.model.ResourceConstants;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
 import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
-import com.liferay.portal.kernel.test.util.GroupTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
+import com.liferay.portal.kernel.util.ScopeUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
@@ -59,7 +58,7 @@ public class FragmentEntryLinkServiceTest {
 
 	@Before
 	public void setUp() throws Exception {
-		_group = GroupTestUtil.addGroup();
+		_group = _groupLocalService.fetchGroup(TestPropsValues.getGroupId());
 
 		FragmentCollection fragmentCollection =
 			FragmentTestUtil.addFragmentCollection(_group.getGroupId());
@@ -83,8 +82,8 @@ public class FragmentEntryLinkServiceTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(), null,
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), css, html, js, configuration,
@@ -105,8 +104,8 @@ public class FragmentEntryLinkServiceTest {
 				UserTestUtil.addGroupUser(_group, RoleConstants.SITE_MEMBER));
 
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(), null,
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), null, "<div>test</div>", null, null,
@@ -144,8 +143,10 @@ public class FragmentEntryLinkServiceTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					_fragmentEntry.getGroupId(), _group.getGroupId()),
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), null, "<div>test</div>", null, null,
@@ -169,8 +170,10 @@ public class FragmentEntryLinkServiceTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					_fragmentEntry.getGroupId(), _group.getGroupId()),
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), null, "<div>test</div>", null, null,
@@ -202,8 +205,10 @@ public class FragmentEntryLinkServiceTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					_fragmentEntry.getGroupId(), _group.getGroupId()),
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), null, "<div>test</div>", null, null,
@@ -233,8 +238,10 @@ public class FragmentEntryLinkServiceTest {
 
 		FragmentEntryLink fragmentEntryLink =
 			_fragmentEntryLinkService.addFragmentEntryLink(
-				null, _group.getGroupId(), 0,
-				_fragmentEntry.getFragmentEntryId(),
+				null, _group.getGroupId(), null,
+				_fragmentEntry.getExternalReferenceCode(),
+				ScopeUtil.getItemScopeExternalReferenceCode(
+					_fragmentEntry.getGroupId(), _group.getGroupId()),
 				_segmentsExperienceLocalService.
 					fetchDefaultSegmentsExperienceId(_layout.getPlid()),
 				_layout.getPlid(), null, "<div>test</div>", null, null,
@@ -269,11 +276,13 @@ public class FragmentEntryLinkServiceTest {
 
 	@Test
 	public void testUpdateFragmentEntryLink() throws Exception {
-		String editableValues = _createEditableValues();
-
 		FragmentEntryLink fragmentEntryLink =
 			FragmentTestUtil.addFragmentEntryLink(
 				_fragmentEntry, _layout.getPlid());
+
+		String editableValues = String.valueOf(
+			JSONUtil.put(
+				RandomTestUtil.randomString(), RandomTestUtil.randomString()));
 
 		FragmentEntryLink updatedFragmentEntryLink =
 			_fragmentEntryLinkService.updateFragmentEntryLink(
@@ -281,13 +290,6 @@ public class FragmentEntryLinkServiceTest {
 
 		Assert.assertEquals(
 			editableValues, updatedFragmentEntryLink.getEditableValues());
-	}
-
-	private String _createEditableValues() {
-		JSONObject jsonObject = JSONUtil.put(
-			RandomTestUtil.randomString(), RandomTestUtil.randomString());
-
-		return jsonObject.toString();
 	}
 
 	private FragmentEntry _fragmentEntry;
@@ -298,8 +300,10 @@ public class FragmentEntryLinkServiceTest {
 	@Inject
 	private FragmentEntryLinkService _fragmentEntryLinkService;
 
-	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject
+	private GroupLocalService _groupLocalService;
 
 	private Layout _layout;
 

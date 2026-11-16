@@ -4,7 +4,7 @@
  */
 
 import ClayButton from '@clayui/button';
-import DropDown from '@clayui/drop-down/lib/DropDown';
+import DropDown from '@clayui/drop-down';
 import ClayForm, {ClayCheckbox} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import {Fragment, useState} from 'react';
@@ -18,12 +18,12 @@ import i18n from '../../../i18n';
 import {Liferay} from '../../../liferay/liferay';
 import {phones} from '../../../utils/phones';
 import {getSiteURL} from '../../../utils/site';
-import {PublisherForm, StepType} from './PublisherGateSteps';
+import {PublisherForm, PublisherGateStep} from './PublisherGateSteps';
 
 type PublisherGateFormProps = {
 	form: UseFormReturn<PublisherForm, any>;
 	listTypeDefinition?: ListTypeDefinition;
-	setStep: React.Dispatch<React.SetStateAction<StepType>>;
+	setStep: React.Dispatch<React.SetStateAction<PublisherGateStep>>;
 };
 
 const tooltipText = {
@@ -41,7 +41,20 @@ const PublisherGateForm: React.FC<PublisherGateFormProps> = ({
 	const [currentPhonesFlags, setCurrentPhonesFlags] = useState(phone);
 	const navigate = useNavigate();
 
-	const listTypeEntries = listTypeDefinition?.listTypeEntries ?? [];
+	const listTypeEntries =
+		listTypeDefinition?.listTypeEntries &&
+		!!listTypeDefinition.listTypeEntries.length
+			? listTypeDefinition.listTypeEntries
+			: [
+					{
+						key: 'appPublisher',
+						name: i18n.translate('app-publisher'),
+					},
+					{
+						key: 'solutionPublisher',
+						name: i18n.translate('solution-publisher'),
+					},
+				];
 
 	const inputProps = {
 		errors: form.formState.errors,
@@ -273,7 +286,9 @@ const PublisherGateForm: React.FC<PublisherGateFormProps> = ({
 
 							<ClayButton
 								disabled={!form.formState.isValid}
-								onClick={() => setStep(StepType.SUMMARY)}
+								onClick={() =>
+									setStep(PublisherGateStep.SUMMARY)
+								}
 							>
 								{i18n.translate('continue')}
 							</ClayButton>

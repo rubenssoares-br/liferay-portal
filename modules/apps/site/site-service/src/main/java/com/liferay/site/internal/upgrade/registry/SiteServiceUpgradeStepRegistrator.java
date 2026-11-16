@@ -6,12 +6,15 @@
 package com.liferay.site.internal.upgrade.registry;
 
 import com.liferay.portal.kernel.service.CompanyLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.upgrade.BaseSQLServerDatetimeUpgradeProcess;
 import com.liferay.portal.kernel.upgrade.DummyUpgradeStep;
 import com.liferay.portal.kernel.upgrade.MVCCVersionUpgradeProcess;
 import com.liferay.portal.upgrade.registry.UpgradeStepRegistrator;
 import com.liferay.site.internal.upgrade.v2_0_0.util.SiteFriendlyURLTable;
 import com.liferay.site.internal.upgrade.v2_1_2.XMLSitemapIndexEnabledConfigurationUpgradeProcess;
+import com.liferay.site.internal.upgrade.v2_2_0.util.SiteSitemapRegenerationEntryTable;
+import com.liferay.site.internal.upgrade.v3_0_0.MenuAccessConfigurationUpgradeProcess;
 
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.annotations.Component;
@@ -48,6 +51,14 @@ public class SiteServiceUpgradeStepRegistrator
 			"2.1.1", "2.1.2",
 			new XMLSitemapIndexEnabledConfigurationUpgradeProcess(
 				_companyLocalService, _configurationAdmin));
+
+		registry.register(
+			"2.1.2", "2.2.0", SiteSitemapRegenerationEntryTable.create());
+
+		registry.register(
+			"2.2.0", "3.0.0",
+			new MenuAccessConfigurationUpgradeProcess(
+				_configurationAdmin, _roleLocalService));
 	}
 
 	@Reference
@@ -55,5 +66,8 @@ public class SiteServiceUpgradeStepRegistrator
 
 	@Reference
 	private ConfigurationAdmin _configurationAdmin;
+
+	@Reference
+	private RoleLocalService _roleLocalService;
 
 }

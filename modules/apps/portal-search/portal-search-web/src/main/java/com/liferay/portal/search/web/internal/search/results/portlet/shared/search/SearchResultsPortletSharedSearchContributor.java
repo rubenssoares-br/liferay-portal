@@ -5,12 +5,19 @@
 
 package com.liferay.portal.search.web.internal.search.results.portlet.shared.search;
 
+import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.dao.search.SearchPaginationUtil;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
+import com.liferay.portal.kernel.module.configuration.ConfigurationException;
 import com.liferay.portal.kernel.search.SearchContext;
+import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.PropsValues;
+import com.liferay.portal.search.constants.SearchContextAttributes;
 import com.liferay.portal.search.searcher.SearchRequestBuilder;
 import com.liferay.portal.search.searcher.SearchRequestBuilderFactory;
 import com.liferay.portal.search.web.constants.SearchResultsPortletKeys;
+import com.liferay.portal.search.web.internal.search.results.configuration.SearchResultsPortletInstanceConfiguration;
 import com.liferay.portal.search.web.internal.search.results.portlet.SearchResultsPortletPreferences;
 import com.liferay.portal.search.web.internal.search.results.portlet.SearchResultsPortletPreferencesImpl;
 import com.liferay.portal.search.web.internal.util.SearchStringUtil;
@@ -26,11 +33,13 @@ import org.osgi.service.component.annotations.Reference;
  * @author André de Oliveira
  */
 @Component(
-	property = "javax.portlet.name=" + SearchResultsPortletKeys.SEARCH_RESULTS,
+	property = "jakarta.portlet.name=" + SearchResultsPortletKeys.SEARCH_RESULTS,
 	service = PortletSharedSearchContributor.class
 )
 public class SearchResultsPortletSharedSearchContributor
 	implements PortletSharedSearchContributor {
+
+	public static final int RESULT_COUNT_ACCURACY_LIMIT = 10000;
 
 	@Override
 	public void contribute(
@@ -56,10 +65,33 @@ public class SearchResultsPortletSharedSearchContributor
 
 			searchRequestBuilder.highlightFields(fieldsToDisplay);
 		}
+
+		searchRequestBuilder.withSearchContext(
+			searchContext -> searchContext.setAttribute(
+				SearchContextAttributes.ATTRIBUTE_KEY_EXECUTE_SEARCH,
+				Boolean.TRUE));
 	}
 
 	@Reference
 	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
+
+	private SearchResultsPortletInstanceConfiguration
+		_getSearchResultsPortletInstanceConfiguration(
+			PortletSharedSearchSettings portletSharedSearchSettings) {
+
+		try {
+			ThemeDisplay themeDisplay =
+				portletSharedSearchSettings.getThemeDisplay();
+
+			return _configurationProvider.getPortletInstanceConfiguration(
+				SearchResultsPortletInstanceConfiguration.class,
+				themeDisplay.getLayout(),
+				portletSharedSearchSettings.getPortletId());
+		}
+		catch (ConfigurationException configurationException) {
+			throw new RuntimeException(configurationException);
+		}
+	}
 
 	private void _paginate(
 		SearchResultsPortletPreferences searchResultsPortletPreferences,
@@ -74,17 +106,32 @@ public class SearchResultsPortletSharedSearchContributor
 		searchRequestBuilder.paginationStartParameterName(
 			paginationStartParameterName);
 
-		int paginationDelta = GetterUtil.getInteger(
-			portletSharedSearchSettings.getParameter(
-				searchResultsPortletPreferences.
-					getPaginationDeltaParameterName()),
-			searchResultsPortletPreferences.getPaginationDelta());
+		int paginationDelta = Math.min(
+			GetterUtil.getInteger(
+				portletSharedSearchSettings.getParameter(
+					searchResultsPortletPreferences.
+						getPaginationDeltaParameterName()),
+				searchResultsPortletPreferences.getPaginationDelta()),
+			PropsValues.SEARCH_CONTAINER_PAGE_MAX_DELTA);
 
 		portletSharedSearchSettings.setPaginationDelta(paginationDelta);
-		searchRequestBuilder.size(paginationDelta);
 
 		SearchContext searchContext = searchRequestBuilder.withSearchContextGet(
 			Function.identity());
+
+		SearchResultsPortletInstanceConfiguration
+			searchResultsPortletInstanceConfiguration =
+				_getSearchResultsPortletInstanceConfiguration(
+					portletSharedSearchSettings);
+
+		if (FeatureFlagManagerUtil.isEnabled(
+				searchContext.getCompanyId(), "LPD-98858") &&
+			searchResultsPortletInstanceConfiguration.
+				limitResultCountAccuracy()) {
+
+			searchRequestBuilder.trackTotalHitsLimit(
+				RESULT_COUNT_ACCURACY_LIMIT + 1);
+		}
 
 		int paginationStart = GetterUtil.getInteger(
 			portletSharedSearchSettings.getParameter(
@@ -93,14 +140,40 @@ public class SearchResultsPortletSharedSearchContributor
 		int[] startAndEnd = SearchPaginationUtil.calculateStartAndEnd(
 			paginationStart, paginationDelta);
 
+		if (FeatureFlagManagerUtil.isEnabled(
+				searchContext.getCompanyId(), "LPD-114635")) {
+
+			int maximumSearchDepth = Math.min(
+				GetterUtil.getInteger(
+					searchContext.getAttribute(
+						_ATTRIBUTE_KEY_MAXIMUM_SEARCH_DEPTH),
+					Integer.MAX_VALUE),
+				searchResultsPortletInstanceConfiguration.maximumSearchDepth());
+
+			searchContext.setAttribute(
+				_ATTRIBUTE_KEY_MAXIMUM_SEARCH_DEPTH, maximumSearchDepth);
+
+			if (startAndEnd[1] > maximumSearchDepth) {
+				startAndEnd = SearchPaginationUtil.calculateStartAndEnd(
+					startAndEnd[0], startAndEnd[1], maximumSearchDepth);
+
+				paginationStart = Math.min(
+					paginationStart, (startAndEnd[0] / paginationDelta) + 1);
+			}
+		}
+
 		searchContext.setEnd(startAndEnd[1]);
 		searchContext.setStart(startAndEnd[0]);
 
 		if (paginationStart > 0) {
 			portletSharedSearchSettings.setPaginationStart(paginationStart);
-
-			searchRequestBuilder.from((paginationStart - 1) * paginationDelta);
 		}
 	}
+
+	private static final String _ATTRIBUTE_KEY_MAXIMUM_SEARCH_DEPTH =
+		"searchResults.maximumSearchDepth";
+
+	@Reference
+	private ConfigurationProvider _configurationProvider;
 
 }

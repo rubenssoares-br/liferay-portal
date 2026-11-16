@@ -120,8 +120,6 @@ Map<String, String[]> parameterMap = (Map<String, String[]>)settingsMap.get("par
 								<ul class="portlet-list">
 
 									<%
-									Set<String> portletDataHandlerClassNames = new HashSet<String>();
-
 									List<Portlet> dataSiteLevelPortlets = ExportImportHelperUtil.getDataSiteLevelPortlets(company.getCompanyId(), false);
 									%>
 
@@ -133,19 +131,9 @@ Map<String, String[]> parameterMap = (Map<String, String[]>)settingsMap.get("par
 										for (Portlet portlet : dataSiteLevelPortlets) {
 											PortletDataHandler portletDataHandler = portlet.getPortletDataHandlerInstance();
 
-											if (!portletDataHandler.isEnabled(company.getCompanyId())) {
+											if (portletDataHandler.isBatch() || !portletDataHandler.isEnabled(company.getCompanyId())) {
 												continue;
 											}
-
-											Class<?> portletDataHandlerClass = portletDataHandler.getClass();
-
-											String portletDataHandlerClassName = portletDataHandlerClass.getName();
-
-											if (portletDataHandlerClassNames.contains(portletDataHandlerClassName)) {
-												continue;
-											}
-
-											portletDataHandlerClassNames.add(portletDataHandlerClassName);
 
 											settingsMap.put("portletId", portlet.getRootPortletId());
 

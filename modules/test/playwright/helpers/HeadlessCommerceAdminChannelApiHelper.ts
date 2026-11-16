@@ -6,12 +6,29 @@
 import {getRandomInt} from '../utils/getRandomInt';
 import {ApiHelpers, DataApiHelpers} from './ApiHelpers';
 
+type TAccountAddressChannel = {
+	accountAddressChannelId?: number;
+	addressChannelId?: number;
+	addressId?: number;
+};
+
+type TDefaultProductDisplayPage = {
+	pageUuid: string;
+};
+
+type TProductDisplayPage = {
+	id?: number;
+	pageTemplateUuid?: string;
+	pageUuid?: string;
+	productId: number;
+};
+
 type TChannel = {
 	accountId?: number;
 	currencyCode?: string;
 	id?: number;
 	name?: string;
-	siteGroupId: number | string;
+	siteGroupId?: number | string;
 	type?: string;
 };
 
@@ -22,6 +39,12 @@ export class HeadlessCommerceAdminChannelApiHelper {
 	constructor(apiHelpers: ApiHelpers | DataApiHelpers) {
 		this.apiHelpers = apiHelpers;
 		this.basePath = 'headless-commerce-admin-channel/v1.0/';
+	}
+
+	async deleteAccountAddressChannel(accountAddressChannelId: number) {
+		return this.apiHelpers.delete(
+			`${this.apiHelpers.baseUrl}${this.basePath}/account-address-channels/${accountAddressChannelId}`
+		);
 	}
 
 	async deleteChannel(channelId: number) {
@@ -42,11 +65,32 @@ export class HeadlessCommerceAdminChannelApiHelper {
 		);
 	}
 
+	async getTaxCategories() {
+		return this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${this.basePath}/tax-categories`
+		);
+	}
+
 	async patchChannelWithAccountId(accountId: number, channel: TChannel) {
 		await this.apiHelpers.patch(
 			`${this.apiHelpers.baseUrl}${this.basePath}/channels/${channel.id}`,
 			{
 				accountId,
+			}
+		);
+	}
+
+	async postAccountAddressChannel(
+		addressId: number,
+		channelId: number
+	): Promise<TAccountAddressChannel> {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/account-addresses/${addressId}/account-address-channels`,
+			{
+				data: {
+					addressChannelId: channelId,
+					addressId,
+				},
 			}
 		);
 	}
@@ -71,5 +115,41 @@ export class HeadlessCommerceAdminChannelApiHelper {
 		}
 
 		return channel;
+	}
+
+	async postDefaultProductDisplayPage(
+		channelId: number,
+		defaultProductDisplayPage: TDefaultProductDisplayPage
+	): Promise<TDefaultProductDisplayPage> {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/channels/${channelId}/default-product-display-pages`,
+			{data: defaultProductDisplayPage}
+		);
+	}
+
+	async postProductDisplayPage(
+		channelId: number,
+		productDisplayPage: TProductDisplayPage
+	): Promise<TProductDisplayPage> {
+		return this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/channels/${channelId}/product-display-pages`,
+			{data: productDisplayPage}
+		);
+	}
+
+	async putChannel(channelId: number, channel: TChannel) {
+		await this.apiHelpers.put(
+			`${this.apiHelpers.baseUrl}${this.basePath}/channels/${channelId}`,
+			{
+				data: {
+					accountId: 0,
+					currencyCode: 'USD',
+					name: 'Channel' + getRandomInt(),
+					siteGroupId: 0,
+					type: 'site',
+					...channel,
+				},
+			}
+		);
 	}
 }

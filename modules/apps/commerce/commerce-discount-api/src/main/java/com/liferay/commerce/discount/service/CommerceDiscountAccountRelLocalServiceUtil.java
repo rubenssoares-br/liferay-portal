@@ -245,13 +245,6 @@ public class CommerceDiscountAccountRelLocalServiceUtil {
 			commerceDiscountAccountRelId);
 	}
 
-	public static CommerceDiscountAccountRel fetchCommerceDiscountAccountRel(
-		long commerceAccountId, long commerceDiscountId) {
-
-		return getService().fetchCommerceDiscountAccountRel(
-			commerceAccountId, commerceDiscountId);
-	}
-
 	/**
 	 * Returns the commerce discount account rel with the matching UUID and company.
 	 *
@@ -331,14 +324,6 @@ public class CommerceDiscountAccountRelLocalServiceUtil {
 			commerceDiscountId, start, end, orderByComparator);
 	}
 
-	public static List<CommerceDiscountAccountRel>
-		getCommerceDiscountAccountRels(
-			long commerceDiscountId, String name, int start, int end) {
-
-		return getService().getCommerceDiscountAccountRels(
-			commerceDiscountId, name, start, end);
-	}
-
 	/**
 	 * Returns the number of commerce discount account rels.
 	 *
@@ -346,20 +331,6 @@ public class CommerceDiscountAccountRelLocalServiceUtil {
 	 */
 	public static int getCommerceDiscountAccountRelsCount() {
 		return getService().getCommerceDiscountAccountRelsCount();
-	}
-
-	public static int getCommerceDiscountAccountRelsCount(
-		long commerceDiscountId) {
-
-		return getService().getCommerceDiscountAccountRelsCount(
-			commerceDiscountId);
-	}
-
-	public static int getCommerceDiscountAccountRelsCount(
-		long commerceDiscountId, String name) {
-
-		return getService().getCommerceDiscountAccountRelsCount(
-			commerceDiscountId, name);
 	}
 
 	public static com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
@@ -422,3 +393,4 @@ public class CommerceDiscountAccountRelLocalServiceUtil {
 			CommerceDiscountAccountRelLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-2071525454

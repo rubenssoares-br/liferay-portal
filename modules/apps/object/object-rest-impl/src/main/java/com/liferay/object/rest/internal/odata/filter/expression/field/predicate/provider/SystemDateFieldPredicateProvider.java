@@ -5,22 +5,18 @@
 
 package com.liferay.object.rest.internal.odata.filter.expression.field.predicate.provider;
 
-import com.liferay.object.field.util.ObjectFieldUtil;
 import com.liferay.object.odata.filter.expression.field.predicate.provider.FieldPredicateProvider;
 import com.liferay.petra.sql.dsl.Column;
 import com.liferay.petra.sql.dsl.expression.Expression;
 import com.liferay.petra.sql.dsl.expression.Predicate;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
 import com.liferay.portal.odata.filter.expression.BinaryExpression;
 import com.liferay.portal.odata.filter.expression.ExpressionVisitException;
-
-import java.text.DateFormat;
-import java.text.ParseException;
 
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.osgi.service.component.annotations.Component;
@@ -40,9 +36,10 @@ public class SystemDateFieldPredicateProvider
 
 	@Override
 	public Predicate getBinaryExpressionPredicate(
+			Object left,
 			Function<String, Column<?, ?>> objectDefinitionColumnSupplier,
-			Object left, long objectDefinitionId,
-			BinaryExpression.Operation operation, Object right)
+			long objectDefinitionId, BinaryExpression.Operation operation,
+			Object right)
 		throws ExpressionVisitException {
 
 		Expression<Object> expression =
@@ -58,31 +55,14 @@ public class SystemDateFieldPredicateProvider
 			}
 		}
 
-		if (right instanceof Date) {
-			return _getDateTimePredicate(
-				(Date)right, expression, Function.identity(), operation);
-		}
-
-		String valueString = (String)right;
-
-		DateFormat dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
-			ObjectFieldUtil.getDateTimePattern(valueString));
-
-		try {
-			return _getDateTimePredicate(
-				dateFormat.parse(valueString), expression, dateFormat::format,
-				operation);
-		}
-		catch (ParseException parseException) {
-			throw new ExpressionVisitException(
-				"Unable to parse date " + valueString, parseException);
-		}
+		return _getDateTimePredicate((Date)right, expression, operation);
 	}
 
 	@Override
 	public Predicate getContainsPredicate(
+		String fieldName, Object fieldValue,
 		Function<String, Column<?, ?>> objectDefinitionColumnSupplier,
-		String fieldName, Object fieldValue) {
+		long objectDefinitionId) {
 
 		throw new UnsupportedOperationException(
 			"Unsupported method getContainsPredicate for " +
@@ -91,15 +71,16 @@ public class SystemDateFieldPredicateProvider
 
 	@Override
 	public Predicate getInPredicate(
+			Object left,
 			Function<String, Column<?, ?>> objectDefinitionColumnSupplier,
-			Object left, List<Object> rights)
+			long objectDefinitionId, List<Object> rights)
 		throws ExpressionVisitException {
 
 		Predicate predicate = null;
 
 		for (Object right : rights) {
 			Predicate binaryExpressionPredicate = getBinaryExpressionPredicate(
-				objectDefinitionColumnSupplier, left, 0L,
+				left, objectDefinitionColumnSupplier, objectDefinitionId,
 				BinaryExpression.Operation.EQ, right);
 
 			if (predicate == null) {
@@ -117,7 +98,8 @@ public class SystemDateFieldPredicateProvider
 	@Override
 	public Predicate getIsNotEmptyPredicate(
 		String fieldName,
-		Function<String, Column<?, ?>> objectDefinitionColumnSupplier) {
+		Function<String, Column<?, ?>> objectDefinitionColumnSupplier,
+		long objectDefinitionId) {
 
 		throw new UnsupportedOperationException(
 			"Unsupported method getIsNotEmptyPredicate for " +
@@ -126,8 +108,9 @@ public class SystemDateFieldPredicateProvider
 
 	@Override
 	public Predicate getStartsWithPredicate(
+		String fieldName, Object fieldValue,
 		Function<String, Column<?, ?>> objectDefinitionColumnSupplier,
-		String fieldName, Object fieldValue) {
+		long objectDefinitionId) {
 
 		throw new UnsupportedOperationException(
 			"Unsupported method getStartsWithPredicate for " +
@@ -136,39 +119,35 @@ public class SystemDateFieldPredicateProvider
 
 	private Predicate _getDateTimePredicate(
 		Date date, Expression<Object> expression,
-		Function<Object, Object> function,
 		BinaryExpression.Operation operation) {
 
-		if (operation == BinaryExpression.Operation.EQ) {
-			Date truncatedDate = _truncateMilliseconds(date);
+		Date truncatedDate = _processDate(
+			calendar -> calendar.set(Calendar.MILLISECOND, 0), date);
 
+		if (operation == BinaryExpression.Operation.EQ) {
 			return expression.gte(
-				function.apply(truncatedDate)
+				truncatedDate
 			).and(
-				expression.lt(function.apply(_incrementSecond(truncatedDate)))
+				expression.lt(_incrementSecond(truncatedDate))
 			).withParentheses();
 		}
 		else if (operation == BinaryExpression.Operation.GE) {
-			return expression.gte(function.apply(_truncateMilliseconds(date)));
+			return expression.gte(truncatedDate);
 		}
 		else if (operation == BinaryExpression.Operation.GT) {
-			return expression.gte(
-				function.apply(_incrementSecond(_truncateMilliseconds(date))));
+			return expression.gte(_incrementSecond(truncatedDate));
 		}
 		else if (operation == BinaryExpression.Operation.LE) {
-			return expression.lt(
-				function.apply(_incrementSecond(_truncateMilliseconds(date))));
+			return expression.lt(_incrementSecond(truncatedDate));
 		}
 		else if (operation == BinaryExpression.Operation.LT) {
-			return expression.lt(function.apply(_truncateMilliseconds(date)));
+			return expression.lt(truncatedDate);
 		}
 		else if (operation == BinaryExpression.Operation.NE) {
-			Date truncatedDate = _truncateMilliseconds(date);
-
 			return expression.lt(
-				function.apply(truncatedDate)
+				truncatedDate
 			).or(
-				expression.gte(function.apply(_incrementSecond(truncatedDate)))
+				expression.gte(_incrementSecond(truncatedDate))
 			).withParentheses();
 		}
 
@@ -176,17 +155,13 @@ public class SystemDateFieldPredicateProvider
 	}
 
 	private Date _incrementSecond(Date date) {
-		Calendar calendar = CalendarFactoryUtil.getCalendar(date.getTime());
-
-		calendar.add(Calendar.SECOND, 1);
-
-		return calendar.getTime();
+		return _processDate(calendar -> calendar.add(Calendar.SECOND, 1), date);
 	}
 
-	private Date _truncateMilliseconds(Date date) {
+	private Date _processDate(Consumer<Calendar> consumer, Date date) {
 		Calendar calendar = CalendarFactoryUtil.getCalendar(date.getTime());
 
-		calendar.set(Calendar.MILLISECOND, 0);
+		consumer.accept(calendar);
 
 		return calendar.getTime();
 	}

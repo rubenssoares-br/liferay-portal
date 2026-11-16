@@ -149,6 +149,12 @@ public class OAuth2ApplicationLocalServiceUtil {
 			serviceContext);
 	}
 
+	public static void checkDynamicRegistratorOAuth2Application(long companyId)
+		throws PortalException {
+
+		getService().checkDynamicRegistratorOAuth2Application(companyId);
+	}
+
 	/**
 	 * Creates a new o auth2 application with the primary key. Does not add the o auth2 application to the database.
 	 *
@@ -465,6 +471,13 @@ public class OAuth2ApplicationLocalServiceUtil {
 		return getService().getPersistedModel(primaryKeyObj);
 	}
 
+	public static String getPlaintextClientSecret(
+			OAuth2Application oAuth2Application)
+		throws PortalException {
+
+		return getService().getPlaintextClientSecret(oAuth2Application);
+	}
+
 	public static OAuth2Application updateExternalReferenceCode(
 			long oAuth2ApplicationId, String externalReferenceCode)
 		throws PortalException {
@@ -544,3 +557,4 @@ public class OAuth2ApplicationLocalServiceUtil {
 			OAuth2ApplicationLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1502733190

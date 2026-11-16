@@ -294,13 +294,6 @@ public class CommerceSubscriptionEntryLocalServiceUtil {
 	}
 
 	public static List<CommerceSubscriptionEntry>
-		getActiveCommerceSubscriptionEntries(long commerceAccountId) {
-
-		return getService().getActiveCommerceSubscriptionEntries(
-			commerceAccountId);
-	}
-
-	public static List<CommerceSubscriptionEntry>
 		getCommerceDeliverySubscriptionEntriesToRenew() {
 
 		return getService().getCommerceDeliverySubscriptionEntriesToRenew();
@@ -397,13 +390,6 @@ public class CommerceSubscriptionEntryLocalServiceUtil {
 
 		return getService().getCommerceSubscriptionEntriesCount(
 			companyId, userId);
-	}
-
-	public static int getCommerceSubscriptionEntriesCount(
-		long companyId, long groupId, long userId) {
-
-		return getService().getCommerceSubscriptionEntriesCount(
-			companyId, groupId, userId);
 	}
 
 	public static List<CommerceSubscriptionEntry>
@@ -636,3 +622,4 @@ public class CommerceSubscriptionEntryLocalServiceUtil {
 			CommerceSubscriptionEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-337708368

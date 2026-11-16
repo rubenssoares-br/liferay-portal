@@ -9,7 +9,7 @@ import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Field;
 import com.liferay.portal.kernel.search.IndexWriterHelper;
 import com.liferay.portal.kernel.service.UserLocalService;
-import com.liferay.portal.search.batch.DynamicQueryBatchIndexingActionableFactory;
+import com.liferay.portal.kernel.util.Localization;
 import com.liferay.portal.search.indexer.IndexerDocumentBuilder;
 import com.liferay.portal.search.spi.model.index.contributor.ModelIndexerWriterContributor;
 import com.liferay.portal.search.spi.model.registrar.ModelSearchConfigurator;
@@ -62,13 +62,13 @@ public class UserModelSearchConfigurator
 	@Activate
 	protected void activate() {
 		_modelIndexWriterContributor = new UserModelIndexerWriterContributor(
-			_indexerDocumentBuilder, _indexWriterHelper,
-			_dynamicQueryBatchIndexingActionableFactory, _userLocalService);
+			_indexerDocumentBuilder, _indexWriterHelper, _userLocalService);
+		_modelSummaryContributor = new UserModelSummaryContributor(
+			_localization);
 	}
 
 	@Reference
-	private DynamicQueryBatchIndexingActionableFactory
-		_dynamicQueryBatchIndexingActionableFactory;
+	private IndexWriterHelper _indexWriterHelper;
 
 	@Reference(
 		target = "(indexer.class.name=com.liferay.portal.kernel.model.Contact)"
@@ -76,11 +76,10 @@ public class UserModelSearchConfigurator
 	private IndexerDocumentBuilder _indexerDocumentBuilder;
 
 	@Reference
-	private IndexWriterHelper _indexWriterHelper;
+	private Localization _localization;
 
 	private ModelIndexerWriterContributor<User> _modelIndexWriterContributor;
-	private final ModelSummaryContributor _modelSummaryContributor =
-		new UserModelSummaryContributor();
+	private ModelSummaryContributor _modelSummaryContributor;
 
 	@Reference
 	private UserLocalService _userLocalService;

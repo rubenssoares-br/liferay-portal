@@ -5,9 +5,7 @@
 
 package com.liferay.portal.search.opensearch2.internal.suggest;
 
-import com.liferay.portal.kernel.module.service.Snapshot;
 import com.liferay.portal.kernel.search.SearchContext;
-import com.liferay.portal.kernel.search.query.QueryTranslator;
 import com.liferay.portal.kernel.search.suggest.CompletionSuggester;
 import com.liferay.portal.kernel.search.suggest.PhraseSuggester;
 import com.liferay.portal.kernel.search.suggest.Suggester;
@@ -17,6 +15,7 @@ import com.liferay.portal.kernel.search.suggest.TermSuggester;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.util.SetUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.search.opensearch2.internal.legacy.query.OpenSearchQueryVisitor;
 import com.liferay.portal.search.opensearch2.internal.util.ConversionUtil;
 import com.liferay.portal.search.opensearch2.internal.util.JsonpUtil;
 import com.liferay.portal.search.opensearch2.internal.util.SetterUtil;
@@ -25,7 +24,6 @@ import java.util.Set;
 
 import org.opensearch.client.opensearch._types.SuggestMode;
 import org.opensearch.client.opensearch._types.query_dsl.Query;
-import org.opensearch.client.opensearch._types.query_dsl.QueryVariant;
 import org.opensearch.client.opensearch.core.search.DirectGenerator;
 import org.opensearch.client.opensearch.core.search.FieldSuggester;
 import org.opensearch.client.opensearch.core.search.FieldSuggesterBuilders;
@@ -35,16 +33,10 @@ import org.opensearch.client.opensearch.core.search.PhraseSuggestHighlight;
 import org.opensearch.client.opensearch.core.search.StringDistance;
 import org.opensearch.client.opensearch.core.search.SuggestSort;
 
-import org.osgi.service.component.annotations.Component;
-
 /**
  * @author Michael C. Han
  * @author Petteri Karttunen
  */
-@Component(
-	property = "search.engine.impl=OpenSearch",
-	service = SuggesterTranslator.class
-)
 public class OpenSearchSuggesterTranslator
 	implements SuggesterTranslator<FieldSuggester>,
 			   SuggesterVisitor<FieldSuggester> {
@@ -247,16 +239,13 @@ public class OpenSearchSuggesterTranslator
 
 		SetterUtil.setNotNullBoolean(builder::prune, collate.isPrune());
 
-		QueryTranslator<QueryVariant> queryTranslator =
-			_queryTranslatorSnapshot.get();
-
 		builder.query(
 			PhraseSuggestCollateQuery.of(
 				phraseSuggestCollateQuery -> phraseSuggestCollateQuery.source(
 					JsonpUtil.toString(
 						new Query(
-							queryTranslator.translate(
-								collate.getQuery(), null))))));
+							OpenSearchQueryVisitor.INSTANCE.translate(
+								collate.getQuery()))))));
 
 		return builder.build();
 	}
@@ -300,11 +289,5 @@ public class OpenSearchSuggesterTranslator
 
 		return SuggestMode.Missing;
 	}
-
-	private static final Snapshot<QueryTranslator<QueryVariant>>
-		_queryTranslatorSnapshot = new Snapshot<>(
-			OpenSearchSuggesterTranslator.class,
-			Snapshot.cast(QueryTranslator.class),
-			"(search.engine.impl=OpenSearch)", true);
 
 }

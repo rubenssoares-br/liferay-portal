@@ -56,7 +56,7 @@ PortletURL portletURL = PortletURLBuilder.createRenderURL(
 
 				<liferay-ui:search-container-row
 					className="com.liferay.portal.kernel.model.UserTracker"
-					keyProperty="userTrackerId"
+					keyPropertyName="userTrackerId"
 					modelVar="userTracker"
 				>
 
@@ -98,7 +98,7 @@ PortletURL portletURL = PortletURLBuilder.createRenderURL(
 					<liferay-ui:search-container-column-text
 						href="<%= rowURL %>"
 						name="screen-name"
-						value='<%= (user2 != null) ? user2.getScreenName() : LanguageUtil.get(request, "not-available") %>'
+						value='<%= (user2 != null) ? HtmlUtil.escape(user2.getScreenName()) : LanguageUtil.get(request, "not-available") %>'
 					/>
 
 					<liferay-ui:search-container-column-date

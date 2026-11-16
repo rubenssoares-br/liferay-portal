@@ -65,19 +65,19 @@ renderResponse.setTitle(accountGroupDisplay.getName());
 		>
 			<liferay-ui:search-container-row
 				className="com.liferay.account.admin.web.internal.display.AccountEntryDisplay"
-				keyProperty="accountEntryId"
+				keyPropertyName="accountEntryId"
 				modelVar="accountEntryDisplay"
 			>
 				<liferay-ui:search-container-column-text
 					cssClass="table-cell-expand table-title"
 					name="name"
-					property="name"
+					value="<%= HtmlUtil.escape(accountEntryDisplay.getName()) %>"
 				/>
 
 				<liferay-ui:search-container-column-text
 					cssClass="table-cell-expand"
 					name="organizations"
-					property="organizationNames"
+					value="<%= HtmlUtil.escape(accountEntryDisplay.getOrganizationNames()) %>"
 				/>
 
 				<liferay-ui:search-container-column-text

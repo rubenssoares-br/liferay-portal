@@ -11,34 +11,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("ReplacementSku")
+@GraphQLName(
+	description = "Replacement SKU surfaced when the primary SKU is discontinued. Exposes the swap target's identifiers, price, and options so the storefront can offer the buyer a continuation path.",
+	value = "ReplacementSku"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Replacement SKU surfaced when the primary SKU is discontinued. Exposes the swap target's identifiers, price, and options so the storefront can offer the buyer a continuation path."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ReplacementSku")
 public class ReplacementSku implements Serializable {
@@ -51,7 +58,7 @@ public class ReplacementSku implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ReplacementSku.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Price getPrice() {
 		if (_priceSupplier != null) {
@@ -85,13 +92,13 @@ public class ReplacementSku implements Serializable {
 	}
 
 	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Price price;
 
 	@JsonIgnore
 	private Supplier<Price> _priceSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public ProductConfiguration getProductConfiguration() {
 		if (_productConfigurationSupplier != null) {
@@ -130,13 +137,16 @@ public class ReplacementSku implements Serializable {
 	}
 
 	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected ProductConfiguration productConfiguration;
 
 	@JsonIgnore
 	private Supplier<ProductConfiguration> _productConfigurationSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "SKU code of the replacement inventory unit. Read-only.",
+		example = "SKU01"
+	)
 	public String getSku() {
 		if (_skuSupplier != null) {
 			sku = _skuSupplier.get();
@@ -168,14 +178,19 @@ public class ReplacementSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "SKU code of the replacement inventory unit. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String sku;
 
 	@JsonIgnore
 	private Supplier<String> _skuSupplier;
 
-	@Schema(example = "SKU0111")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the replacement SKU used for idempotent linking.",
+		example = "SKU0111"
+	)
 	public String getSkuExternalReferenceCode() {
 		if (_skuExternalReferenceCodeSupplier != null) {
 			skuExternalReferenceCode = _skuExternalReferenceCodeSupplier.get();
@@ -210,7 +225,9 @@ public class ReplacementSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the replacement SKU used for idempotent linking."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String skuExternalReferenceCode;
 
@@ -218,7 +235,10 @@ public class ReplacementSku implements Serializable {
 	private Supplier<String> _skuExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "33135")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the replacement SKU (FK identifier). Read-only.",
+		example = "33135"
+	)
 	public Long getSkuId() {
 		if (_skuIdSupplier != null) {
 			skuId = _skuIdSupplier.get();
@@ -250,14 +270,18 @@ public class ReplacementSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the replacement SKU (FK identifier). Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long skuId;
 
 	@JsonIgnore
 	private Supplier<Long> _skuIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Inline option selections of the replacement SKU. Read-only."
+	)
 	@Valid
 	public SkuOption[] getSkuOptions() {
 		if (_skuOptionsSupplier != null) {
@@ -292,14 +316,18 @@ public class ReplacementSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Inline option selections of the replacement SKU. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected SkuOption[] skuOptions;
 
 	@JsonIgnore
 	private Supplier<SkuOption[]> _skuOptionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Inline units of measure available for the replacement SKU."
+	)
 	@Valid
 	public SkuUnitOfMeasure[] getSkuUnitOfMeasures() {
 		if (_skuUnitOfMeasuresSupplier != null) {
@@ -335,14 +363,17 @@ public class ReplacementSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Inline units of measure available for the replacement SKU."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected SkuUnitOfMeasure[] skuUnitOfMeasures;
 
 	@JsonIgnore
 	private Supplier<SkuUnitOfMeasure[]> _skuUnitOfMeasuresSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Localized text. Map keys are locale codes; values are the friendly URL paths of the replacement SKU's product. Read-only.",
 		example = "{en_US=product-url-us, hr_HR=product-url-hr, hu_HU=product-url-hu}"
 	)
 	@Valid
@@ -379,7 +410,9 @@ public class ReplacementSku implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Localized text. Map keys are locale codes; values are the friendly URL paths of the replacement SKU's product. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Map<String, String> urls;
 
@@ -542,8 +575,8 @@ public class ReplacementSku implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.ReplacementSku",
 		name = "x-class-name"
 	)
@@ -630,6 +663,27 @@ public class ReplacementSku implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -638,3 +692,4 @@ public class ReplacementSku implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1714427599

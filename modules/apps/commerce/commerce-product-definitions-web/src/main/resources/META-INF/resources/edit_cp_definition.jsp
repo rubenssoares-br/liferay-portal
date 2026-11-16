@@ -26,7 +26,7 @@ request.setAttribute("view.jsp-portletURL", portletURL);
 request.setAttribute("view.jsp-showSearch", false);
 
 portletDisplay.setShowBackIcon(true);
-portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
+portletDisplay.setURLBack(ParamUtil.getString(request, "backURL", String.valueOf(renderResponse.createRenderURL())));
 %>
 
 <liferay-portlet:renderURL var="editCProductExternalReferenceCodeURL" windowState="<%= LiferayWindowState.POP_UP.toString() %>">
@@ -41,9 +41,9 @@ portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
 	displayBeanId="<%= cpDefinition.getCProductId() %>"
 	dropdownItems="<%= cpDefinitionsDisplayContext.getDropdownItems() %>"
 	externalReferenceCode="<%= (cProduct == null) ? StringPool.BLANK : cProduct.getExternalReferenceCode() %>"
-	externalReferenceCodeEditUrl="<%= (cProduct == null) ? StringPool.BLANK : editCProductExternalReferenceCodeURL %>"
+	externalReferenceCodeEditURL="<%= (cProduct == null) ? StringPool.BLANK : editCProductExternalReferenceCodeURL %>"
 	model="<%= CPDefinition.class %>"
-	thumbnailUrl="<%= cpDefinitionsDisplayContext.getCPDefinitionThumbnailURL() %>"
+	thumbnailURL="<%= cpDefinitionsDisplayContext.getCPDefinitionThumbnailURL() %>"
 	title="<%= headerTitle %>"
 	version="<%= (cpDefinition == null) ? StringPool.BLANK : String.valueOf(cpDefinition.getVersion()) %>"
 	wrapperCssClasses="side-panel-top-anchor"

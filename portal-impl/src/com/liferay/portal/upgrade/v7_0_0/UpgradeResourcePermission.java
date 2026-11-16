@@ -43,7 +43,9 @@ public class UpgradeResourcePermission extends UpgradeProcess {
 			try (PreparedStatement preparedStatement1 =
 					connection.prepareStatement(
 						"select distinct name from ResourcePermission");
+
 				ResultSet resultSet1 = preparedStatement1.executeQuery();
+
 				PreparedStatement preparedStatement2 =
 					connection.prepareStatement(
 						"select distinct primKey from ResourcePermission " +
@@ -62,12 +64,14 @@ public class UpgradeResourcePermission extends UpgradeProcess {
 						while (resultSet2.next()) {
 							String primKey = resultSet2.getString("primKey");
 
-							if ((GetterUtil.getLong(primKey) <= 0) &&
-								!primKey.contains(
+							if ((GetterUtil.getLong(primKey) > 0) ||
+								primKey.contains(
 									PortletConstants.LAYOUT_SEPARATOR)) {
 
-								primKeys.add(primKey);
+								continue;
 							}
+
+							primKeys.add(primKey);
 						}
 					}
 

@@ -70,6 +70,9 @@ import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.portlet.test.MockLiferayPortletContext;
 
+import jakarta.portlet.Portlet;
+import jakarta.portlet.PortletPreferences;
+
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -79,9 +82,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.portlet.Portlet;
-import javax.portlet.PortletPreferences;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -989,62 +989,6 @@ public class ContentDashboardAdminPortletTest {
 	}
 
 	@Test
-	public void testGetSearchContainerWithoutGoogleDriveShortcut()
-		throws Exception {
-
-		MockLiferayPortletRenderRequest mockLiferayPortletRenderRequest =
-			_getMockLiferayPortletRenderRequest();
-
-		SearchContainer<Object> searchContainer = _getSearchContainer(
-			mockLiferayPortletRenderRequest);
-
-		int initialCount = searchContainer.getTotal();
-
-		JournalTestUtil.addArticle(
-			TestPropsValues.getUserId(), _group.getGroupId(), 0);
-
-		FileEntry gifFileEntry = _addFileEntry("gif");
-		FileEntry jpgFileEntry = _addFileEntry("jpg");
-
-		FileEntry futureGoogleDriveShortCutFileEntry = _addFileEntry("pdf");
-
-		Object futureGoogleDriveShortModel =
-			futureGoogleDriveShortCutFileEntry.getModel();
-
-		DLFileEntry googleDriveShortcutFileEntry =
-			(DLFileEntry)futureGoogleDriveShortModel;
-
-		DLFileEntryType googleDocsDLFileEntryType =
-			DLFileEntryTypeLocalServiceUtil.getFileEntryType(
-				_company.getGroupId(), "GOOGLE_DOCS");
-
-		googleDriveShortcutFileEntry.setFileEntryTypeId(
-			googleDocsDLFileEntryType.getFileEntryTypeId());
-
-		DLFileEntryLocalServiceUtil.updateDLFileEntry(
-			googleDriveShortcutFileEntry);
-
-		searchContainer = _getSearchContainer(mockLiferayPortletRenderRequest);
-
-		int actualCount = searchContainer.getTotal();
-
-		Assert.assertEquals(initialCount + 3, actualCount);
-
-		List<Object> results = searchContainer.getResults();
-
-		Assert.assertEquals(
-			jpgFileEntry.getFileName(),
-			ReflectionTestUtil.invoke(
-				results.get(0), "getTitle", new Class<?>[] {Locale.class},
-				LocaleUtil.US));
-		Assert.assertEquals(
-			gifFileEntry.getFileName(),
-			ReflectionTestUtil.invoke(
-				results.get(1), "getTitle", new Class<?>[] {Locale.class},
-				LocaleUtil.US));
-	}
-
-	@Test
 	public void testGetSearchContainerWithPagination() throws Exception {
 		SearchContainer<Object> searchContainer = _getSearchContainer(
 			_getMockLiferayPortletRenderRequest());
@@ -1383,6 +1327,62 @@ public class ContentDashboardAdminPortletTest {
 	}
 
 	@Test
+	public void testGetSearchContainerWithoutGoogleDriveShortcut()
+		throws Exception {
+
+		MockLiferayPortletRenderRequest mockLiferayPortletRenderRequest =
+			_getMockLiferayPortletRenderRequest();
+
+		SearchContainer<Object> searchContainer = _getSearchContainer(
+			mockLiferayPortletRenderRequest);
+
+		int initialCount = searchContainer.getTotal();
+
+		JournalTestUtil.addArticle(
+			TestPropsValues.getUserId(), _group.getGroupId(), 0);
+
+		FileEntry gifFileEntry = _addFileEntry("gif");
+		FileEntry jpgFileEntry = _addFileEntry("jpg");
+
+		FileEntry futureGoogleDriveShortCutFileEntry = _addFileEntry("pdf");
+
+		Object futureGoogleDriveShortModel =
+			futureGoogleDriveShortCutFileEntry.getModel();
+
+		DLFileEntry googleDriveShortcutFileEntry =
+			(DLFileEntry)futureGoogleDriveShortModel;
+
+		DLFileEntryType googleDocsDLFileEntryType =
+			DLFileEntryTypeLocalServiceUtil.getFileEntryType(
+				_company.getGroupId(), "GOOGLE_DOCS");
+
+		googleDriveShortcutFileEntry.setFileEntryTypeId(
+			googleDocsDLFileEntryType.getFileEntryTypeId());
+
+		DLFileEntryLocalServiceUtil.updateDLFileEntry(
+			googleDriveShortcutFileEntry);
+
+		searchContainer = _getSearchContainer(mockLiferayPortletRenderRequest);
+
+		int actualCount = searchContainer.getTotal();
+
+		Assert.assertEquals(initialCount + 3, actualCount);
+
+		List<Object> results = searchContainer.getResults();
+
+		Assert.assertEquals(
+			jpgFileEntry.getFileName(),
+			ReflectionTestUtil.invoke(
+				results.get(0), "getTitle", new Class<?>[] {Locale.class},
+				LocaleUtil.US));
+		Assert.assertEquals(
+			gifFileEntry.getFileName(),
+			ReflectionTestUtil.invoke(
+				results.get(1), "getTitle", new Class<?>[] {Locale.class},
+				LocaleUtil.US));
+	}
+
+	@Test
 	public void testIsSwapConfigurationEnabled() throws Exception {
 		ServiceContext serviceContext =
 			ServiceContextTestUtil.getServiceContext(
@@ -1717,15 +1717,15 @@ public class ContentDashboardAdminPortletTest {
 	}
 
 	@Inject
-	private static CompanyLocalService _companyLocalService;
-
-	@Inject
 	private AssetCategoryLocalService _assetCategoryLocalService;
 
 	@Inject
 	private AssetVocabularyLocalService _assetVocabularyLocalService;
 
 	private Company _company;
+
+	@Inject
+	private CompanyLocalService _companyLocalService;
 
 	@DeleteAfterTestRun
 	private Group _group;

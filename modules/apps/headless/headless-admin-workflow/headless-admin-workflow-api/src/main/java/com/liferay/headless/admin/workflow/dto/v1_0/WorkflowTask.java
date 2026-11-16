@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Javier Gamarra
@@ -44,6 +45,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 @GraphQLName(
 	description = "Represents a task to be executed in a workflow.",
 	value = "WorkflowTask"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Represents a task to be executed in a workflow."
 )
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "WorkflowTask")
@@ -57,7 +61,7 @@ public class WorkflowTask implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(WorkflowTask.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -100,7 +104,52 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A flag that indicates whether the task is assigned to the currently logged-in user."
+	)
+	public Boolean getAssignedToMe() {
+		if (_assignedToMeSupplier != null) {
+			assignedToMe = _assignedToMeSupplier.get();
+
+			_assignedToMeSupplier = null;
+		}
+
+		return assignedToMe;
+	}
+
+	public void setAssignedToMe(Boolean assignedToMe) {
+		this.assignedToMe = assignedToMe;
+
+		_assignedToMeSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setAssignedToMe(
+		UnsafeSupplier<Boolean, Exception> assignedToMeUnsafeSupplier) {
+
+		_assignedToMeSupplier = () -> {
+			try {
+				return assignedToMeUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "A flag that indicates whether the task is assigned to the currently logged-in user."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Boolean assignedToMe;
+
+	@JsonIgnore
+	private Supplier<Boolean> _assignedToMeSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Creator getAssigneePerson() {
 		if (_assigneePersonSupplier != null) {
@@ -142,7 +191,7 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Creator> _assigneePersonSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Role[] getAssigneeRoles() {
 		if (_assigneeRolesSupplier != null) {
@@ -184,7 +233,9 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Role[]> _assigneeRolesSupplier;
 
-	@Schema(description = "A flag that indicates whether the task is complete.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "A flag that indicates whether the task is complete."
+	)
 	public Boolean getCompleted() {
 		if (_completedSupplier != null) {
 			completed = _completedSupplier.get();
@@ -227,7 +278,53 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _completedSupplier;
 
-	@Schema(description = "The task's completion date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The task's creator."
+	)
+	@Valid
+	public Creator getCreator() {
+		if (_creatorSupplier != null) {
+			creator = _creatorSupplier.get();
+
+			_creatorSupplier = null;
+		}
+
+		return creator;
+	}
+
+	public void setCreator(Creator creator) {
+		this.creator = creator;
+
+		_creatorSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setCreator(
+		UnsafeSupplier<Creator, Exception> creatorUnsafeSupplier) {
+
+		_creatorSupplier = () -> {
+			try {
+				return creatorUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "The task's creator.")
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Creator creator;
+
+	@JsonIgnore
+	private Supplier<Creator> _creatorSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The task's completion date."
+	)
 	public Date getDateCompletion() {
 		if (_dateCompletionSupplier != null) {
 			dateCompletion = _dateCompletionSupplier.get();
@@ -268,7 +365,9 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCompletionSupplier;
 
-	@Schema(description = "The task's creation date.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The task's creation date."
+	)
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -309,7 +408,9 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema(description = "The date the task should be completed by.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The date the task should be completed by."
+	)
 	public Date getDateDue() {
 		if (_dateDueSupplier != null) {
 			dateDue = _dateDueSupplier.get();
@@ -350,7 +451,9 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateDueSupplier;
 
-	@Schema(description = "The task's description.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The task's description."
+	)
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -391,7 +494,7 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema(description = "The task's ID.")
+	@io.swagger.v3.oas.annotations.media.Schema(description = "The task's ID.")
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -430,7 +533,7 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getLabel() {
 		if (_labelSupplier != null) {
 			label = _labelSupplier.get();
@@ -471,7 +574,9 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _labelSupplier;
 
-	@Schema(description = "The task's name.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The task's name."
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -510,7 +615,7 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
 		description = "The object/asset that the task's workflow is managing."
 	)
 	@Valid
@@ -557,7 +662,7 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<ObjectReviewed> _objectReviewedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getWorkflowDefinitionId() {
 		if (_workflowDefinitionIdSupplier != null) {
 			workflowDefinitionId = _workflowDefinitionIdSupplier.get();
@@ -598,7 +703,9 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _workflowDefinitionIdSupplier;
 
-	@Schema(description = "The name of the task's workflow definition.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The name of the task's workflow definition."
+	)
 	public String getWorkflowDefinitionName() {
 		if (_workflowDefinitionNameSupplier != null) {
 			workflowDefinitionName = _workflowDefinitionNameSupplier.get();
@@ -640,7 +747,53 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _workflowDefinitionNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "The localized title of the task's workflow definition."
+	)
+	public String getWorkflowDefinitionTitle() {
+		if (_workflowDefinitionTitleSupplier != null) {
+			workflowDefinitionTitle = _workflowDefinitionTitleSupplier.get();
+
+			_workflowDefinitionTitleSupplier = null;
+		}
+
+		return workflowDefinitionTitle;
+	}
+
+	public void setWorkflowDefinitionTitle(String workflowDefinitionTitle) {
+		this.workflowDefinitionTitle = workflowDefinitionTitle;
+
+		_workflowDefinitionTitleSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setWorkflowDefinitionTitle(
+		UnsafeSupplier<String, Exception>
+			workflowDefinitionTitleUnsafeSupplier) {
+
+		_workflowDefinitionTitleSupplier = () -> {
+			try {
+				return workflowDefinitionTitleUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "The localized title of the task's workflow definition."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected String workflowDefinitionTitle;
+
+	@JsonIgnore
+	private Supplier<String> _workflowDefinitionTitleSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getWorkflowDefinitionVersion() {
 		if (_workflowDefinitionVersionSupplier != null) {
 			workflowDefinitionVersion =
@@ -683,7 +836,7 @@ public class WorkflowTask implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _workflowDefinitionVersionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getWorkflowInstanceId() {
 		if (_workflowInstanceIdSupplier != null) {
 			workflowInstanceId = _workflowInstanceIdSupplier.get();
@@ -723,6 +876,48 @@ public class WorkflowTask implements Serializable {
 
 	@JsonIgnore
 	private Supplier<Long> _workflowInstanceIdSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
+	@Valid
+	public WorkflowLog[] getWorkflowLogs() {
+		if (_workflowLogsSupplier != null) {
+			workflowLogs = _workflowLogsSupplier.get();
+
+			_workflowLogsSupplier = null;
+		}
+
+		return workflowLogs;
+	}
+
+	public void setWorkflowLogs(WorkflowLog[] workflowLogs) {
+		this.workflowLogs = workflowLogs;
+
+		_workflowLogsSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setWorkflowLogs(
+		UnsafeSupplier<WorkflowLog[], Exception> workflowLogsUnsafeSupplier) {
+
+		_workflowLogsSupplier = () -> {
+			try {
+				return workflowLogsUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField
+	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	protected WorkflowLog[] workflowLogs;
+
+	@JsonIgnore
+	private Supplier<WorkflowLog[]> _workflowLogsSupplier;
 
 	@Override
 	public boolean equals(Object object) {
@@ -764,6 +959,18 @@ public class WorkflowTask implements Serializable {
 			sb.append("\"actions\": ");
 
 			sb.append(_toJSON(actions));
+		}
+
+		Boolean assignedToMe = getAssignedToMe();
+
+		if (assignedToMe != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"assignedToMe\": ");
+
+			sb.append(assignedToMe);
 		}
 
 		Creator assigneePerson = getAssigneePerson();
@@ -810,6 +1017,18 @@ public class WorkflowTask implements Serializable {
 			sb.append("\"completed\": ");
 
 			sb.append(completed);
+		}
+
+		Creator creator = getCreator();
+
+		if (creator != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(String.valueOf(creator));
 		}
 
 		Date dateCompletion = getDateCompletion();
@@ -960,6 +1179,22 @@ public class WorkflowTask implements Serializable {
 			sb.append("\"");
 		}
 
+		String workflowDefinitionTitle = getWorkflowDefinitionTitle();
+
+		if (workflowDefinitionTitle != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"workflowDefinitionTitle\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(workflowDefinitionTitle));
+
+			sb.append("\"");
+		}
+
 		String workflowDefinitionVersion = getWorkflowDefinitionVersion();
 
 		if (workflowDefinitionVersion != null) {
@@ -988,13 +1223,35 @@ public class WorkflowTask implements Serializable {
 			sb.append(workflowInstanceId);
 		}
 
+		WorkflowLog[] workflowLogs = getWorkflowLogs();
+
+		if (workflowLogs != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"workflowLogs\": ");
+
+			sb.append("[");
+
+			for (int i = 0; i < workflowLogs.length; i++) {
+				sb.append(String.valueOf(workflowLogs[i]));
+
+				if ((i + 1) < workflowLogs.length) {
+					sb.append(", ");
+				}
+			}
+
+			sb.append("]");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.admin.workflow.dto.v1_0.WorkflowTask",
 		name = "x-class-name"
 	)
@@ -1081,6 +1338,27 @@ public class WorkflowTask implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1089,3 +1367,4 @@ public class WorkflowTask implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-78143899

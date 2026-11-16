@@ -1,12 +1,12 @@
 @component-name = "portal-content-management"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property ci.retries.disabled = "true";
 	property custom.properties = "default.layout.template.id=1_column${line.separator}jsonws.web.service.paths.excludes=";
 	property portal.acceptance = "true";
 	property portal.release = "true";
 	property portal.upstream = "true";
-	property testray.component.names = "Notification";
 	property testray.main.component.name = "Notifications";
 
 	setUp {
@@ -111,6 +111,10 @@ definition {
 	@priority = 5
 	@refactordone
 	test CanFilterByReadAndUnread {
+		task ("Enable Message Boards") {
+			MessageboardsPortlet.enableMessageBoards();
+		}
+
 		Navigator.gotoPage(pageName = "Site Page");
 
 		MessageboardsPortlet.subscribePG();
@@ -404,7 +408,7 @@ definition {
 			webContentContent = "WC WebContent Content",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		Staging.publishToLiveNowViaPortletCP();
 
@@ -479,7 +483,7 @@ definition {
 			webContentContent = "WC WebContent Content",
 			webContentTitle = "WC WebContent Title");
 
-		PortletEntry.publish();
+		WebContent.publishWithPermissions();
 
 		User.logoutAndLoginPG(
 			userLoginEmailAddress = "userea@liferay.com",

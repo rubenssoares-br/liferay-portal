@@ -14,6 +14,7 @@ import com.liferay.portal.kernel.util.StringUtil;
 
 import java.io.IOException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -28,8 +29,6 @@ import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 
-import org.apache.jasper.Constants;
-
 /**
  * @author Raymond Augé
  * @author Shuyang Zhou
@@ -40,15 +39,17 @@ public class BundleJavaFileManager
 	public static final String OPT_VERBOSE = "-verbose";
 
 	public BundleJavaFileManager(
-		List<BytecodeJavaFileObject> bytecodeJavaFileObjects,
 		ClassLoader classLoader, JavaFileManager javaFileManager,
 		List<JavaFileObjectResolver> javaFileObjectResolvers) {
 
 		super(javaFileManager);
 
-		_bytecodeJavaFileObjects = bytecodeJavaFileObjects;
 		_classLoader = classLoader;
 		_javaFileObjectResolvers = javaFileObjectResolvers;
+	}
+
+	public List<BytecodeJavaFileObject> getBytecodeJavaFileObjects() {
+		return _bytecodeJavaFileObjects;
 	}
 
 	@Override
@@ -68,17 +69,12 @@ public class BundleJavaFileManager
 		String packageName = className.substring(
 			0, className.lastIndexOf(CharPool.PERIOD));
 
-		Map<String, JavaFileObject> javaFileObjects = _javaFileObjectsMap.get(
-			packageName);
+		Map<String, JavaFileObject> javaFileObjects =
+			_javaFileObjectsMap.computeIfAbsent(
+				packageName, key -> new ConcurrentHashMap<>());
 
 		BytecodeJavaFileObject bytecodeJavaFileObject =
 			new BytecodeJavaFileObject(className);
-
-		if (javaFileObjects == null) {
-			javaFileObjects = new ConcurrentHashMap<>();
-
-			_javaFileObjectsMap.put(packageName, javaFileObjects);
-		}
 
 		javaFileObjects.put(className, bytecodeJavaFileObject);
 
@@ -121,7 +117,7 @@ public class BundleJavaFileManager
 		throws IOException {
 
 		if ((location == StandardLocation.CLASS_PATH) &&
-			packageName.startsWith(Constants.JSP_PACKAGE_NAME)) {
+			packageName.startsWith("org.apache.jsp")) {
 
 			Map<String, JavaFileObject> javaFileObjects =
 				_javaFileObjectsMap.get(packageName);
@@ -170,7 +166,8 @@ public class BundleJavaFileManager
 	private static final Set<JavaFileObject.Kind> _kinds = EnumSet.of(
 		JavaFileObject.Kind.CLASS);
 
-	private final List<BytecodeJavaFileObject> _bytecodeJavaFileObjects;
+	private final List<BytecodeJavaFileObject> _bytecodeJavaFileObjects =
+		new ArrayList<>();
 	private final ClassLoader _classLoader;
 	private final List<JavaFileObjectResolver> _javaFileObjectResolvers;
 	private final Map<String, Map<String, JavaFileObject>> _javaFileObjectsMap =

@@ -20,7 +20,7 @@ AUI.add(
 			/^[a-z]([a-z]|[0-9]|-|\.|_)*-([a-z]|[0-9]|-|\.|_)*/;
 
 		const REGEX_EMAIL =
-			/^[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:\w(?:[\w-]*\w)?\.)+(\w(?:[\w-]*\w))$/;
+			/^[\w!#$%&'*+/=?^_`{|}~-]+(?:\.[\w!#$%&'*+/=?^_`{|}~-]+)*@(?:[^\W_](?:[0-9A-Za-z-]*[^\W_])?\.)+([^\W_](?:[0-9A-Za-z-]*[^\W_]))$/;
 
 		const REGEX_FRIENDLY_URL_MAPPING = /[A-Za-z0-9-_]*/;
 
@@ -535,8 +535,9 @@ AUI.add(
 					if (formNode) {
 						const formValidator = new A.FormValidator({
 							boundingBox: formNode,
+							messageContainer: '<div></div>',
 							stackErrorContainer:
-								'<div class="form-feedback-item form-validator-stack help-block"></div>',
+								'<div class="form-feedback-item form-validator-stack help-block" role="alert"></div>',
 							validateOnBlur: instance.get('validateOnBlur'),
 						});
 

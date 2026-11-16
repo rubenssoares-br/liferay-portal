@@ -38,9 +38,9 @@ import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.FriendlyURLNormalizerUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.security.DefaultAdminUtil;
 import com.liferay.portal.security.auth.ScreenNameGeneratorFactory;
-import com.liferay.portal.util.PropsValues;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -105,9 +105,8 @@ public class SetupWizardSampleDataUtil {
 			LayoutConstants.TYPE_PORTLET, false, "/extranet",
 			new ServiceContext());
 
-		LayoutLocalServiceUtil.updateLayout(
-			extranetLayout.getGroupId(), false, extranetLayout.getLayoutId(),
-			extranetLayout.getTypeSettings());
+		LayoutLocalServiceUtil.updateTypeSettings(
+			extranetLayout, extranetLayout.getTypeSettings());
 
 		Layout intranetLayout = LayoutLocalServiceUtil.addLayout(
 			null, guestUser.getUserId(), organization.getGroupId(), true,
@@ -116,9 +115,8 @@ public class SetupWizardSampleDataUtil {
 			LayoutConstants.TYPE_PORTLET, false, "/intranet",
 			new ServiceContext());
 
-		LayoutLocalServiceUtil.updateLayout(
-			intranetLayout.getGroupId(), true, intranetLayout.getLayoutId(),
-			intranetLayout.getTypeSettings());
+		LayoutLocalServiceUtil.updateTypeSettings(
+			intranetLayout, intranetLayout.getTypeSettings());
 
 		OrganizationLocalServiceUtil.addUserOrganization(
 			adminUser.getUserId(), organization);
@@ -165,13 +163,9 @@ public class SetupWizardSampleDataUtil {
 
 			Contact contact = adminUser.getContact();
 
-			Calendar birthdayCal = CalendarFactoryUtil.getCalendar();
+			Calendar calendar = CalendarFactoryUtil.getCalendar();
 
-			birthdayCal.setTime(contact.getBirthday());
-
-			int birthdayMonth = birthdayCal.get(Calendar.MONTH);
-			int birthdayDay = birthdayCal.get(Calendar.DAY_OF_MONTH);
-			int birthdayYear = birthdayCal.get(Calendar.YEAR);
+			calendar.setTime(contact.getBirthday());
 
 			UserLocalServiceUtil.updateEmailAddress(
 				adminUser.getUserId(), null, emailAddress, emailAddress);
@@ -183,8 +177,10 @@ public class SetupWizardSampleDataUtil {
 				false, null, languageId, adminUser.getTimeZoneId(), greeting,
 				adminUser.getComments(), firstName, adminUser.getMiddleName(),
 				lastName, contact.getPrefixListTypeId(),
-				contact.getSuffixListTypeId(), contact.isMale(), birthdayMonth,
-				birthdayDay, birthdayYear, contact.getSmsSn(),
+				contact.getSuffixListTypeId(), contact.isMale(),
+				calendar.get(Calendar.MONTH),
+				calendar.get(Calendar.DAY_OF_MONTH),
+				calendar.get(Calendar.YEAR), contact.getSmsSn(),
 				contact.getFacebookSn(), contact.getJabberSn(),
 				contact.getSkypeSn(), contact.getTwitterSn(),
 				contact.getJobTitle(), null, null, null, null, null,

@@ -102,6 +102,8 @@ public class WebsiteModelImpl
 
 	public static final String TABLE_SQL_DROP = "drop table Website";
 
+	public static final String ENTITY_ALIAS = "website";
+
 	public static final String ORDER_BY_JPQL =
 		" ORDER BY website.createDate ASC";
 
@@ -166,23 +168,17 @@ public class WebsiteModelImpl
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long USERID_COLUMN_BITMASK = 32L;
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link #getColumnBitmask(String)}
-	 */
-	@Deprecated
-	public static final long UUID_COLUMN_BITMASK = 64L;
+	public static final long UUID_COLUMN_BITMASK = 32L;
 
 	/**
 	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
 	 *		#getColumnBitmask(String)}
 	 */
 	@Deprecated
-	public static final long CREATEDATE_COLUMN_BITMASK = 128L;
+	public static final long CREATEDATE_COLUMN_BITMASK = 64L;
 
 	public static final long LOCK_EXPIRATION_TIME = GetterUtil.getLong(
-		com.liferay.portal.util.PropsUtil.get(
+		com.liferay.portal.kernel.util.PropsUtil.get(
 			"lock.expiration.time.com.liferay.portal.kernel.model.Website"));
 
 	public WebsiteModelImpl() {
@@ -500,15 +496,6 @@ public class WebsiteModelImpl
 
 	@Override
 	public void setUserUuid(String userUuid) {
-	}
-
-	/**
-	 * @deprecated As of Athanasius (7.3.x), replaced by {@link
-	 *             #getColumnOriginalValue(String)}
-	 */
-	@Deprecated
-	public long getOriginalUserId() {
-		return GetterUtil.getLong(this.<Long>getColumnOriginalValue("userId"));
 	}
 
 	@JSON
@@ -1168,3 +1155,4 @@ public class WebsiteModelImpl
 	private Website _escapedModel;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2092775583

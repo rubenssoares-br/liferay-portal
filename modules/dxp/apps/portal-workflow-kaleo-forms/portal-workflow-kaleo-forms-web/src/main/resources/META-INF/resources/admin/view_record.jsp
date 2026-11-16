@@ -7,6 +7,8 @@
 
 <%@ include file="/admin/init.jsp" %>
 
+<%@ include file="/admin/deprecated_warning.jspf" %>
+
 <%
 String redirect = ParamUtil.getString(request, "redirect");
 
@@ -38,6 +40,7 @@ renderResponse.setTitle(LanguageUtil.format(request, "view-x", kaleoProcess.getN
 				modelClass="<%= KaleoProcess.class %>"
 				showInstanceTracker="<%= true %>"
 				showStatusLabel="<%= false %>"
+				status="<%= ddlRecord.getStatus() %>"
 				version="<%= ddlRecordVersion.getVersion() %>"
 			/>
 		</div>

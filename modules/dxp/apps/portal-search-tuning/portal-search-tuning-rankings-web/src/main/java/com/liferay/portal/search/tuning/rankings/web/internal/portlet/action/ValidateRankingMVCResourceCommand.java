@@ -21,7 +21,6 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
 import com.liferay.portal.search.index.IndexNameBuilder;
-import com.liferay.portal.search.query.Queries;
 import com.liferay.portal.search.searcher.SearchRequestBuilderFactory;
 import com.liferay.portal.search.tuning.rankings.constants.ResultRankingsConstants;
 import com.liferay.portal.search.tuning.rankings.helper.RankingHelper;
@@ -31,15 +30,15 @@ import com.liferay.portal.search.tuning.rankings.web.internal.constants.ResultRa
 import com.liferay.portal.search.tuning.rankings.web.internal.index.Criteria;
 import com.liferay.portal.search.tuning.rankings.web.internal.index.DuplicateQueryStringsDetector;
 
+import jakarta.portlet.ResourceRequest;
+import jakarta.portlet.ResourceResponse;
+
 import java.io.IOException;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.ResourceRequest;
-import javax.portlet.ResourceResponse;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -50,7 +49,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + ResultRankingsPortletKeys.RESULT_RANKINGS,
+		"jakarta.portlet.name=" + ResultRankingsPortletKeys.RESULT_RANKINGS,
 		"mvc.command.name=/result_rankings/validate_ranking"
 	},
 	service = MVCResourceCommand.class
@@ -78,7 +77,7 @@ public class ValidateRankingMVCResourceCommand implements MVCResourceCommand {
 	@Activate
 	protected void activate() {
 		_duplicateQueryStringsDetector = new DuplicateQueryStringsDetector(
-			_queries, _searchEngineAdapter);
+			_searchEngineAdapter);
 	}
 
 	protected JSONObject getJSONObject(ResourceRequest resourceRequest) {
@@ -202,9 +201,6 @@ public class ValidateRankingMVCResourceCommand implements MVCResourceCommand {
 	private Language _language;
 
 	@Reference
-	private Queries _queries;
-
-	@Reference
 	private RankingHelper _rankingHelper;
 
 	@Reference
@@ -243,12 +239,12 @@ public class ValidateRankingMVCResourceCommand implements MVCResourceCommand {
 			return _resultsRankingUid;
 		}
 
-		public String getStatus() {
-			return _status;
-		}
-
 		public String getSXPBlueprintExternalReferenceCode() {
 			return _sxpBlueprintExternalReferenceCode;
+		}
+
+		public String getStatus() {
+			return _status;
 		}
 
 		private final List<String> _aliases;

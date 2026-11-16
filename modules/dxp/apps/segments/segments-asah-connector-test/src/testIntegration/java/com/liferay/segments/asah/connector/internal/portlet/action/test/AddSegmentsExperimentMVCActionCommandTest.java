@@ -27,6 +27,7 @@ import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
@@ -36,12 +37,13 @@ import com.liferay.segments.exception.DuplicateSegmentsExperimentException;
 import com.liferay.segments.model.SegmentsEntry;
 import com.liferay.segments.model.SegmentsExperience;
 import com.liferay.segments.model.SegmentsExperiment;
+import com.liferay.segments.service.SegmentsExperienceLocalService;
 import com.liferay.segments.service.SegmentsExperimentLocalService;
 import com.liferay.segments.test.util.SegmentsTestUtil;
 
-import java.util.Collections;
+import jakarta.portlet.ActionRequest;
 
-import javax.portlet.ActionRequest;
+import java.util.Collections;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -94,7 +96,9 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 						TestPropsValues.getCompanyId(),
 						AnalyticsConfiguration.class.getName(),
 						HashMapDictionaryBuilder.<String, Object>put(
-							"liferayAnalyticsURL", "http://localhost:8080/"
+							"liferayAnalyticsURL",
+							"http://localhost:" +
+								PortalUtil.getPortalServerPort(false) + "/"
 						).build())) {
 
 			ReflectionTestUtil.invoke(
@@ -106,7 +110,8 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 
 	@Test
 	public void testAddSegmentsExperiment() throws Exception {
-		String liferayAnalyticsURL = "http://localhost:8080/";
+		String liferayAnalyticsURL =
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) + "/";
 
 		String description = RandomTestUtil.randomString();
 
@@ -156,7 +161,7 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 			SegmentsExperiment segmentsExperiment =
 				_segmentsExperimentLocalService.fetchSegmentsExperiment(
 					segmentsExperience.getGroupId(),
-					segmentsExperience.getSegmentsExperienceId(),
+					segmentsExperience.getSegmentsExperienceKey(),
 					segmentsExperience.getPlid());
 
 			Assert.assertEquals(
@@ -240,7 +245,9 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 							"liferayAnalyticsFaroBackendURL",
 							"http://localhost:8086"
 						).put(
-							"liferayAnalyticsURL", "http://localhost:8080/"
+							"liferayAnalyticsURL",
+							"http://localhost:" +
+								PortalUtil.getPortalServerPort(false) + "/"
 						).build())) {
 
 			Object asahFaroBackendClient = ReflectionTestUtil.getFieldValue(
@@ -264,11 +271,15 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 			JSONObject segmentsExperimentJSONObject =
 				(JSONObject)jsonObject.get("segmentsExperiment");
 
+			segmentsExperience =
+				_segmentsExperienceLocalService.fetchSegmentsExperience(
+					segmentsExperimentJSONObject.getLong(
+						"segmentsExperienceId"));
+
 			segmentsExperiment =
 				_segmentsExperimentLocalService.fetchSegmentsExperiment(
 					_group.getGroupId(),
-					segmentsExperimentJSONObject.getLong(
-						"segmentsExperienceId"),
+					segmentsExperience.getSegmentsExperienceKey(),
 					_layout.getPlid());
 
 			Assert.assertNotNull(segmentsExperiment);
@@ -280,7 +291,8 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 	public void testAddSegmentsExperimentWithSecondarySegmentsExperienceSelected()
 		throws Exception {
 
-		String liferayAnalyticsURL = "http://localhost:8080/";
+		String liferayAnalyticsURL =
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) + "/";
 
 		String description = RandomTestUtil.randomString();
 
@@ -326,11 +338,15 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 				description,
 				segmentsExperimentJSONObject.getString("description"));
 
+			segmentsExperience =
+				_segmentsExperienceLocalService.fetchSegmentsExperience(
+					segmentsExperimentJSONObject.getLong(
+						"segmentsExperienceId"));
+
 			SegmentsExperiment segmentsExperiment =
 				_segmentsExperimentLocalService.fetchSegmentsExperiment(
 					_group.getGroupId(),
-					segmentsExperimentJSONObject.getLong(
-						"segmentsExperienceId"),
+					segmentsExperience.getSegmentsExperienceKey(),
 					_layout.getPlid());
 
 			Assert.assertEquals(
@@ -375,7 +391,7 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 			segmentsEntryName, RandomTestUtil.randomString());
 
 		return SegmentsTestUtil.addSegmentsExperience(
-			segmentsEntry.getSegmentsEntryId(), _layout.getPlid(),
+			segmentsEntry.getExternalReferenceCode(), null, _layout.getPlid(),
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
 	}
 
@@ -429,6 +445,9 @@ public class AddSegmentsExperimentMVCActionCommandTest {
 		filter = "mvc.command.name=/segments_experiment/add_segments_experiment"
 	)
 	private MVCActionCommand _mvcActionCommand;
+
+	@Inject
+	private SegmentsExperienceLocalService _segmentsExperienceLocalService;
 
 	@Inject
 	private SegmentsExperimentLocalService _segmentsExperimentLocalService;

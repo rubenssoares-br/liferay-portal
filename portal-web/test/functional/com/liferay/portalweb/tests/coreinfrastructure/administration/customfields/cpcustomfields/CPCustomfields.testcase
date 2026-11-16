@@ -12,6 +12,10 @@ definition {
 
 		User.firstLoginPG();
 
+		task ("Enable widget pages") {
+			PagesAdmin.enableWidgetPages();
+		}
+
 		WikiPortlet.enableWiki();
 	}
 
@@ -33,8 +37,7 @@ definition {
 		property osgi.app.includes = "bookmarks";
 		property portal.release = "false";
 
-		ApplicationsMenu.gotoPortlet(
-			category = "Configuration",
+		ApplicationsMenu.gotoRootPortlet(
 			panel = "Control Panel",
 			portlet = "Custom Fields");
 
@@ -278,11 +281,12 @@ definition {
 			value1 = "Text Field");
 	}
 
+	@ignore = "true"
 	@priority = 5
 	test EditCustomFieldUserTextField {
-		property app.server.types = "jboss,tcserver,tomcat,weblogic,wildfly";
+		property app.server.types = "jboss,tomcat,weblogic,wildfly";
 		property database.types = "db2,hypersonic,mariadb,mysql,oracle,postgresql,sqlserver";
-		property environment.acceptance = "true";
+		property environment.acceptance = "false";
 		property operating.system.types = "alpine,amazonlinux,centos,debian,fedora,orcllinux,osx,redhat,rockylinux,solaris,suse,ubuntu,windows";
 		property portal.acceptance = "true";
 

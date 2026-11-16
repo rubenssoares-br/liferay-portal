@@ -7,9 +7,9 @@ package com.liferay.headless.commerce.delivery.catalog.client.problem;
 
 import com.liferay.headless.commerce.delivery.catalog.client.json.BaseJSONParser;
 
-import java.util.Objects;
+import jakarta.annotation.Generated;
 
-import javax.annotation.Generated;
+import java.util.Objects;
 
 /**
  * @author Andrea Sbarra
@@ -194,3 +194,4 @@ public class Problem {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1208901994

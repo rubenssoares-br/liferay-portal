@@ -8,16 +8,17 @@ package com.liferay.headless.delivery.client.serdes.v1_0;
 import com.liferay.headless.delivery.client.dto.v1_0.Comment;
 import com.liferay.headless.delivery.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -133,6 +134,20 @@ public class CommentSerDes {
 			sb.append(comment.getNumberOfComments());
 		}
 
+		if (comment.getParentCommentExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"parentCommentExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(comment.getParentCommentExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
 		if (comment.getParentCommentId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -235,6 +250,16 @@ public class CommentSerDes {
 				String.valueOf(comment.getNumberOfComments()));
 		}
 
+		if (comment.getParentCommentExternalReferenceCode() == null) {
+			map.put("parentCommentExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"parentCommentExternalReferenceCode",
+				String.valueOf(
+					comment.getParentCommentExternalReferenceCode()));
+		}
+
 		if (comment.getParentCommentId() == null) {
 			map.put("parentCommentId", null);
 		}
@@ -289,6 +314,12 @@ public class CommentSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "numberOfComments")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"parentCommentExternalReferenceCode")) {
+
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "parentCommentId")) {
@@ -349,6 +380,15 @@ public class CommentSerDes {
 						Integer.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"parentCommentExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					comment.setParentCommentExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "parentCommentId")) {
 				if (jsonParserFieldValue != null) {
 					comment.setParentCommentId(
@@ -405,6 +445,16 @@ public class CommentSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -437,3 +487,4 @@ public class CommentSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1280293133

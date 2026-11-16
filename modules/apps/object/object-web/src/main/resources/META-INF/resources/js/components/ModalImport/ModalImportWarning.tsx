@@ -45,7 +45,9 @@ export function ModalImportWarning({
 }: ModalImportWarningProps) {
 	return (
 		<>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{modalImportWarningTitle[modalImportKey]}
 			</ClayModal.Header>
 
@@ -65,47 +67,58 @@ export function ModalImportWarning({
 						}
 					)}
 
-					{Liferay.FeatureFlags['LPS-187142'] &&
-						!!existingObjectDefinitions?.length && (
-							<>
-								<Table
-									columnsVisibility={false}
-									headingNoWrap
-									noWrap
-									striped={false}
-								>
-									<Head items={tableHeaderItems}>
-										{(column) => (
+					{!!existingObjectDefinitions?.length && (
+						<>
+							<Table
+								columnsVisibility={false}
+								headingNoWrap
+								noWrap
+								striped={false}
+							>
+								<Head items={tableHeaderItems}>
+									{
+
+										// @ts-ignore
+
+										(column) => (
 											<Cell expanded key={column.id}>
 												{column.name}
 											</Cell>
-										)}
-									</Head>
+										)
+									}
+								</Head>
 
-									<Body
-										defaultItems={existingObjectDefinitions}
-									>
-										{(objectDefinition) => (
+								<Body defaultItems={existingObjectDefinitions}>
+									{
+
+										// @ts-ignore
+
+										(objectDefinition) => (
 											<Row>
 												<Cell>
 													{stringUtils.getLocalizableLabel(
-														objectDefinition.defaultLanguageId,
-														objectDefinition.label,
-														objectDefinition.name
+														{
+															fallbackLabel:
+																objectDefinition.name,
+															fallbackLanguageId:
+																objectDefinition.defaultLanguageId,
+															labels: objectDefinition.label,
+														}
 													)}
 												</Cell>
 											</Row>
-										)}
-									</Body>
-								</Table>
+										)
+									}
+								</Body>
+							</Table>
 
-								<Text as="p" color="secondary">
-									{Liferay.Language.get(
-										'before-importing-the-new-object-definition-you-may-want-to-back-up-its-entries-to-prevent-data-loss'
-									)}
-								</Text>
-							</>
-						)}
+							<Text as="p" color="secondary">
+								{Liferay.Language.get(
+									'before-importing-the-new-object-definition-you-may-want-to-back-up-its-entries-to-prevent-data-loss'
+								)}
+							</Text>
+						</>
+					)}
 
 					<Text color="secondary">
 						{Liferay.Language.get(

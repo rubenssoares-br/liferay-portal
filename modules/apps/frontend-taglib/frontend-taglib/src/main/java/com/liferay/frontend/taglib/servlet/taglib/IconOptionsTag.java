@@ -23,15 +23,15 @@ import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.util.comparator.PortletConfigurationIconComparator;
 import com.liferay.taglib.util.IncludeTag;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.jsp.JspException;
+import jakarta.servlet.jsp.PageContext;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.jsp.JspException;
-import javax.servlet.jsp.PageContext;
 
 /**
  * @author Eudaldo Alonso
@@ -40,7 +40,7 @@ public class IconOptionsTag extends IncludeTag {
 
 	@Override
 	public int doEndTag() throws JspException {
-		if (ListUtil.isEmpty(_getPortletConfigurationIcons())) {
+		if (ListUtil.isEmpty(getPortletConfigurationIcons())) {
 			return SKIP_PAGE;
 		}
 
@@ -49,6 +49,36 @@ public class IconOptionsTag extends IncludeTag {
 
 	public String getCssClass() {
 		return GetterUtil.getString(_cssClass);
+	}
+
+	public List<DropdownItem> getDropdownItems() {
+		return new DropdownItemList() {
+			{
+				for (List<PortletConfigurationIcon> portletConfigurationIcons :
+						_getPortletConfigurationIconsList()) {
+
+					addGroup(
+						dropdownGroupItem -> {
+							dropdownGroupItem.setDropdownItems(
+								_getDropdownItems(portletConfigurationIcons));
+							dropdownGroupItem.setSeparator(true);
+						});
+				}
+			}
+		};
+	}
+
+	public List<PortletConfigurationIcon> getPortletConfigurationIcons() {
+		if (_portletConfigurationIcons != null) {
+			return _portletConfigurationIcons;
+		}
+
+		_portletConfigurationIcons =
+			PortletConfigurationIconTracker.getPortletConfigurationIcons(
+				_getPortletId(), _getPortletRequest(),
+				PortletConfigurationIconComparator.INSTANCE);
+
+		return _portletConfigurationIcons;
 	}
 
 	public boolean isMonospaced() {
@@ -89,36 +119,6 @@ public class IconOptionsTag extends IncludeTag {
 		return _CLEAN_UP_SET_ATTRIBUTES;
 	}
 
-	@Override
-	protected void setAttributes(HttpServletRequest httpServletRequest) {
-		httpServletRequest.setAttribute(
-			"liferay-frontend:icon-options:cssClass", getCssClass());
-		httpServletRequest.setAttribute(
-			"liferay-frontend:icon-options:dropdownItems", _getDropdownItems());
-		httpServletRequest.setAttribute(
-			"liferay-frontend:icon-options:monospaced", isMonospaced());
-		httpServletRequest.setAttribute(
-			"liferay-frontend:icon-options:portletConfigurationIcons",
-			_getPortletConfigurationIcons());
-	}
-
-	private List<DropdownItem> _getDropdownItems() {
-		return new DropdownItemList() {
-			{
-				for (List<PortletConfigurationIcon> portletConfigurationIcons :
-						_getPortletConfigurationIconsList()) {
-
-					addGroup(
-						dropdownGroupItem -> {
-							dropdownGroupItem.setDropdownItems(
-								_getDropdownItems(portletConfigurationIcons));
-							dropdownGroupItem.setSeparator(true);
-						});
-				}
-			}
-		};
-	}
-
 	private List<DropdownItem> _getDropdownItems(
 		List<PortletConfigurationIcon> portletConfigurationIcons) {
 
@@ -145,19 +145,6 @@ public class IconOptionsTag extends IncludeTag {
 		return portletDisplay.getId();
 	}
 
-	private List<PortletConfigurationIcon> _getPortletConfigurationIcons() {
-		if (_portletConfigurationIcons != null) {
-			return _portletConfigurationIcons;
-		}
-
-		_portletConfigurationIcons =
-			PortletConfigurationIconTracker.getPortletConfigurationIcons(
-				_getPortletId(), _getPortletRequest(),
-				PortletConfigurationIconComparator.INSTANCE);
-
-		return _portletConfigurationIcons;
-	}
-
 	private List<List<PortletConfigurationIcon>>
 		_getPortletConfigurationIconsList() {
 
@@ -170,15 +157,17 @@ public class IconOptionsTag extends IncludeTag {
 		portletConfigurationIconsList.add(portletConfigurationIcons);
 
 		for (PortletConfigurationIcon portletConfigurationIcon :
-				_getPortletConfigurationIcons()) {
+				getPortletConfigurationIcons()) {
 
 			portletConfigurationIcons.add(portletConfigurationIcon);
 
-			if (portletConfigurationIcon.hasSeparator()) {
-				portletConfigurationIcons = new ArrayList<>();
-
-				portletConfigurationIconsList.add(portletConfigurationIcons);
+			if (!portletConfigurationIcon.hasSeparator()) {
+				continue;
 			}
+
+			portletConfigurationIcons = new ArrayList<>();
+
+			portletConfigurationIconsList.add(portletConfigurationIcons);
 		}
 
 		return portletConfigurationIconsList;
@@ -200,14 +189,14 @@ public class IconOptionsTag extends IncludeTag {
 		HttpServletRequest httpServletRequest = getRequest();
 
 		return (PortletRequest)httpServletRequest.getAttribute(
-			JavaConstants.JAVAX_PORTLET_REQUEST);
+			JavaConstants.JAKARTA_PORTLET_REQUEST);
 	}
 
 	private PortletResponse _getPortletResponse() {
 		HttpServletRequest httpServletRequest = getRequest();
 
 		return (PortletResponse)httpServletRequest.getAttribute(
-			JavaConstants.JAVAX_PORTLET_RESPONSE);
+			JavaConstants.JAKARTA_PORTLET_RESPONSE);
 	}
 
 	private UnsafeConsumer<DropdownItem, Exception> _getUnsafeConsumer(

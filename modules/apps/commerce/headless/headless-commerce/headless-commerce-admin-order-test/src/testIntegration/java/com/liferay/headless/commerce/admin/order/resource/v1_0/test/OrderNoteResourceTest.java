@@ -18,17 +18,19 @@ import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
 import com.liferay.commerce.service.CommerceOrderLocalService;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.OrderNote;
+import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.model.User;
-import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.test.rule.DataGuard;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.Inject;
 
 import java.math.BigDecimal;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -49,24 +51,21 @@ public class OrderNoteResourceTest extends BaseOrderNoteResourceTestCase {
 		_user = UserTestUtil.addUser(testCompany);
 
 		AccountEntry accountEntry = _accountEntryLocalService.addAccountEntry(
-			_user.getUserId(), 0, RandomTestUtil.randomString(),
-			RandomTestUtil.randomString(), null,
+			StringPool.BLANK, _user.getUserId(), 0,
+			RandomTestUtil.randomString(), RandomTestUtil.randomString(), null,
 			RandomTestUtil.randomString() + "@liferay.com", null, null,
 			"business", 1,
 			ServiceContextTestUtil.getServiceContext(
 				testCompany.getCompanyId(), testGroup.getGroupId(),
 				_user.getUserId()));
+
 		CommerceCurrency commerceCurrency =
 			_commerceCurrencyLocalService.addCommerceCurrency(
-				_user.getUserId(), RandomTestUtil.randomString(),
+				null, _user.getUserId(), RandomTestUtil.randomString(),
 				RandomTestUtil.randomLocaleStringMap(),
 				RandomTestUtil.randomString(), BigDecimal.ONE,
 				RandomTestUtil.randomLocaleStringMap(), 2, 2, "HALF_EVEN",
 				false, RandomTestUtil.nextDouble(), true);
-
-		_serviceContext = ServiceContextTestUtil.getServiceContext(
-			testCompany.getCompanyId(), testGroup.getGroupId(),
-			_user.getUserId());
 
 		CommerceChannel commerceChannel =
 			_commerceChannelLocalService.addCommerceChannel(
@@ -74,13 +73,22 @@ public class OrderNoteResourceTest extends BaseOrderNoteResourceTestCase {
 				AccountConstants.ACCOUNT_ENTRY_ID_DEFAULT,
 				testGroup.getGroupId(), RandomTestUtil.randomString(),
 				CommerceChannelConstants.CHANNEL_TYPE_SITE, null,
-				commerceCurrency.getCode(), _serviceContext);
+				commerceCurrency.getCode(),
+				ServiceContextTestUtil.getServiceContext(
+					testCompany.getCompanyId(), testGroup.getGroupId(),
+					_user.getUserId()));
 
 		_commerceOrder = _commerceOrderLocalService.addCommerceOrder(
 			_user.getUserId(), commerceChannel.getGroupId(),
-			accountEntry.getAccountEntryId(),
-			commerceCurrency.getCommerceCurrencyId(),
+			accountEntry.getAccountEntryId(), commerceCurrency.getCode(),
 			CommerceOrderConstants.TYPE_PK_FULFILLMENT);
+	}
+
+	@Ignore
+	@Override
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		super.testBatchEngineDeleteImportTask();
 	}
 
 	@Ignore
@@ -93,8 +101,23 @@ public class OrderNoteResourceTest extends BaseOrderNoteResourceTestCase {
 	@Ignore
 	@Override
 	@Test
+	public void testDeleteOrderNoteBatch() throws Exception {
+		super.testDeleteOrderNoteBatch();
+	}
+
+	@Ignore
+	@Override
+	@Test
 	public void testDeleteOrderNoteByExternalReferenceCode() throws Exception {
 		super.testDeleteOrderNoteByExternalReferenceCode();
+	}
+
+	@Override
+	@Test
+	public void testGetOrderNote() throws Exception {
+		super.testGetOrderNote();
+
+		_testGetOrderNote();
 	}
 
 	@Ignore
@@ -102,6 +125,15 @@ public class OrderNoteResourceTest extends BaseOrderNoteResourceTestCase {
 	@Test
 	public void testGraphQLDeleteOrderNote() throws Exception {
 		super.testDeleteOrderNoteByExternalReferenceCode();
+	}
+
+	@Ignore
+	@Override
+	@Test
+	public void testGraphQLDeleteOrderNoteByExternalReferenceCode()
+		throws Exception {
+
+		super.testGraphQLDeleteOrderNoteByExternalReferenceCode();
 	}
 
 	@Ignore
@@ -222,6 +254,20 @@ public class OrderNoteResourceTest extends BaseOrderNoteResourceTestCase {
 			_commerceOrder.getCommerceOrderId(), orderNote);
 	}
 
+	private void _testGetOrderNote() throws Exception {
+		OrderNote postOrderNote = testGetOrderNote_addOrderNote();
+
+		OrderNote getOrderNote = orderNoteResource.getOrderNote(
+			postOrderNote.getId());
+
+		Assert.assertEquals(
+			Long.valueOf(TestPropsValues.getUserId()),
+			getOrderNote.getAuthorId());
+		Assert.assertNotNull(getOrderNote.getModifiedDate());
+		assertEquals(postOrderNote, getOrderNote);
+		assertValid(getOrderNote);
+	}
+
 	@Inject
 	private AccountEntryLocalService _accountEntryLocalService;
 
@@ -236,7 +282,6 @@ public class OrderNoteResourceTest extends BaseOrderNoteResourceTestCase {
 	@Inject
 	private CommerceOrderLocalService _commerceOrderLocalService;
 
-	private ServiceContext _serviceContext;
 	private User _user;
 
 }

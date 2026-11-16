@@ -12,7 +12,6 @@ import com.liferay.object.model.ObjectField;
 import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
@@ -26,7 +25,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Marco Leo
  */
 @Component(
-	property = "dto.class.name=com.liferay.object.model.ObjectRelationship",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.object.model.ObjectRelationship"
+	},
 	service = DTOConverter.class
 )
 public class ObjectRelationshipDTOConverter
@@ -63,17 +65,10 @@ public class ObjectRelationshipDTOConverter
 				setDeletionType(
 					() -> ObjectRelationship.DeletionType.create(
 						serviceBuilderObjectRelationship.getDeletionType()));
-				setEdge(
-					() -> {
-						if (!FeatureFlagManagerUtil.isEnabled(
-								serviceBuilderObjectRelationship.getCompanyId(),
-								"LPS-187142")) {
-
-							return null;
-						}
-
-						return serviceBuilderObjectRelationship.isEdge();
-					});
+				setDescription(
+					() -> LocalizedMapUtil.getLanguageIdMap(
+						serviceBuilderObjectRelationship.getDescriptionMap()));
+				setEdge(serviceBuilderObjectRelationship::isEdge);
 				setExternalReferenceCode(
 					() ->
 						serviceBuilderObjectRelationship.
@@ -100,6 +95,7 @@ public class ObjectRelationshipDTOConverter
 							getObjectDefinitionId2());
 				setObjectDefinitionModifiable2(objectDefinition2::isModifiable);
 				setObjectDefinitionName2(objectDefinition2::getShortName);
+				setObjectDefinitionScope2(objectDefinition2::getScope);
 				setObjectDefinitionSystem2(objectDefinition2::isSystem);
 				setObjectField(
 					() -> {

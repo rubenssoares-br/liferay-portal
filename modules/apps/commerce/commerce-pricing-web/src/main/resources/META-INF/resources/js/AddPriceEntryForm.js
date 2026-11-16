@@ -25,6 +25,7 @@ function AddPriceEntryForm({
 }) {
 	const [inputGroups, setInputGroups] = useState([
 		{
+			currency: (priceLists || [])[0]?.currency || currency,
 			id: 'inputGroup-0',
 			price: basePrice,
 			priceListId: (priceLists || [])[0]?.value || 0,
@@ -40,19 +41,12 @@ function AddPriceEntryForm({
 	);
 
 	const closeModal = (modalConfig = {}) => {
-		const openerWindow = Liferay.Util.getOpener();
+		window.parent.Liferay.fire('closeModal', modalConfig);
 
-		openerWindow.Liferay.fire('closeModal', modalConfig);
-
-		if (dataSetId && openerWindow.originalOpenerLiferay) {
-			openerWindow.originalOpenerLiferay.fire(
-				commerceEvents.FDS_UPDATE_DISPLAY,
-				{
-					id: dataSetId,
-				}
-			);
-
-			delete openerWindow.originalOpenerLiferay;
+		if (dataSetId) {
+			window.parent.Liferay.fire(commerceEvents.FDS_UPDATE_DISPLAY, {
+				id: dataSetId,
+			});
 		}
 	};
 
@@ -72,8 +66,13 @@ function AddPriceEntryForm({
 		setInputGroups([...inputGroups]);
 	};
 
-	const onChangePriceListHandler = ({inputGroupId, priceListId}) => {
+	const onChangePriceListHandler = ({
+		currency,
+		inputGroupId,
+		priceListId,
+	}) => {
 		const inputGroup = getInputGroup(inputGroupId);
+		inputGroup.currency = currency;
 		inputGroup.priceListId = priceListId;
 		setInputGroups([...inputGroups]);
 	};
@@ -181,6 +180,10 @@ function AddPriceEntryForm({
 									name={`${namespace}commercePriceList${index}`}
 									onChange={({target}) => {
 										onChangePriceListHandler({
+											currency: priceLists.find(
+												(item) =>
+													item.value === target.value
+											).currency,
 											inputGroupId: inputGroup.id,
 											priceListId: target.value,
 										});
@@ -258,7 +261,9 @@ function AddPriceEntryForm({
 
 									<ClayInput.GroupItem append shrink>
 										<ClayInput.GroupText>
-											{currency}
+											{inputGroup.currency
+												? inputGroup.currency
+												: currency}
 										</ClayInput.GroupText>
 									</ClayInput.GroupItem>
 								</ClayInput.Group>
@@ -333,6 +338,7 @@ AddPriceEntryForm.propTypes = {
 	namespace: PropTypes.string.isRequired,
 	priceLists: PropTypes.arrayOf(
 		PropTypes.shape({
+			currency: PropTypes.string.isRequired,
 			label: PropTypes.string.isRequired,
 			value: PropTypes.number.isRequired,
 		})

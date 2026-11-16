@@ -46,14 +46,15 @@ public class UserSystemObjectDefinitionManager
 	extends BaseSystemObjectDefinitionManager {
 
 	@Override
-	public long addBaseModel(User user, Map<String, Object> values)
+	public long addBaseModel(
+			boolean checkPermissions, User user, Map<String, Object> values)
 		throws Exception {
 
 		UserAccountResource userAccountResource = _buildUserAccountResource(
-			false, user);
+			checkPermissions, user);
 
 		UserAccount userAccount = userAccountResource.postUserAccount(
-			_toUserAccount(values));
+			null, null, _toUserAccount(values));
 
 		setExtendedProperties(
 			UserAccount.class.getName(), userAccount, user, values);
@@ -83,15 +84,6 @@ public class UserSystemObjectDefinitionManager
 
 		return _userLocalService.getUserByExternalReferenceCode(
 			externalReferenceCode, companyId);
-	}
-
-	@Override
-	public String getBaseModelExternalReferenceCode(long primaryKey)
-		throws PortalException {
-
-		User user = _userLocalService.getUser(primaryKey);
-
-		return user.getExternalReferenceCode();
 	}
 
 	@Override
@@ -190,6 +182,14 @@ public class UserSystemObjectDefinitionManager
 				true
 			).build(),
 			new TextObjectFieldBuilder(
+			).labelMap(
+				createLabelMap("full-name")
+			).name(
+				"name"
+			).system(
+				true
+			).build(),
+			new TextObjectFieldBuilder(
 			).dbColumnName(
 				"uuid_"
 			).labelMap(
@@ -242,20 +242,28 @@ public class UserSystemObjectDefinitionManager
 		Map<String, Object> variables = super.getVariables(
 			contentType, objectDefinition, oldValues, payloadJSONObject);
 
-		if (variables.containsKey("firstName")) {
-			variables.put("givenName", variables.get("firstName"));
+		Object firstName = variables.get("firstName");
+
+		if (firstName != null) {
+			variables.put("givenName", firstName);
 		}
 
-		if (variables.containsKey("lastName")) {
-			variables.put("familyName", variables.get("lastName"));
+		Object lastName = variables.get("lastName");
+
+		if (lastName != null) {
+			variables.put("familyName", lastName);
 		}
 
-		if (variables.containsKey("middleName")) {
-			variables.put("additionalName", variables.get("middleName"));
+		Object middleName = variables.get("middleName");
+
+		if (middleName != null) {
+			variables.put("additionalName", middleName);
 		}
 
-		if (variables.containsKey("screenName")) {
-			variables.put("alternateName", variables.get("screenName"));
+		Object screenName = variables.get("screenName");
+
+		if (screenName != null) {
+			variables.put("alternateName", screenName);
 		}
 
 		return variables;
@@ -263,7 +271,7 @@ public class UserSystemObjectDefinitionManager
 
 	@Override
 	public int getVersion() {
-		return 4;
+		return 5;
 	}
 
 	@Override

@@ -48,7 +48,8 @@ public interface LayoutPageTemplateCollectionService extends BaseService {
 	 */
 	public LayoutPageTemplateCollection addLayoutPageTemplateCollection(
 			String externalReferenceCode, long groupId,
-			long parentLayoutPageTemplateCollectionId, String name,
+			long parentLayoutPageTemplateCollectionId,
+			String layoutPageTemplateCollectionKey, String name,
 			String description, int type, ServiceContext serviceContext)
 		throws PortalException;
 
@@ -142,3 +143,4 @@ public interface LayoutPageTemplateCollectionService extends BaseService {
 		throws PortalException;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:2017258172

@@ -13,13 +13,13 @@ import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.petra.sql.dsl.DynamicObjectDefinitionLocalizationTable;
 import com.liferay.object.petra.sql.dsl.DynamicObjectDefinitionLocalizationTableFactory;
 import com.liferay.object.petra.sql.dsl.DynamicObjectDefinitionTable;
+import com.liferay.object.relationship.util.ObjectRelationshipUtil;
 import com.liferay.object.service.ObjectDefinitionLocalServiceUtil;
 import com.liferay.object.service.ObjectFieldLocalService;
 import com.liferay.petra.sql.dsl.Column;
 import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
 import com.liferay.petra.sql.dsl.expression.Predicate;
 import com.liferay.petra.sql.dsl.query.FromStep;
-import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.kernel.exception.PortalException;
 
 /**
@@ -42,8 +42,8 @@ public class ObjectEntry1toMObjectRelatedModelsPredicateProviderImpl
 
 	@Override
 	public Predicate getPredicate(
-			ObjectRelationship objectRelationship, Predicate predicate,
-			ObjectDefinition relatedObjectDefinition)
+			Long[] groupIds, ObjectRelationship objectRelationship,
+			Predicate predicate, ObjectDefinition relatedObjectDefinition)
 		throws PortalException {
 
 		ObjectDefinition objectDefinition1 = _getObjectDefinition1(
@@ -79,8 +79,8 @@ public class ObjectEntry1toMObjectRelatedModelsPredicateProviderImpl
 					objectDefinition2, objectFieldLocalService),
 				objectDefinition2DynamicObjectDefinitionTable,
 				objectDefinition2ExtensionDynamicObjectDefinitionTable,
-				DSLQueryFactoryUtil.select(objectRelationshipColumn),
-				predicate);
+				DSLQueryFactoryUtil.select(objectRelationshipColumn), groupIds,
+				objectDefinition2, predicate);
 		}
 
 		DynamicObjectDefinitionTable dynamicObjectDefinitionTable =
@@ -104,7 +104,7 @@ public class ObjectEntry1toMObjectRelatedModelsPredicateProviderImpl
 					DSLQueryFactoryUtil.select(
 						objectDefinition1DynamicObjectDefinitionTable.
 							getPrimaryKeyColumn()),
-					predicate)
+					groupIds, objectDefinition1, predicate)
 			));
 	}
 
@@ -143,9 +143,9 @@ public class ObjectEntry1toMObjectRelatedModelsPredicateProviderImpl
 			ObjectDefinition objectDefinition1,
 			ObjectRelationship objectRelationship) {
 
-		String columnName = StringBundler.concat(
-			"r_", objectRelationship.getName(), "_",
-			objectDefinition1.getPKObjectFieldName());
+		String columnName =
+			ObjectRelationshipUtil.getObjectRelationshipFieldName(
+				objectDefinition1, objectRelationship.getName());
 
 		Column<DynamicObjectDefinitionTable, ?> column =
 			dynamicObjectDefinitionTable.getColumn(columnName);
@@ -163,7 +163,8 @@ public class ObjectEntry1toMObjectRelatedModelsPredicateProviderImpl
 				dynamicObjectDefinitionLocalizationTable,
 			DynamicObjectDefinitionTable dynamicObjectDefinitionTable,
 			DynamicObjectDefinitionTable extensionDynamicObjectDefinitionTable,
-			FromStep fromStep, Predicate predicate)
+			FromStep fromStep, Long[] groupIds,
+			ObjectDefinition objectDefinition, Predicate predicate)
 		throws PortalException {
 
 		return column.in(
@@ -173,19 +174,19 @@ public class ObjectEntry1toMObjectRelatedModelsPredicateProviderImpl
 				ObjectEntryTable.INSTANCE,
 				ObjectEntryTable.INSTANCE.objectEntryId.eq(
 					dynamicObjectDefinitionTable.getPrimaryKeyColumn())
-			).innerJoinON(
+			).leftJoinOn(
 				extensionDynamicObjectDefinitionTable,
-				dynamicObjectDefinitionTable.getPrimaryKeyColumn(
-				).eq(
-					extensionDynamicObjectDefinitionTable.getPrimaryKeyColumn()
-				)
+				getExtensionLeftJoinPredicate(
+					dynamicObjectDefinitionTable,
+					extensionDynamicObjectDefinitionTable)
 			).leftJoinOn(
 				dynamicObjectDefinitionLocalizationTable,
 				ObjectEntrySearchUtil.getLeftJoinLocalizationTablePredicate(
 					dynamicObjectDefinitionLocalizationTable,
-					dynamicObjectDefinitionTable)
+					dynamicObjectDefinitionTable, null)
 			).where(
-				predicate
+				ObjectEntrySearchUtil.getObjectEntryIndexPredicate(
+					groupIds, objectDefinition, predicate)
 			));
 	}
 

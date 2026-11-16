@@ -17,7 +17,9 @@
 	cssClass="mb-3"
 >
 	<clay:col>
-		<clay:toggle />
+		<clay:toggle
+			aria-label="default toggle"
+		/>
 	</clay:col>
 </clay:row>
 
@@ -28,6 +30,7 @@
 >
 	<clay:col>
 		<clay:toggle
+			aria-label="initially selected toggle"
 			toggled="<%= true %>"
 		/>
 	</clay:col>
@@ -42,6 +45,7 @@
 		md="2"
 	>
 		<clay:toggle
+			aria-label="disabled toggle"
 			disabled="<%= true %>"
 		/>
 	</clay:col>
@@ -89,8 +93,8 @@
 >
 	<clay:col>
 		<clay:toggle
-			labelOff="Off"
-			labelOn="On"
+			offLabel="Off"
+			onLabel="On"
 		/>
 	</clay:col>
 </clay:row>

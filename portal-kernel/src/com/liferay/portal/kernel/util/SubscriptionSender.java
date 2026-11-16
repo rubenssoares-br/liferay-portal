@@ -50,11 +50,13 @@ import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.SubscriptionLocalServiceUtil;
 import com.liferay.portal.kernel.service.UserLocalServiceUtil;
 import com.liferay.portal.kernel.service.UserNotificationEventLocalServiceUtil;
-import com.liferay.portal.kernel.transaction.TransactionCommitCallbackUtil;
+import com.liferay.portal.kernel.transaction.TransactionCallbackUtil;
 import com.liferay.portal.kernel.uuid.PortalUUIDUtil;
 
-import java.io.File;
+import jakarta.mail.internet.InternetAddress;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -67,8 +69,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-
-import javax.mail.internet.InternetAddress;
 
 /**
  * @author Brian Wing Shun Chan
@@ -95,12 +95,12 @@ public class SubscriptionSender implements Serializable {
 		}
 	}
 
-	public void addFileAttachment(File file) {
-		addFileAttachment(file, null);
+	public void addFileAttachment(InputStream inputStream) {
+		addFileAttachment(null, inputStream);
 	}
 
-	public void addFileAttachment(File file, String fileName) {
-		if (file == null) {
+	public void addFileAttachment(String fileName, InputStream inputStream) {
+		if (inputStream == null) {
 			return;
 		}
 
@@ -108,7 +108,7 @@ public class SubscriptionSender implements Serializable {
 			fileAttachments = new ArrayList<>();
 		}
 
-		FileAttachment attachment = new FileAttachment(file, fileName);
+		FileAttachment attachment = new FileAttachment(fileName, inputStream);
 
 		fileAttachments.add(attachment);
 	}
@@ -233,7 +233,7 @@ public class SubscriptionSender implements Serializable {
 	}
 
 	public void flushNotificationsAsync() {
-		TransactionCommitCallbackUtil.registerCallback(
+		TransactionCallbackUtil.registerCommitCallback(
 			() -> {
 				Thread currentThread = Thread.currentThread();
 
@@ -370,7 +370,7 @@ public class SubscriptionSender implements Serializable {
 				_mailIdIds, PortalUUIDUtil.generate());
 		}
 
-		mailId = PortalUtil.getMailId(
+		mailId = MailServiceUtil.getMailId(
 			company.getMx(), _mailIdPopPortletPrefix, _mailIdIds);
 	}
 
@@ -556,6 +556,10 @@ public class SubscriptionSender implements Serializable {
 		this.replyToAddress = replyToAddress;
 	}
 
+	public void setSMTPAccount(SMTPAccount smtpAccount) {
+		this.smtpAccount = smtpAccount;
+	}
+
 	/**
 	 * @see com.liferay.portal.kernel.search.BaseIndexer#getSiteGroupId(long)
 	 */
@@ -585,10 +589,6 @@ public class SubscriptionSender implements Serializable {
 
 	public void setServiceContext(ServiceContext serviceContext) {
 		this.serviceContext = serviceContext;
-	}
-
-	public void setSMTPAccount(SMTPAccount smtpAccount) {
-		this.smtpAccount = smtpAccount;
 	}
 
 	public void setSubject(String subject) {
@@ -911,7 +911,8 @@ public class SubscriptionSender implements Serializable {
 		if (fileAttachments != null) {
 			for (FileAttachment fileAttachment : fileAttachments) {
 				mailMessage.addFileAttachment(
-					fileAttachment.getFile(), fileAttachment.getFileName());
+					fileAttachment.getFileName(),
+					fileAttachment.getInputStream());
 			}
 		}
 

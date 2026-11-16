@@ -6,7 +6,7 @@
 import ClayBreadcrumb from '@clayui/breadcrumb';
 import ClayCard from '@clayui/card';
 import ClayTabs from '@clayui/tabs';
-import {openModal, openToast} from 'frontend-js-web';
+import {openModal, openToast} from 'frontend-js-components-web';
 import React, {
 	Dispatch,
 	SetStateAction,
@@ -274,9 +274,7 @@ export default function EditAPISchema({
 						mainObjectDefinitionERC:
 							localUIData.mainObjectDefinitionERC,
 					},
-					method: localUIData.schemaProperties.length
-						? 'PATCH'
-						: 'PUT',
+					method: 'PATCH',
 					onError: (error: string) => {
 						openToast({
 							message: error,

@@ -13,6 +13,7 @@ import com.liferay.portal.kernel.model.GroupedModel;
 import com.liferay.portal.kernel.model.LocalizedModel;
 import com.liferay.portal.kernel.model.MVCCModel;
 import com.liferay.portal.kernel.model.ShardedModel;
+import com.liferay.portal.kernel.model.StagedAuditedModel;
 import com.liferay.portal.kernel.model.change.tracking.CTModel;
 
 import java.util.Date;
@@ -36,7 +37,7 @@ import org.osgi.annotation.versioning.ProviderType;
 public interface KaleoDefinitionModel
 	extends BaseModel<KaleoDefinition>, CTModel<KaleoDefinition>,
 			ExternalReferenceCodeModel, GroupedModel, LocalizedModel, MVCCModel,
-			ShardedModel {
+			ShardedModel, StagedAuditedModel {
 
 	/*
 	 * NOTE FOR DEVELOPERS:
@@ -91,6 +92,23 @@ public interface KaleoDefinitionModel
 	 */
 	@Override
 	public void setCtCollectionId(long ctCollectionId);
+
+	/**
+	 * Returns the uuid of this kaleo definition.
+	 *
+	 * @return the uuid of this kaleo definition
+	 */
+	@AutoEscape
+	@Override
+	public String getUuid();
+
+	/**
+	 * Sets the uuid of this kaleo definition.
+	 *
+	 * @param uuid the uuid of this kaleo definition
+	 */
+	@Override
+	public void setUuid(String uuid);
 
 	/**
 	 * Returns the external reference code of this kaleo definition.
@@ -430,6 +448,41 @@ public interface KaleoDefinitionModel
 	 */
 	public void setActive(boolean active);
 
+	/**
+	 * Returns the system of this kaleo definition.
+	 *
+	 * @return the system of this kaleo definition
+	 */
+	public boolean getSystem();
+
+	/**
+	 * Returns <code>true</code> if this kaleo definition is system.
+	 *
+	 * @return <code>true</code> if this kaleo definition is system; <code>false</code> otherwise
+	 */
+	public boolean isSystem();
+
+	/**
+	 * Sets whether this kaleo definition is system.
+	 *
+	 * @param system the system of this kaleo definition
+	 */
+	public void setSystem(boolean system);
+
+	/**
+	 * Returns the status of this kaleo definition.
+	 *
+	 * @return the status of this kaleo definition
+	 */
+	public int getStatus();
+
+	/**
+	 * Sets the status of this kaleo definition.
+	 *
+	 * @param status the status of this kaleo definition
+	 */
+	public void setStatus(int status);
+
 	@Override
 	public String[] getAvailableLanguageIds();
 
@@ -451,3 +504,4 @@ public interface KaleoDefinitionModel
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-735525821

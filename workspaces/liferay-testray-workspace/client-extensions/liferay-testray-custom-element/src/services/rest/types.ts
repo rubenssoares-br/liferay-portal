@@ -11,7 +11,7 @@ export type ActionPermissionProperties = {
 	method: string;
 };
 
-type Facets = {
+export type Facets = {
 	facetCriteria: string;
 	facetValues: {
 		numberOfOccurrences: number;
@@ -108,10 +108,36 @@ export type UserRole = {
 	userId: number;
 };
 
+export type TestrayJiraProject = {
+	actions?: ObjectActionsItems;
+	externalReferenceCode: string;
+	id: number;
+	name: string;
+	projectToJiraProjects?: TestrayProject;
+	r_projectToJiraProjects_c_projectId: number;
+	r_routineToJiraProject_c_routineId: number;
+	routineToJiraProject?: TestrayRoutine;
+};
+
+export type TestrayJiraIssue = {
+	actions?: ObjectActionsItems;
+	description: string;
+	epicERC: string;
+	externalReferenceCode: string;
+	id: number;
+	initiativeERC: string;
+	issueType: PickList;
+	parentIssueERC: string;
+	projectType: PickList;
+	storyERC: string;
+	title: string;
+};
+
 export type TestrayBuild = {
 	actions: ObjectActionsItems;
 	archived?: boolean;
 	buildToTasks: TestrayTask[];
+	cpuUseTime: string;
 	creator: {
 		name: string;
 	};
@@ -124,6 +150,7 @@ export type TestrayBuild = {
 	id: number;
 	importStatus: PickList;
 	name: string;
+	playwrightReports: string;
 	productVersion?: TestrayProductVersion;
 	project?: TestrayProject;
 	promoted: boolean;
@@ -153,6 +180,7 @@ export type TestrayStatusMetric = {
 	blocked: number;
 	failed: number;
 	inProgress: number;
+	incomplete: number;
 	passed: number;
 	testfix: number;
 	total: number;
@@ -237,6 +265,14 @@ export type TestrayCaseType = {
 	id: number;
 	name: string;
 	status: string;
+};
+
+export type TestrayCaseDetail = {
+	buildToCaseDetail?: TestrayBuild;
+	dueStatus: PickList;
+	id: string;
+	name: string;
+	r_buildToCaseDetail_c_buildId: number;
 };
 
 export type TestrayDyspatchTrigger = {
@@ -335,6 +371,7 @@ export type TestraySubtask = {
 	dateCreated: string;
 	dateModified: string;
 	dueStatus: PickList;
+	error?: string;
 	errors: string;
 	id: number;
 	issues: string;
@@ -479,8 +516,11 @@ export type TestrayRoutine = {
 	actions: ObjectActionsItems;
 	id: number;
 	name: string;
+	parentRoutines: TestrayRoutine[];
+	r_teamToRoutines_c_teamId?: number;
 	routineToBuilds: TestrayBuild[];
 	routineToProjects?: TestrayProject;
+	testrayBuildCPUUseTime?: string;
 	testrayBuildDueDate: string;
 	testrayRoutineId?: number;
 };

@@ -8,16 +8,17 @@ package com.liferay.headless.admin.list.type.client.serdes.v1_0;
 import com.liferay.headless.admin.list.type.client.dto.v1_0.ListTypeEntry;
 import com.liferay.headless.admin.list.type.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Gabriel Albuquerque
@@ -60,6 +61,16 @@ public class ListTypeEntrySerDes {
 			sb.append("\"actions\": ");
 
 			sb.append(_toJSON(listTypeEntry.getActions()));
+		}
+
+		if (listTypeEntry.getCreator() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"creator\": ");
+
+			sb.append(listTypeEntry.getCreator());
 		}
 
 		if (listTypeEntry.getDateCreated() != null) {
@@ -155,6 +166,26 @@ public class ListTypeEntrySerDes {
 			sb.append(_toJSON(listTypeEntry.getName_i18n()));
 		}
 
+		if (listTypeEntry.getStatus() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"status\": ");
+
+			sb.append(String.valueOf(listTypeEntry.getStatus()));
+		}
+
+		if (listTypeEntry.getSystem() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"system\": ");
+
+			sb.append(listTypeEntry.getSystem());
+		}
+
 		if (listTypeEntry.getType() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -196,6 +227,13 @@ public class ListTypeEntrySerDes {
 		}
 		else {
 			map.put("actions", String.valueOf(listTypeEntry.getActions()));
+		}
+
+		if (listTypeEntry.getCreator() == null) {
+			map.put("creator", null);
+		}
+		else {
+			map.put("creator", String.valueOf(listTypeEntry.getCreator()));
 		}
 
 		if (listTypeEntry.getDateCreated() == null) {
@@ -254,6 +292,20 @@ public class ListTypeEntrySerDes {
 			map.put("name_i18n", String.valueOf(listTypeEntry.getName_i18n()));
 		}
 
+		if (listTypeEntry.getStatus() == null) {
+			map.put("status", null);
+		}
+		else {
+			map.put("status", String.valueOf(listTypeEntry.getStatus()));
+		}
+
+		if (listTypeEntry.getSystem() == null) {
+			map.put("system", null);
+		}
+		else {
+			map.put("system", String.valueOf(listTypeEntry.getSystem()));
+		}
+
 		if (listTypeEntry.getType() == null) {
 			map.put("type", null);
 		}
@@ -282,6 +334,9 @@ public class ListTypeEntrySerDes {
 			if (Objects.equals(jsonParserFieldName, "actions")) {
 				return true;
 			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
 				return false;
 			}
@@ -305,6 +360,12 @@ public class ListTypeEntrySerDes {
 			else if (Objects.equals(jsonParserFieldName, "name_i18n")) {
 				return true;
 			}
+			else if (Objects.equals(jsonParserFieldName, "status")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "system")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
 				return false;
 			}
@@ -321,6 +382,12 @@ public class ListTypeEntrySerDes {
 				if (jsonParserFieldValue != null) {
 					listTypeEntry.setActions(
 						(Map<String, Map<String, String>>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "creator")) {
+				if (jsonParserFieldValue != null) {
+					listTypeEntry.setCreator(
+						CreatorSerDes.toDTO((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "dateCreated")) {
@@ -363,6 +430,17 @@ public class ListTypeEntrySerDes {
 				if (jsonParserFieldValue != null) {
 					listTypeEntry.setName_i18n(
 						(Map<String, String>)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "status")) {
+				if (jsonParserFieldValue != null) {
+					listTypeEntry.setStatus(
+						StatusSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "system")) {
+				if (jsonParserFieldValue != null) {
+					listTypeEntry.setSystem((Boolean)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -415,6 +493,16 @@ public class ListTypeEntrySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -447,3 +535,4 @@ public class ListTypeEntrySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-698354987

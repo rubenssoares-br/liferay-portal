@@ -8,13 +8,14 @@ package com.liferay.headless.portal.instances.client.serdes.v1_0;
 import com.liferay.headless.portal.instances.client.dto.v1_0.Admin;
 import com.liferay.headless.portal.instances.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alberto Chaparro
@@ -86,6 +87,48 @@ public class AdminSerDes {
 			sb.append("\"");
 		}
 
+		if (admin.getMiddleName() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"middleName\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(admin.getMiddleName()));
+
+			sb.append("\"");
+		}
+
+		if (admin.getPassword() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"password\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(admin.getPassword()));
+
+			sb.append("\"");
+		}
+
+		if (admin.getScreenName() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"screenName\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(admin.getScreenName()));
+
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
@@ -125,6 +168,27 @@ public class AdminSerDes {
 			map.put("givenName", String.valueOf(admin.getGivenName()));
 		}
 
+		if (admin.getMiddleName() == null) {
+			map.put("middleName", null);
+		}
+		else {
+			map.put("middleName", String.valueOf(admin.getMiddleName()));
+		}
+
+		if (admin.getPassword() == null) {
+			map.put("password", null);
+		}
+		else {
+			map.put("password", String.valueOf(admin.getPassword()));
+		}
+
+		if (admin.getScreenName() == null) {
+			map.put("screenName", null);
+		}
+		else {
+			map.put("screenName", String.valueOf(admin.getScreenName()));
+		}
+
 		return map;
 	}
 
@@ -151,6 +215,15 @@ public class AdminSerDes {
 			else if (Objects.equals(jsonParserFieldName, "givenName")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "middleName")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "password")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "screenName")) {
+				return false;
+			}
 
 			return false;
 		}
@@ -173,6 +246,21 @@ public class AdminSerDes {
 			else if (Objects.equals(jsonParserFieldName, "givenName")) {
 				if (jsonParserFieldValue != null) {
 					admin.setGivenName((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "middleName")) {
+				if (jsonParserFieldValue != null) {
+					admin.setMiddleName((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "password")) {
+				if (jsonParserFieldValue != null) {
+					admin.setPassword((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "screenName")) {
+				if (jsonParserFieldValue != null) {
+					admin.setScreenName((String)jsonParserFieldValue);
 				}
 			}
 		}
@@ -220,6 +308,16 @@ public class AdminSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -252,3 +350,4 @@ public class AdminSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:810307387

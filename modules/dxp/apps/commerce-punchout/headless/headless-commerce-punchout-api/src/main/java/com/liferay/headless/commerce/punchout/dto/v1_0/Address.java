@@ -11,26 +11,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author Jaclyn Ong
@@ -38,8 +39,10 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @Generated("")
 @GraphQLName("Address")
+@io.swagger.v3.oas.annotations.media.Schema(
+	requiredProperties = {"city", "countryISOCode", "name", "street1"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"city", "countryISOCode", "name", "street1"})
 @XmlRootElement(name = "Address")
 public class Address implements Serializable {
 
@@ -51,7 +54,7 @@ public class Address implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Address.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCity() {
 		if (_citySupplier != null) {
 			city = _citySupplier.get();
@@ -91,7 +94,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _citySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCountry() {
 		if (_countrySupplier != null) {
 			country = _countrySupplier.get();
@@ -132,7 +135,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _countrySupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCountryISOCode() {
 		if (_countryISOCodeSupplier != null) {
 			countryISOCode = _countryISOCodeSupplier.get();
@@ -174,7 +177,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _countryISOCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getDescription() {
 		if (_descriptionSupplier != null) {
 			description = _descriptionSupplier.get();
@@ -215,7 +218,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _descriptionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -254,7 +257,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getLatitude() {
 		if (_latitudeSupplier != null) {
 			latitude = _latitudeSupplier.get();
@@ -295,7 +298,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _latitudeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Double getLongitude() {
 		if (_longitudeSupplier != null) {
 			longitude = _longitudeSupplier.get();
@@ -336,7 +339,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<Double> _longitudeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -376,7 +379,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getPhoneNumber() {
 		if (_phoneNumberSupplier != null) {
 			phoneNumber = _phoneNumberSupplier.get();
@@ -417,7 +420,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _phoneNumberSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getRegion() {
 		if (_regionSupplier != null) {
 			region = _regionSupplier.get();
@@ -458,7 +461,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _regionSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getRegionISOCode() {
 		if (_regionISOCodeSupplier != null) {
 			regionISOCode = _regionISOCodeSupplier.get();
@@ -499,7 +502,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _regionISOCodeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getStreet1() {
 		if (_street1Supplier != null) {
 			street1 = _street1Supplier.get();
@@ -541,7 +544,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _street1Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getStreet2() {
 		if (_street2Supplier != null) {
 			street2 = _street2Supplier.get();
@@ -582,7 +585,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _street2Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getStreet3() {
 		if (_street3Supplier != null) {
 			street3 = _street3Supplier.get();
@@ -623,7 +626,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _street3Supplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -662,7 +665,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _typeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Integer getTypeId() {
 		if (_typeIdSupplier != null) {
 			typeId = _typeIdSupplier.get();
@@ -703,7 +706,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _typeIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getVatNumber() {
 		if (_vatNumberSupplier != null) {
 			vatNumber = _vatNumberSupplier.get();
@@ -744,7 +747,7 @@ public class Address implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _vatNumberSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getZip() {
 		if (_zipSupplier != null) {
 			zip = _zipSupplier.get();
@@ -1087,8 +1090,8 @@ public class Address implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.punchout.dto.v1_0.Address",
 		name = "x-class-name"
 	)
@@ -1175,6 +1178,27 @@ public class Address implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1183,3 +1207,4 @@ public class Address implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:21000910

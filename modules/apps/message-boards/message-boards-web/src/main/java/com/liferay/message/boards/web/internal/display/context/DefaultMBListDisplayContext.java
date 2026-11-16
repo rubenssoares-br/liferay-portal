@@ -32,14 +32,14 @@ import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author Roberto Díaz
@@ -83,6 +83,15 @@ public class DefaultMBListDisplayContext implements MBListDisplayContext {
 			portalPreferences.getValue(
 				MBPortletKeys.MESSAGE_BOARDS, "categoryEntriesDelta"),
 			SearchContainer.DEFAULT_DELTA);
+	}
+
+	@Override
+	public String getEmptyResultsMessage() {
+		if (isShowSearch()) {
+			return "there-are-no-threads";
+		}
+
+		return "there-are-no-threads-or-categories";
 	}
 
 	@Override
@@ -350,11 +359,7 @@ public class DefaultMBListDisplayContext implements MBListDisplayContext {
 		String entriesNavigation = ParamUtil.getString(
 			_httpServletRequest, "entriesNavigation");
 
-		if (entriesNavigation.equals("recent")) {
-			return true;
-		}
-
-		return false;
+		return entriesNavigation.equals("recent");
 	}
 
 	private boolean _isShowSearch(String mvcRenderCommandName) {

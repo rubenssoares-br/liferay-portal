@@ -30,6 +30,8 @@
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "AuditEvent"
 				}
@@ -38,6 +40,9 @@
 				"properties": {
 					"name": {
 						"type": "string"
+					},
+					"newValue": {
+						"type": "object"
 					},
 					"oldValue": {
 						"type": "object"
@@ -49,11 +54,209 @@
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "AuditFieldChange"
 				}
 			},
+			"Collaborator": {
+				"description": "Represents a collaborator for an entry.",
+				"properties": {
+					"actionIds": {
+						"description": "The collaborator actions for the shared asset.",
+						"items": {
+							"description": "The collaborator actions for the shared asset.",
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"actions": {
+						"additionalProperties": {
+							"description": "Block of actions allowed by the user making the request.",
+							"type": "object"
+						},
+						"description": "Block of actions allowed by the user making the request.",
+						"readOnly": true,
+						"type": "object"
+					},
+					"creator": {
+						"$ref": "#/components/schemas/Creator"
+					},
+					"dateExpired": {
+						"description": "The expiration date to be a collaborator of the asset.",
+						"format": "date-time",
+						"type": "string"
+					},
+					"emailAddress": {
+						"type": "string"
+					},
+					"externalReferenceCode": {
+						"description": "The collaborator external reference code.",
+						"readOnly": true,
+						"type": "string"
+					},
+					"id": {
+						"description": "The collaborator ID.",
+						"format": "int64",
+						"type": "integer"
+					},
+					"name": {
+						"description": "The collaborator name.",
+						"readOnly": true,
+						"type": "string"
+					},
+					"portrait": {
+						"description": "The collaborator portrait.",
+						"readOnly": true,
+						"type": "string"
+					},
+					"share": {
+						"description": "If the collaborator can share or not the asset.",
+						"type": "boolean"
+					},
+					"type": {
+						"description": "The collaborator type.",
+						"example": "User",
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.headless.object.dto.v1_0.Collaborator",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"required": [
+					"actionIds",
+					"type"
+				],
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "Collaborator"
+				}
+			},
+			"CollaboratorBrief": {
+				"description": "Brief of the collaborator record for the user making the request, present only when this asset is shared with them.",
+				"properties": {
+					"actionIds": {
+						"description": "The sharing actions granted to the user making the request (e.g. VIEW, UPDATE).",
+						"items": {
+							"description": "The sharing actions granted to the user making the request (e.g. VIEW, UPDATE).",
+							"type": "string"
+						},
+						"readOnly": true,
+						"type": "array"
+					},
+					"dateExpired": {
+						"description": "The date when the sharing access expires, or null if it never expires.",
+						"format": "date-time",
+						"readOnly": true,
+						"type": "string"
+					},
+					"share": {
+						"description": "Whether the user making the request can reshare this asset with others.",
+						"readOnly": true,
+						"type": "boolean"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.CollaboratorBrief",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "CollaboratorBrief"
+				}
+			},
+			"Comment": {
+				"description": "Represents a comment. See [Comment](https://www.schema.org/Comment) for more details.",
+				"properties": {
+					"actions": {
+						"additionalProperties": {
+							"additionalProperties": {
+								"description": "Block of actions allowed by the user making the request.",
+								"type": "string"
+							},
+							"description": "Block of actions allowed by the user making the request.",
+							"type": "object"
+						},
+						"description": "Block of actions allowed by the user making the request.",
+						"readOnly": true,
+						"type": "object"
+					},
+					"creator": {
+						"$ref": "#/components/schemas/Creator"
+					},
+					"dateCreated": {
+						"description": "The comment's creation date.",
+						"format": "date-time",
+						"readOnly": true,
+						"type": "string"
+					},
+					"dateModified": {
+						"description": "The comment's latest modification date.",
+						"format": "date-time",
+						"readOnly": true,
+						"type": "string"
+					},
+					"externalReferenceCode": {
+						"description": "The comment's external reference code.",
+						"type": "string"
+					},
+					"id": {
+						"description": "The comment's ID.",
+						"format": "int64",
+						"readOnly": true,
+						"type": "integer"
+					},
+					"numberOfComments": {
+						"description": "The number of child comments on this comment.",
+						"format": "int32",
+						"readOnly": true,
+						"type": "integer"
+					},
+					"parentCommentExternalReferenceCode": {
+						"description": "The parent comment's external reference code.",
+						"type": "string"
+					},
+					"parentCommentId": {
+						"description": "The ID of the comment's parent, if it exists.",
+						"format": "int64",
+						"type": "integer"
+					},
+					"text": {
+						"description": "The comment's text content.",
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.headless.delivery.dto.v1_0.Comment",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+					"creatorId": {
+						"type": "integer"
+					},
+					"dateCreated": {
+						"type": "date_time"
+					},
+					"dateModified": {
+						"type": "date_time"
+					}
+				},
+				"xml": {
+					"name": "Comment"
+				}
+			},
 			"Creator": {
+				"description": "Represents the user account of the content's creator/author. Properties follow the [creator](https://schema.org/creator) specification.",
 				"properties": {
 					"additionalName": {
 						"description": "The author's additional name (e.g., middle name).",
@@ -115,6 +318,8 @@
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "Creator"
 				}
@@ -131,7 +336,9 @@
 						"type": "array"
 					}
 				},
-				"type": "object"
+				"type": "object",
+				"x-filterable": {
+				}
 			},
 			"FacetValue": {
 				"properties": {
@@ -143,9 +350,24 @@
 						"type": "string"
 					}
 				},
-				"type": "object"
+				"type": "object",
+				"x-filterable": {
+				}
 			},
-			"Object3": {
+			"MultipartBody": {
+				"properties": {
+					"values": {
+						"additionalProperties": {
+							"type": "string"
+						},
+						"type": "object"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				}
+			},
+			"Object8": {
 				"properties": {
 					"actions": {
 						"additionalProperties": {
@@ -183,6 +405,23 @@
 						"readOnly": true,
 						"type": "string"
 					},
+					"defaultLanguageId": {
+						"type": "string"
+					},
+					"displayDate": {
+						"format": "date-time",
+						"readOnly": false,
+						"type": "string",
+						"x-parent-map": "properties",
+						"x-timeStorage": "convertToUTC"
+					},
+					"expirationDate": {
+						"format": "date-time",
+						"readOnly": false,
+						"type": "string",
+						"x-parent-map": "properties",
+						"x-timeStorage": "convertToUTC"
+					},
 					"externalReferenceCode": {
 						"readOnly": false,
 						"type": "string",
@@ -192,6 +431,18 @@
 						"readOnly": false,
 						"type": "string",
 						"x-parent-map": "properties"
+					},
+					"friendlyUrlPath": {
+						"description": "A relative URL to the page's rendered content.",
+						"type": "string"
+					},
+					"friendlyUrlPath_i18n": {
+						"additionalProperties": {
+							"description": "The localized relative URLs to the page's rendered content.",
+							"type": "string"
+						},
+						"description": "The localized relative URLs to the page's rendered content.",
+						"type": "object"
 					},
 					"id": {
 						"format": "int64",
@@ -208,19 +459,50 @@
 						"type": "array",
 						"x-batch-unsupported-formats": "CSV"
 					},
+					"modifiedBy": {
+						"$ref": "#/components/schemas/Creator"
+					},
+					"objectEntryFolderExternalReferenceCode": {
+						"type": "string"
+					},
+					"objectEntryFolderId": {
+						"format": "int64",
+						"type": "integer"
+					},
 					"permissions": {
 						"items": {
 							"$ref": "#/components/schemas/Permission"
 						},
 						"type": "array"
 					},
+					"removedBy": {
+						"$ref": "#/components/schemas/Creator"
+					},
+					"removedDate": {
+						"format": "date-time",
+						"readOnly": true,
+						"type": "string"
+					},
+					"reviewDate": {
+						"format": "date-time",
+						"readOnly": false,
+						"type": "string",
+						"x-parent-map": "properties",
+						"x-timeStorage": "convertToUTC"
+					},
+					"scopeId": {
+						"format": "int64",
+						"readOnly": true,
+						"type": "integer"
+					},
 					"scopeKey": {
 						"readOnly": true,
 						"type": "string"
 					},
 					"status": {
+						"format": "int32",
 						"readOnly": true,
-						"type": "string",
+						"type": "integer",
 						"x-batch-unsupported-formats": "CSV",
 						"x-parent-map": "properties"
 					},
@@ -229,7 +511,6 @@
 						"items": {
 							"$ref": "#/components/schemas/TaxonomyCategoryBrief"
 						},
-						"readOnly": true,
 						"type": "array",
 						"x-batch-unsupported-formats": "CSV"
 					},
@@ -248,17 +529,99 @@
 						"type": "string"
 					},
 					"x-schema-name": {
-						"default": "Object3",
+						"default": "Object8",
 						"readOnly": true,
 						"type": "string"
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+					"creator": {
+						"type": "string"
+					},
+					"creatorId": {
+						"type": "integer"
+					},
+					"dateCreated": {
+						"type": "date_time"
+					},
+					"dateModified": {
+						"type": "date_time"
+					},
+					"externalReferenceCode": {
+						"type": "string"
+					},
+					"field": {
+						"type": "string"
+					},
+					"folderId": {
+						"type": "integer"
+					},
+					"id": {
+						"type": "id"
+					},
+					"keywords": {
+						"items": "string",
+						"type": "array"
+					},
+					"status": {
+						"type": "integer"
+					},
+					"taxonomyCategoryIds": {
+						"items": "integer",
+						"type": "array"
+					},
+					"title": {
+						"type": "string"
+					},
+					"userId": {
+						"type": "integer"
+					},
+					"version": {
+						"type": "integer"
+					}
+				},
 				"xml": {
 					"name": "ObjectEntry"
 				}
 			},
-			"PageObject3": {
+			"ObjectDefinitionBrief": {
+				"properties": {
+					"classNameId": {
+						"description": "The object definition's class name ID.",
+						"format": "int64",
+						"readOnly": true,
+						"type": "integer"
+					},
+					"externalReferenceCode": {
+						"description": "The object definition's external reference code.",
+						"readOnly": true,
+						"type": "string"
+					},
+					"label": {
+						"description": "The object definition's label.",
+						"readOnly": true,
+						"type": "string"
+					},
+					"objectFolderExternalReferenceCode": {
+						"description": "The object folder's external reference code.",
+						"readOnly": true,
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.ObjectDefinitionBrief",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "ObjectDefinitionBrief"
+				}
+			},
+			"PageCollaborator": {
 				"properties": {
 					"actions": {
 						"additionalProperties": {
@@ -277,7 +640,95 @@
 					},
 					"items": {
 						"items": {
-							"$ref": "#/components/schemas/Object3"
+							"$ref": "#/components/schemas/Collaborator"
+						},
+						"type": "array"
+					},
+					"lastPage": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"page": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"pageSize": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"totalCount": {
+						"format": "int64",
+						"type": "integer"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				}
+			},
+			"PageComment": {
+				"properties": {
+					"actions": {
+						"additionalProperties": {
+							"additionalProperties": {
+								"type": "string"
+							},
+							"type": "object"
+						},
+						"type": "object"
+					},
+					"facets": {
+						"items": {
+							"$ref": "#/components/schemas/Facet"
+						},
+						"type": "array"
+					},
+					"items": {
+						"items": {
+							"$ref": "#/components/schemas/Comment"
+						},
+						"type": "array"
+					},
+					"lastPage": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"page": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"pageSize": {
+						"format": "int64",
+						"type": "integer"
+					},
+					"totalCount": {
+						"format": "int64",
+						"type": "integer"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				}
+			},
+			"PageObject8": {
+				"properties": {
+					"actions": {
+						"additionalProperties": {
+							"additionalProperties": {
+								"type": "string"
+							},
+							"type": "object"
+						},
+						"type": "object"
+					},
+					"facets": {
+						"items": {
+							"$ref": "#/components/schemas/Facet"
+						},
+						"type": "array"
+					},
+					"items": {
+						"items": {
+							"$ref": "#/components/schemas/Object8"
 						},
 						"type": "array"
 					},
@@ -298,12 +749,14 @@
 						"type": "integer"
 					},
 					"x-schema-name": {
-						"default": "PageObject3",
+						"default": "PageObject8",
 						"readOnly": true,
 						"type": "string"
 					}
 				},
-				"type": "object"
+				"type": "object",
+				"x-filterable": {
+				}
 			},
 			"PagePermission": {
 				"properties": {
@@ -345,7 +798,49 @@
 						"type": "integer"
 					}
 				},
-				"type": "object"
+				"type": "object",
+				"x-filterable": {
+				}
+			},
+			"ParentTaxonomyCategory": {
+				"description": "The category's parent category.",
+				"properties": {
+					"externalReferenceCode": {
+						"description": "The parent taxonomy category's external reference code.",
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.ParentTaxonomyCategory",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "ParentTaxonomyCategory"
+				}
+			},
+			"ParentTaxonomyVocabulary": {
+				"description": "The parent category's `TaxonomyVocabulary`.",
+				"properties": {
+					"externalReferenceCode": {
+						"description": "The parent category's `TaxonomyVocabulary` external reference code.",
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.ParentTaxonomyVocabulary",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "ParentTaxonomyVocabulary"
+				}
 			},
 			"Permission": {
 				"properties": {
@@ -355,13 +850,81 @@
 						},
 						"type": "array"
 					},
+					"roleExternalReferenceCode": {
+						"type": "string"
+					},
 					"roleName": {
+						"type": "string"
+					},
+					"roleType": {
 						"type": "string"
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "Permission"
+				}
+			},
+			"PostObjectEntryTranslationRequestBody": {
+				"properties": {
+					"file": {
+						"description": "File",
+						"format": "binary",
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				}
+			},
+			"PostScopeScopeKeyByExternalReferenceCodeTranslationRequestBody": {
+				"properties": {
+					"file": {
+						"description": "File",
+						"format": "binary",
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				}
+			},
+			"Scope": {
+				"properties": {
+					"externalReferenceCode": {
+						"description": "The scope's external reference code.",
+						"type": "string"
+					},
+					"key": {
+						"description": "The scope's identifier.",
+						"type": "string"
+					},
+					"label": {
+						"description": "The scope's name.",
+						"type": "string"
+					},
+					"type": {
+						"description": "The scope's type.",
+						"enum": [
+							"AssetLibrary",
+							"Site",
+							"Space"
+						],
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.portal.vulcan.scope.Scope",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "Scope"
 				}
 			},
 			"Status": {
@@ -386,6 +949,8 @@
 					"code"
 				],
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "Status"
 				}
@@ -397,6 +962,19 @@
 						"description": "Optional field with the embedded taxonomy category, can be embedded with nestedFields",
 						"readOnly": true,
 						"type": "object"
+					},
+					"parentTaxonomyCategory": {
+						"$ref": "#/components/schemas/ParentTaxonomyCategory"
+					},
+					"parentTaxonomyVocabulary": {
+						"$ref": "#/components/schemas/ParentTaxonomyVocabulary"
+					},
+					"scope": {
+						"$ref": "#/components/schemas/Scope"
+					},
+					"taxonomyCategoryExternalReferenceCode": {
+						"description": "The category's external reference code.",
+						"type": "string"
 					},
 					"taxonomyCategoryId": {
 						"description": "The category's ID. This can be used to retrieve more information in the `TaxonomyCategory` API.",
@@ -425,12 +1003,43 @@
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "TaxonomyCategoryBrief"
 				}
 			},
+			"TranslationResponse": {
+				"properties": {
+					"failureMessagesJSON": {
+						"items": {
+							"type": "string"
+						},
+						"readOnly": true,
+						"type": "array"
+					},
+					"successMessages": {
+						"items": {
+							"type": "string"
+						},
+						"readOnly": true,
+						"type": "array"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.TranslationResponse",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "TranslationResponse"
+				}
+			},
 			"UserGroupBrief": {
-				"description": "A list of userGroups information.",
+				"description": "The author's user groups information.",
 				"properties": {
 					"id": {
 						"description": "The ID of the user group.",
@@ -450,8 +1059,99 @@
 					}
 				},
 				"type": "object",
+				"x-filterable": {
+				},
 				"xml": {
 					"name": "UserGroupBrief"
+				}
+			},
+			"ValidationError": {
+				"properties": {
+					"errorMessage": {
+						"type": "string"
+					},
+					"objectFieldName": {
+						"type": "string"
+					},
+					"objectValidationRuleExternalReferenceCode": {
+						"type": "string"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.ValidationError",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "ValidationError"
+				}
+			},
+			"ValidationRequest": {
+				"properties": {
+					"objectValidationRuleExternalReferenceCodes": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"values": {
+						"$ref": "#/components/schemas/Object8"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.ValidationRequest",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "ValidationRequest"
+				}
+			},
+			"ValidationResponse": {
+				"properties": {
+					"validationErrors": {
+						"items": {
+							"$ref": "#/components/schemas/ValidationError"
+						},
+						"type": "array"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.ValidationResponse",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "ValidationResponse"
+				}
+			},
+			"Version": {
+				"properties": {
+					"number": {
+						"format": "int32",
+						"readOnly": true,
+						"type": "integer"
+					},
+					"x-class-name": {
+						"default": "com.liferay.object.rest.dto.v1_0.Version",
+						"readOnly": true,
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"x-filterable": {
+				},
+				"xml": {
+					"name": "Version"
 				}
 			}
 		}
@@ -471,6 +1171,7 @@
 						"name": "type",
 						"required": true,
 						"schema": {
+							"pattern": "json|yaml",
 							"type": "string"
 						}
 					}
@@ -518,12 +1219,1388 @@
 						"in": "query",
 						"name": "filter",
 						"schema": {
+							"type": "string",
+							"x-filterable": {
+								"creator": {
+									"type": "string"
+								},
+								"creatorId": {
+									"type": "integer"
+								},
+								"dateCreated": {
+									"type": "date_time"
+								},
+								"dateModified": {
+									"type": "date_time"
+								},
+								"externalReferenceCode": {
+									"type": "string"
+								},
+								"field": {
+									"type": "string"
+								},
+								"folderId": {
+									"type": "integer"
+								},
+								"id": {
+									"type": "id"
+								},
+								"keywords": {
+									"items": "string",
+									"type": "array"
+								},
+								"status": {
+									"type": "integer"
+								},
+								"taxonomyCategoryIds": {
+									"items": "integer",
+									"type": "array"
+								},
+								"title": {
+									"type": "string"
+								},
+								"userId": {
+									"type": "integer"
+								},
+								"version": {
+									"type": "integer"
+								}
+							}
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
 							"type": "string"
 						}
 					},
 					{
 						"in": "query",
-						"name": "flatten",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "search",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "sort",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageObject8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageObject8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"post": {
+				"operationId": "postScopeScopeKey",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Object8"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Object8"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/approved": {
+			"get": {
+				"operationId": "getScopeScopeKeyApprovedPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "aggregationTerms",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "filter",
+						"schema": {
+							"type": "string",
+							"x-filterable": {
+								"creator": {
+									"type": "string"
+								},
+								"creatorId": {
+									"type": "integer"
+								},
+								"dateCreated": {
+									"type": "date_time"
+								},
+								"dateModified": {
+									"type": "date_time"
+								},
+								"externalReferenceCode": {
+									"type": "string"
+								},
+								"field": {
+									"type": "string"
+								},
+								"folderId": {
+									"type": "integer"
+								},
+								"id": {
+									"type": "id"
+								},
+								"keywords": {
+									"items": "string",
+									"type": "array"
+								},
+								"status": {
+									"type": "integer"
+								},
+								"taxonomyCategoryIds": {
+									"items": "integer",
+									"type": "array"
+								},
+								"title": {
+									"type": "string"
+								},
+								"userId": {
+									"type": "integer"
+								},
+								"version": {
+									"type": "integer"
+								}
+							}
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "search",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "sort",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageObject8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageObject8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/approved/by-external-reference-code/{externalReferenceCode}": {
+			"get": {
+				"operationId": "getScopeScopeKeyApprovedByExternalReferenceCode",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}": {
+			"delete": {
+				"operationId": "deleteScopeScopeKeyByExternalReferenceCode",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCode",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"patch": {
+				"operationId": "patchScopeScopeKeyByExternalReferenceCode",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Object8"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Object8"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"put": {
+				"operationId": "putScopeScopeKeyByExternalReferenceCode",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Object8"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Object8"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/by-version/{version}": {
+			"delete": {
+				"operationId": "deleteScopeScopeKeyByExternalReferenceCodeByVersion",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "version",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeByVersion",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "version",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/by-version/{version}/copy": {
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeByVersionCopy",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "version",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/by-version/{version}/expire": {
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeByVersionExpire",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "version",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/by-version/{version}/restore": {
+			"put": {
+				"operationId": "putScopeScopeKeyByExternalReferenceCodeByVersionRestore",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "version",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/collaborators": {
+			"get": {
+				"description": "Retrieves the collaborators of an object entry.",
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeCollaboratorsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"post": {
+				"description": "Add or update all the collaborators received in the request. Delete existing collaborators that are not included in the request. Send a notification for the new collaborators and those whose permissions are different.",
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeCollaboratorsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"items": {
+									"$ref": "#/components/schemas/Collaborator"
+								},
+								"type": "array"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"items": {
+									"$ref": "#/components/schemas/Collaborator"
+								},
+								"type": "array"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/collaborators/by-email-address/{emailAddress}": {
+			"delete": {
+				"description": "Deletes the collaborator for an object entry and returns a 204 if the operation succeeds.",
+				"operationId": "deleteScopeScopeKeyByExternalReferenceCodeCollaboratorByEmailAddress",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "emailAddress",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"get": {
+				"description": "Retrieves the collaborator for an object entry.",
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeCollaboratorByEmailAddress",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "emailAddress",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"put": {
+				"description": "Add or update a collaborator received in the request.",
+				"operationId": "putScopeScopeKeyByExternalReferenceCodeCollaboratorByEmailAddress",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "emailAddress",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Collaborator"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Collaborator"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/collaborators/by-type/{type}/{collaboratorId}": {
+			"delete": {
+				"description": "Deletes the collaborator for an object entry and returns a 204 if the operation succeeds.",
+				"operationId": "deleteScopeScopeKeyByExternalReferenceCodeCollaboratorByTypeCollaborator",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "type",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "collaboratorId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"get": {
+				"description": "Retrieves the collaborator for an object entry.",
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeCollaboratorByTypeCollaborator",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "type",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "collaboratorId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"put": {
+				"description": "Add or update a collaborator received in the request.",
+				"operationId": "putScopeScopeKeyByExternalReferenceCodeCollaboratorByTypeCollaborator",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "type",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "collaboratorId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Collaborator"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Collaborator"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/comments": {
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeCommentsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "aggregationTerms",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
 						"schema": {
 							"type": "string"
 						}
@@ -576,12 +2653,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/PageObject3"
+									"$ref": "#/components/schemas/PageComment"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/PageObject3"
+									"$ref": "#/components/schemas/PageComment"
 								}
 							}
 						},
@@ -589,11 +2666,792 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Comment"
 				]
 			},
 			"post": {
-				"operationId": "postScopeScopeKey",
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeComment",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Comment"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Comment"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Comment"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/comments/{commentExternalReferenceCode}": {
+			"delete": {
+				"operationId": "deleteScopeScopeKeyByExternalReferenceCodeComment",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "commentExternalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Comment"
+				]
+			},
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeComment",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "commentExternalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Comment"
+				]
+			},
+			"put": {
+				"operationId": "putScopeScopeKeyByExternalReferenceCodeComment",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "commentExternalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Comment"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Comment"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Comment"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/comments/{commentExternalReferenceCode}/child-comments": {
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeCommentChildCommentsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "commentExternalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "aggregationTerms",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "search",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "sort",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageComment"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageComment"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Comment"
+				]
+			},
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeCommentChildComment",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "commentExternalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Comment"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Comment"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Comment"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Comment"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/expire": {
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeExpire",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/restore": {
+			"put": {
+				"operationId": "putScopeScopeKeyByExternalReferenceCodeRestore",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/subscribe": {
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeSubscribe",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/translations": {
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeTranslation",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The required language ID of the source text (e.g., \"en_US\").",
+						"in": "query",
+						"name": "sourceLanguageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "A required list of language IDs for the target translations (e.g., \"es_ES\", \"fr_FR\").",
+						"in": "query",
+						"name": "targetLanguageIds",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The XLIFF specification version to export.",
+						"in": "query",
+						"name": "version",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/zip": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeTranslation",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"$ref": "#/components/schemas/PostScopeScopeKeyByExternalReferenceCodeTranslationRequestBody"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TranslationResponse"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/TranslationResponse"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/translations/{languageId}": {
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeTranslationLanguage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The required language ID of the source text (e.g., \"en_US\").",
+						"in": "path",
+						"name": "languageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The required language ID for the target translation (e.g., \"en_US\").",
+						"in": "query",
+						"name": "targetLanguageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/x-xliff+xml": {
+							},
+							"application/xliff+xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/unsubscribe": {
+			"post": {
+				"operationId": "postScopeScopeKeyByExternalReferenceCodeUnsubscribe",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}/versions": {
+			"get": {
+				"operationId": "getScopeScopeKeyByExternalReferenceCodeVersionsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "scopeKey",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "externalReferenceCode",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "sort",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageObject8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageObject8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/scopes/{scopeKey}/validate": {
+			"post": {
+				"operationId": "postScopeScopeKeyValidate",
 				"parameters": [
 					{
 						"in": "path",
@@ -608,12 +3466,12 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/ValidationRequest"
 							}
 						},
 						"application/xml": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/ValidationRequest"
 							}
 						}
 					}
@@ -623,12 +3481,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/ValidationResponse"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/ValidationResponse"
 								}
 							}
 						},
@@ -636,25 +3494,17 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
 				]
 			}
 		},
-		"/scopes/{scopeKey}/by-external-reference-code/{externalReferenceCode}": {
+		"/{object8Id}": {
 			"delete": {
-				"operationId": "deleteScopeScopeKeyByExternalReferenceCode",
+				"operationId": "deleteObject8",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "scopeKey",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "path",
-						"name": "externalReferenceCode",
+						"name": "object8Id",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -673,23 +3523,15 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
 				]
 			},
 			"get": {
-				"operationId": "getScopeScopeKeyByExternalReferenceCode",
+				"operationId": "getObject8",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "scopeKey",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "path",
-						"name": "externalReferenceCode",
+						"name": "object8Id",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -722,12 +3564,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Object8"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Object8"
 								}
 							}
 						},
@@ -735,23 +3577,15 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
 				]
 			},
 			"patch": {
-				"operationId": "patchScopeScopeKeyByExternalReferenceCode",
+				"operationId": "patchObject8",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "scopeKey",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "path",
-						"name": "externalReferenceCode",
+						"name": "object8Id",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -762,12 +3596,12 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/Object8"
 							}
 						},
 						"application/xml": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/Object8"
 							}
 						}
 					}
@@ -777,12 +3611,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Object8"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Object8"
 								}
 							}
 						},
@@ -790,23 +3624,15 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
 				]
 			},
 			"put": {
-				"operationId": "putScopeScopeKeyByExternalReferenceCode",
+				"operationId": "putObject8",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "scopeKey",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "path",
-						"name": "externalReferenceCode",
+						"name": "object8Id",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -817,12 +3643,12 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/Object8"
 							}
 						},
 						"application/xml": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/Object8"
 							}
 						}
 					}
@@ -832,12 +3658,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Object8"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Object8"
 								}
 							}
 						},
@@ -845,17 +3671,323 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
 				]
 			}
 		},
-		"/{object3Id}": {
-			"delete": {
-				"operationId": "deleteObject3",
+		"/{object8Id}/by-object-entry-folder-id/{object8FolderId}/copy": {
+			"post": {
+				"operationId": "postObject8ByObject8FolderCopy",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "object3Id",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "object8FolderId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/{object8Id}/by-object-entry-folder-id/{object8FolderId}/copy-replace": {
+			"post": {
+				"operationId": "postObject8ByObject8FolderCopyReplace",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "object8FolderId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/{object8Id}/by-object-entry-folder-id/{object8FolderId}/move": {
+			"post": {
+				"operationId": "postObject8ByObject8FolderMove",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "object8FolderId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/{object8Id}/by-object-entry-folder-id/{object8FolderId}/move-replace": {
+			"post": {
+				"operationId": "postObject8ByObject8FolderMoveReplace",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "object8FolderId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Object8"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/{object8Id}/collaborators": {
+			"get": {
+				"description": "Retrieves the collaborators of an object entry.",
+				"operationId": "getObject8CollaboratorsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"post": {
+				"description": "Add or update all the collaborators received in the request. Delete existing collaborators that are not included in the request.",
+				"operationId": "postObject8CollaboratorsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"items": {
+									"$ref": "#/components/schemas/Collaborator"
+								},
+								"type": "array"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"items": {
+									"$ref": "#/components/schemas/Collaborator"
+								},
+								"type": "array"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/PageCollaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			}
+		},
+		"/{object8Id}/collaborators/by-email-address/{emailAddress}": {
+			"delete": {
+				"description": "Deletes the collaborator for an object entry and returns a 204 if the operation succeeds.",
+				"operationId": "deleteObject8CollaboratorByEmailAddress",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "emailAddress",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -874,15 +4006,24 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Collaborator"
 				]
 			},
 			"get": {
-				"operationId": "getObject3",
+				"description": "Retrieves the collaborator for an object entry.",
+				"operationId": "getObject8CollaboratorByEmailAddress",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "object3Id",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "emailAddress",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -915,12 +4056,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Collaborator"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Collaborator"
 								}
 							}
 						},
@@ -928,62 +4069,24 @@
 					}
 				},
 				"tags": [
-					"Object3"
-				]
-			},
-			"patch": {
-				"operationId": "patchObject3",
-				"parameters": [
-					{
-						"in": "path",
-						"name": "object3Id",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/Object3"
-							}
-						},
-						"application/xml": {
-							"schema": {
-								"$ref": "#/components/schemas/Object3"
-							}
-						}
-					}
-				},
-				"responses": {
-					"default": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/Object3"
-								}
-							},
-							"application/xml": {
-								"schema": {
-									"$ref": "#/components/schemas/Object3"
-								}
-							}
-						},
-						"description": "default response"
-					}
-				},
-				"tags": [
-					"Object3"
+					"Collaborator"
 				]
 			},
 			"put": {
-				"operationId": "putObject3",
+				"description": "Add or update a collaborator received in the request.",
+				"operationId": "putObject8CollaboratorByEmailAddress",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "object3Id",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "emailAddress",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -994,12 +4097,12 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/Collaborator"
 							}
 						},
 						"application/xml": {
 							"schema": {
-								"$ref": "#/components/schemas/Object3"
+								"$ref": "#/components/schemas/Collaborator"
 							}
 						}
 					}
@@ -1009,12 +4112,12 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Collaborator"
 								}
 							},
 							"application/xml": {
 								"schema": {
-									"$ref": "#/components/schemas/Object3"
+									"$ref": "#/components/schemas/Collaborator"
 								}
 							}
 						},
@@ -1022,17 +4125,246 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Collaborator"
 				]
 			}
 		},
-		"/{object3Id}/permissions": {
-			"get": {
-				"operationId": "getObject3PermissionsPage",
+		"/{object8Id}/collaborators/by-type/{type}/{collaboratorId}": {
+			"delete": {
+				"description": "Deletes the collaborator for an object entry and returns a 204 if the operation succeeds.",
+				"operationId": "deleteObject8CollaboratorByTypeCollaborator",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "object3Id",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "type",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "collaboratorId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							},
+							"application/xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"get": {
+				"description": "Retrieves the collaborator for an object entry.",
+				"operationId": "getObject8CollaboratorByTypeCollaborator",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "type",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "collaboratorId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "nestedFields",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "restrictFields",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			},
+			"put": {
+				"description": "Add or update a collaborator received in the request.",
+				"operationId": "putObject8CollaboratorByTypeCollaborator",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "type",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "collaboratorId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Collaborator"
+							}
+						},
+						"application/xml": {
+							"schema": {
+								"$ref": "#/components/schemas/Collaborator"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/Collaborator"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			}
+		},
+		"/{object8Id}/collaborators/export-batch": {
+			"post": {
+				"operationId": "postObject8CollaboratorsPageExportBatch",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "callbackURL",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "contentType",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "fieldNames",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Collaborator"
+				]
+			}
+		},
+		"/{object8Id}/permissions": {
+			"get": {
+				"operationId": "getObject8PermissionsPage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -1085,15 +4417,15 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
 				]
 			},
 			"put": {
-				"operationId": "putObject3PermissionsPage",
+				"operationId": "putObject8PermissionsPage",
 				"parameters": [
 					{
 						"in": "path",
-						"name": "object3Id",
+						"name": "object8Id",
 						"required": true,
 						"schema": {
 							"type": "string"
@@ -1138,14 +4470,156 @@
 					}
 				},
 				"tags": [
-					"Object3"
+					"Object8"
+				]
+			}
+		},
+		"/{object8Id}/translations": {
+			"get": {
+				"operationId": "getObject8Translation",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The required language ID of the source text (e.g., \"en_US\").",
+						"in": "query",
+						"name": "sourceLanguageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "A required list of language IDs for the target translations (e.g., \"es_ES\", \"fr_FR\").",
+						"in": "query",
+						"name": "targetLanguageIds",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The XLIFF specification version to export.",
+						"in": "query",
+						"name": "version",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/zip": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			},
+			"post": {
+				"operationId": "postObject8Translation",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"$ref": "#/components/schemas/PostObjectEntryTranslationRequestBody"
+							}
+						}
+					}
+				},
+				"responses": {
+					"default": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/TranslationResponse"
+								}
+							},
+							"application/xml": {
+								"schema": {
+									"$ref": "#/components/schemas/TranslationResponse"
+								}
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
+				]
+			}
+		},
+		"/{object8Id}/translations/{languageId}": {
+			"get": {
+				"operationId": "getObject8TranslationLanguage",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "object8Id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The required language ID of the source text (e.g., \"en_US\").",
+						"in": "path",
+						"name": "languageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "The required language ID for the target translation (e.g., \"en_US\").",
+						"in": "query",
+						"name": "targetLanguageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"default": {
+						"content": {
+							"application/x-xliff+xml": {
+							},
+							"application/xliff+xml": {
+							}
+						},
+						"description": "default response"
+					}
+				},
+				"tags": [
+					"Object8"
 				]
 			}
 		}
 	},
 	"servers": [
 		{
-			"url": "http://localhost:8080/o/c/object3s/"
+			"url": "http://localhost:[$SERVER_PORT$]/o/c/object8s/"
 		}
 	]
 }

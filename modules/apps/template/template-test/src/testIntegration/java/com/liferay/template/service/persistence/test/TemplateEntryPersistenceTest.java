@@ -112,11 +112,7 @@ public class TemplateEntryPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		TemplateEntry newTemplateEntry = _persistence.create(pk);
-
-		newTemplateEntry.setMvccVersion(RandomTestUtil.nextLong());
+		TemplateEntry newTemplateEntry = addTemplateEntry();
 
 		newTemplateEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -146,7 +142,9 @@ public class TemplateEntryPersistenceTest {
 
 		newTemplateEntry.setLastPublishDate(RandomTestUtil.nextDate());
 
-		_templateEntries.add(_persistence.update(newTemplateEntry));
+		newTemplateEntry = _persistence.update(newTemplateEntry);
+
+		_templateEntries.add(newTemplateEntry);
 
 		TemplateEntry existingTemplateEntry = _persistence.findByPrimaryKey(
 			newTemplateEntry.getPrimaryKey());
@@ -259,15 +257,6 @@ public class TemplateEntryPersistenceTest {
 		_persistence.countByDDMTemplateId(RandomTestUtil.nextLong());
 
 		_persistence.countByDDMTemplateId(0L);
-	}
-
-	@Test
-	public void testCountByG_IICN() throws Exception {
-		_persistence.countByG_IICN(RandomTestUtil.nextLong(), "");
-
-		_persistence.countByG_IICN(0L, "null");
-
-		_persistence.countByG_IICN(0L, (String)null);
 	}
 
 	@Test
@@ -626,8 +615,6 @@ public class TemplateEntryPersistenceTest {
 
 		TemplateEntry templateEntry = _persistence.create(pk);
 
-		templateEntry.setMvccVersion(RandomTestUtil.nextLong());
-
 		templateEntry.setCtCollectionId(RandomTestUtil.nextLong());
 
 		templateEntry.setUuid(RandomTestUtil.randomString());
@@ -666,3 +653,4 @@ public class TemplateEntryPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1857676873

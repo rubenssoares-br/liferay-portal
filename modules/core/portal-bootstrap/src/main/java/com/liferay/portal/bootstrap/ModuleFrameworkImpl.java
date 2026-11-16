@@ -5,7 +5,9 @@
 
 package com.liferay.portal.bootstrap;
 
+import com.liferay.petra.concurrent.DefaultNoticeableFuture;
 import com.liferay.petra.io.BigEndianCodec;
+import com.liferay.petra.io.unsync.UnsyncBufferedInputStream;
 import com.liferay.petra.process.ProcessExecutor;
 import com.liferay.petra.process.local.LocalProcessExecutor;
 import com.liferay.petra.reflect.ReflectionUtil;
@@ -14,31 +16,31 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.bootstrap.log.BundleStartStopLogger;
 import com.liferay.portal.bootstrap.log.PortalSynchronousLogListener;
-import com.liferay.portal.kernel.concurrent.DefaultNoticeableFuture;
 import com.liferay.portal.kernel.concurrent.SystemExecutorServiceUtil;
 import com.liferay.portal.kernel.exception.PortalException;
-import com.liferay.portal.kernel.io.unsync.UnsyncBufferedInputStream;
 import com.liferay.portal.kernel.jsonwebservice.JSONWebService;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.lpkg.StaticLPKGResolver;
 import com.liferay.portal.kernel.module.framework.ThrowableCollector;
+import com.liferay.portal.kernel.security.fips.FIPSApplicationStateMachineUtil;
+import com.liferay.portal.kernel.security.fips.FIPSModeValidator;
 import com.liferay.portal.kernel.service.BaseLocalService;
 import com.liferay.portal.kernel.service.BaseService;
 import com.liferay.portal.kernel.spring.osgi.OSGiBeanProperties;
 import com.liferay.portal.kernel.util.FileUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.HashMapDictionary;
+import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.ModuleFrameworkPropsValues;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.ReleaseInfo;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.SystemProperties;
 import com.liferay.portal.module.framework.ModuleFramework;
 import com.liferay.portal.spring.context.PortalContextLoaderListener;
-import com.liferay.portal.util.PropsValues;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -205,6 +207,11 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 
 	@Override
 	public void initFramework() throws Exception {
+		if (PropsValues.FIPS_ENABLED) {
+			FIPSApplicationStateMachineUtil.preOperationalSelfTest(
+				FIPSModeValidator::validate);
+		}
+
 		if (_log.isDebugEnabled()) {
 			_log.debug("Initializing the new OSGi framework instance");
 		}
@@ -342,12 +349,16 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 					"OSGi framework event ", frameworkEvent,
 					" triggered after a ", timeout, "ms timeout"));
 		}
-		else if (_log.isInfoEnabled()) {
-			_log.info(frameworkEvent);
+		else if (_log.isDebugEnabled()) {
+			_log.debug(frameworkEvent);
 		}
 
 		if (Boolean.parseBoolean(System.getenv("LIFERAY_CLEAN_OSGI_STATE"))) {
 			_cleanOSGiStateFolder();
+		}
+
+		if (PropsValues.FIPS_ENABLED) {
+			FIPSApplicationStateMachineUtil.powerOff("Portal");
 		}
 	}
 
@@ -800,12 +811,12 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 	private Dictionary<String, Object> _getProperties(
 		OSGiBeanProperties osgiBeanProperties, Object bean, String beanName) {
 
-		HashMapDictionary<String, Object> properties =
-			new HashMapDictionary<>();
+		Dictionary<String, Object> properties = new HashMapDictionary<>();
 
 		if (osgiBeanProperties != null) {
-			properties.putAll(
-				OSGiBeanProperties.Convert.toMap(osgiBeanProperties));
+			properties = HashMapDictionaryBuilder.<String, Object>putAll(
+				OSGiBeanProperties.Convert.toMap(osgiBeanProperties)
+			).build();
 		}
 
 		properties.put(ServicePropsKeys.BEAN_ID, beanName);
@@ -1038,16 +1049,18 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 		dir = dir.getCanonicalFile();
 
 		for (File file : _listConfigs(dir)) {
-			if ((boolean)canTransformURLMethod.invoke(
+			if (!(boolean)canTransformURLMethod.invoke(
 					configurationFileInstaller, file)) {
 
-				try {
-					transformURLMethod.invoke(configurationFileInstaller, file);
-				}
-				catch (InvocationTargetException invocationTargetException) {
-					_log.error(
-						"Unable to install " + file, invocationTargetException);
-				}
+				continue;
+			}
+
+			try {
+				transformURLMethod.invoke(configurationFileInstaller, file);
+			}
+			catch (InvocationTargetException invocationTargetException) {
+				_log.error(
+					"Unable to install " + file, invocationTargetException);
 			}
 		}
 	}
@@ -1068,12 +1081,14 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 			BundleContext bundleContext = _framework.getBundleContext();
 
 			for (Bundle bundle : bundleContext.getBundles()) {
-				if (fragmentHosts.remove(bundle.getSymbolicName())) {
-					refreshBundles.add(bundle);
+				if (!fragmentHosts.remove(bundle.getSymbolicName())) {
+					continue;
+				}
 
-					if (fragmentHosts.isEmpty()) {
-						break;
-					}
+				refreshBundles.add(bundle);
+
+				if (fragmentHosts.isEmpty()) {
+					break;
 				}
 			}
 
@@ -1492,11 +1507,12 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 
 			file = file.getCanonicalFile();
 
-			if (file.exists()) {
-				bundles.addAll(
-					_deployStaticBundlesFromFile(
-						file, overrideStaticFileNames));
+			if (!file.exists()) {
+				continue;
 			}
+
+			bundles.addAll(
+				_deployStaticBundlesFromFile(file, overrideStaticFileNames));
 		}
 
 		Set<String> overrideLPKGFileNames = new HashSet<>();
@@ -1509,9 +1525,11 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 
 				String pathName = StringUtil.toLowerCase(fileName);
 
-				if (pathName.endsWith("jar")) {
-					overrideLPKGFileNames.add(fileName);
+				if (!pathName.endsWith("jar")) {
+					continue;
 				}
+
+				overrideLPKGFileNames.add(fileName);
 			}
 		}
 
@@ -1525,9 +1543,11 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 
 				location = _extractFileName(location);
 
-				if (overrideLPKGFileNames.contains(location)) {
-					bundle.uninstall();
+				if (!overrideLPKGFileNames.contains(location)) {
+					continue;
 				}
+
+				bundle.uninstall();
 			}
 		}
 
@@ -1544,16 +1564,18 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 				continue;
 			}
 
-			if (!_isFragmentBundle(bundle)) {
-				if (Objects.equals(
-						bundle.getSymbolicName(),
-						"com.liferay.portal.file.install.impl")) {
-
-					fileInstallBundle = bundle;
-				}
-
-				bundle.stop();
+			if (_isFragmentBundle(bundle)) {
+				continue;
 			}
+
+			if (Objects.equals(
+					bundle.getSymbolicName(),
+					"com.liferay.portal.file.install.impl")) {
+
+				fileInstallBundle = bundle;
+			}
+
+			bundle.stop();
 		}
 
 		FrameworkStartLevel frameworkStartLevel = _framework.adapt(
@@ -1592,17 +1614,19 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 			List<Future<Void>> futures = new ArrayList<>(bundles.size());
 
 			for (Bundle bundle : bundles) {
-				if (!_isFragmentBundle(bundle) &&
-					(bundle != fileInstallBundle)) {
+				if (_isFragmentBundle(bundle) ||
+					(bundle == fileInstallBundle)) {
 
-					futures.add(
-						executorService.submit(
-							() -> {
-								bundle.start();
-
-								return null;
-							}));
+					continue;
 				}
+
+				futures.add(
+					executorService.submit(
+						() -> {
+							bundle.start();
+
+							return null;
+						}));
 			}
 
 			for (Future<Void> future : futures) {
@@ -1619,11 +1643,13 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 		}
 		else {
 			for (Bundle bundle : bundles) {
-				if (!_isFragmentBundle(bundle) &&
-					(bundle != fileInstallBundle)) {
+				if (_isFragmentBundle(bundle) ||
+					(bundle == fileInstallBundle)) {
 
-					bundle.start();
+					continue;
 				}
+
+				bundle.start();
 			}
 		}
 
@@ -1634,9 +1660,11 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 		Set<Bundle> fragmentBundles = new HashSet<>();
 
 		for (Bundle bundle : installedBundles) {
-			if (_isFragmentBundle(bundle)) {
-				fragmentBundles.add(bundle);
+			if (!_isFragmentBundle(bundle)) {
+				continue;
 			}
+
+			fragmentBundles.add(bundle);
 		}
 
 		frameworkWiring.resolveBundles(fragmentBundles);
@@ -1657,12 +1685,6 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 
 		bundleContext.registerService(
 			ProcessExecutor.class, new LocalProcessExecutor(), null);
-
-		Props props = PropsUtil.getProps();
-
-		bundleContext.registerService(
-			Props.class, props,
-			_getProperties(null, props, Props.class.getName()));
 	}
 
 	private void _startConfigurationBundles(Collection<Bundle> bundles)
@@ -1673,13 +1695,15 @@ public class ModuleFrameworkImpl implements ModuleFramework {
 		while (iterator.hasNext()) {
 			Bundle bundle = iterator.next();
 
-			if (_configurationBundleSymbolicNames.contains(
+			if (!_configurationBundleSymbolicNames.contains(
 					bundle.getSymbolicName())) {
 
-				bundle.start();
-
-				iterator.remove();
+				continue;
 			}
+
+			bundle.start();
+
+			iterator.remove();
 		}
 	}
 

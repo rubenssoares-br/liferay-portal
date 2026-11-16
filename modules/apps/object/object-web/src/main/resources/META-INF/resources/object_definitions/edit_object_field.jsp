@@ -8,6 +8,10 @@
 <%@ include file="/init.jsp" %>
 
 <%
+DecimalFormat decimalFormat = NumericDDMFormFieldUtil.getDecimalFormat(LocaleUtil.getDefault());
+
+DecimalFormatSymbols decimalFormatSymbols = decimalFormat.getDecimalFormatSymbols();
+
 ObjectDefinition objectDefinition = (ObjectDefinition)request.getAttribute(ObjectWebKeys.OBJECT_DEFINITION);
 ObjectDefinitionsFieldsDisplayContext objectDefinitionsFieldsDisplayContext = (ObjectDefinitionsFieldsDisplayContext)request.getAttribute(WebKeys.PORTLET_DISPLAY_CONTEXT);
 ObjectField objectField = (ObjectField)request.getAttribute(ObjectWebKeys.OBJECT_FIELD);
@@ -21,7 +25,13 @@ ObjectField objectField = (ObjectField)request.getAttribute(ObjectWebKeys.OBJECT
 		HashMapBuilder.<String, Object>put(
 			"baseResourceURL", String.valueOf(baseResourceURL)
 		).put(
+			"ckEditor5Config", objectDefinitionsFieldsDisplayContext.getEditorConfig()
+		).put(
+			"countries", objectDefinitionsFieldsDisplayContext.getCountries(objectField)
+		).put(
 			"creationLanguageId", objectDefinition.getDefaultLanguageId()
+		).put(
+			"decimalSeparator", String.valueOf(decimalFormatSymbols.getDecimalSeparator())
 		).put(
 			"filterOperators", LocalizedJSONArrayUtil.getFilterOperatorsJSONObject(locale)
 		).put(
@@ -31,11 +41,19 @@ ObjectField objectField = (ObjectField)request.getAttribute(ObjectWebKeys.OBJECT
 		).put(
 			"forbiddenNames", PropsUtil.getArray(PropsKeys.DL_NAME_BLACKLIST)
 		).put(
+			"googleMapsAPIKey", objectDefinitionsFieldsDisplayContext.getGoogleMapsAPIKey()
+		).put(
+			"hasDepotEntry", objectDefinitionsFieldsDisplayContext.hasDepotEntry()
+		).put(
 			"isDefaultStorageType", objectDefinition.isDefaultStorageType()
 		).put(
 			"isRootDescendantNode", objectDefinition.isRootDescendantNode()
 		).put(
 			"learnResources", LearnMessageUtil.getReactDataJSONObject("object-web")
+		).put(
+			"mapProviderKey", objectDefinitionsFieldsDisplayContext.getMapProviderKey()
+		).put(
+			"metadataObjectFieldNames", ObjectFieldUtil.getMetadataObjectFieldNamesJSONArray()
 		).put(
 			"objectDefinitionExternalReferenceCode", objectDefinition.getExternalReferenceCode()
 		).put(

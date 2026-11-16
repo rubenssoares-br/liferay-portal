@@ -52,6 +52,12 @@ public class LayoutStructureItemUtil {
 		}
 
 		if (Objects.equals(
+				itemType, LayoutDataItemTypeConstants.TYPE_FORM_RELATIONSHIP)) {
+
+			return new FormRelationshipStyledLayoutStructureItem(parentItemId);
+		}
+
+		if (Objects.equals(
 				itemType, LayoutDataItemTypeConstants.TYPE_FORM_STEP)) {
 
 			return new FormStepLayoutStructureItem(parentItemId);
@@ -94,6 +100,10 @@ public class LayoutStructureItemUtil {
 		LayoutStructureItem layoutStructureItem =
 			layoutStructure.getLayoutStructureItem(itemId);
 
+		if (layoutStructureItem == null) {
+			return null;
+		}
+
 		LayoutStructureItem parentLayoutStructureItem =
 			layoutStructure.getLayoutStructureItem(
 				layoutStructureItem.getParentItemId());
@@ -132,12 +142,8 @@ public class LayoutStructureItemUtil {
 		for (String childItemId : layoutStructureItem.getChildrenItemIds()) {
 			childrenItemIds.add(childItemId);
 
-			LayoutStructureItem childLayoutStructureItem =
-				layoutStructure.getLayoutStructureItem(childItemId);
-
 			childrenItemIds.addAll(
-				getChildrenItemIds(
-					childLayoutStructureItem.getItemId(), layoutStructure));
+				getChildrenItemIds(childItemId, layoutStructure));
 		}
 
 		return childrenItemIds;

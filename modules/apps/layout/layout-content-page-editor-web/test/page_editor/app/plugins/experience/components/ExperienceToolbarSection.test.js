@@ -4,7 +4,6 @@
  */
 
 import {
-	fireEvent,
 	render,
 	screen,
 	waitFor,
@@ -25,7 +24,7 @@ import {
 } from '../../../../../../src/main/resources/META-INF/resources/page_editor/plugins/experience/actions';
 import ExperienceToolbarSection from '../../../../../../src/main/resources/META-INF/resources/page_editor/plugins/experience/components/ExperienceToolbarSection';
 
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 
 const MOCK_DELETE_URL = 'delete-experience-test-url';
 const MOCK_DUPLICATE_URL = 'duplicate-experience-test-url';
@@ -66,7 +65,9 @@ const mockState = {
 			hasLockedSegmentsExperiment: false,
 			name: 'Default Experience',
 			priority: -1,
-			segmentsEntryId: 'test-segment-id-00',
+			segmentsEntryERC: 'default-segment-erc',
+			segmentsEntryId: 'test-segment-id-01',
+			segmentsEntryScopeERC: '',
 			segmentsExperienceId: '0',
 			segmentsExperimentStatus: undefined,
 			segmentsExperimentURL: 'https//:default-experience.com',
@@ -76,7 +77,9 @@ const mockState = {
 			languageIds: ['en_US', 'es_ES'],
 			name: 'Experience #1',
 			priority: 3,
-			segmentsEntryId: 'test-segment-id-00',
+			segmentsEntryERC: 'segment-erc-01',
+			segmentsEntryId: 'test-segment-id-01',
+			segmentsEntryScopeERC: '',
 			segmentsExperienceId: 'test-experience-id-01',
 			segmentsExperimentStatus: undefined,
 			segmentsExperimentURL: 'https//:experience-1.com',
@@ -86,7 +89,9 @@ const mockState = {
 			languageIds: ['en_US', 'es_ES', 'ar_SA'],
 			name: 'Experience #2',
 			priority: 1,
-			segmentsEntryId: 'test-segment-id-01',
+			segmentsEntryERC: 'segment-erc-02',
+			segmentsEntryId: 'test-segment-id-02',
+			segmentsEntryScopeERC: 'GLOBAL-SCOPE',
 			segmentsExperienceId: 'test-experience-id-02',
 			segmentsExperimentStatus: undefined,
 			segmentsExperimentURL: 'https//:experience-2.com',
@@ -127,15 +132,26 @@ const mockConfig = {
 	},
 	availableSegmentsEntries: {
 		'test-segment-id-00': {
-			name: 'A segment 0',
+			name: 'Default Segment Name',
+			segmentsEntryERC: 'default-segment-erc',
 			segmentsEntryId: 'test-segment-id-00',
+			segmentsEntryScopeERC: '',
 		},
 		'test-segment-id-01': {
 			name: 'A segment 1',
+			segmentsEntryERC: 'segment-erc-01',
 			segmentsEntryId: 'test-segment-id-01',
+			segmentsEntryScopeERC: '',
+		},
+		'test-segment-id-02': {
+			name: 'A segment 2',
+			segmentsEntryERC: 'segment-erc-02',
+			segmentsEntryId: 'test-segment-id-02',
+			segmentsEntryScopeERC: 'GLOBAL-SCOPE',
 		},
 	},
 	classPK: 'test-classPK',
+	defaultSegmentsEntryId: '0',
 	defaultSegmentsExperienceId: '0',
 	deleteSegmentsExperienceURL: MOCK_DELETE_URL,
 	duplicateSegmentsExperienceURL: MOCK_DUPLICATE_URL,
@@ -179,7 +195,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -212,7 +228,7 @@ describe('ExperienceToolbarSection', () => {
 			'.page-editor__toolbar-experience'
 		);
 
-		userEvent.click(dropDownButtonLabel);
+		await userEvent.click(dropDownButtonLabel);
 
 		await findByRole('list');
 
@@ -255,7 +271,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -297,7 +313,9 @@ describe('ExperienceToolbarSection', () => {
 					hasLockedSegmentsExperiment: true,
 					name: 'Experience #3',
 					priority: 5,
-					segmentsEntryId: 'test-segment-id-00',
+					segmentsEntryERC: 'segment-erc-01',
+					segmentsEntryId: 'test-segment-id-01',
+					segmentsEntryScopeERC: '',
 					segmentsExperienceId: 'test-experience-id-03',
 					segmentsExperimentStatus: {
 						label: 'running',
@@ -324,7 +342,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -334,15 +352,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const lockIcon = icons[2];
 
-		// Hackily work around:
-		//
-		//      "TypeError: Cannot read property '_defaultView' of undefined"
-		//
-		// Caused by: https://github.com/jsdom/jsdom/issues/2499
-
-		document.activeElement.blur = () => {};
-
-		userEvent.click(lockIcon);
+		await userEvent.click(lockIcon);
 
 		getByText('experience-locked');
 		getByText('edit-is-not-allowed-for-this-experience');
@@ -369,7 +379,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -401,7 +411,7 @@ describe('ExperienceToolbarSection', () => {
 		 */
 		expect(bottomExperiencePriorityButton.disabled).toBe(false);
 
-		userEvent.click(bottomExperiencePriorityButton);
+		await userEvent.click(bottomExperiencePriorityButton);
 
 		await waitFor(() => expect(serviceFetch).toHaveBeenCalledTimes(1));
 
@@ -443,7 +453,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -475,7 +485,7 @@ describe('ExperienceToolbarSection', () => {
 		 */
 		expect(bottomExperiencePriorityButton.disabled).toBe(false);
 
-		userEvent.click(topExperiencePriorityButton);
+		await userEvent.click(topExperiencePriorityButton);
 
 		await waitFor(() => expect(serviceFetch).toHaveBeenCalledTimes(1));
 
@@ -531,7 +541,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -547,7 +557,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const newExperienceButton = getByText('new-experience');
 
-		userEvent.click(newExperienceButton);
+		await userEvent.click(newExperienceButton);
 
 		await findByLabelText('name');
 
@@ -559,14 +569,14 @@ describe('ExperienceToolbarSection', () => {
 		const nameInput = getByLabelText('name');
 		const audienceInput = getByLabelText('audience');
 
-		userEvent.type(nameInput, 'New Experience #1');
+		await userEvent.type(nameInput, 'New Experience #1');
 
-		userEvent.selectOptions(audienceInput, 'A segment #1');
+		await userEvent.selectOptions(audienceInput, 'A segment 1');
 
 		// Grab parentElement here to work around jsdom v13 issue.
 		// "TypeError: Cannot read property '_defaultView' of undefined"
 
-		userEvent.click(getByText('save').parentElement);
+		await userEvent.click(getByText('save').parentElement);
 
 		await waitForElementToBeRemoved(modal).then(() =>
 			expect(modal).not.toBeInTheDocument()
@@ -574,20 +584,25 @@ describe('ExperienceToolbarSection', () => {
 
 		await waitFor(() => expect(serviceFetch).toHaveBeenCalledTimes(2));
 
-		expect(serviceFetch).toHaveBeenCalledWith(
-			expect.stringContaining(MOCK_CREATE_URL),
-			expect.objectContaining({
-				body: expect.objectContaining({
-					name: 'New Experience #1',
-					segmentsEntryId: 'test-segment-id-00',
-				}),
-			})
+		await waitFor(() =>
+			expect(serviceFetch).toHaveBeenCalledWith(
+				expect.stringContaining(MOCK_CREATE_URL),
+				expect.objectContaining({
+					body: expect.objectContaining({
+						name: 'New Experience #1',
+						segmentsEntryERC: 'segment-erc-01',
+						segmentsEntryScopeERC: '',
+					}),
+				})
+			)
 		);
 
-		expect(mockDispatch).toHaveBeenCalledWith(
-			expect.objectContaining({
-				type: CREATE_SEGMENTS_EXPERIENCE,
-			})
+		await waitFor(() =>
+			expect(mockDispatch).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: CREATE_SEGMENTS_EXPERIENCE,
+				})
+			)
 		);
 
 		await findByRole('list');
@@ -595,6 +610,7 @@ describe('ExperienceToolbarSection', () => {
 		dropdownElement = document.querySelector(
 			'.page-editor__toolbar-experience__dropdown-menu'
 		);
+
 		await waitFor(() => expect(dropdownElement).toBeInTheDocument());
 	});
 
@@ -624,7 +640,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -642,7 +658,7 @@ describe('ExperienceToolbarSection', () => {
 
 		expect(editExperienceButton.disabled).toBe(false);
 
-		userEvent.click(editExperienceButton);
+		await userEvent.click(editExperienceButton);
 
 		await findByLabelText('name');
 
@@ -650,18 +666,19 @@ describe('ExperienceToolbarSection', () => {
 		const segmentSelect = getByLabelText('audience');
 
 		expect(nameInput.value).toBe('Experience #1');
-		expect(segmentSelect.value).toBe('test-segment-id-00');
+		expect(segmentSelect.value).toBe('test-segment-id-01');
 
-		userEvent.type(nameInput, 'New Experience #1');
-		userEvent.selectOptions(segmentSelect, 'A segment 0');
+		await userEvent.clear(nameInput);
+		await userEvent.type(nameInput, 'New Experience #1');
+		await userEvent.selectOptions(segmentSelect, 'A segment 1');
 
 		expect(nameInput.value).toBe('New Experience #1');
-		expect(segmentSelect.value).toBe('test-segment-id-00');
+		expect(segmentSelect.value).toBe('test-segment-id-01');
 
 		// Grab parentElement here to work around jsdom v13 issue.
 		// "TypeError: Cannot read property '_defaultView' of undefined"
 
-		userEvent.click(getByText('save').parentElement);
+		await userEvent.click(getByText('save').parentElement);
 
 		await waitFor(() => expect(serviceFetch).toHaveBeenCalledTimes(1));
 
@@ -670,7 +687,8 @@ describe('ExperienceToolbarSection', () => {
 			expect.objectContaining({
 				body: expect.objectContaining({
 					name: 'New Experience #1',
-					segmentsEntryId: 'test-segment-id-00',
+					segmentsEntryERC: 'segment-erc-01',
+					segmentsEntryScopeERC: '',
 					segmentsExperienceId: 'test-experience-id-01',
 				}),
 			})
@@ -789,7 +807,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -805,7 +823,7 @@ describe('ExperienceToolbarSection', () => {
 			'delete-experience'
 		);
 
-		userEvent.click(deleteExperienceButton);
+		await userEvent.click(deleteExperienceButton);
 
 		await waitFor(() => expect(window.confirm).toHaveBeenCalledTimes(1));
 
@@ -857,7 +875,7 @@ describe('ExperienceToolbarSection', () => {
 
 		const dropDownButton = getByLabelText('experience', {exact: false});
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -873,7 +891,7 @@ describe('ExperienceToolbarSection', () => {
 			'duplicate-experience'
 		);
 
-		userEvent.click(duplicateExperienceButton);
+		await userEvent.click(duplicateExperienceButton);
 
 		await waitFor(() => expect(serviceFetch).toHaveBeenCalledTimes(2));
 
@@ -903,7 +921,7 @@ describe('ExperienceToolbarSection', () => {
 
 		// ESC
 
-		userEvent.click(dropDownButton);
+		await userEvent.click(dropDownButton);
 
 		await findByRole('list');
 
@@ -913,19 +931,14 @@ describe('ExperienceToolbarSection', () => {
 
 		expect(dropdownElement).toBeInTheDocument();
 
-		fireEvent.keyDown(document, {
-			charCode: 27,
-			code: 'Escape',
-			key: 'Escape',
-			keyCode: 27,
-		});
+		await userEvent.keyboard('{Escape}');
 
-		await waitForElementToBeRemoved(dropdownElement);
+		await waitForElementToBeRemoved(dropdownElement, {timeout: 2000});
 		expect(dropdownElement).not.toBeInTheDocument();
 
 		// clickoutside
 
-		userEvent.click(dropDownButton, {exact: false});
+		await userEvent.click(dropDownButton, {exact: false});
 
 		await findByRole('list');
 
@@ -935,18 +948,103 @@ describe('ExperienceToolbarSection', () => {
 
 		expect(dropdownElement2).toBeInTheDocument();
 
-		const outerDiv = document.querySelector('body > div');
+		await userEvent.click(document.querySelector('body > div'));
 
-		fireEvent(
-			outerDiv,
-			new MouseEvent('click', {
-				bubbles: true,
-				cancelable: true,
+		await waitForElementToBeRemoved(dropdownElement2, {timeout: 2000});
+
+		expect(dropdownElement2).not.toBeInTheDocument();
+	});
+
+	it('allows the user to rename an orphaned experience (id -1) while preserving original ERCs', async () => {
+		serviceFetch.mockImplementation((url, {body}) =>
+			Promise.resolve({
+				name: body.name,
+				segmentsEntryId: body.segmentsEntryId,
 			})
 		);
 
-		waitForElementToBeRemoved(dropdownElement2).then(() => {
-			expect(dropdownElement2).not.toBeInTheDocument();
+		const mockDispatch = jest.fn((a) => {
+			if (typeof a === 'function') {
+				return a(mockDispatch, () => ({
+					loadedSegmentsExperiences: [],
+				}));
+			}
 		});
+
+		const missingSegmentsEntryId = '-1';
+		const orphanSegmentsERC = 'original-erc-123';
+		const orphanSegmentsScopeERC = 'original-scope-456';
+		const experienceName = 'Renamed Orphan Experience';
+		const experienceId = 'orphan-experience-id';
+
+		const mockStateWithOrphan = {
+			...mockState,
+			availableSegmentsExperiences: {
+				...mockState.availableSegmentsExperiences,
+				'orphan-experience-id': {
+					hasLockedSegmentsExperiment: false,
+					name: 'Orphan Experience',
+					priority: 4,
+					segmentsEntryERC: orphanSegmentsERC,
+					segmentsEntryId: missingSegmentsEntryId,
+					segmentsEntryScopeERC: orphanSegmentsScopeERC,
+					segmentsExperienceId: experienceId,
+				},
+			},
+		};
+
+		const {
+			findByLabelText,
+			findByRole,
+			getAllByRole,
+			getByLabelText,
+			getByText,
+		} = renderExperienceToolbarSection(
+			mockStateWithOrphan,
+			mockConfig,
+			mockDispatch
+		);
+
+		const dropDownButton = getByLabelText('experience', {exact: false});
+		await userEvent.click(dropDownButton);
+		await findByRole('list');
+
+		const experienceItems = getAllByRole('listitem');
+		const orphanItem = experienceItems.find((item) =>
+			item.textContent.includes('Orphan Experience')
+		);
+
+		await userEvent.click(within(orphanItem).getByTitle('edit-experience'));
+		await findByLabelText('name');
+
+		const nameInput = getByLabelText('name');
+		const segmentSelect = getByLabelText('audience');
+		const saveButton = getByText('save').parentElement;
+
+		expect(segmentSelect.value).toBe(missingSegmentsEntryId);
+		expect(segmentSelect.options[segmentSelect.selectedIndex].text).toBe(
+			'-- unknown --'
+		);
+
+		expect(saveButton).not.toBeDisabled();
+
+		await userEvent.clear(nameInput);
+		await userEvent.type(nameInput, experienceName);
+
+		await userEvent.click(saveButton);
+
+		await waitFor(() => expect(serviceFetch).toHaveBeenCalledTimes(1));
+
+		expect(serviceFetch).toHaveBeenCalledWith(
+			expect.stringContaining(MOCK_UPDATE_URL),
+			expect.objectContaining({
+				body: expect.objectContaining({
+					name: experienceName,
+					segmentsEntryERC: orphanSegmentsERC,
+					segmentsEntryScopeERC: orphanSegmentsScopeERC,
+					segmentsExperienceId: experienceId,
+				}),
+			})
+		);
 	});
 });

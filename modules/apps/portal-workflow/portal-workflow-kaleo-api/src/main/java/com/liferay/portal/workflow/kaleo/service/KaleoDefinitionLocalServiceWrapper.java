@@ -33,34 +33,34 @@ public class KaleoDefinitionLocalServiceWrapper
 	}
 
 	@Override
-	public void activateKaleoDefinition(
+	public KaleoDefinition activateKaleoDefinition(
 			long kaleoDefinitionId, long kaleoDefinitionVersionId,
 			long startKaleoNodeId,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		_kaleoDefinitionLocalService.activateKaleoDefinition(
+		return _kaleoDefinitionLocalService.activateKaleoDefinition(
 			kaleoDefinitionId, kaleoDefinitionVersionId, startKaleoNodeId,
 			serviceContext);
 	}
 
 	@Override
-	public void activateKaleoDefinition(
+	public KaleoDefinition activateKaleoDefinition(
 			long kaleoDefinitionId,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		_kaleoDefinitionLocalService.activateKaleoDefinition(
+		return _kaleoDefinitionLocalService.activateKaleoDefinition(
 			kaleoDefinitionId, serviceContext);
 	}
 
 	@Override
-	public void activateKaleoDefinition(
+	public KaleoDefinition activateKaleoDefinition(
 			String name, int version,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		_kaleoDefinitionLocalService.activateKaleoDefinition(
+		return _kaleoDefinitionLocalService.activateKaleoDefinition(
 			name, version, serviceContext);
 	}
 
@@ -82,13 +82,14 @@ public class KaleoDefinitionLocalServiceWrapper
 	@Override
 	public KaleoDefinition addKaleoDefinition(
 			String externalReferenceCode, String name, String title,
-			String description, String content, String scope, int version,
+			String description, String content, String scope, boolean system,
+			int version,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _kaleoDefinitionLocalService.addKaleoDefinition(
 			externalReferenceCode, name, title, description, content, scope,
-			version, serviceContext);
+			system, version, serviceContext);
 	}
 
 	/**
@@ -115,12 +116,12 @@ public class KaleoDefinitionLocalServiceWrapper
 	}
 
 	@Override
-	public void deactivateKaleoDefinition(
+	public KaleoDefinition deactivateKaleoDefinition(
 			String name, int version,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		_kaleoDefinitionLocalService.deactivateKaleoDefinition(
+		return _kaleoDefinitionLocalService.deactivateKaleoDefinition(
 			name, version, serviceContext);
 	}
 
@@ -138,10 +139,12 @@ public class KaleoDefinitionLocalServiceWrapper
 	 *
 	 * @param kaleoDefinition the kaleo definition
 	 * @return the kaleo definition that was removed
+	 * @throws PortalException
 	 */
 	@Override
 	public KaleoDefinition deleteKaleoDefinition(
-		KaleoDefinition kaleoDefinition) {
+			KaleoDefinition kaleoDefinition)
+		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _kaleoDefinitionLocalService.deleteKaleoDefinition(
 			kaleoDefinition);
@@ -167,12 +170,12 @@ public class KaleoDefinitionLocalServiceWrapper
 	}
 
 	@Override
-	public void deleteKaleoDefinition(
+	public KaleoDefinition deleteKaleoDefinition(
 			String name,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
-		_kaleoDefinitionLocalService.deleteKaleoDefinition(
+		return _kaleoDefinitionLocalService.deleteKaleoDefinition(
 			name, serviceContext);
 	}
 
@@ -315,11 +318,36 @@ public class KaleoDefinitionLocalServiceWrapper
 				externalReferenceCode, companyId);
 	}
 
+	/**
+	 * Returns the kaleo definition matching the UUID and group.
+	 *
+	 * @param uuid the kaleo definition's UUID
+	 * @param groupId the primary key of the group
+	 * @return the matching kaleo definition, or <code>null</code> if a matching kaleo definition could not be found
+	 */
+	@Override
+	public KaleoDefinition fetchKaleoDefinitionByUuidAndGroupId(
+		String uuid, long groupId) {
+
+		return _kaleoDefinitionLocalService.
+			fetchKaleoDefinitionByUuidAndGroupId(uuid, groupId);
+	}
+
 	@Override
 	public com.liferay.portal.kernel.dao.orm.ActionableDynamicQuery
 		getActionableDynamicQuery() {
 
 		return _kaleoDefinitionLocalService.getActionableDynamicQuery();
+	}
+
+	@Override
+	public com.liferay.portal.kernel.dao.orm.ExportActionableDynamicQuery
+		getExportActionableDynamicQuery(
+			com.liferay.exportimport.kernel.lar.PortletDataContext
+				portletDataContext) {
+
+		return _kaleoDefinitionLocalService.getExportActionableDynamicQuery(
+			portletDataContext);
 	}
 
 	@Override
@@ -363,6 +391,23 @@ public class KaleoDefinitionLocalServiceWrapper
 		return _kaleoDefinitionLocalService.
 			getKaleoDefinitionByExternalReferenceCode(
 				externalReferenceCode, companyId);
+	}
+
+	/**
+	 * Returns the kaleo definition matching the UUID and group.
+	 *
+	 * @param uuid the kaleo definition's UUID
+	 * @param groupId the primary key of the group
+	 * @return the matching kaleo definition
+	 * @throws PortalException if a matching kaleo definition could not be found
+	 */
+	@Override
+	public KaleoDefinition getKaleoDefinitionByUuidAndGroupId(
+			String uuid, long groupId)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _kaleoDefinitionLocalService.getKaleoDefinitionByUuidAndGroupId(
+			uuid, groupId);
 	}
 
 	@Override
@@ -414,6 +459,43 @@ public class KaleoDefinitionLocalServiceWrapper
 	}
 
 	/**
+	 * Returns all the kaleo definitions matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the kaleo definitions
+	 * @param companyId the primary key of the company
+	 * @return the matching kaleo definitions, or an empty list if no matches were found
+	 */
+	@Override
+	public java.util.List<KaleoDefinition>
+		getKaleoDefinitionsByUuidAndCompanyId(String uuid, long companyId) {
+
+		return _kaleoDefinitionLocalService.
+			getKaleoDefinitionsByUuidAndCompanyId(uuid, companyId);
+	}
+
+	/**
+	 * Returns a range of kaleo definitions matching the UUID and company.
+	 *
+	 * @param uuid the UUID of the kaleo definitions
+	 * @param companyId the primary key of the company
+	 * @param start the lower bound of the range of kaleo definitions
+	 * @param end the upper bound of the range of kaleo definitions (not inclusive)
+	 * @param orderByComparator the comparator to order the results by (optionally <code>null</code>)
+	 * @return the range of matching kaleo definitions, or an empty list if no matches were found
+	 */
+	@Override
+	public java.util.List<KaleoDefinition>
+		getKaleoDefinitionsByUuidAndCompanyId(
+			String uuid, long companyId, int start, int end,
+			com.liferay.portal.kernel.util.OrderByComparator<KaleoDefinition>
+				orderByComparator) {
+
+		return _kaleoDefinitionLocalService.
+			getKaleoDefinitionsByUuidAndCompanyId(
+				uuid, companyId, start, end, orderByComparator);
+	}
+
+	/**
 	 * Returns the number of kaleo definitions.
 	 *
 	 * @return the number of kaleo definitions
@@ -456,6 +538,17 @@ public class KaleoDefinitionLocalServiceWrapper
 
 		return _kaleoDefinitionLocalService.getKaleoDefinitionsCount(
 			name, serviceContext);
+	}
+
+	@Override
+	public KaleoDefinition getOrAddEmptyKaleoDefinition(
+			String externalReferenceCode, String name, String scope,
+			boolean system,
+			com.liferay.portal.kernel.service.ServiceContext serviceContext)
+		throws com.liferay.portal.kernel.exception.PortalException {
+
+		return _kaleoDefinitionLocalService.getOrAddEmptyKaleoDefinition(
+			externalReferenceCode, name, scope, system, serviceContext);
 	}
 
 	/**
@@ -522,13 +615,13 @@ public class KaleoDefinitionLocalServiceWrapper
 	@Override
 	public KaleoDefinition updatedKaleoDefinition(
 			String externalReferenceCode, long kaleoDefinitionId, String title,
-			String description, String content,
+			String description, String content, boolean system,
 			com.liferay.portal.kernel.service.ServiceContext serviceContext)
 		throws com.liferay.portal.kernel.exception.PortalException {
 
 		return _kaleoDefinitionLocalService.updatedKaleoDefinition(
 			externalReferenceCode, kaleoDefinitionId, title, description,
-			content, serviceContext);
+			content, system, serviceContext);
 	}
 
 	/**
@@ -589,3 +682,4 @@ public class KaleoDefinitionLocalServiceWrapper
 	private KaleoDefinitionLocalService _kaleoDefinitionLocalService;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:199045023

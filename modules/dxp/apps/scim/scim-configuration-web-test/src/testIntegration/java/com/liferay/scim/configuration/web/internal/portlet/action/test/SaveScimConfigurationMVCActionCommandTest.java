@@ -10,9 +10,10 @@ import com.liferay.oauth2.provider.model.OAuth2Application;
 import com.liferay.oauth2.provider.model.OAuth2Authorization;
 import com.liferay.oauth2.provider.service.OAuth2ApplicationLocalService;
 import com.liferay.oauth2.provider.service.OAuth2AuthorizationLocalService;
+import com.liferay.petra.lang.SafeCloseable;
+import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.configuration.test.util.ConfigurationTestUtil;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
-import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
@@ -20,18 +21,21 @@ import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionRequest;
 import com.liferay.portal.kernel.test.portlet.MockLiferayPortletActionResponse;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
-import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
+import com.liferay.portal.kernel.test.util.PropsValuesTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.Constants;
+import com.liferay.portal.kernel.util.DateUtil;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
 import com.liferay.portal.kernel.util.WebKeys;
-import com.liferay.portal.test.rule.FeatureFlags;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 import com.liferay.scim.rest.util.ScimClientUtil;
+
+import jakarta.portlet.PortletSession;
 
 import java.util.List;
 
@@ -41,34 +45,63 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.osgi.service.cm.ConfigurationAdmin;
+
 /**
  * @author Christian Moura
  */
-@FeatureFlags("LPS-96845")
 @RunWith(Arquillian.class)
 public class SaveScimConfigurationMVCActionCommandTest {
 
 	@ClassRule
 	@Rule
 	public static final AggregateTestRule aggregateTestRule =
-		new LiferayIntegrationTestRule();
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@Test
-	public void testOAuth2TokenIsIssuedToClientCredentialUser()
+	public void testProcessAction() throws Exception {
+		_testProcessAction(false);
+		_testProcessAction(true);
+	}
+
+	private MockLiferayPortletActionRequest _processAction(
+			String cmd, User user)
 		throws Exception {
 
-		Company company = _companyLocalService.getCompanyById(
-			TestPropsValues.getCompanyId());
+		MockLiferayPortletActionRequest mockLiferayPortletActionRequest =
+			new MockLiferayPortletActionRequest();
 
-		User adminUser = UserTestUtil.getAdminUser(company.getCompanyId());
+		mockLiferayPortletActionRequest.addParameter(Constants.CMD, cmd);
+		mockLiferayPortletActionRequest.addParameter(
+			"oAuth2ApplicationName", _OAUTH2_APPLICATION_NAME);
 
-		_user = UserTestUtil.addCompanyAdminUser(company);
+		ThemeDisplay themeDisplay = new ThemeDisplay();
 
-		Assert.assertNotEquals(adminUser, _user);
+		themeDisplay.setCompany(
+			_companyLocalService.getCompanyById(
+				TestPropsValues.getCompanyId()));
+		themeDisplay.setPermissionChecker(
+			PermissionCheckerFactoryUtil.create(user));
+		themeDisplay.setUser(user);
 
-		String oAuth2ApplicationName = RandomTestUtil.randomString();
+		mockLiferayPortletActionRequest.setAttribute(
+			WebKeys.THEME_DISPLAY, themeDisplay);
 
-		String pid = ConfigurationTestUtil.createFactoryConfiguration(
+		_mvcActionCommand.processAction(
+			mockLiferayPortletActionRequest,
+			new MockLiferayPortletActionResponse());
+
+		return mockLiferayPortletActionRequest;
+	}
+
+	private void _testProcessAction(boolean fipsEnabled) throws Exception {
+		User companyAdminUser = UserTestUtil.addCompanyAdminUser(
+			_companyLocalService.getCompanyById(
+				TestPropsValues.getCompanyId()));
+
+		ConfigurationTestUtil.createFactoryConfiguration(
 			"com.liferay.scim.rest.internal.configuration." +
 				"ScimClientOAuth2ApplicationConfiguration",
 			HashMapDictionaryBuilder.<String, Object>put(
@@ -76,44 +109,52 @@ public class SaveScimConfigurationMVCActionCommandTest {
 			).put(
 				"matcherField", "email"
 			).put(
-				"oAuth2ApplicationName", oAuth2ApplicationName
+				"oAuth2ApplicationName", _OAUTH2_APPLICATION_NAME
 			).put(
-				"userId", _user.getUserId()
+				"userId", companyAdminUser.getUserId()
 			).build());
 
-		try {
-			String scimClientId = ScimClientUtil.generateScimClientId(
-				oAuth2ApplicationName);
+		User adminUser = UserTestUtil.getAdminUser(
+			TestPropsValues.getCompanyId());
 
-			OAuth2Application oAuth2Application =
-				_oAuth2ApplicationLocalService.getOAuth2Application(
-					TestPropsValues.getCompanyId(), scimClientId);
+		Assert.assertNotEquals(adminUser, companyAdminUser);
 
-			Assert.assertEquals(
-				_user.getUserId(),
-				oAuth2Application.getClientCredentialUserId());
+		OAuth2Application oAuth2Application =
+			_oAuth2ApplicationLocalService.getOAuth2Application(
+				TestPropsValues.getCompanyId(),
+				ScimClientUtil.generateScimClientId(_OAUTH2_APPLICATION_NAME));
+
+		Assert.assertEquals(
+			companyAdminUser.getUserId(),
+			oAuth2Application.getClientCredentialUserId());
+
+		try (SafeCloseable safeCloseable =
+				PropsValuesTestUtil.swapWithSafeCloseable(
+					"FIPS_ENABLED", fipsEnabled)) {
 
 			MockLiferayPortletActionRequest mockLiferayPortletActionRequest =
-				new MockLiferayPortletActionRequest();
+				_processAction("generate", companyAdminUser);
 
-			mockLiferayPortletActionRequest.addParameter(
-				Constants.CMD, "generate");
-			mockLiferayPortletActionRequest.addParameter(
-				"oAuth2ApplicationName", oAuth2ApplicationName);
+			String accessToken =
+				(String)mockLiferayPortletActionRequest.getAttribute(
+					"SCIM_OAUTH2_ACCESS_TOKEN");
 
-			ThemeDisplay themeDisplay = new ThemeDisplay();
+			Assert.assertNotNull(
+				_oAuth2AuthorizationLocalService.
+					fetchOAuth2AuthorizationByAccessTokenContent(accessToken));
 
-			themeDisplay.setCompany(company);
-			themeDisplay.setPermissionChecker(
-				PermissionCheckerFactoryUtil.create(_user));
-			themeDisplay.setUser(_user);
+			PortletSession portletSession =
+				mockLiferayPortletActionRequest.getPortletSession();
 
-			mockLiferayPortletActionRequest.setAttribute(
-				WebKeys.THEME_DISPLAY, themeDisplay);
-
-			_mvcActionCommand.processAction(
-				mockLiferayPortletActionRequest,
-				new MockLiferayPortletActionResponse());
+			if (fipsEnabled) {
+				Assert.assertEquals(
+					accessToken,
+					portletSession.getAttribute("SCIM_OAUTH2_ACCESS_TOKEN"));
+			}
+			else {
+				Assert.assertNull(
+					portletSession.getAttribute("SCIM_OAUTH2_ACCESS_TOKEN"));
+			}
 
 			oAuth2Application.setClientCredentialUserId(adminUser.getUserId());
 
@@ -121,40 +162,56 @@ public class SaveScimConfigurationMVCActionCommandTest {
 				_oAuth2ApplicationLocalService.updateOAuth2Application(
 					oAuth2Application);
 
-			_mvcActionCommand.processAction(
-				mockLiferayPortletActionRequest,
-				new MockLiferayPortletActionResponse());
-
-			List<OAuth2Authorization> oAuth2Authorizations =
-				_oAuth2AuthorizationLocalService.getOAuth2Authorizations(
-					oAuth2Application.getOAuth2ApplicationId(),
-					QueryUtil.ALL_POS, QueryUtil.ALL_POS, null);
-
-			Assert.assertEquals(
-				oAuth2Authorizations.toString(), 2,
-				oAuth2Authorizations.size());
-
-			OAuth2Authorization oAuth2Authorization = oAuth2Authorizations.get(
-				0);
-
-			Assert.assertEquals(
-				_user.getUserId(), oAuth2Authorization.getUserId());
-
-			oAuth2Authorization = oAuth2Authorizations.get(1);
-
-			Assert.assertEquals(
-				adminUser.getUserId(), oAuth2Authorization.getUserId());
+			_processAction("generate", companyAdminUser);
 		}
-		finally {
-			ConfigurationTestUtil.deleteConfiguration(pid);
-		}
+
+		List<OAuth2Authorization> oAuth2Authorizations =
+			_oAuth2AuthorizationLocalService.getOAuth2Authorizations(
+				oAuth2Application.getOAuth2ApplicationId(), QueryUtil.ALL_POS,
+				QueryUtil.ALL_POS, null);
+
+		Assert.assertEquals(
+			oAuth2Authorizations.toString(), 2, oAuth2Authorizations.size());
+
+		OAuth2Authorization oAuth2Authorization = oAuth2Authorizations.get(0);
+
+		Assert.assertEquals(
+			10,
+			DateUtil.getDaysBetween(
+				oAuth2Authorization.getAccessTokenExpirationDate(),
+				oAuth2Authorization.getCreateDate()));
+		Assert.assertEquals(
+			companyAdminUser.getUserId(), oAuth2Authorization.getUserId());
+
+		oAuth2Authorization = oAuth2Authorizations.get(1);
+
+		Assert.assertEquals(
+			365,
+			DateUtil.getDaysBetween(
+				oAuth2Authorization.getAccessTokenExpirationDate(),
+				oAuth2Authorization.getCreateDate()));
+		Assert.assertEquals(
+			adminUser.getUserId(), oAuth2Authorization.getUserId());
+
+		_processAction("reset", companyAdminUser);
+
+		Assert.assertNull(
+			_configurationAdmin.listConfigurations(
+				StringBundler.concat(
+					"(&(", ConfigurationAdmin.SERVICE_FACTORYPID,
+					"=com.liferay.scim.rest.internal.configuration.",
+					"ScimClientOAuth2ApplicationConfiguration)(companyId=",
+					TestPropsValues.getCompanyId(), "))")));
 	}
 
-	@DeleteAfterTestRun
-	private static User _user;
+	private static final String _OAUTH2_APPLICATION_NAME =
+		RandomTestUtil.randomString();
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	@Inject
+	private ConfigurationAdmin _configurationAdmin;
 
 	@Inject(
 		filter = "mvc.command.name=/scim_configuration/save_scim_configuration",

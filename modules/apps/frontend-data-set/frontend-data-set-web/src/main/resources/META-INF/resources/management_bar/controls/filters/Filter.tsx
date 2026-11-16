@@ -7,24 +7,51 @@ import ClayLoadingIndicator from '@clayui/loading-indicator';
 import {loadModule} from 'frontend-js-web';
 import React, {ReactElement, useContext, useEffect, useState} from 'react';
 
-import ViewsContext from '../../../views/ViewsContext';
+import FrontendDataSetContext from '../../../FrontendDataSetContext';
 
 // @ts-ignore
 
-import {VIEWS_ACTION_TYPES} from '../../../views/viewsReducer';
 import clientExtensionFilterImplementation from './implementation/ClientExtensionFilter';
-import dateRangeFilterImplementation from './implementation/DateRangeFilter';
+import {
+	dateRangeFilterImplementation,
+	dateTimeRangeFilterImplementation,
+} from './implementation/DateTimeRangeFilter';
 import selectionFilterImplementation from './implementation/SelectionFilter';
+import {EEntityFieldType} from './utils/types';
+
+export interface IOdataStringArgs {
+	clientExtensionFilterImplementation?: any;
+	clientExtensionFilterURL?: string;
+	entityFieldType: EEntityFieldType;
+	id: string;
+	multiple?: boolean;
+	selectedData?: Record<string, unknown>;
+}
+
+export interface ISelectedItemsLabelArgs {
+	clientExtensionFilterImplementation?: any;
+	clientExtensionFilterURL?: string;
+	selectedData?: Record<string, unknown>;
+}
+
+export interface ISelectedItemsPreview {
+	hiddenItemsCount: number;
+	label: string;
+}
 
 export interface FilterImplementation<
 	T extends FilterImplementationArgs<unknown>,
 > {
 	Component: (args: T) => ReactElement;
-	getOdataString: (args: T) => string;
-	getSelectedItemsLabel: (args: T) => string;
+	getOdataString: (args: IOdataStringArgs) => string;
+	getSelectedItemsLabel: (args: ISelectedItemsLabelArgs) => string;
+	getSelectedItemsPreview?: (
+		args: ISelectedItemsLabelArgs
+	) => ISelectedItemsPreview;
 }
 
 export interface FilterImplementationArgs<T> {
+	active: boolean;
 	id: string;
 	selectedData: T;
 	setFilter: (args: SetFilterArgs) => void;
@@ -41,38 +68,25 @@ interface FilterConfiguration {
 	id: string;
 }
 
-interface FilterComponentArgs {
+export interface IFilter {
+	clientExtensionResolutionError?: string;
 	id: string;
-	moduleURL: string;
-	type: 'clientExtension' | 'dateRange' | 'selection';
+	label: string;
+	moduleURL?: string;
+	onClose: () => void;
+	selectedItemsLabel: string;
+	type: 'clientExtension' | 'dateRange' | 'dateTimeRange' | 'selection';
 }
 
 const FILTER_IMPLEMENTATIONS = {
 	clientExtension: clientExtensionFilterImplementation,
 	dateRange: dateRangeFilterImplementation,
+	dateTimeRange: dateTimeRangeFilterImplementation,
 	selection: selectionFilterImplementation,
 };
 
-// @ts-ignore
-
-const getComponent = Liferay.Loader?.require ? loadModule : getFakeComponent;
-
-function getFakeComponent() {
-	return new Promise((resolve) => {
-		setTimeout(
-			() =>
-				resolve(() => (
-					<div className="custom-component">
-						fakely fetched component
-					</div>
-				)),
-			3000
-		);
-	});
-}
-
-const Filter = ({id, moduleURL, type, ...otherProps}: FilterComponentArgs) => {
-	const [{filters}, viewsDispatch] = useContext(ViewsContext);
+const Filter = ({id, moduleURL, onClose, type, ...otherProps}: IFilter) => {
+	const {globalFDSState, onFilterChange} = useContext(FrontendDataSetContext);
 
 	const filterImplementation = FILTER_IMPLEMENTATIONS[type];
 
@@ -86,7 +100,7 @@ const Filter = ({id, moduleURL, type, ...otherProps}: FilterComponentArgs) => {
 
 	useEffect(() => {
 		if (moduleURL) {
-			getComponent(moduleURL).then((FetchedComponent: React.Component) =>
+			loadModule(moduleURL).then((FetchedComponent: React.Component) =>
 				setComponent(() => FetchedComponent)
 			);
 		}
@@ -101,30 +115,27 @@ const Filter = ({id, moduleURL, type, ...otherProps}: FilterComponentArgs) => {
 			);
 		}
 
-		const newFilter = {
-			...filters.find(
+		const filter = {
+			...globalFDSState.filters.find(
 				(filter: FilterConfiguration) => filter.id === filterId
 			),
 			selectedData,
 			...otherProps,
 		};
 
-		newFilter.odataFilterString =
-			filterImplementation.getOdataString(newFilter);
-		newFilter.selectedItemsLabel =
-			filterImplementation.getSelectedItemsLabel(newFilter);
-
-		viewsDispatch({
-			type: VIEWS_ACTION_TYPES.UPDATE_FILTERS,
-			value: filters.map((filter: FilterConfiguration) =>
-				filter.id === filterId ? newFilter : filter
-			),
+		onFilterChange({
+			changedFilter: filter,
 		});
 	};
 
 	return Component ? (
 		<div className="data-set-filter">
-			<Component id={id} setFilter={setFilter} {...otherProps} />
+			<Component
+				id={id}
+				onClose={onClose}
+				setFilter={setFilter}
+				{...otherProps}
+			/>
 		</div>
 	) : (
 		<ClayLoadingIndicator size="sm" />

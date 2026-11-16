@@ -15,8 +15,7 @@ import com.liferay.petra.lang.SafeCloseable;
 public class ObjectDefinitionThreadLocal {
 
 	public static boolean isDeleteObjectDefinitionId(long objectDefinitionId) {
-		Long deleteObjectDefinitionId =
-			_deleteObjectDefinitionIdThreadLocal.get();
+		Long deleteObjectDefinitionId = _deleteObjectDefinitionId.get();
 
 		if ((deleteObjectDefinitionId != null) &&
 			(deleteObjectDefinitionId == objectDefinitionId)) {
@@ -27,15 +26,29 @@ public class ObjectDefinitionThreadLocal {
 		return false;
 	}
 
+	public static boolean isSkipBundleAllowedCheck() {
+		return _skipBundleAllowedCheck.get();
+	}
+
 	public static SafeCloseable setDeleteObjectDefinitionIdWithSafeCloseable(
 		long id) {
 
-		return _deleteObjectDefinitionIdThreadLocal.setWithSafeCloseable(id);
+		return _deleteObjectDefinitionId.setWithSafeCloseable(id);
+	}
+
+	public static SafeCloseable setSkipBundleAllowedCheckWithSafeCloseable(
+		boolean skipBundleAllowedCheck) {
+
+		return _skipBundleAllowedCheck.setWithSafeCloseable(
+			skipBundleAllowedCheck);
 	}
 
 	private static final CentralizedThreadLocal<Long>
-		_deleteObjectDefinitionIdThreadLocal = new CentralizedThreadLocal<>(
-			ObjectEntryThreadLocal.class +
-				"._deleteObjectDefinitionIdThreadLocal");
+		_deleteObjectDefinitionId = new CentralizedThreadLocal<>(
+			ObjectEntryThreadLocal.class + "._deleteObjectDefinitionId");
+	private static final CentralizedThreadLocal<Boolean>
+		_skipBundleAllowedCheck = new CentralizedThreadLocal<>(
+			ObjectDefinitionThreadLocal.class + "._skipBundleAllowedCheck",
+			() -> false);
 
 }

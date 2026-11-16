@@ -9,13 +9,14 @@ import com.liferay.headless.admin.site.client.dto.v1_0.ContentPageSettings;
 import com.liferay.headless.admin.site.client.dto.v1_0.CustomMetaTag;
 import com.liferay.headless.admin.site.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -70,26 +71,20 @@ public class ContentPageSettingsSerDes {
 			sb.append("]");
 		}
 
-		if (contentPageSettings.getHiddenFromNavigation() != null) {
+		if (contentPageSettings.getDefaultAssetPublisherPortletId() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
 			}
 
-			sb.append("\"hiddenFromNavigation\": ");
+			sb.append("\"defaultAssetPublisherPortletId\": ");
 
-			sb.append(contentPageSettings.getHiddenFromNavigation());
-		}
-
-		if (contentPageSettings.getNavigationMenuSettings() != null) {
-			if (sb.length() > 1) {
-				sb.append(", ");
-			}
-
-			sb.append("\"navigationMenuSettings\": ");
+			sb.append("\"");
 
 			sb.append(
-				String.valueOf(
-					contentPageSettings.getNavigationMenuSettings()));
+				_escape(
+					contentPageSettings.getDefaultAssetPublisherPortletId()));
+
+			sb.append("\"");
 		}
 
 		if (contentPageSettings.getOpenGraphSettings() != null) {
@@ -113,6 +108,37 @@ public class ContentPageSettingsSerDes {
 			sb.append(String.valueOf(contentPageSettings.getSeoSettings()));
 		}
 
+		if (contentPageSettings.getHiddenFromNavigation() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"hiddenFromNavigation\": ");
+
+			sb.append(contentPageSettings.getHiddenFromNavigation());
+		}
+
+		if (contentPageSettings.getNavigationSettings() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"navigationSettings\": ");
+
+			sb.append(
+				String.valueOf(contentPageSettings.getNavigationSettings()));
+		}
+
+		if (contentPageSettings.getPriority() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"priority\": ");
+
+			sb.append(contentPageSettings.getPriority());
+		}
+
 		if (contentPageSettings.getType() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -121,9 +147,7 @@ public class ContentPageSettingsSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(contentPageSettings.getType());
-
 			sb.append("\"");
 		}
 
@@ -157,23 +181,14 @@ public class ContentPageSettingsSerDes {
 				String.valueOf(contentPageSettings.getCustomMetaTags()));
 		}
 
-		if (contentPageSettings.getHiddenFromNavigation() == null) {
-			map.put("hiddenFromNavigation", null);
+		if (contentPageSettings.getDefaultAssetPublisherPortletId() == null) {
+			map.put("defaultAssetPublisherPortletId", null);
 		}
 		else {
 			map.put(
-				"hiddenFromNavigation",
-				String.valueOf(contentPageSettings.getHiddenFromNavigation()));
-		}
-
-		if (contentPageSettings.getNavigationMenuSettings() == null) {
-			map.put("navigationMenuSettings", null);
-		}
-		else {
-			map.put(
-				"navigationMenuSettings",
+				"defaultAssetPublisherPortletId",
 				String.valueOf(
-					contentPageSettings.getNavigationMenuSettings()));
+					contentPageSettings.getDefaultAssetPublisherPortletId()));
 		}
 
 		if (contentPageSettings.getOpenGraphSettings() == null) {
@@ -192,6 +207,32 @@ public class ContentPageSettingsSerDes {
 			map.put(
 				"seoSettings",
 				String.valueOf(contentPageSettings.getSeoSettings()));
+		}
+
+		if (contentPageSettings.getHiddenFromNavigation() == null) {
+			map.put("hiddenFromNavigation", null);
+		}
+		else {
+			map.put(
+				"hiddenFromNavigation",
+				String.valueOf(contentPageSettings.getHiddenFromNavigation()));
+		}
+
+		if (contentPageSettings.getNavigationSettings() == null) {
+			map.put("navigationSettings", null);
+		}
+		else {
+			map.put(
+				"navigationSettings",
+				String.valueOf(contentPageSettings.getNavigationSettings()));
+		}
+
+		if (contentPageSettings.getPriority() == null) {
+			map.put("priority", null);
+		}
+		else {
+			map.put(
+				"priority", String.valueOf(contentPageSettings.getPriority()));
 		}
 
 		if (contentPageSettings.getType() == null) {
@@ -223,12 +264,8 @@ public class ContentPageSettingsSerDes {
 				return false;
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "hiddenFromNavigation")) {
-
-				return false;
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "navigationMenuSettings")) {
+						jsonParserFieldName,
+						"defaultAssetPublisherPortletId")) {
 
 				return false;
 			}
@@ -236,6 +273,19 @@ public class ContentPageSettingsSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "seoSettings")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "hiddenFromNavigation")) {
+
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "navigationSettings")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "priority")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -267,20 +317,12 @@ public class ContentPageSettingsSerDes {
 				}
 			}
 			else if (Objects.equals(
-						jsonParserFieldName, "hiddenFromNavigation")) {
+						jsonParserFieldName,
+						"defaultAssetPublisherPortletId")) {
 
 				if (jsonParserFieldValue != null) {
-					contentPageSettings.setHiddenFromNavigation(
-						(Boolean)jsonParserFieldValue);
-				}
-			}
-			else if (Objects.equals(
-						jsonParserFieldName, "navigationMenuSettings")) {
-
-				if (jsonParserFieldValue != null) {
-					contentPageSettings.setNavigationMenuSettings(
-						NavigationMenuSettingsSerDes.toDTO(
-							(String)jsonParserFieldValue));
+					contentPageSettings.setDefaultAssetPublisherPortletId(
+						(String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "openGraphSettings")) {
@@ -294,6 +336,29 @@ public class ContentPageSettingsSerDes {
 				if (jsonParserFieldValue != null) {
 					contentPageSettings.setSeoSettings(
 						SEOSettingsSerDes.toDTO((String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "hiddenFromNavigation")) {
+
+				if (jsonParserFieldValue != null) {
+					contentPageSettings.setHiddenFromNavigation(
+						(Boolean)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "navigationSettings")) {
+
+				if (jsonParserFieldValue != null) {
+					contentPageSettings.setNavigationSettings(
+						SitePageNavigationSettingsSerDes.toDTO(
+							(String)jsonParserFieldValue));
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "priority")) {
+				if (jsonParserFieldValue != null) {
+					contentPageSettings.setPriority(
+						Integer.valueOf((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "type")) {
@@ -348,6 +413,16 @@ public class ContentPageSettingsSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -380,3 +455,4 @@ public class ContentPageSettingsSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-844711376

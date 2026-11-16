@@ -5,28 +5,19 @@
 
 package com.liferay.change.tracking.rest.internal.dto.v1_0.converter;
 
-import com.liferay.change.tracking.constants.CTDestinationNames;
 import com.liferay.change.tracking.rest.dto.v1_0.CTCollection;
 import com.liferay.change.tracking.rest.dto.v1_0.Status;
-import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.language.Language;
-import com.liferay.portal.kernel.log.Log;
-import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.scheduler.SchedulerEngineHelper;
-import com.liferay.portal.kernel.scheduler.SchedulerEngineHelperUtil;
-import com.liferay.portal.kernel.scheduler.SchedulerException;
-import com.liferay.portal.kernel.scheduler.StorageType;
-import com.liferay.portal.kernel.scheduler.messaging.SchedulerResponse;
 import com.liferay.portal.kernel.util.HtmlUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Date;
 import java.util.Locale;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -35,7 +26,10 @@ import org.osgi.service.component.annotations.Reference;
  * @author Pei-Jung Lan
  */
 @Component(
-	property = "dto.class.name=com.liferay.change.tracking.model.CTCollection",
+	property = {
+		"default=true",
+		"dto.class.name=com.liferay.change.tracking.model.CTCollection"
+	},
 	service = DTOConverter.class
 )
 public class CTCollectionDTOConverter
@@ -82,26 +76,13 @@ public class CTCollectionDTOConverter
 	}
 
 	private Date _getDateScheduled(
-			com.liferay.change.tracking.model.CTCollection ctCollection)
-		throws Exception {
+		com.liferay.change.tracking.model.CTCollection ctCollection) {
 
 		if (ctCollection.getStatus() != WorkflowConstants.STATUS_SCHEDULED) {
 			return null;
 		}
 
-		SchedulerResponse schedulerResponse =
-			_schedulerEngineHelper.getScheduledJob(
-				StringBundler.concat(
-					ctCollection.getCtCollectionId(), StringPool.AT,
-					ctCollection.getCompanyId()),
-				CTDestinationNames.CT_COLLECTION_SCHEDULED_PUBLISH,
-				StorageType.PERSISTED);
-
-		if (schedulerResponse == null) {
-			return null;
-		}
-
-		return _schedulerEngineHelper.getStartTime(schedulerResponse);
+		return ctCollection.getScheduledDate();
 	}
 
 	private String _getStatusMessage(
@@ -125,7 +106,7 @@ public class CTCollectionDTOConverter
 					HtmlUtil.escape(ctCollection.getUserName())
 				});
 		}
-		else if (ctCollection.getStatus() == WorkflowConstants.STATUS_DRAFT) {
+		else if (ctCollection.isInProgress()) {
 			Date modifiedDate = ctCollection.getModifiedDate();
 
 			return _language.format(
@@ -141,36 +122,21 @@ public class CTCollectionDTOConverter
 		else if (ctCollection.getStatus() ==
 					WorkflowConstants.STATUS_SCHEDULED) {
 
-			try {
-				SchedulerResponse schedulerResponse =
-					SchedulerEngineHelperUtil.getScheduledJob(
-						StringBundler.concat(
-							ctCollection.getCtCollectionId(), StringPool.AT,
-							ctCollection.getCompanyId()),
-						CTDestinationNames.CT_COLLECTION_SCHEDULED_PUBLISH,
-						StorageType.PERSISTED);
+			Date scheduledDate = ctCollection.getScheduledDate();
 
-				if (schedulerResponse == null) {
-					return null;
-				}
-
-				Date scheduledDate = SchedulerEngineHelperUtil.getStartTime(
-					schedulerResponse);
-
-				return _language.format(
-					httpServletRequest, "schedule-to-publish-in-x-by-x",
-					new String[] {
-						_language.getTimeDescription(
-							httpServletRequest,
-							scheduledDate.getTime() -
-								System.currentTimeMillis(),
-							true),
-						HtmlUtil.escape(ctCollection.getUserName())
-					});
+			if (scheduledDate == null) {
+				return StringPool.BLANK;
 			}
-			catch (SchedulerException schedulerException) {
-				_log.error(schedulerException);
-			}
+
+			return _language.format(
+				httpServletRequest, "schedule-to-publish-in-x-by-x",
+				new String[] {
+					_language.getTimeDescription(
+						httpServletRequest,
+						scheduledDate.getTime() - System.currentTimeMillis(),
+						true),
+					HtmlUtil.escape(ctCollection.getUserName())
+				});
 		}
 
 		return StringPool.BLANK;
@@ -191,6 +157,9 @@ public class CTCollectionDTOConverter
 		else if (status == WorkflowConstants.STATUS_DENIED) {
 			statusLabel = "failed";
 		}
+		else if (status == WorkflowConstants.STATUS_INCOMPLETE) {
+			statusLabel = "pending-approval";
+		}
 		else if (status == WorkflowConstants.STATUS_SCHEDULED) {
 			statusLabel = "scheduled";
 		}
@@ -207,13 +176,7 @@ public class CTCollectionDTOConverter
 		};
 	}
 
-	private static final Log _log = LogFactoryUtil.getLog(
-		CTCollectionDTOConverter.class);
-
 	@Reference
 	private Language _language;
-
-	@Reference
-	private SchedulerEngineHelper _schedulerEngineHelper;
 
 }

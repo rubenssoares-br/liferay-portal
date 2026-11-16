@@ -9,6 +9,7 @@ import com.liferay.commerce.context.CommerceContext;
 import com.liferay.commerce.currency.model.CommerceCurrency;
 import com.liferay.commerce.currency.service.CommerceCurrencyLocalService;
 import com.liferay.commerce.exception.CommerceShippingEngineException;
+import com.liferay.commerce.helper.CommerceShippingHelper;
 import com.liferay.commerce.model.CommerceAddress;
 import com.liferay.commerce.model.CommerceOrder;
 import com.liferay.commerce.model.CommerceOrderItem;
@@ -26,7 +27,6 @@ import com.liferay.commerce.shipping.engine.fixed.service.CommerceShippingFixedO
 import com.liferay.commerce.shipping.engine.fixed.service.CommerceShippingFixedOptionRelLocalService;
 import com.liferay.commerce.shipping.engine.fixed.util.comparator.CommerceShippingFixedOptionPriorityComparator;
 import com.liferay.commerce.shipping.engine.fixed.web.internal.util.CommerceShippingFixedOptionEngineUtil;
-import com.liferay.commerce.util.CommerceShippingHelper;
 import com.liferay.commerce.util.comparator.CommerceShippingOptionPriorityComparator;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
@@ -289,9 +289,11 @@ public class ByWeightCommerceShippingEngine implements CommerceShippingEngine {
 					commerceOrder, locale, commerceAddress,
 					commerceShippingFixedOption);
 
-			if (commerceShippingOption != null) {
-				commerceShippingOptions.add(commerceShippingOption);
+			if (commerceShippingOption == null) {
+				continue;
 			}
+
+			commerceShippingOptions.add(commerceShippingOption);
 		}
 
 		return ListUtil.sort(
@@ -305,9 +307,11 @@ public class ByWeightCommerceShippingEngine implements CommerceShippingEngine {
 			commerceOrder.getCommerceOrderItems();
 
 		for (CommerceOrderItem commerceOrderItem : commerceOrderItems) {
-			if (commerceOrderItem.isShippable()) {
-				subtotal = subtotal.add(commerceOrderItem.getFinalPrice());
+			if (!commerceOrderItem.isShippable()) {
+				continue;
 			}
+
+			subtotal = subtotal.add(commerceOrderItem.getFinalPrice());
 		}
 
 		return subtotal;

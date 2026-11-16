@@ -14,22 +14,24 @@ import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectEntry;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManager;
 import com.liferay.object.rest.manager.v1_0.ObjectEntryManagerRegistry;
+import com.liferay.object.service.ObjectDefinitionLocalService;
 import com.liferay.object.service.ObjectEntryLocalService;
 import com.liferay.object.web.internal.util.ObjectEntryUtil;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
+import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
-import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -57,8 +59,28 @@ public class ObjectEntryInfoItemObjectProviderTest {
 	}
 
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
+		_groupLocalService = Mockito.mock(GroupLocalService.class);
+
+		_group = Mockito.mock(Group.class);
+
+		Mockito.when(
+			_groupLocalService.fetchGroup(Mockito.anyLong())
+		).thenReturn(
+			_group
+		);
+
 		_objectDefinition = Mockito.mock(ObjectDefinition.class);
+
+		_objectDefinitionLocalService = Mockito.mock(
+			ObjectDefinitionLocalService.class);
+
+		Mockito.when(
+			_objectDefinitionLocalService.getObjectDefinition(Mockito.anyLong())
+		).thenReturn(
+			_objectDefinition
+		);
+
 		_objectEntryLocalService = Mockito.mock(ObjectEntryLocalService.class);
 
 		_objectEntryManager = Mockito.mock(ObjectEntryManager.class);
@@ -67,18 +89,20 @@ public class ObjectEntryInfoItemObjectProviderTest {
 			ObjectEntryManagerRegistry.class);
 
 		Mockito.when(
-			_objectEntryManagerRegistry.getObjectEntryManager(null)
+			_objectEntryManagerRegistry.getObjectEntryManager(0, null)
 		).thenReturn(
 			_objectEntryManager
 		);
 
 		_objectEntryUtilMockedStatic.reset();
+
+		_userLocalService = Mockito.mock(UserLocalService.class);
 	}
 
 	@Test
 	public void testGetInfoItemLiferayObjectEntry() throws Exception {
 		long classPK = RandomTestUtil.randomLong();
-		ObjectEntry objectEntry = Mockito.mock(ObjectEntry.class);
+		ObjectEntry objectEntry = _mockObjectEntry(true);
 
 		Mockito.when(
 			_objectEntryLocalService.fetchObjectEntry(classPK)
@@ -89,6 +113,12 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		Assert.assertEquals(
 			objectEntry,
 			_assertGetInfoItem(new ClassPKInfoItemIdentifier(classPK)));
+
+		Mockito.verify(
+			_objectEntryLocalService, Mockito.never()
+		).fetchObjectEntryByHeadObjectEntryId(
+			Mockito.anyLong()
+		);
 
 		Mockito.verifyNoInteractions(_objectEntryManagerRegistry);
 	}
@@ -111,9 +141,216 @@ public class ObjectEntryInfoItemObjectProviderTest {
 	}
 
 	@Test
+	public void testGetInfoItemNonapprovedCachedProxyObjectEntry()
+		throws Exception {
+
+		ERCInfoItemIdentifier ercInfoItemIdentifier = new ERCInfoItemIdentifier(
+			RandomTestUtil.randomString());
+
+		ObjectEntry objectEntry = _mockObjectEntry(false);
+
+		long objectEntryId = RandomTestUtil.randomLong();
+
+		Mockito.when(
+			objectEntry.getObjectEntryId()
+		).thenReturn(
+			objectEntryId
+		);
+
+		ObjectEntry headObjectEntry = _mockObjectEntry(true);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntryByHeadObjectEntryId(
+				objectEntryId)
+		).thenReturn(
+			headObjectEntry
+		);
+
+		Assert.assertEquals(
+			headObjectEntry,
+			_assertGetInfoItem(
+				ercInfoItemIdentifier,
+				_getHttpServletRequest(
+					HashMapBuilder.<String, Object>put(
+						_OBJECT_ENTRIES,
+						HashMapBuilder.<InfoItemIdentifier, ObjectEntry>put(
+							ercInfoItemIdentifier, objectEntry
+						).build()
+					).build())));
+
+		Mockito.verifyNoInteractions(_objectEntryManager);
+	}
+
+	@Test
+	public void testGetInfoItemNonapprovedLiferayObjectEntryWithApprovedHeadObjectEntry()
+		throws Exception {
+
+		long objectEntryId = RandomTestUtil.randomLong();
+		ObjectEntry objectEntry = _mockObjectEntry(false);
+
+		Mockito.when(
+			objectEntry.getObjectEntryId()
+		).thenReturn(
+			objectEntryId
+		);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntry(objectEntryId)
+		).thenReturn(
+			objectEntry
+		);
+
+		ObjectEntry headObjectEntry = _mockObjectEntry(true);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntryByHeadObjectEntryId(
+				objectEntryId)
+		).thenReturn(
+			headObjectEntry
+		);
+
+		Assert.assertEquals(
+			headObjectEntry,
+			_assertGetInfoItem(new ClassPKInfoItemIdentifier(objectEntryId)));
+
+		ClassPKInfoItemIdentifier classPKInfoItemIdentifier =
+			new ClassPKInfoItemIdentifier(
+				objectEntryId, InfoItemIdentifier.VERSION_LATEST_APPROVED);
+
+		Assert.assertEquals(
+			headObjectEntry, _assertGetInfoItem(classPKInfoItemIdentifier));
+
+		Mockito.verifyNoInteractions(_objectEntryManagerRegistry);
+	}
+
+	@Test
+	public void testGetInfoItemNonapprovedLiferayObjectEntryWithLatestVersion()
+		throws Exception {
+
+		long objectEntryId = RandomTestUtil.randomLong();
+		ObjectEntry objectEntry = _mockObjectEntry(false);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntry(objectEntryId)
+		).thenReturn(
+			objectEntry
+		);
+
+		ClassPKInfoItemIdentifier classPKInfoItemIdentifier =
+			new ClassPKInfoItemIdentifier(
+				objectEntryId, InfoItemIdentifier.VERSION_LATEST);
+
+		Assert.assertEquals(
+			objectEntry, _assertGetInfoItem(classPKInfoItemIdentifier));
+
+		Mockito.verify(
+			_objectEntryLocalService, Mockito.never()
+		).fetchObjectEntryByHeadObjectEntryId(
+			Mockito.anyLong()
+		);
+
+		Mockito.verifyNoInteractions(_objectEntryManagerRegistry);
+	}
+
+	@Test
+	public void testGetInfoItemNonapprovedLiferayObjectEntryWithNonapprovedHeadObjectEntry() {
+		long objectEntryId = RandomTestUtil.randomLong();
+		ObjectEntry objectEntry = _mockObjectEntry(false);
+
+		Mockito.when(
+			objectEntry.getObjectEntryId()
+		).thenReturn(
+			objectEntryId
+		);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntry(objectEntryId)
+		).thenReturn(
+			objectEntry
+		);
+
+		ObjectEntry headObjectEntry = _mockObjectEntry(false);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntryByHeadObjectEntryId(
+				objectEntryId)
+		).thenReturn(
+			headObjectEntry
+		);
+
+		_assertGetInfoItemNoSuchInfoItemException(
+			new ClassPKInfoItemIdentifier(objectEntryId),
+			"Unable to get an approved object entry " + objectEntryId);
+
+		Mockito.verifyNoInteractions(_objectEntryManagerRegistry);
+	}
+
+	@Test
+	public void testGetInfoItemNonapprovedLiferayObjectEntryWithoutHeadObjectEntry() {
+		long objectEntryId = RandomTestUtil.randomLong();
+		ObjectEntry objectEntry = _mockObjectEntry(false);
+
+		Mockito.when(
+			objectEntry.getObjectEntryId()
+		).thenReturn(
+			objectEntryId
+		);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntry(objectEntryId)
+		).thenReturn(
+			objectEntry
+		);
+
+		_assertGetInfoItemNoSuchInfoItemException(
+			new ClassPKInfoItemIdentifier(objectEntryId),
+			"Unable to get an approved object entry " + objectEntryId);
+
+		Mockito.verify(
+			_objectEntryLocalService
+		).fetchObjectEntryByHeadObjectEntryId(
+			objectEntryId
+		);
+
+		Mockito.verifyNoInteractions(_objectEntryManagerRegistry);
+	}
+
+	@Test
+	public void testGetInfoItemNonapprovedProxyObjectEntryWithApprovedHeadObjectEntry()
+		throws Exception {
+
+		String externalReferenceCode = RandomTestUtil.randomString();
+		ObjectEntry objectEntry = _mockObjectEntry(false);
+
+		long objectEntryId = RandomTestUtil.randomLong();
+
+		Mockito.when(
+			objectEntry.getObjectEntryId()
+		).thenReturn(
+			objectEntryId
+		);
+
+		_setUpProxyObjectEntry(externalReferenceCode, objectEntry);
+
+		ObjectEntry headObjectEntry = _mockObjectEntry(true);
+
+		Mockito.when(
+			_objectEntryLocalService.fetchObjectEntryByHeadObjectEntryId(
+				objectEntryId)
+		).thenReturn(
+			headObjectEntry
+		);
+
+		Assert.assertEquals(
+			headObjectEntry,
+			_assertGetInfoItem(
+				new ERCInfoItemIdentifier(externalReferenceCode)));
+	}
+
+	@Test
 	public void testGetInfoItemProxyObjectEntry() throws Exception {
 		String externalReferenceCode = RandomTestUtil.randomString();
-		ObjectEntry objectEntry = Mockito.mock(ObjectEntry.class);
+		ObjectEntry objectEntry = _mockObjectEntry(true);
 
 		_setUpProxyObjectEntry(externalReferenceCode, objectEntry);
 
@@ -134,7 +371,7 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		ERCInfoItemIdentifier ercInfoItemIdentifier = new ERCInfoItemIdentifier(
 			externalReferenceCode);
 
-		ObjectEntry objectEntry = Mockito.mock(ObjectEntry.class);
+		ObjectEntry objectEntry = _mockObjectEntry(true);
 
 		_setUpProxyObjectEntry(externalReferenceCode, objectEntry);
 
@@ -156,7 +393,7 @@ public class ObjectEntryInfoItemObjectProviderTest {
 
 		Map<String, Object> attributes = new HashMap<>();
 		String externalReferenceCode = RandomTestUtil.randomString();
-		ObjectEntry objectEntry = Mockito.mock(ObjectEntry.class);
+		ObjectEntry objectEntry = _mockObjectEntry(true);
 
 		_assertGetInfoItemProxyObjectEntry(
 			attributes, new ERCInfoItemIdentifier(externalReferenceCode),
@@ -188,7 +425,7 @@ public class ObjectEntryInfoItemObjectProviderTest {
 	public void testGetInfoItemProxyObjectEntryNullHttpServletRequest()
 		throws Exception {
 
-		ObjectEntry objectEntry = Mockito.mock(ObjectEntry.class);
+		ObjectEntry objectEntry = _mockObjectEntry(true);
 
 		String externalReferenceCode = RandomTestUtil.randomString();
 
@@ -211,7 +448,8 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		);
 
 		_objectEntryUtilMockedStatic.verify(
-			() -> ObjectEntryUtil.toObjectEntry(0L, proxyObjectEntry));
+			() -> ObjectEntryUtil.toObjectEntry(
+				_objectDefinition, proxyObjectEntry));
 	}
 
 	@Test
@@ -236,7 +474,7 @@ public class ObjectEntryInfoItemObjectProviderTest {
 
 		_assertGetInfoItemNoSuchInfoItemException(
 			infoItemIdentifier,
-			"Unsupported info item identifier type " + infoItemIdentifier);
+			"Unsupported info item identifier " + infoItemIdentifier);
 
 		Mockito.verifyNoInteractions(_objectEntryLocalService);
 		Mockito.verifyNoInteractions(_objectEntryManagerRegistry);
@@ -256,8 +494,9 @@ public class ObjectEntryInfoItemObjectProviderTest {
 
 		ObjectEntryInfoItemObjectProvider objectEntryInfoItemObjectProvider =
 			new ObjectEntryInfoItemObjectProvider(
-				_objectDefinition, _objectEntryLocalService,
-				_objectEntryManagerRegistry);
+				_groupLocalService, _objectDefinition,
+				_objectDefinitionLocalService, _objectEntryLocalService,
+				_objectEntryManagerRegistry, _userLocalService);
 
 		try {
 			_pushServiceContext(httpServletRequest);
@@ -310,7 +549,8 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		);
 
 		_objectEntryUtilMockedStatic.verify(
-			() -> ObjectEntryUtil.toObjectEntry(0L, proxyObjectEntry));
+			() -> ObjectEntryUtil.toObjectEntry(
+				_objectDefinition, proxyObjectEntry));
 
 		_assertObjectEntriesAttribute(
 			attributes, ercInfoItemIdentifier, objectEntry);
@@ -397,6 +637,18 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		return httpServletRequest;
 	}
 
+	private ObjectEntry _mockObjectEntry(boolean approved) {
+		ObjectEntry objectEntry = Mockito.mock(ObjectEntry.class);
+
+		Mockito.when(
+			objectEntry.isApproved()
+		).thenReturn(
+			approved
+		);
+
+		return objectEntry;
+	}
+
 	private void _pushServiceContext(HttpServletRequest httpServletRequest) {
 		ServiceContext serviceContext = Mockito.mock(ServiceContext.class);
 
@@ -404,20 +656,6 @@ public class ObjectEntryInfoItemObjectProviderTest {
 			serviceContext.getRequest()
 		).thenReturn(
 			httpServletRequest
-		);
-
-		ThemeDisplay themeDisplay = Mockito.mock(ThemeDisplay.class);
-
-		Mockito.when(
-			themeDisplay.getScopeGroup()
-		).thenReturn(
-			Mockito.mock(Group.class)
-		);
-
-		Mockito.when(
-			serviceContext.getThemeDisplay()
-		).thenReturn(
-			themeDisplay
 		);
 
 		ServiceContextThreadLocal.pushServiceContext(serviceContext);
@@ -440,7 +678,8 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		);
 
 		_objectEntryUtilMockedStatic.when(
-			() -> ObjectEntryUtil.toObjectEntry(0L, proxyObjectEntry)
+			() -> ObjectEntryUtil.toObjectEntry(
+				_objectDefinition, proxyObjectEntry)
 		).thenReturn(
 			objectEntry
 		);
@@ -455,9 +694,13 @@ public class ObjectEntryInfoItemObjectProviderTest {
 		_objectEntryUtilMockedStatic = Mockito.mockStatic(
 			ObjectEntryUtil.class);
 
+	private Group _group;
+	private GroupLocalService _groupLocalService;
 	private ObjectDefinition _objectDefinition;
+	private ObjectDefinitionLocalService _objectDefinitionLocalService;
 	private ObjectEntryLocalService _objectEntryLocalService;
 	private ObjectEntryManager _objectEntryManager;
 	private ObjectEntryManagerRegistry _objectEntryManagerRegistry;
+	private UserLocalService _userLocalService;
 
 }

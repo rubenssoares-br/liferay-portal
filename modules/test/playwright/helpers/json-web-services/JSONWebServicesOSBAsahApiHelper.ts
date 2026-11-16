@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
-import {asahConfig} from '../../tests/osb-faro-web/asah.config';
-import {Nanites} from '../../tests/osb-faro-web/utils/nanites';
+import {asahConfig} from '../../tests/osb-faro-web/main/asah.config';
+import {Nanites} from '../../tests/osb-faro-web/main/utils/nanites';
 import {ApiHelpers} from '../ApiHelpers';
 
 type BlogDaily = {
@@ -42,14 +42,22 @@ type Event = {
 	applicationId: string;
 	assetId?: string;
 	assetTitle?: string;
+	browserName?: string;
 	canonicalUrl: string;
 	channelId: string;
-	dataSourceId?: number;
+	context?: string;
+	dataSourceId?: number | string;
+	deviceType?: string;
+	emailAddressHashed?: string;
 	eventDate: string;
 	eventId: string;
 	eventProperties?: string;
+	platformName?: string;
 	properties?: Property[];
+	referrer?: string;
+	sessionId?: string;
 	title: string;
+	url?: string;
 	userId: string;
 };
 
@@ -89,9 +97,21 @@ type JournalDaily = {
 };
 
 type Field = {
-	dataSourceId: number;
+	dataSourceId: number | string;
 	name: string;
 	value: string;
+};
+
+type IdentityActivitySummary = {
+	activitiesCount: number;
+	channelId: string;
+	country?: string;
+	dataSourceId: number | string;
+	eventId: string;
+	firstActivityDate: string;
+	identityId: string;
+	individualId: string;
+	lastActivityDate: string;
 };
 
 type Individual = {
@@ -153,9 +173,13 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createEvents(events: Event[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/events`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-events`,
 			{
-				data: events,
+				data: events.map((event) => ({
+					context: '{}',
+					deviceType: 'Desktop',
+					...event,
+				})),
 				failOnStatusCode: true,
 				headers: this.getHeaders(),
 			}
@@ -166,7 +190,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 		eventDefinition: EventDefinition[]
 	): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/event-definition`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/event-definitions`,
 			{
 				data: eventDefinition,
 				failOnStatusCode: true,
@@ -175,9 +199,20 @@ export class JSONWebServicesOSBAsahApiHelper {
 		);
 	}
 
+	async deleteEventDefinitions(names: string[]): Promise<any> {
+		return this.apiHelpers.delete(
+			`${asahConfig.environment.backendUrl}${this.basePath}/event-definitions`,
+			{
+				data: names,
+				failOnStatusCode: true,
+				headers: this.getHeaders(),
+			}
+		);
+	}
+
 	async createIdentities(identities: Identity[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/identities`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-identities`,
 			{
 				data: identities,
 				failOnStatusCode: true,
@@ -186,9 +221,22 @@ export class JSONWebServicesOSBAsahApiHelper {
 		);
 	}
 
+	async createIdentityActivitiesSummary(
+		identityActivitiesSummary: IdentityActivitySummary[]
+	): Promise<any> {
+		return this.apiHelpers.post(
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-identity-activities-summary`,
+			{
+				data: identityActivitiesSummary,
+				failOnStatusCode: true,
+				headers: this.getHeaders(),
+			}
+		);
+	}
+
 	async createIndividuals(individuals: Individual[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/individuals`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-individuals`,
 			{
 				data: individuals,
 				failOnStatusCode: true,
@@ -199,7 +247,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createPagesDaily(pagesDaily: PageDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/pagesdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-pages-daily`,
 			{
 				data: pagesDaily,
 				failOnStatusCode: true,
@@ -210,7 +258,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createBlogsDaily(blogsDaily: BlogDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/blogsdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-blogs-daily`,
 			{
 				data: blogsDaily,
 				failOnStatusCode: true,
@@ -223,7 +271,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 		documentLibrariesDaily: DocumentLibraryDaily[]
 	): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/documentlibrariesdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-document-libraries-daily`,
 			{
 				data: documentLibrariesDaily,
 				failOnStatusCode: true,
@@ -234,7 +282,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createJournalsDaily(journalsdaily: JournalDaily[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/journalsdaily`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-journals-daily`,
 			{
 				data: journalsdaily,
 				failOnStatusCode: true,
@@ -245,7 +293,7 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async createSessions(session: Session[]): Promise<any> {
 		return this.apiHelpers.post(
-			`${asahConfig.environment.backendUrl}${this.basePath}/sessions`,
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-sessions`,
 			{
 				data: session,
 				failOnStatusCode: true,
@@ -256,8 +304,8 @@ export class JSONWebServicesOSBAsahApiHelper {
 
 	async closeSessions(): Promise<any> {
 		return this.apiHelpers.delete(
-			`${asahConfig.environment.backendUrl}${this.basePath}/sessions/close`,
-			this.getHeaders()
+			`${asahConfig.environment.backendUrl}${this.basePath}/bq-sessions/close`,
+			{headers: this.getHeaders()}
 		);
 	}
 }

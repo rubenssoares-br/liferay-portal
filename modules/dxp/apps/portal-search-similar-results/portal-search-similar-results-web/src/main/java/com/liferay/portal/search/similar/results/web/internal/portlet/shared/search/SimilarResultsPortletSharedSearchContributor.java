@@ -26,7 +26,7 @@ import com.liferay.portal.search.filter.ComplexQueryPart;
 import com.liferay.portal.search.filter.ComplexQueryPartBuilderFactory;
 import com.liferay.portal.search.model.uid.UIDFactory;
 import com.liferay.portal.search.query.MoreLikeThisQuery;
-import com.liferay.portal.search.query.Queries;
+import com.liferay.portal.search.query.QueriesUtil;
 import com.liferay.portal.search.query.Query;
 import com.liferay.portal.search.searcher.SearchRequestBuilder;
 import com.liferay.portal.search.similar.results.web.internal.builder.SimilarResultsContributorsRegistry;
@@ -42,12 +42,12 @@ import com.liferay.portal.search.web.portlet.shared.search.PortletSharedSearchSe
 import com.liferay.wiki.service.WikiNodeLocalService;
 import com.liferay.wiki.service.WikiPageLocalService;
 
+import jakarta.portlet.RenderRequest;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.RenderRequest;
 
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -57,7 +57,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Wade Cao
  */
 @Component(
-	property = "javax.portlet.name=" + SimilarResultsPortletKeys.SIMILAR_RESULTS,
+	property = "jakarta.portlet.name=" + SimilarResultsPortletKeys.SIMILAR_RESULTS,
 	service = PortletSharedSearchContributor.class
 )
 public class SimilarResultsPortletSharedSearchContributor
@@ -216,16 +216,16 @@ public class SimilarResultsPortletSharedSearchContributor
 	}
 
 	private Query _getEntryClassNameQuery(String entryClassName) {
-		return _queries.term(Field.ENTRY_CLASS_NAME, entryClassName);
+		return QueriesUtil.term(Field.ENTRY_CLASS_NAME, entryClassName);
 	}
 
 	private MoreLikeThisQuery _getMoreLikeThisQuery(
 		String uid,
 		SimilarResultsPortletPreferences similarResultsPortletPreferences) {
 
-		MoreLikeThisQuery moreLikeThisQuery = _queries.moreLikeThis(
+		MoreLikeThisQuery moreLikeThisQuery = QueriesUtil.moreLikeThis(
 			Collections.singleton(
-				_queries.documentIdentifier(
+				QueriesUtil.documentIdentifier(
 					similarResultsPortletPreferences.getIndexName(),
 					similarResultsPortletPreferences.getDocType(), uid)));
 
@@ -320,9 +320,6 @@ public class SimilarResultsPortletSharedSearchContributor
 
 	@Reference
 	private Portal _portal;
-
-	@Reference
-	private Queries _queries;
 
 	private SimilarResultsContributorsRegistry
 		_similarResultsContributorsRegistry;

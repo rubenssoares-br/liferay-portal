@@ -11,12 +11,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
@@ -25,6 +30,8 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -32,18 +39,18 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("ReplenishmentItem")
+@GraphQLName(
+	description = "Planned restock event for a SKU at a warehouse. Records the expected quantity (strictly positive) and the date it becomes available; on create the underlying warehouse item identified by warehouseId and sku must already exist.",
+	value = "ReplenishmentItem"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Planned restock event for a SKU at a warehouse. Records the expected quantity (strictly positive) and the date it becomes available; on create the underlying warehouse item identified by warehouseId and sku must already exist."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "ReplenishmentItem")
 public class ReplenishmentItem implements Serializable {
@@ -56,7 +63,10 @@ public class ReplenishmentItem implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(ReplenishmentItem.class, json);
 	}
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date the planned restock becomes available, in ISO 8601 date-time format. Optional -- a missing value is allowed.",
+		example = "2017-07-21"
+	)
 	public Date getAvailabilityDate() {
 		if (_availabilityDateSupplier != null) {
 			availabilityDate = _availabilityDateSupplier.get();
@@ -90,14 +100,19 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Date the planned restock becomes available, in ISO 8601 date-time format. Optional -- a missing value is allowed."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date availabilityDate;
 
 	@JsonIgnore
 	private Supplier<Date> _availabilityDateSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per replenishment item within the company. Optional on create; the runtime accepts a blank value.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -131,14 +146,19 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per replenishment item within the company. Optional on create; the runtime accepts a blank value."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal numeric identifier of the replenishment item; read-only and assigned by the service on create; immutable thereafter.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -170,14 +190,19 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Internal numeric identifier of the replenishment item; read-only and assigned by the service on create; immutable thereafter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "10.1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Planned restock quantity, scaled to the unitOfMeasureKey precision. Must be strictly positive; values of zero or below are rejected. The runtime formats the persisted decimal through the commerce quantity formatter on read.",
+		example = "10.1"
+	)
 	@Valid
 	public BigDecimal getQuantity() {
 		if (_quantitySupplier != null) {
@@ -212,14 +237,19 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Planned restock quantity, scaled to the unitOfMeasureKey precision. Must be strictly positive; values of zero or below are rejected. The runtime formats the persisted decimal through the commerce quantity formatter on read."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected BigDecimal quantity;
 
 	@JsonIgnore
 	private Supplier<BigDecimal> _quantitySupplier;
 
-	@Schema(example = "SKU")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "SKU (stock keeping unit) the planned restock targets. Required and non-blank on create; immutable on update -- a different SKU cannot be patched onto an existing replenishment item.",
+		example = "SKU"
+	)
 	public String getSku() {
 		if (_skuSupplier != null) {
 			sku = _skuSupplier.get();
@@ -251,14 +281,19 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "SKU (stock keeping unit) the planned restock targets. Required and non-blank on create; immutable on update -- a different SKU cannot be patched onto an existing replenishment item."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String sku;
 
 	@JsonIgnore
 	private Supplier<String> _skuSupplier;
 
-	@Schema(example = "lt")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Key of the unit-of-measure the quantity is expressed in. Empty string denotes the SKU's default unit. Immutable on update.",
+		example = "lt"
+	)
 	public String getUnitOfMeasureKey() {
 		if (_unitOfMeasureKeySupplier != null) {
 			unitOfMeasureKey = _unitOfMeasureKeySupplier.get();
@@ -292,14 +327,19 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Key of the unit-of-measure the quantity is expressed in. Empty string denotes the SKU's default unit. Immutable on update."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String unitOfMeasureKey;
 
 	@JsonIgnore
 	private Supplier<String> _unitOfMeasureKeySupplier;
 
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the warehouse the planned restock targets (FK identifier). Immutable on update.",
+		example = "30130"
+	)
 	public Long getWarehouseId() {
 		if (_warehouseIdSupplier != null) {
 			warehouseId = _warehouseIdSupplier.get();
@@ -333,7 +373,9 @@ public class ReplenishmentItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the warehouse the planned restock targets (FK identifier). Immutable on update."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long warehouseId;
 
@@ -475,8 +517,8 @@ public class ReplenishmentItem implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.inventory.dto.v1_0.ReplenishmentItem",
 		name = "x-class-name"
 	)
@@ -563,6 +605,27 @@ public class ReplenishmentItem implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -571,3 +634,4 @@ public class ReplenishmentItem implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-181369717

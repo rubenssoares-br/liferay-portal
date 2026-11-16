@@ -11,6 +11,10 @@ export {default as Advanced} from './Advanced';
 
 // @ts-ignore
 
+export {default as CopySitemapURL} from './CopySitemapURL';
+
+// @ts-ignore
+
 export {default as CustomizationButtonPropsTransformer} from './CustomizationButtonPropsTransformer';
 
 // @ts-ignore
@@ -52,10 +56,6 @@ export {default as LookAndFeelThemeEdit} from './LookAndFeelThemeEdit';
 // @ts-ignore
 
 export {default as OrphanPortletsManagementToolbarPropsTransformer} from './OrphanPortletsManagementToolbarPropsTransformer';
-
-// @ts-ignore
-
-export {default as SelectLayoutCollectionManagementToolbarPropsTransformer} from './SelectLayoutCollectionManagementToolbarPropsTransformer';
 
 // @ts-ignore
 

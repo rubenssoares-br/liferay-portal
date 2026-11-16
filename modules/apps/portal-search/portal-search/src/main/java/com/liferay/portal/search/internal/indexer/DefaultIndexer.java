@@ -9,6 +9,7 @@ import com.liferay.petra.lang.HashUtil;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
+import com.liferay.portal.kernel.dao.orm.IndexableActionableDynamicQuery;
 import com.liferay.portal.kernel.model.BaseModel;
 import com.liferay.portal.kernel.model.change.tracking.CTModel;
 import com.liferay.portal.kernel.search.BooleanQuery;
@@ -31,13 +32,13 @@ import com.liferay.portal.search.indexer.IndexerSummaryBuilder;
 import com.liferay.portal.search.indexer.IndexerWriter;
 import com.liferay.portal.search.spi.model.registrar.ModelSearchSettings;
 
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
 
 /**
  * @author Michael C. Han
@@ -136,6 +137,24 @@ public class DefaultIndexer<T extends BaseModel<?>> implements Indexer<T> {
 	}
 
 	@Override
+	public long getReindexEntryCount(long companyId) {
+		long indexerCompanyId = getCompanyId();
+
+		if (((indexerCompanyId != 0) && (indexerCompanyId != companyId)) ||
+			!_indexerWriter.shouldRun(companyId)) {
+
+			return 0;
+		}
+
+		IndexableActionableDynamicQuery indexableActionableDynamicQuery =
+			_indexerWriter.getIndexableActionableDynamicQuery();
+
+		indexableActionableDynamicQuery.setCompanyId(companyId);
+
+		return indexableActionableDynamicQuery.performCount();
+	}
+
+	@Override
 	public String[] getSearchClassNames() {
 		return _modelSearchSettings.getSearchClassNames();
 	}
@@ -163,6 +182,16 @@ public class DefaultIndexer<T extends BaseModel<?>> implements Indexer<T> {
 	}
 
 	@Override
+	public boolean hasPermission(
+			PermissionChecker permissionChecker, String entryClassName,
+			long entryClassPK, String actionId)
+		throws Exception {
+
+		return _indexerPermissionPostFilter.hasPermission(
+			permissionChecker, entryClassPK);
+	}
+
+	@Override
 	public int hashCode() {
 		String[] searchClassNames = getSearchClassNames();
 
@@ -173,16 +202,6 @@ public class DefaultIndexer<T extends BaseModel<?>> implements Indexer<T> {
 		}
 
 		return HashUtil.hash(0, sb.toString());
-	}
-
-	@Override
-	public boolean hasPermission(
-			PermissionChecker permissionChecker, String entryClassName,
-			long entryClassPK, String actionId)
-		throws Exception {
-
-		return _indexerPermissionPostFilter.hasPermission(
-			permissionChecker, entryClassPK);
 	}
 
 	@Override
@@ -263,11 +282,6 @@ public class DefaultIndexer<T extends BaseModel<?>> implements Indexer<T> {
 	}
 
 	@Override
-	public void reindex(String[] ids) throws SearchException {
-		_indexerWriter.reindex(ids);
-	}
-
-	@Override
 	public void reindex(T baseModel) throws SearchException {
 		_indexerWriter.reindex(baseModel);
 	}
@@ -275,6 +289,11 @@ public class DefaultIndexer<T extends BaseModel<?>> implements Indexer<T> {
 	@Override
 	public void reindex(T baseModel, boolean notify) throws SearchException {
 		_indexerWriter.reindex(baseModel, notify);
+	}
+
+	@Override
+	public void reindexCompany(long companyId) throws SearchException {
+		_indexerWriter.reindexCompany(companyId);
 	}
 
 	@Override

@@ -59,6 +59,7 @@ public class CPDefinitionSpecificationOptionValueWrapper
 		attributes.put("key", getKey());
 		attributes.put("priority", getPriority());
 		attributes.put("value", getValue());
+		attributes.put("visible", isVisible());
 		attributes.put("lastPublishDate", getLastPublishDate());
 
 		return attributes;
@@ -170,6 +171,12 @@ public class CPDefinitionSpecificationOptionValueWrapper
 
 		if (value != null) {
 			setValue(value);
+		}
+
+		Boolean visible = (Boolean)attributes.get("visible");
+
+		if (visible != null) {
+			setVisible(visible);
 		}
 
 		Date lastPublishDate = (Date)attributes.get("lastPublishDate");
@@ -481,6 +488,26 @@ public class CPDefinitionSpecificationOptionValueWrapper
 		return model.getValueMap();
 	}
 
+	/**
+	 * Returns the visible of this cp definition specification option value.
+	 *
+	 * @return the visible of this cp definition specification option value
+	 */
+	@Override
+	public boolean getVisible() {
+		return model.getVisible();
+	}
+
+	/**
+	 * Returns <code>true</code> if this cp definition specification option value is visible.
+	 *
+	 * @return <code>true</code> if this cp definition specification option value is visible; <code>false</code> otherwise
+	 */
+	@Override
+	public boolean isVisible() {
+		return model.isVisible();
+	}
+
 	@Override
 	public void persist() {
 		model.persist();
@@ -758,6 +785,16 @@ public class CPDefinitionSpecificationOptionValueWrapper
 		model.setValueMap(valueMap, defaultLocale);
 	}
 
+	/**
+	 * Sets whether this cp definition specification option value is visible.
+	 *
+	 * @param visible the visible of this cp definition specification option value
+	 */
+	@Override
+	public void setVisible(boolean visible) {
+		model.setVisible(visible);
+	}
+
 	@Override
 	public String toXmlString() {
 		return model.toXmlString();
@@ -792,3 +829,4 @@ public class CPDefinitionSpecificationOptionValueWrapper
 	}
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:264766567

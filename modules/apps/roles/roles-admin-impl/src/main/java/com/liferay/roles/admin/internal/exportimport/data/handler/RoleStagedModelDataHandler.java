@@ -144,14 +144,15 @@ public class RoleStagedModelDataHandler
 			serviceContext.setUuid(role.getUuid());
 
 			importedRole = _roleLocalService.addRole(
-				role.getExternalReferenceCode(), userId, null, 0,
+				role.getExternalReferenceCode(), userId, role.getClassName(), 0,
 				role.getName(), role.getTitleMap(), role.getDescriptionMap(),
 				role.getType(), role.getSubtype(), serviceContext);
 		}
 		else {
 			importedRole = _roleLocalService.updateRole(
-				existingRole.getRoleId(), role.getName(), role.getTitleMap(),
-				role.getDescriptionMap(), role.getSubtype(), serviceContext);
+				role.getExternalReferenceCode(), existingRole.getRoleId(),
+				role.getName(), role.getTitleMap(), role.getDescriptionMap(),
+				role.getSubtype(), serviceContext);
 
 			_deleteRolePermissions(portletDataContext, importedRole);
 		}
@@ -224,10 +225,11 @@ public class RoleStagedModelDataHandler
 				group = importedUserGroup.getGroup();
 			}
 
-			if (group != null) {
-				_groupLocalService.addRoleGroup(
-					importedRole.getRoleId(), group);
+			if (group == null) {
+				continue;
 			}
+
+			_groupLocalService.addRoleGroup(importedRole.getRoleId(), group);
 		}
 
 		portletDataContext.importClassedModel(role, importedRole);
@@ -262,12 +264,14 @@ public class RoleStagedModelDataHandler
 			long groupId = GetterUtil.getLong(
 				groupResourcePermission.getPrimKey());
 
-			if ((groupId == portletDataContext.getCompanyGroupId()) ||
-				(groupId == portletDataContext.getUserPersonalSiteGroupId())) {
+			if ((groupId != portletDataContext.getCompanyGroupId()) &&
+				(groupId != portletDataContext.getUserPersonalSiteGroupId())) {
 
-				_resourcePermissionLocalService.deleteResourcePermission(
-					groupResourcePermission);
+				continue;
 			}
+
+			_resourcePermissionLocalService.deleteResourcePermission(
+				groupResourcePermission);
 		}
 	}
 

@@ -29,9 +29,9 @@ import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.theme.ThemeDisplayFactory;
 
-import java.util.Date;
+import jakarta.servlet.http.Cookie;
 
-import javax.servlet.http.Cookie;
+import java.util.Date;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -105,6 +105,9 @@ public class AuthenticatedSessionManagerUtilTest {
 			new MockHttpServletRequest();
 		MockHttpServletResponse mockHttpServletResponse =
 			new MockHttpServletResponse();
+
+		mockHttpServletRequest.setAttribute(
+			WebKeys.COMPANY_ID, TestPropsValues.getCompanyId());
 
 		_cookiesManager.addCookie(
 			CookiesConstants.CONSENT_TYPE_FUNCTIONAL,

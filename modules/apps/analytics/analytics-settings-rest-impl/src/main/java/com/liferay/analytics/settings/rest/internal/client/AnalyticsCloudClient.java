@@ -18,6 +18,12 @@ import com.liferay.analytics.settings.rest.internal.client.model.AnalyticsChanne
 import com.liferay.analytics.settings.rest.internal.client.model.AnalyticsDataSource;
 import com.liferay.analytics.settings.rest.internal.client.pagination.Page;
 import com.liferay.analytics.settings.rest.internal.client.pagination.Pagination;
+import com.liferay.oauth2.provider.constants.ClientProfile;
+import com.liferay.oauth2.provider.constants.GrantType;
+import com.liferay.oauth2.provider.model.OAuth2Application;
+import com.liferay.oauth2.provider.service.OAuth2ApplicationLocalService;
+import com.liferay.oauth2.provider.util.OAuth2SecureRandomGenerator;
+import com.liferay.oauth2.provider.util.builder.OAuth2ScopeBuilder;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.exception.PortalException;
@@ -30,23 +36,35 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.Organization;
+import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Sort;
-import com.liferay.portal.kernel.servlet.HttpHeaders;
+import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.Base64;
 import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.Http;
 import com.liferay.portal.kernel.util.HttpComponentsUtil;
+import com.liferay.portal.kernel.util.InetAddressUtil;
+import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Validator;
+import com.liferay.portal.security.key.secret.SecretResolverUtil;
 
 import java.net.HttpURLConnection;
+import java.net.URL;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -56,6 +74,14 @@ public class AnalyticsCloudClient {
 
 	public AnalyticsCloudClient(Http http) {
 		_http = http;
+	}
+
+	public AnalyticsCloudClient(
+		Http http,
+		OAuth2ApplicationLocalService oAuth2ApplicationLocalService) {
+
+		_http = http;
+		_oAuth2ApplicationLocalService = oAuth2ApplicationLocalService;
 	}
 
 	public AnalyticsChannel addAnalyticsChannel(
@@ -101,17 +127,61 @@ public class AnalyticsCloudClient {
 	}
 
 	public Map<String, Object> connectAnalyticsDataSource(
-			Company company, String connectionToken)
+			Company company, String connectionToken, User user)
 		throws Exception {
 
-		JSONObject connectionTokenJSONObject = _decodeToken(connectionToken);
+		if (_oAuth2ApplicationLocalService == null) {
+			throw new DataSourceConnectionException(
+				"Unable to connect with Analytics Cloud");
+		}
+
+		JSONObject jsonObject = _decodeToken(connectionToken);
+
+		String url = jsonObject.getString("url");
+
+		_validateConnectionTokenURL(url);
+
+		OAuth2Application oAuth2Application =
+			_oAuth2ApplicationLocalService.
+				fetchOAuth2ApplicationByExternalReferenceCode(
+					"ANALYTICS-CLOUD", company.getCompanyId());
+
+		if (oAuth2Application == null) {
+			URL connectionTokenURL = new URL(url);
+
+			String homePageURL = StringBundler.concat(
+				connectionTokenURL.getProtocol(), "://",
+				connectionTokenURL.getAuthority());
+
+			oAuth2Application =
+				_oAuth2ApplicationLocalService.addOrUpdateOAuth2Application(
+					"ANALYTICS-CLOUD", user.getUserId(), user.getScreenName(),
+					new ArrayList<GrantType>() {
+						{
+							add(GrantType.CLIENT_CREDENTIALS);
+							add(GrantType.JWT_BEARER);
+						}
+					},
+					"client_secret_post", user.getUserId(),
+					OAuth2SecureRandomGenerator.generateClientId(),
+					ClientProfile.HEADLESS_SERVER.id(),
+					OAuth2SecureRandomGenerator.generateClientSecret(), null,
+					null, homePageURL, 0, null, "Analytics Cloud", null,
+					Collections.singletonList(homePageURL + "/oauth/receive"),
+					false, false, this::_buildScopes, new ServiceContext());
+		}
 
 		Http.Options options = new Http.Options();
 
 		options.addPart("name", company.getName());
+		options.addPart("oAuthClientId", oAuth2Application.getClientId());
+		options.addPart(
+			"oAuthClientSecret",
+			_oAuth2ApplicationLocalService.getPlaintextClientSecret(
+				oAuth2Application));
 		options.addPart("portalURL", company.getPortalURL(0));
-		options.addPart("token", connectionTokenJSONObject.getString("token"));
-		options.setLocation(connectionTokenJSONObject.getString("url"));
+		options.addPart("token", jsonObject.getString("token"));
+		options.setLocation(url);
 		options.setPost(true);
 
 		String content = _http.URLtoString(options);
@@ -136,13 +206,18 @@ public class AnalyticsCloudClient {
 	}
 
 	public AnalyticsDataSource disconnectAnalyticsDataSource(
-			AnalyticsConfiguration analyticsConfiguration)
+			AnalyticsConfiguration analyticsConfiguration, Company company)
 		throws Exception {
 
 		try {
 			Http.Options options = _getOptions(analyticsConfiguration);
 
-			options.addHeader(HttpHeaders.CONTENT_LENGTH, "0");
+			options.addHeader("Content-Type", ContentTypes.APPLICATION_JSON);
+			options.setBody(
+				JSONUtil.put(
+					"url", company.getPortalURL(0)
+				).toString(),
+				ContentTypes.APPLICATION_JSON, StringPool.UTF8);
 			options.setLocation(
 				String.format(
 					"%s/api/1.0/data-sources/%s/disconnect",
@@ -272,7 +347,7 @@ public class AnalyticsCloudClient {
 	}
 
 	public AnalyticsChannel updateAnalyticsChannel(
-			String analyticsChannelId, Group[] commerceChannelGroups,
+			String analyticsChannelId,
 			AnalyticsConfiguration analyticsConfiguration, String dataSourceId,
 			Locale locale, Group[] siteGroups)
 		throws Exception {
@@ -289,9 +364,6 @@ public class AnalyticsCloudClient {
 			options.addHeader("Content-Type", ContentTypes.APPLICATION_JSON);
 			options.setBody(
 				JSONUtil.put(
-					"commerceChannels",
-					_getGroupsJSONArray(commerceChannelGroups, locale)
-				).put(
 					"dataSourceId", dataSourceId
 				).put(
 					"groups", _getGroupsJSONArray(siteGroups, locale)
@@ -336,10 +408,64 @@ public class AnalyticsCloudClient {
 	}
 
 	public AnalyticsDataSource updateAnalyticsDataSourceDetails(
+			AnalyticsConfiguration analyticsConfiguration,
+			Boolean contentRecommenderMostPopularItemsEnabled,
+			Boolean contentRecommenderUserPersonalizationEnabled)
+		throws Exception {
+
+		try {
+			Http.Options options = _getOptions(analyticsConfiguration);
+
+			options.addHeader("Content-Type", ContentTypes.APPLICATION_JSON);
+			options.setBody(
+				JSONUtil.put(
+					"contentRecommenderMostPopularItemsEnabled",
+					contentRecommenderMostPopularItemsEnabled
+				).put(
+					"contentRecommenderUserPersonalizationEnabled",
+					contentRecommenderUserPersonalizationEnabled
+				).toString(),
+				ContentTypes.APPLICATION_JSON, StringPool.UTF8);
+			options.setLocation(
+				String.format(
+					"%s/api/1.0/data-sources/%s/details",
+					analyticsConfiguration.liferayAnalyticsFaroBackendURL(),
+					analyticsConfiguration.liferayAnalyticsDataSourceId()));
+			options.setPut(true);
+
+			String content = _http.URLtoString(options);
+
+			Http.Response response = options.getResponse();
+
+			if (response.getResponseCode() == HttpURLConnection.HTTP_OK) {
+				return ObjectMapperHolder._objectMapper.readValue(
+					content, AnalyticsDataSource.class);
+			}
+
+			if (_log.isDebugEnabled()) {
+				_log.debug("Response code " + response.getResponseCode());
+			}
+
+			throw new PortalException(
+				"Unable to update analytics data source content recommender " +
+					"details");
+		}
+		catch (Exception exception) {
+			if (_log.isDebugEnabled()) {
+				_log.debug(exception);
+			}
+
+			throw new PortalException(
+				"Unable to update analytics data source content recommender " +
+					"details",
+				exception);
+		}
+	}
+
+	public AnalyticsDataSource updateAnalyticsDataSourceDetails(
 			Boolean accountsSelected,
 			AnalyticsConfiguration analyticsConfiguration,
-			Boolean commerceChannelsSelected, Boolean contactsSelected,
-			Boolean sitesSelected)
+			Boolean contactsSelected)
 		throws Exception {
 
 		try {
@@ -350,11 +476,7 @@ public class AnalyticsCloudClient {
 				JSONUtil.put(
 					"accountsSelected", accountsSelected
 				).put(
-					"commerceChannelsSelected", commerceChannelsSelected
-				).put(
 					"contactsSelected", contactsSelected
-				).put(
-					"sitesSelected", sitesSelected
 				).toString(),
 				ContentTypes.APPLICATION_JSON, StringPool.UTF8);
 			options.setLocation(
@@ -390,6 +512,21 @@ public class AnalyticsCloudClient {
 		}
 	}
 
+	private void _buildScopes(OAuth2ScopeBuilder builder) {
+		builder.forApplication(
+			"Liferay.JSON.Web.Services.Analytics",
+			"com.liferay.oauth2.provider.shortcut",
+			applicationScopeAssigner -> _scopeAliasesList.forEach(
+				applicationScopeAssigner::assignScope));
+		builder.forApplication(
+			"Liferay.Segments.Asah.REST", "com.liferay.segments.asah.rest.impl",
+			applicationScopeAssigner -> applicationScopeAssigner.assignScope(
+				"DELETE", "GET", "POST"
+			).mapToScopeAlias(
+				"Liferay.Segments.Asah.REST.everything"
+			));
+	}
+
 	private JSONObject _decodeToken(String connectionToken) throws Exception {
 		try {
 			if (Validator.isBlank(connectionToken)) {
@@ -417,7 +554,24 @@ public class AnalyticsCloudClient {
 				}
 
 				return JSONUtil.put(
-					"id", String.valueOf(group.getClassPK())
+					"id",
+					() -> {
+						if (!Objects.equals(
+								group.getClassNameId(),
+								PortalUtil.getClassNameId(Group.class)) &&
+							!Objects.equals(
+								group.getClassNameId(),
+								PortalUtil.getClassNameId(
+									Organization.class)) &&
+							!StringUtil.startsWith(
+								group.getClassName(),
+								"com.liferay.object.model.ObjectDefinition")) {
+
+							return String.valueOf(group.getClassPK());
+						}
+
+						return String.valueOf(group.getGroupId());
+					}
 				).put(
 					"name",
 					() -> {
@@ -440,13 +594,23 @@ public class AnalyticsCloudClient {
 
 		Http.Options options = new Http.Options();
 
-		options.addHeader(
-			"OSB-Asah-Faro-Backend-Security-Signature",
+		String liferayAnalyticsFaroBackendSecuritySignature =
 			GetterUtil.getString(
 				_connectionProperties.get(
 					"liferayAnalyticsFaroBackendSecuritySignature"),
-				analyticsConfiguration.
-					liferayAnalyticsFaroBackendSecuritySignature()));
+				null);
+
+		if (liferayAnalyticsFaroBackendSecuritySignature == null) {
+			liferayAnalyticsFaroBackendSecuritySignature =
+				SecretResolverUtil.resolve(
+					CompanyThreadLocal.getCompanyId(),
+					analyticsConfiguration.
+						liferayAnalyticsFaroBackendSecuritySignature());
+		}
+
+		options.addHeader(
+			"OSB-Asah-Faro-Backend-Security-Signature",
+			liferayAnalyticsFaroBackendSecuritySignature);
 		options.addHeader(
 			"OSB-Asah-Project-ID",
 			GetterUtil.getString(
@@ -456,6 +620,24 @@ public class AnalyticsCloudClient {
 		return options;
 	}
 
+	private void _validateConnectionTokenURL(String url) throws Exception {
+		String analyticsCloudDomainAllowed = PropsUtil.get(
+			PropsKeys.ANALYTICS_CLOUD_DOMAIN_ALLOWED);
+
+		if (StringUtil.equals(analyticsCloudDomainAllowed, StringPool.STAR)) {
+			return;
+		}
+
+		String domain = HttpComponentsUtil.getDomain(url);
+
+		if (InetAddressUtil.isLocalInetAddress(
+				InetAddressUtil.getInetAddressByName(domain)) ||
+			!StringUtil.endsWith(domain, analyticsCloudDomainAllowed)) {
+
+			throw new DataSourceConnectionException("Invalid URL domain");
+		}
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		AnalyticsCloudClient.class);
 
@@ -463,6 +645,9 @@ public class AnalyticsCloudClient {
 		new ConcurrentHashMap<>();
 
 	private final Http _http;
+	private OAuth2ApplicationLocalService _oAuth2ApplicationLocalService;
+	private final List<String> _scopeAliasesList = ListUtil.fromArray(
+		"analytics.read", "analytics.write");
 
 	private static class ObjectMapperHolder {
 

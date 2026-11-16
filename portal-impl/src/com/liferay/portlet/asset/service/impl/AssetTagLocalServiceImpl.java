@@ -12,14 +12,12 @@ import com.liferay.asset.kernel.exception.NoSuchTagException;
 import com.liferay.asset.kernel.model.AssetEntry;
 import com.liferay.asset.kernel.model.AssetTag;
 import com.liferay.asset.kernel.service.AssetEntryLocalService;
-import com.liferay.asset.kernel.service.persistence.AssetEntryPersistence;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.CharPool;
 import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.bean.BeanReference;
 import com.liferay.portal.kernel.cache.thread.local.ThreadLocalCachable;
-import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.increment.BufferedIncrement;
 import com.liferay.portal.kernel.increment.NumberIncrement;
@@ -45,7 +43,7 @@ import com.liferay.portal.kernel.service.ClassNameLocalService;
 import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
-import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.service.persistence.UserPersistence;
 import com.liferay.portal.kernel.systemevent.SystemEvent;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
@@ -94,7 +92,7 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 
 		// Tag
 
-		User user = _userLocalService.getUser(userId);
+		User user = _userPersistence.findByPrimaryKey(userId);
 
 		long tagId = counterLocalService.increment();
 
@@ -158,9 +156,11 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 					null, userId, group.getGroupId(), name, serviceContext);
 			}
 
-			if (tag != null) {
-				tags.add(tag);
+			if (tag == null) {
+				continue;
 			}
+
+			tags.add(tag);
 		}
 
 		return tags;
@@ -269,8 +269,7 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	 */
 	@Override
 	public AssetTag fetchTag(long groupId, String name) {
-		List<AssetTag> assetTags = assetTagPersistence.findByG_LikeN(
-			groupId, name);
+		List<AssetTag> assetTags = assetTagPersistence.findByG_N(groupId, name);
 
 		for (AssetTag assetTag : assetTags) {
 			if (StringUtil.equals(assetTag.getName(), name)) {
@@ -281,6 +280,11 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 		return null;
 	}
 
+	@Override
+	public int getCompanyTagsCount(long companyId) {
+		return assetTagPersistence.countByCompanyId(companyId);
+	}
+
 	/**
 	 * Returns the asset tags of the asset entry.
 	 *
@@ -289,24 +293,7 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	 */
 	@Override
 	public List<AssetTag> getEntryTags(long entryId) {
-		return _assetEntryPersistence.getAssetTags(entryId);
-	}
-
-	/**
-	 * Returns the asset tags in the groups.
-	 *
-	 * @param  groupIds the primary keys of the groups
-	 * @return the asset tags in the groups
-	 */
-	@Override
-	public List<AssetTag> getGroupsTags(long[] groupIds) {
-		List<AssetTag> groupsTags = new ArrayList<>();
-
-		for (long groupId : groupIds) {
-			groupsTags.addAll(getGroupTags(groupId));
-		}
-
-		return groupsTags;
+		return assetEntryPersistence.getAssetTags(entryId);
 	}
 
 	/**
@@ -318,19 +305,6 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	@Override
 	public List<AssetTag> getGroupTags(long groupId) {
 		return assetTagPersistence.findByGroupId(groupId);
-	}
-
-	/**
-	 * Returns a range of all the asset tags in the group.
-	 *
-	 * @param  groupId the primary key of the group
-	 * @param  start the lower bound of the range of asset tags
-	 * @param  end the upper bound of the range of asset tags (not inclusive)
-	 * @return the range of matching asset tags
-	 */
-	@Override
-	public List<AssetTag> getGroupTags(long groupId, int start, int end) {
-		return assetTagPersistence.findByGroupId(groupId, start, end);
 	}
 
 	/**
@@ -353,25 +327,20 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	}
 
 	/**
-	 * Returns the number of asset tags in the group.
+	 * Returns the asset tags in the groups.
 	 *
-	 * @param  groupId the primary key of the group
-	 * @return the number of asset tags in the group
+	 * @param  groupIds the primary keys of the groups
+	 * @return the asset tags in the groups
 	 */
 	@Override
-	public int getGroupTagsCount(long groupId) {
-		return assetTagPersistence.countByGroupId(groupId);
-	}
+	public List<AssetTag> getGroupsTags(long[] groupIds) {
+		List<AssetTag> groupsTags = new ArrayList<>();
 
-	/**
-	 * Returns the asset tag with the primary key.
-	 *
-	 * @param  tagId the primary key of the asset tag
-	 * @return the asset tag with the primary key
-	 */
-	@Override
-	public AssetTag getTag(long tagId) throws PortalException {
-		return assetTagPersistence.findByPrimaryKey(tagId);
+		for (long groupId : groupIds) {
+			groupsTags.addAll(getGroupTags(groupId));
+		}
+
+		return groupsTags;
 	}
 
 	/**
@@ -481,16 +450,6 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	}
 
 	/**
-	 * Returns the names of all the asset tags.
-	 *
-	 * @return the names of all the asset tags
-	 */
-	@Override
-	public String[] getTagNames() {
-		return getTagNames(getTags());
-	}
-
-	/**
 	 * Returns the names of the asset tags of the entity.
 	 *
 	 * @param  classNameId the class name ID of the entity
@@ -533,29 +492,16 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	 */
 	@Override
 	public List<AssetTag> getTags(long classNameId, long classPK) {
-		AssetEntry entry = _assetEntryPersistence.fetchByC_C(
+		AssetEntry entry = assetEntryPersistence.fetchByC_C(
 			classNameId, classPK);
 
-		if (entry == null) {
+		if ((entry == null) ||
+			(assetTagPersistence.countByCompanyId(entry.getCompanyId()) == 0)) {
+
 			return Collections.emptyList();
 		}
 
-		return _assetEntryPersistence.getAssetTags(entry.getEntryId());
-	}
-
-	@Override
-	public List<AssetTag> getTags(long groupId, long classNameId, String name) {
-		return assetTagFinder.findByG_C_N(
-			groupId, classNameId, name, QueryUtil.ALL_POS, QueryUtil.ALL_POS,
-			null);
-	}
-
-	@Override
-	public List<AssetTag> getTags(
-		long groupId, long classNameId, String name, int start, int end) {
-
-		return assetTagFinder.findByG_C_N(
-			groupId, classNameId, name, start, end, null);
+		return assetEntryPersistence.getAssetTags(entry.getEntryId());
 	}
 
 	/**
@@ -902,16 +848,13 @@ public class AssetTagLocalServiceImpl extends AssetTagLocalServiceBaseImpl {
 	@BeanReference(type = AssetEntryLocalService.class)
 	private AssetEntryLocalService _assetEntryLocalService;
 
-	@BeanReference(type = AssetEntryPersistence.class)
-	private AssetEntryPersistence _assetEntryPersistence;
-
 	@BeanReference(type = ClassNameLocalService.class)
 	private ClassNameLocalService _classNameLocalService;
 
 	@BeanReference(type = GroupLocalService.class)
 	private GroupLocalService _groupLocalService;
 
-	@BeanReference(type = UserLocalService.class)
-	private UserLocalService _userLocalService;
+	@BeanReference(type = UserPersistence.class)
+	private UserPersistence _userPersistence;
 
 }

@@ -8,11 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.FragmentViewportSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -24,6 +24,27 @@ public class FragmentViewport implements Cloneable, Serializable {
 	public static FragmentViewport toDTO(String json) {
 		return FragmentViewportSerDes.toDTO(json);
 	}
+
+	public String getCustomCSS() {
+		return customCSS;
+	}
+
+	public void setCustomCSS(String customCSS) {
+		this.customCSS = customCSS;
+	}
+
+	public void setCustomCSS(
+		UnsafeSupplier<String, Exception> customCSSUnsafeSupplier) {
+
+		try {
+			customCSS = customCSSUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String customCSS;
 
 	public FragmentViewportStyle getFragmentViewportStyle() {
 		return fragmentViewportStyle;
@@ -49,15 +70,23 @@ public class FragmentViewport implements Cloneable, Serializable {
 
 	protected FragmentViewportStyle fragmentViewportStyle;
 
-	public String getId() {
+	public Id getId() {
 		return id;
 	}
 
-	public void setId(String id) {
+	public String getIdAsString() {
+		if (id == null) {
+			return null;
+		}
+
+		return id.toString();
+	}
+
+	public void setId(Id id) {
 		this.id = id;
 	}
 
-	public void setId(UnsafeSupplier<String, Exception> idUnsafeSupplier) {
+	public void setId(UnsafeSupplier<Id, Exception> idUnsafeSupplier) {
 		try {
 			id = idUnsafeSupplier.get();
 		}
@@ -66,7 +95,7 @@ public class FragmentViewport implements Cloneable, Serializable {
 		}
 	}
 
-	protected String id;
+	protected Id id;
 
 	@Override
 	public FragmentViewport clone() throws CloneNotSupportedException {
@@ -99,4 +128,39 @@ public class FragmentViewport implements Cloneable, Serializable {
 		return FragmentViewportSerDes.toJSON(this);
 	}
 
+	public static enum Id {
+
+		DESKTOP("Desktop"), LANDSCAPE_MOBILE("LandscapeMobile"),
+		PORTRAIT_MOBILE("PortraitMobile"), TABLET("Tablet");
+
+		public static Id create(String value) {
+			for (Id id : values()) {
+				if (Objects.equals(id.getValue(), value) ||
+					Objects.equals(id.name(), value)) {
+
+					return id;
+				}
+			}
+
+			return null;
+		}
+
+		public String getValue() {
+			return _value;
+		}
+
+		@Override
+		public String toString() {
+			return _value;
+		}
+
+		private Id(String value) {
+			_value = value;
+		}
+
+		private final String _value;
+
+	}
+
 }
+// LIFERAY-REST-BUILDER-HASH:-1801683523

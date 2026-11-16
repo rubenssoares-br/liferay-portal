@@ -11,30 +11,31 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-
-import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * @author David Truong
@@ -54,7 +55,7 @@ public class CTEntry implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(CTEntry.class, json);
 	}
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Map<String, Map<String, String>> getActions() {
 		if (_actionsSupplier != null) {
@@ -97,7 +98,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Map<String, Map<String, String>>> _actionsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getChangeType() {
 		if (_changeTypeSupplier != null) {
 			changeType = _changeTypeSupplier.get();
@@ -138,7 +139,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _changeTypeSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getCtCollectionId() {
 		if (_ctCollectionIdSupplier != null) {
 			ctCollectionId = _ctCollectionIdSupplier.get();
@@ -179,7 +180,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _ctCollectionIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCtCollectionName() {
 		if (_ctCollectionNameSupplier != null) {
 			ctCollectionName = _ctCollectionNameSupplier.get();
@@ -220,7 +221,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _ctCollectionNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Status getCtCollectionStatus() {
 		if (_ctCollectionStatusSupplier != null) {
@@ -262,7 +263,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Status> _ctCollectionStatusSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getCtCollectionStatusDate() {
 		if (_ctCollectionStatusDateSupplier != null) {
 			ctCollectionStatusDate = _ctCollectionStatusDateSupplier.get();
@@ -303,7 +304,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _ctCollectionStatusDateSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getCtCollectionStatusUserName() {
 		if (_ctCollectionStatusUserNameSupplier != null) {
 			ctCollectionStatusUserName =
@@ -348,7 +349,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _ctCollectionStatusUserNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateCreated() {
 		if (_dateCreatedSupplier != null) {
 			dateCreated = _dateCreatedSupplier.get();
@@ -389,7 +390,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateCreatedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Date getDateModified() {
 		if (_dateModifiedSupplier != null) {
 			dateModified = _dateModifiedSupplier.get();
@@ -430,7 +431,50 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Date> _dateModifiedSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Portal URL to the edit page for this entry."
+	)
+	public String getEditURL() {
+		if (_editURLSupplier != null) {
+			editURL = _editURLSupplier.get();
+
+			_editURLSupplier = null;
+		}
+
+		return editURL;
+	}
+
+	public void setEditURL(String editURL) {
+		this.editURL = editURL;
+
+		_editURLSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setEditURL(
+		UnsafeSupplier<String, Exception> editURLUnsafeSupplier) {
+
+		_editURLSupplier = () -> {
+			try {
+				return editURLUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "Portal URL to the edit page for this entry.")
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected String editURL;
+
+	@JsonIgnore
+	private Supplier<String> _editURLSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Boolean getHideable() {
 		if (_hideableSupplier != null) {
 			hideable = _hideableSupplier.get();
@@ -471,7 +515,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Boolean> _hideableSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -510,7 +554,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getModelClassNameId() {
 		if (_modelClassNameIdSupplier != null) {
 			modelClassNameId = _modelClassNameIdSupplier.get();
@@ -551,7 +595,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _modelClassNameIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getModelClassPK() {
 		if (_modelClassPKSupplier != null) {
 			modelClassPK = _modelClassPKSupplier.get();
@@ -592,7 +636,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _modelClassPKSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getOwnerId() {
 		if (_ownerIdSupplier != null) {
 			ownerId = _ownerIdSupplier.get();
@@ -633,7 +677,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _ownerIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getOwnerName() {
 		if (_ownerNameSupplier != null) {
 			ownerName = _ownerNameSupplier.get();
@@ -674,7 +718,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _ownerNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public Long getSiteId() {
 		if (_siteIdSupplier != null) {
 			siteId = _siteIdSupplier.get();
@@ -715,7 +759,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Long> _siteIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getSiteName() {
 		if (_siteNameSupplier != null) {
 			siteName = _siteNameSupplier.get();
@@ -756,7 +800,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _siteNameSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public Status getStatus() {
 		if (_statusSupplier != null) {
@@ -798,7 +842,9 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<Status> _statusSupplier;
 
-	@Schema(description = "Info on when a change was made.")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Info on when a change was made."
+	)
 	public String getStatusMessage() {
 		if (_statusMessageSupplier != null) {
 			statusMessage = _statusMessageSupplier.get();
@@ -839,7 +885,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _statusMessageSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTitle() {
 		if (_titleSupplier != null) {
 			title = _titleSupplier.get();
@@ -880,7 +926,7 @@ public class CTEntry implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	public String getTypeName() {
 		if (_typeNameSupplier != null) {
 			typeName = _typeNameSupplier.get();
@@ -1083,6 +1129,22 @@ public class CTEntry implements Serializable {
 			sb.append("\"");
 		}
 
+		String editURL = getEditURL();
+
+		if (editURL != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"editURL\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(editURL));
+
+			sb.append("\"");
+		}
+
 		Boolean hideable = getHideable();
 
 		if (hideable != null) {
@@ -1252,8 +1314,8 @@ public class CTEntry implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.change.tracking.rest.dto.v1_0.CTEntry",
 		name = "x-class-name"
 	)
@@ -1340,6 +1402,27 @@ public class CTEntry implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1348,3 +1431,4 @@ public class CTEntry implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:586335456

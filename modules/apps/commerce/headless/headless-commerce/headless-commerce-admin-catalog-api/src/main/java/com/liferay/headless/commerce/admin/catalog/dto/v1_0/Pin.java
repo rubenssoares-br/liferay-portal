@@ -11,34 +11,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Pin")
+@GraphQLName(
+	description = "A clickable hot-spot on a shop-by-diagram image, identified within the product by its sequence. Created and updated by the admin catalog write surface; deleting the last pin for a sequence cascades into the matching mapped product.",
+	value = "Pin"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A clickable hot-spot on a shop-by-diagram image, identified within the product by its sequence. Created and updated by the admin catalog write surface; deleting the last pin for a sequence cascades into the matching mapped product."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Pin")
 public class Pin implements Serializable {
@@ -52,7 +59,10 @@ public class Pin implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "33130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier of the pin. Assigned by the server.",
+		example = "33130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -84,14 +94,16 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier of the pin. Assigned by the server."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema
 	@Valid
 	public MappedProduct getMappedProduct() {
 		if (_mappedProductSupplier != null) {
@@ -133,7 +145,10 @@ public class Pin implements Serializable {
 	@JsonIgnore
 	private Supplier<MappedProduct> _mappedProductSupplier;
 
-	@Schema(example = "33.54")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Horizontal coordinate of the pin on the diagram image, in pixels.",
+		example = "33.54"
+	)
 	public Double getPositionX() {
 		if (_positionXSupplier != null) {
 			positionX = _positionXSupplier.get();
@@ -167,14 +182,19 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Horizontal coordinate of the pin on the diagram image, in pixels."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double positionX;
 
 	@JsonIgnore
 	private Supplier<Double> _positionXSupplier;
 
-	@Schema(example = "33.54")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Vertical coordinate of the pin on the diagram image, in pixels.",
+		example = "33.54"
+	)
 	public Double getPositionY() {
 		if (_positionYSupplier != null) {
 			positionY = _positionYSupplier.get();
@@ -208,14 +228,19 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Vertical coordinate of the pin on the diagram image, in pixels."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double positionY;
 
 	@JsonIgnore
 	private Supplier<Double> _positionYSupplier;
 
-	@Schema(example = "1")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Identifier used to match this pin to a mapped product on the same parent product; the pair of parent product and sequence is the lookup key. Maximum length is 75 characters.",
+		example = "1"
+	)
 	public String getSequence() {
 		if (_sequenceSupplier != null) {
 			sequence = _sequenceSupplier.get();
@@ -249,7 +274,9 @@ public class Pin implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Identifier used to match this pin to a mapped product on the same parent product; the pair of parent product and sequence is the lookup key. Maximum length is 75 characters."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String sequence;
 
@@ -352,8 +379,8 @@ public class Pin implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.catalog.dto.v1_0.Pin",
 		name = "x-class-name"
 	)
@@ -440,6 +467,27 @@ public class Pin implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -448,3 +496,4 @@ public class Pin implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1147900946

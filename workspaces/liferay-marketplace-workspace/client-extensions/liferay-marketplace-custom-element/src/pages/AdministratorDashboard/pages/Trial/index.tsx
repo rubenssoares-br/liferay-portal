@@ -9,6 +9,7 @@ import classNames from 'classnames';
 
 import Page from '../../../../components/Page';
 import i18n from '../../../../i18n';
+import {Availability} from '../../../../services/oauth/Trial';
 import InfoCard from '../../components/InfoCard';
 import useTrialMetrics from '../../hooks/useTrialMetrics';
 import TrialTable from './TrialTable';
@@ -28,7 +29,7 @@ const Trial = () => {
 	return (
 		<Page pageRendererProps={{isLoading}}>
 			<div className="d-flex flex-column">
-				<div className="d-flex info-container justify-content-between mb-6">
+				<div className="d-flex expanded info-container justify-content-between mb-6">
 					<div
 						className={classNames(
 							'p-4 d-flex flex-column trial-card w-100'
@@ -106,6 +107,7 @@ const Trial = () => {
 
 					<InfoCard
 						className="col-2"
+						limited
 						symbol="shopping-cart"
 						title={i18n.translate('all-orders')}
 						value={totalCount.all}
@@ -114,6 +116,7 @@ const Trial = () => {
 					<InfoCard
 						className="col-2"
 						growth={0}
+						limited
 						symbol="date-time"
 						title={i18n.translate('expired')}
 						value={totalCount.expired}

@@ -16,7 +16,7 @@ import com.liferay.sharing.model.SharingEntry;
 import com.liferay.sharing.web.internal.renderer.AssetRendererSharingEntryEditRenderer;
 import com.liferay.sharing.web.internal.renderer.AssetRendererSharingEntryViewRenderer;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
@@ -55,10 +55,7 @@ public class SharingEntryInterpreterProviderImpl
 				new AssetRendererSharingEntryEditRenderer(),
 				new AssetRendererSharingEntryViewRenderer(_servletContext));
 		_serviceTrackerMap = ServiceTrackerMapFactory.openSingleValueMap(
-			bundleContext, SharingEntryInterpreter.class,
-			"(model.class.name=*)",
-			(serviceReference, emitter) -> emitter.emit(
-				(String)serviceReference.getProperty("model.class.name")));
+			bundleContext, SharingEntryInterpreter.class, "model.class.name");
 	}
 
 	@Deactivate

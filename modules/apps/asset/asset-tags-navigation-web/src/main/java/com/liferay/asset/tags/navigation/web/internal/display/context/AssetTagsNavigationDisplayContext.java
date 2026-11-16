@@ -14,11 +14,11 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.PrefsParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
+import jakarta.portlet.RenderRequest;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.portlet.RenderRequest;
 
 /**
  * @author Vendel Toreki
@@ -84,8 +84,8 @@ public class AssetTagsNavigationDisplayContext {
 	private List<AssetTag> _assetTags;
 	private final long _classNameId;
 	private final RenderRequest _renderRequest;
-	private Map<String, Integer> _scopedAssetCounts;
 	private final long _scopeGroupId;
+	private Map<String, Integer> _scopedAssetCounts;
 	private final ThemeDisplay _themeDisplay;
 
 }

@@ -8,6 +8,7 @@ package com.liferay.search.experiences.rest.internal.resource.v1_0;
 import com.liferay.asset.kernel.AssetRendererFactoryRegistryUtil;
 import com.liferay.asset.kernel.model.AssetRenderer;
 import com.liferay.asset.kernel.model.AssetRendererFactory;
+import com.liferay.portal.kernel.change.tracking.CTAware;
 import com.liferay.portal.kernel.json.JSONException;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONObject;
@@ -63,6 +64,7 @@ import org.osgi.service.component.annotations.ServiceScope;
 	properties = "OSGI-INF/liferay/rest/v1_0/search-response.properties",
 	scope = ServiceScope.PROTOTYPE, service = SearchResponseResource.class
 )
+@CTAware
 public class SearchResponseResourceImpl extends BaseSearchResponseResourceImpl {
 
 	@Override
@@ -409,10 +411,10 @@ public class SearchResponseResourceImpl extends BaseSearchResponseResourceImpl {
 	private JSONFactory _jsonFactory;
 
 	@Reference
-	private Searcher _searcher;
+	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
 
 	@Reference
-	private SearchRequestBuilderFactory _searchRequestBuilderFactory;
+	private Searcher _searcher;
 
 	@Reference
 	private SXPBlueprintSearchRequestEnhancer

@@ -8,11 +8,11 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.ContentPageSpecificationSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
@@ -25,6 +25,33 @@ public class ContentPageSpecification
 	public static ContentPageSpecification toDTO(String json) {
 		return ContentPageSpecificationSerDes.toDTO(json);
 	}
+
+	public String getDraftContentPageSpecificationExternalReferenceCode() {
+		return draftContentPageSpecificationExternalReferenceCode;
+	}
+
+	public void setDraftContentPageSpecificationExternalReferenceCode(
+		String draftContentPageSpecificationExternalReferenceCode) {
+
+		this.draftContentPageSpecificationExternalReferenceCode =
+			draftContentPageSpecificationExternalReferenceCode;
+	}
+
+	public void setDraftContentPageSpecificationExternalReferenceCode(
+		UnsafeSupplier<String, Exception>
+			draftContentPageSpecificationExternalReferenceCodeUnsafeSupplier) {
+
+		try {
+			draftContentPageSpecificationExternalReferenceCode =
+				draftContentPageSpecificationExternalReferenceCodeUnsafeSupplier.
+					get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected String draftContentPageSpecificationExternalReferenceCode;
 
 	public PageExperience[] getPageExperiences() {
 		return pageExperiences;
@@ -47,6 +74,27 @@ public class ContentPageSpecification
 	}
 
 	protected PageExperience[] pageExperiences;
+
+	public Settings getSettings() {
+		return settings;
+	}
+
+	public void setSettings(Settings settings) {
+		this.settings = settings;
+	}
+
+	public void setSettings(
+		UnsafeSupplier<Settings, Exception> settingsUnsafeSupplier) {
+
+		try {
+			settings = settingsUnsafeSupplier.get();
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	protected Settings settings;
 
 	@Override
 	public ContentPageSpecification clone() throws CloneNotSupportedException {
@@ -81,3 +129,4 @@ public class ContentPageSpecification
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-541870816

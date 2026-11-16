@@ -7,11 +7,11 @@ import {Locator, Page, expect} from '@playwright/test';
 
 import {TSpConnection} from '../../helpers/SamlProviderConnectionHelper';
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {waitForAlert} from '../../utils/waitForAlert';
+import {GlobalMenuPage} from '../product-navigation-applications-menu/GlobalMenuPage';
 
 export class ServiceProviderConnectionsPage {
 	readonly addServiceProviderConnectionButton: Locator;
-	readonly applicationsMenuPage: ApplicationsMenuPage;
 	readonly assertionLifetimeField: Locator;
 	readonly attributesEnabledToggle: Locator;
 	readonly attributesField: Locator;
@@ -19,6 +19,7 @@ export class ServiceProviderConnectionsPage {
 	readonly enabledField: Locator;
 	readonly entityIdField: Locator;
 	readonly forceEncryptionToggle: Locator;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly keepAliveUrlField: Locator;
 	readonly metadataUrlField: Locator;
 	readonly nameField: Locator;
@@ -28,13 +29,11 @@ export class ServiceProviderConnectionsPage {
 	readonly saveButton: Locator;
 	readonly serviceProviderConnectionsTab: Locator;
 	readonly serviceProviderConnectionsTable: Locator;
-	readonly successMessage: Locator;
 
 	constructor(page: Page) {
 		this.addServiceProviderConnectionButton = page.getByRole('button', {
 			name: 'Add Service Provider',
 		});
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
 		this.assertionLifetimeField = page.getByLabel('Assertion Lifetime');
 		this.attributesEnabledToggle = page.getByText('Attributes Enabled', {
 			exact: true,
@@ -50,6 +49,7 @@ export class ServiceProviderConnectionsPage {
 		this.forceEncryptionToggle = page.getByText('Force Encryption', {
 			exact: true,
 		});
+		this.globalMenuPage = new GlobalMenuPage(page);
 		this.keepAliveUrlField = page
 			.getByRole('group', {name: 'Keep Alive'})
 			.getByRole('textbox');
@@ -68,9 +68,6 @@ export class ServiceProviderConnectionsPage {
 		});
 		this.serviceProviderConnectionsTable = page.locator(
 			'#_com_liferay_saml_web_internal_portlet_SamlAdminPortlet_samlIdpSpConnectionsSearchContainer'
-		);
-		this.successMessage = page.getByText(
-			'Your request completed successfully'
 		);
 	}
 
@@ -102,10 +99,6 @@ export class ServiceProviderConnectionsPage {
 	}
 
 	async deleteServiceProviderConnections() {
-		this.page.on('dialog', (dialog) => {
-			dialog.accept();
-		});
-
 		await this.page.waitForTimeout(1000);
 
 		const row = await this.serviceProviderConnectionsTable
@@ -113,17 +106,17 @@ export class ServiceProviderConnectionsPage {
 			.last();
 
 		while (await row.isVisible()) {
+			this.page.once('dialog', (dialog) => {
+				dialog.accept();
+			});
+
 			await clickAndExpectToBeVisible({
 				autoClick: true,
 				target: this.page.getByRole('link', {name: 'Delete'}),
 				trigger: row.locator('.dropdown-toggle'),
 			});
 
-			await expect(await this.successMessage).toBeVisible();
-
-			// Prevent the above expect from passing due to previous success
-
-			await this.page.getByLabel('Close').click();
+			await waitForAlert(this.page);
 		}
 	}
 
@@ -148,7 +141,11 @@ export class ServiceProviderConnectionsPage {
 			forceReload ||
 			(await this.serviceProviderConnectionsTab.isHidden())
 		) {
-			await this.applicationsMenuPage.goToSamlAdmin(forceReload);
+			if (forceReload) {
+				await this.globalMenuPage.goToHome();
+			}
+
+			await this.globalMenuPage.goToControlPanel('SAML Admin');
 		}
 
 		await this.serviceProviderConnectionsTab.click();
@@ -170,9 +167,7 @@ export class ServiceProviderConnectionsPage {
 			trigger: row.locator('.dropdown-toggle'),
 		});
 
-		await expect(await this.successMessage).toBeVisible();
-
-		await this.page.getByLabel('Close').click();
+		await waitForAlert(this.page);
 	}
 
 	private async populateAndSaveServiceProviderConnectionDetails(
@@ -237,7 +232,7 @@ export class ServiceProviderConnectionsPage {
 		}
 
 		await this.saveButton.click();
-		await expect(await this.successMessage).toBeVisible();
-		await this.page.getByLabel('Close').click();
+
+		await waitForAlert(this.page);
 	}
 }

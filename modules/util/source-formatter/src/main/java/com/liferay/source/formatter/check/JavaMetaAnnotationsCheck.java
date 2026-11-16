@@ -39,10 +39,14 @@ public class JavaMetaAnnotationsCheck extends JavaAnnotationsCheck {
 			return annotation;
 		}
 
-		_checkDelimeters(fileName, fileContent, annotation);
+		_checkDelimiters(fileName, fileContent, annotation);
 
 		if (isAttributeValue(_CHECK_CONFIGURATION_NAME_KEY, absolutePath)) {
 			_checkConfigurationNameValue(fileName, fileContent, annotation);
+		}
+
+		if (isAttributeValue(_CHECK_MISSING_NAME_KEY, absolutePath)) {
+			_checkMissingName(fileName, absolutePath, fileContent, annotation);
 		}
 
 		annotation = _fixOCDId(
@@ -74,9 +78,9 @@ public class JavaMetaAnnotationsCheck extends JavaAnnotationsCheck {
 		}
 	}
 
-	private void _checkDelimeter(
+	private void _checkDelimiter(
 		String fileName, String content, Matcher matcher, String key,
-		String correctDelimeter, String incorrectDelimeter) {
+		String correctDelimiter, String incorrectDelimiter) {
 
 		if (!key.equals(matcher.group(1))) {
 			return;
@@ -84,7 +88,7 @@ public class JavaMetaAnnotationsCheck extends JavaAnnotationsCheck {
 
 		String value = matcher.group(2);
 
-		if (!value.contains(incorrectDelimeter)) {
+		if (!value.contains(incorrectDelimiter)) {
 			return;
 		}
 
@@ -95,30 +99,51 @@ public class JavaMetaAnnotationsCheck extends JavaAnnotationsCheck {
 		sb.append("\" for key \"");
 		sb.append(key);
 		sb.append("\" should use \"");
-		sb.append(correctDelimeter);
-		sb.append("\" as delimeter");
+		sb.append(correctDelimiter);
+		sb.append("\" as delimiter");
 
 		addMessage(
 			fileName, sb.toString(),
 			getLineNumber(content, content.indexOf(matcher.group())));
 	}
 
-	private void _checkDelimeters(
+	private void _checkDelimiters(
 		String fileName, String content, String annotation) {
 
 		Matcher matcher = _annotationMetaValueKeyPattern.matcher(annotation);
 
 		while (matcher.find()) {
-			_checkDelimeter(
+			_checkDelimiter(
 				fileName, content, matcher, "description", StringPool.DASH,
 				StringPool.PERIOD);
-			_checkDelimeter(
+			_checkDelimiter(
 				fileName, content, matcher, "id", StringPool.PERIOD,
 				StringPool.DASH);
-			_checkDelimeter(
+			_checkDelimiter(
 				fileName, content, matcher, "name", StringPool.DASH,
 				StringPool.PERIOD);
 		}
+	}
+
+	private void _checkMissingName(
+		String fileName, String absolutePath, String content,
+		String annotation) {
+
+		if (absolutePath.contains("/archived/") ||
+			absolutePath.contains("/gradleTest/") ||
+			absolutePath.contains("/test/") ||
+			absolutePath.contains("/testIntegration/") ||
+			annotation.contains("name = ") ||
+			content.contains("generateUI = false") ||
+			!annotation.contains("@Meta.AD") ||
+			!content.contains("@Meta.OCD")) {
+
+			return;
+		}
+
+		addMessage(
+			fileName, "Missing attribute \"name\" in \"@Meta.AD\"",
+			getLineNumber(content, content.indexOf(annotation)));
 	}
 
 	private String _fixOCDId(
@@ -148,6 +173,8 @@ public class JavaMetaAnnotationsCheck extends JavaAnnotationsCheck {
 
 	private static final String _CHECK_CONFIGURATION_NAME_KEY =
 		"checkConfigurationName";
+
+	private static final String _CHECK_MISSING_NAME_KEY = "checkMissingName";
 
 	private static final Pattern _annotationMetaTypePattern = Pattern.compile(
 		"[\\s\\(](name|description) = \"%");

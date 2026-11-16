@@ -29,7 +29,9 @@ import org.osgi.service.component.annotations.Reference;
  * @author Feliphe Marinho
  */
 @Component(
-	property = "dto.class.name=com.liferay.object.model.ObjectView",
+	property = {
+		"default=true", "dto.class.name=com.liferay.object.model.ObjectView"
+	},
 	service = DTOConverter.class
 )
 public class ObjectViewDTOConverter
@@ -56,6 +58,7 @@ public class ObjectViewDTOConverter
 				setDateCreated(objectView::getCreateDate);
 				setDateModified(objectView::getModifiedDate);
 				setDefaultObjectView(objectView::isDefaultObjectView);
+				setExternalReferenceCode(objectView::getExternalReferenceCode);
 				setId(objectView::getObjectViewId);
 				setName(
 					() -> LocalizedMapUtil.getLanguageIdMap(
@@ -152,7 +155,7 @@ public class ObjectViewDTOConverter
 					_objectFieldFilterContributorRegistry.
 						getObjectFieldFilterContributor(
 							new ObjectFieldFilterContext(
-								locale, objectDefinitionId,
+								0, locale, objectDefinitionId,
 								serviceBuilderObjectViewFilterColumn));
 
 				return objectFieldFilterContributor.toValueSummary();

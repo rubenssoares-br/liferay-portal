@@ -13,24 +13,27 @@ import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilder;
 import com.liferay.portal.url.builder.AbsolutePortalURLBuilderFactory;
+import com.liferay.product.navigation.product.menu.helper.ProductNavigationProductMenuHelper;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 
 /**
  * @author Iván Zaera Avellón
  */
-@Component(service = DynamicInclude.class)
+@Component(
+	property = "dynamic.include.key=/html/common/themes/top_head.jsp#post",
+	service = DynamicInclude.class
+)
 public class ProductNavigationProductMenuTopHeadDynamicInclude
 	implements DynamicInclude {
 
@@ -44,7 +47,10 @@ public class ProductNavigationProductMenuTopHeadDynamicInclude
 			(ThemeDisplay)httpServletRequest.getAttribute(
 				WebKeys.THEME_DISPLAY);
 
-		if (!themeDisplay.isSignedIn()) {
+		if (!themeDisplay.isShowControlMenu() ||
+			!_productNavigationProductMenuHelper.isShowProductMenu(
+				httpServletRequest)) {
+
 			return;
 		}
 
@@ -59,8 +65,9 @@ public class ProductNavigationProductMenuTopHeadDynamicInclude
 				httpServletRequest);
 
 		sb.append(
-			absolutePortalURLBuilder.forBundleStylesheet(
-				_bundle, "/product_navigation_product_menu.css"
+			absolutePortalURLBuilder.forWebContextStylesheet(
+				"product-navigation-product-menu-theme-contributor",
+				"/product_navigation_product_menu.css"
 			).build());
 
 		sb.append(StringPool.QUOTE);
@@ -72,14 +79,7 @@ public class ProductNavigationProductMenuTopHeadDynamicInclude
 		printWriter.println(sb.toString());
 	}
 
-	@Override
-	public void register(DynamicIncludeRegistry dynamicIncludeRegistry) {
-		dynamicIncludeRegistry.register(
-			"/html/common/themes/top_head.jsp#post");
-	}
-
 	@Activate
-	@Modified
 	protected void activate(BundleContext bundleContext) {
 		_bundle = bundleContext.getBundle();
 	}
@@ -88,5 +88,9 @@ public class ProductNavigationProductMenuTopHeadDynamicInclude
 	private AbsolutePortalURLBuilderFactory _absolutePortalURLBuilderFactory;
 
 	private volatile Bundle _bundle;
+
+	@Reference
+	private ProductNavigationProductMenuHelper
+		_productNavigationProductMenuHelper;
 
 }

@@ -22,15 +22,17 @@ import com.liferay.layout.list.retriever.ClassedModelListObjectReference;
 import com.liferay.layout.list.retriever.LayoutListRetriever;
 import com.liferay.layout.list.retriever.LayoutListRetrieverContext;
 import com.liferay.layout.list.retriever.SegmentsEntryLayoutListRetriever;
+import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
-import com.liferay.portal.kernel.log.Log;
-import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.util.StringUtil;
+import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.segments.constants.SegmentsEntryConstants;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -61,9 +63,26 @@ public class AssetEntryListLayoutListRetriever
 		ClassedModelListObjectReference classedModelListObjectReference,
 		LayoutListRetrieverContext layoutListRetrieverContext) {
 
-		AssetListEntry assetListEntry =
-			_assetListEntryLocalService.fetchAssetListEntry(
+		AssetListEntry assetListEntry = null;
+
+		if (classedModelListObjectReference.getClassPK() > 0) {
+			assetListEntry = _assetListEntryLocalService.fetchAssetListEntry(
 				classedModelListObjectReference.getClassPK());
+		}
+		else if (Validator.isNotNull(
+					classedModelListObjectReference.
+						getExternalReferenceCode())) {
+
+			assetListEntry =
+				_assetListEntryLocalService.
+					fetchAssetListEntryByExternalReferenceCode(
+						classedModelListObjectReference.
+							getExternalReferenceCode(),
+						_getGroupId(
+							classedModelListObjectReference.
+								getScopeExternalReferenceCode(),
+							layoutListRetrieverContext.getScopeGroupId()));
+		}
 
 		if (assetListEntry == null) {
 			return InfoPage.of(
@@ -71,39 +90,8 @@ public class AssetEntryListLayoutListRetriever
 				layoutListRetrieverContext.getPagination(), 0);
 		}
 
-		if (!StringUtil.equals(
-				assetListEntry.getAssetEntryType(),
-				classedModelListObjectReference.getItemType())) {
-
-			if (_log.isWarnEnabled()) {
-				_log.warn("Asset entry type does not equal item type");
-			}
-
-			return InfoPage.of(
-				Collections.emptyList(),
-				layoutListRetrieverContext.getPagination(), 0);
-		}
-
-		long[] segmentsEntryIds =
-			layoutListRetrieverContext.getSegmentsEntryIds();
-
-		if (segmentsEntryIds == null) {
-			segmentsEntryIds = new long[] {0};
-		}
-
-		Pagination pagination = layoutListRetrieverContext.getPagination();
-
-		if (pagination == null) {
-			pagination = Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS);
-		}
-
-		InfoPage<AssetEntry> infoPage =
-			_assetListAssetEntryProvider.getAssetEntriesInfoPage(
-				assetListEntry, segmentsEntryIds,
-				_getAssetCategoryIds(layoutListRetrieverContext),
-				_getAssetTagNames(layoutListRetrieverContext),
-				_getKeywords(layoutListRetrieverContext), StringPool.BLANK,
-				pagination.getStart(), pagination.getEnd());
+		InfoPage<AssetEntry> infoPage = _getInfoPage(
+			assetListEntry, layoutListRetrieverContext);
 
 		if (Objects.equals(
 				AssetEntry.class.getName(),
@@ -174,6 +162,66 @@ public class AssetEntryListLayoutListRetriever
 		return tagsInfoFilter.getTagNames();
 	}
 
+	private long _getGroupId(
+		String scopeExternalReferenceCode, long scopeGroupId) {
+
+		if (Validator.isNull(scopeExternalReferenceCode)) {
+			return scopeGroupId;
+		}
+
+		ServiceContext serviceContext =
+			ServiceContextThreadLocal.getServiceContext();
+
+		if (serviceContext == null) {
+			return scopeGroupId;
+		}
+
+		Group group = _groupLocalService.fetchGroupByExternalReferenceCode(
+			scopeExternalReferenceCode, serviceContext.getCompanyId());
+
+		if (group == null) {
+			return scopeGroupId;
+		}
+
+		return group.getGroupId();
+	}
+
+	private InfoPage<AssetEntry> _getInfoPage(
+		AssetListEntry assetListEntry,
+		LayoutListRetrieverContext layoutListRetrieverContext) {
+
+		Pagination pagination = layoutListRetrieverContext.getPagination();
+
+		if (pagination == null) {
+			pagination = Pagination.of(QueryUtil.ALL_POS, QueryUtil.ALL_POS);
+		}
+
+		if (FeatureFlagManagerUtil.isEnabled(
+				assetListEntry.getCompanyId(), "LPD-109242")) {
+
+			return _assetListAssetEntryProvider.getAssetEntriesInfoPage(
+				_getAssetCategoryIds(layoutListRetrieverContext),
+				assetListEntry, _getAssetTagNames(layoutListRetrieverContext),
+				layoutListRetrieverContext.getAudienceEntryERCs(),
+				pagination.getEnd(), _getKeywords(layoutListRetrieverContext),
+				pagination.getStart(), StringPool.BLANK);
+		}
+
+		long[] segmentsEntryIds =
+			layoutListRetrieverContext.getSegmentsEntryIds();
+
+		if (segmentsEntryIds == null) {
+			segmentsEntryIds = new long[] {0};
+		}
+
+		return _assetListAssetEntryProvider.getAssetEntriesInfoPage(
+			assetListEntry, segmentsEntryIds,
+			_getAssetCategoryIds(layoutListRetrieverContext),
+			_getAssetTagNames(layoutListRetrieverContext),
+			_getKeywords(layoutListRetrieverContext), StringPool.BLANK,
+			pagination.getStart(), pagination.getEnd());
+	}
+
 	private String _getKeywords(
 		LayoutListRetrieverContext layoutListRetrieverContext) {
 
@@ -188,19 +236,14 @@ public class AssetEntryListLayoutListRetriever
 	}
 
 	private List<Object> _toAssetObjects(List<AssetEntry> assetEntries) {
-		List<Object> assetObjects = new ArrayList<>(assetEntries.size());
+		return TransformUtil.transform(
+			assetEntries,
+			assetEntry -> {
+				AssetRenderer<?> assetRenderer = assetEntry.getAssetRenderer();
 
-		for (AssetEntry assetEntry : assetEntries) {
-			AssetRenderer<?> assetRenderer = assetEntry.getAssetRenderer();
-
-			assetObjects.add(assetRenderer.getAssetObject());
-		}
-
-		return assetObjects;
+				return assetRenderer.getAssetObject();
+			});
 	}
-
-	private static final Log _log = LogFactoryUtil.getLog(
-		AssetEntryListLayoutListRetriever.class.getName());
 
 	private static final List<InfoFilter> _supportedInfoFilters = Arrays.asList(
 		new CategoriesInfoFilter(), new KeywordsInfoFilter(),
@@ -215,5 +258,8 @@ public class AssetEntryListLayoutListRetriever
 	@Reference
 	private AssetListEntrySegmentsEntryRelLocalService
 		_assetListEntrySegmentsEntryRelLocalService;
+
+	@Reference
+	private GroupLocalService _groupLocalService;
 
 }

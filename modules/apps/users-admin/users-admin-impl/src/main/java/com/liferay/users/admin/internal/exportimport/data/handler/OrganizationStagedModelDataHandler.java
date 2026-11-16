@@ -17,6 +17,7 @@ import com.liferay.portal.kernel.model.Country;
 import com.liferay.portal.kernel.model.EmailAddress;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.ListType;
+import com.liferay.portal.kernel.model.ListTypeConstants;
 import com.liferay.portal.kernel.model.OrgLabor;
 import com.liferay.portal.kernel.model.Organization;
 import com.liferay.portal.kernel.model.OrganizationConstants;
@@ -106,15 +107,27 @@ public class OrganizationStagedModelDataHandler
 	public boolean validateReference(
 		PortletDataContext portletDataContext, Element referenceElement) {
 
+		Map<Long, Long> organizationIds =
+			(Map<Long, Long>)portletDataContext.getNewPrimaryKeysMap(
+				Organization.class);
+
+		long organizationId = GetterUtil.getLong(
+			referenceElement.attributeValue("class-pk"));
+
+		if (organizationIds.containsKey(organizationId)) {
+			return true;
+		}
+
 		Organization organization =
 			_organizationLocalService.fetchOrganizationByUuidAndCompanyId(
 				GetterUtil.getString(referenceElement.attributeValue("uuid")),
-				GetterUtil.getLong(
-					referenceElement.attributeValue("company-id")));
+				GetterUtil.getLong(portletDataContext.getCompanyId()));
 
 		if (organization == null) {
 			return false;
 		}
+
+		organizationIds.put(organizationId, organization.getOrganizationId());
 
 		return true;
 	}
@@ -186,7 +199,7 @@ public class OrganizationStagedModelDataHandler
 
 		Organization existingOrganization =
 			_organizationLocalService.fetchOrganizationByUuidAndCompanyId(
-				organization.getUuid(), portletDataContext.getGroupId());
+				organization.getUuid(), portletDataContext.getCompanyId());
 
 		if (existingOrganization == null) {
 			existingOrganization = _organizationLocalService.fetchOrganization(
@@ -400,7 +413,8 @@ public class OrganizationStagedModelDataHandler
 
 		UsersAdminUtil.updateAddresses(
 			Organization.class.getName(),
-			importedOrganization.getOrganizationId(), addresses);
+			importedOrganization.getOrganizationId(), addresses,
+			ListTypeConstants.ORGANIZATION_ADDRESS);
 	}
 
 	private Organization _importCountry(
@@ -650,10 +664,10 @@ public class OrganizationStagedModelDataHandler
 	private ListTypeLocalService _listTypeLocalService;
 
 	@Reference
-	private OrganizationLocalService _organizationLocalService;
+	private OrgLaborLocalService _orgLaborLocalService;
 
 	@Reference
-	private OrgLaborLocalService _orgLaborLocalService;
+	private OrganizationLocalService _organizationLocalService;
 
 	@Reference
 	private PasswordPolicyLocalService _passwordPolicyLocalService;

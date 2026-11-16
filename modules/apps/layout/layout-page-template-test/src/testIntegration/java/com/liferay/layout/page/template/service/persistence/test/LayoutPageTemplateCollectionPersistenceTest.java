@@ -121,13 +121,8 @@ public class LayoutPageTemplateCollectionPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
 		LayoutPageTemplateCollection newLayoutPageTemplateCollection =
-			_persistence.create(pk);
-
-		newLayoutPageTemplateCollection.setMvccVersion(
-			RandomTestUtil.nextLong());
+			addLayoutPageTemplateCollection();
 
 		newLayoutPageTemplateCollection.setCtCollectionId(
 			RandomTestUtil.nextLong());
@@ -168,8 +163,10 @@ public class LayoutPageTemplateCollectionPersistenceTest {
 		newLayoutPageTemplateCollection.setLastPublishDate(
 			RandomTestUtil.nextDate());
 
-		_layoutPageTemplateCollections.add(
-			_persistence.update(newLayoutPageTemplateCollection));
+		newLayoutPageTemplateCollection = _persistence.update(
+			newLayoutPageTemplateCollection);
+
+		_layoutPageTemplateCollections.add(newLayoutPageTemplateCollection);
 
 		LayoutPageTemplateCollection existingLayoutPageTemplateCollection =
 			_persistence.findByPrimaryKey(
@@ -333,16 +330,6 @@ public class LayoutPageTemplateCollectionPersistenceTest {
 		_persistence.countByG_LPTCK_T(0L, "null", 0);
 
 		_persistence.countByG_LPTCK_T(0L, (String)null, 0);
-	}
-
-	@Test
-	public void testCountByG_N_T() throws Exception {
-		_persistence.countByG_N_T(
-			RandomTestUtil.nextLong(), "", RandomTestUtil.nextInt());
-
-		_persistence.countByG_N_T(0L, "null", 0);
-
-		_persistence.countByG_N_T(0L, (String)null, 0);
 	}
 
 	@Test
@@ -814,8 +801,6 @@ public class LayoutPageTemplateCollectionPersistenceTest {
 		LayoutPageTemplateCollection layoutPageTemplateCollection =
 			_persistence.create(pk);
 
-		layoutPageTemplateCollection.setMvccVersion(RandomTestUtil.nextLong());
-
 		layoutPageTemplateCollection.setCtCollectionId(
 			RandomTestUtil.nextLong());
 
@@ -864,3 +849,4 @@ public class LayoutPageTemplateCollectionPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1525859578

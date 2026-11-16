@@ -6,8 +6,7 @@
 package com.liferay.site.internal.model.listener.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
-import com.liferay.petra.string.StringBundler;
-import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
+import com.liferay.configuration.admin.util.ConfigurationFilterStringUtil;
 import com.liferay.portal.configuration.module.configuration.ConfigurationProvider;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Role;
@@ -60,9 +59,10 @@ public class RoleModelListenerTest {
 		_group = GroupTestUtil.addGroup();
 
 		_configurationProvider.saveGroupConfiguration(
-			MenuAccessConfiguration.class, _group.getGroupId(),
+			MenuAccessConfiguration.class, _group.getCompanyId(),
+			_group.getGroupId(),
 			HashMapDictionaryBuilder.<String, Object>put(
-				"accessToControlMenuRoleIds", new String[0]
+				"accessToControlMenuRoleExternalReferenceCodes", new String[0]
 			).put(
 				"showControlMenuByRole", true
 			).build());
@@ -99,47 +99,56 @@ public class RoleModelListenerTest {
 
 	@Test
 	public void testAddRole() throws Exception {
+		_roleLocalService.addRole(
+			RandomTestUtil.randomString(), TestPropsValues.getUserId(), null, 0,
+			StringUtil.randomString(), null, null, RoleConstants.TYPE_SITE,
+			null, _serviceContext);
+
+		_assertConfiguration(new String[0]);
+	}
+
+	@Test
+	public void testDeleteRole() throws Exception {
+		Role role = _roleLocalService.addRole(
+			RandomTestUtil.randomString(), TestPropsValues.getUserId(), null, 0,
+			StringUtil.randomString(), null, null, RoleConstants.TYPE_REGULAR,
+			null, _serviceContext);
+
+		_menuAccessConfigurationManager.updateMenuAccessConfiguration(
+			_group.getGroupId(), new String[] {role.getExternalReferenceCode()},
+			true);
+
+		_assertConfiguration(new String[] {role.getExternalReferenceCode()});
+
+		_roleLocalService.deleteRole(role);
+
+		_assertConfiguration(new String[0]);
+	}
+
+	@Test
+	public void testOnAfterUpdate() throws Exception {
 		Role role = _roleLocalService.addRole(
 			RandomTestUtil.randomString(), TestPropsValues.getUserId(), null, 0,
 			StringUtil.randomString(), null, null, RoleConstants.TYPE_SITE,
 			null, _serviceContext);
 
-		_assertConfiguration(new String[] {String.valueOf(role.getRoleId())});
-	}
+		_menuAccessConfigurationManager.updateMenuAccessConfiguration(
+			_group.getGroupId(), new String[] {role.getExternalReferenceCode()},
+			true);
 
-	@Test
-	public void testDeleteRole() throws Exception {
-		Role role1 = _roleLocalService.addRole(
-			RandomTestUtil.randomString(), TestPropsValues.getUserId(), null, 0,
-			StringUtil.randomString(), null, null, RoleConstants.TYPE_REGULAR,
-			null, _serviceContext);
-		Role role2 = _roleLocalService.addRole(
-			RandomTestUtil.randomString(), TestPropsValues.getUserId(), null, 0,
-			StringUtil.randomString(), null, null, RoleConstants.TYPE_SITE,
-			null, _serviceContext);
+		role = _roleLocalService.updateExternalReferenceCode(
+			role, RandomTestUtil.randomString());
 
-		_assertConfiguration(
-			new String[] {
-				String.valueOf(role1.getRoleId()),
-				String.valueOf(role2.getRoleId())
-			});
-
-		_roleLocalService.deleteRole(role1);
-
-		_assertConfiguration(new String[] {String.valueOf(role2.getRoleId())});
+		_assertConfiguration(new String[] {role.getExternalReferenceCode()});
 	}
 
 	private void _assertConfiguration(String[] expectedRolesCanSeeControlMenu)
 		throws Exception {
 
-		String filterString = StringBundler.concat(
-			"(&(service.factoryPid=", MenuAccessConfiguration.class.getName(),
-			".scoped)(",
-			ExtendedObjectClassDefinition.Scope.GROUP.getPropertyKey(), "=",
-			_group.getGroupId(), "))");
-
 		Configuration[] configurations = _configurationAdmin.listConfigurations(
-			filterString);
+			ConfigurationFilterStringUtil.getGroupScopedFilterString(
+				_group.getCompanyId(), _group.getGroupId(),
+				MenuAccessConfiguration.class.getName(), null));
 
 		Assert.assertNotNull(configurations);
 		Assert.assertEquals(
@@ -149,12 +158,14 @@ public class RoleModelListenerTest {
 
 		Dictionary<String, Object> properties = configuration.getProperties();
 
-		String[] accessToControlMenuRoleIds = (String[])properties.get(
-			"accessToControlMenuRoleIds");
+		String[] accessToControlMenuRoleExternalReferenceCodes =
+			(String[])properties.get(
+				"accessToControlMenuRoleExternalReferenceCodes");
 
 		Assert.assertArrayEquals(
-			Arrays.toString(accessToControlMenuRoleIds),
-			expectedRolesCanSeeControlMenu, accessToControlMenuRoleIds);
+			Arrays.toString(accessToControlMenuRoleExternalReferenceCodes),
+			expectedRolesCanSeeControlMenu,
+			accessToControlMenuRoleExternalReferenceCodes);
 
 		Assert.assertTrue(
 			GetterUtil.getBoolean(properties.get("showControlMenuByRole")));

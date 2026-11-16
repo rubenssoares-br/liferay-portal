@@ -11,38 +11,43 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Zoltán Takács
  * @generated
  */
 @Generated("")
-@GraphQLName("Error")
-@JsonFilter("Liferay.Vulcan")
-@Schema(
+@GraphQLName(
+	description = "Standard error envelope returned by every non-2xx response. Carries the HTTP status code, a short error type, a long descriptive message, and (when available) the originating type and stack trace.",
+	value = "Error"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Standard error envelope returned by every non-2xx response. Carries the HTTP status code, a short error type, a long descriptive message, and (when available) the originating type and stack trace.",
 	requiredProperties = {"errorCode", "errorDescription", "message", "status"}
 )
+@JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "Error")
 public class Error implements Serializable {
 
@@ -54,7 +59,9 @@ public class Error implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Error.class, json);
 	}
 
-	@Schema(description = "Internal error code mapping", example = "996")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Internal error code mapping", example = "996"
+	)
 	public Integer getErrorCode() {
 		if (_errorCodeSupplier != null) {
 			errorCode = _errorCodeSupplier.get();
@@ -96,7 +103,8 @@ public class Error implements Serializable {
 	@JsonIgnore
 	private Supplier<Integer> _errorCodeSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Long human-readable description of the error.",
 		example = "Unable to find currency. Currency code should be expressed with 3-letter ISO 4217 format."
 	)
 	public String getErrorDescription() {
@@ -132,7 +140,7 @@ public class Error implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Long human-readable description of the error.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	@NotEmpty
 	protected String errorDescription;
@@ -140,8 +148,9 @@ public class Error implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _errorDescriptionSupplier;
 
-	@Schema(
-		example = "No CommerceCurrency exists with the key {groupId=41811, code=US Dollar}"
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Long human-readable description of the error.",
+		example = "No currency exists with the key {groupId=41811, code=US Dollar}"
 	)
 	public String getMessage() {
 		if (_messageSupplier != null) {
@@ -176,7 +185,7 @@ public class Error implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Long human-readable description of the error.")
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	@NotEmpty
 	protected String message;
@@ -184,7 +193,9 @@ public class Error implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _messageSupplier;
 
-	@Schema(description = "HTTP Status code", example = "404")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "HTTP Status code", example = "404"
+	)
 	public Integer getStatus() {
 		if (_statusSupplier != null) {
 			status = _statusSupplier.get();
@@ -314,8 +325,8 @@ public class Error implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.pricing.dto.v2_0.Error",
 		name = "x-class-name"
 	)
@@ -402,6 +413,27 @@ public class Error implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -410,3 +442,4 @@ public class Error implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:332144702

@@ -62,7 +62,7 @@ public class IndexUtil {
 					dynamicTemplateJSONObject.getJSONObject(
 						dynamicTemplateName);
 
-				_convertElasticsearchDynamicTemplate(templateJSONObject);
+				_convertOpenSearchDynamicTemplate(templateJSONObject);
 
 				String dynamicTemplateString = templateJSONObject.toString();
 
@@ -126,17 +126,16 @@ public class IndexUtil {
 	public static JSONArray mergeDynamicTemplates(
 		JSONArray jsonArray1, JSONArray jsonArray2) {
 
-		LinkedHashMap<String, JSONObject> linkedHashMap = new LinkedHashMap<>();
+		Map<String, JSONObject> map = new LinkedHashMap<>();
 
-		_putAll(jsonArray1, linkedHashMap);
-
-		_putAll(jsonArray2, linkedHashMap);
+		_putAll(jsonArray1, map);
+		_putAll(jsonArray2, map);
 
 		JSONArray jsonArray3 = JSONFactoryUtil.createJSONArray();
 
 		JSONObject defaultTemplateJSONObject = null;
 
-		for (Map.Entry<String, JSONObject> entry : linkedHashMap.entrySet()) {
+		for (Map.Entry<String, JSONObject> entry : map.entrySet()) {
 			String key = entry.getKey();
 
 			if (key.equals("template_")) {
@@ -154,7 +153,7 @@ public class IndexUtil {
 		return jsonArray3;
 	}
 
-	public static void mergeToJsonObject(
+	public static void mergeToJSONObject(
 		JSONObject jsonObject, JSONObject mergeJSONObject) {
 
 		if ((jsonObject == null) || (mergeJSONObject == null)) {
@@ -172,9 +171,10 @@ public class IndexUtil {
 			if ((object1 instanceof JSONObject) &&
 				(object2 instanceof JSONObject)) {
 
-				mergeToJsonObject((JSONObject)object1, (JSONObject)object2);
+				mergeToJSONObject((JSONObject)object1, (JSONObject)object2);
 			}
-			else if ((object1 instanceof JSONArray) &&
+			else if (key.equals("dynamic_templates") &&
+					 (object1 instanceof JSONArray) &&
 					 (object2 instanceof JSONArray)) {
 
 				jsonObject.put(
@@ -188,7 +188,7 @@ public class IndexUtil {
 		}
 	}
 
-	private static void _convertElasticsearchDynamicTemplate(
+	private static void _convertOpenSearchDynamicTemplate(
 		JSONObject templateJSONObject) {
 
 		JSONObject mappingJSONObject = templateJSONObject.getJSONObject(

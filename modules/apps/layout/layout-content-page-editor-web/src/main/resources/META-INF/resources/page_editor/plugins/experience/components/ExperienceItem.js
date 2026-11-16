@@ -10,7 +10,8 @@ import ClayLayout from '@clayui/layout';
 import ClayLink from '@clayui/link';
 import ClayList from '@clayui/list';
 import classNames from 'classnames';
-import {navigate, openConfirmModal, setSessionValue} from 'frontend-js-web';
+import {openConfirmModal} from 'frontend-js-components-web';
+import {navigate, setSessionValue} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React from 'react';
 
@@ -44,9 +45,21 @@ const ExperienceItem = ({
 			experience.priority
 		);
 	const handleExperienceEdit = () => {
-		const {name, segmentsEntryId, segmentsExperienceId} = experience;
+		const {
+			name,
+			segmentsEntryERC,
+			segmentsEntryId,
+			segmentsEntryScopeERC,
+			segmentsExperienceId,
+		} = experience;
 
-		onEditExperience({name, segmentsEntryId, segmentsExperienceId});
+		onEditExperience({
+			name,
+			segmentsEntryERC,
+			segmentsEntryId,
+			segmentsEntryScopeERC,
+			segmentsExperienceId,
+		});
 	};
 	const handleExperienceDelete = () => {
 		const experienceHasRunningExperiment =

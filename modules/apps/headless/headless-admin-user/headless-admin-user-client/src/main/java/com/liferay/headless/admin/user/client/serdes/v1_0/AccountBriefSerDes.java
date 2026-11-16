@@ -9,13 +9,14 @@ import com.liferay.headless.admin.user.client.dto.v1_0.AccountBrief;
 import com.liferay.headless.admin.user.client.dto.v1_0.RoleBrief;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -105,6 +106,20 @@ public class AccountBriefSerDes {
 			sb.append("]");
 		}
 
+		if (accountBrief.getType() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"type\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(accountBrief.getType()));
+
+			sb.append("\"");
+		}
+
 		sb.append("}");
 
 		return sb.toString();
@@ -154,6 +169,13 @@ public class AccountBriefSerDes {
 			map.put("roleBriefs", String.valueOf(accountBrief.getRoleBriefs()));
 		}
 
+		if (accountBrief.getType() == null) {
+			map.put("type", null);
+		}
+		else {
+			map.put("type", String.valueOf(accountBrief.getType()));
+		}
+
 		return map;
 	}
 
@@ -182,6 +204,9 @@ public class AccountBriefSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "roleBriefs")) {
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "type")) {
 				return false;
 			}
 
@@ -224,6 +249,11 @@ public class AccountBriefSerDes {
 					}
 
 					accountBrief.setRoleBriefs(roleBriefsArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "type")) {
+				if (jsonParserFieldValue != null) {
+					accountBrief.setType((String)jsonParserFieldValue);
 				}
 			}
 		}
@@ -271,6 +301,16 @@ public class AccountBriefSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -303,3 +343,4 @@ public class AccountBriefSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-135812562

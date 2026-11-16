@@ -12,18 +12,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.search.document.Document;
 import com.liferay.portal.search.document.DocumentBuilder;
 import com.liferay.portal.search.document.DocumentBuilderFactory;
-import com.liferay.portal.search.geolocation.GeoBuilders;
 import com.liferay.portal.search.highlight.HighlightField;
-import com.liferay.portal.search.highlight.HighlightFieldBuilderFactory;
+import com.liferay.portal.search.highlight.HighlightFieldBuilder;
 import com.liferay.portal.search.hits.SearchHit;
 import com.liferay.portal.search.hits.SearchHitBuilder;
-import com.liferay.portal.search.hits.SearchHitBuilderFactory;
 import com.liferay.portal.search.hits.SearchHits;
 import com.liferay.portal.search.hits.SearchHitsBuilder;
-import com.liferay.portal.search.hits.SearchHitsBuilderFactory;
+import com.liferay.portal.search.hits.TotalHitsRelation;
 import com.liferay.portal.search.opensearch2.internal.util.ConversionUtil;
 import com.liferay.portal.search.opensearch2.internal.util.JsonpUtil;
 
@@ -37,6 +37,7 @@ import org.opensearch.client.json.JsonData;
 import org.opensearch.client.opensearch.core.explain.Explanation;
 import org.opensearch.client.opensearch.core.search.Hit;
 import org.opensearch.client.opensearch.core.search.HitsMetadata;
+import org.opensearch.client.opensearch.core.search.InnerHitsResult;
 import org.opensearch.client.opensearch.core.search.TotalHits;
 
 /**
@@ -45,19 +46,6 @@ import org.opensearch.client.opensearch.core.search.TotalHits;
  */
 public class HitsMetadataTranslator {
 
-	public HitsMetadataTranslator(
-		DocumentBuilderFactory documentBuilderFactory, GeoBuilders geoBuilders,
-		HighlightFieldBuilderFactory highlightFieldBuilderFactory,
-		SearchHitBuilderFactory searchHitBuilderFactory,
-		SearchHitsBuilderFactory searchHitsBuilderFactory) {
-
-		_documentBuilderFactory = documentBuilderFactory;
-		_geoBuilders = geoBuilders;
-		_highlightFieldBuilderFactory = highlightFieldBuilderFactory;
-		_searchHitBuilderFactory = searchHitBuilderFactory;
-		_searchHitsBuilderFactory = searchHitsBuilderFactory;
-	}
-
 	public SearchHits translate(HitsMetadata<JsonData> hitsMetadata) {
 		return translate(null, hitsMetadata);
 	}
@@ -65,8 +53,7 @@ public class HitsMetadataTranslator {
 	public SearchHits translate(
 		String alternateUidFieldName, HitsMetadata<JsonData> hitsMetadata) {
 
-		SearchHitsBuilder searchHitsBuilder =
-			_searchHitsBuilderFactory.getSearchHitsBuilder();
+		SearchHitsBuilder searchHitsBuilder = new SearchHitsBuilder();
 
 		List<Hit<JsonData>> hits = hitsMetadata.hits();
 
@@ -84,17 +71,18 @@ public class HitsMetadataTranslator {
 			ConversionUtil.toFloat(hitsMetadata.maxScore(), 0.0F)
 		).totalHits(
 			totalHits.value()
+		).totalHitsRelation(
+			_translate(totalHits.relation())
 		).build();
 	}
 
 	protected SearchHit translate(
 		String alternateUidFieldName, Hit<JsonData> hit) {
 
-		SearchHitBuilder searchHitBuilder =
-			_searchHitBuilderFactory.getSearchHitBuilder();
+		SearchHitBuilder searchHitBuilder = new SearchHitBuilder();
 
 		return searchHitBuilder.addHighlightFields(
-			_translateHighlightFields(hit.highlight())
+			_translateHighlightFields(hit)
 		).addSources(
 			_translateSource(hit.source())
 		).document(
@@ -124,12 +112,64 @@ public class HitsMetadataTranslator {
 		return StringPool.BLANK;
 	}
 
+	private void _populateHighlightFields(
+		List<HighlightField> highlightFields, Hit<JsonData> hit) {
+
+		Map<String, List<String>> highlight = hit.highlight();
+
+		if (MapUtil.isNotEmpty(highlight)) {
+			for (Map.Entry<String, List<String>> entry : highlight.entrySet()) {
+				highlightFields.add(
+					new HighlightFieldBuilder(
+					).fragments(
+						entry.getValue()
+					).name(
+						entry.getKey()
+					).build());
+			}
+		}
+
+		Map<String, InnerHitsResult> innerHitsResults = hit.innerHits();
+
+		if (MapUtil.isEmpty(innerHitsResults)) {
+			return;
+		}
+
+		for (InnerHitsResult innerHitsResult : innerHitsResults.values()) {
+			HitsMetadata<JsonData> hitsMetadata = innerHitsResult.hits();
+
+			if ((hitsMetadata == null) ||
+				ListUtil.isEmpty(hitsMetadata.hits())) {
+
+				continue;
+			}
+
+			for (Hit<JsonData> innerHit : hitsMetadata.hits()) {
+				_populateHighlightFields(highlightFields, innerHit);
+			}
+		}
+	}
+
+	private TotalHitsRelation _translate(
+		org.opensearch.client.opensearch.core.search.TotalHitsRelation
+			totalHitsRelation) {
+
+		if (totalHitsRelation ==
+				org.opensearch.client.opensearch.core.search.TotalHitsRelation.
+					Gte) {
+
+			return TotalHitsRelation.GTE;
+		}
+
+		return TotalHitsRelation.EQ;
+	}
+
 	private Document _translateDocument(
 		String alternateUidFieldName, Hit<JsonData> hit) {
 
-		DocumentBuilder documentBuilder = _documentBuilderFactory.builder();
+		DocumentBuilder documentBuilder = DocumentBuilderFactory.builder();
 
-		FieldsTranslator fieldsTranslator = new FieldsTranslator(_geoBuilders);
+		FieldsTranslator fieldsTranslator = new FieldsTranslator();
 
 		fieldsTranslator.translateSource(documentBuilder, hit.source());
 
@@ -143,20 +183,10 @@ public class HitsMetadataTranslator {
 		return documentBuilder.build();
 	}
 
-	private List<HighlightField> _translateHighlightFields(
-		Map<String, List<String>> highlight) {
-
+	private List<HighlightField> _translateHighlightFields(Hit<JsonData> hit) {
 		List<HighlightField> highlightFields = new ArrayList<>();
 
-		for (Map.Entry<String, List<String>> entry : highlight.entrySet()) {
-			highlightFields.add(
-				_highlightFieldBuilderFactory.builder(
-				).fragments(
-					entry.getValue()
-				).name(
-					entry.getKey()
-				).build());
-		}
+		_populateHighlightFields(highlightFields, hit);
 
 		return highlightFields;
 	}
@@ -179,11 +209,5 @@ public class HitsMetadataTranslator {
 			throw new RuntimeException(jsonProcessingException);
 		}
 	}
-
-	private final DocumentBuilderFactory _documentBuilderFactory;
-	private final GeoBuilders _geoBuilders;
-	private final HighlightFieldBuilderFactory _highlightFieldBuilderFactory;
-	private final SearchHitBuilderFactory _searchHitBuilderFactory;
-	private final SearchHitsBuilderFactory _searchHitsBuilderFactory;
 
 }

@@ -5,7 +5,7 @@
  */
 --%>
 
-<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="jakarta.tags.core" prefix="c" %>
 
 <%@ taglib uri="http://java.sun.com/portlet_2_0" prefix="portlet" %>
 
@@ -22,6 +22,8 @@ taglib uri="http://liferay.com/tld/ui" prefix="liferay-ui" %>
 
 <%@ page import="com.liferay.account.constants.AccountActionKeys" %><%@
 page import="com.liferay.account.model.AccountEntry" %><%@
+page import="com.liferay.account.validator.AccountEntryValidatorResult" %><%@
+page import="com.liferay.account.validator.exception.AccountEntryValidatorException" %><%@
 page import="com.liferay.commerce.checkout.web.internal.constants.CommerceCheckoutFDSNames" %><%@
 page import="com.liferay.commerce.checkout.web.internal.constants.CommerceCheckoutScreenNavigationConstants" %><%@
 page import="com.liferay.commerce.checkout.web.internal.display.context.BaseAddressCheckoutStepDisplayContext" %><%@
@@ -33,6 +35,7 @@ page import="com.liferay.commerce.checkout.web.internal.display.context.PaymentM
 page import="com.liferay.commerce.checkout.web.internal.display.context.PaymentProcessCheckoutStepDisplayContext" %><%@
 page import="com.liferay.commerce.checkout.web.internal.display.context.ShippingMethodCheckoutStepDisplayContext" %><%@
 page import="com.liferay.commerce.checkout.web.internal.display.context.TermCommerceCheckoutStepDisplayContext" %><%@
+page import="com.liferay.commerce.constants.CommerceAddressConstants" %><%@
 page import="com.liferay.commerce.constants.CommerceCheckoutWebKeys" %><%@
 page import="com.liferay.commerce.constants.CommerceOrderPaymentConstants" %><%@
 page import="com.liferay.commerce.constants.CommerceWebKeys" %><%@

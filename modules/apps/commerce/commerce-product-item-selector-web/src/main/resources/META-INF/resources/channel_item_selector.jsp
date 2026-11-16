@@ -25,7 +25,8 @@ SearchContainer<CommerceChannel> commerceChannelSearchContainer = commerceChanne
 		<liferay-ui:search-container-row
 			className="com.liferay.commerce.product.model.CommerceChannel"
 			cssClass="commerce-channel-row"
-			keyProperty="commerceChannelId"
+			escapedModel="<%= true %>"
+			keyPropertyName="commerceChannelId"
 			modelVar="commerceChannel"
 		>
 

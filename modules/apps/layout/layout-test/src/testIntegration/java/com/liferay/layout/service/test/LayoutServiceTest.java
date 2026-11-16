@@ -6,14 +6,22 @@
 package com.liferay.layout.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.change.tracking.model.CTCollection;
+import com.liferay.change.tracking.service.CTCollectionLocalService;
+import com.liferay.fragment.constants.FragmentPortletKeys;
+import com.liferay.layout.admin.kernel.model.LayoutTypePortletConstants;
 import com.liferay.layout.test.util.ContentLayoutTestUtil;
 import com.liferay.layout.test.util.LayoutTestUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
+import com.liferay.portal.kernel.exception.NoSuchLayoutException;
 import com.liferay.portal.kernel.model.Group;
 import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.model.LayoutConstants;
 import com.liferay.portal.kernel.model.LayoutTypePortlet;
 import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
@@ -21,10 +29,15 @@ import com.liferay.portal.kernel.security.permission.ActionKeys;
 import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
 import com.liferay.portal.kernel.security.permission.PermissionThreadLocal;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.LayoutService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
 import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.TestInfo;
+import com.liferay.portal.kernel.test.context.ContextUserReplace;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
@@ -33,15 +46,20 @@ import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
+import com.liferay.portal.kernel.util.ContentTypes;
 import com.liferay.portal.kernel.util.FriendlyURLNormalizer;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Portal;
+import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
 import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
+import java.io.ByteArrayInputStream;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +70,8 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import org.springframework.mock.web.MockHttpServletRequest;
 
 /**
  * @author Akos Thurzo
@@ -74,6 +94,42 @@ public class LayoutServiceTest {
 	}
 
 	@Test
+	@TestInfo("LPD-110123")
+	public void testAddLayoutWithoutPermissions() throws Exception {
+		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		Group group = GroupTestUtil.addGroup();
+
+		Layout groupLayout = LayoutTestUtil.addTypeContentLayout(group);
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+		User user = UserTestUtil.addUser();
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		RoleTestUtil.addResourcePermission(
+			role, Group.class.getName(), ResourceConstants.SCOPE_GROUP,
+			String.valueOf(group.getGroupId()), ActionKeys.ADD_LAYOUT);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			Assert.assertThrows(
+				NoSuchLayoutException.class,
+				() -> _addLayout(group.getGroupId(), layout.getPlid()));
+			Assert.assertThrows(
+				PrincipalException.MustHavePermission.class,
+				() -> _addLayout(group.getGroupId(), groupLayout.getPlid()));
+		}
+
+		Assert.assertEquals(
+			draftLayout,
+			_layoutLocalService.fetchDraftLayout(layout.getPlid()));
+	}
+
+	@Test
 	public void testAddPortletsToPrivateLayout() throws Exception {
 		_testAddPortletsToLayout(true);
 	}
@@ -91,6 +147,113 @@ public class LayoutServiceTest {
 	@Test
 	public void testAddPublicLayout() throws Exception {
 		_assertAddLayout(false);
+	}
+
+	@Test
+	@TestInfo("LPD-110123")
+	public void testConvertEmptyLayoutWithoutPermissions() throws Exception {
+		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		Layout draftLayout = layout.fetchDraftLayout();
+
+		Group group = GroupTestUtil.addGroup();
+
+		Layout emptyLayout = LayoutTestUtil.addTypeEmptyLayout(group);
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+		User user = UserTestUtil.addUser();
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			emptyLayout.getCompanyId(), Layout.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(emptyLayout.getPlid()), role.getRoleId(),
+			new String[] {ActionKeys.UPDATE});
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			Assert.assertThrows(
+				NoSuchLayoutException.class,
+				() -> _layoutService.convertEmptyLayout(
+					emptyLayout.getPlid(), emptyLayout.getNameMap(),
+					LayoutConstants.TYPE_CONTENT,
+					_portal.getClassNameId(Layout.class), layout.getPlid(),
+					null,
+					ServiceContextTestUtil.getServiceContext(
+						group, user.getUserId())));
+		}
+
+		Assert.assertEquals(
+			draftLayout,
+			_layoutLocalService.fetchDraftLayout(layout.getPlid()));
+	}
+
+	@Test(expected = PrincipalException.class)
+	public void testCopyLayoutContentWithoutPermissions() throws Exception {
+		Layout sourceLayout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		_removeResourcePermission(sourceLayout);
+
+		Layout controlPanelLayout = _layoutLocalService.createLayout(
+			sourceLayout.getPlid());
+
+		controlPanelLayout.setGroupId(sourceLayout.getGroupId());
+		controlPanelLayout.setCompanyId(sourceLayout.getCompanyId());
+		controlPanelLayout.setType(LayoutConstants.TYPE_CONTROL_PANEL);
+
+		Layout targetLayout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		User user = UserTestUtil.addUser();
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			targetLayout.getCompanyId(), Layout.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(targetLayout.getPlid()), role.getRoleId(),
+			new String[] {ActionKeys.UPDATE});
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			_layoutService.copyLayoutContent(controlPanelLayout, targetLayout);
+		}
+	}
+
+	@Test(expected = PrincipalException.class)
+	public void testCopyLayoutWithoutPermissions() throws Exception {
+		Layout layout = LayoutTestUtil.addTypeContentLayout(_group);
+
+		User user = UserTestUtil.addUser();
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		RoleTestUtil.addResourcePermission(
+			role, Group.class.getName(), ResourceConstants.SCOPE_GROUP,
+			String.valueOf(_group.getGroupId()), ActionKeys.ADD_LAYOUT);
+
+		_removeResourcePermission(layout);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			ServiceContext serviceContext =
+				ServiceContextTestUtil.getServiceContext(
+					_group, TestPropsValues.getUserId());
+
+			serviceContext.setRequest(new MockHttpServletRequest());
+
+			_layoutService.copyLayout(
+				_group.getGroupId(), layout.isPrivateLayout(),
+				RandomTestUtil.randomLocaleStringMap(), false, false, false,
+				layout.getPlid(), serviceContext);
+		}
 	}
 
 	@Test
@@ -270,6 +433,96 @@ public class LayoutServiceTest {
 	}
 
 	@Test
+	@TestInfo({"LPD-78893", "LPD-94951"})
+	public void testGetTempFileNames() throws Exception {
+
+		// Company group with control panel permission
+
+		Group companyGroup = _groupLocalService.getCompanyGroup(
+			TestPropsValues.getCompanyId());
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				_addUserWithControlPanelPermission(
+					PortletKeys.COMPANY_IMPORT))) {
+
+			_layoutService.getTempFileNames(
+				companyGroup.getGroupId(), RandomTestUtil.randomString());
+		}
+
+		// Company group without permission
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				UserTestUtil.addUser())) {
+
+			Assert.assertThrows(
+				PrincipalException.class,
+				() -> _layoutService.getTempFileNames(
+					companyGroup.getGroupId(), RandomTestUtil.randomString()));
+		}
+
+		// Inside publication
+
+		CTCollection ctCollection = _ctCollectionLocalService.addCTCollection(
+			null, TestPropsValues.getCompanyId(), TestPropsValues.getUserId(),
+			0, RandomTestUtil.randomString(), null);
+
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					ctCollection.getCtCollectionId())) {
+
+			String folderName = RandomTestUtil.randomString();
+			String fileName = RandomTestUtil.randomString();
+
+			_layoutService.addTempFileEntry(
+				_group.getGroupId(), folderName, fileName,
+				new ByteArrayInputStream(RandomTestUtil.randomBytes()),
+				ContentTypes.APPLICATION_ZIP);
+
+			String[] tempFileNames = _layoutService.getTempFileNames(
+				_group.getGroupId(), folderName);
+
+			Assert.assertEquals(
+				Arrays.toString(tempFileNames), 1, tempFileNames.length);
+			Assert.assertEquals(fileName, tempFileNames[0]);
+		}
+		finally {
+			_ctCollectionLocalService.deleteCTCollection(ctCollection);
+		}
+
+		// Site group with control panel permission
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				_addUserWithControlPanelPermission(
+					PortletKeys.COMPANY_IMPORT))) {
+
+			Assert.assertThrows(
+				PrincipalException.class,
+				() -> _layoutService.getTempFileNames(
+					_group.getGroupId(), RandomTestUtil.randomString()));
+		}
+
+		// Site group with export/import permission
+
+		User user = UserTestUtil.addUser();
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		RoleTestUtil.addResourcePermission(
+			role, Group.class.getName(), ResourceConstants.SCOPE_GROUP,
+			String.valueOf(_group.getGroupId()),
+			ActionKeys.EXPORT_IMPORT_LAYOUTS);
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			_layoutService.getTempFileNames(
+				_group.getGroupId(), RandomTestUtil.randomString());
+		}
+	}
+
+	@Test
 	public void testUpdateLayoutTemplate() throws Exception {
 		Layout layout = _addTypePortletLayout(
 			RandomTestUtil.randomString(), false, StringPool.BLANK);
@@ -286,7 +539,7 @@ public class LayoutServiceTest {
 			typeSettingsUnicodeProperties.setProperty(
 				"layout-template-id", layoutTemplateId);
 
-			layout = _layoutService.updateLayout(
+			layout = _layoutService.updateTypeSettings(
 				layout.getGroupId(), layout.isPrivateLayout(),
 				layout.getLayoutId(), typeSettingsUnicodeProperties.toString());
 
@@ -299,18 +552,90 @@ public class LayoutServiceTest {
 		}
 	}
 
-	private String[] _addPortletsToLayout(
-			int columnIndex, long plid, String[] portletNames)
-		throws Exception {
+	@Test
+	@TestInfo("LPD-108338")
+	public void testUpdateTypeSettingsWithPortletCategory() throws Exception {
+		Layout layout = _addTypePortletLayout(
+			RandomTestUtil.randomString(), false, StringPool.BLANK);
 
-		String[] portletIds = new String[portletNames.length];
+		String panelSelectedPortlets =
+			"root--category-collaboration," + FragmentPortletKeys.FRAGMENT;
 
-		for (int i = 0; i < portletNames.length; i++) {
-			portletIds[i] = _addPortletToLayout(
-				columnIndex, i, plid, portletNames[i]);
+		layout = _layoutService.updateTypeSettings(
+			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
+			LayoutTypePortletConstants.PANEL_SELECTED_PORTLETS +
+				StringPool.EQUAL + panelSelectedPortlets);
+
+		Assert.assertEquals(
+			panelSelectedPortlets,
+			layout.getTypeSettingsProperty(
+				LayoutTypePortletConstants.PANEL_SELECTED_PORTLETS));
+	}
+
+	@Test
+	@TestInfo("LPD-106870")
+	public void testUpdateTypeSettingsWithoutPermissions() throws Exception {
+		Layout layout = _addTypePortletLayout(
+			RandomTestUtil.randomString(), false, StringPool.BLANK);
+
+		User user = UserTestUtil.addUser();
+
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		_resourcePermissionLocalService.setResourcePermissions(
+			layout.getCompanyId(), Layout.class.getName(),
+			ResourceConstants.SCOPE_INDIVIDUAL,
+			String.valueOf(layout.getPlid()), role.getRoleId(),
+			new String[] {ActionKeys.UPDATE});
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			_layoutService.updateTypeSettings(
+				layout.getGroupId(), layout.isPrivateLayout(),
+				layout.getLayoutId(), "layout-template-id=1_column");
+
+			Assert.assertThrows(
+				PrincipalException.MustHavePermission.class,
+				() -> _layoutService.updateTypeSettings(
+					layout.getGroupId(), layout.isPrivateLayout(),
+					layout.getLayoutId(),
+					"column-1=" + FragmentPortletKeys.FRAGMENT));
+			Assert.assertThrows(
+				PrincipalException.MustHavePermission.class,
+				() -> _layoutService.updateTypeSettings(
+					layout.getGroupId(), layout.isPrivateLayout(),
+					layout.getLayoutId(),
+					LayoutTypePortletConstants.FULL_PAGE_APPLICATION_PORTLET +
+						StringPool.EQUAL + FragmentPortletKeys.FRAGMENT));
+			Assert.assertThrows(
+				PrincipalException.MustHavePermission.class,
+				() -> _layoutService.updateTypeSettings(
+					layout.getGroupId(), layout.isPrivateLayout(),
+					layout.getLayoutId(),
+					LayoutTypePortletConstants.PANEL_SELECTED_PORTLETS +
+						StringPool.EQUAL + FragmentPortletKeys.FRAGMENT));
 		}
 
-		return portletIds;
+		Layout updatedLayout = _layoutLocalService.getLayout(layout.getPlid());
+
+		String typeSettings = updatedLayout.getTypeSettings();
+
+		Assert.assertFalse(
+			typeSettings, typeSettings.contains(FragmentPortletKeys.FRAGMENT));
+	}
+
+	private Layout _addLayout(long groupId, long classPK) throws Exception {
+		return _layoutService.addLayout(
+			null, groupId, false, LayoutConstants.DEFAULT_PARENT_LAYOUT_ID,
+			_portal.getClassNameId(Layout.class), classPK,
+			RandomTestUtil.randomLocaleStringMap(), null, null, null, null,
+			LayoutConstants.TYPE_CONTENT, StringPool.BLANK, false, true, null,
+			null,
+			ServiceContextTestUtil.getServiceContext(
+				groupId, TestPropsValues.getUserId()));
 	}
 
 	private String _addPortletToLayout(
@@ -330,11 +655,25 @@ public class LayoutServiceTest {
 		layoutTypePortlet.resetModes();
 		layoutTypePortlet.resetStates();
 
-		_layoutService.updateLayout(
+		_layoutService.updateTypeSettings(
 			layout.getGroupId(), layout.isPrivateLayout(), layout.getLayoutId(),
 			layout.getTypeSettings());
 
 		return portletId;
+	}
+
+	private String[] _addPortletsToLayout(
+			int columnIndex, long plid, String[] portletNames)
+		throws Exception {
+
+		String[] portletIds = new String[portletNames.length];
+
+		for (int i = 0; i < portletNames.length; i++) {
+			portletIds[i] = _addPortletToLayout(
+				columnIndex, i, plid, portletNames[i]);
+		}
+
+		return portletIds;
 	}
 
 	private Layout _addTypePortletLayout(
@@ -356,9 +695,25 @@ public class LayoutServiceTest {
 				_friendlyURLNormalizer.normalizeWithEncoding(
 					StringPool.SLASH + name)
 			).build(),
-			0,
+			null,
 			ServiceContextTestUtil.getServiceContext(
 				_group, TestPropsValues.getUserId()));
+	}
+
+	private User _addUserWithControlPanelPermission(String portletId)
+		throws Exception {
+
+		User user = UserTestUtil.addUser();
+		Role role = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		_roleLocalService.addUserRole(user.getUserId(), role.getRoleId());
+
+		RoleTestUtil.addResourcePermission(
+			role, portletId, ResourceConstants.SCOPE_COMPANY,
+			String.valueOf(TestPropsValues.getCompanyId()),
+			ActionKeys.ACCESS_IN_CONTROL_PANEL);
+
+		return user;
 	}
 
 	private void _assertAddLayout(boolean privateLayout) throws Exception {
@@ -479,10 +834,16 @@ public class LayoutServiceTest {
 	};
 
 	@Inject
+	private CTCollectionLocalService _ctCollectionLocalService;
+
+	@Inject
 	private FriendlyURLNormalizer _friendlyURLNormalizer;
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject
+	private GroupLocalService _groupLocalService;
 
 	@Inject
 	private LayoutLocalService _layoutLocalService;
@@ -494,6 +855,9 @@ public class LayoutServiceTest {
 
 	@Inject
 	private Portal _portal;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
 
 	@Inject
 	private RoleLocalService _roleLocalService;

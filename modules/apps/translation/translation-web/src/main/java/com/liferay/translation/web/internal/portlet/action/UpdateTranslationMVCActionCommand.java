@@ -45,16 +45,16 @@ import com.liferay.translation.service.TranslationEntryService;
 import com.liferay.translation.url.provider.TranslationURLProvider;
 import com.liferay.translation.web.internal.helper.TranslationRequestHelper;
 
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
+import jakarta.portlet.PortletRequest;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
-import javax.portlet.PortletRequest;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -64,7 +64,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + TranslationPortletKeys.TRANSLATION,
+		"jakarta.portlet.name=" + TranslationPortletKeys.TRANSLATION,
 		"mvc.command.name=/translation/update_translation"
 	},
 	service = MVCActionCommand.class
@@ -191,26 +191,18 @@ public class UpdateTranslationMVCActionCommand extends BaseMVCActionCommand {
 		Map<String, String[]> parameterMap = portletRequest.getParameterMap();
 
 		for (String parameterName : parameterMap.keySet()) {
-			if (parameterName.startsWith(_PARAMETER_NAME_INFO_FIELD)) {
-				values.put(
-					parameterName.substring(
-						_PARAMETER_NAME_INFO_FIELD.length(),
-						parameterName.length() - 2),
-					portletRequest.getParameterValues(parameterName));
+			if (!parameterName.startsWith(_PARAMETER_NAME_INFO_FIELD)) {
+				continue;
 			}
+
+			values.put(
+				parameterName.substring(
+					_PARAMETER_NAME_INFO_FIELD.length(),
+					parameterName.length() - 2),
+				portletRequest.getParameterValues(parameterName));
 		}
 
 		return values;
-	}
-
-	private <T> List<InfoField<?>> _getInfoFields(String className, T object) {
-		InfoItemFormProvider<T> infoItemFormProvider =
-			_infoItemServiceRegistry.getFirstInfoItemService(
-				InfoItemFormProvider.class, className);
-
-		InfoForm infoForm = infoItemFormProvider.getInfoForm(object);
-
-		return infoForm.getAllInfoFields();
 	}
 
 	private <T> List<InfoFieldValue<Object>> _getInfoFieldValues(
@@ -226,34 +218,46 @@ public class UpdateTranslationMVCActionCommand extends BaseMVCActionCommand {
 			String[] infoFieldParameterValue = infoFieldParameterValues.get(
 				infoField.getUniqueId());
 
-			if (ArrayUtil.isNotEmpty(infoFieldParameterValue)) {
-				Locale sourceLocale = _getSourceLocale(actionRequest);
+			if (ArrayUtil.isEmpty(infoFieldParameterValue)) {
+				continue;
+			}
 
-				List<InfoFieldValue<Object>> sourceInfoFieldValues =
-					new ArrayList<>(
-						infoItemFieldValues.getInfoFieldValues(
-							infoField.getUniqueId()));
+			Locale sourceLocale = _getSourceLocale(actionRequest);
 
-				for (int i = 0; i < infoFieldParameterValue.length; i++) {
-					InfoFieldValue<Object> sourceInfoFieldValue =
-						sourceInfoFieldValues.get(i);
+			List<InfoFieldValue<Object>> sourceInfoFieldValues =
+				new ArrayList<>(
+					infoItemFieldValues.getInfoFieldValues(
+						infoField.getUniqueId()));
 
-					infoFieldValues.add(
-						new InfoFieldValue<>(
-							infoField,
-							InfoLocalizedValue.builder(
-							).value(
-								_getTargetLocale(actionRequest),
-								infoFieldParameterValue[i]
-							).value(
-								sourceLocale,
-								sourceInfoFieldValue.getValue(sourceLocale)
-							).build()));
-				}
+			for (int i = 0; i < infoFieldParameterValue.length; i++) {
+				InfoFieldValue<Object> sourceInfoFieldValue =
+					sourceInfoFieldValues.get(i);
+
+				infoFieldValues.add(
+					new InfoFieldValue<>(
+						infoField,
+						InfoLocalizedValue.builder(
+						).value(
+							_getTargetLocale(actionRequest),
+							infoFieldParameterValue[i]
+						).value(
+							sourceLocale,
+							sourceInfoFieldValue.getValue(sourceLocale)
+						).build()));
 			}
 		}
 
 		return infoFieldValues;
+	}
+
+	private <T> List<InfoField<?>> _getInfoFields(String className, T object) {
+		InfoItemFormProvider<T> infoItemFormProvider =
+			_infoItemServiceRegistry.getFirstInfoItemService(
+				InfoItemFormProvider.class, className);
+
+		InfoForm infoForm = infoItemFormProvider.getInfoForm(object);
+
+		return infoForm.getAllInfoFields();
 	}
 
 	private Object _getInfoItemFieldValue(

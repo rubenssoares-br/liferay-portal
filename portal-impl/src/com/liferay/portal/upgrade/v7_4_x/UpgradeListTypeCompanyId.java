@@ -5,8 +5,9 @@
 
 package com.liferay.portal.upgrade.v7_4_x;
 
+import com.liferay.petra.string.StringBundler;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
-import com.liferay.portal.kernel.db.partition.DBPartition;
+import com.liferay.portal.kernel.dao.jdbc.AutoBatchPreparedStatementUtil;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
 import com.liferay.portal.kernel.model.ListType;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
@@ -14,7 +15,7 @@ import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.upgrade.UpgradeProcessFactory;
 import com.liferay.portal.kernel.upgrade.UpgradeStep;
 import com.liferay.portal.kernel.util.HashMapBuilder;
-import com.liferay.portal.kernel.util.StringBundler;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,7 +39,7 @@ public class UpgradeListTypeCompanyId extends UpgradeProcess {
 
 		_resetCounter(defaultCompanyId);
 
-		if (DBPartition.isPartitionEnabled()) {
+		if (PropsValues.DATABASE_PARTITION_ENABLED) {
 			_upgradeDBPartition(defaultCompanyId);
 
 			return;
@@ -58,6 +59,7 @@ public class UpgradeListTypeCompanyId extends UpgradeProcess {
 		List<ListTypeEntry> listTypeEntries = new ArrayList<>();
 
 		try (Statement statement = connection.createStatement();
+
 			ResultSet resultSet = statement.executeQuery(
 				"select listTypeId, name, type_ from ListType")) {
 
@@ -101,10 +103,11 @@ public class UpgradeListTypeCompanyId extends UpgradeProcess {
 	}
 
 	private void _resetCounter(long defaultCompanyId) throws Exception {
-		if (!DBPartition.isPartitionEnabled() ||
+		if (!PropsValues.DATABASE_PARTITION_ENABLED ||
 			(CompanyThreadLocal.getCompanyId() == defaultCompanyId)) {
 
 			try (Statement statement = connection.createStatement();
+
 				ResultSet resultSet1 = statement.executeQuery(
 					StringBundler.concat(
 						"select currentId from Counter where name = '",
@@ -144,7 +147,8 @@ public class UpgradeListTypeCompanyId extends UpgradeProcess {
 
 			for (String columnName : columnNames) {
 				try (PreparedStatement preparedStatement =
-						connection.prepareStatement(
+						AutoBatchPreparedStatementUtil.autoBatch(
+							connection,
 							StringBundler.concat(
 								"update ", tableName, " set ", columnName,
 								" = ? where ", columnName,
@@ -155,8 +159,10 @@ public class UpgradeListTypeCompanyId extends UpgradeProcess {
 						preparedStatement.setLong(2, entry.getKey());
 						preparedStatement.setLong(3, companyId);
 
-						preparedStatement.executeUpdate();
+						preparedStatement.addBatch();
 					}
+
+					preparedStatement.executeBatch();
 				}
 			}
 		}
@@ -172,22 +178,27 @@ public class UpgradeListTypeCompanyId extends UpgradeProcess {
 		List<ListTypeEntry> listTypeEntries = _getListTypes();
 
 		for (long companyId : companyIds) {
-			if (companyId != defaultCompanyId) {
-				HashMap<Long, Long> listTypeIds = _insertListTypes(
-					listTypeEntries, companyId);
-
-				_updateListTypeReferences(listTypeIds, companyId);
+			if (companyId == defaultCompanyId) {
+				continue;
 			}
+
+			HashMap<Long, Long> listTypeIds = _insertListTypes(
+				listTypeEntries, companyId);
+
+			_updateListTypeReferences(listTypeIds, companyId);
 		}
 	}
 
 	private void _upgradeDBPartition(long defaultCompanyId) throws Exception {
 		if (CompanyThreadLocal.getCompanyId() == defaultCompanyId) {
 			runSQL("update ListType set companyId = " + defaultCompanyId);
+
+			for (long companyId : PortalInstancePool.getCompanyIds()) {
+				DBPartitionUtil.replaceByTable(
+					connection, companyId, "ListType", true);
+			}
 		}
 		else {
-			DBPartitionUtil.replaceByTable(connection, true, "ListType");
-
 			runSQL(
 				"update ListType set companyId = " +
 					CompanyThreadLocal.getCompanyId());

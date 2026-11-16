@@ -7,7 +7,6 @@ package com.liferay.portal.workflow.metrics.internal.background.task;
 
 import com.liferay.petra.concurrent.NoticeableFuture;
 import com.liferay.petra.function.transform.TransformUtil;
-import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTask;
 import com.liferay.portal.kernel.backgroundtask.BackgroundTaskExecutor;
@@ -17,19 +16,12 @@ import com.liferay.portal.kernel.backgroundtask.BackgroundTaskThreadLocal;
 import com.liferay.portal.kernel.backgroundtask.BaseBackgroundTaskExecutor;
 import com.liferay.portal.kernel.backgroundtask.constants.BackgroundTaskConstants;
 import com.liferay.portal.kernel.backgroundtask.display.BackgroundTaskDisplay;
-import com.liferay.portal.kernel.log.Log;
-import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.messaging.Message;
-import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
+import com.liferay.portal.kernel.security.auth.CompanyInheritableThreadLocalCallable;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.ListUtil;
-import com.liferay.portal.search.capabilities.SearchCapabilities;
-import com.liferay.portal.search.engine.adapter.SearchEngineAdapter;
-import com.liferay.portal.search.index.IndexNameBuilder;
-import com.liferay.portal.search.query.Queries;
 import com.liferay.portal.workflow.metrics.internal.background.task.constants.WorkflowMetricsReindexBackgroundTaskConstants;
 import com.liferay.portal.workflow.metrics.internal.petra.executor.WorkflowMetricsPortalExecutor;
-import com.liferay.portal.workflow.metrics.internal.search.index.WorkflowMetricsIndex;
 import com.liferay.portal.workflow.metrics.search.background.task.WorkflowMetricsReindexStatusMessageSender;
 import com.liferay.portal.workflow.metrics.search.index.reindexer.WorkflowMetricsReindexer;
 import com.liferay.portal.workflow.metrics.search.index.reindexer.WorkflowMetricsReindexerRegistry;
@@ -79,15 +71,6 @@ public class WorkflowMetricsReindexBackgroundTaskExecutor
 		_workflowMetricsReindexStatusMessageSender.sendStatusMessage(
 			0, indexEntityNames.length, StringPool.BLANK);
 
-		for (String indexEntityName : indexEntityNames) {
-			WorkflowMetricsIndex workflowMetricsIndex =
-				WorkflowMetricsIndex.toWorkflowMetricsIndex(indexEntityName);
-
-			workflowMetricsIndex.deleteAllDocuments(
-				_searchCapabilities, _searchEngineAdapter, _queries,
-				_indexNameBuilder, backgroundTask.getCompanyId());
-		}
-
 		List<NoticeableFuture<?>> noticeableFutures = new ArrayList<>();
 
 		for (int i = 0; i < indexEntityNames.length; i++) {
@@ -96,25 +79,23 @@ public class WorkflowMetricsReindexBackgroundTaskExecutor
 
 			noticeableFutures.add(
 				_workflowMetricsPortalExecutor.execute(
-					() -> {
-						WorkflowMetricsReindexer workflowMetricsReindexer =
-							_workflowMetricsReindexerRegistry.
-								getWorkflowMetricsReindexer(indexEntityName);
-
-						try (SafeCloseable safeCloseable =
-								CompanyThreadLocal.
-									setCompanyIdWithSafeCloseable(
-										backgroundTask.getCompanyId())) {
+					new CompanyInheritableThreadLocalCallable<>(
+						() -> {
+							WorkflowMetricsReindexer workflowMetricsReindexer =
+								_workflowMetricsReindexerRegistry.
+									getWorkflowMetricsReindexer(
+										indexEntityName);
 
 							workflowMetricsReindexer.reindex(
 								backgroundTask.getCompanyId());
-						}
 
-						_workflowMetricsReindexStatusMessageSender.
-							sendStatusMessage(
-								count, indexEntityNames.length,
-								StringPool.BLANK);
-					}));
+							_workflowMetricsReindexStatusMessageSender.
+								sendStatusMessage(
+									count, indexEntityNames.length,
+									StringPool.BLANK);
+
+							return null;
+						})::call));
 		}
 
 		for (NoticeableFuture<?> noticeableFuture : noticeableFutures) {
@@ -144,22 +125,8 @@ public class WorkflowMetricsReindexBackgroundTaskExecutor
 				(String[])taskContextMap.get(
 					"workflow.metrics.index.entity.names"),
 				name -> {
-					try {
-						WorkflowMetricsIndex workflowMetricsIndex =
-							WorkflowMetricsIndex.toWorkflowMetricsIndex(name);
-
-						if (_workflowMetricsReindexerRegistry.containsKey(
-								workflowMetricsIndex.name())) {
-
-							return name;
-						}
-
-						return null;
-					}
-					catch (IllegalArgumentException illegalArgumentException) {
-						_log.error(
-							"Unknown workflow metrics index: " + name,
-							illegalArgumentException);
+					if (_workflowMetricsReindexerRegistry.containsKey(name)) {
+						return name;
 					}
 
 					return null;
@@ -176,7 +143,7 @@ public class WorkflowMetricsReindexBackgroundTaskExecutor
 		Message message = new Message();
 
 		message.put(
-			BackgroundTaskConstants.BACKGROUND_TASK_ID,
+			BackgroundTaskConstants.MESSAGE_KEY_BACKGROUND_TASK_ID,
 			BackgroundTaskThreadLocal.getBackgroundTaskId());
 		message.put(
 			WorkflowMetricsReindexBackgroundTaskConstants.COMPANY_ID,
@@ -199,33 +166,18 @@ public class WorkflowMetricsReindexBackgroundTaskExecutor
 			message);
 	}
 
-	private static final Log _log = LogFactoryUtil.getLog(
-		WorkflowMetricsReindexBackgroundTaskExecutor.class);
-
 	@Reference
 	private BackgroundTaskStatusMessageSender
 		_backgroundTaskStatusMessageSender;
 
 	@Reference
-	private IndexNameBuilder _indexNameBuilder;
-
-	@Reference
-	private Queries _queries;
-
-	@Reference
-	private SearchCapabilities _searchCapabilities;
-
-	@Reference
-	private SearchEngineAdapter _searchEngineAdapter;
-
-	@Reference
 	private WorkflowMetricsPortalExecutor _workflowMetricsPortalExecutor;
-
-	@Reference
-	private WorkflowMetricsReindexerRegistry _workflowMetricsReindexerRegistry;
 
 	@Reference
 	private WorkflowMetricsReindexStatusMessageSender
 		_workflowMetricsReindexStatusMessageSender;
+
+	@Reference
+	private WorkflowMetricsReindexerRegistry _workflowMetricsReindexerRegistry;
 
 }

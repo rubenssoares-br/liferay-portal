@@ -6,7 +6,6 @@
 import {stringUtils} from '@liferay/object-js-components-web';
 import {Edge, Node, isEdge, isNode} from 'react-flow-renderer';
 
-import {defaultLanguageId} from '../../../utils/constants';
 import {getObjectDefinitionNodeActions} from '../../ViewObjectDefinitions/objectDefinitionUtil';
 import {ObjectRelationshipMap} from '../Edges/ObjectRelationshipMap';
 import {objectRelationshipEdgeFactory} from '../Edges/objectRelationshipEdgeFactory';
@@ -78,10 +77,16 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 								!!newObjectDefinition.actions.permissions,
 							hasObjectDefinitionUpdateResourcePermission:
 								!!newObjectDefinition.actions.update,
+							isTreeStructure:
+								!!newObjectDefinition.objectDefinitionSettings?.some(
+									(setting) =>
+										setting.name ===
+										'rootObjectDefinitionExternalReferenceCodes'
+								),
 							objectDefinitionId: newObjectDefinition.id,
 							objectDefinitionName: newObjectDefinition.name,
 							objectDefinitionPermissionsURL,
-							objectFoldersLenght: objectFolders.length,
+							objectFoldersLength: objectFolders.length,
 							status: newObjectDefinition.status,
 						});
 
@@ -92,11 +97,12 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 							hiddenObjectDefinitionNode: false,
 							id: newObjectDefinition.id,
 							kebabOptions,
-							label: stringUtils.getLocalizableLabel(
-								newObjectDefinition.defaultLanguageId,
-								newObjectDefinition.label,
-								newObjectDefinition.name
-							),
+							label: stringUtils.getLocalizableLabel({
+								fallbackLabel: newObjectDefinition.name,
+								fallbackLanguageId:
+									newObjectDefinition.defaultLanguageId,
+								labels: newObjectDefinition.label,
+							}),
 							name: newObjectDefinition.name,
 							selected: true,
 							type: !dbTableName
@@ -216,6 +222,7 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 				elements: [...updatedElements, newObjectDefinitionNode] as Node<
 					ObjectDefinitionNodeData | ObjectRelationshipEdgeData[]
 				>[],
+				hasUnsavedObjectFolderItemPositions: true,
 				leftSidebarItems: newLeftSidebarItems,
 				objectFolders: updatedObjectFolders,
 				rightSidebarType: 'objectDefinitionDetails',
@@ -571,6 +578,16 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 			};
 		}
 
+		case TYPES.SET_HAS_UNSAVED_OBJECT_FOLDER_ITEM_POSITIONS: {
+			const {updatedHasUnsavedObjectFolderItemPositions} = action.payload;
+
+			return {
+				...state,
+				hasUnsavedObjectFolderItemPositions:
+					updatedHasUnsavedObjectFolderItemPositions,
+			};
+		}
+
 		case TYPES.SET_MOVED_OBJECT_DEFINITION: {
 			const {movedObjectDefinitionId} = action.payload;
 
@@ -869,11 +886,10 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 					) {
 						return {
 							...leftSidebarItem,
-							name: stringUtils.getLocalizableLabel(
-								defaultLanguageId,
-								updatedSelectedObjectFolder.label,
-								updatedSelectedObjectFolder.name
-							),
+							name: stringUtils.getLocalizableLabel({
+								fallbackLabel: updatedSelectedObjectFolder.name,
+								labels: updatedSelectedObjectFolder.label,
+							}),
 						};
 					}
 
@@ -1069,10 +1085,16 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 								objectDefinition.hasObjectDefinitionManagePermissionsResourcePermission,
 							hasObjectDefinitionUpdateResourcePermission:
 								objectDefinition.hasObjectDefinitionUpdateResourcePermission,
+							isTreeStructure:
+								!!objectDefinition.objectDefinitionSettings?.some(
+									(setting) =>
+										setting.name ===
+										'rootObjectDefinitionExternalReferenceCodes'
+								),
 							objectDefinitionId: objectDefinition.id,
 							objectDefinitionName: objectDefinition.name,
 							objectDefinitionPermissionsURL,
-							objectFoldersLenght: objectFolders.length,
+							objectFoldersLength: objectFolders.length,
 							status: objectDefinition.status,
 						});
 
@@ -1083,11 +1105,12 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 							hiddenObjectDefinitionNode: false,
 							id: objectDefinition.id,
 							kebabOptions,
-							label: stringUtils.getLocalizableLabel(
-								objectDefinition.defaultLanguageId,
-								objectDefinition.label,
-								objectDefinition.name
-							),
+							label: stringUtils.getLocalizableLabel({
+								fallbackLabel: objectDefinition.name,
+								fallbackLanguageId:
+									objectDefinition.defaultLanguageId,
+								labels: objectDefinition.label,
+							}),
 							name: objectDefinition.name,
 							selected: false,
 							type: !objectDefinition.dbTableName
@@ -1101,11 +1124,10 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 				return {
 					hiddenObjectFolderObjectDefinitionNodes: false,
 					leftSidebarObjectDefinitionItems,
-					name: stringUtils.getLocalizableLabel(
-						defaultLanguageId,
-						objectFolder.label,
-						objectFolder.name
-					),
+					name: stringUtils.getLocalizableLabel({
+						fallbackLabel: objectFolder.name,
+						labels: objectFolder.label,
+					}),
 					objectFolderName: objectFolder.name,
 					type: 'objectFolder',
 				} as LeftSidebarItem;
@@ -1117,12 +1139,15 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 
 			const updatedObjectFolderItems: ObjectFolderItem[] = [];
 
+			let hasUnsavedObjectFolderItemPositions = false;
 			let objectDefinitionNodes: Node<ObjectDefinitionNodeData>[] = [];
 			const objectRelationshipEdges: Edge<
 				ObjectRelationshipEdgeData[]
 			>[] = [];
 
 			if (selectedObjectFolder) {
+				const outdatedObjectFolderItems =
+					selectedObjectFolder.objectFolderItems;
 				const positionColumn = {x: 0, y: 0};
 
 				objectDefinitionNodes =
@@ -1151,11 +1176,25 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 								objectDefinition,
 								objectFolderExternalReferenceCode:
 									selectedObjectFolder.externalReferenceCode,
-								outdatedObjectFolderItems:
-									selectedObjectFolder.objectFolderItems,
+								outdatedObjectFolderItems,
 								positionColumn,
 								updatedObjectFolderItems,
 							});
+
+							const outdatedObjectFolderItem =
+								outdatedObjectFolderItems.find(
+									(objectFolderItem) =>
+										objectFolderItem.objectDefinitionExternalReferenceCode ===
+										objectDefinition.externalReferenceCode
+								);
+
+							if (
+								!outdatedObjectFolderItem ||
+								outdatedObjectFolderItem.positionX !== x ||
+								outdatedObjectFolderItem.positionY !== y
+							) {
+								hasUnsavedObjectFolderItemPositions = true;
+							}
 
 							updatedObjectFolderItems.push({
 								linkedObjectDefinition:
@@ -1192,6 +1231,7 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 					...objectDefinitionNodes,
 					...objectRelationshipEdges,
 				],
+				hasUnsavedObjectFolderItemPositions,
 				leftSidebarItems: newLeftSidebarItems,
 				objectFolders,
 				rightSidebarType: 'empty' as RightSidebarType,
@@ -1261,9 +1301,11 @@ export function ObjectFolderReducer(state: TState, action: TAction): TState {
 										return {
 											...leftSidebarObjectDefinitionItem,
 											label: stringUtils.getLocalizableLabel(
-												defaultLanguageId,
-												updatedObjectDefinition.label,
-												updatedObjectDefinition.name
+												{
+													fallbackLabel:
+														updatedObjectDefinition.name,
+													labels: updatedObjectDefinition.label,
+												}
 											),
 										};
 									}

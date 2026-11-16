@@ -33,8 +33,8 @@ import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.MethodHandler;
 import com.liferay.portal.kernel.util.MethodKey;
 import com.liferay.portal.kernel.util.ObjectValuePair;
-import com.liferay.portal.kernel.util.Props;
 import com.liferay.portal.kernel.util.PropsKeys;
+import com.liferay.portal.kernel.util.PropsUtil;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -322,7 +322,7 @@ public class ClusterSchedulerEngine
 
 						try {
 							SchedulerResponse schedulerResponse = future.get(
-								_callMasterTimeout, TimeUnit.SECONDS);
+								_CALL_MASTER_TIMEOUT, TimeUnit.SECONDS);
 
 							if ((schedulerResponse == null) ||
 								(schedulerResponse.getTrigger() == null)) {
@@ -404,6 +404,16 @@ public class ClusterSchedulerEngine
 		_schedulerEngine.validateTrigger(trigger, storageType);
 	}
 
+	protected void setClusterExecutor(ClusterExecutor clusterExecutor) {
+		_clusterExecutor = clusterExecutor;
+	}
+
+	protected void setClusterMasterExecutor(
+		ClusterMasterExecutor clusterMasterExecutor) {
+
+		_clusterMasterExecutor = clusterMasterExecutor;
+	}
+
 	protected void setClusterableThreadLocal(StorageType storageType) {
 		ClusterableContextThreadLocal.putThreadLocalContext(
 			STORAGE_TYPE, storageType);
@@ -420,23 +430,6 @@ public class ClusterSchedulerEngine
 
 		ClusterableContextThreadLocal.putThreadLocalContext(
 			PLUGIN_READY, pluginReady);
-	}
-
-	protected void setClusterExecutor(ClusterExecutor clusterExecutor) {
-		_clusterExecutor = clusterExecutor;
-	}
-
-	protected void setClusterMasterExecutor(
-		ClusterMasterExecutor clusterMasterExecutor) {
-
-		_clusterMasterExecutor = clusterMasterExecutor;
-	}
-
-	protected void setProps(Props props) {
-		_props = props;
-
-		_callMasterTimeout = GetterUtil.getLong(
-			_props.get(PropsKeys.CLUSTERABLE_ADVICE_CALL_MASTER_TIMEOUT));
 	}
 
 	protected static final String PLUGIN_READY = "plugin.ready";
@@ -552,7 +545,7 @@ public class ClusterSchedulerEngine
 					_clusterMasterExecutor.executeOnMaster(methodHandler);
 
 				List<SchedulerResponse> schedulerResponses = future.get(
-					_callMasterTimeout, TimeUnit.SECONDS);
+					_CALL_MASTER_TIMEOUT, TimeUnit.SECONDS);
 
 				if (schedulerResponses == null) {
 					if (_log.isWarnEnabled()) {
@@ -598,7 +591,7 @@ public class ClusterSchedulerEngine
 				_log.error(
 					StringBundler.concat(
 						"Unable to load memory clustered jobs from master in ",
-						_callMasterTimeout,
+						_CALL_MASTER_TIMEOUT,
 						" seconds, you might need to increase value set to ",
 						"\"clusterable.advice.call.master.timeout\", will ",
 						"retry again"),
@@ -652,9 +645,11 @@ public class ClusterSchedulerEngine
 
 			SchedulerResponse schedulerResponse = memoryClusteredJob.getKey();
 
-			if (groupName.equals(schedulerResponse.getGroupName())) {
-				iterator.remove();
+			if (!groupName.equals(schedulerResponse.getGroupName())) {
+				continue;
 			}
+
+			iterator.remove();
 		}
 	}
 
@@ -668,6 +663,9 @@ public class ClusterSchedulerEngine
 			memoryClusteredJob.setValue(triggerState);
 		}
 	}
+
+	private static final long _CALL_MASTER_TIMEOUT = GetterUtil.getLong(
+		PropsUtil.get(PropsKeys.CLUSTERABLE_ADVICE_CALL_MASTER_TIMEOUT));
 
 	private static final Log _log = LogFactoryUtil.getLog(
 		ClusterSchedulerEngine.class);
@@ -689,13 +687,11 @@ public class ClusterSchedulerEngine
 		SchedulerEngineHelperUtil.class, "run", long.class, String.class,
 		String.class, StorageType.class);
 
-	private long _callMasterTimeout;
 	private ClusterExecutor _clusterExecutor;
 	private ClusterMasterExecutor _clusterMasterExecutor;
 	private final Map<String, ObjectValuePair<SchedulerResponse, TriggerState>>
 		_memoryClusteredJobs = new ConcurrentHashMap<>();
 	private boolean _portalReady;
-	private Props _props;
 	private final Lock _readLock;
 	private ClusterMasterTokenTransitionListener
 		_schedulerClusterMasterTokenTransitionListener;
@@ -745,12 +741,14 @@ public class ClusterSchedulerEngine
 
 					TriggerState triggerState = memoryClusteredJob.getValue();
 
-					if (triggerState.equals(TriggerState.PAUSED)) {
-						_schedulerEngine.pause(
-							schedulerResponse.getJobName(),
-							schedulerResponse.getGroupName(),
-							schedulerResponse.getStorageType());
+					if (!triggerState.equals(TriggerState.PAUSED)) {
+						continue;
 					}
+
+					_schedulerEngine.pause(
+						schedulerResponse.getJobName(),
+						schedulerResponse.getGroupName(),
+						schedulerResponse.getStorageType());
 				}
 
 				if (_log.isInfoEnabled()) {

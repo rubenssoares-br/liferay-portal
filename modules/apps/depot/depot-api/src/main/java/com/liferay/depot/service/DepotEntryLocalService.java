@@ -84,7 +84,7 @@ public interface DepotEntryLocalService
 
 	public DepotEntry addDepotEntry(
 			Map<Locale, String> nameMap, Map<Locale, String> descriptionMap,
-			ServiceContext serviceContext)
+			int type, ServiceContext serviceContext)
 		throws PortalException;
 
 	/**
@@ -245,6 +245,9 @@ public interface DepotEntryLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<DepotEntry> getDepotEntries(int start, int end);
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<DepotEntry> getDepotEntries(long companyId, int type);
+
 	/**
 	 * Returns all the depot entries matching the UUID and company.
 	 *
@@ -279,6 +282,9 @@ public interface DepotEntryLocalService
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public int getDepotEntriesCount();
 
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public int getDepotEntriesCount(long companyId, int type);
+
 	/**
 	 * Returns the depot entry with the primary key.
 	 *
@@ -301,13 +307,16 @@ public interface DepotEntryLocalService
 	public DepotEntry getDepotEntryByUuidAndGroupId(String uuid, long groupId)
 		throws PortalException;
 
-	/**
-	 * @deprecated As of Cavanaugh (7.4.x)
-	 */
-	@Deprecated
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public List<DepotEntry> getDepotEntryGroupRelsByUuidAndCompanyId(
-		String uuid, long companyId);
+	public List<Long> getDepotEntryGroupIds(long companyId, int type);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type);
+
+	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
+	public List<Long> getDepotEntryGroupIds(
+		long companyId, long userId, int type, boolean dynamicInheritanceOnly);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public ExportActionableDynamicQuery getExportActionableDynamicQuery(
@@ -320,11 +329,11 @@ public interface DepotEntryLocalService
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public List<DepotEntry> getGroupConnectedDepotEntries(
-			long groupId, int start, int end)
+			long groupId, int type, int start, int end)
 		throws PortalException;
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-	public int getGroupConnectedDepotEntriesCount(long groupId);
+	public int getGroupConnectedDepotEntriesCount(long groupId, int type);
 
 	@Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
 	public DepotEntry getGroupDepotEntry(long groupId) throws PortalException;
@@ -360,10 +369,11 @@ public interface DepotEntryLocalService
 	@Indexable(type = IndexableType.REINDEX)
 	public DepotEntry updateDepotEntry(DepotEntry depotEntry);
 
+	@Indexable(type = IndexableType.REINDEX)
 	public DepotEntry updateDepotEntry(
 			long depotEntryId, Map<Locale, String> nameMap,
 			Map<Locale, String> descriptionMap,
-			Map<String, Boolean> depotAppCustomizationMap,
+			Map<String, Boolean> depotAppCustomizationMap, String friendlyURL,
 			UnicodeProperties typeSettingsUnicodeProperties,
 			ServiceContext serviceContext)
 		throws PortalException;
@@ -384,3 +394,4 @@ public interface DepotEntryLocalService
 		throws E;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:953300651

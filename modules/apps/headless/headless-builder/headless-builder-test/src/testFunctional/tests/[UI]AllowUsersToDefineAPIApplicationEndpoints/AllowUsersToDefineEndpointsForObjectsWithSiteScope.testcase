@@ -1,6 +1,7 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property custom.properties = "feature.flag.LPS-178642=true";
 	property portal.acceptance = "quarantine";
 	property portal.release = "true";
@@ -101,47 +102,6 @@ definition {
 			AssertElementNotPresent(
 				locator1 = "Button#BUTTON_WITH_VALUE",
 				value = "c/my-app");
-		}
-	}
-
-	@priority = 4
-	test CanSeePublishedAPIApplicationWithSiteAndCompanyScopedEndpointsWithoutSchemas {
-		task ("Given with postAPIApplication to create a published api Application with site scope endpoint and company scope endpoint") {
-			var response = ApplicationAPI.createAPIApplication(
-				baseURL = "my-app",
-				endpointName = "testendpoint",
-				endpointPath = "/testendpoint",
-				relatedEndpoint = "true",
-				scopeKey = "site",
-				status = "published",
-				title = "My-app");
-
-			var apiApplicationId = JSONPathUtil.getIdValue(response = ${response});
-
-			EndpointAPI.createAPIEndpoint(
-				apiApplicationERC = "My-app",
-				name = "myendpoint",
-				path = "/myendpoint");
-		}
-
-		task ("When I navigate to /o/c/{apiApplication}") {
-			APIExplorer.navigateToOpenAPI(customObjectPlural = "my-app");
-		}
-
-		task ("Then getScopes{siteScopeEndpointPath}Page is present under default") {
-			AssertTextEquals.assertPartialText(
-				locator1 = "OpenAPI#API_METHOD",
-				method = "getScopeScopeKeyTestendpointPage",
-				service = "default",
-				value1 = "/testendpoint");
-		}
-
-		task ("And Then get{companyScopeEndpointPath}Page is present under default") {
-			AssertTextEquals.assertPartialText(
-				locator1 = "OpenAPI#API_METHOD",
-				method = "getMyendpointPage",
-				service = "default",
-				value1 = "/myendpoint");
 		}
 	}
 

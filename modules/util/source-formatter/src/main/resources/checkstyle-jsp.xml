@@ -147,11 +147,6 @@
 			<property name="description" value="Checks that string literals are not used with == or !=." />
 			<property name="documentationLocation" value="coding/stringliteralequality.html" />
 		</module>
-		<module name="UnnecessaryParenthesesCheck">
-			<property name="category" value="Styling" />
-			<property name="description" value="Checks if unnecessary parentheses are used in a statement or expression." />
-			<property name="documentationLocation" value="coding/unnecessaryparentheses.html" />
-		</module>
 		<module name="WhitespaceAfterCheck">
 			<property name="category" value="Styling" />
 			<property name="description" value="Checks that a token is followed by whitespace, with the exception that it does not check for whitespace after the semicolon of an empty for iterator." />
@@ -299,6 +294,11 @@
 			<message key="objects.equals.use.1" value="Use &quot;Objects.equals&quot; instead of calling &quot;equals&quot; on a literal String" />
 			<message key="objects.equals.use.2" value="Either use &quot;{0}&quot; or use &quot;Objects.equals&quot; if &quot;{1}&quot; can have a &quot;null&quot; value, instead of calling &quot;equals&quot; on a literal String" />
 		</module>
+		<module name="com.liferay.source.formatter.checkstyle.check.LocalVariableTypeInferenceCheck">
+			<property name="category" value="Performance" />
+			<property name="description" value="Finds usage of `var` in local variable declaration." />
+			<message key="var.avoid" value="Avoid using &quot;var&quot; to declare variable" />
+		</module>
 		<module name="com.liferay.source.formatter.checkstyle.check.MapBuilderCheck">
 			<property name="category" value="Miscellaneous" />
 			<property name="description" value="Checks that `ConcurrentHashMapBuilder`, `HashMapBuilder`, `LinkedHashMapBuilder` or `TreeMapBuilder` is used when possible." />
@@ -435,7 +435,8 @@
 			<property name="description" value="Checks that variable names follow naming conventions." />
 			<property name="enforceTypeNames" value="" />
 			<message key="variable.incorrect.count" value="Rename variable &quot;{0}&quot; to &quot;{1}&quot; (and increment counts for other variables &quot;{0}*&quot;)" />
-			<message key="variable.incorrect.ending" value="Name of variable with type &quot;{0}&quot; should end with &quot;{1}&quot;" />
+			<message key="variable.incorrect.ending.1" value="Name of variable with type &quot;{0}&quot; should end with &quot;{1}&quot;" />
+			<message key="variable.incorrect.ending.2" value="Name of variable assigned by &quot;{0}&quot; should end with &quot;{1}&quot;" />
 			<message key="variable.name.incorrect.for.statement" value="Use format &quot;curVariableName&quot; for variable &quot;{0}&quot;" />
 			<message key="variable.rename" value="Rename variable &quot;{0}&quot; to &quot;{1}&quot;" />
 			<message key="variable.typo" value="Typo in variable &quot;{0}&quot;, expected variable name &quot;{1}&quot;" />

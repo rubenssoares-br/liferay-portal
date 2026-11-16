@@ -11,7 +11,6 @@ import com.liferay.expando.kernel.service.ExpandoTableLocalService;
 import com.liferay.headless.common.spi.odata.entity.EntityFieldsUtil;
 import com.liferay.headless.common.spi.service.context.ServiceContextBuilder;
 import com.liferay.headless.delivery.dto.v1_0.MessageBoardSection;
-import com.liferay.headless.delivery.dto.v1_0.util.CustomFieldsUtil;
 import com.liferay.headless.delivery.internal.odata.entity.v1_0.MessageBoardSectionEntityModel;
 import com.liferay.headless.delivery.resource.v1_0.MessageBoardSectionResource;
 import com.liferay.headless.delivery.search.aggregation.AggregationUtil;
@@ -35,12 +34,11 @@ import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.aggregation.Aggregations;
-import com.liferay.portal.search.expando.ExpandoBridgeIndexer;
 import com.liferay.portal.search.legacy.searcher.SearchRequestBuilderFactory;
-import com.liferay.portal.search.query.Queries;
 import com.liferay.portal.search.searcher.SearchRequestBuilder;
 import com.liferay.portal.search.sort.Sorts;
 import com.liferay.portal.vulcan.aggregation.Aggregation;
+import com.liferay.portal.vulcan.custom.field.CustomFieldsUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterRegistry;
 import com.liferay.portal.vulcan.dto.converter.DefaultDTOConverterContext;
@@ -49,10 +47,10 @@ import com.liferay.portal.vulcan.pagination.Pagination;
 import com.liferay.portal.vulcan.util.ActionUtil;
 import com.liferay.portal.vulcan.util.SearchUtil;
 
+import jakarta.ws.rs.core.MultivaluedMap;
+
 import java.util.ArrayList;
 import java.util.Map;
-
-import javax.ws.rs.core.MultivaluedMap;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -81,8 +79,8 @@ public class MessageBoardSectionResourceImpl
 			new ArrayList<>(
 				EntityFieldsUtil.getEntityFields(
 					_portal.getClassNameId(MBCategory.class.getName()),
-					contextCompany.getCompanyId(), _expandoBridgeIndexer,
-					_expandoColumnLocalService, _expandoTableLocalService)));
+					contextCompany.getCompanyId(), _expandoColumnLocalService,
+					_expandoTableLocalService)));
 	}
 
 	@Override
@@ -320,12 +318,12 @@ public class MessageBoardSectionResourceImpl
 					_searchRequestBuilderFactory.builder(searchContext);
 
 				AggregationUtil.processVulcanAggregation(
-					_aggregations, _ddmIndexer, _queries, searchRequestBuilder,
+					_aggregations, _ddmIndexer, searchRequestBuilder,
 					aggregation);
 
 				SortUtil.processSorts(
 					_ddmIndexer, searchRequestBuilder, searchContext.getSorts(),
-					_queries, _sorts);
+					_sorts);
 			},
 			sorts,
 			document -> _toMessageBoardSection(
@@ -393,9 +391,6 @@ public class MessageBoardSectionResourceImpl
 	private DTOConverterRegistry _dtoConverterRegistry;
 
 	@Reference
-	private ExpandoBridgeIndexer _expandoBridgeIndexer;
-
-	@Reference
 	private ExpandoColumnLocalService _expandoColumnLocalService;
 
 	@Reference
@@ -412,9 +407,6 @@ public class MessageBoardSectionResourceImpl
 
 	@Reference
 	private Portal _portal;
-
-	@Reference
-	private Queries _queries;
 
 	@Reference
 	private SearchRequestBuilderFactory _searchRequestBuilderFactory;

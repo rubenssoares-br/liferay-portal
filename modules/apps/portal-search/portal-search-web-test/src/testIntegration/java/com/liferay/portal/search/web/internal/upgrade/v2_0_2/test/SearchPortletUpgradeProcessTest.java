@@ -121,8 +121,10 @@ public class SearchPortletUpgradeProcessTest {
 
 	private int _count(String sql) throws Exception {
 		try (Connection connection = DataAccess.getConnection();
+
 			PreparedStatement preparedStatement = connection.prepareStatement(
 				sql);
+
 			ResultSet resultSet = preparedStatement.executeQuery()) {
 
 			resultSet.next();
@@ -166,10 +168,12 @@ public class SearchPortletUpgradeProcessTest {
 					for (UpgradeStep upgradeStep : upgradeSteps) {
 						Class<?> clazz = upgradeStep.getClass();
 
-						if (Objects.equals(clazz.getName(), _CLASS_NAME)) {
-							_searchPortletUpgradeProcess =
-								(UpgradeProcess)upgradeStep;
+						if (!Objects.equals(clazz.getName(), _CLASS_NAME)) {
+							continue;
 						}
+
+						_searchPortletUpgradeProcess =
+							(UpgradeProcess)upgradeStep;
 					}
 				}
 

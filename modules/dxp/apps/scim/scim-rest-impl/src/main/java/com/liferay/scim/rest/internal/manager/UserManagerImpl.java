@@ -5,50 +5,76 @@
 
 package com.liferay.scim.rest.internal.manager;
 
+import com.liferay.counter.kernel.service.CounterLocalService;
 import com.liferay.expando.kernel.model.ExpandoColumn;
 import com.liferay.expando.kernel.model.ExpandoColumnConstants;
 import com.liferay.expando.kernel.model.ExpandoTable;
 import com.liferay.expando.kernel.model.ExpandoTableConstants;
 import com.liferay.expando.kernel.model.ExpandoValue;
+import com.liferay.expando.kernel.model.ExpandoValueTable;
 import com.liferay.expando.kernel.service.ExpandoColumnLocalService;
 import com.liferay.expando.kernel.service.ExpandoTableLocalService;
 import com.liferay.expando.kernel.service.ExpandoValueLocalService;
+import com.liferay.petra.function.UnsafeFunction;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
-import com.liferay.petra.string.StringBundler;
+import com.liferay.petra.sql.dsl.DSLFunctionFactoryUtil;
+import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
+import com.liferay.petra.sql.dsl.base.BaseTable;
+import com.liferay.petra.sql.dsl.expression.Expression;
+import com.liferay.petra.sql.dsl.expression.Predicate;
+import com.liferay.petra.sql.dsl.query.JoinStep;
 import com.liferay.petra.string.StringPool;
-import com.liferay.portal.configuration.metatype.bnd.util.ConfigurableUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.exception.WebsiteURLException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.Address;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Contact;
+import com.liferay.portal.kernel.model.Country;
+import com.liferay.portal.kernel.model.ListType;
+import com.liferay.portal.kernel.model.Region;
 import com.liferay.portal.kernel.model.UserGroup;
-import com.liferay.portal.kernel.search.Field;
+import com.liferay.portal.kernel.model.UserGroupTable;
+import com.liferay.portal.kernel.model.UserTable;
+import com.liferay.portal.kernel.model.Users_UserGroupsTable;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.security.auth.PrincipalThreadLocal;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.PermissionChecker;
+import com.liferay.portal.kernel.security.permission.PermissionCheckerFactoryUtil;
+import com.liferay.portal.kernel.service.AddressLocalService;
 import com.liferay.portal.kernel.service.ClassNameLocalService;
+import com.liferay.portal.kernel.service.ClassNameLocalServiceUtil;
 import com.liferay.portal.kernel.service.CompanyLocalService;
+import com.liferay.portal.kernel.service.ContactLocalService;
+import com.liferay.portal.kernel.service.CountryLocalService;
+import com.liferay.portal.kernel.service.EmailAddressLocalService;
+import com.liferay.portal.kernel.service.ListTypeLocalService;
+import com.liferay.portal.kernel.service.PersistedModelLocalService;
+import com.liferay.portal.kernel.service.PhoneLocalService;
+import com.liferay.portal.kernel.service.RegionLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextThreadLocal;
 import com.liferay.portal.kernel.service.UserGroupLocalService;
 import com.liferay.portal.kernel.service.UserGroupService;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.service.UserService;
+import com.liferay.portal.kernel.service.WebsiteLocalService;
+import com.liferay.portal.kernel.service.permission.UserPermissionUtil;
 import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.TransactionConfig;
 import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.CalendarFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.search.document.Document;
-import com.liferay.portal.search.hits.SearchHits;
-import com.liferay.portal.search.searcher.SearchRequestBuilderFactory;
-import com.liferay.portal.search.searcher.SearchResponse;
-import com.liferay.portal.search.searcher.Searcher;
+import com.liferay.portal.service.permission.UserGroupPermissionUtil;
 import com.liferay.scim.rest.internal.configuration.ScimClientOAuth2ApplicationConfiguration;
 import com.liferay.scim.rest.internal.model.ScimUser;
 import com.liferay.scim.rest.internal.util.ScimUtil;
@@ -56,14 +82,17 @@ import com.liferay.scim.rest.util.ScimClientUtil;
 
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
-import org.osgi.service.cm.Configuration;
 import org.osgi.service.cm.ConfigurationAdmin;
 
 import org.wso2.charon3.core.exceptions.AbstractCharonException;
+import org.wso2.charon3.core.exceptions.BadRequestException;
 import org.wso2.charon3.core.exceptions.CharonException;
 import org.wso2.charon3.core.exceptions.ConflictException;
 import org.wso2.charon3.core.exceptions.NotFoundException;
@@ -72,7 +101,10 @@ import org.wso2.charon3.core.extensions.UserManager;
 import org.wso2.charon3.core.objects.Group;
 import org.wso2.charon3.core.objects.User;
 import org.wso2.charon3.core.objects.plainobjects.GroupsGetResponse;
+import org.wso2.charon3.core.objects.plainobjects.MultiValuedComplexType;
+import org.wso2.charon3.core.objects.plainobjects.ScimAddress;
 import org.wso2.charon3.core.objects.plainobjects.UsersGetResponse;
+import org.wso2.charon3.core.utils.codeutils.ExpressionNode;
 import org.wso2.charon3.core.utils.codeutils.Node;
 import org.wso2.charon3.core.utils.codeutils.SearchRequest;
 
@@ -83,29 +115,43 @@ import org.wso2.charon3.core.utils.codeutils.SearchRequest;
 public class UserManagerImpl implements UserManager {
 
 	public UserManagerImpl(
+		AddressLocalService addressLocalService,
 		ClassNameLocalService classNameLocalService,
 		CompanyLocalService companyLocalService,
 		ConfigurationAdmin configurationAdmin,
+		ContactLocalService contactLocalService,
+		CounterLocalService counterLocalService,
+		CountryLocalService countryLocalService,
+		EmailAddressLocalService emailAddressLocalService,
 		ExpandoColumnLocalService expandoColumnLocalService,
 		ExpandoTableLocalService expandoTableLocalService,
-		ExpandoValueLocalService expandoValueLocalService, Searcher searcher,
-		SearchRequestBuilderFactory searchRequestBuilderFactory,
+		ExpandoValueLocalService expandoValueLocalService,
+		ListTypeLocalService listTypeLocalService,
+		PhoneLocalService phoneLocalService,
+		RegionLocalService regionLocalService,
 		UserGroupLocalService userGroupLocalService,
 		UserGroupService userGroupService, UserLocalService userLocalService,
-		UserService userService) {
+		UserService userService, WebsiteLocalService websiteLocalService) {
 
+		_addressLocalService = addressLocalService;
 		_classNameLocalService = classNameLocalService;
 		_companyLocalService = companyLocalService;
 		_configurationAdmin = configurationAdmin;
+		_contactLocalService = contactLocalService;
+		_counterLocalService = counterLocalService;
+		_countryLocalService = countryLocalService;
+		_emailAddressLocalService = emailAddressLocalService;
 		_expandoColumnLocalService = expandoColumnLocalService;
 		_expandoTableLocalService = expandoTableLocalService;
 		_expandoValueLocalService = expandoValueLocalService;
-		_searcher = searcher;
-		_searchRequestBuilderFactory = searchRequestBuilderFactory;
+		_listTypeLocalService = listTypeLocalService;
+		_phoneLocalService = phoneLocalService;
+		_regionLocalService = regionLocalService;
 		_userGroupLocalService = userGroupLocalService;
 		_userGroupService = userGroupService;
 		_userLocalService = userLocalService;
 		_userService = userService;
+		_websiteLocalService = websiteLocalService;
 	}
 
 	@Override
@@ -173,8 +219,20 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public void deleteUser(String userId) throws CharonException {
 		try {
-			_getScimUser(
-				CompanyThreadLocal.getCompanyId(), GetterUtil.getLong(userId));
+			if (_isUserDeleted(GetterUtil.getLong(userId))) {
+				throw new NotFoundException(
+					"No user found with user ID " + userId);
+			}
+
+			com.liferay.portal.kernel.model.User portalUser = _fetchPortalUser(
+				ScimUtil.getScimClientOAuth2ApplicationConfiguration(
+					CompanyThreadLocal.getCompanyId(), _configurationAdmin),
+				_getScimUser(
+					CompanyThreadLocal.getCompanyId(),
+					GetterUtil.getLong(userId)));
+
+			_addOrUpdateExpandoValue(
+				"deletedBySCIM", portalUser, false, Boolean.TRUE.toString());
 
 			_userService.updateStatus(
 				GetterUtil.getLong(userId), WorkflowConstants.STATUS_INACTIVE,
@@ -183,10 +241,9 @@ public class UserManagerImpl implements UserManager {
 		catch (AbstractCharonException abstractCharonException) {
 			ReflectionUtil.throwException(abstractCharonException);
 		}
-		catch (PortalException portalException) {
+		catch (Exception exception) {
 			throw new CharonException(
-				"Unable to delete user with user ID " + userId,
-				portalException);
+				"Unable to delete user with user ID " + userId, exception);
 		}
 	}
 
@@ -199,13 +256,10 @@ public class UserManagerImpl implements UserManager {
 				CompanyThreadLocal.getCompanyId(), GetterUtil.getLong(groupId));
 
 			return ScimUtil.toGroup(
-				_getScimUsers(
+				_getPortalUsers(
 					CompanyThreadLocal.getCompanyId(),
 					userGroup.getUserGroupId()),
 				userGroup);
-		}
-		catch (AbstractCharonException abstractCharonException) {
-			return ReflectionUtil.throwException(abstractCharonException);
 		}
 		catch (Exception exception) {
 			return ReflectionUtil.throwException(exception);
@@ -224,22 +278,19 @@ public class UserManagerImpl implements UserManager {
 		String userId, Map<String, Boolean> requiredAttributes) {
 
 		try {
-			ScimUser scimUser = _getScimUser(
-				CompanyThreadLocal.getCompanyId(), GetterUtil.getLong(userId));
-
-			if (!scimUser.isActive()) {
+			if (_isUserDeleted(GetterUtil.getLong(userId))) {
 				throw new NotFoundException(
 					"No user found with user ID " + userId);
 			}
+
+			ScimUser scimUser = _getScimUser(
+				CompanyThreadLocal.getCompanyId(), GetterUtil.getLong(userId));
 
 			return ScimUtil.toUser(
 				_getGroups(
 					CompanyThreadLocal.getCompanyId(),
 					GetterUtil.getLong(scimUser.getId())),
 				scimUser);
-		}
-		catch (AbstractCharonException abstractCharonException) {
-			return ReflectionUtil.throwException(abstractCharonException);
 		}
 		catch (Exception exception) {
 			return ReflectionUtil.throwException(exception);
@@ -248,71 +299,59 @@ public class UserManagerImpl implements UserManager {
 
 	@Override
 	public GroupsGetResponse listGroupsWithGET(
-		Node node, Integer startIndex, Integer count, String sortBy,
-		String sortOrder, String domainName,
-		Map<String, Boolean> requiredAttributes) {
+			Node node, Integer startIndex, Integer count, String sortBy,
+			String sortOrder, String domainName,
+			Map<String, Boolean> requiredAttributes)
+		throws BadRequestException {
 
-		if (startIndex != null) {
-			startIndex--;
-		}
+		GroupsGetResponse groupsGetResponse = new GroupsGetResponse(
+			0, Collections.emptyList());
 
-		ServiceContext serviceContext =
-			ServiceContextThreadLocal.getServiceContext();
+		PermissionChecker permissionChecker =
+			PermissionCheckerFactoryUtil.create(
+				_userLocalService.fetchUser(PrincipalThreadLocal.getUserId()));
 
-		ScimClientOAuth2ApplicationConfiguration
-			scimClientOAuth2ApplicationConfiguration =
-				_getScimClientOAuth2ApplicationConfiguration(
-					serviceContext.getCompanyId());
-
-		String scimClientId = ScimClientUtil.generateScimClientId(
-			scimClientOAuth2ApplicationConfiguration.oAuth2ApplicationName());
-
-		com.liferay.portal.search.searcher.SearchRequest searchRequest =
-			_searchRequestBuilderFactory.builder(
-			).modelIndexerClasses(
-				UserGroup.class
-			).companyId(
-				serviceContext.getCompanyId()
-			).fetchSource(
-				false
-			).fields(
-				new String[0]
+		_buildGetResponse(
+			DSLQueryFactoryUtil.count(
 			).from(
-				startIndex
-			).emptySearchEnabled(
-				true
-			).size(
-				count
-			).withSearchContext(
-				searchContext -> {
-					searchContext.setAttribute(Field.GROUP_ID, 0L);
-					searchContext.setAttribute(
-						"expando__keyword__custom_fields__scimClientId",
-						scimClientId);
-					searchContext.setUserId(serviceContext.getUserId());
+				UserGroupTable.INSTANCE
+			).innerJoinON(
+				ExpandoValueTable.INSTANCE,
+				ExpandoValueTable.INSTANCE.classPK.eq(
+					UserGroupTable.INSTANCE.userGroupId)
+			),
+			null,
+			DSLQueryFactoryUtil.select(
+				UserGroupTable.INSTANCE
+			).from(
+				UserGroupTable.INSTANCE
+			).innerJoinON(
+				ExpandoValueTable.INSTANCE,
+				ExpandoValueTable.INSTANCE.classPK.eq(
+					UserGroupTable.INSTANCE.userGroupId)
+			),
+			UserGroupTable.INSTANCE,
+			(totalGroups, groups) -> {
+				groupsGetResponse.setGroups(groups);
+				groupsGetResponse.setTotalGroups(totalGroups);
+			},
+			UserGroup.class, new String[] {"displayName"}, node, count,
+			_userGroupLocalService, startIndex,
+			userGroup -> {
+				if (!UserGroupPermissionUtil.contains(
+						permissionChecker, userGroup.getUserGroupId(),
+						ActionKeys.VIEW)) {
+
+					return null;
 				}
-			).build();
 
-		SearchResponse searchResponse = _searcher.search(searchRequest);
+				return ScimUtil.toGroup(
+					_getPortalUsers(
+						userGroup.getCompanyId(), userGroup.getUserGroupId()),
+					userGroup);
+			});
 
-		SearchHits searchHits = searchResponse.getSearchHits();
-
-		return new GroupsGetResponse(
-			(int)searchHits.getTotalHits(),
-			TransformUtil.transform(
-				searchHits.getSearchHits(),
-				searchHit -> {
-					Document document = searchHit.getDocument();
-
-					UserGroup userGroup = _userGroupService.getUserGroup(
-						document.getLong(Field.ENTRY_CLASS_PK));
-
-					return ScimUtil.toGroup(
-						_getScimUsers(
-							userGroup.getCompanyId(),
-							userGroup.getUserGroupId()),
-						userGroup);
-				}));
+		return groupsGetResponse;
 	}
 
 	@Override
@@ -326,70 +365,78 @@ public class UserManagerImpl implements UserManager {
 
 	@Override
 	public UsersGetResponse listUsersWithGET(
-		Node node, Integer startIndex, Integer count, String sortBy,
-		String sortOrder, String domainName,
-		Map<String, Boolean> requiredAttributes) {
+			Node node, Integer startIndex, Integer count, String sortBy,
+			String sortOrder, String domainName,
+			Map<String, Boolean> requiredAttributes)
+		throws BadRequestException {
 
-		if (startIndex != null) {
-			startIndex--;
+		UsersGetResponse usersGetResponse = new UsersGetResponse(
+			0, Collections.emptyList());
+
+		com.liferay.portal.kernel.model.User portalUser =
+			_userLocalService.fetchUser(PrincipalThreadLocal.getUserId());
+
+		PermissionChecker permissionChecker =
+			PermissionCheckerFactoryUtil.create(portalUser);
+
+		Predicate predicate = null;
+
+		ExpandoColumn expandoColumn = _expandoColumnLocalService.getColumn(
+			CompanyThreadLocal.getCompanyId(),
+			com.liferay.portal.kernel.model.User.class.getName(),
+			ExpandoTableConstants.DEFAULT_TABLE_NAME, "deletedBySCIM");
+
+		if (expandoColumn != null) {
+			predicate = UserTable.INSTANCE.userId.notIn(
+				DSLQueryFactoryUtil.select(
+					ExpandoValueTable.INSTANCE.classPK
+				).from(
+					ExpandoValueTable.INSTANCE
+				).where(
+					ExpandoValueTable.INSTANCE.columnId.eq(
+						expandoColumn.getColumnId())
+				));
 		}
 
-		ServiceContext serviceContext =
-			ServiceContextThreadLocal.getServiceContext();
-
-		ScimClientOAuth2ApplicationConfiguration
-			scimClientOAuth2ApplicationConfiguration =
-				_getScimClientOAuth2ApplicationConfiguration(
-					serviceContext.getCompanyId());
-
-		String scimClientId = ScimClientUtil.generateScimClientId(
-			scimClientOAuth2ApplicationConfiguration.oAuth2ApplicationName());
-
-		com.liferay.portal.search.searcher.SearchRequest searchRequest =
-			_searchRequestBuilderFactory.builder(
-			).modelIndexerClasses(
-				com.liferay.portal.kernel.model.User.class
-			).companyId(
-				serviceContext.getCompanyId()
-			).fetchSource(
-				false
-			).fields(
-				new String[0]
+		_buildGetResponse(
+			DSLQueryFactoryUtil.count(
 			).from(
-				startIndex
-			).emptySearchEnabled(
-				true
-			).size(
-				count
-			).withSearchContext(
-				searchContext -> {
-					searchContext.setAttribute(Field.GROUP_ID, 0L);
-					searchContext.setAttribute(
-						Field.STATUS, WorkflowConstants.STATUS_APPROVED);
-					searchContext.setAttribute(
-						"expando__keyword__custom_fields__scimClientId",
-						scimClientId);
-					searchContext.setUserId(serviceContext.getUserId());
+				UserTable.INSTANCE
+			).innerJoinON(
+				ExpandoValueTable.INSTANCE,
+				ExpandoValueTable.INSTANCE.classPK.eq(UserTable.INSTANCE.userId)
+			),
+			predicate,
+			DSLQueryFactoryUtil.select(
+				UserTable.INSTANCE
+			).from(
+				UserTable.INSTANCE
+			).innerJoinON(
+				ExpandoValueTable.INSTANCE,
+				ExpandoValueTable.INSTANCE.classPK.eq(UserTable.INSTANCE.userId)
+			),
+			UserTable.INSTANCE,
+			(totalUsers, users) -> {
+				usersGetResponse.setTotalUsers(totalUsers);
+				usersGetResponse.setUsers(users);
+			},
+			com.liferay.portal.kernel.model.User.class,
+			new String[] {"externalId", "userName"}, node, count,
+			_userLocalService, startIndex,
+			user -> {
+				if (!UserPermissionUtil.contains(
+						permissionChecker, user.getUserId(), ActionKeys.VIEW)) {
+
+					return null;
 				}
-			).build();
 
-		SearchResponse searchResponse = _searcher.search(searchRequest);
+				return ScimUtil.toUser(
+					_getGroups(user.getCompanyId(), user.getUserId()),
+					ScimUtil.toScimUser(
+						_userService.getUserById(user.getUserId())));
+			});
 
-		SearchHits searchHits = searchResponse.getSearchHits();
-
-		return new UsersGetResponse(
-			(int)searchHits.getTotalHits(),
-			TransformUtil.transform(
-				searchHits.getSearchHits(),
-				searchHit -> {
-					Document document = searchHit.getDocument();
-
-					long userId = document.getLong(Field.ENTRY_CLASS_PK);
-
-					return ScimUtil.toUser(
-						_getGroups(serviceContext.getCompanyId(), userId),
-						ScimUtil.toScimUser(_userService.getUserById(userId)));
-				}));
+		return usersGetResponse;
 	}
 
 	@Override
@@ -399,6 +446,13 @@ public class UserManagerImpl implements UserManager {
 		throws NotImplementedException {
 
 		throw new NotImplementedException();
+	}
+
+	@Override
+	public void updateGroup(Group oldGroup, Group newGroup)
+		throws CharonException {
+
+		_addOrUpdateGroup(newGroup);
 	}
 
 	@Override
@@ -425,6 +479,22 @@ public class UserManagerImpl implements UserManager {
 		return _addOrUpdateUser(user);
 	}
 
+	private void _addOrUpdateExpandoValue(
+			String name, com.liferay.portal.kernel.model.User portalUser,
+			boolean textBox, String value)
+		throws Exception {
+
+		long classNameId = ClassNameLocalServiceUtil.getClassNameId(
+			com.liferay.portal.kernel.model.User.class.getName());
+
+		ExpandoColumn expandoColumn = _getOrAddExpandoColumn(
+			classNameId, portalUser.getCompanyId(), name, textBox, false);
+
+		_expandoValueLocalService.addValue(
+			classNameId, expandoColumn.getTableId(),
+			expandoColumn.getColumnId(), portalUser.getUserId(), value);
+	}
+
 	private Group _addOrUpdateGroup(Group group) throws CharonException {
 		try {
 			Company company = _companyLocalService.fetchCompany(
@@ -436,7 +506,7 @@ public class UserManagerImpl implements UserManager {
 					UserGroup userGroup = _addOrUpdateUserGroup(company, group);
 
 					return ScimUtil.toGroup(
-						_getScimUsers(
+						_getPortalUsers(
 							userGroup.getCompanyId(),
 							userGroup.getUserGroupId()),
 						userGroup);
@@ -459,29 +529,227 @@ public class UserManagerImpl implements UserManager {
 
 		ScimClientOAuth2ApplicationConfiguration
 			scimClientOAuth2ApplicationConfiguration =
-				_getScimClientOAuth2ApplicationConfiguration(
-					company.getCompanyId());
+				ScimUtil.getScimClientOAuth2ApplicationConfiguration(
+					company.getCompanyId(), _configurationAdmin);
 
 		com.liferay.portal.kernel.model.User portalUser = _fetchPortalUser(
 			scimClientOAuth2ApplicationConfiguration, scimUser);
 
-		Calendar birthdayCalendar = CalendarFactoryUtil.getCalendar();
+		Calendar calendar = CalendarFactoryUtil.getCalendar();
 
-		birthdayCalendar.setTime(scimUser.getBirthday());
-
-		int birthdayMonth = birthdayCalendar.get(Calendar.MONTH);
-		int birthdayDay = birthdayCalendar.get(Calendar.DAY_OF_MONTH);
-		int birthdayYear = birthdayCalendar.get(Calendar.YEAR);
+		calendar.setTime(scimUser.getBirthday());
 
 		if (portalUser == null) {
 			portalUser = _addPortalUser(
-				birthdayMonth, birthdayDay, birthdayYear,
+				calendar.get(Calendar.MONTH),
+				calendar.get(Calendar.DAY_OF_MONTH),
+				calendar.get(Calendar.YEAR),
 				scimClientOAuth2ApplicationConfiguration, scimUser);
 		}
 		else {
 			portalUser = _updatePortalUser(
-				birthdayMonth, birthdayDay, birthdayYear, portalUser, scimUser,
+				calendar.get(Calendar.MONTH),
+				calendar.get(Calendar.DAY_OF_MONTH),
+				calendar.get(Calendar.YEAR), portalUser, scimUser,
 				scimClientOAuth2ApplicationConfiguration);
+		}
+
+		if (_isUserDeleted(portalUser.getUserId())) {
+			_expandoValueLocalService.deleteValue(
+				company.getCompanyId(),
+				ClassNameLocalServiceUtil.getClassNameId(
+					com.liferay.portal.kernel.model.User.class.getName()),
+				ExpandoTableConstants.DEFAULT_TABLE_NAME, "deletedBySCIM",
+				portalUser.getUserId());
+		}
+
+		_addOrUpdateExpandoValue(
+			"scimDisplayName", portalUser, false, scimUser.getDisplayName());
+		_addOrUpdateExpandoValue(
+			"scimEntitlements", portalUser, true,
+			ArrayUtil.toString(
+				scimUser.getEntitlements(), StringPool.BLANK,
+				StringPool.NEW_LINE));
+		_addOrUpdateExpandoValue(
+			"scimNickName", portalUser, false, scimUser.getNickName());
+		_addOrUpdateExpandoValue(
+			"scimPhotos", portalUser, true,
+			ArrayUtil.toString(
+				scimUser.getPhotos(), StringPool.BLANK, StringPool.NEW_LINE));
+		_addOrUpdateExpandoValue(
+			"scimPreferredLanguage", portalUser, false,
+			scimUser.getPreferredLanguage());
+		_addOrUpdateExpandoValue(
+			"scimUserType", portalUser, false, scimUser.getUserType());
+		_addOrUpdateExpandoValue(
+			"scimX509Certificates", portalUser, true,
+			ArrayUtil.toString(
+				scimUser.getX509Certificates(), StringPool.BLANK,
+				StringPool.NEW_LINE));
+
+		_addressLocalService.deleteAddresses(
+			portalUser.getCompanyId(), Contact.class.getName(),
+			portalUser.getContactId());
+
+		for (ScimAddress scimAddress : scimUser.getAddresses()) {
+			if (Validator.isNull(scimAddress.getLocality())) {
+				continue;
+			}
+
+			String streetAddress = scimAddress.getStreetAddress();
+
+			if (Validator.isNull(streetAddress)) {
+				streetAddress = scimAddress.getFormatted();
+			}
+
+			if (Validator.isNull(streetAddress)) {
+				continue;
+			}
+
+			Address address = _addressLocalService.createAddress(
+				_counterLocalService.increment());
+
+			address.setUserId(portalUser.getUserId());
+			address.setUserName(portalUser.getFullName());
+			address.setClassName(Contact.class.getName());
+			address.setClassPK(portalUser.getContactId());
+
+			Country country = _countryLocalService.fetchCountryByA2(
+				portalUser.getCompanyId(), scimAddress.getCountry());
+
+			if (country != null) {
+				address.setCountryId(country.getCountryId());
+
+				for (Region region :
+						_regionLocalService.getRegions(
+							country.getCountryId(), true)) {
+
+					if (Objects.equals(
+							region.getName(), scimAddress.getRegion())) {
+
+						address.setRegionId(region.getRegionId());
+
+						break;
+					}
+				}
+			}
+
+			ListType listType = _listTypeLocalService.fetchListType(
+				portalUser.getCompanyId(), scimAddress.getType(),
+				Contact.class.getName() + ".address");
+
+			if (listType == null) {
+				listType = _listTypeLocalService.fetchListType(
+					portalUser.getCompanyId(), "other",
+					Contact.class.getName() + ".address");
+
+				if (listType == null) {
+					continue;
+				}
+			}
+
+			address.setListTypeId(listType.getListTypeId());
+			address.setCity(scimAddress.getLocality());
+			address.setPrimary(scimAddress.isPrimary());
+
+			String[] streetAddressParts = StringUtil.split(streetAddress, "\n");
+
+			address.setStreet1(streetAddressParts[0]);
+
+			if (streetAddressParts.length > 1) {
+				address.setStreet2(streetAddressParts[1]);
+			}
+
+			if (streetAddressParts.length > 2) {
+				address.setStreet3(streetAddressParts[2]);
+			}
+
+			address.setZip(scimAddress.getPostalCode());
+
+			_addressLocalService.addAddress(address);
+		}
+
+		Contact contact = portalUser.getContact();
+
+		Map<String, String> ims = scimUser.getIMs();
+
+		String jabberSn = ims.get("Jabber");
+
+		if (Validator.isNotNull(jabberSn)) {
+			contact.setJabberSn(jabberSn);
+		}
+
+		String skypeSn = ims.get("Skype");
+
+		if (Validator.isNotNull(skypeSn)) {
+			contact.setSkypeSn(skypeSn);
+		}
+
+		contact = _contactLocalService.updateContact(contact);
+
+		portalUser.setContact(contact);
+
+		_emailAddressLocalService.deleteEmailAddresses(
+			portalUser.getCompanyId(), Contact.class.getName(),
+			portalUser.getContactId());
+
+		long listTypeId = _listTypeLocalService.getListTypeId(
+			portalUser.getCompanyId(), "email-address",
+			Contact.class.getName() + ".emailAddress");
+
+		boolean primary = true;
+
+		for (String emailAddress : scimUser.getEmailAddresses()) {
+			ServiceContext serviceContext = new ServiceContext();
+
+			_emailAddressLocalService.addEmailAddress(
+				serviceContext.getUuidWithoutReset(), portalUser.getUserId(),
+				Contact.class.getName(), portalUser.getContactId(),
+				emailAddress, listTypeId, primary, serviceContext);
+
+			primary = false;
+		}
+
+		_phoneLocalService.deletePhones(
+			portalUser.getCompanyId(), Contact.class.getName(),
+			portalUser.getContactId());
+
+		for (MultiValuedComplexType multiValuedComplexType :
+				scimUser.getPhoneNumberMultiValuedComplexTypes()) {
+
+			listTypeId = _listTypeLocalService.getListTypeId(
+				portalUser.getCompanyId(),
+				StringUtil.toLowerCase(multiValuedComplexType.getType()),
+				Contact.class.getName() + ".phone");
+
+			_phoneLocalService.addPhone(
+				null, portalUser.getUserId(), Contact.class.getName(),
+				portalUser.getContactId(), multiValuedComplexType.getValue(),
+				null, listTypeId, multiValuedComplexType.isPrimary(),
+				new ServiceContext());
+		}
+
+		_websiteLocalService.deleteWebsites(
+			portalUser.getCompanyId(), Contact.class.getName(),
+			portalUser.getContactId());
+
+		if (Validator.isNotNull(scimUser.getProfileUrl())) {
+			listTypeId = _listTypeLocalService.getListTypeId(
+				portalUser.getCompanyId(), "personal",
+				Contact.class.getName() + ".website");
+
+			try {
+				_websiteLocalService.addWebsite(
+					null, portalUser.getUserId(), Contact.class.getName(),
+					portalUser.getContactId(), scimUser.getProfileUrl(),
+					listTypeId, true, new ServiceContext());
+			}
+			catch (WebsiteURLException websiteURLException) {
+				if (_log.isDebugEnabled()) {
+					_log.debug(
+						"Unable to create website URL", websiteURLException);
+				}
+			}
 		}
 
 		return ScimUtil.toScimUser(portalUser);
@@ -522,8 +790,8 @@ public class UserManagerImpl implements UserManager {
 
 		ScimClientOAuth2ApplicationConfiguration
 			scimClientOAuth2ApplicationConfiguration =
-				_getScimClientOAuth2ApplicationConfiguration(
-					company.getCompanyId());
+				ScimUtil.getScimClientOAuth2ApplicationConfiguration(
+					company.getCompanyId(), _configurationAdmin);
 
 		UserGroup userGroup = _fetchUserGroup(
 			company.getCompanyId(), group.getExternalId(),
@@ -531,11 +799,8 @@ public class UserManagerImpl implements UserManager {
 
 		if (userGroup == null) {
 			userGroup = _userGroupService.addUserGroup(
-				group.getDisplayName(), null, new ServiceContext());
-
-			userGroup.setExternalReferenceCode(group.getExternalId());
-
-			userGroup = _userGroupLocalService.updateUserGroup(userGroup);
+				group.getExternalId(), group.getDisplayName(), null,
+				new ServiceContext());
 
 			_saveScimClientId(
 				UserGroup.class.getName(), userGroup.getPrimaryKey(),
@@ -560,17 +825,9 @@ public class UserManagerImpl implements UserManager {
 			}
 
 			userGroup = _userGroupService.updateUserGroup(
-				userGroup.getPrimaryKey(), group.getDisplayName(),
-				userGroup.getDescription(), new ServiceContext());
-
-			if (!Objects.equals(
-					group.getExternalId(),
-					userGroup.getExternalReferenceCode())) {
-
-				userGroup.setExternalReferenceCode(group.getExternalId());
-
-				userGroup = _userGroupLocalService.updateUserGroup(userGroup);
-			}
+				group.getExternalId(), userGroup.getPrimaryKey(),
+				group.getDisplayName(), userGroup.getDescription(),
+				new ServiceContext());
 
 			if (Validator.isNull(userGroupScimClientId)) {
 				_saveScimClientId(
@@ -596,16 +853,21 @@ public class UserManagerImpl implements UserManager {
 			scimUser.getCompanyId(), scimUser.isAutoPassword(),
 			scimUser.getPassword(), scimUser.getPassword(),
 			scimUser.isAutoScreenName(), scimUser.getScreenName(),
-			scimUser.getEmailAddress(), scimUser.getLocale(),
+			scimUser.getEmailAddresses()[0], scimUser.getLocale(),
 			scimUser.getFirstName(), scimUser.getMiddleName(),
-			scimUser.getLastName(), 0, 0, scimUser.isMale(), birthdayMonth,
-			birthdayDay, birthdayYear, scimUser.getJobTitle(),
-			scimUser.getGroupIds(), scimUser.getOrganizationIds(),
-			scimUser.getRoleIds(), scimUser.getUserGroupIds(),
-			scimUser.isSendEmail(), new ServiceContext());
+			scimUser.getLastName(), scimUser.getPrefix(), scimUser.getSuffix(),
+			scimUser.isMale(), birthdayMonth, birthdayDay, birthdayYear,
+			scimUser.getJobTitle(), scimUser.getGroupIds(),
+			scimUser.getOrganizationIds(), scimUser.getRoleIds(),
+			scimUser.getUserGroupIds(), scimUser.isSendEmail(),
+			new ServiceContext());
 
 		portalUser.setExternalReferenceCode(
 			scimUser.getExternalReferenceCode());
+
+		if (Validator.isNotNull(scimUser.getTimeZoneId())) {
+			portalUser.setTimeZoneId(scimUser.getTimeZoneId());
+		}
 
 		portalUser = _userLocalService.updateUser(portalUser);
 
@@ -620,6 +882,107 @@ public class UserManagerImpl implements UserManager {
 					oAuth2ApplicationName()));
 
 		return portalUser;
+	}
+
+	private <T extends BaseTable<T>, U, E extends Throwable, R> void
+			_buildGetResponse(
+				JoinStep baseCountQuery, Predicate basePredicate,
+				JoinStep baseSelectQuery, BaseTable<T> baseTable,
+				BiConsumer<Integer, List<R>> biConsumer, Class<U> clazz,
+				String[] fieldNames, Node node, Integer pageSize,
+				PersistedModelLocalService persistedModelLocalService,
+				Integer startIndex, UnsafeFunction<U, R, E> unsafeFunction)
+		throws BadRequestException {
+
+		if ((pageSize != null) && (pageSize < 0)) {
+			pageSize = 0;
+		}
+
+		startIndex--;
+
+		_validate(node, fieldNames);
+
+		Predicate predicate = _buildWherePredicate(
+			basePredicate, baseTable, clazz.getName(), node,
+			ServiceContextThreadLocal.getServiceContext());
+
+		int count = persistedModelLocalService.dslQueryCount(
+			baseCountQuery.where(predicate));
+
+		if (pageSize == null) {
+			pageSize = count;
+		}
+
+		biConsumer.accept(
+			count,
+			TransformUtil.transform(
+				(List<U>)persistedModelLocalService.dslQuery(
+					baseSelectQuery.where(
+						predicate
+					).limit(
+						startIndex, startIndex + pageSize
+					)),
+				model -> unsafeFunction.apply(model)));
+	}
+
+	private <T extends BaseTable<T>> Predicate _buildWherePredicate(
+		Predicate basePredicate, BaseTable<T> baseTable, String className,
+		Node node, ServiceContext serviceContext) {
+
+		ExpandoColumn expandoColumn = null;
+
+		try {
+			expandoColumn = _getOrAddExpandoColumn(
+				_classNameLocalService.getClassNameId(className),
+				serviceContext.getCompanyId(), "scimClientId", false, true);
+		}
+		catch (Exception exception) {
+			ReflectionUtil.throwException(exception);
+		}
+
+		ScimClientOAuth2ApplicationConfiguration
+			scimClientOAuth2ApplicationConfiguration =
+				ScimUtil.getScimClientOAuth2ApplicationConfiguration(
+					serviceContext.getCompanyId(), _configurationAdmin);
+
+		Predicate predicate = ExpandoValueTable.INSTANCE.columnId.eq(
+			expandoColumn.getColumnId()
+		).and(
+			DSLFunctionFactoryUtil.castClobText(
+				ExpandoValueTable.INSTANCE.data
+			).eq(
+				ScimClientUtil.generateScimClientId(
+					scimClientOAuth2ApplicationConfiguration.
+						oAuth2ApplicationName())
+			)
+		);
+
+		if (basePredicate != null) {
+			predicate = basePredicate.and(predicate);
+		}
+
+		ExpressionNode expressionNode = (ExpressionNode)node;
+
+		if (expressionNode == null) {
+			return predicate;
+		}
+
+		for (Map.Entry<String, String> entry : _columnNames.entrySet()) {
+			if (!StringUtil.contains(
+					expressionNode.getAttributeValue(), entry.getKey(),
+					StringPool.COLON)) {
+
+				continue;
+			}
+
+			Expression<String> expression =
+				(Expression<String>)baseTable.getColumn(entry.getValue());
+
+			predicate = predicate.and(
+				expression.eq(StringUtil.unquote(expressionNode.getValue())));
+		}
+
+		return predicate;
 	}
 
 	private com.liferay.portal.kernel.model.User _fetchPortalUser(
@@ -640,7 +1003,7 @@ public class UserManagerImpl implements UserManager {
 				"email")) {
 
 			return _userLocalService.fetchUserByEmailAddress(
-				scimUser.getCompanyId(), scimUser.getEmailAddress());
+				scimUser.getCompanyId(), scimUser.getEmailAddresses()[0]);
 		}
 		else if (Objects.equals(
 					scimClientOAuth2ApplicationConfiguration.matcherField(),
@@ -687,6 +1050,108 @@ public class UserManagerImpl implements UserManager {
 			});
 	}
 
+	private ExpandoColumn _getOrAddExpandoColumn(
+			long classNameId, long companyId, String name, boolean textBox,
+			boolean hidden)
+		throws Exception {
+
+		ExpandoTable expandoTable = _expandoTableLocalService.fetchTable(
+			companyId, classNameId, ExpandoTableConstants.DEFAULT_TABLE_NAME);
+
+		if (expandoTable == null) {
+			expandoTable = _expandoTableLocalService.addTable(
+				companyId, classNameId,
+				ExpandoTableConstants.DEFAULT_TABLE_NAME);
+		}
+
+		ExpandoColumn expandoColumn = _expandoColumnLocalService.fetchColumn(
+			expandoTable.getTableId(), name);
+
+		if (expandoColumn != null) {
+			return expandoColumn;
+		}
+
+		expandoColumn = _expandoColumnLocalService.addColumn(
+			expandoTable.getTableId(), name, ExpandoColumnConstants.STRING);
+
+		UnicodeProperties unicodeProperties =
+			expandoColumn.getTypeSettingsProperties();
+
+		unicodeProperties.setProperty(
+			ExpandoColumnConstants.INDEX_TYPE,
+			String.valueOf(ExpandoColumnConstants.INDEX_TYPE_KEYWORD));
+
+		if (textBox) {
+			unicodeProperties.setProperty(
+				ExpandoColumnConstants.PROPERTY_DISPLAY_TYPE,
+				ExpandoColumnConstants.PROPERTY_DISPLAY_TYPE_TEXT_BOX);
+			unicodeProperties.setProperty(
+				ExpandoColumnConstants.PROPERTY_HEIGHT, "150");
+		}
+		else {
+			unicodeProperties.setProperty(
+				ExpandoColumnConstants.PROPERTY_DISPLAY_TYPE,
+				ExpandoColumnConstants.PROPERTY_DISPLAY_TYPE_INPUT_FIELD);
+		}
+
+		if (hidden) {
+			unicodeProperties.setProperty(
+				ExpandoColumnConstants.PROPERTY_HIDDEN,
+				Boolean.TRUE.toString());
+		}
+
+		unicodeProperties.setProperty(
+			ExpandoColumnConstants.PROPERTY_WIDTH, "400");
+
+		expandoColumn.setTypeSettingsProperties(unicodeProperties);
+
+		return _expandoColumnLocalService.updateExpandoColumn(expandoColumn);
+	}
+
+	private List<com.liferay.portal.kernel.model.User> _getPortalUsers(
+		long companyId, long userGroupId) {
+
+		String scimClientId = _getScimClientId(
+			UserGroup.class.getName(), userGroupId, companyId);
+
+		if (Validator.isNull(scimClientId)) {
+			return Collections.emptyList();
+		}
+
+		ExpandoColumn expandoColumn = _expandoColumnLocalService.getColumn(
+			companyId, com.liferay.portal.kernel.model.User.class.getName(),
+			ExpandoTableConstants.DEFAULT_TABLE_NAME, "scimClientId");
+
+		if (expandoColumn == null) {
+			return Collections.emptyList();
+		}
+
+		return _userLocalService.dslQuery(
+			DSLQueryFactoryUtil.select(
+				UserTable.INSTANCE
+			).from(
+				UserTable.INSTANCE
+			).innerJoinON(
+				ExpandoValueTable.INSTANCE,
+				ExpandoValueTable.INSTANCE.classPK.eq(UserTable.INSTANCE.userId)
+			).innerJoinON(
+				Users_UserGroupsTable.INSTANCE,
+				Users_UserGroupsTable.INSTANCE.userId.eq(
+					UserTable.INSTANCE.userId)
+			).where(
+				DSLFunctionFactoryUtil.castClobText(
+					ExpandoValueTable.INSTANCE.data
+				).eq(
+					scimClientId
+				).and(
+					ExpandoValueTable.INSTANCE.columnId.eq(
+						expandoColumn.getColumnId())
+				).and(
+					Users_UserGroupsTable.INSTANCE.userGroupId.eq(userGroupId)
+				)
+			));
+	}
+
 	private String _getScimClientId(
 		String className, long classPK, long companyId) {
 
@@ -705,7 +1170,7 @@ public class UserManagerImpl implements UserManager {
 			return StringPool.BLANK;
 		}
 
-		ExpandoValue expandoValue = _expandoValueLocalService.getValue(
+		ExpandoValue expandoValue = _expandoValueLocalService.fetchValue(
 			expandoTable.getTableId(), expandoColumn.getColumnId(), classPK);
 
 		if (expandoValue == null) {
@@ -715,44 +1180,8 @@ public class UserManagerImpl implements UserManager {
 		return expandoValue.getData();
 	}
 
-	private ScimClientOAuth2ApplicationConfiguration
-		_getScimClientOAuth2ApplicationConfiguration(long companyId) {
-
-		try {
-			Configuration[] configurations =
-				_configurationAdmin.listConfigurations(
-					StringBundler.concat(
-						"(&(", ConfigurationAdmin.SERVICE_FACTORYPID,
-						"=com.liferay.scim.rest.internal.configuration.",
-						"ScimClientOAuth2ApplicationConfiguration)(companyId=",
-						companyId, "))"));
-
-			if (ArrayUtil.isEmpty(configurations)) {
-				throw new NotFoundException(
-					"SCIM is not configured for company " + companyId);
-			}
-
-			Configuration configuration = configurations[0];
-
-			return ConfigurableUtil.createConfigurable(
-				ScimClientOAuth2ApplicationConfiguration.class,
-				configuration.getProperties());
-		}
-		catch (Exception exception) {
-			if (_log.isDebugEnabled()) {
-				_log.debug(
-					StringBundler.concat(
-						"Unable to get the SCIM client OAuth 2 application ",
-						"configuration for company ", companyId),
-					exception);
-			}
-
-			return ReflectionUtil.throwException(exception);
-		}
-	}
-
 	private ScimUser _getScimUser(long companyId, long userId)
-		throws AbstractCharonException {
+		throws Exception {
 
 		com.liferay.portal.kernel.model.User portalUser = null;
 
@@ -778,7 +1207,8 @@ public class UserManagerImpl implements UserManager {
 
 		ScimClientOAuth2ApplicationConfiguration
 			scimClientOAuth2ApplicationConfiguration =
-				_getScimClientOAuth2ApplicationConfiguration(companyId);
+				ScimUtil.getScimClientOAuth2ApplicationConfiguration(
+					companyId, _configurationAdmin);
 
 		String scimClientId = ScimClientUtil.generateScimClientId(
 			scimClientOAuth2ApplicationConfiguration.oAuth2ApplicationName());
@@ -789,25 +1219,6 @@ public class UserManagerImpl implements UserManager {
 		}
 
 		return ScimUtil.toScimUser(portalUser);
-	}
-
-	private List<ScimUser> _getScimUsers(long companyId, long userGroupId) {
-		String userGroupScimClientId = _getScimClientId(
-			UserGroup.class.getName(), userGroupId, companyId);
-
-		return TransformUtil.transform(
-			_userLocalService.getUserGroupUsers(userGroupId),
-			user -> {
-				String userScimClientId = _getScimClientId(
-					com.liferay.portal.kernel.model.User.class.getName(),
-					user.getUserId(), user.getCompanyId());
-
-				if (!Objects.equals(userGroupScimClientId, userScimClientId)) {
-					return null;
-				}
-
-				return ScimUtil.toScimUser(user);
-			});
 	}
 
 	private UserGroup _getUserGroup(long companyId, long userGroupId)
@@ -842,7 +1253,8 @@ public class UserManagerImpl implements UserManager {
 
 		ScimClientOAuth2ApplicationConfiguration
 			scimClientOAuth2ApplicationConfiguration =
-				_getScimClientOAuth2ApplicationConfiguration(companyId);
+				ScimUtil.getScimClientOAuth2ApplicationConfiguration(
+					companyId, _configurationAdmin);
 
 		String scimClientId = ScimClientUtil.generateScimClientId(
 			scimClientOAuth2ApplicationConfiguration.oAuth2ApplicationName());
@@ -855,42 +1267,43 @@ public class UserManagerImpl implements UserManager {
 		return userGroup;
 	}
 
+	private boolean _isUserDeleted(long userId) {
+		ExpandoColumn expandoColumn = _expandoColumnLocalService.getColumn(
+			CompanyThreadLocal.getCompanyId(),
+			com.liferay.portal.kernel.model.User.class.getName(),
+			ExpandoTableConstants.DEFAULT_TABLE_NAME, "deletedBySCIM");
+
+		if (expandoColumn == null) {
+			return false;
+		}
+
+		int count = _userLocalService.dslQueryCount(
+			DSLQueryFactoryUtil.count(
+			).from(
+				ExpandoValueTable.INSTANCE
+			).where(
+				ExpandoValueTable.INSTANCE.classPK.eq(
+					userId
+				).and(
+					ExpandoValueTable.INSTANCE.columnId.eq(
+						expandoColumn.getColumnId())
+				)
+			));
+
+		if (count > 0) {
+			return true;
+		}
+
+		return false;
+	}
+
 	private void _saveScimClientId(
 			String className, long classPK, long companyId, String scimClientId)
 		throws Exception {
 
-		ExpandoTable expandoTable = _expandoTableLocalService.fetchTable(
-			companyId, _classNameLocalService.getClassNameId(className),
-			ExpandoTableConstants.DEFAULT_TABLE_NAME);
-
-		if (expandoTable == null) {
-			expandoTable = _expandoTableLocalService.addTable(
-				companyId, className, ExpandoTableConstants.DEFAULT_TABLE_NAME);
-		}
-
-		ExpandoColumn expandoColumn = _expandoColumnLocalService.fetchColumn(
-			expandoTable.getTableId(), "scimClientId");
-
-		if (expandoColumn == null) {
-			expandoColumn = _expandoColumnLocalService.addColumn(
-				expandoTable.getTableId(), "scimClientId",
-				ExpandoColumnConstants.STRING);
-
-			UnicodeProperties unicodeProperties =
-				expandoColumn.getTypeSettingsProperties();
-
-			unicodeProperties.setProperty(
-				ExpandoColumnConstants.INDEX_TYPE,
-				String.valueOf(ExpandoColumnConstants.INDEX_TYPE_KEYWORD));
-			unicodeProperties.setProperty(
-				ExpandoColumnConstants.PROPERTY_HIDDEN,
-				Boolean.TRUE.toString());
-
-			expandoColumn.setTypeSettingsProperties(unicodeProperties);
-
-			expandoColumn = _expandoColumnLocalService.updateExpandoColumn(
-				expandoColumn);
-		}
+		ExpandoColumn expandoColumn = _getOrAddExpandoColumn(
+			ClassNameLocalServiceUtil.getClassNameId(className), companyId,
+			"scimClientId", false, true);
 
 		_expandoValueLocalService.addValue(
 			companyId, className, ExpandoTableConstants.DEFAULT_TABLE_NAME,
@@ -922,11 +1335,12 @@ public class UserManagerImpl implements UserManager {
 		portalUser = _userService.updateUser(
 			portalUser.getUserId(), scimUser.getPassword(), StringPool.BLANK,
 			StringPool.BLANK, false, portalUser.getReminderQueryQuestion(),
-			portalUser.getReminderQueryAnswer(), portalUser.getScreenName(),
-			scimUser.getEmailAddress(), false, null, portalUser.getLanguageId(),
-			portalUser.getTimeZoneId(), portalUser.getGreeting(),
-			portalUser.getComments(), scimUser.getFirstName(),
-			scimUser.getMiddleName(), scimUser.getLastName(), 0, 0,
+			portalUser.getReminderQueryAnswer(), scimUser.getScreenName(),
+			scimUser.getEmailAddresses()[0], portalUser.getPortraitId() != 0,
+			null, portalUser.getLanguageId(), scimUser.getTimeZoneId(),
+			portalUser.getGreeting(), portalUser.getComments(),
+			scimUser.getFirstName(), scimUser.getMiddleName(),
+			scimUser.getLastName(), scimUser.getPrefix(), scimUser.getSuffix(),
 			scimUser.isMale(), birthdayMonth, birthdayDay, birthdayYear,
 			contact.getSmsSn(), contact.getFacebookSn(), contact.getJabberSn(),
 			contact.getSkypeSn(), contact.getTwitterSn(),
@@ -946,9 +1360,11 @@ public class UserManagerImpl implements UserManager {
 			portalUser = _userLocalService.updateUser(portalUser);
 		}
 
-		if (!portalUser.isActive()) {
+		if (portalUser.isActive() != scimUser.isActive()) {
 			portalUser = _userLocalService.updateStatus(
-				portalUser, WorkflowConstants.STATUS_APPROVED,
+				portalUser.getUserId(),
+				scimUser.isActive() ? WorkflowConstants.STATUS_APPROVED :
+					WorkflowConstants.STATUS_INACTIVE,
 				new ServiceContext());
 		}
 
@@ -966,6 +1382,11 @@ public class UserManagerImpl implements UserManager {
 			long companyId, Group group, long userGroupId)
 		throws Exception {
 
+		Set<Long> portalUserIds = new HashSet<>(
+			TransformUtil.transform(
+				_getPortalUsers(companyId, userGroupId),
+				com.liferay.portal.kernel.model.User::getUserId));
+
 		String userGroupScimClientId = _getScimClientId(
 			UserGroup.class.getName(), userGroupId, companyId);
 
@@ -974,6 +1395,10 @@ public class UserManagerImpl implements UserManager {
 			TransformUtil.transformToLongArray(
 				group.getMembers(),
 				userId -> {
+					if (portalUserIds.contains(GetterUtil.getLong(userId))) {
+						return GetterUtil.getLong(userId);
+					}
+
 					String userScimClientId = _getScimClientId(
 						com.liferay.portal.kernel.model.User.class.getName(),
 						GetterUtil.getLong(userId), companyId);
@@ -988,24 +1413,55 @@ public class UserManagerImpl implements UserManager {
 				}));
 	}
 
+	private void _validate(Node node, String... fieldNames)
+		throws BadRequestException {
+
+		if (node == null) {
+			return;
+		}
+
+		ExpressionNode expressionNode = (ExpressionNode)node;
+
+		for (String fieldName : fieldNames) {
+			if (StringUtil.contains(
+					expressionNode.getAttributeValue(), fieldName,
+					StringPool.COLON)) {
+
+				return;
+			}
+		}
+
+		throw new BadRequestException();
+	}
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		UserManagerImpl.class);
 
+	private static final Map<String, String> _columnNames = Map.of(
+		"displayName", "name", "externalId", "externalReferenceCode",
+		"userName", "screenName");
 	private static final TransactionConfig _transactionConfig =
 		TransactionConfig.Factory.create(
 			Propagation.REQUIRED, new Class<?>[] {Exception.class});
 
+	private final AddressLocalService _addressLocalService;
 	private final ClassNameLocalService _classNameLocalService;
 	private final CompanyLocalService _companyLocalService;
 	private final ConfigurationAdmin _configurationAdmin;
+	private final ContactLocalService _contactLocalService;
+	private final CounterLocalService _counterLocalService;
+	private final CountryLocalService _countryLocalService;
+	private final EmailAddressLocalService _emailAddressLocalService;
 	private final ExpandoColumnLocalService _expandoColumnLocalService;
 	private final ExpandoTableLocalService _expandoTableLocalService;
 	private final ExpandoValueLocalService _expandoValueLocalService;
-	private final Searcher _searcher;
-	private final SearchRequestBuilderFactory _searchRequestBuilderFactory;
+	private final ListTypeLocalService _listTypeLocalService;
+	private final PhoneLocalService _phoneLocalService;
+	private final RegionLocalService _regionLocalService;
 	private final UserGroupLocalService _userGroupLocalService;
 	private final UserGroupService _userGroupService;
 	private final UserLocalService _userLocalService;
 	private final UserService _userService;
+	private final WebsiteLocalService _websiteLocalService;
 
 }

@@ -1,6 +1,7 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property custom.properties = "feature.flag.LPS-180090=true";
 	property portal.release = "true";
 	property portal.upstream = "true";
@@ -144,10 +145,10 @@ definition {
 				schema = "Student");
 		}
 
-		task ("Then I can see myCustomAction with PUT and o/c/students/by-external-reference-code/{studentExternalReferenceCode}/object-actions/myCustomAction") {
+		task ("Then I can see myCustomAction with PUT and o/c/students/by-external-reference-code/{externalReferenceCode}/object-actions/myCustomAction") {
 			APIExplorer.assertExposedActionsInSchema(
 				method = "PUT",
-				objectHref = "c/students/by-external-reference-code/{studentExternalReferenceCode}/object-actions/myCustomAction",
+				objectHref = "c/students/by-external-reference-code/{externalReferenceCode}/object-actions/myCustomAction",
 				property = "myCustomAction",
 				schema = "Student");
 		}

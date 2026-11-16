@@ -16,7 +16,7 @@ RedirectNotFoundEntriesDisplayContext redirectNotFoundEntriesDisplayContext = (R
 	propsTransformer="{RedirectNotFoundEntriesManagementToolbarPropsTransformer} from redirect-web"
 />
 
-<aui:form action="<%= redirectNotFoundEntriesDisplayContext.getActionURL() %>" cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form action="<%= redirectNotFoundEntriesDisplayContext.getActionURL() %>" cssClass="container-fluid" name="fm">
 	<c:choose>
 		<c:when test="<%= redirectNotFoundEntriesDisplayContext.hasResults() %>">
 			<aui:input name="redirect" type="hidden" value="<%= currentURL %>" />
@@ -28,7 +28,7 @@ RedirectNotFoundEntriesDisplayContext redirectNotFoundEntriesDisplayContext = (R
 			>
 				<liferay-ui:search-container-row
 					className="com.liferay.redirect.model.RedirectNotFoundEntry"
-					keyProperty="redirectNotFoundEntryId"
+					keyPropertyName="redirectNotFoundEntryId"
 					modelVar="redirectNotFoundEntry"
 				>
 
@@ -81,7 +81,7 @@ RedirectNotFoundEntriesDisplayContext redirectNotFoundEntriesDisplayContext = (R
 		</c:when>
 		<c:otherwise>
 			<liferay-frontend:empty-result-message
-				animationType="<%= EmptyResultMessageKeys.AnimationType.SEARCH %>"
+				animationType="<%= AnimationType.SEARCH %>"
 				description="<%= LanguageUtil.get(request, redirectNotFoundEntriesDisplayContext.getEmptyResultsMessage()) %>"
 				title='<%= LanguageUtil.get(request, "all-is-in-order") %>'
 			/>

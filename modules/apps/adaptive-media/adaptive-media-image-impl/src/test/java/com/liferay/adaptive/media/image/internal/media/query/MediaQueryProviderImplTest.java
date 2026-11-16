@@ -30,6 +30,7 @@ import com.liferay.portal.kernel.security.permission.PermissionChecker;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
 import com.liferay.portal.kernel.security.permission.resource.PortletResourcePermission;
 import com.liferay.portal.kernel.test.ReflectionTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
@@ -859,32 +860,6 @@ public class MediaQueryProviderImplTest {
 				"com.liferay.portal.kernel.repository.model.FileEntry"));
 	}
 
-	private AdaptiveMedia<AMProcessor<FileVersion>> _createAdaptiveMedia(
-			String amImageConfigurationEntryUuid, int height, int width,
-			String url)
-		throws Exception {
-
-		Map<String, String> properties = HashMapBuilder.put(
-			AMImageAttribute.AM_IMAGE_ATTRIBUTE_HEIGHT.getName(),
-			String.valueOf(height)
-		).put(
-			AMImageAttribute.AM_IMAGE_ATTRIBUTE_WIDTH.getName(),
-			String.valueOf(width)
-		).put(
-			() -> {
-				AMAttribute<?, ?> amAttribute =
-					AMAttribute.getConfigurationUuidAMAttribute();
-
-				return amAttribute.getName();
-			},
-			amImageConfigurationEntryUuid
-		).build();
-
-		return new AMImage(
-			() -> null, AMImageAttributeMapping.fromProperties(properties),
-			URI.create(url));
-	}
-
 	private AMImageConfigurationEntry _createAMImageConfigurationEntry(
 			final String uuid, final int height, final int width, String url)
 		throws Exception {
@@ -933,9 +908,33 @@ public class MediaQueryProviderImplTest {
 		return amImageConfigurationEntry;
 	}
 
-	private static final long _COMPANY_ID = 1L;
+	private AdaptiveMedia<AMProcessor<FileVersion>> _createAdaptiveMedia(
+			String amImageConfigurationEntryUuid, int height, int width,
+			String url)
+		throws Exception {
 
-	private static ServiceRegistration<?> _serviceRegistration;
+		Map<String, String> properties = HashMapBuilder.put(
+			AMImageAttribute.AM_IMAGE_ATTRIBUTE_HEIGHT.getName(),
+			String.valueOf(height)
+		).put(
+			AMImageAttribute.AM_IMAGE_ATTRIBUTE_WIDTH.getName(),
+			String.valueOf(width)
+		).put(
+			() -> {
+				AMAttribute<?, ?> amAttribute =
+					AMAttribute.getConfigurationUuidAMAttribute();
+
+				return amAttribute.getName();
+			},
+			amImageConfigurationEntryUuid
+		).build();
+
+		return new AMImage(
+			() -> null, AMImageAttributeMapping.fromProperties(properties),
+			URI.create(url));
+	}
+
+	private static final long _COMPANY_ID = RandomTestUtil.randomLong();
 
 	private final AMImageConfigurationHelper _amImageConfigurationHelper =
 		Mockito.mock(AMImageConfigurationHelper.class);
@@ -947,5 +946,6 @@ public class MediaQueryProviderImplTest {
 	private final FileVersion _fileVersion = Mockito.mock(FileVersion.class);
 	private final MediaQueryProviderImpl _mediaQueryProviderImpl =
 		new MediaQueryProviderImpl();
+	private ServiceRegistration<?> _serviceRegistration;
 
 }

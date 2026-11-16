@@ -44,17 +44,17 @@ public class WikiPanelApp extends BasePanelApp {
 	public boolean isShow(PermissionChecker permissionChecker, Group group)
 		throws PortalException {
 
-		if (!FeatureFlagManagerUtil.isEnabled(
+		if (FeatureFlagManagerUtil.isEnabled(
 				group.getCompanyId(), "LPD-35013")) {
 
-			return false;
+			return super.isShow(permissionChecker, group);
 		}
 
-		return true;
+		return false;
 	}
 
 	@Reference(
-		target = "(javax.portlet.name=" + WikiPortletKeys.WIKI_ADMIN + ")"
+		target = "(jakarta.portlet.name=" + WikiPortletKeys.WIKI_ADMIN + ")"
 	)
 	private Portlet _portlet;
 

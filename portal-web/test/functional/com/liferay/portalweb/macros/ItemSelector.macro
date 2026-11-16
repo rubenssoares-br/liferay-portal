@@ -311,13 +311,12 @@ definition {
 
 		if (isSet(invalidURL)) {
 			if (contains(${invalidURL}, "youtube")) {
-				SelectFrame.selectFrameNoLoading(locator1 = "IFrame#EXTERNAL_VIDEO_IFRAME");
+				AssertAttributeValue(
+					locator1 = "IFrame#EXTERNAL_VIDEO_IFRAME",
+					value1 = "src",
+					value2 = ${invalidURL});
 
-				Click(locator1 = "Button#YOUTUBE_PLAY");
-
-				AssertTextEquals.assertPartialText(
-					locator1 = "Message#ERROR_INVALID_YOUTUBE_VIDEO",
-					value1 = "An error occurred. Please try again later.");
+				AssertElementNotPresent(locator1 = "Message#INFO_EXTERNAL_VIDEO_PREVIEW");
 			}
 			else if (contains(${invalidURL}, "facebook")) {
 				SelectFrame.selectFrameNoLoading(locator1 = "IFrame#EXTERNAL_VIDEO_IFRAME");
@@ -537,7 +536,11 @@ definition {
 		LexiconCard.clickCard(card = ${depotName});
 
 		if (isSet(folderName)) {
-			LexiconCard.clickCard(card = ${folderName});
+			LexiconCard.clickCardTitleLink(card = ${folderName});
+
+			AssertElementPresent(
+				key_breadcrumbName = ${folderName},
+				locator1 = "Breadcrumb#BREADCRUMB_ENTRY");
 		}
 
 		if (isSet(noViewPermission)) {
@@ -1105,9 +1108,13 @@ definition {
 		LexiconEntry.changeDisplayStyle(displayStyle = "list");
 
 		if (isSet(draft)) {
-			AssertElementPresent(
+			AssertElementNotPresent(
 				key_rowEntry = ${webContentTitle},
 				locator1 = "ContentRow#ENTRY_CONTENT_ENTRY_NAME");
+
+			AssertTextEquals.assertPartialText(
+				locator1 = "Message#EMPTY_INFO",
+				value1 = "No web content was found.");
 		}
 		else {
 			for (var webContentTitle : list ${webContentTitle}) {

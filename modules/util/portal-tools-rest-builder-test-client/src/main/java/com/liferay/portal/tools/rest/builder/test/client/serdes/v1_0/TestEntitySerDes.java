@@ -5,22 +5,24 @@
 
 package com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0;
 
+import com.liferay.portal.tools.rest.builder.test.client.constant.v1_0.StringTestEntity;
 import com.liferay.portal.tools.rest.builder.test.client.dto.v1_0.ChildTestEntity1;
 import com.liferay.portal.tools.rest.builder.test.client.dto.v1_0.ChildTestEntity2;
 import com.liferay.portal.tools.rest.builder.test.client.dto.v1_0.ChildTestEntity3;
 import com.liferay.portal.tools.rest.builder.test.client.dto.v1_0.TestEntity;
 import com.liferay.portal.tools.rest.builder.test.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -121,6 +123,15 @@ public class TestEntitySerDes {
 			map.put("documentId", String.valueOf(testEntity.getDocumentId()));
 		}
 
+		if (testEntity.getExternalReferenceCode() == null) {
+			map.put("externalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"externalReferenceCode",
+				String.valueOf(testEntity.getExternalReferenceCode()));
+		}
+
 		if (testEntity.getId() == null) {
 			map.put("id", null);
 		}
@@ -157,6 +168,24 @@ public class TestEntitySerDes {
 		}
 		else {
 			map.put("self", String.valueOf(testEntity.getSelf()));
+		}
+
+		if (testEntity.getStringTestEntities() == null) {
+			map.put("stringTestEntities", null);
+		}
+		else {
+			map.put(
+				"stringTestEntities",
+				String.valueOf(testEntity.getStringTestEntities()));
+		}
+
+		if (testEntity.getStringTestEntity() == null) {
+			map.put("stringTestEntity", null);
+		}
+		else {
+			map.put(
+				"stringTestEntity",
+				String.valueOf(testEntity.getStringTestEntity()));
 		}
 
 		if (testEntity.getTestEntities() == null) {
@@ -204,6 +233,11 @@ public class TestEntitySerDes {
 			else if (Objects.equals(jsonParserFieldName, "documentId")) {
 				return false;
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				return false;
 			}
@@ -217,6 +251,14 @@ public class TestEntitySerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "self")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "stringTestEntities")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "stringTestEntity")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "testEntities")) {
@@ -286,6 +328,14 @@ public class TestEntitySerDes {
 						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
+			else if (Objects.equals(
+						jsonParserFieldName, "externalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					testEntity.setExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
 			else if (Objects.equals(jsonParserFieldName, "id")) {
 				if (jsonParserFieldValue != null) {
 					testEntity.setId(
@@ -312,6 +362,30 @@ public class TestEntitySerDes {
 			else if (Objects.equals(jsonParserFieldName, "self")) {
 				if (jsonParserFieldValue != null) {
 					testEntity.setSelf((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName, "stringTestEntities")) {
+
+				if (jsonParserFieldValue != null) {
+					Object[] jsonParserFieldValues =
+						(Object[])jsonParserFieldValue;
+
+					StringTestEntity[] stringTestEntitiesArray =
+						new StringTestEntity[jsonParserFieldValues.length];
+
+					for (int i = 0; i < stringTestEntitiesArray.length; i++) {
+						stringTestEntitiesArray[i] = StringTestEntity.create(
+							(String)jsonParserFieldValues[i]);
+					}
+
+					testEntity.setStringTestEntities(stringTestEntitiesArray);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "stringTestEntity")) {
+				if (jsonParserFieldValue != null) {
+					testEntity.setStringTestEntity(
+						StringTestEntity.create((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "testEntities")) {
@@ -371,6 +445,16 @@ public class TestEntitySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -403,3 +487,4 @@ public class TestEntitySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1718234079

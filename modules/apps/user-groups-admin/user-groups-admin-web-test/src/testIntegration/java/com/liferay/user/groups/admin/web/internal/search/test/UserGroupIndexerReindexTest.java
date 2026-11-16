@@ -104,22 +104,22 @@ public class UserGroupIndexerReindexTest {
 			).build());
 	}
 
+	@Inject
+	protected IndexWriterHelper indexWriterHelper;
+
 	@Inject(
 		filter = "indexer.class.name=com.liferay.portal.kernel.model.UserGroup"
 	)
 	protected Indexer<UserGroup> indexer;
 
 	@Inject
-	protected IndexWriterHelper indexWriterHelper;
-
-	@Inject
 	protected SearchEngineHelper searchEngineHelper;
 
 	@Inject
-	protected Searcher searcher;
+	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
 
 	@Inject
-	protected SearchRequestBuilderFactory searchRequestBuilderFactory;
+	protected Searcher searcher;
 
 	@Inject
 	protected UIDFactory uidFactory;
@@ -144,7 +144,7 @@ public class UserGroupIndexerReindexTest {
 	}
 
 	private void _reindexAllIndexerModels() throws Exception {
-		indexer.reindex(new String[] {String.valueOf(_group.getCompanyId())});
+		indexer.reindexCompany(_group.getCompanyId());
 	}
 
 	private Group _group;

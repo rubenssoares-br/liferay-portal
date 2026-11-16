@@ -12,7 +12,10 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.portlet.PortletPreferencesFactoryUtil;
 import com.liferay.portal.kernel.upgrade.BasePortletPreferencesUpgradeProcess;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.PortletKeys;
 import com.liferay.portal.kernel.util.Validator;
+
+import jakarta.portlet.PortletPreferences;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,28 +23,30 @@ import java.sql.ResultSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.portlet.PortletPreferences;
-
 /**
  * @author Lourdes Fernández Besada
  */
 public abstract class BaseUpgradePortletPreferences
 	extends BasePortletPreferencesUpgradeProcess {
 
-	protected String getGroupExternalReferenceCode(long groupId)
+	protected String getGroupExternalReferenceCode(long companyId, long groupId)
 		throws Exception {
 
-		return _groupIdMap.computeIfAbsent(
+		Map<Long, String> externalReferenceCodes =
+			_externalReferenceCodesMap.computeIfAbsent(
+				companyId, curCompanyId -> new ConcurrentHashMap<>());
+
+		return externalReferenceCodes.computeIfAbsent(
 			groupId, curGroupId -> _getGroupExternalReferenceCode(curGroupId));
 	}
 
 	protected long getGroupId(long companyId, String groupKey)
 		throws Exception {
 
-		Map<String, Long> companyMap = _groupKeyMap.computeIfAbsent(
+		Map<String, Long> groupIds = _groupIdsMap.computeIfAbsent(
 			companyId, curCompanyId -> new ConcurrentHashMap<>());
 
-		return companyMap.computeIfAbsent(
+		return groupIds.computeIfAbsent(
 			groupKey,
 			curGroupKey -> {
 				Object[] group = _getGroup(companyId, curGroupKey);
@@ -57,10 +62,14 @@ public abstract class BaseUpgradePortletPreferences
 					return 0L;
 				}
 
+				Map<Long, String> externalReferenceCodes =
+					_externalReferenceCodesMap.computeIfAbsent(
+						companyId, curCompanyId -> new ConcurrentHashMap<>());
+
 				String externalReferenceCode = (String)group[0];
 				long groupId = (long)group[1];
 
-				_groupIdMap.computeIfAbsent(
+				externalReferenceCodes.computeIfAbsent(
 					groupId, curGroupId -> externalReferenceCode);
 
 				return groupId;
@@ -70,30 +79,35 @@ public abstract class BaseUpgradePortletPreferences
 	@Override
 	protected abstract String[] getPortletIds();
 
-	protected String getScopeExternalReferenceCode(long plid, long scopeGroupId)
+	protected String getScopeExternalReferenceCode(
+			long companyId, long ownerId, int ownerType, long plid,
+			long scopeGroupId)
 		throws Exception {
 
-		long layoutGroupId = _getLayoutGroupId(plid);
+		long layoutGroupId = _getLayoutGroupId(
+			companyId, ownerId, ownerType, plid);
 
 		if ((layoutGroupId == 0L) || (layoutGroupId == scopeGroupId)) {
 			return StringPool.BLANK;
 		}
 
-		return getGroupExternalReferenceCode(scopeGroupId);
+		return getGroupExternalReferenceCode(companyId, scopeGroupId);
 	}
 
 	protected String getScopeExternalReferenceCode(
-			long companyId, long plid, String scopeGroupKey)
+			long companyId, long ownerId, int ownerType, long plid,
+			String scopeGroupKey)
 		throws Exception {
 
-		long layoutGroupId = _getLayoutGroupId(plid);
+		long layoutGroupId = _getLayoutGroupId(
+			companyId, ownerId, ownerType, plid);
 		long scopeGroupId = getGroupId(companyId, scopeGroupKey);
 
 		if ((layoutGroupId == 0L) || (layoutGroupId == scopeGroupId)) {
 			return StringPool.BLANK;
 		}
 
-		return getGroupExternalReferenceCode(scopeGroupId);
+		return getGroupExternalReferenceCode(companyId, scopeGroupId);
 	}
 
 	protected abstract void upgradePreferences(
@@ -118,7 +132,7 @@ public abstract class BaseUpgradePortletPreferences
 
 		if (Validator.isNotNull(displayStyleGroupKey)) {
 			groupExternalReferenceCode = getScopeExternalReferenceCode(
-				companyId, plid, displayStyleGroupKey);
+				companyId, ownerId, ownerType, plid, displayStyleGroupKey);
 		}
 		else {
 			long displayStyleGroupId = GetterUtil.getLong(
@@ -126,7 +140,7 @@ public abstract class BaseUpgradePortletPreferences
 
 			if (displayStyleGroupId > 0) {
 				groupExternalReferenceCode = getScopeExternalReferenceCode(
-					plid, displayStyleGroupId);
+					companyId, ownerId, ownerType, plid, displayStyleGroupId);
 			}
 		}
 
@@ -196,8 +210,20 @@ public abstract class BaseUpgradePortletPreferences
 		return StringPool.BLANK;
 	}
 
-	private long _getLayoutGroupId(long plid) {
-		return _plidMap.computeIfAbsent(
+	private long _getLayoutGroupId(
+		long companyId, long ownerId, int ownerType, long plid) {
+
+		if (((ownerType == PortletKeys.PREFS_OWNER_TYPE_LAYOUT) ||
+			 (ownerType == PortletKeys.PREFS_OWNER_TYPE_GROUP)) &&
+			(ownerId > 0) && (plid == PortletKeys.PREFS_PLID_SHARED)) {
+
+			return ownerId;
+		}
+
+		Map<Long, Long> companyIdPlidMap = _plidMap.computeIfAbsent(
+			companyId, curCompanyId -> new ConcurrentHashMap<>());
+
+		return companyIdPlidMap.computeIfAbsent(
 			plid,
 			curPlid -> {
 				try {
@@ -220,9 +246,11 @@ public abstract class BaseUpgradePortletPreferences
 	private static final Log _log = LogFactoryUtil.getLog(
 		BaseUpgradePortletPreferences.class);
 
-	private final Map<Long, String> _groupIdMap = new ConcurrentHashMap<>();
-	private final Map<Long, Map<String, Long>> _groupKeyMap =
+	private final Map<Long, Map<Long, String>> _externalReferenceCodesMap =
 		new ConcurrentHashMap<>();
-	private final Map<Long, Long> _plidMap = new ConcurrentHashMap<>();
+	private final Map<Long, Map<String, Long>> _groupIdsMap =
+		new ConcurrentHashMap<>();
+	private final Map<Long, Map<Long, Long>> _plidMap =
+		new ConcurrentHashMap<>();
 
 }

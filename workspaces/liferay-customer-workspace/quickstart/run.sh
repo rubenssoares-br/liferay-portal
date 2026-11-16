@@ -19,10 +19,13 @@ function check_health {
 
 function download_hotfix {
 	for file_url in \
-		"https://releases-cdn.liferay.com/dxp/hotfix/2024.q2.7/liferay-dxp-2024.q2.7-hotfix-4.zip" \
-		"https://releases-cdn.liferay.com/tools/patching-tool/patching-tool-4.0.3.zip"
+		"https://releases-cdn.liferay.com/dxp/hotfix/2026.q1.2-lts/liferay-dxp-2026.q1.2-lts-hotfix-17.zip"
 	do
-		local file_name="./liferay/patching/$(basename "${file_url}")"
+		local hotfix_file_name
+
+		hotfix_file_name=$(basename "${file_url}")
+
+		local file_name="./liferay/patching/${hotfix_file_name}"
 
 		if [ ! -f "${file_name}" ]
 		then
@@ -35,8 +38,28 @@ function download_hotfix {
 	done
 }
 
+function download_license {
+	if command -v op &> /dev/null
+	then
+		echo "Downloading license from 1Password."
+
+		op read --force "op://Customer Solutions/license.xml/notesPlain" --out-file ./liferay/deploy/license.xml
+
+		if [[ $? -eq 0 ]]
+		then
+			echo "Downloaded license successfully."
+		else
+			echo "Unable to download license from 1Password."
+		fi
+	else
+		echo "Skipping the download of ./liferay/deploy/license.xml because the 1Password CLI is not available."
+	fi
+}
+
 function get_container_id {
-	local container_id=$(docker compose ps --quiet "${1}")
+	local container_id
+
+	container_id=$(docker compose ps --quiet "${1}")
 
 	if [[ -n "${container_id}" ]]
 	then
@@ -53,6 +76,8 @@ function get_container_id {
 function main {
 	download_hotfix
 
+	download_license
+
 	pushd .. > /dev/null
 
 	./gradlew clean build
@@ -61,7 +86,9 @@ function main {
 
 	docker compose up --detach database liferay
 
-	local container_id=$(get_container_id "liferay")
+	local container_id
+
+	container_id=$(get_container_id "liferay")
 
 	check_health
 

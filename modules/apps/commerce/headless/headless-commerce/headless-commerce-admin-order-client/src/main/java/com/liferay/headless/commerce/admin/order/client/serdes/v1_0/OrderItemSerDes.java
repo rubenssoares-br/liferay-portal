@@ -5,23 +5,23 @@
 
 package com.liferay.headless.commerce.admin.order.client.serdes.v1_0;
 
-import com.liferay.headless.commerce.admin.order.client.dto.v1_0.CustomField;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.OrderItem;
 import com.liferay.headless.commerce.admin.order.client.dto.v1_0.VirtualItem;
 import com.liferay.headless.commerce.admin.order.client.json.BaseJSONParser;
+
+import jakarta.annotation.Generated;
 
 import java.math.BigDecimal;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alessio Antonio Rendina
@@ -74,7 +74,7 @@ public class OrderItemSerDes {
 			sb.append("[");
 
 			for (int i = 0; i < orderItem.getCustomFields().length; i++) {
-				sb.append(String.valueOf(orderItem.getCustomFields()[i]));
+				sb.append(orderItem.getCustomFields()[i]);
 
 				if ((i + 1) < orderItem.getCustomFields().length) {
 					sb.append(", ");
@@ -360,6 +360,16 @@ public class OrderItemSerDes {
 			sb.append(_escape(orderItem.getPrintedNote()));
 
 			sb.append("\"");
+		}
+
+		if (orderItem.getProductId() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"productId\": ");
+
+			sb.append(orderItem.getProductId());
 		}
 
 		if (orderItem.getPromoPrice() != null) {
@@ -891,6 +901,13 @@ public class OrderItemSerDes {
 			map.put("printedNote", String.valueOf(orderItem.getPrintedNote()));
 		}
 
+		if (orderItem.getProductId() == null) {
+			map.put("productId", null);
+		}
+		else {
+			map.put("productId", String.valueOf(orderItem.getProductId()));
+		}
+
 		if (orderItem.getPromoPrice() == null) {
 			map.put("promoPrice", null);
 		}
@@ -1204,6 +1221,9 @@ public class OrderItemSerDes {
 			else if (Objects.equals(jsonParserFieldName, "printedNote")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "productId")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "promoPrice")) {
 				return false;
 			}
@@ -1304,12 +1324,16 @@ public class OrderItemSerDes {
 					Object[] jsonParserFieldValues =
 						(Object[])jsonParserFieldValue;
 
-					CustomField[] customFieldsArray =
-						new CustomField[jsonParserFieldValues.length];
+					com.liferay.headless.commerce.admin.order.client.custom.
+						field.CustomField[] customFieldsArray = new
+						com.liferay.headless.commerce.admin.order.client.custom.
+							field.CustomField[jsonParserFieldValues.length];
 
 					for (int i = 0; i < customFieldsArray.length; i++) {
-						customFieldsArray[i] = CustomFieldSerDes.toDTO(
-							(String)jsonParserFieldValues[i]);
+						customFieldsArray[i] =
+							com.liferay.headless.commerce.admin.order.client.
+								custom.field.CustomField.toDTO(
+									(String)jsonParserFieldValues[i]);
 					}
 
 					orderItem.setCustomFields(customFieldsArray);
@@ -1491,6 +1515,12 @@ public class OrderItemSerDes {
 			else if (Objects.equals(jsonParserFieldName, "printedNote")) {
 				if (jsonParserFieldValue != null) {
 					orderItem.setPrintedNote((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "productId")) {
+				if (jsonParserFieldValue != null) {
+					orderItem.setProductId(
+						Long.valueOf((String)jsonParserFieldValue));
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "promoPrice")) {
@@ -1689,6 +1719,16 @@ public class OrderItemSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -1721,3 +1761,4 @@ public class OrderItemSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:935991034

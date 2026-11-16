@@ -8,13 +8,14 @@ package com.liferay.search.experiences.rest.client.serdes.v1_0;
 import com.liferay.search.experiences.rest.client.dto.v1_0.Parameter;
 import com.liferay.search.experiences.rest.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Brian Wing Shun Chan
@@ -51,14 +52,7 @@ public class ParameterSerDes {
 
 			sb.append("\"defaultValue\": ");
 
-			if (parameter.getDefaultValue() instanceof String) {
-				sb.append("\"");
-				sb.append((String)parameter.getDefaultValue());
-				sb.append("\"");
-			}
-			else {
-				sb.append(parameter.getDefaultValue());
-			}
+			sb.append(_toJSON(parameter.getDefaultValue()));
 		}
 
 		if (parameter.getFormat() != null) {
@@ -82,14 +76,7 @@ public class ParameterSerDes {
 
 			sb.append("\"max\": ");
 
-			if (parameter.getMax() instanceof String) {
-				sb.append("\"");
-				sb.append((String)parameter.getMax());
-				sb.append("\"");
-			}
-			else {
-				sb.append(parameter.getMax());
-			}
+			sb.append(_toJSON(parameter.getMax()));
 		}
 
 		if (parameter.getMin() != null) {
@@ -99,14 +86,7 @@ public class ParameterSerDes {
 
 			sb.append("\"min\": ");
 
-			if (parameter.getMin() instanceof String) {
-				sb.append("\"");
-				sb.append((String)parameter.getMin());
-				sb.append("\"");
-			}
-			else {
-				sb.append(parameter.getMin());
-			}
+			sb.append(_toJSON(parameter.getMin()));
 		}
 
 		if (parameter.getType() != null) {
@@ -117,9 +97,7 @@ public class ParameterSerDes {
 			sb.append("\"type\": ");
 
 			sb.append("\"");
-
 			sb.append(parameter.getType());
-
 			sb.append("\"");
 		}
 
@@ -289,6 +267,16 @@ public class ParameterSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -321,3 +309,4 @@ public class ParameterSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:851765089

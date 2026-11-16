@@ -115,11 +115,7 @@ public class DLFileShortcutPersistenceTest {
 
 	@Test
 	public void testUpdateExisting() throws Exception {
-		long pk = RandomTestUtil.nextLong();
-
-		DLFileShortcut newDLFileShortcut = _persistence.create(pk);
-
-		newDLFileShortcut.setMvccVersion(RandomTestUtil.nextLong());
+		DLFileShortcut newDLFileShortcut = addDLFileShortcut();
 
 		newDLFileShortcut.setCtCollectionId(RandomTestUtil.nextLong());
 
@@ -160,7 +156,9 @@ public class DLFileShortcutPersistenceTest {
 
 		newDLFileShortcut.setStatusDate(RandomTestUtil.nextDate());
 
-		_dlFileShortcuts.add(_persistence.update(newDLFileShortcut));
+		newDLFileShortcut = _persistence.update(newDLFileShortcut);
+
+		_dlFileShortcuts.add(newDLFileShortcut);
 
 		DLFileShortcut existingDLFileShortcut = _persistence.findByPrimaryKey(
 			newDLFileShortcut.getPrimaryKey());
@@ -302,32 +300,6 @@ public class DLFileShortcutPersistenceTest {
 			RandomTestUtil.nextLong(), RandomTestUtil.nextLong());
 
 		_persistence.countByG_F(0L, 0L);
-	}
-
-	@Test
-	public void testCountByC_NotS() throws Exception {
-		_persistence.countByC_NotS(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextInt());
-
-		_persistence.countByC_NotS(0L, 0);
-	}
-
-	@Test
-	public void testCountByG_F_A() throws Exception {
-		_persistence.countByG_F_A(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.randomBoolean());
-
-		_persistence.countByG_F_A(0L, 0L, RandomTestUtil.randomBoolean());
-	}
-
-	@Test
-	public void testCountByG_F_A_S() throws Exception {
-		_persistence.countByG_F_A_S(
-			RandomTestUtil.nextLong(), RandomTestUtil.nextLong(),
-			RandomTestUtil.randomBoolean(), RandomTestUtil.nextInt());
-
-		_persistence.countByG_F_A_S(0L, 0L, RandomTestUtil.randomBoolean(), 0);
 	}
 
 	@Test
@@ -691,8 +663,6 @@ public class DLFileShortcutPersistenceTest {
 
 		DLFileShortcut dlFileShortcut = _persistence.create(pk);
 
-		dlFileShortcut.setMvccVersion(RandomTestUtil.nextLong());
-
 		dlFileShortcut.setCtCollectionId(RandomTestUtil.nextLong());
 
 		dlFileShortcut.setUuid(RandomTestUtil.randomString());
@@ -742,3 +712,4 @@ public class DLFileShortcutPersistenceTest {
 	private ClassLoader _dynamicQueryClassLoader;
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-1939685796

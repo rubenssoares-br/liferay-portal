@@ -250,20 +250,6 @@ public class CommerceChannelRelLocalServiceUtil {
 		return getService().getActionableDynamicQuery();
 	}
 
-	public static List<CommerceChannelRel> getCommerceChannelCountries(
-		long commerceChannelId, String name, int start, int end) {
-
-		return getService().getCommerceChannelCountries(
-			commerceChannelId, name, start, end);
-	}
-
-	public static int getCommerceChannelCountriesCount(
-		long commerceChannelId, String name) {
-
-		return getService().getCommerceChannelCountriesCount(
-			commerceChannelId, name);
-	}
-
 	/**
 	 * Returns the commerce channel rel with the primary key.
 	 *
@@ -337,11 +323,33 @@ public class CommerceChannelRelLocalServiceUtil {
 		return getService().getCommerceChannelRelsCount(className, classPK);
 	}
 
-	public static int getCommerceChannelRelsCount(
-		String className, long classPK, String name) {
+	public static List<CommerceChannelRel>
+		getCommerceCurrencyCommerceChannelRels(
+			long commerceChannelId, String name, int start, int end) {
 
-		return getService().getCommerceChannelRelsCount(
-			className, classPK, name);
+		return getService().getCommerceCurrencyCommerceChannelRels(
+			commerceChannelId, name, start, end);
+	}
+
+	public static int getCommerceCurrencyCommerceChannelRelsCount(
+		long commerceChannelId, String name) {
+
+		return getService().getCommerceCurrencyCommerceChannelRelsCount(
+			commerceChannelId, name);
+	}
+
+	public static List<CommerceChannelRel> getCountryCommerceChannelRels(
+		long commerceChannelId, String name, int start, int end) {
+
+		return getService().getCountryCommerceChannelRels(
+			commerceChannelId, name, start, end);
+	}
+
+	public static int getCountryCommerceChannelRelsCount(
+		long commerceChannelId, String name) {
+
+		return getService().getCountryCommerceChannelRelsCount(
+			commerceChannelId, name);
 	}
 
 	public static
@@ -395,3 +403,4 @@ public class CommerceChannelRelLocalServiceUtil {
 			CommerceChannelRelLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:1440390388

@@ -8,19 +8,18 @@ package com.liferay.headless.admin.site.client.dto.v1_0;
 import com.liferay.headless.admin.site.client.function.UnsafeSupplier;
 import com.liferay.headless.admin.site.client.serdes.v1_0.ItemExternalReferenceSerDes;
 
+import jakarta.annotation.Generated;
+
 import java.io.Serializable;
 
 import java.util.Objects;
-
-import javax.annotation.Generated;
 
 /**
  * @author Rubén Pulido
  * @generated
  */
 @Generated("")
-public class ItemExternalReference
-	extends CollectionReference implements Cloneable, Serializable {
+public class ItemExternalReference implements Cloneable, Serializable {
 
 	public static ItemExternalReference toDTO(String json) {
 		return ItemExternalReferenceSerDes.toDTO(json);
@@ -68,15 +67,21 @@ public class ItemExternalReference
 
 	protected String externalReferenceCode;
 
-	public Scope getScope() {
+	public com.liferay.headless.admin.site.client.scope.Scope getScope() {
 		return scope;
 	}
 
-	public void setScope(Scope scope) {
+	public void setScope(
+		com.liferay.headless.admin.site.client.scope.Scope scope) {
+
 		this.scope = scope;
 	}
 
-	public void setScope(UnsafeSupplier<Scope, Exception> scopeUnsafeSupplier) {
+	public void setScope(
+		UnsafeSupplier
+			<com.liferay.headless.admin.site.client.scope.Scope, Exception>
+				scopeUnsafeSupplier) {
+
 		try {
 			scope = scopeUnsafeSupplier.get();
 		}
@@ -85,7 +90,7 @@ public class ItemExternalReference
 		}
 	}
 
-	protected Scope scope;
+	protected com.liferay.headless.admin.site.client.scope.Scope scope;
 
 	@Override
 	public ItemExternalReference clone() throws CloneNotSupportedException {
@@ -120,3 +125,4 @@ public class ItemExternalReference
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:2049179032

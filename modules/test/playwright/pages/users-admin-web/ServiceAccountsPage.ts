@@ -5,11 +5,12 @@
 
 import {Locator, Page} from '@playwright/test';
 
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {DataTablePage} from '../account-admin-web/DataTablePage';
+import {GlobalMenuPage} from '../product-navigation-applications-menu/GlobalMenuPage';
 import {searchTableRowByValue} from './UsersAndOrganizationsPage';
 
 export class ServiceAccountsPage {
-	readonly applicationsMenuPage: ApplicationsMenuPage;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly impersonateUserMenuItem: Locator;
 	readonly page: Page;
 	readonly serviceAccountActionMenu: (screenName: string) => Promise<Locator>;
@@ -19,9 +20,10 @@ export class ServiceAccountsPage {
 		value: string,
 		strictEqual?: boolean
 	) => Promise<{column: Locator; row: Locator}>;
+	readonly usersTable: DataTablePage;
 
 	constructor(page: Page) {
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
+		this.globalMenuPage = new GlobalMenuPage(page);
 		this.impersonateUserMenuItem = page.getByRole('menuitem', {
 			name: 'Impersonate User',
 		});
@@ -64,9 +66,17 @@ export class ServiceAccountsPage {
 				strictEqual
 			);
 		};
+		this.usersTable = new DataTablePage(
+			page,
+			page
+				.locator(
+					'#portlet_com_liferay_users_admin_web_portlet_ServiceAccountsPortlet'
+				)
+				.first()
+		);
 	}
 
 	async goto() {
-		await this.applicationsMenuPage.goToServiceAccounts();
+		await this.globalMenuPage.goToControlPanel('Service Accounts');
 	}
 }

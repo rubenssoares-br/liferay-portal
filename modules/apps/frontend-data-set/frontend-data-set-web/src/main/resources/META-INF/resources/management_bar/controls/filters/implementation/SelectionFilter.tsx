@@ -11,7 +11,6 @@ import ClayLabel from '@clayui/label';
 import ClayLoadingIndicator from '@clayui/loading-indicator';
 import {useIsMounted} from '@liferay/frontend-js-react-web';
 import {debounce, fetch} from 'frontend-js-web';
-import PropTypes from 'prop-types';
 import React, {
 	ChangeEvent,
 	useCallback,
@@ -25,7 +24,13 @@ import getValueFromItem from '../../../../utils/getValueFromItem';
 // @ts-ignore
 
 import {isValuesArrayChanged} from '../../../../utils/index';
-import {FilterImplementation, FilterImplementationArgs} from '../Filter';
+import {
+	FilterImplementation,
+	FilterImplementationArgs,
+	IOdataStringArgs,
+	ISelectedItemsLabelArgs,
+	ISelectedItemsPreview,
+} from '../Filter';
 import {EEntityFieldType} from '../utils/types';
 
 export interface SelectionFilterImplementationArgs
@@ -38,6 +43,9 @@ export interface SelectionFilterImplementationArgs
 	itemLabel: string;
 	items: TItem[];
 	multiple: boolean;
+	onClose?: () => void;
+	preloadedData?: SelectedData;
+	showExcludeToggle?: boolean;
 }
 
 interface SelectedData {
@@ -68,6 +76,7 @@ interface SearchOptions {
 
 const DEFAULT_DEBOUNCE_DELAY = 300;
 const DEFAULT_PAGE_SIZE = 10;
+const PREVIEW_ITEMS_COUNT = 3;
 
 function fetchData(
 	apiURL: string,
@@ -92,8 +101,8 @@ function fetchData(
 
 function getSelectedItemsLabel({
 	selectedData,
-}: SelectionFilterImplementationArgs): string {
-	const {exclude, selectedItems} = selectedData;
+}: ISelectedItemsLabelArgs): string {
+	const {exclude, selectedItems} = selectedData as unknown as SelectedData;
 
 	return (
 		(exclude ? `(${Liferay.Language.get('exclude')}) ` : '') +
@@ -101,37 +110,89 @@ function getSelectedItemsLabel({
 	);
 }
 
+function getSelectedItemsPreview({
+	selectedData,
+}: ISelectedItemsLabelArgs): ISelectedItemsPreview {
+	const {exclude, selectedItems} = selectedData as unknown as SelectedData;
+
+	const visibleItems = selectedItems.slice(0, PREVIEW_ITEMS_COUNT);
+
+	return {
+		hiddenItemsCount: selectedItems.length - visibleItems.length,
+		label:
+			(exclude ? `(${Liferay.Language.get('exclude')}) ` : '') +
+			visibleItems.map((item) => item.label).join(', '),
+	};
+}
+
 function getOdataString({
 	entityFieldType,
 	id,
+	multiple,
 	selectedData,
-}: SelectionFilterImplementationArgs): string {
-	const {exclude, selectedItems} = selectedData;
+}: IOdataStringArgs): string {
+	const {exclude, selectedItems} = selectedData as unknown as SelectedData;
 
 	if (!selectedItems?.length) {
 		return '';
 	}
 
-	const quotedSelectedItems = selectedItems.map((item) =>
-		typeof item.value === 'string' ||
-		entityFieldType === EEntityFieldType.STRING
-			? `'${item.value}'`
-			: item.value
-	);
+	const quotedSelectedItems = selectedItems.map((item) => {
+		if (
+			entityFieldType === EEntityFieldType.COLLECTION_INTEGER ||
+			entityFieldType === EEntityFieldType.INTEGER
+		) {
+			return item.value;
+		}
 
-	if (entityFieldType === EEntityFieldType.COLLECTION) {
-		return `${id}/any(x:${quotedSelectedItems
-			.map((value) => `(x ${exclude ? 'ne' : 'eq'} ${value})`)
-			.join(exclude ? ' and ' : ' or ')})`;
+		if (
+			entityFieldType === EEntityFieldType.COLLECTION ||
+			entityFieldType === EEntityFieldType.COLLECTION_STRING ||
+			entityFieldType === EEntityFieldType.STRING
+		) {
+			return `'${item.value}'`;
+		}
+
+		if (entityFieldType === EEntityFieldType.BOOLEAN) {
+			let parsedValue =
+				typeof item.value === 'string'
+					? item.value
+					: String(item.value);
+
+			item.value === '0' && (parsedValue = `false`);
+			item.value === '1' && (parsedValue = `true`);
+
+			return parsedValue.toLocaleLowerCase();
+		}
+
+		return typeof item.value === 'string'
+			? `'${item.value.replace(/'/g, "''")}'`
+			: item.value;
+	});
+
+	if (
+		entityFieldType === EEntityFieldType.COLLECTION ||
+		entityFieldType === EEntityFieldType.COLLECTION_INTEGER ||
+		entityFieldType === EEntityFieldType.COLLECTION_STRING
+	) {
+		const expression = `${id}/any(x:x in (${quotedSelectedItems.join(
+			', '
+		)}))`;
+
+		if (exclude) {
+			return `not (${expression})`;
+		}
+
+		return expression;
 	}
-	else if (selectedItems.length === 1) {
+	else if (selectedItems.length === 1 && !multiple) {
 		return `${id} ${exclude ? 'ne' : 'eq'} ${quotedSelectedItems[0]}`;
 	}
 	else {
 		const expression = `${id} in (${quotedSelectedItems.join(', ')})`;
 
 		if (exclude) {
-			return 'not (' + expression + ')';
+			return `not (${expression})`;
 		}
 
 		return expression;
@@ -159,8 +220,11 @@ function SelectionFilter({
 	itemLabel,
 	items: initialItems,
 	multiple,
+	onClose,
+	preloadedData,
 	selectedData,
 	setFilter,
+	showExcludeToggle = true,
 }: SelectionFilterImplementationArgs) {
 	const [searchOptions, setSearchOptions] = useState({
 		currentPage: 1,
@@ -180,13 +244,18 @@ function SelectionFilter({
 	const [scrollingAreaRendered, setScrollingAreaRendered] = useState(false);
 	const infiniteLoaderRef = useRef(null);
 	const [infiniteLoaderRendered, setInfiniteLoaderRendered] = useState(false);
-	const [exclude, setExclude] = useState(!!selectedData?.exclude);
+	const configuredExclude = !!preloadedData?.exclude;
+
+	const [exclude, setExclude] = useState(
+		selectedData ? !!selectedData.exclude : configuredExclude
+	);
 
 	const loaderVisible = !localItems.length && items?.length < total;
 
 	useEffect(() => {
+		setExclude(selectedData ? !!selectedData.exclude : configuredExclude);
 		setSelectedItems(selectedData?.selectedItems || []);
-	}, [selectedData]);
+	}, [configuredExclude, selectedData]);
 
 	const handleAutocompleteQuery: (value: string) => void = debounce(
 
@@ -209,11 +278,15 @@ function SelectionFilter({
 			fetchData(apiURL, searchOptions.query, searchOptions.currentPage)
 				.then((response) => {
 					const selectionItems = response.items.map((item: any) => {
+						const rawLabel = itemLabel
+							? getValueFromItem(item, itemLabel.split('.'))
+							: item.label;
+
 						return {
-							label: itemLabel
-								? getValueFromItem(item, itemLabel)
-								: item.label,
-							value: itemKey ? item[itemKey] : item.value,
+							label: rawLabel === null ? '' : String(rawLabel),
+							value: itemKey
+								? getValueFromItem(item, itemKey.split('.'))
+								: item.value,
 						};
 					});
 
@@ -269,13 +342,13 @@ function SelectionFilter({
 		searchOptions,
 	]);
 
-	const setScrollingArea = useCallback((node) => {
+	const setScrollingArea = useCallback((node: any) => {
 		scrollingAreaRef.current = node;
 
 		setScrollingAreaRendered(true);
 	}, []);
 
-	const setInfiniteLoader = useCallback((node) => {
+	const setInfiniteLoader = useCallback((node: any) => {
 		infiniteLoaderRef.current = node;
 
 		setInfiniteLoaderRendered(true);
@@ -347,23 +420,25 @@ function SelectionFilter({
 	return (
 		<>
 			{autocompleteEnabled && (
-				<>
-					<ClayDropDown.Caption className="pb-0">
-						<ClayAutocomplete>
-							<ClayAutocomplete.Input
-								onChange={(
-									event: ChangeEvent<HTMLInputElement>
-								) =>
-									handleAutocompleteQuery(event.target.value)
-								}
-								placeholder={inputPlaceholder}
-							/>
+				<ClayDropDown.Caption className="filter-header">
+					<ClayAutocomplete>
+						<ClayAutocomplete.Input
+							onChange={(event: ChangeEvent<HTMLInputElement>) =>
+								handleAutocompleteQuery(event.target.value)
+							}
+							placeholder={inputPlaceholder}
+						/>
 
-							{loading && <ClayAutocomplete.LoadingIndicator />}
-						</ClayAutocomplete>
+						{loading && <ClayAutocomplete.LoadingIndicator />}
+					</ClayAutocomplete>
+				</ClayDropDown.Caption>
+			)}
 
-						{selectedItems.length ? (
-							<div className="mt-2 selected-elements-wrapper">
+			<div className="filter-body" ref={setScrollingArea}>
+				{autocompleteEnabled && !!selectedItems.length ? (
+					<>
+						<ClayDropDown.Caption className="pt-0">
+							<div className="selected-elements-wrapper">
 								{selectedItems.map((selectedItem) => (
 									<ClayLabel
 										closeButtonProps={{
@@ -378,106 +453,112 @@ function SelectionFilter({
 										}}
 										key={selectedItem.value}
 									>
-										{selectedItem.label}
+										{selectedItem.label.toString()}
 									</ClayLabel>
 								))}
 							</div>
-						) : null}
+						</ClayDropDown.Caption>
+
+						{showExcludeToggle && <Divider />}
+					</>
+				) : null}
+
+				{showExcludeToggle && (
+					<ClayDropDown.Caption className="pb-0">
+						<div className="row">
+							<div className="col">
+								<label htmlFor={`autocomplete-exclude-${id}`}>
+									{Liferay.Language.get('exclude')}
+								</label>
+							</div>
+
+							<div className="col-auto">
+								<ClayToggle
+									id={`autocomplete-exclude-${id}`}
+									onToggle={() => setExclude(!exclude)}
+									toggled={exclude}
+								/>
+							</div>
+						</div>
 					</ClayDropDown.Caption>
+				)}
 
-					<Divider />
-				</>
-			)}
+				<Divider />
 
-			<ClayDropDown.Caption className="pb-0">
-				<div className="row">
-					<div className="col">
-						<label htmlFor={`autocomplete-exclude-${id}`}>
-							{Liferay.Language.get('exclude')}
-						</label>
-					</div>
+				<div className="pb-1 pl-3 pr-3 pt-1">
+					{items && !!items.length ? (
+						<ul className="filter-items mx-n2 px-2">
+							{items.map(({label, value}, index) => {
+								const newValue = {
+									label,
+									value,
+								};
 
-					<div className="col-auto">
-						<ClayToggle
-							id={`autocomplete-exclude-${id}`}
-							onToggle={() => setExclude(!exclude)}
-							toggled={exclude}
-						/>
-					</div>
-				</div>
-			</ClayDropDown.Caption>
-
-			<Divider />
-
-			<div className="pb-1 pl-3 pr-3 pt-1">
-				{items && !!items.length ? (
-					<ul
-						className="inline-scroller mx-n2 px-2"
-						ref={setScrollingArea}
-					>
-						{items.map(({label, value}) => {
-							const newValue = {
-								label,
-								value,
-							};
-
-							return (
-								<Item
-									aria-label={label}
-									checked={Boolean(
-										selectedItems.find(
-											(element) => element.value === value
-										)
-									)}
-									key={value}
-									label={label}
-									multiple={multiple}
-									onChange={() => {
-										setSelectedItems(
+								return (
+									<Item
+										aria-label={label}
+										checked={Boolean(
 											selectedItems.find(
 												(element) =>
 													element.value === value
 											)
-												? selectedItems.filter(
-														(element) =>
-															element.value !==
-															value
-													)
-												: multiple
-													? [
-															...selectedItems,
-															newValue,
-														]
-													: [newValue]
-										);
-									}}
-									value={value}
-								/>
-							);
-						})}
+										)}
+										key={`${value}-${index}`}
+										label={label.toString()}
+										multiple={multiple}
+										onChange={() => {
+											setSelectedItems(
+												selectedItems.find(
+													(element) =>
+														element.value === value
+												)
+													? selectedItems.filter(
+															(element) =>
+																element.value !==
+																value
+														)
+													: multiple
+														? [
+																...selectedItems,
+																newValue,
+															]
+														: [newValue]
+											);
+										}}
+										value={value}
+									/>
+								);
+							})}
 
-						{loaderVisible && (
-							<ClayLoadingIndicator
-								ref={setInfiniteLoader}
-								size="sm"
-							/>
-						)}
-					</ul>
-				) : (
-					<div className="mt-2 p-2 text-muted">
-						{Liferay.Language.get('no-items-were-found')}
-					</div>
-				)}
+							{loaderVisible && (
+								<ClayLoadingIndicator
+									ref={setInfiniteLoader}
+									size="sm"
+								/>
+							)}
+						</ul>
+					) : (
+						<div className="mt-2 p-2 text-muted">
+							{Liferay.Language.get('no-items-were-found')}
+						</div>
+					)}
+				</div>
 			</div>
 
 			<Divider />
 
-			<ClayDropDown.Caption>
+			<ClayDropDown.Caption className="filter-footer">
 				<ClayButton
 					disabled={submitDisabled}
 					onClick={() => {
 						if (actionType === 'delete') {
-							setFilter({active: false});
+							setFilter({
+								active: false,
+								selectedData: {
+									exclude,
+									selectedItems: [],
+								},
+							});
 						}
 						else {
 							const newSelectedData = {
@@ -490,13 +571,17 @@ function SelectionFilter({
 								selectedData: newSelectedData,
 							});
 						}
+
+						if (onClose) {
+							onClose();
+						}
 					}}
 					size="sm"
 				>
 					{actionType === 'add' && Liferay.Language.get('add-filter')}
 
 					{actionType === 'edit' &&
-						Liferay.Language.get('edit-filter')}
+						Liferay.Language.get('show-results')}
 
 					{actionType === 'delete' &&
 						Liferay.Language.get('delete-filter')}
@@ -506,43 +591,12 @@ function SelectionFilter({
 	);
 }
 
-SelectionFilter.propTypes = {
-	apiURL: PropTypes.string,
-	autocompleteEnabled: PropTypes.bool,
-	id: PropTypes.string.isRequired,
-	inputPlaceholder: PropTypes.string,
-	itemKey: PropTypes.string,
-	itemLabel: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
-	items: PropTypes.arrayOf(
-		PropTypes.shape({
-			label: PropTypes.string,
-			value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-		})
-	),
-	multiple: PropTypes.bool,
-	selectedData: PropTypes.shape({
-		exclude: PropTypes.bool,
-		selectedItems: PropTypes.arrayOf(
-			PropTypes.shape({
-				label: PropTypes.oneOfType([
-					PropTypes.string,
-					PropTypes.number,
-				]),
-				value: PropTypes.oneOfType([
-					PropTypes.string,
-					PropTypes.number,
-				]),
-			})
-		),
-	}),
-	setFilter: PropTypes.func.isRequired,
-};
-
 const filterImplementation: FilterImplementation<SelectionFilterImplementationArgs> =
 	{
 		Component: SelectionFilter,
 		getOdataString,
 		getSelectedItemsLabel,
+		getSelectedItemsPreview,
 	};
 
 export default filterImplementation;

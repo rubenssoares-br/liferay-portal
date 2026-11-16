@@ -8,13 +8,14 @@ package com.liferay.headless.admin.user.client.serdes.v1_0;
 import com.liferay.headless.admin.user.client.dto.v1_0.PostalAddress;
 import com.liferay.headless.admin.user.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Javier Gamarra
@@ -60,6 +61,22 @@ public class PostalAddressSerDes {
 			sb.append("\"");
 		}
 
+		if (postalAddress.getAddressCountryExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"addressCountryExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(
+					postalAddress.getAddressCountryExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
 		if (postalAddress.getAddressCountry_i18n() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -94,6 +111,35 @@ public class PostalAddressSerDes {
 			sb.append("\"");
 
 			sb.append(_escape(postalAddress.getAddressRegion()));
+
+			sb.append("\"");
+		}
+
+		if (postalAddress.getAddressRegionExternalReferenceCode() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"addressRegionExternalReferenceCode\": ");
+
+			sb.append("\"");
+
+			sb.append(
+				_escape(postalAddress.getAddressRegionExternalReferenceCode()));
+
+			sb.append("\"");
+		}
+
+		if (postalAddress.getAddressSubtype() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"addressSubtype\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(postalAddress.getAddressSubtype()));
 
 			sb.append("\"");
 		}
@@ -258,6 +304,16 @@ public class PostalAddressSerDes {
 				String.valueOf(postalAddress.getAddressCountry()));
 		}
 
+		if (postalAddress.getAddressCountryExternalReferenceCode() == null) {
+			map.put("addressCountryExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"addressCountryExternalReferenceCode",
+				String.valueOf(
+					postalAddress.getAddressCountryExternalReferenceCode()));
+		}
+
 		if (postalAddress.getAddressCountry_i18n() == null) {
 			map.put("addressCountry_i18n", null);
 		}
@@ -283,6 +339,25 @@ public class PostalAddressSerDes {
 			map.put(
 				"addressRegion",
 				String.valueOf(postalAddress.getAddressRegion()));
+		}
+
+		if (postalAddress.getAddressRegionExternalReferenceCode() == null) {
+			map.put("addressRegionExternalReferenceCode", null);
+		}
+		else {
+			map.put(
+				"addressRegionExternalReferenceCode",
+				String.valueOf(
+					postalAddress.getAddressRegionExternalReferenceCode()));
+		}
+
+		if (postalAddress.getAddressSubtype() == null) {
+			map.put("addressSubtype", null);
+		}
+		else {
+			map.put(
+				"addressSubtype",
+				String.valueOf(postalAddress.getAddressSubtype()));
 		}
 
 		if (postalAddress.getAddressType() == null) {
@@ -388,6 +463,12 @@ public class PostalAddressSerDes {
 				return false;
 			}
 			else if (Objects.equals(
+						jsonParserFieldName,
+						"addressCountryExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "addressCountry_i18n")) {
 
 				return true;
@@ -396,6 +477,15 @@ public class PostalAddressSerDes {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "addressRegion")) {
+				return false;
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"addressRegionExternalReferenceCode")) {
+
+				return false;
+			}
+			else if (Objects.equals(jsonParserFieldName, "addressSubtype")) {
 				return false;
 			}
 			else if (Objects.equals(jsonParserFieldName, "addressType")) {
@@ -452,6 +542,15 @@ public class PostalAddressSerDes {
 				}
 			}
 			else if (Objects.equals(
+						jsonParserFieldName,
+						"addressCountryExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					postalAddress.setAddressCountryExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
 						jsonParserFieldName, "addressCountry_i18n")) {
 
 				if (jsonParserFieldValue != null) {
@@ -468,6 +567,21 @@ public class PostalAddressSerDes {
 			else if (Objects.equals(jsonParserFieldName, "addressRegion")) {
 				if (jsonParserFieldValue != null) {
 					postalAddress.setAddressRegion(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(
+						jsonParserFieldName,
+						"addressRegionExternalReferenceCode")) {
+
+				if (jsonParserFieldValue != null) {
+					postalAddress.setAddressRegionExternalReferenceCode(
+						(String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "addressSubtype")) {
+				if (jsonParserFieldValue != null) {
+					postalAddress.setAddressSubtype(
 						(String)jsonParserFieldValue);
 				}
 			}
@@ -579,6 +693,16 @@ public class PostalAddressSerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -611,3 +735,4 @@ public class PostalAddressSerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:858890848

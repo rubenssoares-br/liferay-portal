@@ -5,24 +5,28 @@
 
 package com.liferay.site.navigation.service.impl;
 
+import com.liferay.batch.engine.thread.local.BatchEngineThreadLocal;
 import com.liferay.petra.sql.dsl.DSLQueryFactoryUtil;
 import com.liferay.portal.aop.AopService;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.dao.orm.QueryUtil;
 import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.log.Log;
+import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.model.ModelHintsUtil;
 import com.liferay.portal.kernel.model.SystemEventConstants;
 import com.liferay.portal.kernel.model.User;
 import com.liferay.portal.kernel.search.Indexable;
 import com.liferay.portal.kernel.search.IndexableType;
-import com.liferay.portal.kernel.service.LayoutService;
+import com.liferay.portal.kernel.search.Indexer;
+import com.liferay.portal.kernel.search.IndexerRegistryUtil;
+import com.liferay.portal.kernel.search.SearchException;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.systemevent.SystemEvent;
-import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.OrderByComparator;
 import com.liferay.portal.kernel.util.UnicodeProperties;
 import com.liferay.portal.kernel.util.UnicodePropertiesBuilder;
-import com.liferay.portal.kernel.util.Validator;
 import com.liferay.site.navigation.exception.InvalidSiteNavigationMenuItemOrderException;
 import com.liferay.site.navigation.exception.InvalidSiteNavigationMenuItemTypeException;
 import com.liferay.site.navigation.exception.SiteNavigationMenuItemNameException;
@@ -92,11 +96,27 @@ public class SiteNavigationMenuItemLocalServiceImpl
 			_siteNavigationMenuItemTypeRegistry.getSiteNavigationMenuItemType(
 				type);
 
-		if (siteNavigationMenuItemType == null) {
+		if (!BatchEngineThreadLocal.isBatchImportInProcess() &&
+			(siteNavigationMenuItemType == null)) {
+
 			throw new InvalidSiteNavigationMenuItemTypeException(type);
 		}
 
-		String name = siteNavigationMenuItemType.getName(typeSettings);
+		String name = null;
+
+		if (BatchEngineThreadLocal.isBatchImportInProcess() &&
+			(siteNavigationMenuItemType == null)) {
+
+			UnicodeProperties typeSettingsUnicodeProperties =
+				UnicodePropertiesBuilder.fastLoad(
+					typeSettings
+				).build();
+
+			name = typeSettingsUnicodeProperties.getProperty("title");
+		}
+		else {
+			name = siteNavigationMenuItemType.getName(typeSettings);
+		}
 
 		_validateName(name);
 
@@ -122,7 +142,12 @@ public class SiteNavigationMenuItemLocalServiceImpl
 		siteNavigationMenuItem.setOrder(order);
 		siteNavigationMenuItem.setExpandoBridgeAttributes(serviceContext);
 
-		return siteNavigationMenuItemPersistence.update(siteNavigationMenuItem);
+		siteNavigationMenuItem = siteNavigationMenuItemPersistence.update(
+			siteNavigationMenuItem);
+
+		_updateSiteNavigationMenuModifiedDate(siteNavigationMenuId);
+
+		return siteNavigationMenuItem;
 	}
 
 	@Override
@@ -223,7 +248,13 @@ public class SiteNavigationMenuItemLocalServiceImpl
 	public SiteNavigationMenuItem deleteSiteNavigationMenuItem(
 		SiteNavigationMenuItem siteNavigationMenuItem) {
 
-		return siteNavigationMenuItemPersistence.remove(siteNavigationMenuItem);
+		siteNavigationMenuItem = siteNavigationMenuItemPersistence.remove(
+			siteNavigationMenuItem);
+
+		_updateSiteNavigationMenuModifiedDate(
+			siteNavigationMenuItem.getSiteNavigationMenuId());
+
+		return siteNavigationMenuItem;
 	}
 
 	@Override
@@ -242,6 +273,8 @@ public class SiteNavigationMenuItemLocalServiceImpl
 	public void deleteSiteNavigationMenuItems(long siteNavigationMenuId) {
 		siteNavigationMenuItemPersistence.removeBySiteNavigationMenuId(
 			siteNavigationMenuId);
+
+		_updateSiteNavigationMenuModifiedDate(siteNavigationMenuId);
 	}
 
 	@Override
@@ -304,9 +337,10 @@ public class SiteNavigationMenuItemLocalServiceImpl
 	}
 
 	@Override
-	public int getSiteNavigationMenuItemsCount(long siteNavigationMenuId) {
-		return siteNavigationMenuItemPersistence.countBySiteNavigationMenuId(
-			siteNavigationMenuId);
+	public List<SiteNavigationMenuItem> getSiteNavigationMenuItems(
+		String type) {
+
+		return siteNavigationMenuItemPersistence.findByType(type);
 	}
 
 	@Override
@@ -379,6 +413,9 @@ public class SiteNavigationMenuItemLocalServiceImpl
 			}
 		}
 
+		_updateSiteNavigationMenuModifiedDate(
+			siteNavigationMenuItem.getSiteNavigationMenuId());
+
 		return siteNavigationMenuItem;
 	}
 
@@ -402,7 +439,12 @@ public class SiteNavigationMenuItemLocalServiceImpl
 		siteNavigationMenuItem.setTypeSettings(typeSettings);
 		siteNavigationMenuItem.setOrder(order);
 
-		return siteNavigationMenuItemPersistence.update(siteNavigationMenuItem);
+		siteNavigationMenuItem = siteNavigationMenuItemPersistence.update(
+			siteNavigationMenuItem);
+
+		_updateSiteNavigationMenuModifiedDate(siteNavigationMenuId);
+
+		return siteNavigationMenuItem;
 	}
 
 	@Override
@@ -430,8 +472,6 @@ public class SiteNavigationMenuItemLocalServiceImpl
 
 		_validateName(name);
 
-		_validateLayout(typeSettings);
-
 		siteNavigationMenuItem.setUserId(userId);
 		siteNavigationMenuItem.setUserName(user.getFullName());
 		siteNavigationMenuItem.setModifiedDate(
@@ -440,7 +480,49 @@ public class SiteNavigationMenuItemLocalServiceImpl
 		siteNavigationMenuItem.setTypeSettings(typeSettings);
 		siteNavigationMenuItem.setExpandoBridgeAttributes(serviceContext);
 
-		return siteNavigationMenuItemPersistence.update(siteNavigationMenuItem);
+		siteNavigationMenuItem = siteNavigationMenuItemPersistence.update(
+			siteNavigationMenuItem);
+
+		_updateSiteNavigationMenuModifiedDate(
+			siteNavigationMenuItem.getSiteNavigationMenuId());
+
+		return siteNavigationMenuItem;
+	}
+
+	private void _updateSiteNavigationMenuModifiedDate(
+		long siteNavigationMenuId) {
+
+		if (!CTCollectionThreadLocal.isProductionMode()) {
+			return;
+		}
+
+		SiteNavigationMenu siteNavigationMenu =
+			_siteNavigationMenuPersistence.fetchByPrimaryKey(
+				siteNavigationMenuId);
+
+		if (siteNavigationMenu == null) {
+			return;
+		}
+
+		siteNavigationMenu.setModifiedDate(new Date());
+
+		siteNavigationMenu = _siteNavigationMenuPersistence.update(
+			siteNavigationMenu);
+
+		Indexer<SiteNavigationMenu> indexer =
+			IndexerRegistryUtil.nullSafeGetIndexer(SiteNavigationMenu.class);
+
+		try {
+			indexer.reindex(siteNavigationMenu);
+		}
+		catch (SearchException searchException) {
+			if (_log.isWarnEnabled()) {
+				_log.warn(
+					"Unable to reindex site navigation menu " +
+						siteNavigationMenuId,
+					searchException);
+			}
+		}
 	}
 
 	private void _validate(
@@ -468,30 +550,6 @@ public class SiteNavigationMenuItemLocalServiceImpl
 		}
 	}
 
-	private void _validateLayout(String typeSettings) throws PortalException {
-		UnicodeProperties typeSettingsUnicodeProperties =
-			UnicodePropertiesBuilder.create(
-				true
-			).fastLoad(
-				typeSettings
-			).build();
-
-		String layoutUuid = typeSettingsUnicodeProperties.getProperty(
-			"layoutUuid");
-
-		if (Validator.isNull(layoutUuid)) {
-			return;
-		}
-
-		long groupId = GetterUtil.getLong(
-			typeSettingsUnicodeProperties.getProperty("groupId"));
-		boolean privateLayout = GetterUtil.getBoolean(
-			typeSettingsUnicodeProperties.getProperty("privateLayout"));
-
-		_layoutService.getLayoutByUuidAndGroupId(
-			layoutUuid, groupId, privateLayout);
-	}
-
 	private void _validateName(String name) throws PortalException {
 		if (name == null) {
 			return;
@@ -506,8 +564,8 @@ public class SiteNavigationMenuItemLocalServiceImpl
 		}
 	}
 
-	@Reference
-	private LayoutService _layoutService;
+	private static final Log _log = LogFactoryUtil.getLog(
+		SiteNavigationMenuItemLocalServiceImpl.class);
 
 	@Reference
 	private SiteNavigationMenuItemTypeRegistry

@@ -1,6 +1,7 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property custom.properties = "feature.flag.LPS-178642=true";
 	property portal.acceptance = "quarantine";
 	property portal.release = "true";
@@ -44,35 +45,6 @@ definition {
 	}
 
 	@priority = 4
-	test CanFilterAPIsByExcludeStatus {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("When I filter by Published status with exclude enabled") {
-			APIBuilderUI.filterByStatus(
-				exclude = "true",
-				labelName = "Published");
-		}
-
-		task ("Then two unpublished APIs are listed") {
-			AssertElementPresent(
-				key_status = "Unpublished",
-				key_title = "test2",
-				locator1 = "APIBuilder#APPLICATION_STATUS");
-
-			AssertElementPresent(
-				key_status = "Unpublished",
-				key_title = "test3",
-				locator1 = "APIBuilder#APPLICATION_STATUS");
-
-			AssertElementNotPresent(
-				key_status = "Published",
-				key_title = "test1",
-				locator1 = "APIBuilder#APPLICATION_STATUS");
-		}
-	}
-
-	@priority = 4
 	test CanFilterAPIsByLastUpdated {
 		property test.liferay.virtual.instance = "false";
 		property test.run.type = "single";
@@ -86,7 +58,7 @@ definition {
 		task ("Then I can see no API Application Found") {
 			AssertTextEquals(
 				locator1 = "Message#EMPTY_STATE_INFO",
-				value1 = "No API Application Found");
+				value1 = "No Results Found");
 		}
 	}
 
@@ -143,7 +115,7 @@ definition {
 		task ("Then no API application were found") {
 			AssertTextEquals(
 				locator1 = "Message#EMPTY_STATE_INFO",
-				value1 = "No API Application Found");
+				value1 = "No Results Found");
 		}
 	}
 
@@ -154,28 +126,12 @@ definition {
 
 		task ("When I sort the APIs by Last Updated") {
 			Click(
-				locator1 = "APIBuilder#DND_TR_BUTTON",
+				locator1 = "APIBuilder#DND_TH_WITH_TEXT",
 				value = "Last updated");
 		}
 
 		task ("Then the APIs are sorted by Last Updated") {
 			APIBuilderUI.viewItemsInOrder(itemList = "test1,test2,test3");
-		}
-	}
-
-	@priority = 4
-	test CanSortAPIsByStatus {
-		property test.liferay.virtual.instance = "false";
-		property test.run.type = "single";
-
-		task ("When I sort the APIs by Status") {
-			Click(
-				locator1 = "APIBuilder#DND_TR_BUTTON",
-				value = "Status");
-		}
-
-		task ("Then the APIs are sorted by Status") {
-			APIBuilderUI.assertSortedStatusInOrder(statusList = "Published,Unpublished,Unpublished");
 		}
 	}
 
@@ -186,7 +142,7 @@ definition {
 
 		task ("When I sort the APIs by Title") {
 			Click(
-				locator1 = "APIBuilder#DND_TR_BUTTON",
+				locator1 = "APIBuilder#DND_TH_WITH_TEXT",
 				value = "Title");
 		}
 

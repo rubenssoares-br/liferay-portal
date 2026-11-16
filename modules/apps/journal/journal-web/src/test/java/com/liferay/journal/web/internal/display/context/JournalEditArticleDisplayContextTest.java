@@ -14,8 +14,6 @@ import com.liferay.journal.service.JournalArticleServiceUtil;
 import com.liferay.journal.service.JournalFolderLocalService;
 import com.liferay.journal.service.JournalFolderLocalServiceUtil;
 import com.liferay.journal.web.internal.configuration.JournalWebConfiguration;
-import com.liferay.portal.kernel.bean.BeanProperties;
-import com.liferay.portal.kernel.bean.BeanPropertiesUtil;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.language.Language;
 import com.liferay.portal.kernel.language.LanguageUtil;
@@ -30,11 +28,13 @@ import com.liferay.portal.kernel.util.PortalUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.portal.test.rule.LiferayUnitTestRule;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
+import java.util.TimeZone;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -69,10 +69,6 @@ public class JournalEditArticleDisplayContextTest {
 		).thenReturn(
 			"false"
 		);
-
-		BeanPropertiesUtil beanPropertiesUtil = new BeanPropertiesUtil();
-
-		beanPropertiesUtil.setBeanProperties(_beanProperties);
 
 		LanguageUtil languageUtil = new LanguageUtil();
 
@@ -265,6 +261,44 @@ public class JournalEditArticleDisplayContextTest {
 		).get(
 			_httpServletRequest, "home"
 		);
+	}
+
+	@Test
+	public void testGetTimeZoneMap() {
+		TimeZone timeZone = Mockito.mock(TimeZone.class);
+
+		String timeZoneName = RandomTestUtil.randomString();
+
+		Mockito.when(
+			timeZone.getDisplayName(false, TimeZone.SHORT)
+		).thenReturn(
+			timeZoneName
+		);
+
+		String timeZoneId = RandomTestUtil.randomString();
+
+		Mockito.when(
+			timeZone.getID()
+		).thenReturn(
+			timeZoneId
+		);
+
+		Mockito.when(
+			_themeDisplay.getTimeZone()
+		).thenReturn(
+			timeZone
+		);
+
+		_journalEditArticleDisplayContext =
+			new JournalEditArticleDisplayContext(
+				_httpServletRequest, _liferayPortletResponse, null, null, null,
+				null);
+
+		Map<String, Object> timeZoneMap =
+			_journalEditArticleDisplayContext.getTimeZoneMap();
+
+		Assert.assertEquals(timeZoneId, timeZoneMap.get("id"));
+		Assert.assertEquals(timeZoneName, timeZoneMap.get("name"));
 	}
 
 	@Test
@@ -599,8 +633,6 @@ public class JournalEditArticleDisplayContextTest {
 	private static final String _UNEXPECTED_FOLDER_NAME_MESSAGE =
 		"Unexpected folder name";
 
-	private final BeanProperties _beanProperties = Mockito.mock(
-		BeanProperties.class);
 	private final MockedStatic<DDMStructureLocalServiceUtil>
 		_ddmStructureLocalServiceUtilMockedStatic = Mockito.mockStatic(
 			DDMStructureLocalServiceUtil.class);

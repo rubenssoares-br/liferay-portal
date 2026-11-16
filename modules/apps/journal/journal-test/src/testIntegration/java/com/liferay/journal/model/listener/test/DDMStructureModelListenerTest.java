@@ -6,7 +6,10 @@
 package com.liferay.journal.model.listener.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.change.tracking.model.CTCollection;
+import com.liferay.change.tracking.service.CTCollectionService;
 import com.liferay.data.engine.rest.dto.v2_0.DataDefinition;
+import com.liferay.data.engine.rest.dto.v2_0.DataDefinitionField;
 import com.liferay.data.engine.rest.resource.v2_0.DataDefinitionResource;
 import com.liferay.data.engine.rest.test.util.DataDefinitionTestUtil;
 import com.liferay.dynamic.data.mapping.model.DDMStructure;
@@ -20,13 +23,16 @@ import com.liferay.journal.constants.JournalFolderConstants;
 import com.liferay.journal.model.JournalArticle;
 import com.liferay.journal.service.JournalArticleLocalService;
 import com.liferay.journal.test.util.JournalTestUtil;
+import com.liferay.petra.lang.SafeCloseable;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.test.util.CompanyConfigurationTemporarySwapper;
+import com.liferay.portal.kernel.change.tracking.CTCollectionThreadLocal;
 import com.liferay.portal.kernel.exception.ModelListenerException;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.model.BaseModelListener;
 import com.liferay.portal.kernel.model.Company;
 import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.model.ModelListener;
 import com.liferay.portal.kernel.search.Document;
 import com.liferay.portal.kernel.search.Indexer;
 import com.liferay.portal.kernel.search.IndexerRegistryUtil;
@@ -34,6 +40,7 @@ import com.liferay.portal.kernel.service.CompanyLocalService;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
 import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.util.HashMapBuilder;
@@ -43,8 +50,10 @@ import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +64,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.FrameworkUtil;
+import org.osgi.framework.ServiceRegistration;
+
 /**
  * @author Lourdes Fernández Besada
  */
@@ -64,7 +78,9 @@ public class DDMStructureModelListenerTest {
 	@ClassRule
 	@Rule
 	public static final AggregateTestRule aggregateTestRule =
-		new LiferayIntegrationTestRule();
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@Before
 	public void setUp() throws Exception {
@@ -132,6 +148,64 @@ public class DDMStructureModelListenerTest {
 	}
 
 	@Test
+	public void testUpdateDataDefinitionInPublication() throws Exception {
+		JournalArticle journalArticle = _addJournalArticle();
+
+		CTCollection ctCollection = _ctCollectionService.addCTCollection(
+			null, 0, RandomTestUtil.randomString(),
+			RandomTestUtil.randomString());
+
+		try (SafeCloseable safeCloseable =
+				CTCollectionThreadLocal.setCTCollectionIdWithSafeCloseable(
+					ctCollection.getCtCollectionId())) {
+
+			_updateDataDefinition(
+				_dataDefinition.getDataDefinitionKey(),
+				"dependencies/updated_data_definition.json");
+
+			JournalArticle updatedJournalArticle =
+				_journalArticleLocalService.getJournalArticle(
+					journalArticle.getId());
+
+			_assertDDMFormFieldValuesMap(
+				_expectedUpdatedFieldValuesMap,
+				updatedJournalArticle.getDDMFormValues());
+		}
+
+		journalArticle = _journalArticleLocalService.getJournalArticle(
+			journalArticle.getId());
+
+		_assertDDMFormFieldValuesMap(
+			_expectedFieldValuesMap, journalArticle.getDDMFormValues());
+	}
+
+	@Test
+	public void testUpdateDataDefinitionLocalizable() throws Exception {
+		DataDefinitionField[] dataDefinitionFields =
+			_dataDefinition.getDataDefinitionFields();
+
+		DataDefinitionField dataDefinitionField = dataDefinitionFields[0];
+
+		JournalArticle journalArticle = _addJournalArticle();
+
+		for (boolean localizable : new boolean[] {false, true}) {
+			for (DataDefinitionField nestedDataDefinitionField :
+					dataDefinitionField.getNestedDataDefinitionFields()) {
+
+				nestedDataDefinitionField.setLocalizable(localizable);
+			}
+
+			_putDataDefinition(_dataDefinition);
+
+			journalArticle = _journalArticleLocalService.getJournalArticle(
+				journalArticle.getId());
+
+			_assertDDMFormFieldValuesMap(
+				_expectedFieldValuesMap, journalArticle.getDDMFormValues());
+		}
+	}
+
+	@Test
 	public void testUpdateDataDefinitionNoChanges() throws Exception {
 		JournalArticle journalArticle = _addJournalArticle();
 
@@ -144,6 +218,49 @@ public class DDMStructureModelListenerTest {
 
 		_assertDDMFormFieldValuesMap(
 			_expectedFieldValuesMap, journalArticle.getDDMFormValues());
+	}
+
+	@Test
+	public void testUpdateDataDefinitionRollback() throws Exception {
+		JournalArticle journalArticle = _addJournalArticle();
+
+		String content = journalArticle.getContent();
+
+		RuntimeException runtimeException = new RuntimeException(
+			RandomTestUtil.randomString());
+
+		Bundle bundle = FrameworkUtil.getBundle(
+			DDMStructureModelListenerTest.class);
+
+		BundleContext bundleContext = bundle.getBundleContext();
+
+		ServiceRegistration<?> serviceRegistration =
+			bundleContext.registerService(
+				ModelListener.class,
+				new TestDDMStructureModelListener(runtimeException), null);
+
+		try {
+			_updateDataDefinition(
+				_dataDefinition.getDataDefinitionKey(),
+				"dependencies/updated_data_definition.json");
+
+			Assert.fail();
+		}
+		catch (Exception exception) {
+			Assert.assertEquals(
+				runtimeException.getMessage(), exception.getMessage());
+		}
+		finally {
+			serviceRegistration.unregister();
+		}
+
+		journalArticle = _journalArticleLocalService.getJournalArticle(
+			journalArticle.getId());
+
+		_assertDDMFormFieldValuesMap(
+			_expectedFieldValuesMap, journalArticle.getDDMFormValues());
+
+		Assert.assertEquals(content, journalArticle.getContent());
 	}
 
 	@Test
@@ -258,6 +375,23 @@ public class DDMStructureModelListenerTest {
 		}
 	}
 
+	@Test
+	public void testUpdateDataDefinitionWithoutFieldSet() throws Exception {
+		JournalArticle journalArticle = _addJournalArticle();
+
+		_updateDataDefinition(
+			_dataDefinition.getDataDefinitionKey(),
+			"dependencies/updated_data_definition_without_field_set.json");
+
+		JournalArticle updatedJournalArticle =
+			_journalArticleLocalService.getJournalArticle(
+				journalArticle.getId());
+
+		_assertDDMFormFieldValuesMap(
+			_expectedWithoutFieldSetFieldValuesMap,
+			updatedJournalArticle.getDDMFormValues());
+	}
+
 	private JournalArticle _addJournalArticle() throws Exception {
 		Class<?> clazz = getClass();
 
@@ -276,14 +410,6 @@ public class DDMStructureModelListenerTest {
 			_expectedFieldValuesMap, journalArticle.getDDMFormValues());
 
 		return journalArticle;
-	}
-
-	private void _assertDataDefinitionStructureKeyChanged(
-		DataDefinition actualDataDefinition, String expectedDataDefinitionKey) {
-
-		Assert.assertEquals(
-			expectedDataDefinitionKey,
-			actualDataDefinition.getDataDefinitionKey());
 	}
 
 	private void _assertDDMFormFieldValuesMap(
@@ -327,6 +453,14 @@ public class DDMStructureModelListenerTest {
 		}
 	}
 
+	private void _assertDataDefinitionStructureKeyChanged(
+		DataDefinition actualDataDefinition, String expectedDataDefinitionKey) {
+
+		Assert.assertEquals(
+			expectedDataDefinitionKey,
+			actualDataDefinition.getDataDefinitionKey());
+	}
+
 	private void _assertJournalArticleStructureKeyChanged(
 			String expectedDDMStructureKey, long journalArticleId)
 		throws Exception {
@@ -346,6 +480,21 @@ public class DDMStructureModelListenerTest {
 			expectedDDMStructureKey, document.get("ddmStructureKey"));
 	}
 
+	private DataDefinition _putDataDefinition(DataDefinition dataDefinition)
+		throws Exception {
+
+		DataDefinitionResource.Builder dataDefinitionResourcedBuilder =
+			_dataDefinitionResourceFactory.create();
+
+		DataDefinitionResource dataDefinitionResource =
+			dataDefinitionResourcedBuilder.user(
+				TestPropsValues.getUser()
+			).build();
+
+		return dataDefinitionResource.putDataDefinition(
+			_dataDefinition.getId(), dataDefinition);
+	}
+
 	private void _updateBasicWebContent() throws PortalException {
 		Company company = _companyLocalService.getCompany(
 			_group.getCompanyId());
@@ -356,8 +505,10 @@ public class DDMStructureModelListenerTest {
 			"BASIC-WEB-CONTENT");
 
 		_ddmStructureLocalService.updateStructure(
+			ddmStructure.getExternalReferenceCode(),
 			TestPropsValues.getUserId(), ddmStructure.getStructureId(),
-			ddmStructure.getParentStructureId(), "BASIC-WEB-CONTENT-MODIFIED",
+			ddmStructure.getGroupId(), ddmStructure.getParentStructureId(),
+			ddmStructure.getClassNameId(), "BASIC-WEB-CONTENT-MODIFIED",
 			ddmStructure.getNameMap(), ddmStructure.getDescriptionMap(),
 			ddmStructure.getDefinition(),
 			ServiceContextTestUtil.getServiceContext(_group.getGroupId()));
@@ -367,14 +518,6 @@ public class DDMStructureModelListenerTest {
 			String dataDefinitionKey, String resourceName)
 		throws Exception {
 
-		DataDefinitionResource.Builder dataDefinitionResourcedBuilder =
-			_dataDefinitionResourceFactory.create();
-
-		DataDefinitionResource dataDefinitionResource =
-			dataDefinitionResourcedBuilder.user(
-				TestPropsValues.getUser()
-			).build();
-
 		Class<?> clazz = getClass();
 
 		DataDefinition updatedDataDefinition = DataDefinition.toDTO(
@@ -382,26 +525,16 @@ public class DDMStructureModelListenerTest {
 
 		updatedDataDefinition.setDataDefinitionKey(dataDefinitionKey);
 
-		dataDefinitionResource.putDataDefinition(
-			_dataDefinition.getId(), updatedDataDefinition);
+		_putDataDefinition(updatedDataDefinition);
 	}
 
 	private DataDefinition _updateDataDefinitionStructureKey(
 			String dataDefinitionKey)
 		throws Exception {
 
-		DataDefinitionResource.Builder dataDefinitionResourcedBuilder =
-			_dataDefinitionResourceFactory.create();
-
-		DataDefinitionResource dataDefinitionResource =
-			dataDefinitionResourcedBuilder.user(
-				TestPropsValues.getUser()
-			).build();
-
 		_dataDefinition.setDataDefinitionKey(dataDefinitionKey);
 
-		return dataDefinitionResource.putDataDefinition(
-			_dataDefinition.getId(), _dataDefinition);
+		return _putDataDefinition(_dataDefinition);
 	}
 
 	private static final Map<String, List<String>> _expectedFieldValuesMap =
@@ -446,12 +579,28 @@ public class DDMStructureModelListenerTest {
 			).put(
 				"Text80567124", Arrays.asList("Parent1", "Parent2", "Parent3")
 			).build();
-
-	@Inject
-	private static JournalArticleLocalService _journalArticleLocalService;
+	private static final Map<String, List<String>>
+		_expectedWithoutFieldSetFieldValuesMap =
+			HashMapBuilder.<String, List<String>>put(
+				"Field32391309",
+				Arrays.asList(
+					"Parent1Child1", "Parent1Child2", "Parent2Child1",
+					"Parent3Child1", "Parent3Child2")
+			).put(
+				"Field68979894",
+				Arrays.asList(
+					"Parent1GrandChild1", "Parent1GrandChild2",
+					"Parent2GrandChild1", "Parent2GrandChild2",
+					"Parent3GrandChild1")
+			).put(
+				"Text80567124", Collections.singletonList("Parent1")
+			).build();
 
 	@Inject
 	private CompanyLocalService _companyLocalService;
+
+	@Inject
+	private CTCollectionService _ctCollectionService;
 
 	private DataDefinition _dataDefinition;
 
@@ -463,6 +612,9 @@ public class DDMStructureModelListenerTest {
 
 	@DeleteAfterTestRun
 	private Group _group;
+
+	@Inject
+	private JournalArticleLocalService _journalArticleLocalService;
 
 	@Inject
 	private Portal _portal;

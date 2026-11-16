@@ -51,12 +51,12 @@ project(":bar") {
 
 project(":baz") {
 	dependencies {
-		api group: "com.google.guava", name: "guava", version: "32.0.1-jre"
+		api group: "com.google.guava", name: "guava", version: "33.8.0-jre"
 	}
 }
 
 project(":foo") {
 	dependencies {
-		api group: "com.liferay", name: "org.hibernate.core", version: "5.6.7.LIFERAY-PATCHED-2"
+		api group: "com.liferay", name: "org.hibernate.core", version: "5.6.7.LIFERAY-PATCHED-2.JAKARTA-LIFERAY-PATCHED-1"
 	}
 }

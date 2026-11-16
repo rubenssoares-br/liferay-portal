@@ -75,6 +75,16 @@ public class CommerceTermEntryLocalServiceUtil {
 			serviceContext);
 	}
 
+	public static com.liferay.commerce.term.model.CTermEntryLocalization
+			addCTermEntryLocalization(
+				CommerceTermEntry commerceTermEntry, String languageId,
+				String description, String label)
+		throws PortalException {
+
+		return getService().addCTermEntryLocalization(
+			commerceTermEntry, languageId, description, label);
+	}
+
 	public static void checkCommerceTermEntries() throws PortalException {
 		getService().checkCommerceTermEntries();
 	}
@@ -431,12 +441,6 @@ public class CommerceTermEntryLocalServiceUtil {
 		return getService().getPersistedModel(primaryKeyObj);
 	}
 
-	public static com.liferay.portal.kernel.search.Hits search(
-		com.liferay.portal.kernel.search.SearchContext searchContext) {
-
-		return getService().search(searchContext);
-	}
-
 	public static com.liferay.portal.kernel.search.BaseModelSearchResult
 		<CommerceTermEntry> searchCommerceTermEntries(
 				long companyId, long accountEntryId, String type,
@@ -534,3 +538,4 @@ public class CommerceTermEntryLocalServiceUtil {
 			CommerceTermEntryLocalService.class);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:-390425019

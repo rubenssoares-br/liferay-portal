@@ -16,10 +16,11 @@ import com.liferay.object.constants.ObjectFieldSettingConstants;
 import com.liferay.object.model.ObjectDefinition;
 import com.liferay.object.model.ObjectRelationship;
 import com.liferay.object.service.ObjectDefinitionLocalService;
-import com.liferay.object.service.ObjectFieldSettingLocalService;
 import com.liferay.object.service.ObjectRelationshipLocalService;
 import com.liferay.object.service.ObjectStateFlowLocalService;
 import com.liferay.petra.function.transform.TransformUtil;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.service.GroupLocalService;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.vulcan.dto.converter.DTOConverter;
 import com.liferay.portal.vulcan.dto.converter.DTOConverterContext;
@@ -32,7 +33,9 @@ import org.osgi.service.component.annotations.Reference;
  * @author Feliphe Marinho
  */
 @Component(
-	property = "dto.class.name=com.liferay.object.model.ObjectField",
+	property = {
+		"default=true", "dto.class.name=com.liferay.object.model.ObjectField"
+	},
 	service = DTOConverter.class
 )
 public class ObjectFieldDTOConverter
@@ -53,6 +56,7 @@ public class ObjectFieldDTOConverter
 			return null;
 		}
 
+		ObjectDefinition objectDefinition1 = null;
 		ObjectRelationship objectRelationship = null;
 
 		if (objectField.compareBusinessType(
@@ -62,8 +66,15 @@ public class ObjectFieldDTOConverter
 				_objectRelationshipLocalService.
 					fetchObjectRelationshipByObjectFieldId2(
 						objectField.getObjectFieldId());
+
+			if (objectRelationship != null) {
+				objectDefinition1 =
+					_objectDefinitionLocalService.fetchObjectDefinition(
+						objectRelationship.getObjectDefinitionId1());
+			}
 		}
 
+		ObjectDefinition finalObjectDefinition1 = objectDefinition1;
 		ObjectRelationship finalObjectRelationship = objectRelationship;
 
 		return new ObjectField() {
@@ -75,11 +86,13 @@ public class ObjectFieldDTOConverter
 				setDBType(
 					() -> ObjectField.DBType.create(objectField.getDBType()));
 				setDefaultValue(
-					() ->
+					() -> String.valueOf(
 						com.liferay.object.field.setting.util.
-							ObjectFieldSettingUtil.getDefaultValueAsString(
-								null, objectField,
-								_objectFieldSettingLocalService, null));
+							ObjectFieldSettingUtil.getDefaultValue(
+								null, objectField, null)));
+				setDescription(
+					() -> LocalizedMapUtil.getLanguageIdMap(
+						objectField.getDescriptionMap()));
 				setExternalReferenceCode(objectField::getExternalReferenceCode);
 				setId(objectField::getObjectFieldId);
 				setIndexed(objectField::isIndexed);
@@ -106,16 +119,28 @@ public class ObjectFieldDTOConverter
 				setName(objectField::getName);
 				setObjectDefinitionExternalReferenceCode1(
 					() -> {
-						if (finalObjectRelationship == null) {
+						if (finalObjectDefinition1 == null) {
 							return null;
 						}
 
-						ObjectDefinition objectDefinition =
-							_objectDefinitionLocalService.fetchObjectDefinition(
-								finalObjectRelationship.
-									getObjectDefinitionId1());
+						return finalObjectDefinition1.
+							getExternalReferenceCode();
+					});
+				setObjectDefinitionScope1(
+					() -> {
+						if (finalObjectDefinition1 == null) {
+							return null;
+						}
 
-						return objectDefinition.getExternalReferenceCode();
+						return finalObjectDefinition1.getScope();
+					});
+				setObjectDefinitionSystem1(
+					() -> {
+						if (finalObjectDefinition1 == null) {
+							return null;
+						}
+
+						return finalObjectDefinition1.isSystem();
 					});
 				setObjectFieldSettings(
 					() -> TransformUtil.transformToArray(
@@ -177,6 +202,22 @@ public class ObjectFieldDTOConverter
 												getValue())));
 						}
 
+						if (serviceBuilderObjectFieldSetting.compareName(
+								ObjectFieldSettingConstants.
+									NAME_STORAGE_DEPOT_GROUP)) {
+
+							Group group = _groupLocalService.fetchGroup(
+								GetterUtil.getLong(
+									serviceBuilderObjectFieldSetting.
+										getValue()));
+
+							if (group != null) {
+								return group.getExternalReferenceCode();
+							}
+
+							return null;
+						}
+
 						return ObjectFieldSettingUtil.getValue(
 							serviceBuilderObjectFieldSetting);
 					});
@@ -185,13 +226,13 @@ public class ObjectFieldDTOConverter
 	}
 
 	@Reference
+	private GroupLocalService _groupLocalService;
+
+	@Reference
 	private ListTypeDefinitionLocalService _listTypeDefinitionLocalService;
 
 	@Reference
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;
-
-	@Reference
-	private ObjectFieldSettingLocalService _objectFieldSettingLocalService;
 
 	@Reference
 	private ObjectRelationshipLocalService _objectRelationshipLocalService;

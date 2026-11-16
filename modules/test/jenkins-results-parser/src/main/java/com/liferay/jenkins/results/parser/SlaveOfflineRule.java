@@ -42,15 +42,16 @@ public class SlaveOfflineRule {
 		for (Object propertyNameObject : buildProperties.keySet()) {
 			String propertyName = propertyNameObject.toString();
 
-			if (propertyName.startsWith("slave.offline.rule[")) {
-				String ruleName = propertyName.substring(
-					"slave.offline.rule[".length(),
-					propertyName.lastIndexOf("]"));
-
-				_slaveOfflineRules.add(
-					new SlaveOfflineRule(
-						buildProperties.getProperty(propertyName), ruleName));
+			if (!propertyName.startsWith("slave.offline.rule[")) {
+				continue;
 			}
+
+			String ruleName = propertyName.substring(
+				"slave.offline.rule[".length(), propertyName.lastIndexOf("]"));
+
+			_slaveOfflineRules.add(
+				new SlaveOfflineRule(
+					buildProperties.getProperty(propertyName), ruleName));
 		}
 
 		return _slaveOfflineRules;
@@ -64,7 +65,7 @@ public class SlaveOfflineRule {
 		return notificationRecipients;
 	}
 
-	public boolean getOfflineSibling() {
+	public boolean isOfflineSibling() {
 		return Boolean.parseBoolean(offlineSibling);
 	}
 
@@ -125,7 +126,9 @@ public class SlaveOfflineRule {
 			build.getBuildURL(), ". \n\n", slaveOfflineRuleString,
 			"\n\n\nOffline Slave URL: ", jenkinsSlave.getComputerURL(), "\n");
 
-		if (getOfflineSibling() && (jenkinsMaster.getSlavesPerHost() == 2)) {
+		if (!JenkinsResultsParserUtil.isCloudCINode() && isOfflineSibling() &&
+			(jenkinsMaster.getSlavesPerHost() == 2)) {
+
 			Set<JenkinsSlave> siblingJenkinsSlaves = jenkinsSlave.getSiblings();
 
 			for (JenkinsSlave siblingJenkinsSlave : siblingJenkinsSlaves) {
@@ -152,11 +155,51 @@ public class SlaveOfflineRule {
 
 		jenkinsSlave.takeSlavesOffline(message);
 
-		if ((notificationRecipients != null) &&
+		if (!JenkinsResultsParserUtil.isCloudCINode() &&
+			(notificationRecipients != null) &&
 			!notificationRecipients.isEmpty()) {
 
-			NotificationUtil.sendEmail(
-				message, "jenkins", "Slave Offline", notificationRecipients);
+			List<String> invalidNotificationRecipients = new ArrayList<>();
+
+			for (String notificationRecipient :
+					notificationRecipients.split(",")) {
+
+				notificationRecipient = notificationRecipient.trim();
+
+				Matcher matcher = _notificationRecipentsPattern.matcher(
+					notificationRecipient);
+
+				if (matcher.find()) {
+					String slack = matcher.group("slack");
+
+					if (!JenkinsResultsParserUtil.isNullOrEmpty(slack)) {
+						NotificationUtil.sendSlackNotification(
+							message, slack, "Slave offline");
+
+						continue;
+					}
+
+					String email = matcher.group("slack");
+
+					if (!JenkinsResultsParserUtil.isNullOrEmpty(email)) {
+						NotificationUtil.sendEmail(
+							message, "jenkins", "Slave offline", email);
+					}
+				}
+				else {
+					invalidNotificationRecipients.add(notificationRecipient);
+				}
+			}
+
+			if (!invalidNotificationRecipients.isEmpty()) {
+				String invalidNotificationRecipientsString =
+					JenkinsResultsParserUtil.join(
+						",", invalidNotificationRecipients);
+
+				System.out.println(
+					"WARNING: Invalid notification recipients found: " +
+						invalidNotificationRecipientsString);
+			}
 		}
 	}
 
@@ -252,16 +295,14 @@ public class SlaveOfflineRule {
 
 		offlineSibling = configurationsMap.get("offlineSiblings");
 
-		if (configurationsMap.containsKey("shutdown")) {
-			shutdown = Boolean.parseBoolean(configurationsMap.get("shutdown"));
-		}
-		else {
-			shutdown = false;
-		}
+		shutdown = Boolean.parseBoolean(configurationsMap.get("shutdown"));
 	}
 
 	private static final Pattern _configurationsPattern = Pattern.compile(
 		"([^=]+)=(.*)");
+	private static final Pattern _notificationRecipentsPattern =
+		Pattern.compile(
+			"slack:(?:<@)?(?<slack>[\\w-]+)>?|(?<email>[\\w-]+@[\\w.-]+)");
 	private static List<SlaveOfflineRule> _slaveOfflineRules;
 
 }

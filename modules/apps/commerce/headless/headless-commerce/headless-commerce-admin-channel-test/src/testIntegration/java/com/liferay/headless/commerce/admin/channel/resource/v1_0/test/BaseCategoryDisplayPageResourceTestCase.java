@@ -13,12 +13,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 
+import com.liferay.headless.batch.engine.client.dto.v1_0.ImportTask;
+import com.liferay.headless.batch.engine.client.http.HttpInvoker.HttpResponse;
+import com.liferay.headless.batch.engine.client.resource.v1_0.ImportTaskResource;
 import com.liferay.headless.commerce.admin.channel.client.dto.v1_0.CategoryDisplayPage;
 import com.liferay.headless.commerce.admin.channel.client.http.HttpInvoker;
 import com.liferay.headless.commerce.admin.channel.client.pagination.Page;
 import com.liferay.headless.commerce.admin.channel.client.pagination.Pagination;
 import com.liferay.headless.commerce.admin.channel.client.resource.v1_0.CategoryDisplayPageResource;
 import com.liferay.headless.commerce.admin.channel.client.serdes.v1_0.CategoryDisplayPageSerDes;
+import com.liferay.oauth2.provider.scope.ScopeChecker;
 import com.liferay.petra.function.UnsafeTriConsumer;
 import com.liferay.petra.function.transform.TransformUtil;
 import com.liferay.petra.reflect.ReflectionUtil;
@@ -29,13 +33,22 @@ import com.liferay.portal.kernel.json.JSONObject;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.service.CompanyLocalServiceUtil;
+import com.liferay.portal.kernel.service.GroupLocalService;
+import com.liferay.portal.kernel.service.ResourceActionLocalService;
+import com.liferay.portal.kernel.service.ResourcePermissionLocalService;
+import com.liferay.portal.kernel.service.RoleLocalService;
+import com.liferay.portal.kernel.service.UserLocalService;
+import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.util.GroupTestUtil;
+import com.liferay.portal.kernel.test.util.JAXRSWhiteboardTestUtil;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.DateFormatFactoryUtil;
+import com.liferay.portal.kernel.util.FastDateFormatFactoryUtil;
 import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PortalUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
 import com.liferay.portal.odata.entity.EntityField;
@@ -43,12 +56,27 @@ import com.liferay.portal.odata.entity.EntityModel;
 import com.liferay.portal.search.test.rule.SearchTestRule;
 import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.rule.PermissionCheckerMethodTestRule;
+import com.liferay.portal.vulcan.accept.language.AcceptLanguage;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegate;
+import com.liferay.portal.vulcan.crud.VulcanCRUDItemDelegateBuilderRegistry;
 import com.liferay.portal.vulcan.resource.EntityModelResource;
+
+import jakarta.annotation.Generated;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 import java.lang.reflect.Method;
 
-import java.text.DateFormat;
+import java.net.URI;
+
+import java.text.Format;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,13 +85,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-
-import javax.annotation.Generated;
-
-import javax.ws.rs.core.MultivaluedHashMap;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -72,6 +97,9 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * @author Andrea Sbarra
@@ -82,13 +110,17 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 	@ClassRule
 	@Rule
-	public static final LiferayIntegrationTestRule liferayIntegrationTestRule =
-		new LiferayIntegrationTestRule();
+	public static final AggregateTestRule aggregateTestRule =
+		new AggregateTestRule(
+			new LiferayIntegrationTestRule(),
+			PermissionCheckerMethodTestRule.INSTANCE);
 
 	@BeforeClass
 	public static void setUpClass() throws Exception {
-		_dateFormat = DateFormatFactoryUtil.getSimpleDateFormat(
+		_format = FastDateFormatFactoryUtil.getSimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
+		JAXRSWhiteboardTestUtil.ensureReady();
 	}
 
 	@Before
@@ -101,17 +133,27 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 		_categoryDisplayPageResource.setContextCompany(testCompany);
 
-		com.liferay.portal.kernel.model.User testCompanyAdminUser =
-			UserTestUtil.getAdminUser(testCompany.getCompanyId());
+		_testCompanyAdminUser = UserTestUtil.getAdminUser(
+			testCompany.getCompanyId());
 
-		CategoryDisplayPageResource.Builder builder =
-			CategoryDisplayPageResource.builder();
-
-		categoryDisplayPageResource = builder.authentication(
-			testCompanyAdminUser.getEmailAddress(),
+		categoryDisplayPageResource = CategoryDisplayPageResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
 			PropsValues.DEFAULT_ADMIN_PASSWORD
 		).endpoint(
-			testCompany.getVirtualHostname(), 8080, "http"
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).locale(
+			LocaleUtil.getDefault()
+		).build();
+
+		importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
 		).locale(
 			LocaleUtil.getDefault()
 		).build();
@@ -206,11 +248,9 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 			404,
 			categoryDisplayPageResource.getCategoryDisplayPageHttpResponse(
 				categoryDisplayPage.getId()));
-
 		assertHttpResponseStatusCode(
 			404,
-			categoryDisplayPageResource.getCategoryDisplayPageHttpResponse(
-				categoryDisplayPage.getId()));
+			categoryDisplayPageResource.getCategoryDisplayPageHttpResponse(0L));
 	}
 
 	protected CategoryDisplayPage
@@ -226,6 +266,7 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 		// No namespace
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		CategoryDisplayPage categoryDisplayPage1 =
 			testGraphQLDeleteCategoryDisplayPage_addCategoryDisplayPage();
 
@@ -250,13 +291,14 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 							put("id", categoryDisplayPage1.getId());
 						}
 					},
-					new GraphQLField("id"))),
+					getGraphQLFields())),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray1.length() > 0);
 
 		// Using the namespace headlessCommerceAdminChannel_v1_0
 
+		@SuppressWarnings("PMD.UnusedLocalVariable")
 		CategoryDisplayPage categoryDisplayPage2 =
 			testGraphQLDeleteCategoryDisplayPage_addCategoryDisplayPage();
 
@@ -287,7 +329,7 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 								put("id", categoryDisplayPage2.getId());
 							}
 						},
-						new GraphQLField("id")))),
+						getGraphQLFields()))),
 			"JSONArray/errors");
 
 		Assert.assertTrue(errorsJSONArray2.length() > 0);
@@ -301,6 +343,49 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 	}
 
 	@Test
+	public void testDeleteCategoryDisplayPageBatch() throws Exception {
+		CategoryDisplayPage categoryDisplayPage1 =
+			testDeleteCategoryDisplayPageBatch_addCategoryDisplayPage();
+
+		testDeleteCategoryDisplayPageBatch_deleteCategoryDisplayPage(
+			202, null, categoryDisplayPage1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			categoryDisplayPageResource.getCategoryDisplayPageHttpResponse(
+				categoryDisplayPage1.getId()));
+	}
+
+	protected CategoryDisplayPage
+			testDeleteCategoryDisplayPageBatch_addCategoryDisplayPage()
+		throws Exception {
+
+		return testDeleteCategoryDisplayPage_addCategoryDisplayPage();
+	}
+
+	protected void testDeleteCategoryDisplayPageBatch_deleteCategoryDisplayPage(
+			int expectedStatusCode, String externalReferenceCode, Long id)
+		throws Exception {
+
+		HttpInvoker.HttpResponse httpResponse =
+			categoryDisplayPageResource.
+				deleteCategoryDisplayPageBatchHttpResponse(
+					null,
+					JSONUtil.putAll(
+						JSONUtil.put(
+							"externalReferenceCode", () -> externalReferenceCode
+						).put(
+							"id", () -> id
+						)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		waitForFinish(
+			"COMPLETED",
+			JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+	}
+
+	@Test
 	public void testGetCategoryDisplayPage() throws Exception {
 		CategoryDisplayPage postCategoryDisplayPage =
 			testGetCategoryDisplayPage_addCategoryDisplayPage();
@@ -311,6 +396,206 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 		assertEquals(postCategoryDisplayPage, getCategoryDisplayPage);
 		assertValid(getCategoryDisplayPage);
+	}
+
+	@Test
+	public void testVulcanCRUDItemDelegateGetItem() throws Exception {
+		CategoryDisplayPage postCategoryDisplayPage =
+			testGetCategoryDisplayPage_addCategoryDisplayPage();
+
+		CategoryDisplayPage getCategoryDisplayPage =
+			categoryDisplayPageResource.getCategoryDisplayPage(
+				postCategoryDisplayPage.getId());
+
+		VulcanCRUDItemDelegate vulcanCRUDItemDelegate =
+			_vulcanCRUDItemDelegateBuilderRegistry.builder(
+				testCompany,
+				"com.liferay.headless.commerce.admin.channel.dto.v1_0.CategoryDisplayPage"
+			).acceptLanguage(
+				new AcceptLanguage() {
+
+					@Override
+					public List<Locale> getLocales() {
+						return Arrays.asList(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public String getPreferredLanguageId() {
+						return LocaleUtil.toLanguageId(LocaleUtil.getDefault());
+					}
+
+					@Override
+					public Locale getPreferredLocale() {
+						return LocaleUtil.getDefault();
+					}
+
+				}
+			).groupLocalService(
+				_groupLocalService
+			).httpServletRequest(
+				testVulcanCRUDItemDelegate_getHttpServletRequest()
+			).httpServletResponse(
+				new MockHttpServletResponse()
+			).resourceActionLocalService(
+				_resourceActionLocalService
+			).resourcePermissionLocalService(
+				_resourcePermissionLocalService
+			).roleLocalService(
+				_roleLocalService
+			).scopeChecker(
+				_scopeChecker
+			).uriInfo(
+				testVulcanCRUDItemDelegate_getUriInfo()
+			).user(
+				testVulcanCRUDItemDelegate_getUser()
+			).build();
+
+		Object item = vulcanCRUDItemDelegate.getItem(
+			postCategoryDisplayPage.getId());
+
+		assertEquals(
+			getCategoryDisplayPage,
+			CategoryDisplayPageSerDes.toDTO(item.toString()));
+	}
+
+	protected HttpServletRequest
+		testVulcanCRUDItemDelegate_getHttpServletRequest() {
+
+		return new MockHttpServletRequest() {
+
+			@Override
+			public StringBuffer getRequestURL() {
+				return new StringBuffer(
+					StringBundler.concat(
+						"http://localhost:",
+						String.valueOf(PortalUtil.getPortalServerPort(false)),
+						"/o/v1.0/", RandomTestUtil.randomString(), "/",
+						RandomTestUtil.randomString()));
+			}
+
+		};
+	}
+
+	protected UriInfo testVulcanCRUDItemDelegate_getUriInfo() {
+		String applicationPath = RandomTestUtil.randomString() + "/";
+		String resourcePath = RandomTestUtil.randomString();
+
+		return new UriInfo() {
+
+			@Override
+			public String getPath() {
+				return resourcePath;
+			}
+
+			@Override
+			public String getPath(boolean decode) {
+				return getPath();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<PathSegment> getPathSegments(boolean decode) {
+				return getPathSegments();
+			}
+
+			@Override
+			public URI getRequestUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath, resourcePath));
+			}
+
+			@Override
+			public UriBuilder getRequestUriBuilder() {
+				return UriBuilder.fromUri(getRequestUri());
+			}
+
+			@Override
+			public URI getAbsolutePath() {
+				return getRequestUri();
+			}
+
+			@Override
+			public UriBuilder getAbsolutePathBuilder() {
+				return getRequestUriBuilder();
+			}
+
+			@Override
+			public URI getBaseUri() {
+				return URI.create(
+					StringBundler.concat(
+						"http://localhost:",
+						PortalUtil.getPortalServerPort(false), "/o/",
+						applicationPath));
+			}
+
+			@Override
+			public UriBuilder getBaseUriBuilder() {
+				return UriBuilder.fromUri(getBaseUri());
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getPathParameters(
+				boolean decode) {
+
+				return getPathParameters();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters() {
+				return new MultivaluedHashMap<>();
+			}
+
+			@Override
+			public MultivaluedMap<String, String> getQueryParameters(
+				boolean decode) {
+
+				return getQueryParameters();
+			}
+
+			@Override
+			public List<String> getMatchedURIs() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public List<String> getMatchedURIs(boolean decode) {
+				return getMatchedURIs();
+			}
+
+			@Override
+			public List<Object> getMatchedResources() {
+				return Collections.emptyList();
+			}
+
+			@Override
+			public URI resolve(URI requestUri) {
+				return getBaseUri().resolve(requestUri);
+			}
+
+			@Override
+			public URI relativize(URI uri) {
+				return getBaseUri().relativize(uri);
+			}
+
+		};
+	}
+
+	protected com.liferay.portal.kernel.model.User
+		testVulcanCRUDItemDelegate_getUser() {
+
+		return _testCompanyAdminUser;
 	}
 
 	protected CategoryDisplayPage
@@ -418,42 +703,6 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 	}
 
 	@Test
-	public void testPatchCategoryDisplayPage() throws Exception {
-		CategoryDisplayPage postCategoryDisplayPage =
-			testPatchCategoryDisplayPage_addCategoryDisplayPage();
-
-		CategoryDisplayPage randomPatchCategoryDisplayPage =
-			randomPatchCategoryDisplayPage();
-
-		@SuppressWarnings("PMD.UnusedLocalVariable")
-		CategoryDisplayPage patchCategoryDisplayPage =
-			categoryDisplayPageResource.patchCategoryDisplayPage(
-				postCategoryDisplayPage.getId(),
-				randomPatchCategoryDisplayPage);
-
-		CategoryDisplayPage expectedPatchCategoryDisplayPage =
-			postCategoryDisplayPage.clone();
-
-		BeanTestUtil.copyProperties(
-			randomPatchCategoryDisplayPage, expectedPatchCategoryDisplayPage);
-
-		CategoryDisplayPage getCategoryDisplayPage =
-			categoryDisplayPageResource.getCategoryDisplayPage(
-				patchCategoryDisplayPage.getId());
-
-		assertEquals(expectedPatchCategoryDisplayPage, getCategoryDisplayPage);
-		assertValid(getCategoryDisplayPage);
-	}
-
-	protected CategoryDisplayPage
-			testPatchCategoryDisplayPage_addCategoryDisplayPage()
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetChannelByExternalReferenceCodeCategoryDisplayPagesPage()
 		throws Exception {
 
@@ -504,8 +753,8 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 		page =
 			categoryDisplayPageResource.
 				getChannelByExternalReferenceCodeCategoryDisplayPagesPage(
-					externalReferenceCode, null, null, Pagination.of(1, 10),
-					null);
+					externalReferenceCode, null, null,
+					Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -647,13 +896,13 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 		String externalReferenceCode =
 			testGetChannelByExternalReferenceCodeCategoryDisplayPagesPage_getExternalReferenceCode();
 
-		Page<CategoryDisplayPage> categoryDisplayPagePage =
+		Page<CategoryDisplayPage> categoryDisplayPagesPage =
 			categoryDisplayPageResource.
 				getChannelByExternalReferenceCodeCategoryDisplayPagesPage(
 					externalReferenceCode, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			categoryDisplayPagePage.getTotalCount());
+			categoryDisplayPagesPage.getTotalCount());
 
 		CategoryDisplayPage categoryDisplayPage1 =
 			testGetChannelByExternalReferenceCodeCategoryDisplayPagesPage_addCategoryDisplayPage(
@@ -949,30 +1198,6 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 	}
 
 	@Test
-	public void testPostChannelByExternalReferenceCodeCategoryDisplayPage()
-		throws Exception {
-
-		CategoryDisplayPage randomCategoryDisplayPage =
-			randomCategoryDisplayPage();
-
-		CategoryDisplayPage postCategoryDisplayPage =
-			testPostChannelByExternalReferenceCodeCategoryDisplayPage_addCategoryDisplayPage(
-				randomCategoryDisplayPage);
-
-		assertEquals(randomCategoryDisplayPage, postCategoryDisplayPage);
-		assertValid(postCategoryDisplayPage);
-	}
-
-	protected CategoryDisplayPage
-			testPostChannelByExternalReferenceCodeCategoryDisplayPage_addCategoryDisplayPage(
-				CategoryDisplayPage categoryDisplayPage)
-		throws Exception {
-
-		throw new UnsupportedOperationException(
-			"This method needs to be implemented");
-	}
-
-	@Test
 	public void testGetChannelIdCategoryDisplayPagesPage() throws Exception {
 		Long id = testGetChannelIdCategoryDisplayPagesPage_getId();
 		Long irrelevantId =
@@ -1015,7 +1240,7 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 				id, randomCategoryDisplayPage());
 
 		page = categoryDisplayPageResource.getChannelIdCategoryDisplayPagesPage(
-			id, null, null, Pagination.of(1, 10), null);
+			id, null, null, Pagination.of(1, (int)totalCount + 2), null);
 
 		Assert.assertEquals(totalCount + 2, page.getTotalCount());
 
@@ -1151,12 +1376,12 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 		Long id = testGetChannelIdCategoryDisplayPagesPage_getId();
 
-		Page<CategoryDisplayPage> categoryDisplayPagePage =
+		Page<CategoryDisplayPage> categoryDisplayPagesPage =
 			categoryDisplayPageResource.getChannelIdCategoryDisplayPagesPage(
 				id, null, null, null, null);
 
 		int totalCount = GetterUtil.getInteger(
-			categoryDisplayPagePage.getTotalCount());
+			categoryDisplayPagesPage.getTotalCount());
 
 		CategoryDisplayPage categoryDisplayPage1 =
 			testGetChannelIdCategoryDisplayPagesPage_addCategoryDisplayPage(
@@ -1444,6 +1669,66 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 	}
 
 	@Test
+	public void testPatchCategoryDisplayPage() throws Exception {
+		CategoryDisplayPage postCategoryDisplayPage =
+			testPatchCategoryDisplayPage_addCategoryDisplayPage();
+
+		CategoryDisplayPage randomPatchCategoryDisplayPage =
+			randomPatchCategoryDisplayPage();
+
+		@SuppressWarnings("PMD.UnusedLocalVariable")
+		CategoryDisplayPage patchCategoryDisplayPage =
+			categoryDisplayPageResource.patchCategoryDisplayPage(
+				postCategoryDisplayPage.getId(),
+				randomPatchCategoryDisplayPage);
+
+		CategoryDisplayPage expectedPatchCategoryDisplayPage =
+			postCategoryDisplayPage.clone();
+
+		BeanTestUtil.copyProperties(
+			randomPatchCategoryDisplayPage, expectedPatchCategoryDisplayPage);
+
+		CategoryDisplayPage getCategoryDisplayPage =
+			categoryDisplayPageResource.getCategoryDisplayPage(
+				patchCategoryDisplayPage.getId());
+
+		assertEquals(expectedPatchCategoryDisplayPage, getCategoryDisplayPage);
+		assertValid(getCategoryDisplayPage);
+	}
+
+	protected CategoryDisplayPage
+			testPatchCategoryDisplayPage_addCategoryDisplayPage()
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testPostChannelByExternalReferenceCodeCategoryDisplayPage()
+		throws Exception {
+
+		CategoryDisplayPage randomCategoryDisplayPage =
+			randomCategoryDisplayPage();
+
+		CategoryDisplayPage postCategoryDisplayPage =
+			testPostChannelByExternalReferenceCodeCategoryDisplayPage_addCategoryDisplayPage(
+				randomCategoryDisplayPage);
+
+		assertEquals(randomCategoryDisplayPage, postCategoryDisplayPage);
+		assertValid(postCategoryDisplayPage);
+	}
+
+	protected CategoryDisplayPage
+			testPostChannelByExternalReferenceCodeCategoryDisplayPage_addCategoryDisplayPage(
+				CategoryDisplayPage categoryDisplayPage)
+		throws Exception {
+
+		throw new UnsupportedOperationException(
+			"This method needs to be implemented");
+	}
+
+	@Test
 	public void testPostChannelIdCategoryDisplayPage() throws Exception {
 		CategoryDisplayPage randomCategoryDisplayPage =
 			randomCategoryDisplayPage();
@@ -1463,6 +1748,63 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 		throw new UnsupportedOperationException(
 			"This method needs to be implemented");
+	}
+
+	@Test
+	public void testBatchEngineDeleteImportTask() throws Exception {
+		CategoryDisplayPage categoryDisplayPage1 =
+			testBatchEngineDeleteImportTask_addCategoryDisplayPage();
+
+		testBatchEngineDeleteImportTask_deleteCategoryDisplayPage(
+			200, null, categoryDisplayPage1.getId());
+
+		assertHttpResponseStatusCode(
+			404,
+			categoryDisplayPageResource.getCategoryDisplayPageHttpResponse(
+				categoryDisplayPage1.getId()));
+	}
+
+	protected CategoryDisplayPage
+			testBatchEngineDeleteImportTask_addCategoryDisplayPage()
+		throws Exception {
+
+		return testDeleteCategoryDisplayPage_addCategoryDisplayPage();
+	}
+
+	protected void testBatchEngineDeleteImportTask_deleteCategoryDisplayPage(
+			int expectedStatusCode, String externalReferenceCode, Long id,
+			String... parameters)
+		throws Exception {
+
+		ImportTaskResource importTaskResource = ImportTaskResource.builder(
+		).authentication(
+			_testCompanyAdminUser.getEmailAddress(),
+			PropsValues.DEFAULT_ADMIN_PASSWORD
+		).endpoint(
+			testCompany.getVirtualHostname(),
+			PortalUtil.getPortalServerPort(false), "http"
+		).parameters(
+			parameters
+		).build();
+
+		HttpResponse httpResponse =
+			importTaskResource.deleteImportTaskHttpResponse(
+				"com.liferay.headless.commerce.admin.channel.dto.v1_0.CategoryDisplayPage",
+				null, null, null, null,
+				JSONUtil.putAll(
+					JSONUtil.put(
+						"externalReferenceCode", () -> externalReferenceCode
+					).put(
+						"id", () -> id
+					)));
+
+		Assert.assertEquals(expectedStatusCode, httpResponse.getStatusCode());
+
+		if (expectedStatusCode == 200) {
+			waitForFinish(
+				"COMPLETED",
+				JSONFactoryUtil.createJSONObject(httpResponse.getContent()));
+		}
 	}
 
 	@Rule
@@ -1675,6 +2017,8 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 
 	protected List<GraphQLField> getGraphQLFields() throws Exception {
 		List<GraphQLField> graphQLFields = new ArrayList<>();
+
+		graphQLFields.add(new GraphQLField("id"));
 
 		for (java.lang.reflect.Field field :
 				getDeclaredFields(
@@ -2085,7 +2429,9 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 			).toString(),
 			"application/json");
 		httpInvoker.httpMethod(HttpInvoker.HttpMethod.POST);
-		httpInvoker.path("http://localhost:8080/o/graphql");
+		httpInvoker.path(
+			"http://localhost:" + PortalUtil.getPortalServerPort(false) +
+				"/o/graphql");
 		httpInvoker.userNameAndPassword(
 			"test@liferay.com:" + PropsValues.DEFAULT_ADMIN_PASSWORD);
 
@@ -2144,7 +2490,30 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 		return randomCategoryDisplayPage();
 	}
 
+	protected final JSONObject waitForFinish(
+			String expectedExecuteStatus, JSONObject jsonObject)
+		throws Exception {
+
+		while (true) {
+			ImportTask importTask = importTaskResource.getImportTask(
+				jsonObject.getLong("id"));
+
+			ImportTask.ExecuteStatus executeStatus =
+				importTask.getExecuteStatus();
+
+			if (StringUtil.equals(executeStatus.getValue(), "COMPLETED") ||
+				StringUtil.equals(executeStatus.getValue(), "FAILED")) {
+
+				Assert.assertEquals(
+					expectedExecuteStatus, executeStatus.getValue());
+
+				return jsonObject;
+			}
+		}
+	}
+
 	protected CategoryDisplayPageResource categoryDisplayPageResource;
+	protected ImportTaskResource importTaskResource;
 	protected com.liferay.portal.kernel.model.Group irrelevantGroup;
 	protected com.liferay.portal.kernel.model.Company testCompany;
 	protected com.liferay.portal.kernel.model.Group testGroup;
@@ -2345,10 +2714,35 @@ public abstract class BaseCategoryDisplayPageResourceTestCase {
 	private static final com.liferay.portal.kernel.log.Log _log =
 		LogFactoryUtil.getLog(BaseCategoryDisplayPageResourceTestCase.class);
 
-	private static DateFormat _dateFormat;
+	private static Format _format;
+
+	private com.liferay.portal.kernel.model.User _testCompanyAdminUser;
 
 	@Inject
 	private com.liferay.headless.commerce.admin.channel.resource.v1_0.
 		CategoryDisplayPageResource _categoryDisplayPageResource;
 
+	@Inject
+	private GroupLocalService _groupLocalService;
+
+	@Inject
+	private ResourceActionLocalService _resourceActionLocalService;
+
+	@Inject
+	private ResourcePermissionLocalService _resourcePermissionLocalService;
+
+	@Inject
+	private RoleLocalService _roleLocalService;
+
+	@Inject
+	private ScopeChecker _scopeChecker;
+
+	@Inject
+	private UserLocalService _userLocalService;
+
+	@Inject
+	private VulcanCRUDItemDelegateBuilderRegistry
+		_vulcanCRUDItemDelegateBuilderRegistry;
+
 }
+// LIFERAY-REST-BUILDER-HASH:-852947983

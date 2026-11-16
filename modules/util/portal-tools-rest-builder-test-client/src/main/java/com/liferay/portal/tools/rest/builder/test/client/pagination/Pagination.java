@@ -5,7 +5,7 @@
 
 package com.liferay.portal.tools.rest.builder.test.client.pagination;
 
-import javax.annotation.Generated;
+import jakarta.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -63,3 +63,4 @@ public class Pagination {
 	private final int _pageSize;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-233891958

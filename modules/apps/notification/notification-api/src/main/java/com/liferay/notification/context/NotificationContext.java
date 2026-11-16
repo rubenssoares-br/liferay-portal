@@ -9,6 +9,7 @@ import com.liferay.notification.model.NotificationQueueEntry;
 import com.liferay.notification.model.NotificationRecipient;
 import com.liferay.notification.model.NotificationRecipientSetting;
 import com.liferay.notification.model.NotificationTemplate;
+import com.liferay.portal.kernel.service.permission.ModelPermissions;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +57,10 @@ public class NotificationContext {
 		return _groupId;
 	}
 
+	public ModelPermissions getModelPermissions() {
+		return _modelPermissions;
+	}
+
 	public NotificationQueueEntry getNotificationQueueEntry() {
 		return _notificationQueueEntry;
 	}
@@ -72,6 +77,10 @@ public class NotificationContext {
 
 	public NotificationTemplate getNotificationTemplate() {
 		return _notificationTemplate;
+	}
+
+	public long getParentClassPK() {
+		return _parentClassPK;
 	}
 
 	public String getPortletId() {
@@ -136,6 +145,10 @@ public class NotificationContext {
 		_groupId = groupId;
 	}
 
+	public void setModelPermissions(ModelPermissions modelPermissions) {
+		_modelPermissions = modelPermissions;
+	}
+
 	public void setNotificationQueueEntry(
 		NotificationQueueEntry notificationQueueEntry) {
 
@@ -158,6 +171,10 @@ public class NotificationContext {
 		NotificationTemplate notificationTemplate) {
 
 		_notificationTemplate = notificationTemplate;
+	}
+
+	public void setParentClassPK(long parentClassPK) {
+		_parentClassPK = parentClassPK;
 	}
 
 	public void setPortletId(String portletId) {
@@ -201,10 +218,12 @@ public class NotificationContext {
 	private String _externalReferenceCode;
 	private List<Long> _fileEntryIds;
 	private long _groupId;
+	private ModelPermissions _modelPermissions;
 	private NotificationQueueEntry _notificationQueueEntry;
 	private NotificationRecipient _notificationRecipient;
 	private List<NotificationRecipientSetting> _notificationRecipientSettings;
 	private NotificationTemplate _notificationTemplate;
+	private long _parentClassPK;
 	private String _portletId;
 	private String _preferredLanguageId;
 	private Locale _siteDefaultLocale;

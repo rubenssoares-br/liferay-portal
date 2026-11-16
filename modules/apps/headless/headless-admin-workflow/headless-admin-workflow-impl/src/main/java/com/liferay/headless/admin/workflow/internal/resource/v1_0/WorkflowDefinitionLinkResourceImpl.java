@@ -7,8 +7,17 @@ package com.liferay.headless.admin.workflow.internal.resource.v1_0;
 
 import com.liferay.headless.admin.workflow.dto.v1_0.WorkflowDefinitionLink;
 import com.liferay.headless.admin.workflow.resource.v1_0.WorkflowDefinitionLinkResource;
-import com.liferay.portal.kernel.service.WorkflowDefinitionLinkLocalService;
+import com.liferay.petra.string.StringPool;
+import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.model.Group;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermissionRegistryUtil;
+import com.liferay.portal.kernel.service.GroupService;
+import com.liferay.portal.kernel.service.WorkflowDefinitionLinkService;
+import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.ListUtil;
+import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.kernel.workflow.WorkflowDefinition;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
@@ -39,11 +48,11 @@ public class WorkflowDefinitionLinkResourceImpl
 
 		WorkflowDefinition workflowDefinition =
 			_workflowDefinitionManager.getWorkflowDefinition(
-				externalReferenceCode, contextCompany.getCompanyId());
+				contextCompany.getCompanyId(), externalReferenceCode);
 
 		List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
 			workflowDefinitionLinks =
-				_workflowDefinitionLinkLocalService.getWorkflowDefinitionLinks(
+				_workflowDefinitionLinkService.getWorkflowDefinitionLinks(
 					contextCompany.getCompanyId(), workflowDefinition.getName(),
 					workflowDefinition.getVersion());
 
@@ -69,11 +78,21 @@ public class WorkflowDefinitionLinkResourceImpl
 
 		List<com.liferay.portal.kernel.model.WorkflowDefinitionLink>
 			workflowDefinitionLinks =
-				_workflowDefinitionLinkLocalService.getWorkflowDefinitionLinks(
+				_workflowDefinitionLinkService.getWorkflowDefinitionLinks(
 					contextCompany.getCompanyId(), workflowDefinition.getName(),
 					workflowDefinition.getVersion());
 
 		return Page.of(
+			HashMapBuilder.put(
+				"createBatch",
+				addAction(
+					ActionKeys.ADD_DEFINITION, workflowDefinitionId,
+					"postWorkflowDefinitionWorkflowDefinitionLinkBatch",
+					ModelResourcePermissionRegistryUtil.
+						getModelResourcePermission(
+							"com.liferay.portal.workflow.kaleo.model." +
+								"KaleoDefinition"))
+			).build(),
 			transform(
 				ListUtil.subList(
 					workflowDefinitionLinks, pagination.getStartPosition(),
@@ -92,12 +111,13 @@ public class WorkflowDefinitionLinkResourceImpl
 
 		WorkflowDefinition workflowDefinition =
 			_workflowDefinitionManager.getWorkflowDefinition(
-				externalReferenceCode, contextCompany.getCompanyId());
+				contextCompany.getCompanyId(), externalReferenceCode);
 
 		return _toWorkflowDefinitionLink(
-			_workflowDefinitionLinkLocalService.addWorkflowDefinitionLink(
+			_workflowDefinitionLinkService.addWorkflowDefinitionLink(
+				workflowDefinitionLink.getExternalReferenceCode(),
 				contextUser.getUserId(), contextCompany.getCompanyId(),
-				workflowDefinitionLink.getGroupId(),
+				_getGroupId(workflowDefinitionLink),
 				workflowDefinitionLink.getClassName(), 0, 0,
 				workflowDefinition.getName(), workflowDefinition.getVersion()));
 	}
@@ -113,34 +133,100 @@ public class WorkflowDefinitionLinkResourceImpl
 				workflowDefinitionId);
 
 		return _toWorkflowDefinitionLink(
-			_workflowDefinitionLinkLocalService.addWorkflowDefinitionLink(
+			_workflowDefinitionLinkService.addWorkflowDefinitionLink(
+				workflowDefinitionLink.getExternalReferenceCode(),
 				contextUser.getUserId(), contextCompany.getCompanyId(),
-				workflowDefinitionLink.getGroupId(),
+				_getGroupId(workflowDefinitionLink),
 				workflowDefinitionLink.getClassName(), 0, 0,
 				workflowDefinition.getName(), workflowDefinition.getVersion()));
 	}
 
+	@Override
+	public WorkflowDefinitionLink
+			putWorkflowDefinitionLinkByExternalReferenceCode(
+				String externalReferenceCode,
+				WorkflowDefinitionLink workflowDefinitionLink)
+		throws Exception {
+
+		return _toWorkflowDefinitionLink(
+			_workflowDefinitionLinkService.updateWorkflowDefinitionLink(
+				externalReferenceCode, contextUser.getUserId(),
+				contextCompany.getCompanyId(),
+				_getGroupId(workflowDefinitionLink),
+				workflowDefinitionLink.getClassName(), 0, 0,
+				workflowDefinitionLink.getWorkflowDefinitionName(),
+				workflowDefinitionLink.getWorkflowDefinitionVersion()));
+	}
+
+	private long _getGroupId(WorkflowDefinitionLink workflowDefinitionLink)
+		throws Exception {
+
+		long groupId = GetterUtil.getLong(workflowDefinitionLink.getGroupId());
+
+		if ((groupId != 0) ||
+			Validator.isNull(
+				workflowDefinitionLink.getGroupExternalReferenceCode())) {
+
+			return groupId;
+		}
+
+		Group group = _groupService.fetchGroupByExternalReferenceCode(
+			workflowDefinitionLink.getGroupExternalReferenceCode(),
+			contextCompany.getCompanyId());
+
+		if (group != null) {
+			return group.getGroupId();
+		}
+
+		return 0;
+	}
+
 	private WorkflowDefinitionLink _toWorkflowDefinitionLink(
 			com.liferay.portal.kernel.model.WorkflowDefinitionLink
-				workflowDefinitionLink)
-		throws Exception {
+				serviceBuilderWorkflowDefinitionLink)
+		throws PortalException {
+
+		Group group;
+
+		if (serviceBuilderWorkflowDefinitionLink.getGroupId() != 0) {
+			group = _groupService.getGroup(
+				serviceBuilderWorkflowDefinitionLink.getGroupId());
+		}
+		else {
+			group = null;
+		}
 
 		return new WorkflowDefinitionLink() {
 			{
-				setClassName(workflowDefinitionLink::getClassName);
-				setGroupId(workflowDefinitionLink::getGroupId);
-				setId(workflowDefinitionLink::getWorkflowDefinitionLinkId);
+				setClassName(
+					serviceBuilderWorkflowDefinitionLink::getClassName);
+				setExternalReferenceCode(
+					serviceBuilderWorkflowDefinitionLink::
+						getExternalReferenceCode);
+				setGroupExternalReferenceCode(
+					() -> (group != null) ? group.getExternalReferenceCode() :
+						StringPool.BLANK);
+				setGroupId(
+					() -> (group != null) ? group.getGroupId() :
+						serviceBuilderWorkflowDefinitionLink.getGroupId());
+				setId(
+					serviceBuilderWorkflowDefinitionLink::
+						getWorkflowDefinitionLinkId);
 				setWorkflowDefinitionName(
-					workflowDefinitionLink::getWorkflowDefinitionName);
+					serviceBuilderWorkflowDefinitionLink::
+						getWorkflowDefinitionName);
 				setWorkflowDefinitionVersion(
-					workflowDefinitionLink::getWorkflowDefinitionVersion);
+					serviceBuilderWorkflowDefinitionLink::
+						getWorkflowDefinitionVersion);
 			}
 		};
 	}
 
 	@Reference
-	private WorkflowDefinitionLinkLocalService
-		_workflowDefinitionLinkLocalService;
+	private GroupService _groupService;
+
+	@Reference
+	private WorkflowDefinitionLinkService _workflowDefinitionLinkService;
 
 	@Reference
 	private WorkflowDefinitionManager _workflowDefinitionManager;

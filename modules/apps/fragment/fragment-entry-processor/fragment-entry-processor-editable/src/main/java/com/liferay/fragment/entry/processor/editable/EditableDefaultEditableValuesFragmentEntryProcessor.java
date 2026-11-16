@@ -28,7 +28,11 @@ import org.osgi.service.component.annotations.Reference;
  * @author Pavel Savinov
  */
 @Component(
-	property = "fragment.entry.processor.priority:Integer=2",
+	property = {
+		"fragment.entry.processor.key=" + FragmentEntryProcessorConstants.KEY_EDITABLE_FRAGMENT_ENTRY_PROCESSOR,
+		"fragment.entry.processor.marker=<lfr-editable",
+		"fragment.entry.processor.marker=data-lfr-editable-"
+	},
 	service = DefaultEditableValuesFragmentEntryProcessor.class
 )
 public class EditableDefaultEditableValuesFragmentEntryProcessor
@@ -36,7 +40,7 @@ public class EditableDefaultEditableValuesFragmentEntryProcessor
 
 	@Override
 	public JSONObject getDefaultEditableValuesJSONObject(
-		String configuration, Document document) {
+		JSONObject configurationJSONObject, Document document) {
 
 		JSONObject defaultEditableValuesJSONObject =
 			_jsonFactory.createJSONObject();

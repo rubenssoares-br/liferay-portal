@@ -67,7 +67,7 @@ portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
 								elementClasses="py-3"
 								title='<%= LanguageUtil.get(request, "account-info") %>'
 							>
-								<p class="mb-0"><%= String.valueOf(commerceReturnContentDisplayContext.getAccountEntryName()) %></p>
+								<p class="mb-0"><%= HtmlUtil.escape(commerceReturnContentDisplayContext.getAccountEntryName()) %></p>
 								<p class="mb-0">#<%= (commerceReturn == null) ? StringPool.BLANK : String.valueOf(commerceReturn.getAccountId()) %></p>
 							</commerce-ui:info-box>
 
@@ -75,7 +75,7 @@ portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
 								elementClasses="py-3"
 								title='<%= LanguageUtil.get(request, "shipping-address") %>'
 							>
-								<p class="mb-0"><%= commerceReturnContentDisplayContext.getShippingAddress() %></p>
+								<p class="mb-0"><%= HtmlUtil.escape(commerceReturnContentDisplayContext.getShippingAddress()) %></p>
 							</commerce-ui:info-box>
 						</div>
 
@@ -98,7 +98,7 @@ portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
 								elementClasses="py-3"
 								title='<%= LanguageUtil.get(request, "payment-method") %>'
 							>
-								<p class="mb-0"><%= commerceReturnContentDisplayContext.getPaymentMethod() %></p>
+								<p class="mb-0"><%= HtmlUtil.escape(commerceReturnContentDisplayContext.getPaymentMethod()) %></p>
 							</commerce-ui:info-box>
 						</div>
 
@@ -109,26 +109,26 @@ portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
 								<portlet:param name="commerceReturnId" value="<%= String.valueOf(commerceReturnContentDisplayContext.getCommerceReturnId()) %>" />
 							</liferay-portlet:renderURL>
 
-							<commerce-ui:modal
-								id="commerce-return-note-modal"
-								refreshPageOnClose="<%= true %>"
-								size="lg"
-								title='<%= LanguageUtil.get(request, "note") %>'
-								url="<%= editCommerceReturnNoteURL %>"
-							/>
-
 							<c:if test="<%= commerceReturn != null %>">
 								<commerce-ui:info-box
+									actionContext='<%=
+										HashMapBuilder.<String, Object>put(
+											"namespace", liferayPortletResponse.getNamespace()
+										).put(
+											"refreshOnClose", true
+										).put(
+											"size", "lg"
+										).build()
+									%>'
 									actionLabel='<%= Objects.equals(commerceReturn.getReturnStatus(), "draft") ? LanguageUtil.get(request, Validator.isNull(note) ? "add" : "edit") : null %>'
-									actionTargetId='<%= Objects.equals(commerceReturn.getReturnStatus(), "draft") ? "commerce-return-note-modal" : null %>'
-									actionUrl='<%= Objects.equals(commerceReturn.getReturnStatus(), "draft") ? editCommerceReturnNoteURL : null %>'
+									actionURL='<%= Objects.equals(commerceReturn.getReturnStatus(), "draft") ? editCommerceReturnNoteURL : null %>'
 									elementClasses="py-3"
 									title='<%= LanguageUtil.get(request, "note") %>'
 								>
 									<c:choose>
 										<c:when test="<%= Validator.isNull(note) %>">
 											<c:if test='<%= Objects.equals(commerceReturn.getReturnStatus(), "draft") %>'>
-												<span class="text-muted">
+												<span class="text-secondary">
 													<liferay-ui:message key="click-add-to-insert" />
 												</span>
 											</c:if>
@@ -158,7 +158,6 @@ portletDisplay.setURLBack(String.valueOf(renderResponse.createRenderURL()));
 							fdsActionDropdownItems="<%= commerceReturnContentDisplayContext.getCommerceReturnItemFDSActionDropdownItems() %>"
 							formName="fm"
 							id="<%= ((commerceReturn == null) || Objects.equals(commerceReturn.getReturnStatus(), CommerceReturnConstants.RETURN_STATUS_DRAFT)) ? CommerceOrderFDSNames.DRAFT_RETURN_ITEMS : CommerceOrderFDSNames.RETURN_ITEMS %>"
-							itemsPerPage="<%= 10 %>"
 							propsTransformer="{commerceReturnItemsPropsTransformer} from commerce-order-content-web"
 							style="stacked"
 						/>

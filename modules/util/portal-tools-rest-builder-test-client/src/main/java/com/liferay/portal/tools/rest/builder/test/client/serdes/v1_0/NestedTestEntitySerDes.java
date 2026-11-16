@@ -8,16 +8,17 @@ package com.liferay.portal.tools.rest.builder.test.client.serdes.v1_0;
 import com.liferay.portal.tools.rest.builder.test.client.dto.v1_0.NestedTestEntity;
 import com.liferay.portal.tools.rest.builder.test.client.json.BaseJSONParser;
 
+import jakarta.annotation.Generated;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
-
-import javax.annotation.Generated;
 
 /**
  * @author Alejandro Tardín
@@ -122,6 +123,20 @@ public class NestedTestEntitySerDes {
 			sb.append("\"");
 		}
 
+		if (nestedTestEntity.getPassword() != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"password\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(nestedTestEntity.getPassword()));
+
+			sb.append("\"");
+		}
+
 		if (nestedTestEntity.getTestEntity() != null) {
 			if (sb.length() > 1) {
 				sb.append(", ");
@@ -197,6 +212,13 @@ public class NestedTestEntitySerDes {
 			map.put("name", String.valueOf(nestedTestEntity.getName()));
 		}
 
+		if (nestedTestEntity.getPassword() == null) {
+			map.put("password", null);
+		}
+		else {
+			map.put("password", String.valueOf(nestedTestEntity.getPassword()));
+		}
+
 		if (nestedTestEntity.getTestEntity() == null) {
 			map.put("testEntity", null);
 		}
@@ -238,6 +260,9 @@ public class NestedTestEntitySerDes {
 			else if (Objects.equals(jsonParserFieldName, "name")) {
 				return false;
 			}
+			else if (Objects.equals(jsonParserFieldName, "password")) {
+				return false;
+			}
 			else if (Objects.equals(jsonParserFieldName, "testEntity")) {
 				return false;
 			}
@@ -277,6 +302,11 @@ public class NestedTestEntitySerDes {
 			else if (Objects.equals(jsonParserFieldName, "name")) {
 				if (jsonParserFieldValue != null) {
 					nestedTestEntity.setName((String)jsonParserFieldValue);
+				}
+			}
+			else if (Objects.equals(jsonParserFieldName, "password")) {
+				if (jsonParserFieldValue != null) {
+					nestedTestEntity.setPassword((String)jsonParserFieldValue);
 				}
 			}
 			else if (Objects.equals(jsonParserFieldName, "testEntity")) {
@@ -330,6 +360,16 @@ public class NestedTestEntitySerDes {
 	}
 
 	private static String _toJSON(Object value) {
+		if (value == null) {
+			return "null";
+		}
+
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>)value;
+
+			return _toJSON(collection.toArray());
+		}
+
 		if (value instanceof Map) {
 			return _toJSON((Map)value);
 		}
@@ -362,3 +402,4 @@ public class NestedTestEntitySerDes {
 	}
 
 }
+// LIFERAY-REST-BUILDER-HASH:1633341893

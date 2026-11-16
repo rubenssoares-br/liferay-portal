@@ -33,6 +33,8 @@ public class UserAccountEntityModel implements EntityModel {
 		List<EntityField> entityFieldList = new ArrayList<>(
 			Arrays.asList(
 				new CollectionEntityField(
+					new IntegerEntityField("groupIds", locale -> "groupIds")),
+				new CollectionEntityField(
 					new StringEntityField(
 						"keywords", locale -> "assetTagNames.lowercase")),
 				new CollectionEntityField(
@@ -74,7 +76,9 @@ public class UserAccountEntityModel implements EntityModel {
 				new StringEntityField(
 					"jobTitle",
 					locale -> Field.getSortableFieldName("jobTitle")),
-				new StringEntityField("name", locale -> Field.USER_NAME)));
+				new StringEntityField(
+					"name",
+					locale -> Field.getSortableFieldName(Field.USER_NAME))));
 
 		if (FeatureFlagManagerUtil.isEnabled("LPD-36010")) {
 			entityFieldList.add(

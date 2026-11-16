@@ -11,31 +11,38 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("VirtualItem")
+@GraphQLName(
+	description = "A virtual or downloadable asset associated with an order item, such as a license URL with usage limits.",
+	value = "VirtualItem"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A virtual or downloadable asset associated with an order item, such as a license URL with usage limits."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "VirtualItem")
 public class VirtualItem implements Serializable {
@@ -48,7 +55,10 @@ public class VirtualItem implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(VirtualItem.class, json);
 	}
 
-	@Schema(example = "http://www.liferay.com")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Fully qualified URL where the virtual asset can be downloaded.",
+		example = "https://example.com/downloads/license.pdf"
+	)
 	public String getUrl() {
 		if (_urlSupplier != null) {
 			url = _urlSupplier.get();
@@ -80,14 +90,19 @@ public class VirtualItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Fully qualified URL where the virtual asset can be downloaded."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String url;
 
 	@JsonIgnore
 	private Supplier<String> _urlSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Integer maximum number of times the virtual asset can be redeemed. 0 means unlimited.",
+		example = "5"
+	)
 	public Integer getUsages() {
 		if (_usagesSupplier != null) {
 			usages = _usagesSupplier.get();
@@ -121,14 +136,18 @@ public class VirtualItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Integer maximum number of times the virtual asset can be redeemed. 0 means unlimited."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Integer usages;
 
 	@JsonIgnore
 	private Supplier<Integer> _usagesSupplier;
 
-	@Schema(example = "v1.0.0")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Version label of the virtual asset.", example = "v1.0.0"
+	)
 	public String getVersion() {
 		if (_versionSupplier != null) {
 			version = _versionSupplier.get();
@@ -162,7 +181,7 @@ public class VirtualItem implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Version label of the virtual asset.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String version;
 
@@ -245,8 +264,8 @@ public class VirtualItem implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.order.dto.v1_0.VirtualItem",
 		name = "x-class-name"
 	)
@@ -333,6 +352,27 @@ public class VirtualItem implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -341,3 +381,4 @@ public class VirtualItem implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-705066341

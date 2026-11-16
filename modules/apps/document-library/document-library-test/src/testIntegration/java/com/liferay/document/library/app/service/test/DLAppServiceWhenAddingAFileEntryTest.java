@@ -6,8 +6,14 @@
 package com.liferay.document.library.app.service.test;
 
 import com.liferay.arquillian.extension.junit.bridge.junit.Arquillian;
+import com.liferay.asset.kernel.exception.AssetCategoryException;
+import com.liferay.asset.kernel.model.AssetCategory;
+import com.liferay.asset.kernel.model.AssetCategoryConstants;
 import com.liferay.asset.kernel.model.AssetEntry;
-import com.liferay.asset.kernel.service.AssetEntryLocalServiceUtil;
+import com.liferay.asset.kernel.model.AssetVocabulary;
+import com.liferay.asset.kernel.service.AssetCategoryLocalService;
+import com.liferay.asset.kernel.service.AssetEntryLocalService;
+import com.liferay.asset.kernel.service.AssetVocabularyLocalService;
 import com.liferay.document.library.app.service.test.util.DLAppServiceTestUtil;
 import com.liferay.document.library.kernel.exception.DuplicateFileEntryException;
 import com.liferay.document.library.kernel.exception.FileExtensionException;
@@ -16,6 +22,7 @@ import com.liferay.document.library.kernel.exception.FileSizeException;
 import com.liferay.document.library.kernel.model.DLFileEntry;
 import com.liferay.document.library.kernel.model.DLFileEntryConstants;
 import com.liferay.document.library.kernel.model.DLFolderConstants;
+import com.liferay.document.library.kernel.service.DLAppServiceUtil;
 import com.liferay.document.library.test.util.BaseDLAppTestCase;
 import com.liferay.document.library.workflow.WorkflowHandlerInvocationCounter;
 import com.liferay.petra.lang.SafeCloseable;
@@ -25,22 +32,40 @@ import com.liferay.portal.configuration.test.util.ConfigurationTemporarySwapper;
 import com.liferay.portal.kernel.increment.BufferedIncrementThreadLocal;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
+import com.liferay.portal.kernel.model.ResourceConstants;
+import com.liferay.portal.kernel.model.Role;
 import com.liferay.portal.kernel.model.User;
+import com.liferay.portal.kernel.model.role.RoleConstants;
 import com.liferay.portal.kernel.repository.model.FileEntry;
+import com.liferay.portal.kernel.security.auth.PrincipalException;
+import com.liferay.portal.kernel.security.permission.ActionKeys;
+import com.liferay.portal.kernel.service.ServiceContext;
+import com.liferay.portal.kernel.service.UserLocalService;
 import com.liferay.portal.kernel.test.AssertUtils;
+import com.liferay.portal.kernel.test.TestInfo;
 import com.liferay.portal.kernel.test.constants.ServiceTestConstants;
+import com.liferay.portal.kernel.test.context.ContextUserReplace;
 import com.liferay.portal.kernel.test.rule.AggregateTestRule;
 import com.liferay.portal.kernel.test.rule.DeleteAfterTestRun;
 import com.liferay.portal.kernel.test.util.RandomTestUtil;
+import com.liferay.portal.kernel.test.util.RoleTestUtil;
 import com.liferay.portal.kernel.test.util.ServiceContextTestUtil;
+import com.liferay.portal.kernel.test.util.TestPropsValues;
 import com.liferay.portal.kernel.test.util.UserTestUtil;
+import com.liferay.portal.kernel.upload.configuration.UploadServletRequestConfigurationProviderUtil;
 import com.liferay.portal.kernel.util.ContentTypes;
+import com.liferay.portal.kernel.util.FileUtil;
+import com.liferay.portal.kernel.util.HashMapBuilder;
 import com.liferay.portal.kernel.util.HashMapDictionaryBuilder;
+import com.liferay.portal.kernel.util.LocaleUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.kernel.util.Time;
-import com.liferay.portal.security.permission.DoAsUserThread;
+import com.liferay.portal.test.rule.Inject;
 import com.liferay.portal.test.rule.LiferayIntegrationTestRule;
-import com.liferay.portal.util.PropsValues;
+import com.liferay.portal.test.security.permission.DoAsUserThread;
+import com.liferay.portlet.asset.util.AssetVocabularySettingsHelper;
+import com.liferay.portlet.documentlibrary.constants.DLConstants;
 
 import java.io.File;
 import java.io.InputStream;
@@ -73,7 +98,7 @@ public class DLAppServiceWhenAddingAFileEntryTest extends BaseDLAppTestCase {
 		FileEntry fileEntry = DLAppServiceTestUtil.addFileEntry(
 			group.getGroupId(), parentFolder.getFolderId(), fileName);
 
-		AssetEntry assetEntry = AssetEntryLocalServiceUtil.fetchEntry(
+		AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
 			DLFileEntryConstants.getClassName(), fileEntry.getFileEntryId());
 
 		Assert.assertEquals(
@@ -135,10 +160,26 @@ public class DLAppServiceWhenAddingAFileEntryTest extends BaseDLAppTestCase {
 			parentFolder.getFolderId(), fileName, fileName, null, null, null,
 			assetTagNames);
 
-		AssetEntry assetEntry = AssetEntryLocalServiceUtil.fetchEntry(
+		AssetEntry assetEntry = _assetEntryLocalService.fetchEntry(
 			DLFileEntryConstants.getClassName(), fileEntry.getFileEntryId());
 
 		AssertUtils.assertEqualsSorted(assetTagNames, assetEntry.getTagNames());
+	}
+
+	@Test
+	public void testFileEntryShouldSaveCorrectMimeTypeForGPXExtension()
+		throws Exception {
+
+		String fileName = "test.gpx";
+
+		FileEntry fileEntry = dlAppService.addFileEntry(
+			null, group.getGroupId(), parentFolder.getFolderId(), fileName,
+			ContentTypes.APPLICATION_OCTET_STREAM, fileName, StringPool.BLANK,
+			StringPool.BLANK, StringPool.BLANK,
+			FileUtil.getBytes(getClass(), _TEST_GPX), null, null, null,
+			ServiceContextTestUtil.getServiceContext(group.getGroupId()));
+
+		Assert.assertEquals("application/gpx+xml", fileEntry.getMimeType());
 	}
 
 	@Test
@@ -185,6 +226,21 @@ public class DLAppServiceWhenAddingAFileEntryTest extends BaseDLAppTestCase {
 	}
 
 	@Test
+	public void testGetMaxSizeWithPadding() throws Exception {
+		String fileName = "test.pdf";
+		int maxSize =
+			(int)UploadServletRequestConfigurationProviderUtil.getMaxSize();
+
+		FileEntry fileEntry = DLAppServiceUtil.addFileEntry(
+			null, group.getGroupId(), parentFolder.getFolderId(), fileName,
+			ContentTypes.APPLICATION_OCTET_STREAM, fileName, StringPool.BLANK,
+			StringPool.BLANK, StringPool.BLANK, new byte[maxSize], null, null,
+			null, ServiceContextTestUtil.getServiceContext(group.getGroupId()));
+
+		Assert.assertNotNull(fileEntry);
+	}
+
+	@Test
 	public void testShouldCallWorkflowHandler() throws Exception {
 		try (WorkflowHandlerInvocationCounter<DLFileEntry>
 				workflowHandlerInvocationCounter =
@@ -199,6 +255,57 @@ public class DLAppServiceWhenAddingAFileEntryTest extends BaseDLAppTestCase {
 				workflowHandlerInvocationCounter.getCount(
 					"updateStatus", Object.class, int.class, Map.class));
 		}
+	}
+
+	@Test(expected = AssetCategoryException.class)
+	public void testShouldFailIfAddingAssetCategoriesFromNonmultiValuedAssetVocabulary()
+		throws Exception {
+
+		ServiceContext serviceContext =
+			ServiceContextTestUtil.getServiceContext(
+				group, TestPropsValues.getUserId());
+
+		AssetVocabularySettingsHelper assetVocabularySettingsHelper =
+			new AssetVocabularySettingsHelper();
+
+		assetVocabularySettingsHelper.setClassNameIdsAndClassTypePKs(
+			new long[] {AssetCategoryConstants.ALL_CLASS_NAME_ID},
+			new long[] {AssetCategoryConstants.ALL_CLASS_TYPE_PK},
+			new boolean[] {false}, new boolean[] {false});
+
+		assetVocabularySettingsHelper.setMultiValued(false);
+
+		Assert.assertFalse(assetVocabularySettingsHelper.isMultiValued());
+
+		AssetVocabulary assetVocabulary =
+			_assetVocabularyLocalService.addVocabulary(
+				TestPropsValues.getUserId(), group.getGroupId(),
+				RandomTestUtil.randomString(),
+				HashMapBuilder.put(
+					LocaleUtil.US, RandomTestUtil.randomString()
+				).build(),
+				null, assetVocabularySettingsHelper.toString(), serviceContext);
+
+		AssetCategory assetCategory1 = _assetCategoryLocalService.addCategory(
+			TestPropsValues.getUserId(), group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
+		AssetCategory assetCategory2 = _assetCategoryLocalService.addCategory(
+			TestPropsValues.getUserId(), group.getGroupId(),
+			RandomTestUtil.randomString(), assetVocabulary.getVocabularyId(),
+			serviceContext);
+
+		serviceContext.setAssetCategoryIds(
+			new long[] {
+				assetCategory1.getCategoryId(), assetCategory2.getCategoryId()
+			});
+
+		dlAppService.addFileEntry(
+			null, group.getGroupId(), parentFolder.getFolderId(),
+			RandomTestUtil.randomString(), ContentTypes.TEXT_PLAIN,
+			RandomTestUtil.randomString(), StringPool.BLANK, StringPool.BLANK,
+			StringPool.BLANK, CONTENT.getBytes(), null, null, null,
+			serviceContext);
 	}
 
 	@Test(expected = DuplicateFileEntryException.class)
@@ -363,6 +470,33 @@ public class DLAppServiceWhenAddingAFileEntryTest extends BaseDLAppTestCase {
 			group.getGroupId(), DLFolderConstants.DEFAULT_PARENT_FOLDER_ID);
 	}
 
+	@Test
+	@TestInfo("LPD-113625")
+	public void testShouldSucceedIfUserHasAddDocumentPermission()
+		throws Exception {
+
+		User user = UserTestUtil.addUser();
+
+		_assertAddFileEntry(false, user);
+
+		Role regularRole = RoleTestUtil.addRole(RoleConstants.TYPE_REGULAR);
+
+		RoleTestUtil.addResourcePermission(
+			regularRole, DLConstants.RESOURCE_NAME,
+			ResourceConstants.SCOPE_COMPANY,
+			String.valueOf(TestPropsValues.getCompanyId()),
+			ActionKeys.ADD_DOCUMENT);
+
+		_userLocalService.addRoleUser(regularRole.getRoleId(), user);
+
+		_assertAddFileEntry(true, user);
+
+		User siteMemberUser = UserTestUtil.addGroupUser(
+			group, RoleConstants.SITE_MEMBER);
+
+		_assertAddFileEntry(true, siteMemberUser);
+	}
+
 	@Ignore
 	@Test
 	public void testShouldSucceedWithConcurrentAccess() throws Exception {
@@ -439,10 +573,47 @@ public class DLAppServiceWhenAddingAFileEntryTest extends BaseDLAppTestCase {
 			ServiceContextTestUtil.getServiceContext(group.getGroupId()));
 	}
 
+	private void _assertAddFileEntry(boolean expected, User user)
+		throws Exception {
+
+		try (ContextUserReplace contextUserReplace = new ContextUserReplace(
+				user)) {
+
+			dlAppService.addFileEntry(
+				null, group.getGroupId(),
+				DLFolderConstants.DEFAULT_PARENT_FOLDER_ID,
+				RandomTestUtil.randomString(),
+				ContentTypes.APPLICATION_OCTET_STREAM,
+				RandomTestUtil.randomString(), null, StringPool.BLANK,
+				StringPool.BLANK, (byte[])null, null, null, null,
+				ServiceContextTestUtil.getServiceContext(group.getGroupId()));
+
+			Assert.assertTrue(expected);
+		}
+		catch (PrincipalException principalException) {
+			Assert.assertFalse(expected);
+		}
+	}
+
+	private static final String _TEST_GPX =
+		"/com/liferay/document/library/dependencies/test.gpx";
+
 	private static final Log _log = LogFactoryUtil.getLog(
 		DLAppServiceWhenAddingAFileEntryTest.class);
 
+	@Inject
+	private AssetCategoryLocalService _assetCategoryLocalService;
+
+	@Inject
+	private AssetEntryLocalService _assetEntryLocalService;
+
+	@Inject
+	private AssetVocabularyLocalService _assetVocabularyLocalService;
+
 	private long[] _fileEntryIds;
+
+	@Inject
+	private UserLocalService _userLocalService;
 
 	@DeleteAfterTestRun
 	private User[] _users;

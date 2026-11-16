@@ -15,14 +15,14 @@ LayoutPageTemplateCollectionsDisplayContext layoutPageTemplateCollectionsDisplay
 	managementToolbarDisplayContext="<%= new LayoutPageTemplateCollectionsManagementToolbarDisplayContext(request, liferayPortletRequest, liferayPortletResponse, layoutPageTemplateCollectionsDisplayContext) %>"
 />
 
-<aui:form cssClass="container-fluid container-fluid-max-xl" name="fm">
+<aui:form cssClass="container-fluid container-fluid-max-xxxl" name="fm">
 	<liferay-ui:search-container
 		id="layoutPageTemplateCollections"
 		searchContainer="<%= layoutPageTemplateCollectionsDisplayContext.getSearchContainer() %>"
 	>
 		<liferay-ui:search-container-row
 			className="com.liferay.layout.page.template.model.LayoutPageTemplateCollection"
-			keyProperty="layoutPageTemplateCollectionId"
+			keyPropertyName="layoutPageTemplateCollectionId"
 			modelVar="layoutPageTemplateCollection"
 		>
 			<liferay-ui:search-container-column-text

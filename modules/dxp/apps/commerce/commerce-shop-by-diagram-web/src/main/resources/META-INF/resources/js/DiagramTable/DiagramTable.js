@@ -12,7 +12,8 @@ import {
 	useCommerceAccount,
 	useCommerceCart,
 } from 'commerce-frontend-js';
-import {openToast, sub} from 'frontend-js-web';
+import {openToast} from 'frontend-js-components-web';
+import {sub} from 'frontend-js-web';
 import PropTypes from 'prop-types';
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 
@@ -29,41 +30,41 @@ import TableHead from './TableHead';
 const PAGE_SIZE = 15;
 
 function formatCpInstances(cpInstances, quantities) {
-	const formattedCpInstances = cpInstances.reduce(
-		(selectedCpInstances, cpInstance) => {
-			if (!cpInstance.selected) {
-				return selectedCpInstances;
-			}
+	return cpInstances.reduce((selectedCpInstances, cpInstance) => {
+		if (!cpInstance.selected) {
+			return selectedCpInstances;
+		}
 
-			const skuOptions = formatProductOptions(
-				cpInstance.skuOptions,
-				cpInstance.productOptions
-			);
+		const quantity =
+			quantities[cpInstance.skuId] || cpInstance.initialQuantity;
+		const skuUnitOfMeasure = cpInstance.skuUnitOfMeasures?.[0];
 
-			return [
-				...selectedCpInstances,
-				{
-					inCart: false,
-					quantity:
-						quantities[cpInstance.skuId] ||
-						cpInstance.initialQuantity,
-					skuId: cpInstance.skuId,
-					skuOptions,
-				},
-			];
-		},
-		[]
-	);
-
-	return formattedCpInstances;
+		return [
+			...selectedCpInstances,
+			{
+				inCart: false,
+				quantity: Number(
+					quantity.toFixed(skuUnitOfMeasure?.precision || 0)
+				),
+				skuId: cpInstance.skuId,
+				skuOptions: formatProductOptions(
+					cpInstance.skuOptions,
+					cpInstance.productOptions
+				),
+				skuUnitOfMeasure,
+				validQuantity: true,
+			},
+		];
+	}, []);
 }
 
 function DiagramTable({
-	cartId: initialCartId,
+	cartId,
 	channelGroupId,
 	channelId,
 	commerceAccountId: initialAccountId,
 	commerceCurrencyCode,
+	guestOrderEnabled,
 	isAdmin,
 	orderUUID,
 	productId,
@@ -76,7 +77,10 @@ function DiagramTable({
 	const [query, setQuery] = useState('');
 	const [refreshTrigger, setRefreshTrigger] = useState(false);
 	const commerceAccount = useCommerceAccount({id: initialAccountId});
-	const commerceCart = useCommerceCart({id: initialCartId});
+	const commerceCart = useCommerceCart({
+		guestOrderEnabled,
+		initialCart: {id: cartId},
+	});
 	const wrapperRef = useRef();
 
 	const handleDiagramUpdated = useCallback(

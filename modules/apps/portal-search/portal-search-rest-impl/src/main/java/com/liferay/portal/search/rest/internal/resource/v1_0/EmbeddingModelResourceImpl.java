@@ -6,7 +6,6 @@
 package com.liferay.portal.search.rest.internal.resource.v1_0;
 
 import com.liferay.petra.string.StringBundler;
-import com.liferay.portal.kernel.feature.flag.FeatureFlagManagerUtil;
 import com.liferay.portal.kernel.json.JSONFactory;
 import com.liferay.portal.kernel.json.JSONUtil;
 import com.liferay.portal.kernel.util.Http;
@@ -18,8 +17,6 @@ import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
 import java.util.Collections;
-
-import javax.ws.rs.NotFoundException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -39,15 +36,11 @@ public class EmbeddingModelResourceImpl extends BaseEmbeddingModelResourceImpl {
 			String provider, String search, Pagination pagination)
 		throws Exception {
 
-		if (!FeatureFlagManagerUtil.isEnabled("LPS-122920")) {
-			throw new NotFoundException();
-		}
-
 		if (Validator.isBlank(provider)) {
 			return null;
 		}
 
-		if (!provider.equals("huggingFaceInferenceAPI")) {
+		if (!provider.equals("hugging-face-inference-api")) {
 			return Page.of(Collections.emptyList());
 		}
 

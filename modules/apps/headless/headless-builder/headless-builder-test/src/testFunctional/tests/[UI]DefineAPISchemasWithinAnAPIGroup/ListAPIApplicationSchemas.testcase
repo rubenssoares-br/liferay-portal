@@ -1,6 +1,7 @@
 @component-name = "portal-headless"
 definition {
 
+	property browser.chrome.version = "139.0";
 	property custom.properties = "feature.flag.LPS-178642=true";
 	property portal.acceptance = "quarantine";
 	property portal.release = "true";
@@ -160,7 +161,7 @@ definition {
 
 		task ("When I click order button next to Last updated") {
 			Click(
-				locator1 = "APIBuilder#DND_TR_BUTTON",
+				locator1 = "APIBuilder#DND_TH_WITH_TEXT",
 				value = "Last updated");
 		}
 
@@ -190,7 +191,7 @@ definition {
 
 		task ("When I click order button next to Name") {
 			Click(
-				locator1 = "APIBuilder#DND_TR_BUTTON",
+				locator1 = "APIBuilder#DND_TH_WITH_TEXT",
 				value = "Name");
 		}
 
@@ -274,20 +275,20 @@ definition {
 				name = "mySchema");
 		}
 
-		task ("Then Name, Descriotion, Last updated, Actions icon are present") {
+		task ("Then Name, Description, Last updated, Actions icon are present") {
 			APIBuilderUI.switchToRelatedEntryInEditApplication(
 				entity = "Schemas",
 				title = "My-app");
 
-			for (var value : list "Name,Last updated,Actions") {
+			for (var value : list "Description,Last updated,Name") {
 				AssertElementPresent(
-					locator1 = "APIBuilder#DND_TR_BUTTON",
+					locator1 = "APIBuilder#DND_TH_WITH_TEXT",
 					value = ${value});
 			}
 
 			AssertElementPresent(
-				locator1 = "APIBuilder#DND_TR_WITH_TEXT",
-				text = "Description");
+				locator1 = "APIBuilder#DND_TR_BUTTON",
+				value = "Actions");
 		}
 
 		task ("And Then available actions are Edit and Delete in Actions icon") {

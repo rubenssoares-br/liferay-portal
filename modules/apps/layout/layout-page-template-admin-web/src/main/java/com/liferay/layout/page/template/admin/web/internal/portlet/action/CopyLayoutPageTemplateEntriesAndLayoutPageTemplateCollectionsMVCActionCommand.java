@@ -6,17 +6,13 @@
 package com.liferay.layout.page.template.admin.web.internal.portlet.action;
 
 import com.liferay.layout.page.template.admin.constants.LayoutPageTemplateAdminPortletKeys;
-import com.liferay.layout.page.template.model.LayoutPageTemplateEntry;
 import com.liferay.layout.page.template.service.LayoutPageTemplateCollectionService;
-import com.liferay.layout.page.template.service.LayoutPageTemplateEntryLocalService;
 import com.liferay.layout.page.template.service.LayoutPageTemplateEntryService;
 import com.liferay.portal.kernel.exception.PortalException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
-import com.liferay.portal.kernel.model.Layout;
 import com.liferay.portal.kernel.portlet.bridges.mvc.BaseMVCActionCommand;
 import com.liferay.portal.kernel.portlet.bridges.mvc.MVCActionCommand;
-import com.liferay.portal.kernel.service.LayoutLocalService;
 import com.liferay.portal.kernel.service.ServiceContext;
 import com.liferay.portal.kernel.service.ServiceContextFactory;
 import com.liferay.portal.kernel.servlet.SessionErrors;
@@ -27,10 +23,10 @@ import com.liferay.portal.kernel.transaction.TransactionInvokerUtil;
 import com.liferay.portal.kernel.util.ParamUtil;
 import com.liferay.portal.kernel.util.WebKeys;
 
-import java.util.concurrent.Callable;
+import jakarta.portlet.ActionRequest;
+import jakarta.portlet.ActionResponse;
 
-import javax.portlet.ActionRequest;
-import javax.portlet.ActionResponse;
+import java.util.concurrent.Callable;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -40,7 +36,7 @@ import org.osgi.service.component.annotations.Reference;
  */
 @Component(
 	property = {
-		"javax.portlet.name=" + LayoutPageTemplateAdminPortletKeys.LAYOUT_PAGE_TEMPLATES,
+		"jakarta.portlet.name=" + LayoutPageTemplateAdminPortletKeys.LAYOUT_PAGE_TEMPLATES,
 		"mvc.command.name=/layout_page_template_admin/copy_layout_page_template_entries_and_layout_page_template_collections"
 	},
 	service = MVCActionCommand.class
@@ -116,25 +112,10 @@ public class
 		}
 
 		for (long layoutPageTemplateEntryId : layoutPageTemplateEntriesId) {
-			LayoutPageTemplateEntry layoutPageTemplateEntry =
-				_layoutPageTemplateEntryService.copyLayoutPageTemplateEntry(
-					themeDisplay.getScopeGroupId(),
-					layoutParentPageTemplateCollectionId,
-					layoutPageTemplateEntryId, copyPermissions, serviceContext);
-
-			LayoutPageTemplateEntry sourceLayoutPageTemplateEntry =
-				_layoutPageTemplateEntryLocalService.getLayoutPageTemplateEntry(
-					layoutPageTemplateEntryId);
-
-			Layout sourceLayout = _layoutLocalService.getLayout(
-				sourceLayoutPageTemplateEntry.getPlid());
-
-			Layout targetLayout = _layoutLocalService.getLayout(
-				layoutPageTemplateEntry.getPlid());
-
-			_layoutLocalService.copyLayoutContent(sourceLayout, targetLayout);
-			_layoutLocalService.copyLayoutContent(
-				sourceLayout, targetLayout.fetchDraftLayout());
+			_layoutPageTemplateEntryService.copyLayoutPageTemplateEntry(
+				themeDisplay.getScopeGroupId(),
+				layoutParentPageTemplateCollectionId, layoutPageTemplateEntryId,
+				copyPermissions, serviceContext);
 		}
 
 		return null;
@@ -148,15 +129,8 @@ public class
 			Propagation.REQUIRED, new Class<?>[] {Exception.class});
 
 	@Reference
-	private LayoutLocalService _layoutLocalService;
-
-	@Reference
 	private LayoutPageTemplateCollectionService
 		_layoutPageTemplateCollectionService;
-
-	@Reference
-	private LayoutPageTemplateEntryLocalService
-		_layoutPageTemplateEntryLocalService;
 
 	@Reference
 	private LayoutPageTemplateEntryService _layoutPageTemplateEntryService;

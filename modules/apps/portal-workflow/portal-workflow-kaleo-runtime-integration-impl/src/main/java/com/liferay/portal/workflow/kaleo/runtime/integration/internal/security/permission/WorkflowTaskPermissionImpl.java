@@ -21,12 +21,11 @@ import com.liferay.portal.kernel.service.OrganizationLocalService;
 import com.liferay.portal.kernel.util.ArrayUtil;
 import com.liferay.portal.kernel.util.MapUtil;
 import com.liferay.portal.kernel.workflow.WorkflowConstants;
-import com.liferay.portal.kernel.workflow.WorkflowException;
 import com.liferay.portal.kernel.workflow.WorkflowHandler;
 import com.liferay.portal.kernel.workflow.WorkflowHandlerRegistryUtil;
 import com.liferay.portal.kernel.workflow.WorkflowTask;
 import com.liferay.portal.kernel.workflow.WorkflowTaskAssignee;
-import com.liferay.portal.kernel.workflow.WorkflowTaskManager;
+import com.liferay.portal.workflow.kaleo.service.KaleoTaskInstanceTokenLocalService;
 import com.liferay.portal.workflow.security.permission.WorkflowTaskPermission;
 
 import java.io.Serializable;
@@ -68,22 +67,20 @@ public class WorkflowTaskPermissionImpl implements WorkflowTaskPermission {
 			return true;
 		}
 
-		boolean assignableUser = false;
+		boolean notifiableUser = false;
 
 		try {
-			List<User> assignableUsers =
-				_workflowTaskManager.getAssignableUsers(
+			notifiableUser =
+				_kaleoTaskInstanceTokenLocalService.isNotifiableUser(
+					permissionChecker.getUserId(),
 					workflowTask.getWorkflowTaskId());
-
-			assignableUser = assignableUsers.contains(
-				permissionChecker.getUser());
 		}
-		catch (WorkflowException workflowException) {
-			_log.error(workflowException);
+		catch (PortalException portalException) {
+			_log.error(portalException);
 		}
 
 		if (hasAssetViewPermission(workflowTask, permissionChecker) &&
-			(assignableUser ||
+			(notifiableUser ||
 			 (workflowTask.isCompleted() &&
 			  (workflowTask.getAssigneeUserId() ==
 				  permissionChecker.getUserId())))) {
@@ -220,13 +217,8 @@ public class WorkflowTaskPermissionImpl implements WorkflowTaskPermission {
 			return false;
 		}
 
-		if (ArrayUtil.contains(
-				roleIds, workflowTaskAssignee.getAssigneeClassPK())) {
-
-			return true;
-		}
-
-		return false;
+		return ArrayUtil.contains(
+			roleIds, workflowTaskAssignee.getAssigneeClassPK());
 	}
 
 	private boolean _isWorkflowTaskAssignableToUser(
@@ -252,9 +244,10 @@ public class WorkflowTaskPermissionImpl implements WorkflowTaskPermission {
 	private GroupLocalService _groupLocalService;
 
 	@Reference
-	private OrganizationLocalService _organizationLocalService;
+	private KaleoTaskInstanceTokenLocalService
+		_kaleoTaskInstanceTokenLocalService;
 
 	@Reference
-	private WorkflowTaskManager _workflowTaskManager;
+	private OrganizationLocalService _organizationLocalService;
 
 }

@@ -10,13 +10,13 @@ import com.liferay.petra.string.StringBundler;
 import com.liferay.petra.string.StringPool;
 import com.liferay.portal.configuration.metatype.annotations.ExtendedObjectClassDefinition;
 import com.liferay.portal.db.partition.util.DBPartitionUtil;
-import com.liferay.portal.kernel.db.partition.DBPartition;
 import com.liferay.portal.kernel.instance.PortalInstancePool;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.security.auth.CompanyThreadLocal;
 import com.liferay.portal.kernel.upgrade.UpgradeProcess;
 import com.liferay.portal.kernel.util.GetterUtil;
+import com.liferay.portal.kernel.util.PropsValues;
 
 import java.io.Serializable;
 
@@ -37,68 +37,79 @@ public class ConfigurationDBPartitionUpgradeProcess extends UpgradeProcess {
 
 	@Override
 	protected void doUpgrade() throws Exception {
-		if (PortalInstancePool.getDefaultCompanyId() ==
-				CompanyThreadLocal.getCompanyId()) {
-
+		if (CompanyThreadLocal.isDefaultCompany()) {
 			try (PreparedStatement preparedStatement =
 					connection.prepareStatement(
 						"select configurationId, dictionary from " +
 							"Configuration_");
+
 				ResultSet resultSet = preparedStatement.executeQuery()) {
 
 				while (resultSet.next()) {
 					ScopeConfiguration scopeConfiguration =
 						_getScopeConfiguration(
-							resultSet.getString(1), resultSet.getString(2));
+							resultSet.getString("configurationId"),
+							resultSet.getString("dictionary"));
 
-					if (scopeConfiguration != null) {
-						if (Objects.equals(
-								scopeConfiguration.getScope(),
-								ExtendedObjectClassDefinition.Scope.
-									PORTLET_INSTANCE)) {
-
-							_scopeConfigurations.add(scopeConfiguration);
-
-							continue;
-						}
-
-						if (!_isApplicable(
-								scopeConfiguration,
-								PortalInstancePool.getDefaultCompanyId())) {
-
-							_scopeConfigurations.add(scopeConfiguration);
-
-							_removeConfiguration(
-								scopeConfiguration.getConfigurationId());
-						}
+					if (scopeConfiguration == null) {
+						continue;
 					}
+
+					if (Objects.equals(
+							scopeConfiguration.getScope(),
+							ExtendedObjectClassDefinition.Scope.
+								PORTLET_INSTANCE)) {
+
+						_scopeConfigurations.add(scopeConfiguration);
+
+						continue;
+					}
+
+					if (_isApplicable(
+							scopeConfiguration,
+							PortalInstancePool.getDefaultCompanyId())) {
+
+						continue;
+					}
+
+					_scopeConfigurations.add(scopeConfiguration);
+
+					_removeConfiguration(
+						scopeConfiguration.getConfigurationId());
 				}
 			}
 
 			long[] companyIds = PortalInstancePool.getCompanyIds();
+
+			for (long companyId : companyIds) {
+				DBPartitionUtil.replaceByTable(
+					connection, companyId, "Configuration_", false);
+			}
 
 			_atomicInteger.set(companyIds.length - 1);
 
 			return;
 		}
 
-		DBPartitionUtil.replaceByTable(connection, false, "Configuration_");
-
 		for (ScopeConfiguration scopeConfiguration : _scopeConfigurations) {
-			if (_isApplicable(
+			if (!_isApplicable(
 					scopeConfiguration, CompanyThreadLocal.getCompanyId())) {
 
-				_insertConfiguration(
-					scopeConfiguration.getConfigurationId(),
-					scopeConfiguration.getDictionary());
-
-				if (!Objects.equals(
-						scopeConfiguration.getScope(),
-						ExtendedObjectClassDefinition.Scope.PORTLET_INSTANCE)) {
-
-					_scopeConfigurations.remove(scopeConfiguration);
-				}
+				continue;
 			}
+
+			_insertConfiguration(
+				scopeConfiguration.getConfigurationId(),
+				scopeConfiguration.getDictionary());
+
+			if (Objects.equals(
+					scopeConfiguration.getScope(),
+					ExtendedObjectClassDefinition.Scope.PORTLET_INSTANCE)) {
+
+				continue;
+			}
+
+			_scopeConfigurations.remove(scopeConfiguration);
 		}
 
 		int remainingCompanies = _atomicInteger.decrementAndGet();
@@ -118,29 +129,26 @@ public class ConfigurationDBPartitionUpgradeProcess extends UpgradeProcess {
 							" does not exist"));
 				}
 
-				if (Objects.equals(
+				if (!Objects.equals(
 						scopeConfiguration.getScope(),
 						ExtendedObjectClassDefinition.Scope.GROUP)) {
 
-					_log.warn(
-						StringBundler.concat(
-							"Group scope configuration with ID ",
-							scopeConfiguration.getConfigurationId(),
-							" has been removed because the group ID ",
-							scopeConfiguration.getScopePK(),
-							" does not exist"));
+					continue;
 				}
+
+				_log.warn(
+					StringBundler.concat(
+						"Group scope configuration with ID ",
+						scopeConfiguration.getConfigurationId(),
+						" has been removed because the group ID ",
+						scopeConfiguration.getScopePK(), " does not exist"));
 			}
 		}
 	}
 
 	@Override
 	protected boolean isSkipUpgradeProcess() {
-		if (!DBPartition.isPartitionEnabled()) {
-			return true;
-		}
-
-		return false;
+		return !PropsValues.DATABASE_PARTITION_ENABLED;
 	}
 
 	private ScopeConfiguration _getScopeConfiguration(
@@ -152,21 +160,21 @@ public class ConfigurationDBPartitionUpgradeProcess extends UpgradeProcess {
 				dictionary.getBytes(StringPool.UTF8)));
 
 		Object value = dictionaryMap.get(
-			ExtendedObjectClassDefinition.Scope.COMPANY.getPropertyKey());
-
-		if (value != null) {
-			return new ScopeConfiguration(
-				configurationId, dictionary, GetterUtil.getLong(value),
-				ExtendedObjectClassDefinition.Scope.COMPANY);
-		}
-
-		value = dictionaryMap.get(
 			ExtendedObjectClassDefinition.Scope.GROUP.getPropertyKey());
 
 		if (value != null) {
 			return new ScopeConfiguration(
 				configurationId, dictionary, GetterUtil.getLong(value),
 				ExtendedObjectClassDefinition.Scope.GROUP);
+		}
+
+		value = dictionaryMap.get(
+			ExtendedObjectClassDefinition.Scope.COMPANY.getPropertyKey());
+
+		if (value != null) {
+			return new ScopeConfiguration(
+				configurationId, dictionary, GetterUtil.getLong(value),
+				ExtendedObjectClassDefinition.Scope.COMPANY);
 		}
 
 		value = dictionaryMap.get(

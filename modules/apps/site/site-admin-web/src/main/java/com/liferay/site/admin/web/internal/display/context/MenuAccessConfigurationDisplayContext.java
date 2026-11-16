@@ -19,24 +19,23 @@ import com.liferay.portal.kernel.portlet.url.builder.PortletURLBuilder;
 import com.liferay.portal.kernel.service.RoleLocalService;
 import com.liferay.portal.kernel.theme.ThemeDisplay;
 import com.liferay.portal.kernel.util.ArrayUtil;
-import com.liferay.portal.kernel.util.GetterUtil;
 import com.liferay.portal.kernel.util.JavaConstants;
 import com.liferay.portal.kernel.util.Portal;
 import com.liferay.portal.kernel.util.WebKeys;
 import com.liferay.roles.admin.search.RoleSearch;
-import com.liferay.roles.item.selector.regular.role.RegularRoleItemSelectorCriterion;
-import com.liferay.roles.item.selector.site.role.SiteRoleItemSelectorCriterion;
+import com.liferay.roles.item.selector.RegularRoleItemSelectorCriterion;
+import com.liferay.roles.item.selector.SiteRoleItemSelectorCriterion;
 import com.liferay.site.configuration.manager.MenuAccessConfigurationManager;
+
+import jakarta.portlet.PortletRequest;
+import jakarta.portlet.PortletResponse;
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import javax.portlet.PortletRequest;
-import javax.portlet.PortletResponse;
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Mikel Lorza
@@ -55,10 +54,10 @@ public class MenuAccessConfigurationDisplayContext {
 
 		_liferayPortletRequest = portal.getLiferayPortletRequest(
 			(PortletRequest)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_REQUEST));
+				JavaConstants.JAKARTA_PORTLET_REQUEST));
 		_liferayPortletResponse = portal.getLiferayPortletResponse(
 			(PortletResponse)httpServletRequest.getAttribute(
-				JavaConstants.JAVAX_PORTLET_RESPONSE));
+				JavaConstants.JAKARTA_PORTLET_RESPONSE));
 		_themeDisplay = (ThemeDisplay)httpServletRequest.getAttribute(
 			WebKeys.THEME_DISPLAY);
 	}
@@ -73,19 +72,26 @@ public class MenuAccessConfigurationDisplayContext {
 		RegularRoleItemSelectorCriterion regularRoleItemSelectorCriterion =
 			new RegularRoleItemSelectorCriterion();
 
-		String[] roleIds =
-			_menuAccessConfigurationManager.getAccessToControlMenuRoleIds(
-				_themeDisplay.getScopeGroupId());
+		String[] accessToControlMenuRoleExternalReferenceCodes =
+			_menuAccessConfigurationManager.
+				getAccessToControlMenuRoleExternalReferenceCodes(
+					_themeDisplay.getScopeGroupId());
 
-		long[] checkedRoleIds = new long[roleIds.length];
+		long[] checkedRoleIds =
+			new long[accessToControlMenuRoleExternalReferenceCodes.length];
 
-		for (int i = 0; i < roleIds.length; i++) {
-			Role role = _roleLocalService.fetchRole(
-				GetterUtil.getLong(roleIds[i]));
+		for (int i = 0;
+			 i < accessToControlMenuRoleExternalReferenceCodes.length; i++) {
 
-			if (role != null) {
-				checkedRoleIds[i] = role.getRoleId();
+			Role role = _roleLocalService.fetchRoleByExternalReferenceCode(
+				accessToControlMenuRoleExternalReferenceCodes[i],
+				_themeDisplay.getCompanyId());
+
+			if (role == null) {
+				continue;
 			}
+
+			checkedRoleIds[i] = role.getRoleId();
 		}
 
 		regularRoleItemSelectorCriterion.setCheckedRoleIds(checkedRoleIds);
@@ -132,36 +138,47 @@ public class MenuAccessConfigurationDisplayContext {
 
 		List<Role> roles = new ArrayList<>();
 
-		String[] accessToControlMenuRoleIds =
-			_menuAccessConfigurationManager.getAccessToControlMenuRoleIds(
-				_themeDisplay.getScopeGroupId());
+		String[] accessToControlMenuRoleExternalReferenceCodes =
+			_menuAccessConfigurationManager.
+				getAccessToControlMenuRoleExternalReferenceCodes(
+					_themeDisplay.getScopeGroupId());
 
-		for (String roleId : accessToControlMenuRoleIds) {
-			Role role = _roleLocalService.fetchRole(GetterUtil.getLong(roleId));
+		for (String accessToControlMenuRoleExternalReferenceCode :
+				accessToControlMenuRoleExternalReferenceCodes) {
 
-			if (role != null) {
-				roles.add(role);
+			Role role = _roleLocalService.fetchRoleByExternalReferenceCode(
+				accessToControlMenuRoleExternalReferenceCode,
+				_themeDisplay.getCompanyId());
+
+			if (role == null) {
+				continue;
 			}
+
+			roles.add(role);
 		}
 
-		Role administratorRole = _roleLocalService.getRole(
-			_themeDisplay.getCompanyId(), RoleConstants.ADMINISTRATOR);
+		if (!_menuAccessConfigurationManager.isShowControlMenuByRole(
+				_themeDisplay.getScopeGroupId())) {
 
-		if (!ArrayUtil.contains(
-				accessToControlMenuRoleIds,
-				String.valueOf(administratorRole.getRoleId()))) {
+			Role administratorRole = _roleLocalService.getRole(
+				_themeDisplay.getCompanyId(), RoleConstants.ADMINISTRATOR);
 
-			roles.add(administratorRole);
-		}
+			if (!ArrayUtil.contains(
+					accessToControlMenuRoleExternalReferenceCodes,
+					administratorRole.getExternalReferenceCode())) {
 
-		Role siteAdministratorRole = _roleLocalService.getRole(
-			_themeDisplay.getCompanyId(), RoleConstants.SITE_ADMINISTRATOR);
+				roles.add(administratorRole);
+			}
 
-		if (!ArrayUtil.contains(
-				accessToControlMenuRoleIds,
-				String.valueOf(siteAdministratorRole.getRoleId()))) {
+			Role siteAdministratorRole = _roleLocalService.getRole(
+				_themeDisplay.getCompanyId(), RoleConstants.SITE_ADMINISTRATOR);
 
-			roles.add(siteAdministratorRole);
+			if (!ArrayUtil.contains(
+					accessToControlMenuRoleExternalReferenceCodes,
+					siteAdministratorRole.getExternalReferenceCode())) {
+
+				roles.add(siteAdministratorRole);
+			}
 		}
 
 		searchContainer.setResultsAndTotal(roles);

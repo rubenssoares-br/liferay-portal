@@ -97,7 +97,7 @@
 </tr>
 <tr>
 	<td>COG_PAGE</td>
-	<td>//li/div[contains(.,'${key_pageName}')]/..//a[*[name()='svg'][contains(@class,'icon-cog')]]</td>
+	<td>//li//div[contains(.,'${key_pageName}')]/..//a[*[name()='svg'][contains(@class,'icon-cog')]]</td>
 	<td></td>
 </tr>
 <tr>
@@ -242,12 +242,12 @@
 </tr>
 <tr>
 	<td>FRIENDLY_URL_HISTORY</td>
-	<td>//button[contains(@class,'history')][*[name()='svg'][contains(@class,'lexicon-icon-restore')]]</td>
+	<td>//button[contains(@class,'history')][*[name()='svg'][contains(@class,'lexicon-icon-time')]]</td>
 	<td></td>
 </tr>
 <tr>
 	<td>FRIENDLY_URL_HISTORY_DISABLED</td>
-	<td>//button[contains(@class,'history') and @disabled][*[name()='svg'][contains(@class,'lexicon-icon-restore')]]</td>
+	<td>//button[contains(@class,'history') and @disabled][*[name()='svg'][contains(@class,'lexicon-icon-time')]]</td>
 	<td></td>
 </tr>
 <tr>
@@ -272,12 +272,12 @@
 </tr>
 <tr>
 	<td>INFO</td>
-	<td>//a[contains(@class,'btn')][normalize-space()='Info'] | //div[contains(@class,'management-bar-default')]//a[contains(@class,'infoPanelToggler')] | //button[contains(@class,'btn')]//*[name()='svg'][contains(@class,'lexicon-icon-info')]</td>
+	<td>//a[contains(@class,'btn')][normalize-space()='Info'] | //div[contains(@class,'management-bar-default')]//a[contains(@class,'infoPanelToggler')] | //*[contains(@class,'btn') and not(ancestor::div[@class='control-menu-nav'])]//*[name()='svg'][contains(@class,'lexicon-icon-info')]</td>
 	<td></td>
 </tr>
 <tr>
 	<td>INFO_DM</td>
-	<td>//*[*[name()='svg'][contains(@class,'lexicon-icon-info-circle-open')]]</td>
+	<td>//*[contains(@class,'btn') and not(ancestor::div[@class='control-menu-nav'])]//*[name()='svg'][contains(@class,'lexicon-icon-info-circle-open')]</td>
 	<td></td>
 </tr>
 <tr>
@@ -449,6 +449,11 @@
 	<td></td>
 </tr>
 <tr>
+	<td>FRAGMENT_OPTIONS_ICON</td>
+	<td>//*[@id="wrapper"]//li[contains(@class, "tbar-item")]//button[contains(@class, "dropdown-toggle")]</td>
+	<td></td>
+</tr>
+<tr>
 	<td>FRAGMENT_PAGE_CONTENT_VERTICAL_ELLIPSIS</td>
 	<td>//li[contains(@class,'page-content') and contains(.,'${key_rowEntry}')]//button[contains(@class,'page-contents')]</td>
 	<td></td>
@@ -485,7 +490,7 @@
 </tr>
 <tr>
 	<td>ROW_VERTICAL_ELLIPSIS</td>
-	<td>//*[@data-qa-id='row' and contains(.,'${key_rowEntry}')]//*[*[name()='svg'][contains(@class,'icon-ellipsis')]] | //*[@class="dnd-tr" and contains (., '${key_rowEntry}')]//*[*[name()='svg'][contains(@class,'icon-ellipsis')]]</td>
+	<td>//*[@data-qa-id='row' and contains(.,'${key_rowEntry}')]//*[*[name()='svg'][contains(@class,'icon-ellipsis')]] | //tr[contains(., '${key_rowEntry}')]//*[*[name()='svg'][contains(@class,'icon-ellipsis')]]</td>
 	<td></td>
 </tr>
 <tr>
@@ -495,7 +500,7 @@
 </tr>
 <tr>
 	<td>ROW_VERTICAL_ELLIPSIS_SAFARI</td>
-	<td>//*[@data-qa-id='row' and contains(.,'${key_rowEntry}')]//a[contains(@class,'dropdown-toggle')] | //*[@class="dnd-tr" and contains (., '${key_rowEntry}')]//*[contains(@class, 'dropdown-toggle')]</td>
+	<td>//*[@data-qa-id='row' and contains(.,'${key_rowEntry}')]//a[contains(@class,'dropdown-toggle')] | //tr[contains(., '${key_rowEntry}')]//*[contains(@class, 'dropdown-toggle')]</td>
 	<td></td>
 </tr>
 <tr>

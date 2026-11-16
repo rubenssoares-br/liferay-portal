@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import {expect} from '@playwright/test';
 import * as fs from 'fs';
 
 import getRandomString from '../utils/getRandomString';
 import {ApiHelpers, DataApiHelpers} from './ApiHelpers';
 
-type TExportTask = {
+type TBatchEngineTask = {
 	className?: string;
 	contentType?: string;
 	errorMessage?: string;
@@ -29,7 +30,7 @@ export class HeadlessBatchEngineApiHelper {
 		this.basePath = 'headless-batch-engine/v1.0/';
 	}
 
-	async getExportTask(exportTaskId: number): Promise<TExportTask> {
+	async getExportTask(exportTaskId: number): Promise<TBatchEngineTask> {
 		return this.apiHelpers.get(
 			`${this.apiHelpers.baseUrl}${this.basePath}/export-task/${exportTaskId}`
 		);
@@ -45,5 +46,28 @@ export class HeadlessBatchEngineApiHelper {
 		fs.writeFileSync(fileName, body);
 
 		return fileName;
+	}
+
+	async getImportTask(importTaskId: number): Promise<TBatchEngineTask> {
+		return this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${this.basePath}import-task/${importTaskId}`
+		);
+	}
+
+	async waitForImportTask(importTaskId: number): Promise<TBatchEngineTask> {
+		let importTask: TBatchEngineTask;
+
+		await expect
+			.poll(
+				async () => {
+					importTask = await this.getImportTask(importTaskId);
+
+					return importTask.executeStatus;
+				},
+				{intervals: [1000], timeout: 180 * 1000}
+			)
+			.toMatch(/^(COMPLETED|FAILED)$/);
+
+		return importTask!;
 	}
 }

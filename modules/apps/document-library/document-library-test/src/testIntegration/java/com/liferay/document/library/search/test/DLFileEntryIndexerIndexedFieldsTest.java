@@ -178,9 +178,11 @@ public class DLFileEntryIndexerIndexedFieldsTest extends BaseDLIndexerTestCase {
 				dlFileVersion.getFileVersionId());
 
 		for (DLFileEntryMetadata dlFileEntryMetadata : dlFileEntryMetadatas) {
-			if (dlFileEntryMetadata != null) {
-				ddmStructureId = dlFileEntryMetadata.getDDMStructureId();
+			if (dlFileEntryMetadata == null) {
+				continue;
 			}
+
+			ddmStructureId = dlFileEntryMetadata.getDDMStructureId();
 		}
 
 		return ddmStructureId;
@@ -425,10 +427,10 @@ public class DLFileEntryIndexerIndexedFieldsTest extends BaseDLIndexerTestCase {
 	}
 
 	@Inject
-	private static DDMIndexer _ddmIndexer;
+	private AssetEntryLocalService _assetEntryLocalService;
 
 	@Inject
-	private AssetEntryLocalService _assetEntryLocalService;
+	private DDMIndexer _ddmIndexer;
 
 	@Inject
 	private DLFileEntryLocalService _dlFileEntryLocalService;

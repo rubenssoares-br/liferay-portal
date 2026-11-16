@@ -5,7 +5,7 @@
 
 package com.liferay.commerce.internal.model.listener;
 
-import com.liferay.commerce.notification.util.CommerceNotificationHelper;
+import com.liferay.commerce.notification.CommerceNotificationSender;
 import com.liferay.commerce.product.model.CommerceChannel;
 import com.liferay.commerce.product.service.CommerceChannelLocalService;
 import com.liferay.object.model.ObjectDefinition;
@@ -115,7 +115,7 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 				_objectDefinitionLocalService.getObjectDefinition(
 					objectEntry.getObjectDefinitionId());
 
-			_commerceNotificationHelper.sendNotifications(
+			_commerceNotificationSender.sendNotifications(
 				commerceChannel.getGroupId(), objectEntry.getUserId(),
 				objectDefinition.getClassName() + "#" + action, objectEntry);
 		}
@@ -152,7 +152,8 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 		try {
 			_objectEntryLocalService.updateObjectEntry(
 				objectEntry.getUserId(), objectEntry.getObjectEntryId(),
-				objectEntry.getValues(), new ServiceContext());
+				objectEntry.getObjectEntryFolderId(), objectEntry.getValues(),
+				new ServiceContext());
 		}
 		catch (PortalException portalException) {
 			if (_log.isWarnEnabled()) {
@@ -164,9 +165,7 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 	private void _updateCommerceReturnItemResourcePermissions(
 		ObjectEntry objectEntry) {
 
-		ObjectDefinition objectDefinition =
-			_objectDefinitionLocalService.fetchObjectDefinition(
-				objectEntry.getObjectDefinitionId());
+		ObjectDefinition objectDefinition = objectEntry.getObjectDefinition();
 
 		if (!StringUtil.equals(
 				objectDefinition.getName(), "CommerceReturnItem")) {
@@ -210,7 +209,7 @@ public class ObjectEntryModelListener extends BaseModelListener<ObjectEntry> {
 	private CommerceChannelLocalService _commerceChannelLocalService;
 
 	@Reference
-	private CommerceNotificationHelper _commerceNotificationHelper;
+	private CommerceNotificationSender _commerceNotificationSender;
 
 	@Reference
 	private ObjectDefinitionLocalService _objectDefinitionLocalService;

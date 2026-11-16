@@ -7,6 +7,7 @@ import {API, ManagementToolbar} from '@liferay/object-js-components-web';
 import React from 'react';
 
 interface ObjectManagementToolbarProps {
+	allowStandaloneObjectEntry: boolean;
 	backURL: string;
 	hasPublishObjectPermission: boolean;
 	hasUpdateObjectDefinitionPermission: boolean;
@@ -14,6 +15,7 @@ interface ObjectManagementToolbarProps {
 	isRootDescendantNode: boolean;
 	isRootNode: boolean;
 	label: string;
+	loading: boolean;
 	objectDefinitionExternalReferenceCode: string;
 	objectDefinitionId: number;
 	onSubmit: (draft: boolean) => void;
@@ -23,6 +25,7 @@ interface ObjectManagementToolbarProps {
 }
 
 export default function ObjectManagementToolbar({
+	allowStandaloneObjectEntry,
 	backURL,
 	hasPublishObjectPermission,
 	hasUpdateObjectDefinitionPermission,
@@ -30,6 +33,7 @@ export default function ObjectManagementToolbar({
 	isRootDescendantNode,
 	isRootNode,
 	label,
+	loading,
 	objectDefinitionExternalReferenceCode,
 	objectDefinitionId,
 	onSubmit,
@@ -65,10 +69,25 @@ export default function ObjectManagementToolbar({
 					? 'label-inverse-info'
 					: 'label-inverse-secondary'
 			}
+			inheritanceIconSymbol={
+				isRootDescendantNode
+					? allowStandaloneObjectEntry
+						? 'unlock'
+						: 'lock'
+					: undefined
+			}
 			inheritanceLabel={inheritanceLabel}
+			inheritanceTitle={
+				isRootDescendantNode
+					? allowStandaloneObjectEntry
+						? Liferay.Language.get('flexible-inheritance-tooltip')
+						: Liferay.Language.get('strict-inheritance-tooltip')
+					: undefined
+			}
 			isApproved={isApproved}
 			isRootDescendantNode={isRootDescendantNode}
 			label={label}
+			loading={loading}
 			objectDefinitionExternalReferenceCode={
 				objectDefinitionExternalReferenceCode
 			}

@@ -22,11 +22,11 @@ import com.liferay.portal.kernel.transaction.Propagation;
 import com.liferay.portal.kernel.transaction.Transactional;
 import com.liferay.portal.kernel.util.OrderByComparator;
 
+import jakarta.portlet.PortletPreferences;
+
 import java.io.Serializable;
 
 import java.util.List;
-
-import javax.portlet.PortletPreferences;
 
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -288,3 +288,4 @@ public interface PortalPreferencesLocalService
 		long ownerId, int ownerType, String xml);
 
 }
+// LIFERAY-SERVICE-BUILDER-HASH:82342434

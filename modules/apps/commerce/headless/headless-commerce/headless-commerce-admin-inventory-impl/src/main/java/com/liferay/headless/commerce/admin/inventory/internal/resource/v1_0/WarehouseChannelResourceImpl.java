@@ -16,7 +16,7 @@ import com.liferay.commerce.product.service.CommerceChannelService;
 import com.liferay.headless.commerce.admin.inventory.dto.v1_0.Warehouse;
 import com.liferay.headless.commerce.admin.inventory.dto.v1_0.WarehouseChannel;
 import com.liferay.headless.commerce.admin.inventory.resource.v1_0.WarehouseChannelResource;
-import com.liferay.headless.commerce.core.util.ServiceContextHelper;
+import com.liferay.headless.commerce.core.helper.ServiceContextHelper;
 import com.liferay.portal.kernel.search.Sort;
 import com.liferay.portal.kernel.search.filter.Filter;
 import com.liferay.portal.kernel.security.permission.resource.ModelResourcePermission;
@@ -30,7 +30,6 @@ import com.liferay.portal.vulcan.fields.NestedField;
 import com.liferay.portal.vulcan.pagination.Page;
 import com.liferay.portal.vulcan.pagination.Pagination;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -79,12 +78,12 @@ public class WarehouseChannelResourceImpl
 				null, pagination.getStartPosition(),
 				pagination.getEndPosition());
 
-		int totalItems = _commerceChannelRelService.getCommerceChannelRelsCount(
+		int totalCount = _commerceChannelRelService.getCommerceChannelRelsCount(
 			CommerceInventoryWarehouse.class.getName(),
 			commerceInventoryWarehouse.getCommerceInventoryWarehouseId());
 
 		return Page.of(
-			_toWarehouseChannels(commerceChannelRels), pagination, totalItems);
+			_toWarehouseChannels(commerceChannelRels), pagination, totalCount);
 	}
 
 	@NestedField(parentClass = Warehouse.class, value = "warehouseChannels")
@@ -107,11 +106,11 @@ public class WarehouseChannelResourceImpl
 				CommerceInventoryWarehouse.class.getName(), id, search,
 				pagination.getStartPosition(), pagination.getEndPosition());
 
-		int totalItems = _commerceChannelRelService.getCommerceChannelRelsCount(
+		int totalCount = _commerceChannelRelService.getCommerceChannelRelsCount(
 			CommerceInventoryWarehouse.class.getName(), id, search);
 
 		return Page.of(
-			_toWarehouseChannels(commerceChannelRel), pagination, totalItems);
+			_toWarehouseChannels(commerceChannelRel), pagination, totalCount);
 	}
 
 	@Override
@@ -226,15 +225,10 @@ public class WarehouseChannelResourceImpl
 			List<CommerceChannelRel> commerceChannelRels)
 		throws Exception {
 
-		List<WarehouseChannel> warehouseChannels = new ArrayList<>();
-
-		for (CommerceChannelRel commerceChannelRel : commerceChannelRels) {
-			warehouseChannels.add(
-				_toWarehouseChannel(
-					commerceChannelRel.getCommerceChannelRelId()));
-		}
-
-		return warehouseChannels;
+		return transform(
+			commerceChannelRels,
+			commerceChannelRel -> _toWarehouseChannel(
+				commerceChannelRel.getCommerceChannelRelId()));
 	}
 
 	@Reference(

@@ -11,18 +11,26 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
@@ -30,21 +38,19 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Andrea Sbarra
  * @generated
  */
 @Generated("")
-@GraphQLName("Attachment")
+@GraphQLName(
+	description = "Media or document attached to a catalog product, used for images, downloadable resources, or gallery entries.",
+	value = "Attachment"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Media or document attached to a catalog product, used for images, downloadable resources, or gallery entries."
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"sku"})
 @XmlRootElement(name = "Attachment")
 public class Attachment implements Serializable {
 
@@ -56,7 +62,10 @@ public class Attachment implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(Attachment.class, json);
 	}
 
-	@Schema(description = "Base64 encoded file")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Base64-encoded file payload accepted on create or update. The payload is written to the document library, and the resulting file entry is referenced by fileEntryId.",
+		example = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+	)
 	public String getAttachment() {
 		if (_attachmentSupplier != null) {
 			attachment = _attachmentSupplier.get();
@@ -90,14 +99,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "Base64 encoded file")
+	@GraphQLField(
+		description = "Base64-encoded file payload accepted on create or update. The payload is written to the document library, and the resulting file entry is referenced by fileEntryId."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String attachment;
 
 	@JsonIgnore
 	private Supplier<String> _attachmentSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the attachment is served from the configured CDN host rather than the document library. Defaults to false.",
+		example = "true"
+	)
 	public Boolean getCdnEnabled() {
 		if (_cdnEnabledSupplier != null) {
 			cdnEnabled = _cdnEnabledSupplier.get();
@@ -131,14 +145,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the attachment is served from the configured CDN host rather than the document library. Defaults to false."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean cdnEnabled;
 
 	@JsonIgnore
 	private Supplier<Boolean> _cdnEnabledSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Fully qualified CDN URL for the attachment when CDN delivery is enabled. Read-only; computed at response time.",
+		example = "https://cdn.example.com/attachment.png"
+	)
 	public String getCdnURL() {
 		if (_cdnURLSupplier != null) {
 			cdnURL = _cdnURLSupplier.get();
@@ -172,16 +191,22 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Fully qualified CDN URL for the attachment when CDN delivery is enabled. Read-only; computed at response time."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String cdnURL;
 
 	@JsonIgnore
 	private Supplier<String> _cdnURLSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Caller-defined extension attributes attached to the attachment through the platform's expando mechanism. Read-only on this API."
+	)
 	@Valid
-	public CustomField[] getCustomFields() {
+	public com.liferay.portal.vulcan.custom.field.CustomField[]
+		getCustomFields() {
+
 		if (_customFieldsSupplier != null) {
 			customFields = _customFieldsSupplier.get();
 
@@ -191,7 +216,9 @@ public class Attachment implements Serializable {
 		return customFields;
 	}
 
-	public void setCustomFields(CustomField[] customFields) {
+	public void setCustomFields(
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields) {
+
 		this.customFields = customFields;
 
 		_customFieldsSupplier = null;
@@ -199,7 +226,9 @@ public class Attachment implements Serializable {
 
 	@JsonIgnore
 	public void setCustomFields(
-		UnsafeSupplier<CustomField[], Exception> customFieldsUnsafeSupplier) {
+		UnsafeSupplier
+			<com.liferay.portal.vulcan.custom.field.CustomField[], Exception>
+				customFieldsUnsafeSupplier) {
 
 		_customFieldsSupplier = () -> {
 			try {
@@ -214,14 +243,20 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Caller-defined extension attributes attached to the attachment through the platform's expando mechanism. Read-only on this API."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
-	protected CustomField[] customFields;
+	protected com.liferay.portal.vulcan.custom.field.CustomField[] customFields;
 
 	@JsonIgnore
-	private Supplier<CustomField[]> _customFieldsSupplier;
+	private Supplier<com.liferay.portal.vulcan.custom.field.CustomField[]>
+		_customFieldsSupplier;
 
-	@Schema(example = "2017-07-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date and time from which the attachment becomes visible to storefront callers, in ISO 8601. Optional; absent means visible immediately.",
+		example = "2017-07-21"
+	)
 	public Date getDisplayDate() {
 		if (_displayDateSupplier != null) {
 			displayDate = _displayDateSupplier.get();
@@ -255,14 +290,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Date and time from which the attachment becomes visible to storefront callers, in ISO 8601. Optional; absent means visible immediately."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date displayDate;
 
 	@JsonIgnore
 	private Supplier<Date> _displayDateSupplier;
 
-	@Schema(example = "2017-08-21")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Date and time after which the attachment is no longer visible to storefront callers, in ISO 8601. Ignored when neverExpire is true.",
+		example = "2017-08-21"
+	)
 	public Date getExpirationDate() {
 		if (_expirationDateSupplier != null) {
 			expirationDate = _expirationDateSupplier.get();
@@ -296,14 +336,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Date and time after which the attachment is no longer visible to storefront callers, in ISO 8601. Ignored when neverExpire is true."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Date expirationDate;
 
 	@JsonIgnore
 	private Supplier<Date> _expirationDateSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per attachment within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -337,7 +382,9 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per attachment within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -345,7 +392,10 @@ public class Attachment implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the document library file entry that holds the binary content (FK identifier). Read-only; set when the attachment payload is uploaded.",
+		example = "30130"
+	)
 	public Long getFileEntryId() {
 		if (_fileEntryIdSupplier != null) {
 			fileEntryId = _fileEntryIdSupplier.get();
@@ -379,14 +429,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the document library file entry that holds the binary content (FK identifier). Read-only; set when the attachment payload is uploaded."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long fileEntryId;
 
 	@JsonIgnore
 	private Supplier<Long> _fileEntryIdSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Whether this attachment is displayed in the product gallery. Read-only; derived from the attachment's type (image attachments are gallery-enabled).",
+		example = "true"
+	)
 	public Boolean getGalleryEnabled() {
 		if (_galleryEnabledSupplier != null) {
 			galleryEnabled = _galleryEnabledSupplier.get();
@@ -420,7 +475,9 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Whether this attachment is displayed in the product gallery. Read-only; derived from the attachment's type (image attachments are gallery-enabled)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Boolean galleryEnabled;
 
@@ -428,7 +485,10 @@ public class Attachment implements Serializable {
 	private Supplier<Boolean> _galleryEnabledSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Primary identifier of the attachment (FK identifier). Read-only; assigned on create.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -460,14 +520,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Primary identifier of the attachment (FK identifier). Read-only; assigned on create."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true the attachment never expires and expirationDate is ignored. Defaults to false.",
+		example = "true"
+	)
 	public Boolean getNeverExpire() {
 		if (_neverExpireSupplier != null) {
 			neverExpire = _neverExpireSupplier.get();
@@ -501,14 +566,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true the attachment never expires and expirationDate is ignored. Defaults to false."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean neverExpire;
 
 	@JsonIgnore
 	private Supplier<Boolean> _neverExpireSupplier;
 
-	@Schema(example = "{color=yellow, optionKey=optionValueKey, size=xs}")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Map of option key/value pairs that bind this attachment to a specific SKU variant. Stored as a serialized JSON array on the underlying record. Updating this field triggers a reindex of the owning product.",
+		example = "{color=yellow, optionKey=optionValueKey, size=xs}"
+	)
 	@Valid
 	public Map<String, String> getOptions() {
 		if (_optionsSupplier != null) {
@@ -543,14 +613,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Map of option key/value pairs that bind this attachment to a specific SKU variant. Stored as a serialized JSON array on the underlying record. Updating this field triggers a reindex of the owning product."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Map<String, String> options;
 
 	@JsonIgnore
 	private Supplier<Map<String, String>> _optionsSupplier;
 
-	@Schema(example = "1.2")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display priority within the product's attachment list; lower values sort first. Sortable via the OData query parameter.",
+		example = "1.2"
+	)
 	public Double getPriority() {
 		if (_prioritySupplier != null) {
 			priority = _prioritySupplier.get();
@@ -584,14 +659,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display priority within the product's attachment list; lower values sort first. Sortable via the OData query parameter."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Double priority;
 
 	@JsonIgnore
 	private Supplier<Double> _prioritySupplier;
 
-	@Schema(description = "URL of the location")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Resolved URL where the attachment can be downloaded. Read-only; computed at response time.",
+		example = "https://example.com/attachment.png"
+	)
 	public String getSrc() {
 		if (_srcSupplier != null) {
 			src = _srcSupplier.get();
@@ -623,14 +703,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField(description = "URL of the location")
+	@GraphQLField(
+		description = "Resolved URL where the attachment can be downloaded. Read-only; computed at response time."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String src;
 
 	@JsonIgnore
 	private Supplier<String> _srcSupplier;
 
-	@Schema(example = "[tag1, tag2, tag3]")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Asset-tag names attached to the underlying file entry. Read-only on this API.",
+		example = "[tag1, tag2, tag3]"
+	)
 	public String[] getTags() {
 		if (_tagsSupplier != null) {
 			tags = _tagsSupplier.get();
@@ -664,14 +749,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Asset-tag names attached to the underlying file entry. Read-only on this API."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String[] tags;
 
 	@JsonIgnore
 	private Supplier<String[]> _tagsSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display title of the attachment, resolved for the request locale.",
+		example = "Hand Saw"
+	)
 	public String getTitle() {
 		if (_titleSupplier != null) {
 			title = _titleSupplier.get();
@@ -705,14 +795,19 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display title of the attachment, resolved for the request locale."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String title;
 
 	@JsonIgnore
 	private Supplier<String> _titleSupplier;
 
-	@Schema
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Integer attachment role. 0=Image, 1=Other. Read-only.",
+		example = "0"
+	)
 	public Integer getType() {
 		if (_typeSupplier != null) {
 			type = _typeSupplier.get();
@@ -744,7 +839,9 @@ public class Attachment implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Integer attachment role. 0=Image, 1=Other. Read-only."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Integer type;
 
@@ -825,7 +922,8 @@ public class Attachment implements Serializable {
 			sb.append("\"");
 		}
 
-		CustomField[] customFields = getCustomFields();
+		com.liferay.portal.vulcan.custom.field.CustomField[] customFields =
+			getCustomFields();
 
 		if (customFields != null) {
 			if (sb.length() > 1) {
@@ -837,7 +935,7 @@ public class Attachment implements Serializable {
 			sb.append("[");
 
 			for (int i = 0; i < customFields.length; i++) {
-				sb.append(String.valueOf(customFields[i]));
+				sb.append(customFields[i]);
 
 				if ((i + 1) < customFields.length) {
 					sb.append(", ");
@@ -1042,8 +1140,8 @@ public class Attachment implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.delivery.catalog.dto.v1_0.Attachment",
 		name = "x-class-name"
 	)
@@ -1130,6 +1228,27 @@ public class Attachment implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -1138,3 +1257,4 @@ public class Attachment implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:1549077564

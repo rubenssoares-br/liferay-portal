@@ -11,33 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.constraints.DecimalMin;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.constraints.DecimalMin;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("OrderNote")
+@GraphQLName(
+	description = "A note attached to an order. Carries free-text content and a restricted flag that hides internal-only notes from the storefront.",
+	value = "OrderNote"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "A note attached to an order. Carries free-text content and a restricted flag that hides internal-only notes from the storefront."
+)
 @JsonFilter("Liferay.Vulcan")
 @XmlRootElement(name = "OrderNote")
 public class OrderNote implements Serializable {
@@ -50,7 +61,10 @@ public class OrderNote implements Serializable {
 		return ObjectMapperUtil.unsafeReadValue(OrderNote.class, json);
 	}
 
-	@Schema(example = "Alessio Antonio Rendina")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the user who authored the note. Read-only.",
+		example = "Test Test"
+	)
 	public String getAuthor() {
 		if (_authorSupplier != null) {
 			author = _authorSupplier.get();
@@ -84,14 +98,109 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Display name of the user who authored the note. Read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected String author;
 
 	@JsonIgnore
 	private Supplier<String> _authorSupplier;
 
-	@Schema(example = "This order will be shipped separately")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the user who authored the note (FK identifier). Read-only.",
+		example = "20078"
+	)
+	public Long getAuthorId() {
+		if (_authorIdSupplier != null) {
+			authorId = _authorIdSupplier.get();
+
+			_authorIdSupplier = null;
+		}
+
+		return authorId;
+	}
+
+	public void setAuthorId(Long authorId) {
+		this.authorId = authorId;
+
+		_authorIdSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setAuthorId(
+		UnsafeSupplier<Long, Exception> authorIdUnsafeSupplier) {
+
+		_authorIdSupplier = () -> {
+			try {
+				return authorIdUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Reference to the user who authored the note (FK identifier). Read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Long authorId;
+
+	@JsonIgnore
+	private Supplier<Long> _authorIdSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Avatar URL of the note author. Read-only.",
+		example = "https://example.com/portrait.png"
+	)
+	public String getAuthorPortraitURL() {
+		if (_authorPortraitURLSupplier != null) {
+			authorPortraitURL = _authorPortraitURLSupplier.get();
+
+			_authorPortraitURLSupplier = null;
+		}
+
+		return authorPortraitURL;
+	}
+
+	public void setAuthorPortraitURL(String authorPortraitURL) {
+		this.authorPortraitURL = authorPortraitURL;
+
+		_authorPortraitURLSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setAuthorPortraitURL(
+		UnsafeSupplier<String, Exception> authorPortraitURLUnsafeSupplier) {
+
+		_authorPortraitURLSupplier = () -> {
+			try {
+				return authorPortraitURLUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(description = "Avatar URL of the note author. Read-only.")
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected String authorPortraitURL;
+
+	@JsonIgnore
+	private Supplier<String> _authorPortraitURLSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Free-text content of the note.",
+		example = "Customer requested expedited shipping."
+	)
 	public String getContent() {
 		if (_contentSupplier != null) {
 			content = _contentSupplier.get();
@@ -125,14 +234,17 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "Free-text content of the note.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String content;
 
 	@JsonIgnore
 	private Supplier<String> _contentSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Idempotency key for create and update; must be unique per note within the company.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -166,7 +278,9 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Idempotency key for create and update; must be unique per note within the company."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
@@ -174,7 +288,10 @@ public class OrderNote implements Serializable {
 	private Supplier<String> _externalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the order note (FK identifier). Read-only.",
+		example = "30130"
+	)
 	public Long getId() {
 		if (_idSupplier != null) {
 			id = _idSupplier.get();
@@ -206,14 +323,65 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
-	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
+	@GraphQLField(
+		description = "Reference to the order note (FK identifier). Read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
 	protected Long id;
 
 	@JsonIgnore
 	private Supplier<Long> _idSupplier;
 
-	@Schema(example = "CAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Last modification date and time in ISO 8601. Read-only.",
+		example = "2017-07-21"
+	)
+	public Date getModifiedDate() {
+		if (_modifiedDateSupplier != null) {
+			modifiedDate = _modifiedDateSupplier.get();
+
+			_modifiedDateSupplier = null;
+		}
+
+		return modifiedDate;
+	}
+
+	public void setModifiedDate(Date modifiedDate) {
+		this.modifiedDate = modifiedDate;
+
+		_modifiedDateSupplier = null;
+	}
+
+	@JsonIgnore
+	public void setModifiedDate(
+		UnsafeSupplier<Date, Exception> modifiedDateUnsafeSupplier) {
+
+		_modifiedDateSupplier = () -> {
+			try {
+				return modifiedDateUnsafeSupplier.get();
+			}
+			catch (RuntimeException runtimeException) {
+				throw runtimeException;
+			}
+			catch (Exception exception) {
+				throw new RuntimeException(exception);
+			}
+		};
+	}
+
+	@GraphQLField(
+		description = "Last modification date and time in ISO 8601. Read-only."
+	)
+	@JsonProperty(access = JsonProperty.Access.READ_ONLY)
+	protected Date modifiedDate;
+
+	@JsonIgnore
+	private Supplier<Date> _modifiedDateSupplier;
+
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the parent order.",
+		example = "AB-34098-789-N"
+	)
 	public String getOrderExternalReferenceCode() {
 		if (_orderExternalReferenceCodeSupplier != null) {
 			orderExternalReferenceCode =
@@ -251,7 +419,7 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(description = "External reference code of the parent order.")
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String orderExternalReferenceCode;
 
@@ -259,7 +427,10 @@ public class OrderNote implements Serializable {
 	private Supplier<String> _orderExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30128")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent order (FK identifier).",
+		example = "30128"
+	)
 	public Long getOrderId() {
 		if (_orderIdSupplier != null) {
 			orderId = _orderIdSupplier.get();
@@ -293,14 +464,19 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent order (FK identifier)."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long orderId;
 
 	@JsonIgnore
 	private Supplier<Long> _orderIdSupplier;
 
-	@Schema(example = "true")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "When true, the note is internal-only and not visible to the storefront. When false, it is visible to the buyer.",
+		example = "false"
+	)
 	public Boolean getRestricted() {
 		if (_restrictedSupplier != null) {
 			restricted = _restrictedSupplier.get();
@@ -334,7 +510,9 @@ public class OrderNote implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "When true, the note is internal-only and not visible to the storefront. When false, it is visible to the buyer."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Boolean restricted;
 
@@ -368,6 +546,9 @@ public class OrderNote implements Serializable {
 
 		sb.append("{");
 
+		DateFormat liferayToJSONDateFormat = new SimpleDateFormat(
+			"yyyy-MM-dd'T'HH:mm:ss'Z'");
+
 		String author = getAuthor();
 
 		if (author != null) {
@@ -380,6 +561,34 @@ public class OrderNote implements Serializable {
 			sb.append("\"");
 
 			sb.append(_escape(author));
+
+			sb.append("\"");
+		}
+
+		Long authorId = getAuthorId();
+
+		if (authorId != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"authorId\": ");
+
+			sb.append(authorId);
+		}
+
+		String authorPortraitURL = getAuthorPortraitURL();
+
+		if (authorPortraitURL != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"authorPortraitURL\": ");
+
+			sb.append("\"");
+
+			sb.append(_escape(authorPortraitURL));
 
 			sb.append("\"");
 		}
@@ -428,6 +637,22 @@ public class OrderNote implements Serializable {
 			sb.append(id);
 		}
 
+		Date modifiedDate = getModifiedDate();
+
+		if (modifiedDate != null) {
+			if (sb.length() > 1) {
+				sb.append(", ");
+			}
+
+			sb.append("\"modifiedDate\": ");
+
+			sb.append("\"");
+
+			sb.append(liferayToJSONDateFormat.format(modifiedDate));
+
+			sb.append("\"");
+		}
+
 		String orderExternalReferenceCode = getOrderExternalReferenceCode();
 
 		if (orderExternalReferenceCode != null) {
@@ -473,8 +698,8 @@ public class OrderNote implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.order.dto.v1_0.OrderNote",
 		name = "x-class-name"
 	)
@@ -561,6 +786,27 @@ public class OrderNote implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -569,3 +815,4 @@ public class OrderNote implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-2040201491

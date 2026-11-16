@@ -47,13 +47,13 @@ import com.liferay.portal.reports.engine.console.web.internal.admin.search.Entry
 import com.liferay.portal.reports.engine.console.web.internal.admin.search.SourceDisplayTerms;
 import com.liferay.portal.reports.engine.console.web.internal.admin.search.SourceSearch;
 
+import jakarta.portlet.PortletURL;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-
-import javax.portlet.PortletURL;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author Rafael Praxedes
@@ -196,7 +196,8 @@ public class ReportsEngineDisplayContext {
 			ReportsEngineWebKeys.DEFINITION);
 
 		String reportParameters = BeanParamUtil.getString(
-			definition, _httpServletRequest, "reportParameters");
+			definition, _httpServletRequest, "reportParameters",
+			Definition::getReportParameters);
 
 		if (!JSONUtil.isJSONArray(reportParameters)) {
 			return null;
@@ -216,12 +217,13 @@ public class ReportsEngineDisplayContext {
 						reportParameterJSONObject.getString("value")));
 			}
 
-			if (reportParameterJSONObject.has("key")) {
-				reportParameterJSONObject.put(
-					"key",
-					HtmlUtil.escapeJS(
-						reportParameterJSONObject.getString("key")));
+			if (!reportParameterJSONObject.has("key")) {
+				continue;
 			}
+
+			reportParameterJSONObject.put(
+				"key",
+				HtmlUtil.escapeJS(reportParameterJSONObject.getString("key")));
 		}
 
 		return reportParametersJSONArray.toString();
@@ -294,11 +296,7 @@ public class ReportsEngineDisplayContext {
 	public boolean isDefinitionsTabSelected() {
 		String tabs1 = _getTabs1();
 
-		if (tabs1.equals("definitions")) {
-			return true;
-		}
-
-		return false;
+		return tabs1.equals("definitions");
 	}
 
 	public boolean isDisabled() throws PortalException {
@@ -312,21 +310,13 @@ public class ReportsEngineDisplayContext {
 	public boolean isReportsTabSelected() {
 		String tabs1 = _getTabs1();
 
-		if (tabs1.equals("reports")) {
-			return true;
-		}
-
-		return false;
+		return tabs1.equals("reports");
 	}
 
 	public boolean isSourcesTabSelected() {
 		String tabs1 = _getTabs1();
 
-		if (tabs1.equals("sources")) {
-			return true;
-		}
-
-		return false;
+		return tabs1.equals("sources");
 	}
 
 	private DefinitionSearch _getDefinitionSearch() throws PortalException {

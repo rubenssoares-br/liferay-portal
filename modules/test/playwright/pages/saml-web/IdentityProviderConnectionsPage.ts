@@ -7,7 +7,8 @@ import {Locator, Page, expect} from '@playwright/test';
 
 import {TIdpConnection} from '../../helpers/SamlProviderConnectionHelper';
 import {clickAndExpectToBeVisible} from '../../utils/clickAndExpectToBeVisible';
-import {ApplicationsMenuPage} from '../product-navigation-applications-menu/ApplicationsMenuPage';
+import {waitForAlert} from '../../utils/waitForAlert';
+import {GlobalMenuPage} from '../product-navigation-applications-menu/GlobalMenuPage';
 
 export interface AttributeMapping {
 	attributeMappingType:
@@ -21,12 +22,12 @@ export interface AttributeMapping {
 
 export class IdentityProviderConnectionsPage {
 	readonly addIdentityProviderConnectionButton: Locator;
-	readonly applicationsMenuPage: ApplicationsMenuPage;
 	readonly basicUserFields: Locator;
 	readonly clockSkewField: Locator;
 	readonly enabledField: Locator;
 	readonly entityIdField: Locator;
 	readonly forceAuthnToggle: Locator;
+	readonly globalMenuPage: GlobalMenuPage;
 	readonly identityProviderConnectionsTab: Locator;
 	readonly identityProviderConnectionsTable: Locator;
 	readonly keepAliveUrlField: Locator;
@@ -35,7 +36,6 @@ export class IdentityProviderConnectionsPage {
 	readonly nameIdentifierFormatField: Locator;
 	readonly page: Page;
 	readonly saveButton: Locator;
-	readonly successMessage: Locator;
 	readonly unknownUsersAreStrangersToggle: Locator;
 	readonly userCustomFields: Locator;
 	readonly userMembershipsFields: Locator;
@@ -44,12 +44,12 @@ export class IdentityProviderConnectionsPage {
 		this.addIdentityProviderConnectionButton = page.getByRole('button', {
 			name: 'Add Identity Provider',
 		});
-		this.applicationsMenuPage = new ApplicationsMenuPage(page);
 		this.basicUserFields = page.getByText('Basic User Fields');
 		this.clockSkewField = page.getByLabel('Clock Skew');
 		this.enabledField = page.getByText('Enabled', {exact: true});
 		this.entityIdField = page.getByLabel('Entity ID');
 		this.forceAuthnToggle = page.getByText('Force Authn');
+		this.globalMenuPage = new GlobalMenuPage(page);
 		this.identityProviderConnectionsTab = page.getByRole('tab', {
 			name: 'Identity Provider Connections',
 		});
@@ -66,9 +66,6 @@ export class IdentityProviderConnectionsPage {
 		);
 		this.page = page;
 		this.saveButton = page.getByRole('button', {name: 'Save'});
-		this.successMessage = page.getByText(
-			'Your request completed successfully'
-		);
 		this.unknownUsersAreStrangersToggle = page.getByText(
 			'Unknown Users Are Strangers'
 		);
@@ -104,10 +101,6 @@ export class IdentityProviderConnectionsPage {
 	}
 
 	async deleteIdentityProviderConnections() {
-		this.page.on('dialog', (dialog) => {
-			dialog.accept();
-		});
-
 		await this.page.waitForTimeout(1000);
 
 		const row = await this.identityProviderConnectionsTable
@@ -115,17 +108,17 @@ export class IdentityProviderConnectionsPage {
 			.last();
 
 		while (await row.isVisible()) {
+			this.page.once('dialog', (dialog) => {
+				dialog.accept();
+			});
+
 			await clickAndExpectToBeVisible({
 				autoClick: true,
 				target: this.page.getByRole('link', {name: 'Delete'}),
 				trigger: row.locator('.dropdown-toggle'),
 			});
 
-			await expect(await this.successMessage).toBeVisible();
-
-			// Prevent the above expect from passing due to previous success
-
-			await this.page.getByLabel('Close').click();
+			await waitForAlert(this.page);
 		}
 	}
 
@@ -154,7 +147,11 @@ export class IdentityProviderConnectionsPage {
 			forceReload ||
 			(await this.identityProviderConnectionsTab.isHidden())
 		) {
-			await this.applicationsMenuPage.goToSamlAdmin(forceReload);
+			if (forceReload) {
+				await this.globalMenuPage.goToHome();
+			}
+
+			await this.globalMenuPage.goToControlPanel('SAML Admin');
 		}
 
 		await this.identityProviderConnectionsTab.click();
@@ -176,9 +173,7 @@ export class IdentityProviderConnectionsPage {
 			trigger: row.locator('.dropdown-toggle'),
 		});
 
-		await expect(await this.successMessage).toBeVisible();
-
-		await this.page.getByLabel('Close').click();
+		await waitForAlert(this.page);
 	}
 
 	private async populateAndSaveIdentityProviderConnectionDetails(
@@ -277,9 +272,7 @@ export class IdentityProviderConnectionsPage {
 			).toBeVisible();
 		}
 		else {
-			await expect(await this.successMessage).toBeVisible();
-
-			await this.page.getByLabel('Close').click();
+			await waitForAlert(this.page);
 		}
 	}
 }

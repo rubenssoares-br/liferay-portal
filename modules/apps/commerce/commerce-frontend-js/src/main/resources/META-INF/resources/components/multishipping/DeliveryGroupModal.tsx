@@ -7,20 +7,27 @@ import ClayButton from '@clayui/button';
 import ClayForm, {ClayInput} from '@clayui/form';
 import ClayIcon from '@clayui/icon';
 import ClayModal from '@clayui/modal';
-import {Observer} from '@clayui/modal/lib/types';
 import classnames from 'classnames';
 import {sub} from 'frontend-js-web';
 import React, {useCallback, useRef, useState} from 'react';
 
 import AddressSelector from './AddressSelector';
 import ErrorMessage from './ErrorMessage';
-import {IDeliveryGroup, IFieldError, IPostalAddress} from './Types';
+import {
+	IAddressSubtypeConfiguration,
+	IDeliveryGroup,
+	IFieldError,
+	IPostalAddress,
+} from './Types';
+
+import type {Observer} from '@clayui/modal/src/types';
 
 const MANDATORY_FIELDS = ['name'];
 
 interface IDeliveryGroupModalProps {
 	onOpenModal(value: boolean): void;
 	accountId: number;
+	addressSubtypeConfiguration?: IAddressSubtypeConfiguration;
 	deliveryGroup?: IDeliveryGroup;
 	handleSubmit: any;
 	hasManageAddressesPermission?: boolean;
@@ -31,6 +38,7 @@ interface IDeliveryGroupModalProps {
 
 const DeliveryGroupModal = ({
 	accountId,
+	addressSubtypeConfiguration,
 	deliveryGroup,
 	handleSubmit,
 	hasManageAddressesPermission = true,
@@ -106,7 +114,7 @@ const DeliveryGroupModal = ({
 	);
 
 	const handleFormSubmit = useCallback(
-		async (event) => {
+		async (event: any) => {
 			event.preventDefault();
 
 			if (isAddressFormValid && !!deliveryGroupState.name?.length) {
@@ -137,7 +145,9 @@ const DeliveryGroupModal = ({
 			observer={observerModal}
 			spritemap={spritemap}
 		>
-			<ClayModal.Header>
+			<ClayModal.Header
+				closeButtonAriaLabel={Liferay.Language.get('close')}
+			>
 				{sub(
 					deliveryGroup
 						? Liferay.Language.get('edit-x')
@@ -210,6 +220,9 @@ const DeliveryGroupModal = ({
 						<AddressSelector
 							accountId={accountId}
 							addressId={deliveryGroupState.addressId || 0}
+							addressSubtypeConfiguration={
+								addressSubtypeConfiguration
+							}
 							addressType="shipping"
 							hasManageAddressesPermission={
 								hasManageAddressesPermission

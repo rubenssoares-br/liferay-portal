@@ -11,37 +11,44 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import com.liferay.petra.function.UnsafeSupplier;
 import com.liferay.petra.string.StringBundler;
+import com.liferay.portal.kernel.json.JSONFactoryUtil;
 import com.liferay.portal.kernel.util.StringUtil;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLField;
 import com.liferay.portal.vulcan.graphql.annotation.GraphQLName;
 import com.liferay.portal.vulcan.util.ObjectMapperUtil;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Generated;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotEmpty;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import java.io.Serializable;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import javax.annotation.Generated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.DecimalMin;
-import javax.validation.constraints.NotEmpty;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
 /**
  * @author Alessio Antonio Rendina
  * @generated
  */
 @Generated("")
-@GraphQLName("AccountMember")
+@GraphQLName(
+	description = "Membership relation between an account and a user. Carries the user's account-scoped roles and the identifiers needed to resolve the user on create. Returned as a sub-resource of the owning account.",
+	value = "AccountMember"
+)
+@io.swagger.v3.oas.annotations.media.Schema(
+	description = "Membership relation between an account and a user. Carries the user's account-scoped roles and the identifiers needed to resolve the user on create. Returned as a sub-resource of the owning account.",
+	requiredProperties = {"email"}
+)
 @JsonFilter("Liferay.Vulcan")
-@Schema(requiredProperties = {"email"})
 @XmlRootElement(name = "AccountMember")
 public class AccountMember implements Serializable {
 
@@ -54,7 +61,10 @@ public class AccountMember implements Serializable {
 	}
 
 	@DecimalMin("0")
-	@Schema(example = "30130")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the parent account on which the membership is created (FK identifier). Read-only on this schema.",
+		example = "30130"
+	)
 	public Long getAccountId() {
 		if (_accountIdSupplier != null) {
 			accountId = _accountIdSupplier.get();
@@ -88,14 +98,17 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the parent account on which the membership is created (FK identifier). Read-only on this schema."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long accountId;
 
 	@JsonIgnore
 	private Supplier<Long> _accountIdSupplier;
 
-	@Schema(
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Account-scoped roles assigned to the user on this account. Each entry carries the localized title and description of the role.",
 		example = "[{description={en_US=Account Administrator Description US, hr_HR=Account Administrator Description HR, hu_HU=Account Administrator Description HU}}, {description={en_US=Order Manager Description US, hr_HR=Order Manager Description HR, hu_HU=Order Manager Description HU}}]"
 	)
 	@Valid
@@ -132,14 +145,19 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Account-scoped roles assigned to the user on this account. Each entry carries the localized title and description of the role."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected AccountRole[] accountRoles;
 
 	@JsonIgnore
 	private Supplier<AccountRole[]> _accountRolesSupplier;
 
-	@Schema(example = "joe.1@commerce.com")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Email address of the user being attached as a member. Required on create; resolved against the platform user directory and rejected when no matching user exists.",
+		example = "joe.1@commerce.com"
+	)
 	public String getEmail() {
 		if (_emailSupplier != null) {
 			email = _emailSupplier.get();
@@ -173,7 +191,9 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Email address of the user being attached as a member. Required on create; resolved against the platform user directory and rejected when no matching user exists."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	@NotEmpty
 	protected String email;
@@ -181,7 +201,10 @@ public class AccountMember implements Serializable {
 	@JsonIgnore
 	private Supplier<String> _emailSupplier;
 
-	@Schema(example = "AB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code field on the membership payload. Not returned on read.",
+		example = "AB-34098-789-N"
+	)
 	public String getExternalReferenceCode() {
 		if (_externalReferenceCodeSupplier != null) {
 			externalReferenceCode = _externalReferenceCodeSupplier.get();
@@ -215,14 +238,19 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code field on the membership payload. Not returned on read."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String externalReferenceCode;
 
 	@JsonIgnore
 	private Supplier<String> _externalReferenceCodeSupplier;
 
-	@Schema(example = "User Name")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Display name of the user attached as a member. Read-only; mirrored from the user record.",
+		example = "User Name"
+	)
 	public String getName() {
 		if (_nameSupplier != null) {
 			name = _nameSupplier.get();
@@ -254,14 +282,19 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Display name of the user attached as a member. Read-only; mirrored from the user record."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String name;
 
 	@JsonIgnore
 	private Supplier<String> _nameSupplier;
 
-	@Schema(example = "UAB-34098-789-N")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "External reference code of the user attached as a member. Alternative to `email` or `userId` on POST; resolved against the platform user directory and rejected when no matching user exists. Not returned on read.",
+		example = "AB-34098-789-N"
+	)
 	public String getUserExternalReferenceCode() {
 		if (_userExternalReferenceCodeSupplier != null) {
 			userExternalReferenceCode =
@@ -297,7 +330,9 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "External reference code of the user attached as a member. Alternative to `email` or `userId` on POST; resolved against the platform user directory and rejected when no matching user exists. Not returned on read."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected String userExternalReferenceCode;
 
@@ -305,7 +340,10 @@ public class AccountMember implements Serializable {
 	private Supplier<String> _userExternalReferenceCodeSupplier;
 
 	@DecimalMin("0")
-	@Schema(example = "30002")
+	@io.swagger.v3.oas.annotations.media.Schema(
+		description = "Reference to the user attached as a member (FK identifier). Alternative to `email` or `userExternalReferenceCode` on POST.",
+		example = "30002"
+	)
 	public Long getUserId() {
 		if (_userIdSupplier != null) {
 			userId = _userIdSupplier.get();
@@ -339,7 +377,9 @@ public class AccountMember implements Serializable {
 		};
 	}
 
-	@GraphQLField
+	@GraphQLField(
+		description = "Reference to the user attached as a member (FK identifier). Alternative to `email` or `userExternalReferenceCode` on POST."
+	)
 	@JsonProperty(access = JsonProperty.Access.READ_WRITE)
 	protected Long userId;
 
@@ -488,8 +528,8 @@ public class AccountMember implements Serializable {
 		return sb.toString();
 	}
 
-	@Schema(
-		accessMode = Schema.AccessMode.READ_ONLY,
+	@io.swagger.v3.oas.annotations.media.Schema(
+		accessMode = io.swagger.v3.oas.annotations.media.Schema.AccessMode.READ_ONLY,
 		defaultValue = "com.liferay.headless.commerce.admin.account.dto.v1_0.AccountMember",
 		name = "x-class-name"
 	)
@@ -576,6 +616,27 @@ public class AccountMember implements Serializable {
 		return sb.toString();
 	}
 
+	private static String _toJSON(Object value) {
+		if (value instanceof Collection) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray((Collection<?>)value));
+		}
+		else if (value instanceof Map) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONObject((Map<?, ?>)value));
+		}
+		else if (value instanceof Object[]) {
+			return String.valueOf(
+				JSONFactoryUtil.createJSONArray(
+					Arrays.asList((Object[])value)));
+		}
+		else if (value instanceof String) {
+			return StringBundler.concat("\"", _escape(value), "\"");
+		}
+
+		return String.valueOf(value);
+	}
+
 	private static final String[][] _JSON_ESCAPE_STRINGS = {
 		{"\\", "\"", "\b", "\f", "\n", "\r", "\t"},
 		{"\\\\", "\\\"", "\\b", "\\f", "\\n", "\\r", "\\t"}
@@ -584,3 +645,4 @@ public class AccountMember implements Serializable {
 	private Map<String, Serializable> _extendedProperties;
 
 }
+// LIFERAY-REST-BUILDER-HASH:-1803768055

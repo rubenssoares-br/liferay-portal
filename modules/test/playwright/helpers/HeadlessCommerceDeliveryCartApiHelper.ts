@@ -3,23 +3,8 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later OR LicenseRef-Liferay-DXP-EULA-2.0.0-2023-06
  */
 
+import getRandomString from '../utils/getRandomString';
 import {ApiHelpers, DataApiHelpers} from './ApiHelpers';
-
-type TCartItem = {
-	deliveryGroupName?: string;
-	id?: number;
-	options?: string;
-	quantity: number;
-	replacedSkuId?: number;
-	requestedDeliveryDate?: string;
-	shippingAddressId?: string;
-	skuId: number;
-	skuUnitOfMeasure?: TCartItemUOM;
-};
-
-type TCartItemUOM = {
-	key: string;
-};
 
 type TCart = {
 	accountId: number;
@@ -31,9 +16,36 @@ type TCart = {
 	id?: number;
 	modifiedDate?: string;
 	paymentMethod?: string;
+	printedNote?: string;
 	shippingAddressId?: number;
 	shippingMethod?: string;
 	shippingOption?: string;
+};
+
+type TCartComment = {
+	author?: string;
+	content?: string;
+	externalReferenceCode?: string;
+	id?: number;
+	orderId?: number;
+	restricted?: boolean;
+};
+
+type TCartItem = {
+	deliveryGroupName?: string;
+	id?: number;
+	options?: string;
+	price?: any;
+	quantity: number;
+	replacedSkuId?: number;
+	requestedDeliveryDate?: string;
+	shippingAddressId?: string;
+	skuId: number;
+	skuUnitOfMeasure?: TCartItemUOM;
+};
+
+type TCartItemUOM = {
+	key: string;
 };
 
 export class HeadlessCommerceDeliveryCartApiHelper {
@@ -51,6 +63,18 @@ export class HeadlessCommerceDeliveryCartApiHelper {
 		);
 	}
 
+	async deleteCart(cartId: number) {
+		return this.apiHelpers.delete(
+			`${this.apiHelpers.baseUrl}${this.basePath}/carts/${cartId}`
+		);
+	}
+
+	async getCart(cartId: number) {
+		return await this.apiHelpers.get(
+			`${this.apiHelpers.baseUrl}${this.basePath}/carts/${cartId}`
+		);
+	}
+
 	async getCartItems(cartId: number) {
 		return await this.apiHelpers.get(
 			`${this.apiHelpers.baseUrl}${this.basePath}/carts/${cartId}/items`
@@ -63,12 +87,6 @@ export class HeadlessCommerceDeliveryCartApiHelper {
 		);
 	}
 
-	async deleteCart(cartId: number) {
-		return this.apiHelpers.delete(
-			`${this.apiHelpers.baseUrl}${this.basePath}/carts/${cartId}`
-		);
-	}
-
 	async patchCart(cart: TCart, id: number): Promise<TCart> {
 		const patchCart = await this.apiHelpers.patch(
 			`${this.apiHelpers.baseUrl}${this.basePath}/carts/${id}`,
@@ -76,6 +94,26 @@ export class HeadlessCommerceDeliveryCartApiHelper {
 		);
 
 		return patchCart;
+	}
+
+	async postCartIdCartComment(
+		cartComment: TCartComment,
+		cartId: number
+	): Promise<TCartComment> {
+		cartComment = {
+			author: getRandomString(),
+			content: getRandomString(),
+			externalReferenceCode: getRandomString(),
+			...(cartComment || {}),
+		};
+
+		return await this.apiHelpers.post(
+			`${this.apiHelpers.baseUrl}${this.basePath}/carts/${cartId}/comments`,
+			{
+				data: cartComment,
+				failOnStatusCode: true,
+			}
+		);
 	}
 
 	async postCart(cart: TCart, channelId: number): Promise<TCart> {
